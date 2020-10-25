@@ -1,17 +1,18 @@
 use std::{
     path::PathBuf,
-    sync::{Arc, Mutex, MutexGuard},
+    sync::{Arc, RwLock},
 };
 
 use directories::ProjectDirs;
 use libsignal_protocol::{
     keys::{PrivateKey, PublicKey},
+    stores::IdentityKeyStore,
     stores::SessionStore,
     stores::{PreKeyStore, SerializedSession, SignedPreKeyStore},
     Address, Buffer, Context, Serializable,
 };
 use libsignal_service::configuration::SignalingKey;
-use log::{debug, trace};
+use log::trace;
 use sled::IVec;
 
 use crate::{manager::State, Error};
@@ -20,56 +21,50 @@ use super::ConfigStore;
 
 #[derive(Clone)]
 pub struct SledConfigStore {
-    db: Arc<Mutex<sled::Db>>,
+    db: Arc<RwLock<sled::Db>>,
 }
 
 impl SledConfigStore {
     pub fn new() -> Result<Self, Error> {
         let dir: PathBuf = ProjectDirs::from("org", "libsignal-service-rs", "signal-bot-rs")
-            .ok_or(Error::MissingKeyError)?
+            .unwrap()
             .config_dir()
             .into();
         std::fs::create_dir_all(&dir).unwrap();
         Ok(SledConfigStore {
-            db: Arc::new(Mutex::new(sled::open(dir.join("db.sled"))?)),
+            db: Arc::new(RwLock::new(sled::open(dir.join("db.sled"))?)),
         })
     }
 
-    fn db(&self) -> MutexGuard<sled::Db> {
-        trace!("[mutex] locking sled DB");
-        self.db.lock().expect("poisoned mutex")
+    fn get_string(db: &sled::Tree, key: &str) -> Result<String, Error> {
+        trace!("getting string {} from config", key);
+        Ok(
+            String::from_utf8_lossy(&db.get(key)?.ok_or(Error::MissingKeyError(key.into()))?)
+                .to_string(),
+        )
     }
 
-    fn get_string<K>(db: &sled::Tree, key: K) -> Result<String, Error>
+    fn contains<S>(&self, key: S) -> Result<bool, Error>
     where
-        K: AsRef<[u8]>,
+        S: AsRef<str>,
     {
-        Ok(String::from_utf8_lossy(&db.get(key)?.ok_or(Error::MissingKeyError)?).to_string())
+        trace!("checking if config contains {}", key.as_ref());
+        Ok(self
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .contains_key(key.as_ref())?)
     }
 
-    fn get_u32<K>(db: &sled::Tree, key: K) -> Result<Option<u32>, Error>
+    fn remove<S>(&self, key: S) -> Result<(), Error>
     where
-        K: AsRef<[u8]>,
+        S: AsRef<str>,
     {
-        Ok(db.get(&key)?.and_then(|ref data| {
-            let mut a: [u8; 4] = Default::default();
-            a.copy_from_slice(data);
-            Some(u32::from_le_bytes(a))
-        }))
-    }
-
-    fn contains<K>(&self, key: K) -> Result<bool, Error>
-    where
-        K: AsRef<[u8]>,
-    {
-        Ok(self.db().contains_key(key)?)
-    }
-
-    fn remove<K>(&self, key: K) -> Result<(), Error>
-    where
-        K: AsRef<[u8]>,
-    {
-        self.db().remove(key)?;
+        trace!("removing {} from db", key.as_ref());
+        self.db
+            .try_write()
+            .expect("poisoned mutex")
+            .remove(key.as_ref())?;
         Ok(())
     }
 
@@ -81,23 +76,18 @@ impl SledConfigStore {
         format!("signed-prekey-{:09}", id)
     }
 
-    fn session_key(&self, addr: &Address) -> Option<String> {
-        let addr_str = addr.as_str().unwrap();
-        let recipient_id = if addr_str.starts_with('+') {
-            // strip the prefix + from e164, as is done in Go (cfr. the `func recID`).
-            &addr_str[1..]
-        } else {
-            return None;
-            // addr_str
-        };
+    fn session_key(&self, addr: &Address) -> String {
+        format!("session-{}-{}", addr.as_str().unwrap(), addr.device_id())
+    }
 
-        Some(format!("session-{}-{}", recipient_id, addr.device_id()))
+    fn identity_key(&self, addr: &Address) -> String {
+        format!("identity-remote-{}", addr.as_str().unwrap())
     }
 }
 
 impl ConfigStore for SledConfigStore {
     fn state(&self, context: &Context) -> Result<State, Error> {
-        let db = self.db();
+        let db = self.db.read().expect("poisoned mutex");
         if db.contains_key("uuid")? {
             trace!("Loading registered state");
             Ok(State::Registered {
@@ -106,21 +96,29 @@ impl ConfigStore for SledConfigStore {
                 password: Self::get_string(&db, "password")?,
                 signaling_key: {
                     let mut key: SignalingKey = [0; 52];
-                    key.copy_from_slice(&db.get("signaling_key")?.ok_or(Error::MissingKeyError)?);
+                    key.copy_from_slice(
+                        &db.get("signaling_key")?
+                            .ok_or(Error::MissingKeyError("signaling_key".into()))?,
+                    );
                     key
                 },
-                device_id: Self::get_u32(&db, "device_id")?,
+                device_id: self.get_u32("device_id")?,
+                registration_id: self
+                    .get_u32("registration_id")?
+                    .ok_or(Error::MissingKeyError("registration_id".into()))?,
                 private_key: PrivateKey::decode_point(
                     context,
-                    &db.get("private_key")?.ok_or(Error::MissingKeyError)?,
+                    &db.get("private_key")?
+                        .ok_or(Error::MissingKeyError("private_key".into()))?,
                 )?,
                 public_key: PublicKey::decode_point(
                     context,
-                    &db.get("public_key")?.ok_or(Error::MissingKeyError)?,
+                    &db.get("public_key")?
+                        .ok_or(Error::MissingKeyError("public_key".into()))?,
                 )?,
                 profile_key: db
                     .get("profile_key")?
-                    .ok_or(Error::MissingKeyError)?
+                    .ok_or(Error::MissingKeyError("profile_key".into()))?
                     .to_vec(),
             })
         } else if db.contains_key("phone_number")? {
@@ -134,23 +132,15 @@ impl ConfigStore for SledConfigStore {
         }
     }
 
-    fn pre_key_id_offset(&self) -> Result<u32, Error> {
-        let db = self.db();
-        Ok(Self::get_u32(&db, "pre_key_id_offset")?.ok_or(Error::MissingKeyError)?)
-    }
-
-    fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
-        let db = self.db();
-        Ok(Self::get_u32(&db, "next_signed_pre_key_id")?.ok_or(Error::MissingKeyError)?)
-    }
-
     fn save(&self, state: &State) -> Result<(), Error> {
-        let db = self.db();
+        let db = self.db.try_write().expect("poisoned mutex");
+        db.clear()?;
         match state {
             State::Registration {
                 phone_number,
                 password,
             } => {
+                trace!("saving registration data");
                 db.insert("phone_number", phone_number.as_bytes())?;
                 db.insert("password", password.as_bytes())?;
             }
@@ -160,6 +150,7 @@ impl ConfigStore for SledConfigStore {
                 password,
                 signaling_key,
                 device_id,
+                registration_id,
                 private_key,
                 public_key,
                 profile_key,
@@ -171,6 +162,7 @@ impl ConfigStore for SledConfigStore {
                 if let Some(device_id) = device_id {
                     db.insert("device_id", &device_id.to_le_bytes())?;
                 }
+                db.insert("registration_id", &registration_id.to_le_bytes())?;
                 db.insert("private_key", private_key.serialize()?.as_slice())?;
                 db.insert("public_key", public_key.serialize()?.as_slice())?;
                 db.insert("profile_key", profile_key.as_slice())?;
@@ -181,41 +173,69 @@ impl ConfigStore for SledConfigStore {
 
     fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
     where
-        K: AsRef<[u8]>,
+        K: AsRef<str>,
     {
-        Ok(self.db().get(key)?)
+        trace!("get {}", key.as_ref());
+        Ok(self.db.read().expect("poisoned mutex").get(key.as_ref())?)
+    }
+
+    fn get_u32<S>(&self, key: S) -> Result<Option<u32>, Error>
+    where
+        S: AsRef<str>,
+    {
+        trace!("getting u32 {}", key.as_ref());
+        Ok(self.get(key.as_ref())?.and_then(|ref data| {
+            let mut a: [u8; 4] = Default::default();
+            a.copy_from_slice(data);
+            Some(u32::from_le_bytes(a))
+        }))
     }
 
     fn insert<K, V>(&self, key: K, value: V) -> Result<(), Error>
     where
-        K: AsRef<[u8]>,
+        K: AsRef<str>,
         IVec: From<V>,
     {
-        let _ = self.db().insert(key, value)?;
+        trace!("inserting {}", key.as_ref());
+        let _ = self
+            .db
+            .try_write()
+            .expect("poisoned mutex")
+            .insert(key.as_ref(), value)?;
         Ok(())
     }
 
-    fn incr<K>(&self, key: K) -> Result<u32, Error>
+    fn insert_u32<S>(&self, key: S, value: u32) -> Result<(), Error>
     where
-        K: AsRef<[u8]>,
+        S: AsRef<str>,
     {
-        let value = Self::get_u32(&self.db(), &key)?.unwrap_or(0);
-        self.db().insert(key, &value.to_le_bytes())?;
-        Ok(value)
+        trace!("inserting u32 {}", key.as_ref());
+        self.db
+            .try_write()
+            .expect("poisoned mutex")
+            .insert(key.as_ref(), &value.to_le_bytes())?;
+        Ok(())
     }
 }
 
 impl PreKeyStore for SledConfigStore {
     fn load(&self, id: u32, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        writer.write_all(&self.get(self.prekey_key(id)).unwrap().unwrap())
+        trace!("loading pre-key {}", id);
+        let blah = self.get(self.prekey_key(id)).expect("sled error");
+        println!("{:?}", blah);
+        writer.write_all(&blah.expect("no pre key with this id"))
     }
 
     fn store(&self, id: u32, body: &[u8]) -> Result<(), libsignal_protocol::Error> {
-        self.insert(self.prekey_key(id), body).unwrap();
+        trace!("storing pre-key {}", id);
+        println!("{}", base64::encode(body));
+        self.insert(self.prekey_key(id), body)
+            .expect("failed to store pre-key");
         Ok(())
     }
 
     fn contains(&self, id: u32) -> bool {
+        trace!("checking if pre-key {} exists", id);
         self.contains(self.prekey_key(id)).unwrap()
     }
 
@@ -227,19 +247,23 @@ impl PreKeyStore for SledConfigStore {
 
 impl SignedPreKeyStore for SledConfigStore {
     fn load(&self, id: u32, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
+        trace!("loading signed-pre key {}", id);
         writer.write_all(&self.get(self.signed_prekey_key(id)).unwrap().unwrap())
     }
 
     fn store(&self, id: u32, body: &[u8]) -> Result<(), libsignal_protocol::Error> {
+        trace!("storing signed pre-key {}", id);
         self.insert(self.signed_prekey_key(id), body).unwrap();
         Ok(())
     }
 
     fn contains(&self, id: u32) -> bool {
+        trace!("checking is signed pre-key {} exists", id);
         self.contains(self.signed_prekey_key(id)).unwrap()
     }
 
     fn remove(&self, id: u32) -> Result<(), libsignal_protocol::Error> {
+        trace!("removing signed pre-key {}", id);
         self.remove(self.signed_prekey_key(id)).unwrap();
         Ok(())
     }
@@ -251,22 +275,25 @@ impl SessionStore for SledConfigStore {
         address: libsignal_protocol::Address,
     ) -> Result<Option<libsignal_protocol::stores::SerializedSession>, libsignal_protocol::Error>
     {
-        let key = if let Some(key) = self.session_key(&address) {
-            key
-        } else {
-            return Ok(None);
-        };
+        let key = self.session_key(&address);
+        trace!("loading session from {}", key);
 
-        trace!("Loading session for {:?} from {:?}", address, key);
-
-        let buf = if let Ok(buf) = self.get(key) {
+        let buf = if let Ok(Some(buf)) = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree("sessions")
+            .unwrap()
+            .get(key)
+        {
             buf
         } else {
             return Ok(None);
         };
 
+        trace!("session loaded!");
         Ok(Some(SerializedSession {
-            session: Buffer::from(&buf.unwrap()[..]),
+            session: Buffer::from(&buf[..]),
             extra_data: None,
         }))
     }
@@ -275,9 +302,11 @@ impl SessionStore for SledConfigStore {
         &self,
         addr: &[u8],
     ) -> Result<Vec<i32>, libsignal_protocol::InternalError> {
-        trace!("Getting sub device sessions");
+        trace!("getting sub device sessions");
         let ids = self
-            .db()
+            .db
+            .read()
+            .expect("poisoned mutex")
             .open_tree("sessions")
             .unwrap()
             .iter()
@@ -308,17 +337,16 @@ impl SessionStore for SledConfigStore {
         &self,
         addr: libsignal_protocol::Address,
     ) -> Result<bool, libsignal_protocol::Error> {
-        if let Some(key) = self.session_key(&addr) {
-            self.db()
-                .open_tree("sessions")
-                .unwrap()
-                .contains_key(key)
-                .map_err(|e| libsignal_protocol::Error::Unknown {
-                    reason: e.to_string(),
-                })
-        } else {
-            Ok(false)
-        }
+        trace!("contains session for {:?}", addr);
+        self.db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree("sessions")
+            .unwrap()
+            .contains_key(self.session_key(&addr))
+            .map_err(|e| libsignal_protocol::Error::Unknown {
+                reason: e.to_string(),
+            })
     }
 
     fn store_session(
@@ -326,13 +354,16 @@ impl SessionStore for SledConfigStore {
         addr: libsignal_protocol::Address,
         session: libsignal_protocol::stores::SerializedSession,
     ) -> Result<(), libsignal_protocol::InternalError> {
-        let key = self.session_key(&addr).expect("path for session FIXME");
-        trace!("Storing session for {:?} at {:?}", addr, key);
-        self.db()
+        let key = self.session_key(&addr);
+        trace!("storing session for {:?} at {:?}", addr, key);
+        self.db
+            .try_write()
+            .expect("poisoned mutex")
             .open_tree("sessions")
             .unwrap()
             .insert(key, session.session.as_slice())
             .unwrap();
+        trace!("stored session");
         Ok(())
     }
 
@@ -340,22 +371,75 @@ impl SessionStore for SledConfigStore {
         &self,
         addr: libsignal_protocol::Address,
     ) -> Result<(), libsignal_protocol::Error> {
-        if let Some(key) = self.session_key(&addr) {
-            trace!("Deleting session with key: {}", key);
-            self.db()
-                .open_tree("sessions")
-                .unwrap()
-                .remove(key)
-                .unwrap();
-        }
+        let key = self.session_key(&addr);
+        trace!("deleting session with key: {}", key);
+        self.db
+            .try_write()
+            .expect("poisoned mutex")
+            .open_tree("sessions")
+            .unwrap()
+            .remove(key)
+            .unwrap();
         Ok(())
     }
 
     fn delete_all_sessions(&self, _name: &[u8]) -> Result<usize, libsignal_protocol::Error> {
-        trace!("Deleting all sessions");
-        let tree = self.db().open_tree("sessions").unwrap();
+        trace!("deleting all sessions");
+        let tree = self
+            .db
+            .try_write()
+            .expect("poisoned mutex")
+            .open_tree("sessions")
+            .unwrap();
         let s = tree.len();
         tree.clear().unwrap();
         Ok(s)
+    }
+}
+
+impl IdentityKeyStore for SledConfigStore {
+    fn identity_key_pair(
+        &self,
+    ) -> Result<(libsignal_protocol::Buffer, libsignal_protocol::Buffer), libsignal_protocol::Error>
+    {
+        trace!("getting identity_key_pair");
+        let public_key: &[u8] = &self.get("public_key").unwrap().unwrap();
+        let private_key: &[u8] = &self.get("private_key").unwrap().unwrap();
+        Ok((public_key.into(), private_key.into()))
+    }
+
+    fn local_registration_id(&self) -> Result<u32, libsignal_protocol::Error> {
+        trace!("getting local_registration_id");
+        Ok(self.get_u32("registration_id").unwrap().unwrap())
+    }
+
+    fn is_trusted_identity(
+        &self,
+        address: libsignal_protocol::Address,
+        identity_key: &[u8],
+    ) -> Result<bool, libsignal_protocol::Error> {
+        let contents = self
+            .get(self.identity_key(&address))
+            .map_err(|e| {
+                log::error!("failed to read identity for {:?}: {}", address, e);
+                libsignal_protocol::InternalError::Unknown
+            })?
+            .expect("could not fetch identity");
+        Ok(contents == identity_key)
+    }
+
+    fn save_identity(
+        &self,
+        address: libsignal_protocol::Address,
+        identity_key: &[u8],
+    ) -> Result<(), libsignal_protocol::Error> {
+        trace!("saving identity");
+        self.insert(self.identity_key(&address), identity_key)
+            .map_err(|e| {
+                log::error!("error saving identity for {:?}: {}", address, e);
+                libsignal_protocol::InternalError::Unknown
+            })?;
+        trace!("saved identity");
+        Ok(())
     }
 }

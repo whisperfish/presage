@@ -1,16 +1,14 @@
-use futures::channel::mpsc::channel;
-use signal_bot::{config::SledConfigStore, Manager};
+use futures::{StreamExt, channel::mpsc::channel, future};
+use log::info;
+use signal_bot::{Error, Manager, config::SledConfigStore};
 
 use structopt::StructOpt;
 
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
-use libsignal_service::{content::ContentBody, configuration::SignalServers};
+use libsignal_service::{configuration::SignalServers, content::ContentBody};
 
 #[derive(StructOpt)]
 struct Args {
-    #[structopt(long = "servers", short = "s", default_value = "staging")]
-    servers: SignalServers,
-
     #[structopt(flatten)]
     subcommand: Subcommand,
 }
@@ -27,6 +25,8 @@ enum Subcommand {
         phone_number: String,
         #[structopt(long = "use-voice-call")]
         use_voice_call: bool,
+        #[structopt(long = "servers", short = "s", default_value = "staging")]
+        servers: SignalServers,
     },
     #[structopt(
         about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
@@ -38,6 +38,8 @@ enum Subcommand {
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
+        #[structopt(long = "servers", short = "s", default_value = "staging")]
+        servers: SignalServers,
     },
     #[structopt(about = "verify the code you got from the SMS or voice-call when you registered")]
     Verify {
@@ -48,6 +50,8 @@ enum Subcommand {
         )]
         confirmation_code: u32,
     },
+    #[structopt(about = "ADVANCED USERS ONLY: refresh pre-keys with Signal servers")]
+    RefreshPreKeys,
     #[structopt(about = "receives all pending messages and saves them to disk")]
     Receive,
 }
@@ -88,42 +92,62 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
         }
         Subcommand::Verify { confirmation_code } => {
-            Manager::with_config_store(config_store, &signal_context)?
+            let mut manager = Manager::with_config_store(config_store, &signal_context)?;
+            manager
                 .confirm_verification_code(
                     &signal_context,
                     &service_configuration,
                     confirmation_code,
                 )
                 .await?;
+            manager
+                .register_pre_keys(&signal_context, &service_configuration)
+                .await?;
+        }
+        Subcommand::RefreshPreKeys => {
+            let manager = Manager::with_config_store(config_store, &signal_context)?;
+            manager
+                .register_pre_keys(&signal_context, &service_configuration)
+                .await?;
         }
         Subcommand::Receive => {
             let manager = Manager::with_config_store(config_store, &signal_context)?;
             let (tx, mut rx) = channel(1);
-            manager
-                .receive_messages(signal_context, &service_configuration, tx)
-                .await?;
 
-            while let Some((metadata, body)) = rx.try_next()? {
-                match body {
-                    ContentBody::DataMessage(message) => {
-                        println!("Got message from {:?}: {}", metadata.sender, message.body().to_string());
+            let (receiver, printer) = future::join(
+                manager.receive_messages(signal_context, &service_configuration, tx),
+                async move {
+                    while let Some((metadata, body)) = rx.next().await {
+                        match body {
+                            ContentBody::DataMessage(message) => {
+                                info!(
+                                    "Got message from {:?}: {}",
+                                    metadata.sender,
+                                    message.body().to_string()
+                                );
+                            }
+                            ContentBody::SynchronizeMessage(message) => {
+                                info!("Received synchronization message");
+                                // here, you can synchronize contacts, past messages, etc.
+                                // you'll get many of those until you consume everything
+                            }
+                            ContentBody::TypingMessage(_) => {
+                                info!("Somebody is typing");
+                            }
+                            ContentBody::CallMessage(_) => {
+                                info!("Somebody is calling!");
+                            }
+                            ContentBody::ReceiptMessage(_) => {
+                                info!("Got read receipt");
+                            }
+                        }
                     }
-                    ContentBody::SynchronizeMessage(message) => {
-                        println!("Received synchronization message");
-                        // here, you can synchronize contacts, past messages, etc.
-                        // you'll get many of those until you consume everything
-                    }
-                    ContentBody::TypingMessage(_) => {
-                        println!("Somebody is typing");
-                    }
-                    ContentBody::CallMessage(_) => {
-                        println!("Somebody is calling!");
-                    }
-                    ContentBody::ReceiptMessage(_) => {
-                        println!("Got read receipt");
-                    }
-                }
-            }
+                    Err(Error::MessagePipeInterruptedError)
+                },
+            )
+            .await;
+
+            let (_, _) = (receiver?, printer?);
         }
     };
     Ok(())

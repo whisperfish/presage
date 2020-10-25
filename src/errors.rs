@@ -16,6 +16,8 @@ pub enum Error {
     NoProvisioningMessageReceived,
     #[error("qr code error")]
     QrCodeError,
-    #[error("missing key in DB error")]
-    MissingKeyError,
+    #[error("missing key {0} in config DB")]
+    MissingKeyError(String),
+    #[error("receiving pipe was interrupted")]
+    MessagePipeInterruptedError
 }

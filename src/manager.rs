@@ -1,34 +1,45 @@
-use std::{
-    ops::Deref,
-    sync::{Arc, Mutex},
-    time::Duration,
-    time::SystemTime,
-};
+use std::time::SystemTime;
 
-use futures::{SinkExt, StreamExt, channel::mpsc::{Sender, channel}, future, pin_mut};
+use futures::{
+    channel::mpsc::{channel, Sender},
+    future, pin_mut, SinkExt, StreamExt,
+};
 use image::Luma;
 use libsignal_protocol::{
     keys::{IdentityKeyPair, PrivateKey, PublicKey},
     stores::IdentityKeyStore,
     stores::PreKeyStore,
     stores::SessionStore,
-    stores::SignedPreKeyStore,
-    Address, Context, InternalError, Serializable,
+    stores::SignedPreKeyStore, Context, Serializable,
 };
-use libsignal_service::{ServiceAddress, USER_AGENT, cipher::ServiceCipher, configuration::ServiceConfiguration, configuration::SignalingKey, content::ContentBody, messagepipe::Credentials, pre_keys::PreKeyEntity, pre_keys::PreKeyState, prelude::Content, content::Metadata, prelude::PushService, push_service::{ConfirmCodeMessage, ProfileKey}, receiver::MessageReceiver};
+use libsignal_service::{
+    cipher::ServiceCipher,
+    configuration::ServiceConfiguration,
+    configuration::SignalingKey,
+    content::ContentBody,
+    content::Metadata,
+    messagepipe::Credentials,
+    pre_keys::PreKeyEntity,
+    pre_keys::PreKeyState,
+    prelude::Content,
+    prelude::PushService,
+    push_service::{ConfirmCodeMessage, ProfileKey},
+    receiver::MessageReceiver,
+    ServiceAddress, USER_AGENT,
+};
 use libsignal_service_actix::{
     provisioning::provision_secondary_device, provisioning::SecondaryDeviceProvisioning,
     push_service::AwcPushService,
 };
-use log::trace;
+use log::{error, trace, warn};
 use qrcode::QrCode;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
 
 use crate::{config::ConfigStore, Error};
 
 #[derive(Clone)]
-pub struct Manager<C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore> {
-    config_store: Arc<Mutex<C>>,
+pub struct Manager<C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore + IdentityKeyStore + 'static> {
+    config_store: C,
     state: State,
 }
 
@@ -44,6 +55,7 @@ pub enum State {
         password: String,
         signaling_key: SignalingKey,
         device_id: Option<u32>,
+        registration_id: u32,
         private_key: PrivateKey,
         public_key: PublicKey,
         profile_key: Vec<u8>,
@@ -52,20 +64,19 @@ pub enum State {
 
 impl<C> Manager<C>
 where
-    C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore + 'static,
+    C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore + IdentityKeyStore + 'static,
 {
     pub fn with_config_store(config_store: C, context: &Context) -> Result<Self, Error> {
         let state = config_store.state(context)?;
         Ok(Manager {
-            config_store: Arc::new(Mutex::new(config_store)),
+            config_store,
             state,
         })
     }
 
     fn save(&self) -> Result<(), Error> {
+        trace!("saving configuration");
         self.config_store
-            .lock()
-            .expect("poisoned mutex")
             .save(&self.state)
     }
 
@@ -81,8 +92,14 @@ where
                 ..
             } => {
                 let uuid = if let Some(device_id) = device_id {
+                    trace!(
+                        "using credentials with UUID {} and device_id {}",
+                        uuid,
+                        device_id
+                    );
                     format!("{}.{}", uuid, device_id)
                 } else {
+                    trace!("using credentials with UUID {} only", uuid);
                     uuid.to_string()
                 };
 
@@ -128,7 +145,7 @@ where
         }
 
         let manager = Manager {
-            config_store: Arc::new(Mutex::new(config_store)),
+            config_store,
             state: State::Registration {
                 phone_number,
                 password,
@@ -145,6 +162,7 @@ where
         service_configuration: &ServiceConfiguration,
         confirm_code: u32,
     ) -> Result<(), Error> {
+        trace!("confirming verification code");
         let (phone_number, password) = match &self.state {
             State::Registration {
                 phone_number,
@@ -195,10 +213,13 @@ where
             password: password.clone(),
             signaling_key,
             device_id: None,
+            registration_id,
             private_key: identity_key_pair.private(),
             public_key: identity_key_pair.public(),
             profile_key: profile_key.0,
         };
+
+        trace!("confirmed! (and registered)");
 
         self.save()?;
         Ok(())
@@ -250,6 +271,7 @@ where
                         SecondaryDeviceProvisioning::NewDeviceRegistration {
                             phone_number,
                             device_id,
+                            registration_id,
                             uuid,
                             private_key,
                             public_key,
@@ -259,6 +281,7 @@ where
                             return Ok((
                                 phone_number,
                                 device_id.device_id,
+                                registration_id,
                                 uuid,
                                 private_key,
                                 public_key,
@@ -273,16 +296,17 @@ where
         .await;
 
         let _ = fut1?;
-        let (phone_number, device_id, uuid, private_key, public_key, profile_key) = fut2?;
+        let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) = fut2?;
 
         let manager = Manager {
-            config_store: Arc::new(Mutex::new(config_store)),
+            config_store,
             state: State::Registered {
                 phone_number,
                 uuid,
                 signaling_key,
                 password,
                 device_id: Some(device_id),
+                registration_id,
                 public_key,
                 private_key,
                 profile_key,
@@ -303,15 +327,21 @@ where
             State::Registered { public_key, .. } => public_key,
         };
 
+        let mut pre_keys_offset_id = self.config_store.get_u32("pre_keys_offset_id")?.unwrap_or(0);
+        let mut next_signed_pre_key_id = self.config_store.get_u32("next_signed_pre_key_id")?.unwrap_or(0);
+
         const PRE_KEYS_COUNT: u32 = 100;
-        let pre_keys = libsignal_protocol::generate_pre_keys(&context, 0, PRE_KEYS_COUNT)?;
+
+        let pre_keys = libsignal_protocol::generate_pre_keys(&context, pre_keys_offset_id, PRE_KEYS_COUNT)?;
         let identity_key_pair = self.identity_key_pair()?;
         let signed_pre_key = libsignal_protocol::generate_signed_pre_key(
             &context,
             &identity_key_pair,
-            0,
+            next_signed_pre_key_id,
             SystemTime::now(),
         )?;
+        SignedPreKeyStore::store(&self.config_store, next_signed_pre_key_id, signed_pre_key.serialize()?.as_slice())?;
+        next_signed_pre_key_id += 1;
 
         let mut push_service = AwcPushService::new(
             service_configuration.clone(),
@@ -319,25 +349,15 @@ where
             USER_AGENT,
         );
 
-        let config_store = self.config_store.lock().expect("poisoned mutex");
-        let next_signed_pre_key_id = config_store.next_signed_pre_key_id()?;
-
-        SignedPreKeyStore::store(
-            &*config_store,
-            next_signed_pre_key_id,
-            signed_pre_key.serialize()?.as_slice(),
-        )?;
-
-        config_store.incr("next_signed_pre_key_id")?;
         let mut pre_key_entities = vec![];
         for pre_key in pre_keys {
-            config_store.incr("pre_key_id_offset")?;
             PreKeyStore::store(
-                &*config_store,
-                pre_key.id(),
+                &self.config_store,
+                pre_keys_offset_id,
                 pre_key.serialize()?.as_slice(),
             )?;
-            pre_key_entities.push(PreKeyEntity::from(pre_key))
+            pre_key_entities.push(PreKeyEntity::from(pre_key));
+            pre_keys_offset_id += 1;
         }
 
         let pre_key_state = PreKeyState {
@@ -348,7 +368,9 @@ where
 
         push_service.register_pre_keys(pre_key_state).await?;
 
-        self.save()?;
+        self.config_store.insert_u32("pre_keys_offset_id", pre_keys_offset_id)?;
+        self.config_store.insert_u32("next_signed_pre_key_id", next_signed_pre_key_id)?;
+
         Ok(())
     }
 
@@ -373,15 +395,13 @@ where
             USER_AGENT,
         );
 
-        let config_store = self.config_store.lock().expect("poisoned mutex");
-
         let store_context = libsignal_protocol::store_context(
             &context,
             // Storage is a pointer-to-shared-storage
-            config_store.deref().clone(),
-            config_store.deref().clone(),
-            config_store.deref().clone(),
-            self.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
         )
         .expect("initialized storage");
 
@@ -396,7 +416,7 @@ where
         let mut receiver = MessageReceiver::new(push_service);
 
         let pipe = receiver
-            .create_message_pipe(credentials.ok_or(Error::MissingKeyError)?)
+            .create_message_pipe(credentials.unwrap())
             .await
             .unwrap();
         let message_stream = pipe.stream();
@@ -405,17 +425,17 @@ where
         while let Some(step) = message_stream.next().await {
             match step {
                 Ok(envelope) => {
-                    let Content {
-                        body,
-                        metadata,
-                    } = match service_cipher.open_envelope(envelope) {
+                    let Content { body, metadata } = match service_cipher.open_envelope(envelope) {
                         Ok(Some(content)) => content,
                         Ok(None) => {
-                            log::warn!("Empty envelope...");
+                            warn!("Empty envelope...");
                             continue;
                         }
                         Err(e) => {
-                            log::error!("Error opening envelope: {:?}, message will be skipped!", e);
+                            error!(
+                                "Error opening envelope: {}, message will be skipped!",
+                                e
+                            );
                             continue;
                         }
                     };
@@ -423,7 +443,7 @@ where
                     tx.send((metadata, body)).await.expect("tx channel error");
                 }
                 Err(e) => {
-                    eprintln!("Error: {}", e);
+                    error!("Error: {}", e);
                 }
             }
         }
@@ -432,99 +452,14 @@ where
     }
 
     pub fn identity_key_pair(&self) -> Result<IdentityKeyPair, Error> {
-        todo!()
-        // Ok(IdentityKeyPair::new(&self.public_key, &self.private_key)?)
-    }
-
-    fn identity_key(&self, addr: &Address) -> Option<String> {
-        let addr_str = addr.as_str().unwrap();
-        let recipient_id = if addr_str.starts_with('+') {
-            // strip the prefix + from e164, as is done in Go (cfr. the `func recID`).
-            &addr_str[1..]
-        } else {
-            return None;
-            // addr_str
-        };
-
-        Some(format!("identity-remote-{}", recipient_id,))
-    }
-}
-
-impl<C> IdentityKeyStore for Manager<C>
-where
-    C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore + 'static,
-{
-    fn identity_key_pair(
-        &self,
-    ) -> Result<(libsignal_protocol::Buffer, libsignal_protocol::Buffer), libsignal_protocol::Error>
-    {
-        match &self.state {
+        let (public_key, private_key) = match &self.state {
+            State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
                 public_key,
                 private_key,
                 ..
-            } => Ok((public_key.serialize()?, private_key.serialize()?)),
-            _ => Err(libsignal_protocol::Error::Unknown {
-                reason: "no device registered yet!".to_string(),
-            }),
-        }
-    }
-
-    fn local_registration_id(&self) -> Result<u32, libsignal_protocol::Error> {
-        match &self.state {
-            State::Registered { device_id, .. } => {
-                Ok(device_id.ok_or(libsignal_protocol::Error::Unknown {
-                    reason: "device_id should be present after registration".to_string(),
-                })?)
-            }
-            _ => Err(libsignal_protocol::Error::Unknown {
-                reason: "no device registered yet!".to_string(),
-            }),
-        }
-    }
-
-    fn is_trusted_identity(
-        &self,
-        address: libsignal_protocol::Address,
-        identity_key: &[u8],
-    ) -> Result<bool, libsignal_protocol::Error> {
-        if let Some(key) = self.identity_key(&address) {
-            // check contents with key
-            let contents = self
-                .config_store
-                .lock()
-                .expect("poisoned mutex")
-                .get(key)
-                .map_err(|e| {
-                    log::error!("failed to read identity for {:?}: {}", address, e);
-                    InternalError::Unknown
-                })?
-                .expect("could not fetch identity");
-            Ok(contents == identity_key)
-        } else {
-            log::warn!("Trying trusted identity with uuid, currently unsupported.");
-            Err(InternalError::InvalidArgument.into())
-        }
-    }
-
-    fn save_identity(
-        &self,
-        address: libsignal_protocol::Address,
-        identity_key: &[u8],
-    ) -> Result<(), libsignal_protocol::Error> {
-        if let Some(key) = self.identity_key(&address) {
-            self.config_store
-                .lock()
-                .expect("poisoned mutex")
-                .insert(key, identity_key)
-                .map_err(|e| {
-                    log::error!("error saving identity for {:?}: {}", address, e);
-                    InternalError::Unknown
-                })?;
-            Ok(())
-        } else {
-            log::warn!("Trying to save trusted identity with uuid, currently unsupported.");
-            Err(InternalError::InvalidArgument.into())
-        }
+            } => (public_key, private_key),
+        };
+        Ok(IdentityKeyPair::new(public_key, private_key)?)
     }
 }
