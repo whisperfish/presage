@@ -9,6 +9,9 @@ use libsignal_service::{configuration::SignalServers, content::ContentBody};
 
 #[derive(StructOpt)]
 struct Args {
+    #[structopt(long = "servers", short = "s", default_value = "staging")]
+    servers: SignalServers,
+
     #[structopt(flatten)]
     subcommand: Subcommand,
 }
@@ -25,8 +28,6 @@ enum Subcommand {
         phone_number: String,
         #[structopt(long = "use-voice-call")]
         use_voice_call: bool,
-        #[structopt(long = "servers", short = "s", default_value = "staging")]
-        servers: SignalServers,
     },
     #[structopt(
         about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
@@ -38,8 +39,6 @@ enum Subcommand {
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
-        #[structopt(long = "servers", short = "s", default_value = "staging")]
-        servers: SignalServers,
     },
     #[structopt(about = "verify the code you got from the SMS or voice-call when you registered")]
     Verify {
@@ -128,6 +127,15 @@ async fn main() -> anyhow::Result<()> {
                             }
                             ContentBody::SynchronizeMessage(message) => {
                                 info!("Received synchronization message");
+                                if let Some(message) = message.sent {
+                                    if let Some(data_message) = message.message {
+                                        info!(
+                                            "Got message from {:?}: {}",
+                                            metadata.sender,
+                                            data_message.body().to_string()
+                                        );
+                                    }
+                                }
                                 // here, you can synchronize contacts, past messages, etc.
                                 // you'll get many of those until you consume everything
                             }

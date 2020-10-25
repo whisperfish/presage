@@ -221,14 +221,16 @@ impl ConfigStore for SledConfigStore {
 impl PreKeyStore for SledConfigStore {
     fn load(&self, id: u32, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
         trace!("loading pre-key {}", id);
-        let blah = self.get(self.prekey_key(id)).expect("sled error");
-        println!("{:?}", blah);
-        writer.write_all(&blah.expect("no pre key with this id"))
+        writer.write_all(
+            &self
+                .get(self.prekey_key(id))
+                .expect("sled error")
+                .expect("no pre key with this id"),
+        )
     }
 
     fn store(&self, id: u32, body: &[u8]) -> Result<(), libsignal_protocol::Error> {
         trace!("storing pre-key {}", id);
-        println!("{}", base64::encode(body));
         self.insert(self.prekey_key(id), body)
             .expect("failed to store pre-key");
         Ok(())
@@ -418,14 +420,13 @@ impl IdentityKeyStore for SledConfigStore {
         address: libsignal_protocol::Address,
         identity_key: &[u8],
     ) -> Result<bool, libsignal_protocol::Error> {
-        let contents = self
-            .get(self.identity_key(&address))
-            .map_err(|e| {
-                log::error!("failed to read identity for {:?}: {}", address, e);
-                libsignal_protocol::InternalError::Unknown
-            })?
-            .expect("could not fetch identity");
-        Ok(contents == identity_key)
+        match self.get(self.identity_key(&address)).map_err(|e| {
+            log::error!("failed to read identity for {:?}: {}", address, e);
+            libsignal_protocol::InternalError::Unknown
+        })? {
+            None => Ok(false),
+            Some(contents) => Ok(contents == identity_key),
+        }
     }
 
     fn save_identity(
