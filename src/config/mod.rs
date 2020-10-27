@@ -1,10 +1,8 @@
-use ::sled::IVec;
 use libsignal_protocol::Context;
 
 use crate::{manager::State, Error};
 
 mod sled;
-// mod cli;
 pub use crate::config::sled::SledConfigStore;
 
 pub trait ConfigStore {
