@@ -1,6 +1,6 @@
 use futures::{StreamExt, channel::mpsc::channel, future};
 use log::info;
-use signal_bot::{Error, Manager, config::SledConfigStore};
+use signal_bot::{config::ConfigStore, Error, Manager, config::SledConfigStore};
 
 use structopt::StructOpt;
 
@@ -53,6 +53,21 @@ enum Subcommand {
     RefreshPreKeys,
     #[structopt(about = "receives all pending messages and saves them to disk")]
     Receive,
+    #[structopt(about = "sends a message")]
+    Send {
+        #[structopt(
+            long = "phone-number",
+            short = "n",
+            help = "Phone number of the recipient"
+        )]
+        phone_number: String,
+        #[structopt(
+            long = "message",
+            short = "m",
+            help = "Contents of the message to send"
+        )]
+        message: String,
+    }
 }
 
 #[actix_rt::main]
@@ -61,6 +76,8 @@ async fn main() -> anyhow::Result<()> {
 
     let signal_context = Context::new(DefaultCrypto::default()).unwrap();
     let config_store = SledConfigStore::new()?;
+
+    dbg!(config_store.state(&signal_context)?);
 
     let args = Args::from_args();
     let service_configuration = args.servers.into();
@@ -156,6 +173,10 @@ async fn main() -> anyhow::Result<()> {
             .await;
 
             let (_, _) = (receiver?, printer?);
+        }
+        Subcommand::Send { phone_number, message } => {
+            let manager = Manager::with_config_store(config_store, &signal_context)?;
+            manager.send_message(signal_context, &service_configuration, phone_number, message).await?;
         }
     };
     Ok(())

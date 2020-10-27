@@ -1,0 +1,303 @@
+warning: unused import: `prelude::Content`
+ --> /home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:4:13
+  |
+4 | use crate::{prelude::Content, cipher::ServiceCipher, push_service::*};
+  |             ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: variable does not need to be mutable
+  --> /home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:85:17
+   |
+85 |             let mut c = content.clone();
+   |                 ----^
+   |                 |
+   |                 help: remove this `mut`
+   |
+   = note: `#[warn(unused_mut)]` on by default
+
+warning: unused variable: `session_version`
+   --> /home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/cipher.rs:208:17
+    |
+208 |             let session_version = session_cipher.get_session_version()?;
+    |                 ^^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_session_version`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: 3 warnings emitted
+
+warning: unused import: `::sled::IVec`
+ --> src/config/mod.rs:1:5
+  |
+1 | use ::sled::IVec;
+  |     ^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` on by default
+
+warning: unused variable: `device_id`
+   --> src/manager.rs:115:17
+    |
+115 |                 device_id,
+    |                 ^^^^^^^^^ help: try ignoring the field: `device_id: _`
+    |
+    = note: `#[warn(unused_variables)]` on by default
+
+warning: 2 warnings emitted
+
+    Finished dev [unoptimized + debuginfo] target(s) in 0.12s
+     Running `target/debug/signal-bot send -n +4917641663739 -m Hello`
+[TRACE signal_bot::config::sled] Loading registered state
+[TRACE signal_bot::config::sled] getting string phone_number from config
+[TRACE signal_bot::config::sled] getting string uuid from config
+[TRACE signal_bot::config::sled] getting string password from config
+[TRACE signal_bot::config::sled] getting i32 device_id
+[TRACE signal_bot::config::sled] get device_id
+[TRACE signal_bot::config::sled] getting u32 registration_id
+[TRACE signal_bot::config::sled] get registration_id
+[src/main.rs:80] config_store.state(&signal_context)? = Registered {
+    phone_number: "+4915172831232",
+    uuid: "f3bbae9b-a2dd-4bc3-937f-b21c7b62b42a",
+    password: "hTf3zXoTXwZNnIW835fZF2Fa",
+    signaling_key: [
+        147,
+        232,
+        185,
+        158,
+        50,
+        97,
+        180,
+        138,
+        109,
+        231,
+        154,
+        82,
+        47,
+        148,
+        41,
+        166,
+        21,
+        141,
+        204,
+        195,
+        43,
+        142,
+        204,
+        160,
+        98,
+        113,
+        156,
+        193,
+        55,
+        214,
+        125,
+        44,
+        85,
+        53,
+        218,
+        245,
+        198,
+        11,
+        8,
+        84,
+        106,
+        254,
+        216,
+        203,
+        164,
+        99,
+        177,
+        4,
+        138,
+        145,
+        202,
+        182,
+    ],
+    device_id: None,
+    registration_id: 15283,
+    private_key: PrivateKey {
+        raw: Raw(
+            0x00005631eeca5f90,
+        ),
+    },
+    public_key: PublicKey {
+        raw: Raw(
+            0x00005631eeca5dd0,
+        ),
+    },
+    profile_key: [
+        75,
+        206,
+        163,
+        156,
+        239,
+        156,
+        76,
+        21,
+        68,
+        175,
+        71,
+        103,
+        147,
+        185,
+        133,
+        102,
+        2,
+        235,
+        107,
+        194,
+        21,
+        155,
+        146,
+        171,
+        118,
+        67,
+        100,
+        22,
+        81,
+        180,
+        82,
+        8,
+    ],
+}
+[TRACE signal_bot::config::sled] Loading registered state
+[TRACE signal_bot::config::sled] getting string phone_number from config
+[TRACE signal_bot::config::sled] getting string uuid from config
+[TRACE signal_bot::config::sled] getting string password from config
+[TRACE signal_bot::config::sled] getting i32 device_id
+[TRACE signal_bot::config::sled] get device_id
+[TRACE signal_bot::config::sled] getting u32 registration_id
+[TRACE signal_bot::config::sled] get registration_id
+[TRACE signal_bot::manager] using credentials with UUID f3bbae9b-a2dd-4bc3-937f-b21c7b62b42a only
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:76] content.into() = DataMessage(
+    DataMessage {
+        body: Some(
+            "Hello",
+        ),
+        attachments: [],
+        group: None,
+        group_v2: None,
+        flags: None,
+        expire_timer: None,
+        profile_key: None,
+        timestamp: Some(
+            1603836480219,
+        ),
+        quote: None,
+        contact: [],
+        preview: [],
+        sticker: None,
+        required_protocol_version: None,
+        is_view_once: None,
+        reaction: None,
+        delete: None,
+        body_ranges: [],
+    },
+)
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/content.rs:68] msg = DataMessage {
+    body: Some(
+        "Hello",
+    ),
+    attachments: [],
+    group: None,
+    group_v2: None,
+    flags: None,
+    expire_timer: None,
+    profile_key: None,
+    timestamp: Some(
+        1603836480219,
+    ),
+    quote: None,
+    contact: [],
+    preview: [],
+    sticker: None,
+    required_protocol_version: None,
+    is_view_once: None,
+    reaction: None,
+    delete: None,
+    body_ranges: [],
+}
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:87] cc = Content {
+    data_message: Some(
+        DataMessage {
+            body: Some(
+                "Hello",
+            ),
+            attachments: [],
+            group: None,
+            group_v2: None,
+            flags: None,
+            expire_timer: None,
+            profile_key: None,
+            timestamp: Some(
+                1603836480219,
+            ),
+            quote: None,
+            contact: [],
+            preview: [],
+            sticker: None,
+            required_protocol_version: None,
+            is_view_once: None,
+            reaction: None,
+            delete: None,
+            body_ranges: [],
+        },
+    ),
+    sync_message: None,
+    call_message: None,
+    null_message: None,
+    receipt_message: None,
+    typing_message: None,
+}
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:89] content = [
+    10,
+    14,
+    10,
+    5,
+    72,
+    101,
+    108,
+    108,
+    111,
+    56,
+    219,
+    149,
+    234,
+    224,
+    214,
+    46,
+]
+[TRACE libsignal_service::sender] encrypting message for Address { name: "+4917641663739", device_id: 1 }
+[TRACE signal_bot::config::sled] contains session for Address { name: "+4917641663739", device_id: 1 }
+[TRACE signal_bot::config::sled] contains session for Address { name: "+4917641663739", device_id: 1 }
+[TRACE signal_bot::config::sled] loading session from session-+4917641663739-1
+[TRACE signal_bot::config::sled] session loaded!
+[TRACE libsignal_service::cipher] encrypting message of size 159 with libsignal-protocol-c
+[TRACE signal_bot::config::sled] loading session from session-+4917641663739-1
+[TRACE signal_bot::config::sled] session loaded!
+[TRACE signal_bot::config::sled] storing session for Address { name: "+4917641663739", device_id: 1 } at "session-+4917641663739-1"
+[TRACE signal_bot::config::sled] stored session
+[TRACE signal_bot::config::sled] loading session from session-+4917641663739-1
+[TRACE signal_bot::config::sled] session loaded!
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/cipher.rs:234] message_type = 1
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/cipher.rs:237] body = "MwohBUd/8uaoxvN6qtLRXM4o+snHeLZC5mdbJwhGoNnXcW5tEBcYBCKgAUk+Lzge4xOWD/kuquNPT8eD2dLoj5fNlERo+p0PGFA8CYn09d7LPK89xakLbflIHkqCF4rVyKNGC6pNwzTHKWHlUkBCeOGXGbaCeTy9m5r+Pv1cLUclXxJAffbqJ7pJUSbAiYPv/UuAMK/MsSyFACjQAPKkL0WlGs+bBYX0wB9Ws1JPrJ0pADn9/FyjanVAMJmyOedRvD3OeuxAsKc4HG5k2udh/yh46g=="
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:160] message = OutgoingPushMessage {
+    type: 1,
+    destination_device_id: 1,
+    destination_registration_id: 4200,
+    content: "MwohBUd/8uaoxvN6qtLRXM4o+snHeLZC5mdbJwhGoNnXcW5tEBcYBCKgAUk+Lzge4xOWD/kuquNPT8eD2dLoj5fNlERo+p0PGFA8CYn09d7LPK89xakLbflIHkqCF4rVyKNGC6pNwzTHKWHlUkBCeOGXGbaCeTy9m5r+Pv1cLUclXxJAffbqJ7pJUSbAiYPv/UuAMK/MsSyFACjQAPKkL0WlGs+bBYX0wB9Ws1JPrJ0pADn9/FyjanVAMJmyOedRvD3OeuxAsKc4HG5k2udh/yh46g==",
+}
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/sender.rs:103] messages = OutgoingPushMessages {
+    destination: "+4917641663739",
+    timestamp: 1603836480219,
+    messages: [
+        OutgoingPushMessage {
+            type: 1,
+            destination_device_id: 1,
+            destination_registration_id: 4200,
+            content: "MwohBUd/8uaoxvN6qtLRXM4o+snHeLZC5mdbJwhGoNnXcW5tEBcYBCKgAUk+Lzge4xOWD/kuquNPT8eD2dLoj5fNlERo+p0PGFA8CYn09d7LPK89xakLbflIHkqCF4rVyKNGC6pNwzTHKWHlUkBCeOGXGbaCeTy9m5r+Pv1cLUclXxJAffbqJ7pJUSbAiYPv/UuAMK/MsSyFACjQAPKkL0WlGs+bBYX0wB9Ws1JPrJ0pADn9/FyjanVAMJmyOedRvD3OeuxAsKc4HG5k2udh/yh46g==",
+        },
+    ],
+    online: false,
+}
+[/home/gabriel/Development/signal/libsignal-service-rs/libsignal-service/src/push_service.rs:326] format!("/v1/messages/{}", messages . destination) = "/v1/messages/+4917641663739"
+[DEBUG libsignal_service_actix::push_service] AwcPushService::put("https://textsecure-service-staging.whispersystems.org/v1/messages/+4917641663739")

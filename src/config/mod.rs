@@ -4,6 +4,7 @@ use libsignal_protocol::Context;
 use crate::{manager::State, Error};
 
 mod sled;
+// mod cli;
 pub use crate::config::sled::SledConfigStore;
 
 pub trait ConfigStore {
@@ -11,17 +12,9 @@ pub trait ConfigStore {
 
     fn save(&self, state: &State) -> Result<(), Error>;
 
-    fn get<K: AsRef<str>>(&self, key: K) -> Result<Option<IVec>, Error>;
-    fn insert<K, V>(&self, key: K, value: V) -> Result<(), Error>
-    where
-        K: AsRef<str>,
-        IVec: From<V>;
+    fn pre_keys_offset_id(&self) -> Result<u32, Error>;
+    fn set_pre_keys_offset_id(&self, id: u32) -> Result<(), Error>;
 
-    fn get_u32<S>(&self, key: S) -> Result<Option<u32>, Error>
-    where
-        S: AsRef<str>;
-
-    fn insert_u32<S>(&self, key: S, value: u32) -> Result<(), Error>
-    where
-        S: AsRef<str>;
+    fn next_signed_pre_key_id(&self) -> Result<u32, Error>;
+    fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error>;
 }

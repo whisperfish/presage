@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{
     channel::mpsc::{channel, Sender},
@@ -10,20 +10,21 @@ use libsignal_protocol::{
     stores::IdentityKeyStore,
     stores::PreKeyStore,
     stores::SessionStore,
-    stores::SignedPreKeyStore, Context, Serializable,
+    stores::SignedPreKeyStore,
+    Context, Serializable,
 };
 use libsignal_service::{
     cipher::ServiceCipher,
     configuration::ServiceConfiguration,
     configuration::SignalingKey,
-    content::ContentBody,
     content::Metadata,
+    content::{ContentBody, DataMessage},
     messagepipe::Credentials,
     pre_keys::PreKeyEntity,
     pre_keys::PreKeyState,
     prelude::Content,
-    prelude::PushService,
-    push_service::{ConfirmCodeMessage, ProfileKey},
+    prelude::{MessageSender, PushService},
+    push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     ServiceAddress, USER_AGENT,
 };
@@ -38,12 +39,20 @@ use rand::{distributions::Alphanumeric, Rng, RngCore};
 use crate::{config::ConfigStore, Error};
 
 #[derive(Clone)]
-pub struct Manager<C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore + IdentityKeyStore + 'static> {
+pub struct Manager<
+    C: Clone
+        + ConfigStore
+        + PreKeyStore
+        + SignedPreKeyStore
+        + SessionStore
+        + IdentityKeyStore
+        + 'static,
+> {
     config_store: C,
     state: State,
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub enum State {
     Registration {
         phone_number: String,
@@ -54,7 +63,7 @@ pub enum State {
         uuid: String,
         password: String,
         signaling_key: SignalingKey,
-        device_id: Option<u32>,
+        device_id: Option<i32>,
         registration_id: u32,
         private_key: PrivateKey,
         public_key: PublicKey,
@@ -64,7 +73,13 @@ pub enum State {
 
 impl<C> Manager<C>
 where
-    C: Clone + ConfigStore + PreKeyStore + SignedPreKeyStore + SessionStore + IdentityKeyStore + 'static,
+    C: Clone
+        + ConfigStore
+        + PreKeyStore
+        + SignedPreKeyStore
+        + SessionStore
+        + IdentityKeyStore
+        + 'static,
 {
     pub fn with_config_store(config_store: C, context: &Context) -> Result<Self, Error> {
         let state = config_store.state(context)?;
@@ -76,8 +91,19 @@ where
 
     fn save(&self) -> Result<(), Error> {
         trace!("saving configuration");
-        self.config_store
-            .save(&self.state)
+        self.config_store.save(&self.state)
+    }
+
+    fn identity_key_pair(&self) -> Result<IdentityKeyPair, Error> {
+        let (public_key, private_key) = match &self.state {
+            State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered {
+                public_key,
+                private_key,
+                ..
+            } => (public_key, private_key),
+        };
+        Ok(IdentityKeyPair::new(public_key, private_key)?)
     }
 
     fn credentials(&self) -> Result<Option<Credentials>, Error> {
@@ -296,7 +322,8 @@ where
         .await;
 
         let _ = fut1?;
-        let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) = fut2?;
+        let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
+            fut2?;
 
         let manager = Manager {
             config_store,
@@ -327,12 +354,13 @@ where
             State::Registered { public_key, .. } => public_key,
         };
 
-        let mut pre_keys_offset_id = self.config_store.get_u32("pre_keys_offset_id")?.unwrap_or(0);
-        let mut next_signed_pre_key_id = self.config_store.get_u32("next_signed_pre_key_id")?.unwrap_or(0);
+        let mut pre_keys_offset_id = self.config_store.pre_keys_offset_id()?;
+        let mut next_signed_pre_key_id = self.config_store.next_signed_pre_key_id()?;
 
         const PRE_KEYS_COUNT: u32 = 100;
 
-        let pre_keys = libsignal_protocol::generate_pre_keys(&context, pre_keys_offset_id, PRE_KEYS_COUNT)?;
+        let pre_keys =
+            libsignal_protocol::generate_pre_keys(&context, pre_keys_offset_id, PRE_KEYS_COUNT)?;
         let identity_key_pair = self.identity_key_pair()?;
         let signed_pre_key = libsignal_protocol::generate_signed_pre_key(
             &context,
@@ -340,7 +368,11 @@ where
             next_signed_pre_key_id,
             SystemTime::now(),
         )?;
-        SignedPreKeyStore::store(&self.config_store, next_signed_pre_key_id, signed_pre_key.serialize()?.as_slice())?;
+        SignedPreKeyStore::store(
+            &self.config_store,
+            next_signed_pre_key_id,
+            signed_pre_key.serialize()?.as_slice(),
+        )?;
         next_signed_pre_key_id += 1;
 
         let mut push_service = AwcPushService::new(
@@ -368,8 +400,10 @@ where
 
         push_service.register_pre_keys(pre_key_state).await?;
 
-        self.config_store.insert_u32("pre_keys_offset_id", pre_keys_offset_id)?;
-        self.config_store.insert_u32("next_signed_pre_key_id", next_signed_pre_key_id)?;
+        self.config_store
+            .set_pre_keys_offset_id(pre_keys_offset_id)?;
+        self.config_store
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
 
         Ok(())
     }
@@ -432,10 +466,7 @@ where
                             continue;
                         }
                         Err(e) => {
-                            error!(
-                                "Error opening envelope: {}, message will be skipped!",
-                                e
-                            );
+                            error!("Error opening envelope: {}, message will be skipped!", e);
                             continue;
                         }
                     };
@@ -451,15 +482,91 @@ where
         Ok(())
     }
 
-    pub fn identity_key_pair(&self) -> Result<IdentityKeyPair, Error> {
-        let (public_key, private_key) = match &self.state {
+    pub async fn send_message(
+        &self,
+        context: Context,
+        service_configuration: &ServiceConfiguration,
+        recipient_phone_number: String,
+        message: String,
+    ) -> Result<(), Error> {
+        let (phone_number, uuid, device_id) = match &self.state {
             State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
-                public_key,
-                private_key,
+                phone_number,
+                uuid,
+                device_id,
                 ..
-            } => (public_key, private_key),
+            } => (phone_number, uuid, device_id),
         };
-        Ok(IdentityKeyPair::new(public_key, private_key)?)
+
+        let credentials = self.credentials()?;
+
+        let push_service = AwcPushService::new(
+            service_configuration.clone(),
+            credentials.clone(),
+            USER_AGENT,
+        );
+
+        let store_context = libsignal_protocol::store_context(
+            &context,
+            // Storage is a pointer-to-shared-storage
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+        )
+        .expect("initialized storage");
+
+        let local_addr = ServiceAddress {
+            uuid: Some(uuid.clone()),
+            e164: phone_number.clone(),
+            relay: None,
+        };
+
+        let service_cipher = ServiceCipher::from_context(context, local_addr, store_context);
+
+        let mut sender = MessageSender::new(
+            push_service,
+            self.config_store.clone(),
+            service_cipher,
+            device_id.unwrap_or(DEFAULT_DEVICE_ID),
+        );
+
+        let recipient_addr = ServiceAddress {
+            uuid: None,
+            e164: recipient_phone_number.clone(),
+            relay: None,
+        };
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64;
+
+        let data_message = ContentBody::DataMessage(DataMessage {
+            attachments: vec![],
+            body: Some(message),
+            body_ranges: vec![],
+            contact: vec![],
+            delete: None,
+            expire_timer: None,
+            flags: None,
+            group: None,
+            group_v2: None,
+            is_view_once: None,
+            preview: vec![],
+            profile_key: None,
+            quote: None,
+            reaction: None,
+            sticker: None,
+            timestamp: Some(timestamp),
+            required_protocol_version: None,
+        });
+
+        println!("Sending {:?}", data_message);
+        sender
+            .send_message(recipient_addr, data_message, timestamp, false)
+            .await?;
+        Ok(())
     }
 }

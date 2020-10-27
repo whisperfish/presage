@@ -6,6 +6,8 @@ pub enum Error {
     ProtocolError(#[from] libsignal_protocol::Error),
     #[error("libsignal-service error: {0}")]
     ServiceError(#[from] libsignal_service::prelude::ServiceError),
+    #[error("libsignal-service sending error: {0}")]
+    MessageSenderError(#[from] libsignal_service::prelude::MessageSenderError),
     #[error("this client is already registered with Signal")]
     AlreadyRegisteredError,
     #[error("this client is not yet registered, please register or link as a secondary device")]

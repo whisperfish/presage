@@ -12,7 +12,7 @@ use libsignal_protocol::{
     Address, Buffer, Context, Serializable,
 };
 use libsignal_service::configuration::SignalingKey;
-use log::trace;
+use log::{trace, warn};
 use sled::IVec;
 
 use crate::{manager::State, Error};
@@ -42,6 +42,65 @@ impl SledConfigStore {
             String::from_utf8_lossy(&db.get(key)?.ok_or(Error::MissingKeyError(key.into()))?)
                 .to_string(),
         )
+    }
+
+
+    fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
+    where
+        K: AsRef<str>,
+    {
+        trace!("get {}", key.as_ref());
+        Ok(self.db.read().expect("poisoned mutex").get(key.as_ref())?)
+    }
+
+    fn get_i32<S>(&self, key: S) -> Result<Option<i32>, Error>
+    where
+        S: AsRef<str>,
+    {
+        trace!("getting i32 {}", key.as_ref());
+        Ok(self.get(key.as_ref())?.and_then(|ref data| {
+            let mut a: [u8; 4] = Default::default();
+            a.copy_from_slice(data);
+            Some(i32::from_le_bytes(a))
+        }))
+    }
+
+    fn get_u32<S>(&self, key: S) -> Result<Option<u32>, Error>
+    where
+        S: AsRef<str>,
+    {
+        trace!("getting u32 {}", key.as_ref());
+        Ok(self.get(key.as_ref())?.and_then(|ref data| {
+            let mut a: [u8; 4] = Default::default();
+            a.copy_from_slice(data);
+            Some(u32::from_le_bytes(a))
+        }))
+    }
+
+    fn insert<K, V>(&self, key: K, value: V) -> Result<(), Error>
+    where
+        K: AsRef<str>,
+        IVec: From<V>,
+    {
+        trace!("inserting {}", key.as_ref());
+        let _ = self
+            .db
+            .try_write()
+            .expect("poisoned mutex")
+            .insert(key.as_ref(), value)?;
+        Ok(())
+    }
+
+    fn insert_u32<S>(&self, key: S, value: u32) -> Result<(), Error>
+    where
+        S: AsRef<str>,
+    {
+        trace!("inserting u32 {}", key.as_ref());
+        self.db
+            .try_write()
+            .expect("poisoned mutex")
+            .insert(key.as_ref(), &value.to_le_bytes())?;
+        Ok(())
     }
 
     fn contains<S>(&self, key: S) -> Result<bool, Error>
@@ -102,10 +161,10 @@ impl ConfigStore for SledConfigStore {
                     );
                     key
                 },
-                device_id: self.get_u32("device_id")?,
+                device_id: self.get_i32("device_id")?,
                 registration_id: self
                     .get_u32("registration_id")?
-                    .ok_or(Error::MissingKeyError("registration_id".into()))?,
+                    .ok_or(Error::MissingKeyError("registration_id".into()))? as u32,
                 private_key: PrivateKey::decode_point(
                     context,
                     &db.get("private_key")?
@@ -171,50 +230,20 @@ impl ConfigStore for SledConfigStore {
         Ok(())
     }
 
-    fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
-    where
-        K: AsRef<str>,
-    {
-        trace!("get {}", key.as_ref());
-        Ok(self.db.read().expect("poisoned mutex").get(key.as_ref())?)
+    fn pre_keys_offset_id(&self) -> Result<u32, Error> {
+        Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
     }
 
-    fn get_u32<S>(&self, key: S) -> Result<Option<u32>, Error>
-    where
-        S: AsRef<str>,
-    {
-        trace!("getting u32 {}", key.as_ref());
-        Ok(self.get(key.as_ref())?.and_then(|ref data| {
-            let mut a: [u8; 4] = Default::default();
-            a.copy_from_slice(data);
-            Some(u32::from_le_bytes(a))
-        }))
+    fn set_pre_keys_offset_id(&self, id: u32) -> Result<(), Error> {
+        self.insert_u32("pre_keys_offset_id", id)
     }
 
-    fn insert<K, V>(&self, key: K, value: V) -> Result<(), Error>
-    where
-        K: AsRef<str>,
-        IVec: From<V>,
-    {
-        trace!("inserting {}", key.as_ref());
-        let _ = self
-            .db
-            .try_write()
-            .expect("poisoned mutex")
-            .insert(key.as_ref(), value)?;
-        Ok(())
+    fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
+        Ok(self.get_u32("next_signed_pre_key_id")?.unwrap_or(0))
     }
 
-    fn insert_u32<S>(&self, key: S, value: u32) -> Result<(), Error>
-    where
-        S: AsRef<str>,
-    {
-        trace!("inserting u32 {}", key.as_ref());
-        self.db
-            .try_write()
-            .expect("poisoned mutex")
-            .insert(key.as_ref(), &value.to_le_bytes())?;
-        Ok(())
+    fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error> {
+        self.insert_u32("next_signed_pre_key_id", id)
     }
 }
 
@@ -424,7 +453,11 @@ impl IdentityKeyStore for SledConfigStore {
             log::error!("failed to read identity for {:?}: {}", address, e);
             libsignal_protocol::InternalError::Unknown
         })? {
-            None => Ok(false),
+            None => {
+                // when we encounter a new identity, we trust it by default
+                warn!("trusting new identity {:?}", address);
+                Ok(true)
+            },
             Some(contents) => Ok(contents == identity_key),
         }
     }
