@@ -25,7 +25,7 @@ use libsignal_service::{
     configuration::SignalServers,
     configuration::SignalingKey,
     content::Metadata,
-    content::{ContentBody, DataMessage},
+    content::{ContentBody, DataMessage, Reaction},
     messagepipe::Credentials,
     pre_keys::PreKeyEntity,
     pre_keys::PreKeyState,
@@ -538,27 +538,27 @@ where
             .as_millis() as u64;
 
         let data_message = ContentBody::DataMessage(DataMessage {
-            attachments: vec![],
             body: Some(message),
-            body_ranges: vec![],
-            contact: vec![],
-            delete: None,
-            expire_timer: None,
-            flags: None,
-            group: None,
-            group_v2: None,
-            is_view_once: None,
-            preview: vec![],
-            profile_key: None,
-            quote: None,
-            reaction: None,
-            sticker: None,
             timestamp: Some(timestamp),
-            required_protocol_version: None,
+            ..Default::default()
+        });
+
+        let reaction_data_message = ContentBody::DataMessage(DataMessage {
+            reaction: Some(Reaction {
+                emoji: Some("🚀".to_string()),
+                remove: Some(false),
+                target_author_uuid: Some(uuid.clone()),
+                target_sent_timestamp: Some(timestamp),
+            }),
+            ..Default::default()
         });
 
         sender
-            .send_message(recipient_addr, data_message, timestamp, false)
+            .send_message(&recipient_addr, data_message, timestamp, false)
+            .await?;
+
+        sender
+            .send_message(&recipient_addr, reaction_data_message, timestamp, false)
             .await?;
         Ok(())
     }

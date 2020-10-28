@@ -16,7 +16,7 @@ Features:
 - [x] Receive messages
 - [ ] Fetch attachments on local filesystem
 - [x] Send messages
-  - [ ] Reactions
+  - [x] Reactions
 - [ ] Groups support
   - [ ] v1
   - [ ] v2 (mentions)
