@@ -4,7 +4,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use directories::ProjectDirs;
 use libsignal_protocol::{
     keys::{PrivateKey, PublicKey},
     stores::IdentityKeyStore,
@@ -26,14 +25,9 @@ pub struct SledConfigStore {
 }
 
 impl SledConfigStore {
-    pub fn new() -> Result<Self, Error> {
-        let dir: PathBuf = ProjectDirs::from("org", "libsignal-service-rs", "signal-bot-rs")
-            .unwrap()
-            .config_dir()
-            .into();
-        std::fs::create_dir_all(&dir).unwrap();
+    pub fn new(path: PathBuf) -> Result<Self, Error> {
         Ok(SledConfigStore {
-            db: Arc::new(RwLock::new(sled::open(dir.join("db.sled"))?)),
+            db: Arc::new(RwLock::new(sled::open(path)?)),
         })
     }
 

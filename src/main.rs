@@ -1,14 +1,26 @@
+use std::path::PathBuf;
+
+use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
-use log::info;
+use log::{debug, info};
 use signal_bot::{config::SledConfigStore, Error, Manager};
 
 use structopt::StructOpt;
 
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
-use libsignal_service::{configuration::SignalServers, content::ContentBody};
+use libsignal_service::{configuration::SignalServers, content::ContentBody, ServiceAddress};
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
+struct Args {
+    #[structopt(long = "db-path", short = "d")]
+    db_path: Option<PathBuf>,
+
+    #[structopt(flatten)]
+    subcommand: Subcommand,
+}
+
+#[derive(StructOpt)]
 enum Subcommand {
     #[structopt(about = "register a primary device using a phone number")]
     Register {
@@ -44,9 +56,6 @@ enum Subcommand {
         )]
         confirmation_code: u32,
     },
-    #[cfg(debug_assertions)]
-    #[structopt(about = "ADVANCED USERS ONLY: refresh pre-keys with Signal servers")]
-    RefreshPreKeys,
     #[structopt(about = "receives all pending messages and saves them to disk")]
     Receive,
     #[structopt(about = "sends a message")]
@@ -64,10 +73,18 @@ enum Subcommand {
         )]
         message: String,
     },
-    #[structopt(about = "ADVANCED USERS ONLY: manipulate internal configuration")]
     Config {
-        #[structopt(long = "dump", help = "dumps the configuration in the terminal")]
-        print: bool,
+        #[structopt(flatten)]
+        command: ConfigSubcommand,
+    },
+}
+
+#[derive(StructOpt)]
+enum ConfigSubcommand {
+    Print,
+    ClearSessions {
+        #[structopt(long = "recipient")]
+        recipient: String,
     },
 }
 
@@ -75,19 +92,38 @@ enum Subcommand {
 async fn main() -> anyhow::Result<()> {
     env_logger::builder().format_timestamp(None).init();
 
-    let signal_context = Context::new(DefaultCrypto::default())?;
-    let config_store = SledConfigStore::new()?;
+    let args = Args::from_args();
 
-    let args = Subcommand::from_args();
+    let db_path = match args.db_path {
+        Some(path) => path,
+        None => {
+            let dir: PathBuf = ProjectDirs::from("org", "libsignal-service-rs", "signal-bot-rs")
+                .unwrap()
+                .config_dir()
+                .into();
+            std::fs::create_dir_all(&dir)?;
+            dir
+        }
+    };
+
+    debug!("opening config database from {}", db_path.display());
+    let config_store = SledConfigStore::new(db_path)?;
+    let signal_context = Context::new(DefaultCrypto::default())?;
 
     let mut manager = Manager::with_config_store(config_store, signal_context)?;
 
-    match args {
-        Subcommand::Config { print } => {
-            if print {
-                println!("{:?}", manager);
+    match args.subcommand {
+        Subcommand::Config { command } => match command {
+            ConfigSubcommand::Print => println!("{:?}", manager),
+            ConfigSubcommand::ClearSessions { recipient } => {
+                let address = ServiceAddress {
+                    uuid: None,
+                    e164: recipient,
+                    relay: None,
+                };
+                manager.clear_sessions(&address)?;
             }
-        }
+        },
         Subcommand::Register {
             servers,
             phone_number,
@@ -108,10 +144,6 @@ async fn main() -> anyhow::Result<()> {
         }
         Subcommand::Verify { confirmation_code } => {
             manager.confirm_verification_code(confirmation_code).await?;
-            manager.register_pre_keys().await?;
-        }
-        #[cfg(debug_assertions)]
-        Subcommand::RefreshPreKeys => {
             manager.register_pre_keys().await?;
         }
         Subcommand::Receive => {

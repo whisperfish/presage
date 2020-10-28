@@ -1,5 +1,7 @@
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("input/output error: {0}")]
+    IoError(#[from] std::io::Error),
     #[error("data store error: {0}")]
     DbError(#[from] sled::Error),
     #[error("libsignal-protocol error: {0}")]

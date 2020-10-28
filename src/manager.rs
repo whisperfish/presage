@@ -562,4 +562,10 @@ where
             .await?;
         Ok(())
     }
+
+    pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
+        self.config_store
+            .delete_all_sessions(&recipient.get_identifier().as_bytes())?;
+        Ok(())
+    }
 }
