@@ -1,5 +1,6 @@
 use std::{
     path::PathBuf,
+    str::FromStr,
     sync::{Arc, RwLock},
 };
 
@@ -11,7 +12,7 @@ use libsignal_protocol::{
     stores::{PreKeyStore, SerializedSession, SignedPreKeyStore},
     Address, Buffer, Context, Serializable,
 };
-use libsignal_service::configuration::SignalingKey;
+use libsignal_service::configuration::{SignalServers, SignalingKey};
 use log::{trace, warn};
 use sled::IVec;
 
@@ -19,7 +20,7 @@ use crate::{manager::State, Error};
 
 use super::ConfigStore;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SledConfigStore {
     db: Arc<RwLock<sled::Db>>,
 }
@@ -43,7 +44,6 @@ impl SledConfigStore {
                 .to_string(),
         )
     }
-
 
     fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
     where
@@ -150,6 +150,8 @@ impl ConfigStore for SledConfigStore {
         if db.contains_key("uuid")? {
             trace!("Loading registered state");
             Ok(State::Registered {
+                signal_servers: SignalServers::from_str(&Self::get_string(&db, "signal_servers")?)
+                    .expect("unknown signal servers"),
                 phone_number: Self::get_string(&db, "phone_number")?,
                 uuid: Self::get_string(&db, "uuid")?,
                 password: Self::get_string(&db, "password")?,
@@ -164,7 +166,8 @@ impl ConfigStore for SledConfigStore {
                 device_id: self.get_i32("device_id")?,
                 registration_id: self
                     .get_u32("registration_id")?
-                    .ok_or(Error::MissingKeyError("registration_id".into()))? as u32,
+                    .ok_or(Error::MissingKeyError("registration_id".into()))?
+                    as u32,
                 private_key: PrivateKey::decode_point(
                     context,
                     &db.get("private_key")?
@@ -183,11 +186,13 @@ impl ConfigStore for SledConfigStore {
         } else if db.contains_key("phone_number")? {
             trace!("Loading registration state");
             Ok(State::Registration {
+                signal_servers: SignalServers::from_str(&Self::get_string(&db, "signal_servers")?)
+                    .expect("unknown signal servers"),
                 phone_number: Self::get_string(&db, "phone_number")?,
                 password: Self::get_string(&db, "password")?,
             })
         } else {
-            Err(Error::NotYetRegisteredError)
+            Ok(State::New)
         }
     }
 
@@ -195,15 +200,19 @@ impl ConfigStore for SledConfigStore {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
         match state {
+            State::New => (),
             State::Registration {
+                signal_servers,
                 phone_number,
                 password,
             } => {
                 trace!("saving registration data");
+                db.insert("signal_servers", signal_servers.to_string().as_bytes())?;
                 db.insert("phone_number", phone_number.as_bytes())?;
                 db.insert("password", password.as_bytes())?;
             }
             State::Registered {
+                signal_servers,
                 phone_number,
                 uuid,
                 password,
@@ -214,6 +223,7 @@ impl ConfigStore for SledConfigStore {
                 public_key,
                 profile_key,
             } => {
+                db.insert("signal_servers", signal_servers.to_string().as_bytes())?;
                 db.insert("phone_number", phone_number.as_bytes())?;
                 db.insert("uuid", uuid.as_bytes())?;
                 db.insert("password", password.as_bytes())?;
@@ -457,7 +467,7 @@ impl IdentityKeyStore for SledConfigStore {
                 // when we encounter a new identity, we trust it by default
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
-            },
+            }
             Some(contents) => Ok(contents == identity_key),
         }
     }

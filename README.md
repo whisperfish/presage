@@ -6,7 +6,6 @@ This intends to be a high-level library to build bot and clients for [Signal](ht
 
 Features:
 
-
 - [x] Configuration storage (using [sled](https://github.com/spacejam/sled))
 - [x] Registration
   - [x] SMS
@@ -14,7 +13,7 @@ Features:
 - [x] Link as secondary device from Android / iOS app
 - [x] Receive messages
 - [ ] Fetch attachments on local filesystem
-- [ ] Send messages
+- [x] Send messages
   - [ ] Reactions
 - [ ] Groups support
   - [ ] v1

@@ -21,5 +21,5 @@ pub enum Error {
     #[error("missing key {0} in config DB")]
     MissingKeyError(String),
     #[error("receiving pipe was interrupted")]
-    MessagePipeInterruptedError
+    MessagePipeInterruptedError,
 }

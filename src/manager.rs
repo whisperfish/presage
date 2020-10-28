@@ -1,21 +1,28 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+    convert::TryFrom,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use futures::{
     channel::mpsc::{channel, Sender},
     future, pin_mut, SinkExt, StreamExt,
 };
 use image::Luma;
+use log::{error, trace, warn};
+use qrcode::QrCode;
+use rand::{distributions::Alphanumeric, Rng, RngCore};
+
 use libsignal_protocol::{
     keys::{IdentityKeyPair, PrivateKey, PublicKey},
     stores::IdentityKeyStore,
     stores::PreKeyStore,
     stores::SessionStore,
     stores::SignedPreKeyStore,
-    Context, Serializable,
+    Context, Serializable, StoreContext,
 };
 use libsignal_service::{
     cipher::ServiceCipher,
-    configuration::ServiceConfiguration,
+    configuration::SignalServers,
     configuration::SignalingKey,
     content::Metadata,
     content::{ContentBody, DataMessage},
@@ -32,13 +39,10 @@ use libsignal_service_actix::{
     provisioning::provision_secondary_device, provisioning::SecondaryDeviceProvisioning,
     push_service::AwcPushService,
 };
-use log::{error, trace, warn};
-use qrcode::QrCode;
-use rand::{distributions::Alphanumeric, Rng, RngCore};
 
 use crate::{config::ConfigStore, Error};
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Manager<
     C: Clone
         + ConfigStore
@@ -50,15 +54,20 @@ pub struct Manager<
 > {
     config_store: C,
     state: State,
+    context: Context,
+    store_context: StoreContext,
 }
 
 #[derive(Debug, Clone)]
 pub enum State {
+    New,
     Registration {
+        signal_servers: SignalServers,
         phone_number: String,
         password: String,
     },
     Registered {
+        signal_servers: SignalServers,
         phone_number: String,
         uuid: String,
         password: String,
@@ -81,11 +90,20 @@ where
         + IdentityKeyStore
         + 'static,
 {
-    pub fn with_config_store(config_store: C, context: &Context) -> Result<Self, Error> {
-        let state = config_store.state(context)?;
+    pub fn with_config_store(config_store: C, context: Context) -> Result<Self, Error> {
+        let store_context = libsignal_protocol::store_context(
+            &context,
+            config_store.clone(),
+            config_store.clone(),
+            config_store.clone(),
+            config_store.clone(),
+        )?;
+        let state = config_store.state(&context)?;
         Ok(Manager {
             config_store,
             state,
+            context,
+            store_context,
         })
     }
 
@@ -96,7 +114,7 @@ where
 
     fn identity_key_pair(&self) -> Result<IdentityKeyPair, Error> {
         let (public_key, private_key) = match &self.state {
-            State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
                 public_key,
                 private_key,
@@ -108,6 +126,7 @@ where
 
     fn credentials(&self) -> Result<Option<Credentials>, Error> {
         match &self.state {
+            State::New => Err(Error::NotYetRegisteredError),
             State::Registration { .. } => Ok(None),
             State::Registered {
                 phone_number,
@@ -140,17 +159,17 @@ where
     }
 
     pub async fn register(
-        config_store: C,
-        service_configuration: ServiceConfiguration,
+        &mut self,
+        signal_servers: SignalServers,
         phone_number: String,
         use_voice_call: bool,
-    ) -> Result<Manager<C>, Error> {
+    ) -> Result<(), Error> {
         // generate a random 24 bytes password
         let rng = rand::rngs::OsRng::default();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
 
         let mut push_service = AwcPushService::new(
-            service_configuration.clone(),
+            signal_servers.into(),
             Some(Credentials {
                 e164: phone_number.clone(),
                 password: Some(password.clone()),
@@ -170,38 +189,33 @@ where
                 .await?;
         }
 
-        let manager = Manager {
-            config_store,
-            state: State::Registration {
-                phone_number,
-                password,
-            },
+        self.state = State::Registration {
+            signal_servers,
+            phone_number,
+            password,
         };
 
-        manager.save()?;
-        Ok(manager)
+        self.save()?;
+        Ok(())
     }
 
-    pub async fn confirm_verification_code(
-        &mut self,
-        ctx: &Context,
-        service_configuration: &ServiceConfiguration,
-        confirm_code: u32,
-    ) -> Result<(), Error> {
+    pub async fn confirm_verification_code(&mut self, confirm_code: u32) -> Result<(), Error> {
         trace!("confirming verification code");
-        let (phone_number, password) = match &self.state {
+        let (signal_servers, phone_number, password) = match &self.state {
+            State::New => return Err(Error::NotYetRegisteredError),
             State::Registration {
+                signal_servers,
                 phone_number,
                 password,
-            } => (phone_number, password),
-            _ => return Err(Error::AlreadyRegisteredError),
+            } => (signal_servers, phone_number, password),
+            State::Registered { .. } => return Err(Error::AlreadyRegisteredError),
         };
 
-        let registration_id = libsignal_protocol::generate_registration_id(&ctx, 0)?;
+        let registration_id = libsignal_protocol::generate_registration_id(&self.context, 0)?;
         trace!("registration_id: {}", registration_id);
 
         let mut push_service = AwcPushService::new(
-            service_configuration.clone(),
+            (*signal_servers).into(),
             Some(Credentials {
                 e164: phone_number.clone(),
                 password: Some(password.clone()),
@@ -231,9 +245,10 @@ where
             )
             .await?;
 
-        let identity_key_pair = libsignal_protocol::generate_identity_key_pair(ctx)?;
+        let identity_key_pair = libsignal_protocol::generate_identity_key_pair(&self.context)?;
 
         self.state = State::Registered {
+            signal_servers: *signal_servers,
             phone_number: phone_number.clone(),
             uuid: registered.uuid,
             password: password.clone(),
@@ -252,11 +267,10 @@ where
     }
 
     pub async fn link_secondary_device(
-        ctx: &Context,
-        config_store: C,
-        service_configuration: &ServiceConfiguration,
+        &mut self,
+        signal_servers: SignalServers,
         device_name: String,
-    ) -> Result<Manager<C>, Error> {
+    ) -> Result<(), Error> {
         // generate a random 24 bytes password
         let mut rng = rand::rngs::OsRng::default();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
@@ -269,8 +283,8 @@ where
 
         let (fut1, fut2) = future::join(
             provision_secondary_device(
-                &ctx,
-                service_configuration,
+                &self.context,
+                &signal_servers.into(),
                 &signaling_key,
                 &password,
                 &device_name,
@@ -325,33 +339,31 @@ where
         let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
             fut2?;
 
-        let manager = Manager {
-            config_store,
-            state: State::Registered {
-                phone_number,
-                uuid,
-                signaling_key,
-                password,
-                device_id: Some(device_id),
-                registration_id,
-                public_key,
-                private_key,
-                profile_key,
-            },
+        self.state = State::Registered {
+            signal_servers,
+            phone_number,
+            uuid,
+            signaling_key,
+            password,
+            device_id: Some(device_id),
+            registration_id,
+            public_key,
+            private_key,
+            profile_key,
         };
 
-        manager.save()?;
-        Ok(manager)
+        self.save()?;
+        Ok(())
     }
 
-    pub async fn register_pre_keys(
-        &self,
-        context: &Context,
-        service_configuration: &ServiceConfiguration,
-    ) -> Result<(), Error> {
-        let public_key = match &self.state {
-            State::Registration { .. } => return Err(Error::NotYetRegisteredError),
-            State::Registered { public_key, .. } => public_key,
+    pub async fn register_pre_keys(&self) -> Result<(), Error> {
+        let (signal_servers, public_key) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered {
+                signal_servers,
+                public_key,
+                ..
+            } => (signal_servers, public_key),
         };
 
         let mut pre_keys_offset_id = self.config_store.pre_keys_offset_id()?;
@@ -359,15 +371,19 @@ where
 
         const PRE_KEYS_COUNT: u32 = 100;
 
-        let pre_keys =
-            libsignal_protocol::generate_pre_keys(&context, pre_keys_offset_id, PRE_KEYS_COUNT)?;
+        let pre_keys = libsignal_protocol::generate_pre_keys(
+            &self.context,
+            pre_keys_offset_id,
+            PRE_KEYS_COUNT,
+        )?;
         let identity_key_pair = self.identity_key_pair()?;
         let signed_pre_key = libsignal_protocol::generate_signed_pre_key(
-            &context,
+            &self.context,
             &identity_key_pair,
             next_signed_pre_key_id,
             SystemTime::now(),
         )?;
+
         SignedPreKeyStore::store(
             &self.config_store,
             next_signed_pre_key_id,
@@ -375,11 +391,8 @@ where
         )?;
         next_signed_pre_key_id += 1;
 
-        let mut push_service = AwcPushService::new(
-            service_configuration.clone(),
-            self.credentials()?,
-            USER_AGENT,
-        );
+        let mut push_service =
+            AwcPushService::new((*signal_servers).into(), self.credentials()?, USER_AGENT);
 
         let mut pre_key_entities = vec![];
         for pre_key in pre_keys {
@@ -388,7 +401,7 @@ where
                 pre_keys_offset_id,
                 pre_key.serialize()?.as_slice(),
             )?;
-            pre_key_entities.push(PreKeyEntity::from(pre_key));
+            pre_key_entities.push(PreKeyEntity::try_from(pre_key)?);
             pre_keys_offset_id += 1;
         }
 
@@ -410,34 +423,22 @@ where
 
     pub async fn receive_messages(
         &self,
-        context: Context,
-        service_configuration: &ServiceConfiguration,
         mut tx: Sender<(Metadata, ContentBody)>,
     ) -> Result<(), Error> {
-        let (phone_number, uuid) = match &self.state {
-            State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+        let (signal_servers, phone_number, uuid) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
-                phone_number, uuid, ..
-            } => (phone_number, uuid),
+                signal_servers,
+                phone_number,
+                uuid,
+                ..
+            } => (signal_servers, phone_number, uuid),
         };
 
         let credentials = self.credentials()?;
 
-        let push_service = AwcPushService::new(
-            service_configuration.clone(),
-            credentials.clone(),
-            USER_AGENT,
-        );
-
-        let store_context = libsignal_protocol::store_context(
-            &context,
-            // Storage is a pointer-to-shared-storage
-            self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
-        )
-        .expect("initialized storage");
+        let push_service =
+            AwcPushService::new((*signal_servers).into(), credentials.clone(), USER_AGENT);
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -445,7 +446,11 @@ where
             relay: None,
         };
 
-        let mut service_cipher = ServiceCipher::from_context(context, local_addr, store_context);
+        let mut service_cipher = ServiceCipher::from_context(
+            self.context.clone(),
+            local_addr,
+            self.store_context.clone(),
+        );
 
         let mut receiver = MessageReceiver::new(push_service);
 
@@ -484,38 +489,24 @@ where
 
     pub async fn send_message(
         &self,
-        context: Context,
-        service_configuration: &ServiceConfiguration,
         recipient_phone_number: String,
         message: String,
     ) -> Result<(), Error> {
-        let (phone_number, uuid, device_id) = match &self.state {
-            State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+        let (signal_servers, phone_number, uuid, device_id) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
+                signal_servers,
                 phone_number,
                 uuid,
                 device_id,
                 ..
-            } => (phone_number, uuid, device_id),
+            } => (signal_servers, phone_number, uuid, device_id),
         };
 
         let credentials = self.credentials()?;
 
-        let push_service = AwcPushService::new(
-            service_configuration.clone(),
-            credentials.clone(),
-            USER_AGENT,
-        );
-
-        let store_context = libsignal_protocol::store_context(
-            &context,
-            // Storage is a pointer-to-shared-storage
-            self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
-        )
-        .expect("initialized storage");
+        let push_service =
+            AwcPushService::new((*signal_servers).into(), credentials.clone(), USER_AGENT);
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -523,11 +514,14 @@ where
             relay: None,
         };
 
-        let service_cipher = ServiceCipher::from_context(context, local_addr, store_context);
+        let service_cipher = ServiceCipher::from_context(
+            self.context.clone(),
+            local_addr,
+            self.store_context.clone(),
+        );
 
-        let mut sender = MessageSender::new(
+        let sender = MessageSender::new(
             push_service,
-            self.config_store.clone(),
             service_cipher,
             device_id.unwrap_or(DEFAULT_DEVICE_ID),
         );
@@ -563,7 +557,6 @@ where
             required_protocol_version: None,
         });
 
-        println!("Sending {:?}", data_message);
         sender
             .send_message(recipient_addr, data_message, timestamp, false)
             .await?;
