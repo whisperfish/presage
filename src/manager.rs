@@ -168,7 +168,7 @@ where
         let rng = rand::rngs::OsRng::default();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
 
-        let mut push_service = AwcPushService::new(
+        let push_service = AwcPushService::new(
             signal_servers.into(),
             Some(Credentials {
                 e164: phone_number.clone(),
@@ -214,7 +214,7 @@ where
         let registration_id = libsignal_protocol::generate_registration_id(&self.context, 0)?;
         trace!("registration_id: {}", registration_id);
 
-        let mut push_service = AwcPushService::new(
+        let push_service = AwcPushService::new(
             (*signal_servers).into(),
             Some(Credentials {
                 e164: phone_number.clone(),
@@ -391,7 +391,7 @@ where
         )?;
         next_signed_pre_key_id += 1;
 
-        let mut push_service =
+        let push_service =
             AwcPushService::new((*signal_servers).into(), self.credentials()?, USER_AGENT);
 
         let mut pre_key_entities = vec![];
