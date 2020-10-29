@@ -4,6 +4,8 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("data store error: {0}")]
     DbError(#[from] sled::Error),
+    #[error("error decoding base64 data: {0}")]
+    Base64Error(#[from] base64::DecodeError),
     #[error("libsignal-protocol error: {0}")]
     ProtocolError(#[from] libsignal_protocol::Error),
     #[error("libsignal-service error: {0}")]

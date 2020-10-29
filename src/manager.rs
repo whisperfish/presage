@@ -22,6 +22,7 @@ use libsignal_protocol::{
 };
 use libsignal_service::{
     cipher::ServiceCipher,
+    configuration::ServiceConfiguration,
     configuration::SignalServers,
     configuration::SignalingKey,
     content::Metadata,
@@ -33,6 +34,7 @@ use libsignal_service::{
     prelude::{MessageSender, PushService},
     push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
+    sealed_session_cipher::CertificateValidator,
     ServiceAddress, USER_AGENT,
 };
 use libsignal_service_actix::{
@@ -436,9 +438,8 @@ where
         };
 
         let credentials = self.credentials()?;
-
-        let push_service =
-            AwcPushService::new((*signal_servers).into(), credentials.clone(), USER_AGENT);
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -448,9 +449,14 @@ where
 
         let mut service_cipher = ServiceCipher::from_context(
             self.context.clone(),
-            local_addr,
             self.store_context.clone(),
+            self.identity_key_pair()?,
+            local_addr,
+            certificate_validator,
         );
+
+        let push_service =
+            AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
 
         let mut receiver = MessageReceiver::new(push_service);
 
@@ -471,7 +477,7 @@ where
                             continue;
                         }
                         Err(e) => {
-                            error!("Error opening envelope: {}, message will be skipped!", e);
+                            panic!("Error opening envelope: {}, message will be skipped!", e);
                             continue;
                         }
                     };
@@ -504,9 +510,14 @@ where
         };
 
         let credentials = self.credentials()?;
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let trust_root = PublicKey::decode_point(
+            &self.context,
+            &base64::decode(&service_configuration.certificate_authority)?,
+        )?;
 
         let push_service =
-            AwcPushService::new((*signal_servers).into(), credentials.clone(), USER_AGENT);
+            AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -516,8 +527,10 @@ where
 
         let service_cipher = ServiceCipher::from_context(
             self.context.clone(),
-            local_addr,
             self.store_context.clone(),
+            self.identity_key_pair()?,
+            local_addr,
+            CertificateValidator { trust_root },
         );
 
         let sender = MessageSender::new(
@@ -565,7 +578,7 @@ where
 
     pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
         self.config_store
-            .delete_all_sessions(&recipient.get_identifier().as_bytes())?;
+            .delete_all_sessions(&recipient.identifier().as_bytes())?;
         Ok(())
     }
 }

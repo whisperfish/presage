@@ -90,7 +90,7 @@ enum ConfigSubcommand {
 
 #[actix_rt::main]
 async fn main() -> anyhow::Result<()> {
-    env_logger::builder().format_timestamp(None).init();
+    env_logger::builder().init();
 
     let args = Args::from_args();
 
