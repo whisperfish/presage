@@ -114,7 +114,7 @@ async fn main() -> anyhow::Result<()> {
 
     match args.subcommand {
         Subcommand::Config { command } => match command {
-            ConfigSubcommand::Print => println!("{:?}", manager),
+            ConfigSubcommand::Print => println!("{:?}", manager.config_store),
             ConfigSubcommand::ClearSessions { recipient } => {
                 let address = ServiceAddress {
                     uuid: None,

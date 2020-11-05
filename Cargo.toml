@@ -39,7 +39,10 @@ prost = "*"
 
 [patch."https://github.com/Michael-F-Bryan/libsignal-protocol-rs.git"]
 libsignal-protocol = { path = "../libsignal-protocol-rs/libsignal-protocol" }
+# libsignal-protocol = { git = "https://github.com/gferon/libsignal-protocol-rs.git", branch = "store-refactor" }
 
 [patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
 libsignal-service = {path = "../libsignal-service-rs/libsignal-service" }
 libsignal-service-actix = {path = "../libsignal-service-rs/libsignal-service-actix" }
+# libsignal-service = { git = "https://github.com/gferon/libsignal-service-rs.git", branch = "sealed-session-cipher" }
+# libsignal-service-actix = { git = "https://github.com/gferon/libsignal-service-rs.git", branch = "sealed-session-cipher" }

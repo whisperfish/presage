@@ -347,18 +347,12 @@ impl SessionStore for SledConfigStore {
             .iter()
             .filter_map(|r| {
                 let (key, _) = r.unwrap();
-                if key.len() < addr.len() + 2 {
-                    return None;
-                }
 
-                if &key[..addr.len()] == addr {
-                    if key[addr.len()] != '_' as u8 {
-                        log::warn!("Weird session directory entry: {:?}. Skipping", key);
-                        return None;
-                    }
-                    // skip underscore
-                    let id = std::str::from_utf8(&key[(addr.len() + 1)..]).ok()?;
-                    id.parse().ok()
+                let key = dbg!(String::from_utf8_lossy(&key[8..]));
+                let searched_key = dbg!(String::from_utf8_lossy(&addr)).to_string();
+
+                if key.starts_with(&searched_key) {
+                    key.split("-").last().and_then(|k| k.parse().ok())
                 } else {
                     None
                 }
@@ -479,5 +473,16 @@ impl IdentityKeyStore for SledConfigStore {
             })?;
         trace!("saved identity");
         Ok(())
+    }
+
+    fn get_identity(&self, address: Address) -> Result<Option<Buffer>, libsignal_protocol::Error> {
+        trace!("getting identity of {:?}", &address);
+        Ok(self
+            .get(self.identity_key(&address))
+            .map_err(|e| {
+                log::error!("error getting identity of {:?}: {}", address, e);
+                libsignal_protocol::InternalError::Unknown
+            })?
+            .and_then(|v| Some(Buffer::from(&v[..]))))
     }
 }

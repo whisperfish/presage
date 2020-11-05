@@ -34,7 +34,7 @@ use libsignal_service::{
     prelude::{MessageSender, PushService},
     push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
-    sealed_session_cipher::CertificateValidator,
+    // sealed_session_cipher::CertificateValidator,
     ServiceAddress, USER_AGENT,
 };
 use libsignal_service_actix::{
@@ -44,7 +44,7 @@ use libsignal_service_actix::{
 
 use crate::{config::ConfigStore, Error};
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct Manager<
     C: Clone
         + ConfigStore
@@ -54,7 +54,7 @@ pub struct Manager<
         + IdentityKeyStore
         + 'static,
 > {
-    config_store: C,
+    pub config_store: C,
     state: State,
     context: Context,
     store_context: StoreContext,
@@ -170,7 +170,7 @@ where
         let rng = rand::rngs::OsRng::default();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
 
-        let push_service = AwcPushService::new(
+        let mut push_service = AwcPushService::new(
             signal_servers.into(),
             Some(Credentials {
                 e164: phone_number.clone(),
@@ -216,7 +216,7 @@ where
         let registration_id = libsignal_protocol::generate_registration_id(&self.context, 0)?;
         trace!("registration_id: {}", registration_id);
 
-        let push_service = AwcPushService::new(
+        let mut push_service = AwcPushService::new(
             (*signal_servers).into(),
             Some(Credentials {
                 e164: phone_number.clone(),
@@ -393,7 +393,7 @@ where
         )?;
         next_signed_pre_key_id += 1;
 
-        let push_service =
+        let mut push_service =
             AwcPushService::new((*signal_servers).into(), self.credentials()?, USER_AGENT);
 
         let mut pre_key_entities = vec![];
@@ -439,7 +439,7 @@ where
 
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
-        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+        // let certificate_validator = service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -449,10 +449,9 @@ where
 
         let mut service_cipher = ServiceCipher::from_context(
             self.context.clone(),
-            self.store_context.clone(),
-            self.identity_key_pair()?,
             local_addr,
-            certificate_validator,
+            self.store_context.clone(),
+            // certificate_validator,
         );
 
         let push_service =
@@ -477,7 +476,7 @@ where
                             continue;
                         }
                         Err(e) => {
-                            panic!("Error opening envelope: {}, message will be skipped!", e);
+                            error!("Error opening envelope: {}, message will be skipped!", e);
                             continue;
                         }
                     };
@@ -511,10 +510,10 @@ where
 
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
-        let trust_root = PublicKey::decode_point(
-            &self.context,
-            &base64::decode(&service_configuration.certificate_authority)?,
-        )?;
+        // let trust_root = PublicKey::decode_point(
+            // &self.context,
+            // &base64::decode(&service_configuration.unidentified_sender_trust_root)?,
+        // )?;
 
         let push_service =
             AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
@@ -527,13 +526,12 @@ where
 
         let service_cipher = ServiceCipher::from_context(
             self.context.clone(),
-            self.store_context.clone(),
-            self.identity_key_pair()?,
             local_addr,
-            CertificateValidator { trust_root },
+            self.store_context.clone(),
+            // CertificateValidator::new(trust_root),
         );
 
-        let sender = MessageSender::new(
+        let mut sender = MessageSender::new(
             push_service,
             service_cipher,
             device_id.unwrap_or(DEFAULT_DEVICE_ID),
@@ -567,11 +565,11 @@ where
         });
 
         sender
-            .send_message(&recipient_addr, data_message, timestamp, false)
+            .send_message(&recipient_addr, data_message, timestamp, true)
             .await?;
 
         sender
-            .send_message(&recipient_addr, reaction_data_message, timestamp, false)
+            .send_message(&recipient_addr, reaction_data_message, timestamp, true)
             .await?;
         Ok(())
     }
