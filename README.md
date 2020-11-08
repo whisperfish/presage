@@ -14,11 +14,11 @@ Features:
   - [x] Voice
 - [x] Link as secondary device from Android / iOS app
 - [x] Receive messages
-- [ ] Fetch attachments on local filesystem
+- [ ] Fetch attachments
 - [x] Send messages
   - [x] Reactions
-- [ ] Groups support
-  - [ ] v1
+- [x] Groups support
+  - [x] v1
   - [ ] v2 (mentions)
 
 NB: some features will be implemented directly in `libsignal-service-rs` and mirrored here.
