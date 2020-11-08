@@ -118,7 +118,7 @@ async fn main() -> anyhow::Result<()> {
             ConfigSubcommand::ClearSessions { recipient } => {
                 let address = ServiceAddress {
                     uuid: None,
-                    e164: recipient,
+                    e164: Some(recipient),
                     relay: None,
                 };
                 manager.clear_sessions(&address)?;
@@ -140,11 +140,9 @@ async fn main() -> anyhow::Result<()> {
             manager
                 .link_secondary_device(servers, device_name.clone())
                 .await?;
-            manager.register_pre_keys().await?;
         }
         Subcommand::Verify { confirmation_code } => {
             manager.confirm_verification_code(confirmation_code).await?;
-            manager.register_pre_keys().await?;
         }
         Subcommand::Receive => {
             let (tx, mut rx) = channel(1);
