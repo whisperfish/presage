@@ -19,20 +19,7 @@ use libsignal_protocol::{
     stores::SignedPreKeyStore,
     Context, StoreContext,
 };
-use libsignal_service::{
-    cipher::ServiceCipher,
-    configuration::ServiceConfiguration,
-    configuration::SignalServers,
-    configuration::SignalingKey,
-    content::Metadata,
-    content::{ContentBody, DataMessage, Reaction},
-    messagepipe::Credentials,
-    prelude::Content,
-    prelude::{MessageSender, PushService},
-    push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
-    receiver::MessageReceiver,
-    AccountManager, ServiceAddress, USER_AGENT,
-};
+use libsignal_service::{AccountManager, ServiceAddress, USER_AGENT, cipher::ServiceCipher, configuration::ServiceConfiguration, configuration::SignalServers, configuration::SignalingKey, content::Metadata, content::{ContentBody, DataMessage, Reaction}, messagepipe::Credentials, prelude::Content, prelude::{MessageSender, PushService}, push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID}, receiver::MessageReceiver};
 use libsignal_service_actix::{
     provisioning::provision_secondary_device,
     provisioning::SecondaryDeviceProvisioning, push_service::AwcPushService,
@@ -48,6 +35,7 @@ pub struct Manager<
         + SignedPreKeyStore
         + SessionStore
         + IdentityKeyStore
+        + Send
         + 'static,
 > {
     pub config_store: C,
@@ -86,6 +74,7 @@ where
         + SignedPreKeyStore
         + SessionStore
         + IdentityKeyStore
+        + Send
         + 'static,
 {
     pub fn with_config_store(
@@ -236,7 +225,7 @@ where
                 ConfirmCodeMessage::new(
                     signaling_key.to_vec(),
                     registration_id,
-                    profile_key.derive_access_key().unwrap(),
+                    profile_key.derive_access_key(),
                 ),
             )
             .await?;
@@ -417,7 +406,7 @@ where
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration =
             (*signal_servers).into();
-        // let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -427,9 +416,9 @@ where
 
         let mut service_cipher = ServiceCipher::from_context(
             self.context.clone(),
-            local_addr,
             self.store_context.clone(),
-            // certificate_validator,
+            local_addr,
+            certificate_validator,
         );
 
         let push_service = AwcPushService::new(
@@ -497,11 +486,8 @@ where
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration =
             (*signal_servers).into();
-        // let trust_root = PublicKey::decode_point(
-        // &self.context,
-        // &base64::decode(&service_configuration.unidentified_sender_trust_root)?,
-        // )?;
 
+        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
         let push_service = AwcPushService::new(
             service_configuration,
             credentials.clone(),
@@ -516,9 +502,9 @@ where
 
         let service_cipher = ServiceCipher::from_context(
             self.context.clone(),
-            local_addr,
             self.store_context.clone(),
-            // CertificateValidator::new(trust_root),
+            local_addr,
+            certificate_validator,
         );
 
         let mut sender = MessageSender::new(
@@ -555,12 +541,13 @@ where
         });
 
         sender
-            .send_message(&recipient_addr, data_message, timestamp, true)
+            .send_message(&recipient_addr, None, data_message, timestamp, true)
             .await?;
 
         sender
             .send_message(
                 &recipient_addr,
+                None,
                 reaction_data_message,
                 timestamp,
                 true,
