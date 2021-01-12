@@ -348,8 +348,8 @@ impl SessionStore for SledConfigStore {
             .filter_map(|r| {
                 let (key, _) = r.unwrap();
 
-                let key = dbg!(String::from_utf8_lossy(&key[8..]));
-                let searched_key = dbg!(String::from_utf8_lossy(&addr)).to_string();
+                let key = String::from_utf8_lossy(&key[8..]);
+                let searched_key = String::from_utf8_lossy(&addr).to_string();
 
                 if key.starts_with(&searched_key) {
                     key.split("-").last().and_then(|k| k.parse().ok())

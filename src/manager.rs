@@ -1,6 +1,4 @@
-use std::{
-    time::{UNIX_EPOCH},
-};
+use std::time::UNIX_EPOCH;
 
 use futures::{
     channel::mpsc::{channel, Sender},
@@ -19,7 +17,20 @@ use libsignal_protocol::{
     stores::SignedPreKeyStore,
     Context, StoreContext,
 };
-use libsignal_service::{AccountManager, ServiceAddress, USER_AGENT, cipher::ServiceCipher, configuration::ServiceConfiguration, configuration::SignalServers, configuration::SignalingKey, content::Metadata, content::{ContentBody, DataMessage, Reaction}, messagepipe::Credentials, prelude::Content, prelude::{MessageSender, PushService}, push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID}, receiver::MessageReceiver};
+use libsignal_service::{
+    cipher::ServiceCipher,
+    configuration::ServiceConfiguration,
+    configuration::SignalServers,
+    configuration::SignalingKey,
+    content::Metadata,
+    content::{ContentBody, DataMessage, Reaction, SyncMessage, sync_message},
+    messagepipe::Credentials,
+    prelude::Content,
+    prelude::{MessageSender, PushService},
+    push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
+    receiver::MessageReceiver,
+    AccountManager, ServiceAddress, USER_AGENT,
+};
 use libsignal_service_actix::{
     provisioning::provision_secondary_device,
     provisioning::SecondaryDeviceProvisioning, push_service::AwcPushService,
@@ -406,7 +417,8 @@ where
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration =
             (*signal_servers).into();
-        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+        let certificate_validator =
+            service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -466,8 +478,8 @@ where
 
     pub async fn send_message(
         &self,
-        recipient_phone_number: String,
-        message: String,
+        recipient_phone_numbers: Vec<String>,
+        data_message: impl Into<ContentBody>,
     ) -> Result<(), Error> {
         let (signal_servers, phone_number, uuid, device_id) = match &self.state
         {
@@ -487,7 +499,8 @@ where
         let service_configuration: ServiceConfiguration =
             (*signal_servers).into();
 
-        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+        let certificate_validator =
+            service_configuration.credentials_validator(&self.context)?;
         let push_service = AwcPushService::new(
             service_configuration,
             credentials.clone(),

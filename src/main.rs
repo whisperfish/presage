@@ -1,14 +1,14 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
 use log::{debug, info};
-use signal_bot::{config::SledConfigStore, Error, Manager};
+use presage::{config::SledConfigStore, Error, Manager};
 
 use structopt::StructOpt;
 
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
-use libsignal_service::{configuration::SignalServers, content::ContentBody, ServiceAddress};
+use libsignal_service::{configuration::SignalServers, content::{ContentBody, DataMessage, SyncMessage, sync_message}, ServiceAddress};
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
@@ -26,22 +26,19 @@ enum Subcommand {
     Register {
         #[structopt(long = "servers", short = "s", default_value = "staging")]
         servers: SignalServers,
-        #[structopt(
-            long = "phone-number",
-            help = "Phone Number to register with in E.164 format"
-        )]
+        #[structopt(long, help = "Phone Number to register with in E.164 format")]
         phone_number: String,
-        #[structopt(long = "use-voice-call")]
+        #[structopt(long)]
         use_voice_call: bool,
     },
     #[structopt(
         about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
     )]
     LinkDevice {
-        #[structopt(long = "servers", short = "s", default_value = "staging")]
+        #[structopt(long, short = "s", default_value = "staging")]
         servers: SignalServers,
         #[structopt(
-            long = "device-name",
+            long,
             short = "n",
             help = "Name of the device to register in the primary client"
         )]
@@ -49,28 +46,16 @@ enum Subcommand {
     },
     #[structopt(about = "verify the code you got from the SMS or voice-call when you registered")]
     Verify {
-        #[structopt(
-            long = "confirmation-code",
-            short = "c",
-            help = "SMS / Voice-call confirmation code"
-        )]
+        #[structopt(long, short = "c", help = "SMS / Voice-call confirmation code")]
         confirmation_code: u32,
     },
     #[structopt(about = "receives all pending messages and saves them to disk")]
     Receive,
     #[structopt(about = "sends a message")]
     Send {
-        #[structopt(
-            long = "phone-number",
-            short = "n",
-            help = "Phone number of the recipient"
-        )]
-        phone_number: String,
-        #[structopt(
-            long = "message",
-            short = "m",
-            help = "Contents of the message to send"
-        )]
+        #[structopt(long, short = "n", help = "Phone number(s) of the recipient(s)")]
+        phone_number: Vec<String>,
+        #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
     },
     Config {
@@ -90,6 +75,9 @@ enum ConfigSubcommand {
 
 #[actix_rt::main]
 async fn main() -> anyhow::Result<()> {
+    if std::env::var("RUST_LOG").is_err() {
+        std::env::set_var("RUST_LOG", format!("{}=info", env!("CARGO_PKG_NAME")));
+    }
     env_logger::builder().init();
 
     let args = Args::from_args();
@@ -192,6 +180,15 @@ async fn main() -> anyhow::Result<()> {
             phone_number,
             message,
         } => {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64;
+            let message = ContentBody::DataMessage(DataMessage {
+                body: Some(message),
+                timestamp: Some(timestamp),
+                ..Default::default()
+            });
             manager.send_message(phone_number, message).await?;
         }
     };

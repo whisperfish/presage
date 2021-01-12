@@ -1,5 +1,6 @@
 [package]
-name = "signal-bot"
+# be a sign or warning of (an imminent event, typically an unwelcome one).
+name = "presage"
 version = "0.1.0"
 authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
 edition = "2018"
