@@ -38,9 +38,9 @@ block-modes = "0.5.0"
 sled = "*"
 prost = "*"
 
-#[patch."https://github.com/Michael-F-Bryan/libsignal-protocol-rs.git"]
-#libsignal-protocol = { path = "../libsignal-protocol-rs/libsignal-protocol" }
+[patch."https://github.com/Michael-F-Bryan/libsignal-protocol-rs.git"]
+libsignal-protocol = { path = "../libsignal-protocol-rs/libsignal-protocol" }
 
-#[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
-#libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-#libsignal-service-actix = { path = "../libsignal-service-rs/libsignal-service-actix" }
+[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
+libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+libsignal-service-actix = { path = "../libsignal-service-rs/libsignal-service-actix" }

@@ -478,8 +478,9 @@ where
 
     pub async fn send_message(
         &self,
-        recipient_phone_numbers: Vec<String>,
-        data_message: impl Into<ContentBody>,
+        recipient_phone_number: String,
+        message: impl Into<ContentBody>,
+        timestamp: u64,
     ) -> Result<(), Error> {
         let (signal_servers, phone_number, uuid, device_id) = match &self.state
         {
@@ -532,40 +533,10 @@ where
             relay: None,
         };
 
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis() as u64;
-
-        let data_message = ContentBody::DataMessage(DataMessage {
-            body: Some(message),
-            timestamp: Some(timestamp),
-            ..Default::default()
-        });
-
-        let reaction_data_message = ContentBody::DataMessage(DataMessage {
-            reaction: Some(Reaction {
-                emoji: Some("🚀".to_string()),
-                remove: Some(false),
-                target_author_uuid: Some(uuid.clone()),
-                target_sent_timestamp: Some(timestamp),
-            }),
-            ..Default::default()
-        });
-
         sender
-            .send_message(&recipient_addr, None, data_message, timestamp, true)
+            .send_message(&recipient_addr, None, message, timestamp, true)
             .await?;
 
-        sender
-            .send_message(
-                &recipient_addr,
-                None,
-                reaction_data_message,
-                timestamp,
-                true,
-            )
-            .await?;
         Ok(())
     }
 

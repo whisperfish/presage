@@ -53,8 +53,8 @@ enum Subcommand {
     Receive,
     #[structopt(about = "sends a message")]
     Send {
-        #[structopt(long, short = "n", help = "Phone number(s) of the recipient(s)")]
-        phone_number: Vec<String>,
+        #[structopt(long, short = "n", help = "Phone number of the recipient")]
+        phone_number: String,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
     },
@@ -76,7 +76,7 @@ enum ConfigSubcommand {
 #[actix_rt::main]
 async fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", format!("{}=info", env!("CARGO_PKG_NAME")));
+        std::env::set_var("RUST_LOG", format!("{}=debug", env!("CARGO_PKG_NAME")));
     }
     env_logger::builder().init();
 
@@ -184,12 +184,14 @@ async fn main() -> anyhow::Result<()> {
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
                 .as_millis() as u64;
+
             let message = ContentBody::DataMessage(DataMessage {
                 body: Some(message),
                 timestamp: Some(timestamp),
                 ..Default::default()
             });
-            manager.send_message(phone_number, message).await?;
+
+            manager.send_message(phone_number, message, timestamp).await?;
         }
     };
     Ok(())
