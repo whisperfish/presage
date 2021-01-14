@@ -23,7 +23,7 @@ use libsignal_service::{
     configuration::SignalServers,
     configuration::SignalingKey,
     content::Metadata,
-    content::{ContentBody, DataMessage, Reaction, SyncMessage, sync_message},
+    content::{sync_message, ContentBody, DataMessage, Reaction, SyncMessage},
     messagepipe::Credentials,
     prelude::Content,
     prelude::{MessageSender, PushService},
@@ -32,8 +32,8 @@ use libsignal_service::{
     AccountManager, ServiceAddress, USER_AGENT,
 };
 use libsignal_service_actix::{
-    provisioning::provision_secondary_device,
-    provisioning::SecondaryDeviceProvisioning, push_service::AwcPushService,
+    provisioning::provision_secondary_device, provisioning::SecondaryDeviceProvisioning,
+    push_service::AwcPushService,
 };
 
 use crate::{config::ConfigStore, Error};
@@ -88,10 +88,7 @@ where
         + Send
         + 'static,
 {
-    pub fn with_config_store(
-        config_store: C,
-        context: Context,
-    ) -> Result<Self, Error> {
+    pub fn with_config_store(config_store: C, context: Context) -> Result<Self, Error> {
         let store_context = libsignal_protocol::store_context(
             &context,
             config_store.clone(),
@@ -155,8 +152,7 @@ where
     ) -> Result<(), Error> {
         // generate a random 24 bytes password
         let rng = rand::rngs::OsRng::default();
-        let password: String =
-            rng.sample_iter(&Alphanumeric).take(24).collect();
+        let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
 
         let mut push_service = AwcPushService::new(
             signal_servers.into(),
@@ -189,10 +185,7 @@ where
         Ok(())
     }
 
-    pub async fn confirm_verification_code(
-        &mut self,
-        confirm_code: u32,
-    ) -> Result<(), Error> {
+    pub async fn confirm_verification_code(&mut self, confirm_code: u32) -> Result<(), Error> {
         trace!("confirming verification code");
         let (signal_servers, phone_number, password) = match &self.state {
             State::New => return Err(Error::NotYetRegisteredError),
@@ -201,13 +194,10 @@ where
                 phone_number,
                 password,
             } => (signal_servers, phone_number, password),
-            State::Registered { .. } => {
-                return Err(Error::AlreadyRegisteredError)
-            }
+            State::Registered { .. } => return Err(Error::AlreadyRegisteredError),
         };
 
-        let registration_id =
-            libsignal_protocol::generate_registration_id(&self.context, 0)?;
+        let registration_id = libsignal_protocol::generate_registration_id(&self.context, 0)?;
         trace!("registration_id: {}", registration_id);
 
         let mut push_service = AwcPushService::new(
@@ -241,8 +231,7 @@ where
             )
             .await?;
 
-        let identity_key_pair =
-            libsignal_protocol::generate_identity_key_pair(&self.context)?;
+        let identity_key_pair = libsignal_protocol::generate_identity_key_pair(&self.context)?;
 
         self.state = State::Registered {
             signal_servers: *signal_servers,
@@ -273,8 +262,7 @@ where
     ) -> Result<(), Error> {
         // generate a random 24 bytes password
         let mut rng = rand::rngs::OsRng::default();
-        let password: String =
-            rng.sample_iter(&Alphanumeric).take(24).collect();
+        let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
@@ -337,15 +325,8 @@ where
         .await;
 
         let _ = fut1?;
-        let (
-            phone_number,
-            device_id,
-            registration_id,
-            uuid,
-            private_key,
-            public_key,
-            profile_key,
-        ) = fut2?;
+        let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
+            fut2?;
 
         self.state = State::Registered {
             signal_servers,
@@ -367,20 +348,14 @@ where
 
     pub async fn register_pre_keys(&self) -> Result<(), Error> {
         let signal_servers = match &self.state {
-            State::New | State::Registration { .. } => {
-                return Err(Error::NotYetRegisteredError)
-            }
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered { signal_servers, .. } => signal_servers,
         };
 
-        let push_service = AwcPushService::new(
-            (*signal_servers).into(),
-            self.credentials()?,
-            USER_AGENT,
-        );
+        let push_service =
+            AwcPushService::new((*signal_servers).into(), self.credentials()?, USER_AGENT);
 
-        let mut account_manager =
-            AccountManager::new(self.context.clone(), push_service);
+        let mut account_manager = AccountManager::new(self.context.clone(), push_service);
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -403,9 +378,7 @@ where
         mut tx: Sender<(Metadata, ContentBody)>,
     ) -> Result<(), Error> {
         let (signal_servers, phone_number, uuid) = match &self.state {
-            State::New | State::Registration { .. } => {
-                return Err(Error::NotYetRegisteredError)
-            }
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
                 signal_servers,
                 phone_number,
@@ -415,10 +388,8 @@ where
         };
 
         let credentials = self.credentials()?;
-        let service_configuration: ServiceConfiguration =
-            (*signal_servers).into();
-        let certificate_validator =
-            service_configuration.credentials_validator(&self.context)?;
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -433,11 +404,8 @@ where
             certificate_validator,
         );
 
-        let push_service = AwcPushService::new(
-            service_configuration,
-            credentials.clone(),
-            USER_AGENT,
-        );
+        let push_service =
+            AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
 
         let mut receiver = MessageReceiver::new(push_service);
 
@@ -451,9 +419,7 @@ where
         while let Some(step) = message_stream.next().await {
             match step {
                 Ok(envelope) => {
-                    let Content { body, metadata } = match service_cipher
-                        .open_envelope(envelope)
-                    {
+                    let Content { body, metadata } = match service_cipher.open_envelope(envelope) {
                         Ok(Some(content)) => content,
                         Ok(None) => {
                             warn!("Empty envelope...");
@@ -482,11 +448,8 @@ where
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error> {
-        let (signal_servers, phone_number, uuid, device_id) = match &self.state
-        {
-            State::New | State::Registration { .. } => {
-                return Err(Error::NotYetRegisteredError)
-            }
+        let (signal_servers, phone_number, uuid, device_id) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
                 signal_servers,
                 phone_number,
@@ -497,16 +460,11 @@ where
         };
 
         let credentials = self.credentials()?;
-        let service_configuration: ServiceConfiguration =
-            (*signal_servers).into();
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
-        let certificate_validator =
-            service_configuration.credentials_validator(&self.context)?;
-        let push_service = AwcPushService::new(
-            service_configuration,
-            credentials.clone(),
-            USER_AGENT,
-        );
+        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+        let push_service =
+            AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -540,10 +498,7 @@ where
         Ok(())
     }
 
-    pub fn clear_sessions(
-        &self,
-        recipient: &ServiceAddress,
-    ) -> Result<(), Error> {
+    pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
         self.config_store
             .delete_all_sessions(&recipient.identifier().as_bytes())?;
         Ok(())

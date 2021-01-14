@@ -8,7 +8,11 @@ use presage::{config::SledConfigStore, Error, Manager};
 use structopt::StructOpt;
 
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
-use libsignal_service::{configuration::SignalServers, content::{ContentBody, DataMessage, SyncMessage, sync_message}, ServiceAddress};
+use libsignal_service::{
+    configuration::SignalServers,
+    content::{sync_message, ContentBody, DataMessage, GroupContextV2, SyncMessage},
+    ServiceAddress,
+};
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
@@ -140,9 +144,11 @@ async fn main() -> anyhow::Result<()> {
                     match body {
                         ContentBody::DataMessage(message) => {
                             info!(
-                                "Got message from {:?}: {}",
+                                "Got message from {:?}: {} / group: {:?} / group v2: {:?}",
                                 metadata.sender,
-                                message.body().to_string()
+                                message.body().to_string(),
+                                message.group,
+                                message.group_v2,
                             );
                         }
                         ContentBody::SynchronizeMessage(message) => {
@@ -150,9 +156,11 @@ async fn main() -> anyhow::Result<()> {
                             if let Some(message) = message.sent {
                                 if let Some(data_message) = message.message {
                                     info!(
-                                        "Got message from {:?}: {}",
+                                        "Got message from {:?}: {} / group: {:?} / group v2: {:?}",
                                         metadata.sender,
-                                        data_message.body().to_string()
+                                        data_message.body().to_string(),
+                                        data_message.group,
+                                        data_message.group_v2,
                                     );
                                 }
                             }
@@ -191,7 +199,9 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             });
 
-            manager.send_message(phone_number, message, timestamp).await?;
+            manager
+                .send_message(phone_number, message, timestamp)
+                .await?;
         }
     };
     Ok(())
