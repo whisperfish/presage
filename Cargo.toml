@@ -17,26 +17,16 @@ qrcode = "0.12"
 opener = "0.4"
 rand = "0.7"
 phonenumber = "0.3"
-uuid = {version = "0.8.1", features = ["serde"] }
 anyhow = "1.0"
 thiserror = "1.0"
 base64 = "0.12"
-awc = { version = "2.0.0-beta.3", features=["rustls"] }
-actix = "0.10.0-alpha.3"
-actix-rt = "1.1"
 serde_json = "1.0"
 futures = "0.3"
-bytes = "0.5"
-rustls = "0.18"
-url = "2.1"
 serde = "1.0"
 log = "0.4.8"
-sha2 = "0.9.0"
-hmac = "0.8.0"
-aes-gcm = "0.7.0"
-block-modes = "0.5.0"
 sled = "*"
 prost = "*"
+actix-rt = "2.0.0-beta.1"
 
 [patch."https://github.com/Michael-F-Bryan/libsignal-protocol-rs.git"]
 libsignal-protocol = { path = "../libsignal-protocol-rs/libsignal-protocol" }

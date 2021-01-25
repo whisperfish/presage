@@ -362,6 +362,7 @@ where
                 self.store_context.clone(),
                 self.config_store.pre_keys_offset_id()?,
                 self.config_store.next_signed_pre_key_id()?,
+                true,
             )
             .await?;
 
