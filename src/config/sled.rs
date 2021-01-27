@@ -134,7 +134,11 @@ impl SledConfigStore {
     }
 
     fn identity_key(&self, addr: &Address) -> String {
-        format!("identity-remote-{}", addr.as_str().unwrap())
+        format!(
+            "identity-remote-{}-{}",
+            addr.as_str().unwrap(),
+            addr.device_id()
+        )
     }
 }
 
