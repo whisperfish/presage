@@ -427,7 +427,7 @@ where
                             continue;
                         }
                         Err(e) => {
-                            error!("Error opening envelope: {}, message will be skipped!", e);
+                            error!("Error opening envelope: {:?}, message will be skipped!", e);
                             continue;
                         }
                     };

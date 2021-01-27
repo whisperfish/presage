@@ -143,38 +143,47 @@ async fn main() -> anyhow::Result<()> {
                 while let Some((metadata, body)) = rx.next().await {
                     match body {
                         ContentBody::DataMessage(message) => {
-                            info!(
-                                "Got message from {:?}: {} / group: {:?} / group v2: {:?}",
+                            println!(
+                                "Message from {:?}: {}",
                                 metadata.sender,
                                 message.body().to_string(),
-                                message.group,
-                                message.group_v2,
                             );
                         }
                         ContentBody::SynchronizeMessage(message) => {
-                            info!("Received synchronization message");
                             if let Some(message) = message.sent {
-                                if let Some(data_message) = message.message {
-                                    info!(
-                                        "Got message from {:?}: {} / group: {:?} / group v2: {:?}",
-                                        metadata.sender,
-                                        data_message.body().to_string(),
-                                        data_message.group,
-                                        data_message.group_v2,
-                                    );
+                                if let Some(message) = message.message {
+                                    if let Some(quote) = &message.quote {
+                                        println!(
+                                            "Quote from {:?}: > {:?} / {}",
+                                            metadata.sender,
+                                            quote,
+                                            message.body().to_string(),
+                                        );
+                                    }
+                                    if let Some(reaction) = message.reaction {
+                                        println!(
+                                            "Reaction to message sent at {:?}: {:?}",
+                                            reaction.target_sent_timestamp, reaction.emoji,
+                                        )
+                                    }
                                 }
+                            } else {
+                                println!(
+                                    "Unhandled message from {:?}: {:#?}",
+                                    metadata.sender, message
+                                );
                             }
                             // here, you can synchronize contacts, past messages, etc.
                             // you'll get many of those until you consume everything
                         }
                         ContentBody::TypingMessage(_) => {
-                            info!("Somebody is typing");
+                            println!("{:?} is typing", metadata.sender);
                         }
                         ContentBody::CallMessage(_) => {
-                            info!("Somebody is calling!");
+                            println!("{:?} is calling!", metadata.sender);
                         }
                         ContentBody::ReceiptMessage(_) => {
-                            info!("Got read receipt");
+                            println!("Got read receipt from: {:?}", metadata.sender);
                         }
                     }
                 }
