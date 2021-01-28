@@ -3,7 +3,7 @@ use std::{path::PathBuf, time::UNIX_EPOCH};
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
 use log::{debug, info};
-use presage::{config::SledConfigStore, Error, Manager};
+use presage::{config::SledConfigStore, prelude::sync_message::Sent, Error, Manager};
 
 use structopt::StructOpt;
 
@@ -142,39 +142,33 @@ async fn main() -> anyhow::Result<()> {
             let (receiver, printer) = future::join(manager.receive_messages(tx), async move {
                 while let Some((metadata, body)) = rx.next().await {
                     match body {
-                        ContentBody::DataMessage(message) => {
-                            println!(
-                                "Message from {:?}: {}",
-                                metadata.sender,
-                                message.body().to_string(),
-                            );
-                        }
-                        ContentBody::SynchronizeMessage(message) => {
-                            if let Some(message) = message.sent {
-                                if let Some(message) = message.message {
-                                    if let Some(quote) = &message.quote {
-                                        println!(
-                                            "Quote from {:?}: > {:?} / {}",
-                                            metadata.sender,
-                                            quote,
-                                            message.body().to_string(),
-                                        );
-                                    }
-                                    if let Some(reaction) = message.reaction {
-                                        println!(
-                                            "Reaction to message sent at {:?}: {:?}",
-                                            reaction.target_sent_timestamp, reaction.emoji,
-                                        )
-                                    }
-                                }
-                            } else {
+                        ContentBody::DataMessage(message)
+                        | ContentBody::SynchronizeMessage(SyncMessage {
+                            sent:
+                                Some(Sent {
+                                    message: Some(message),
+                                    ..
+                                }),
+                            ..
+                        }) => {
+                            if let Some(quote) = &message.quote {
                                 println!(
-                                    "Unhandled message from {:?}: {:#?}",
-                                    metadata.sender, message
+                                    "Quote from {:?}: > {:?} / {}",
+                                    metadata.sender,
+                                    quote,
+                                    message.body().to_string(),
                                 );
+                            } else if let Some(reaction) = message.reaction {
+                                println!(
+                                    "Reaction to message sent at {:?}: {:?}",
+                                    reaction.target_sent_timestamp, reaction.emoji,
+                                )
+                            } else if let Some(body) = message.body {
+                                println!("Message from {:?}: {}", metadata.sender, body)
                             }
-                            // here, you can synchronize contacts, past messages, etc.
-                            // you'll get many of those until you consume everything
+                        }
+                        ContentBody::SynchronizeMessage(m) => {
+                            eprintln!("Unhandled sync message: {:?}", m);
                         }
                         ContentBody::TypingMessage(_) => {
                             println!("{:?} is typing", metadata.sender);
