@@ -1,5 +1,3 @@
-use std::time::UNIX_EPOCH;
-
 use futures::{
     channel::mpsc::{channel, Sender},
     future, pin_mut, SinkExt, StreamExt,
@@ -22,8 +20,8 @@ use libsignal_service::{
     configuration::ServiceConfiguration,
     configuration::SignalServers,
     configuration::SignalingKey,
+    content::ContentBody,
     content::Metadata,
-    content::{sync_message, ContentBody, DataMessage, Reaction, SyncMessage},
     messagepipe::Credentials,
     prelude::Content,
     prelude::{MessageSender, PushService},
@@ -347,15 +345,23 @@ where
     }
 
     pub async fn register_pre_keys(&self) -> Result<(), Error> {
-        let signal_servers = match &self.state {
+        let (signal_servers, profile_key) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
-            State::Registered { signal_servers, .. } => signal_servers,
+            State::Registered {
+                signal_servers,
+                profile_key,
+                ..
+            } => (signal_servers, profile_key),
         };
 
         let push_service =
             AwcPushService::new((*signal_servers).into(), self.credentials()?, USER_AGENT);
 
-        let mut account_manager = AccountManager::new(self.context.clone(), push_service);
+        let mut account_manager = AccountManager::new(
+            self.context.clone(),
+            push_service,
+            Some(profile_key.clone()),
+        );
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(

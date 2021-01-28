@@ -14,5 +14,3 @@ pub mod prelude {
         SyncMessage,
     };
 }
-
-pub use libsignal_service::proto;
