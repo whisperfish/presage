@@ -21,6 +21,7 @@ use libsignal_service::{
     configuration::SignalServers,
     configuration::SignalingKey,
     content::ContentBody,
+    content::DataMessage,
     content::Metadata,
     messagepipe::Credentials,
     prelude::Content,
@@ -455,6 +456,50 @@ where
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error> {
+        let mut sender = self.get_sender()?;
+
+        let recipient_addr = ServiceAddress {
+            uuid: None,
+            e164: Some(recipient_phone_number.clone()),
+            relay: None,
+        };
+
+        sender
+            .send_message(&recipient_addr, None, message, timestamp, true)
+            .await?;
+
+        Ok(())
+    }
+
+    pub async fn send_message_to_group(
+        &self,
+        recipients: impl IntoIterator<Item = String>,
+        message: DataMessage,
+        timestamp: u64,
+    ) -> Result<(), Error> {
+        let mut sender = self.get_sender()?;
+
+        let recipients: Vec<_> = recipients
+            .into_iter()
+            .map(|phone_number| ServiceAddress {
+                uuid: None,
+                e164: Some(phone_number),
+                relay: None,
+            })
+            .collect();
+
+        let results = sender
+            .send_message_to_group(recipients, None, message, timestamp, true)
+            .await;
+        log::info!("send_message_to_group: {:?}", results);
+
+        // return first error if any
+        results.into_iter().find(|res| res.is_err()).transpose()?;
+
+        Ok(())
+    }
+
+    fn get_sender(&self) -> Result<MessageSender<AwcPushService>, Error> {
         let (signal_servers, phone_number, uuid, device_id) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
@@ -486,23 +531,11 @@ where
             certificate_validator,
         );
 
-        let mut sender = MessageSender::new(
+        Ok(MessageSender::new(
             push_service,
             service_cipher,
             device_id.unwrap_or(DEFAULT_DEVICE_ID),
-        );
-
-        let recipient_addr = ServiceAddress {
-            uuid: None,
-            e164: Some(recipient_phone_number.clone()),
-            relay: None,
-        };
-
-        sender
-            .send_message(&recipient_addr, None, message, timestamp, true)
-            .await?;
-
-        Ok(())
+        ))
     }
 
     pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
