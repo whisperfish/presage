@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
-use log::{debug, info};
+use log::debug;
 use presage::{config::SledConfigStore, prelude::sync_message::Sent, Error, Manager};
 
 use structopt::StructOpt;
@@ -10,7 +10,7 @@ use structopt::StructOpt;
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
 use libsignal_service::{
     configuration::SignalServers,
-    content::{sync_message, ContentBody, DataMessage, GroupContextV2, SyncMessage},
+    content::{ContentBody, DataMessage, SyncMessage},
     ServiceAddress,
 };
 

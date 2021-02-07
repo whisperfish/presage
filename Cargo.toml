@@ -7,8 +7,8 @@ edition = "2018"
 
 [dependencies]
 libsignal-protocol = { git = "https://github.com/Michael-F-Bryan/libsignal-protocol-rs.git" }
-libsignal-service = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git", rev = "11d1d51" }
-libsignal-service-actix = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git", rev = "11d1d51" }
+libsignal-service = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs", rev = "b940d05a" }
+libsignal-service-actix = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git", rev = "b940d05a" }
 env_logger = "0.7"
 directories = "3.0"
 structopt = "0.3"
@@ -26,4 +26,6 @@ serde = "1.0"
 log = "0.4.8"
 sled = "*"
 prost = "*"
-actix-rt = "2.0.0-beta.1"
+actix = "=0.11.0-beta.1"
+actix-rt = "=2.0.0-beta.1"
+actix-service = "=2.0.0-beta.3"
