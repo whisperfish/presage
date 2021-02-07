@@ -137,7 +137,7 @@ where
                     uuid: Some(uuid),
                     e164: phone_number.clone(),
                     password: Some(password.clone()),
-                    signaling_key: Some(signaling_key.clone()),
+                    signaling_key: Some(*signaling_key),
                 }))
             }
         }
@@ -516,8 +516,7 @@ where
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
         let certificate_validator = service_configuration.credentials_validator(&self.context)?;
-        let push_service =
-            AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
+        let push_service = AwcPushService::new(service_configuration, credentials, USER_AGENT);
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),

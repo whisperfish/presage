@@ -41,10 +41,11 @@ impl SledConfigStore {
 
     fn get_string(db: &sled::Tree, key: &str) -> Result<String, Error> {
         trace!("getting string {} from config", key);
-        Ok(
-            String::from_utf8_lossy(&db.get(key)?.ok_or(Error::MissingKeyError(key.into()))?)
-                .to_string(),
+        Ok(String::from_utf8_lossy(
+            &db.get(key)?
+                .ok_or_else(|| Error::MissingKeyError(key.to_string().into()))?,
         )
+        .to_string())
     }
 
     fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
@@ -60,10 +61,10 @@ impl SledConfigStore {
         S: AsRef<str>,
     {
         trace!("getting i32 {}", key.as_ref());
-        Ok(self.get(key.as_ref())?.and_then(|ref data| {
+        Ok(self.get(key.as_ref())?.map(|data| {
             let mut a: [u8; 4] = Default::default();
-            a.copy_from_slice(data);
-            Some(i32::from_le_bytes(a))
+            a.copy_from_slice(&data);
+            i32::from_le_bytes(a)
         }))
     }
 
@@ -72,10 +73,10 @@ impl SledConfigStore {
         S: AsRef<str>,
     {
         trace!("getting u32 {}", key.as_ref());
-        Ok(self.get(key.as_ref())?.and_then(|ref data| {
+        Ok(self.get(key.as_ref())?.map(|data| {
             let mut a: [u8; 4] = Default::default();
-            a.copy_from_slice(data);
-            Some(u32::from_le_bytes(a))
+            a.copy_from_slice(&data);
+            u32::from_le_bytes(a)
         }))
     }
 
@@ -186,28 +187,28 @@ impl ConfigStore for SledConfigStore {
                     let mut key: SignalingKey = [0; 52];
                     key.copy_from_slice(
                         &db.get("signaling_key")?
-                            .ok_or(Error::MissingKeyError("signaling_key".into()))?,
+                            .ok_or_else(|| Error::MissingKeyError("signaling_key".into()))?,
                     );
                     key
                 },
                 device_id: self.get_i32("device_id")?,
                 registration_id: self
                     .get_u32("registration_id")?
-                    .ok_or(Error::MissingKeyError("registration_id".into()))?
+                    .ok_or_else(|| Error::MissingKeyError("registration_id".into()))?
                     as u32,
                 private_key: PrivateKey::decode_point(
                     context,
                     &db.get("private_key")?
-                        .ok_or(Error::MissingKeyError("private_key".into()))?,
+                        .ok_or_else(|| Error::MissingKeyError("private_key".into()))?,
                 )?,
                 public_key: PublicKey::decode_point(
                     context,
                     &db.get("public_key")?
-                        .ok_or(Error::MissingKeyError("public_key".into()))?,
+                        .ok_or_else(|| Error::MissingKeyError("public_key".into()))?,
                 )?,
                 profile_key: db
                     .get("profile_key")?
-                    .ok_or(Error::MissingKeyError("profile_key".into()))?
+                    .ok_or_else(|| Error::MissingKeyError("profile_key".into()))?
                     .to_vec(),
             })
         } else if db.contains_key("phone_number")? {
@@ -512,7 +513,7 @@ impl IdentityKeyStore for SledConfigStore {
                 log::error!("error getting identity of {:?}: {}", address, e);
                 libsignal_protocol::InternalError::Unknown
             })?
-            .and_then(|v| Some(Buffer::from(&v[..]))))
+            .map(|v| Buffer::from(&v[..])))
     }
 }
 

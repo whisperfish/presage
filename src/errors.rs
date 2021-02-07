@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("input/output error: {0}")]
@@ -23,7 +25,7 @@ pub enum Error {
     #[error("qr code error")]
     QrCodeError,
     #[error("missing key {0} in config DB")]
-    MissingKeyError(String),
+    MissingKeyError(Cow<'static, str>),
     #[error("receiving pipe was interrupted")]
     MessagePipeInterruptedError,
 }
