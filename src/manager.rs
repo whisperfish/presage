@@ -464,8 +464,9 @@ where
             relay: None,
         };
 
+        let online_only = false;
         sender
-            .send_message(&recipient_addr, None, message, timestamp, true)
+            .send_message(&recipient_addr, None, message, timestamp, online_only)
             .await?;
 
         Ok(())
@@ -488,10 +489,10 @@ where
             })
             .collect();
 
+        let online_only = false;
         let results = sender
-            .send_message_to_group(recipients, None, message, timestamp, true)
+            .send_message_to_group(recipients, None, message, timestamp, online_only)
             .await;
-        log::info!("send_message_to_group: {:?}", results);
 
         // return first error if any
         results.into_iter().find(|res| res.is_err()).transpose()?;
