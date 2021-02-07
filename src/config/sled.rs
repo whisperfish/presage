@@ -31,6 +31,14 @@ impl SledConfigStore {
         })
     }
 
+    #[cfg(test)]
+    fn temporary() -> Result<Self, Error> {
+        let db = sled::Config::new().temporary(true).open()?;
+        Ok(Self {
+            db: Arc::new(RwLock::new(db)),
+        })
+    }
+
     fn get_string(db: &sled::Tree, key: &str) -> Result<String, Error> {
         trace!("getting string {} from config", key);
         Ok(
@@ -133,8 +141,33 @@ impl SledConfigStore {
         format!("session-{}-{}", addr.as_str().unwrap(), addr.device_id())
     }
 
+    fn session_prefix(&self, name: &[u8]) -> String {
+        format!("session-{}-", String::from_utf8_lossy(name))
+    }
+
     fn identity_key(&self, addr: &Address) -> String {
         format!("identity-remote-{}", addr.as_str().unwrap(),)
+    }
+
+    pub fn keys(&self) -> (Vec<String>, Vec<String>) {
+        let db = self.db.read().unwrap();
+        let global_keys = db
+            .iter()
+            .map(|r| {
+                let (k, _) = r.unwrap();
+                String::from_utf8_lossy(&k).to_string()
+            })
+            .collect();
+        let session_keys = db
+            .open_tree("sessions")
+            .unwrap()
+            .iter()
+            .map(|r| {
+                let (k, _) = r.unwrap();
+                String::from_utf8_lossy(&k).to_string()
+            })
+            .collect();
+        (global_keys, session_keys)
     }
 }
 
@@ -338,24 +371,20 @@ impl SessionStore for SledConfigStore {
         addr: &[u8],
     ) -> Result<Vec<i32>, libsignal_protocol::InternalError> {
         trace!("getting sub device sessions");
+
+        let session_prefix = self.session_prefix(addr);
         let ids = self
             .db
             .read()
             .expect("poisoned mutex")
             .open_tree("sessions")
             .unwrap()
-            .iter()
+            .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.unwrap();
-
-                let key = String::from_utf8_lossy(&key[8..]);
-                let searched_key = String::from_utf8_lossy(&addr).to_string();
-
-                if key.starts_with(&searched_key) {
-                    key.split("-").last().and_then(|k| k.parse().ok())
-                } else {
-                    None
-                }
+                let key_str = String::from_utf8_lossy(&key);
+                let device_id = key_str.strip_prefix(&session_prefix)?;
+                device_id.parse().ok()
             })
             .collect();
 
@@ -484,5 +513,118 @@ impl IdentityKeyStore for SledConfigStore {
                 libsignal_protocol::InternalError::Unknown
             })?
             .and_then(|v| Some(Buffer::from(&v[..]))))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use quickcheck::{quickcheck, Arbitrary, Gen};
+
+    use std::collections::HashSet;
+
+    #[derive(Debug, Clone)]
+    struct Address(libsignal_protocol::Address);
+
+    impl Arbitrary for Address {
+        fn arbitrary(g: &mut Gen) -> Address {
+            let name: String = Arbitrary::arbitrary(g);
+            let device_id: u8 = Arbitrary::arbitrary(g);
+            Address(libsignal_protocol::Address::new(name, device_id.into()))
+        }
+    }
+
+    quickcheck! {
+        fn test_save_get_trust_identity(addr: Address, identity_key: Vec<u8>) -> bool {
+            let db = SledConfigStore::temporary().unwrap();
+            db.save_identity(addr.clone().0, &identity_key).unwrap();
+            let id = db.get_identity(addr.clone().0).unwrap().unwrap();
+            if id.as_slice() != identity_key {
+                return false;
+            }
+            db.is_trusted_identity(addr.0, id.as_slice()).unwrap()
+        }
+    }
+
+    quickcheck! {
+        fn test_store_load_session(addr: Address, session: Vec<u8>) -> bool {
+            let session = libsignal_protocol::stores::SerializedSession {
+                session: session.into(),
+                extra_data: None,
+            };
+
+            let db = SledConfigStore::temporary().unwrap();
+            db.store_session(addr.clone().0, session.clone()).unwrap();
+            if !db.contains_session(addr.clone().0).unwrap() {
+                return false;
+            }
+            let loaded_session = db.load_session(addr.clone().0).unwrap().unwrap();
+
+            session == loaded_session
+        }
+    }
+
+    quickcheck! {
+        fn test_get_sub_device_sessions(name: String, device_ids: HashSet<u8>) -> bool {
+            let db = SledConfigStore::temporary().unwrap();
+
+            for device_id in &device_ids {
+                let session = libsignal_protocol::stores::SerializedSession {
+                    session: vec![0; 10].into(),
+                    extra_data: None,
+                };
+                let addr = libsignal_protocol::Address::new(name.clone(), (*device_id).into());
+                db.store_session(addr, session.clone()).unwrap();
+            }
+
+            let stored_devices_ids = db
+                .get_sub_device_sessions(name.as_bytes())
+                .unwrap()
+                .into_iter()
+                .map(|id| id as u8)
+                .collect();
+            device_ids == stored_devices_ids
+        }
+    }
+
+    quickcheck! {
+        fn test_prekey_store(id: u32, body: Vec<u8>) -> bool {
+            let db = SledConfigStore::temporary().unwrap();
+
+            PreKeyStore::store(&db, id, &body).unwrap();
+            if !PreKeyStore::contains(&db, id) {
+                return false;
+            }
+
+            let mut loaded_body = Vec::new();
+            PreKeyStore::load(&db, id, &mut loaded_body).unwrap();
+            if body != loaded_body {
+                return false;
+            }
+
+            PreKeyStore::remove(&db, id).unwrap();
+            !PreKeyStore::contains(&db, id)
+        }
+    }
+
+    quickcheck! {
+        fn test_signed_prekey_store(id: u32, body: Vec<u8>) -> bool {
+            let db = SledConfigStore::temporary().unwrap();
+
+            SignedPreKeyStore::store(&db, id, &body).unwrap();
+            if !SignedPreKeyStore::contains(&db, id) {
+                return false;
+            }
+
+            let mut loaded_body = Vec::new();
+            SignedPreKeyStore::load(&db, id, &mut loaded_body).unwrap();
+            if body != loaded_body {
+                return false;
+            }
+
+            SignedPreKeyStore::remove(&db, id).unwrap();
+            !SignedPreKeyStore::contains(&db, id)
+        }
     }
 }
