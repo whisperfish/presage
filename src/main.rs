@@ -1,5 +1,6 @@
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
+use anyhow::bail;
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
 use log::debug;
@@ -10,7 +11,7 @@ use structopt::StructOpt;
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
 use libsignal_service::{
     configuration::SignalServers,
-    content::{ContentBody, DataMessage, GroupContext, GroupType, SyncMessage},
+    content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
     ServiceAddress,
 };
 
@@ -75,7 +76,9 @@ enum Subcommand {
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
         #[structopt(long, short = "g", help = "ID of the legacy group (hex string)")]
-        group_id: String,
+        group_id: Option<String>,
+        #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
+        master_key: Option<String>,
     },
     Config {
         #[structopt(flatten)]
@@ -225,8 +228,16 @@ async fn main() -> anyhow::Result<()> {
             phone_number,
             message,
             group_id,
+            master_key,
         } => {
-            let id = hex::decode(group_id)?;
+            match (group_id.as_ref(), master_key.as_ref()) {
+                (Some(_), Some(_)) => bail!("Options --group-id and --master-key are exclusive"),
+                (None, None) => bail!("Either --group-id or --master-key is required"),
+                _ => (),
+            }
+
+            let group_id = group_id.map(hex::decode).transpose()?;
+            let master_key = master_key.map(hex::decode).transpose()?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -236,9 +247,14 @@ async fn main() -> anyhow::Result<()> {
             let data_message = DataMessage {
                 body: Some(message),
                 timestamp: Some(timestamp),
-                group: Some(GroupContext {
+                group: group_id.map(|id| GroupContext {
                     id: Some(id),
                     r#type: Some(GroupType::Deliver.into()),
+                    ..Default::default()
+                }),
+                group_v2: master_key.map(|key| GroupContextV2 {
+                    master_key: Some(key),
+                    revision: Some(0),
                     ..Default::default()
                 }),
                 ..Default::default()
