@@ -10,7 +10,7 @@ use structopt::StructOpt;
 use libsignal_protocol::{crypto::DefaultCrypto, Context};
 use libsignal_service::{
     configuration::SignalServers,
-    content::{ContentBody, DataMessage, SyncMessage},
+    content::{ContentBody, DataMessage, GroupContext, GroupType, SyncMessage},
     ServiceAddress,
 };
 
@@ -62,6 +62,21 @@ enum Subcommand {
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
     },
+    #[structopt(about = "sends a message to group")]
+    SendToGroup {
+        #[structopt(
+            long,
+            short = "n",
+            min_values = 1,
+            required = true,
+            help = "Phone number of the recipient"
+        )]
+        phone_number: Vec<String>,
+        #[structopt(long, short = "m", help = "Contents of the message to send")]
+        message: String,
+        #[structopt(long, short = "g", help = "ID of the legacy group (hex string)")]
+        group_id: String,
+    },
     Config {
         #[structopt(flatten)]
         command: ConfigSubcommand,
@@ -106,7 +121,7 @@ async fn main() -> anyhow::Result<()> {
 
     match args.subcommand {
         Subcommand::Config { command } => match command {
-            ConfigSubcommand::Print => println!("{:?}", manager.config_store),
+            ConfigSubcommand::Print => println!("{:?}", manager.config_store.keys()),
             ConfigSubcommand::ClearSessions { recipient } => {
                 let address = ServiceAddress {
                     uuid: None,
@@ -204,6 +219,33 @@ async fn main() -> anyhow::Result<()> {
 
             manager
                 .send_message(phone_number, message, timestamp)
+                .await?;
+        }
+        Subcommand::SendToGroup {
+            phone_number,
+            message,
+            group_id,
+        } => {
+            let id = hex::decode(group_id)?;
+
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64;
+
+            let data_message = DataMessage {
+                body: Some(message),
+                timestamp: Some(timestamp),
+                group: Some(GroupContext {
+                    id: Some(id),
+                    r#type: Some(GroupType::Deliver.into()),
+                    ..Default::default()
+                }),
+                ..Default::default()
+            };
+
+            manager
+                .send_message_to_group(phone_number, data_message, timestamp)
                 .await?;
         }
     };

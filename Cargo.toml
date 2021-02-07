@@ -29,3 +29,7 @@ prost = "*"
 actix = "=0.11.0-beta.1"
 actix-rt = "=2.0.0-beta.1"
 actix-service = "=2.0.0-beta.3"
+hex = "0.4.2"
+
+[dev-dependencies]
+quickcheck = "1.0.3"
