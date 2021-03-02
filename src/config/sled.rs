@@ -1,4 +1,5 @@
 use std::{
+    collections::HashMap,
     path::PathBuf,
     str::FromStr,
     sync::{Arc, RwLock},
@@ -11,7 +12,10 @@ use libsignal_protocol::{
     stores::{PreKeyStore, SerializedSession, SignedPreKeyStore},
     Address, Buffer, Context, Serializable,
 };
-use libsignal_service::configuration::{SignalServers, SignalingKey};
+use libsignal_service::{
+    configuration::{SignalServers, SignalingKey},
+    gv2::{AuthCredentialResponse, CredentialsCache, CredentialsCacheError},
+};
 use log::{trace, warn};
 use sled::IVec;
 
@@ -48,7 +52,7 @@ impl SledConfigStore {
         .to_string())
     }
 
-    fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
+    pub fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
     where
         K: AsRef<str>,
     {
@@ -180,8 +184,8 @@ impl ConfigStore for SledConfigStore {
             Ok(State::Registered {
                 signal_servers: SignalServers::from_str(&Self::get_string(&db, "signal_servers")?)
                     .expect("unknown signal servers"),
-                phone_number: Self::get_string(&db, "phone_number")?,
-                uuid: Self::get_string(&db, "uuid")?,
+                phone_number: Self::get_string(&db, "phone_number")?.parse()?,
+                uuid: Self::get_string(&db, "uuid")?.parse()?,
                 password: Self::get_string(&db, "password")?,
                 signaling_key: {
                     let mut key: SignalingKey = [0; 52];
@@ -216,7 +220,7 @@ impl ConfigStore for SledConfigStore {
             Ok(State::Registration {
                 signal_servers: SignalServers::from_str(&Self::get_string(&db, "signal_servers")?)
                     .expect("unknown signal servers"),
-                phone_number: Self::get_string(&db, "phone_number")?,
+                phone_number: Self::get_string(&db, "phone_number")?.parse()?,
                 password: Self::get_string(&db, "password")?,
             })
         } else {
@@ -236,7 +240,7 @@ impl ConfigStore for SledConfigStore {
             } => {
                 trace!("saving registration data");
                 db.insert("signal_servers", signal_servers.to_string().as_bytes())?;
-                db.insert("phone_number", phone_number.as_bytes())?;
+                db.insert("phone_number", phone_number.to_string().as_bytes())?;
                 db.insert("password", password.as_bytes())?;
             }
             State::Registered {
@@ -252,8 +256,8 @@ impl ConfigStore for SledConfigStore {
                 profile_key,
             } => {
                 db.insert("signal_servers", signal_servers.to_string().as_bytes())?;
-                db.insert("phone_number", phone_number.as_bytes())?;
-                db.insert("uuid", uuid.as_bytes())?;
+                db.insert("phone_number", phone_number.to_string().as_bytes())?;
+                db.insert("uuid", uuid.to_string().as_bytes())?;
                 db.insert("password", password.as_bytes())?;
                 db.insert("signaling_key", signaling_key.to_vec())?;
                 if let Some(device_id) = device_id {
@@ -514,6 +518,42 @@ impl IdentityKeyStore for SledConfigStore {
                 libsignal_protocol::InternalError::Unknown
             })?
             .map(|v| Buffer::from(&v[..])))
+    }
+}
+
+impl CredentialsCache for SledConfigStore {
+    fn clear(&self) -> Result<(), CredentialsCacheError> {
+        let db = self.db.read().expect("poisoned mutex");
+        db.remove("gv2-credentials-cache")
+            .map_err(|e| CredentialsCacheError::WriteError(e.to_string()))?;
+        Ok(())
+    }
+
+    fn read(&self) -> Result<HashMap<i64, AuthCredentialResponse>, CredentialsCacheError> {
+        let db = self.db.read().expect("poisoned mutex");
+        if let Some(buf) = db.get("gv2-credentials-cache").map_err(|e| {
+            CredentialsCacheError::ReadError(format!("failed to read credentials cache: {}", e))
+        })? {
+            serde_json::from_slice(&buf).map_err(|e| {
+                CredentialsCacheError::ReadError(format!("failed to deserialize JSON: {}", e))
+            })
+        } else {
+            Ok(HashMap::new())
+        }
+    }
+
+    fn write(
+        &self,
+        value: &HashMap<i64, AuthCredentialResponse>,
+    ) -> Result<(), CredentialsCacheError> {
+        let db = self.db.read().expect("poisoned mutex");
+        let buf = serde_json::to_vec(value).map_err(|e| {
+            CredentialsCacheError::WriteError(format!("failed to serialize JSON: {}", e))
+        })?;
+        db.insert("gv2-credentials-cache", buf).map_err(|e| {
+            CredentialsCacheError::WriteError(format!("failed to write credentials cache: {}", e))
+        })?;
+        Ok(())
     }
 }
 

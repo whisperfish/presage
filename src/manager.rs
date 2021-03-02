@@ -23,9 +23,13 @@ use libsignal_service::{
     content::ContentBody,
     content::DataMessage,
     content::Metadata,
+    gv2::{CredentialsCache, GroupsV2Api},
     messagepipe::Credentials,
     prelude::Content,
-    prelude::{MessageSender, PushService},
+    prelude::{
+        phonenumber::PhoneNumber, uuid::Uuid, GroupMasterKey, GroupSecretParams, MessageSender,
+        PushService,
+    },
     push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     AccountManager, ServiceAddress, USER_AGENT,
@@ -46,6 +50,7 @@ pub struct Manager<
         + SessionStore
         + IdentityKeyStore
         + Send
+        + CredentialsCache
         + 'static,
 > {
     pub config_store: C,
@@ -59,13 +64,13 @@ pub enum State {
     New,
     Registration {
         signal_servers: SignalServers,
-        phone_number: String,
+        phone_number: PhoneNumber,
         password: String,
     },
     Registered {
         signal_servers: SignalServers,
-        phone_number: String,
-        uuid: String,
+        phone_number: PhoneNumber,
+        uuid: Uuid,
         password: String,
         signaling_key: SignalingKey,
         device_id: Option<i32>,
@@ -84,6 +89,7 @@ where
         + SignedPreKeyStore
         + SessionStore
         + IdentityKeyStore
+        + CredentialsCache
         + Send
         + 'static,
 {
@@ -120,33 +126,20 @@ where
                 password,
                 signaling_key,
                 ..
-            } => {
-                let uuid = if let Some(device_id) = device_id {
-                    trace!(
-                        "using credentials with UUID {} and device_id {}",
-                        uuid,
-                        device_id
-                    );
-                    format!("{}.{}", uuid, device_id)
-                } else {
-                    trace!("using credentials with UUID {} only", uuid);
-                    uuid.to_string()
-                };
-
-                Ok(Some(Credentials {
-                    uuid: Some(uuid),
-                    e164: phone_number.clone(),
-                    password: Some(password.clone()),
-                    signaling_key: Some(*signaling_key),
-                }))
-            }
+            } => Ok(Some(Credentials {
+                uuid: Some(*uuid),
+                phonenumber: phone_number.clone(),
+                password: Some(password.clone()),
+                signaling_key: Some(*signaling_key),
+                device_id: *device_id,
+            })),
         }
     }
 
     pub async fn register(
         &mut self,
         signal_servers: SignalServers,
-        phone_number: String,
+        phone_number: PhoneNumber,
         use_voice_call: bool,
     ) -> Result<(), Error> {
         // generate a random 24 bytes password
@@ -156,21 +149,22 @@ where
         let mut push_service = AwcPushService::new(
             signal_servers.into(),
             Some(Credentials {
-                e164: phone_number.clone(),
+                phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
                 uuid: None,
                 signaling_key: None,
+                device_id: None,
             }),
             USER_AGENT,
         );
 
         if use_voice_call {
             push_service
-                .request_voice_verification_code(&phone_number)
+                .request_voice_verification_code(phone_number.clone(), None, None)
                 .await?;
         } else {
             push_service
-                .request_sms_verification_code(&phone_number)
+                .request_sms_verification_code(phone_number.clone(), None, None)
                 .await?;
         }
 
@@ -202,10 +196,11 @@ where
         let mut push_service = AwcPushService::new(
             (*signal_servers).into(),
             Some(Credentials {
-                e164: phone_number.clone(),
+                phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
                 uuid: None,
                 signaling_key: None,
+                device_id: None,
             }),
             USER_AGENT,
         );
@@ -235,7 +230,7 @@ where
         self.state = State::Registered {
             signal_servers: *signal_servers,
             phone_number: phone_number.clone(),
-            uuid: registered.uuid,
+            uuid: Uuid::parse_str(&registered.uuid)?,
             password: password.clone(),
             signaling_key,
             device_id: None,
@@ -310,7 +305,7 @@ where
                                 phone_number,
                                 device_id.device_id,
                                 registration_id,
-                                uuid,
+                                uuid.parse()?,
                                 private_key,
                                 public_key,
                                 profile_key,
@@ -401,7 +396,7 @@ where
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
-            e164: Some(phone_number.clone()),
+            phonenumber: Some(phone_number.clone()),
             relay: None,
         };
 
@@ -452,7 +447,7 @@ where
 
     pub async fn send_message(
         &self,
-        recipient_phone_number: String,
+        recipient_phone_number: PhoneNumber,
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error> {
@@ -460,7 +455,7 @@ where
 
         let recipient_addr = ServiceAddress {
             uuid: None,
-            e164: Some(recipient_phone_number.clone()),
+            phonenumber: Some(recipient_phone_number.clone()),
             relay: None,
         };
 
@@ -474,7 +469,7 @@ where
 
     pub async fn send_message_to_group(
         &self,
-        recipients: impl IntoIterator<Item = String>,
+        recipients: impl IntoIterator<Item = PhoneNumber>,
         message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error> {
@@ -484,7 +479,7 @@ where
             .into_iter()
             .map(|phone_number| ServiceAddress {
                 uuid: None,
-                e164: Some(phone_number),
+                phonenumber: Some(phone_number),
                 relay: None,
             })
             .collect();
@@ -520,7 +515,7 @@ where
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
-            e164: Some(phone_number.clone()),
+            phonenumber: Some(phone_number.clone()),
             relay: None,
         };
 
@@ -542,5 +537,41 @@ where
         self.config_store
             .delete_all_sessions(&recipient.identifier().as_bytes())?;
         Ok(())
+    }
+
+    pub async fn get_group_v2(
+        &self,
+        group_master_key: GroupMasterKey,
+    ) -> Result<libsignal_service::proto::Group, Error> {
+        let (signal_servers, _phone_number, uuid, _device_id) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered {
+                signal_servers,
+                phone_number,
+                uuid,
+                device_id,
+                ..
+            } => (signal_servers, phone_number, uuid, device_id),
+        };
+
+        let credentials = self.credentials()?;
+
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let server_public_params = service_configuration.zkgroup_server_public_params.clone();
+
+        let push_service = AwcPushService::new(service_configuration, credentials, USER_AGENT);
+
+        let mut groups_v2_api = GroupsV2Api::new(
+            push_service,
+            self.config_store.clone(),
+            server_public_params,
+        );
+
+        let group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
+        let authorization = groups_v2_api
+            .get_authorization_for_today(*uuid, group_secret_params)
+            .await?;
+
+        Ok(groups_v2_api.get_group(authorization).await?)
     }
 }

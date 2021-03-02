@@ -3,6 +3,7 @@ use std::{path::PathBuf, time::UNIX_EPOCH};
 use anyhow::bail;
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
+use image::EncodableLayout;
 use log::debug;
 use presage::{config::SledConfigStore, prelude::sync_message::Sent, Error, Manager};
 
@@ -12,6 +13,7 @@ use libsignal_protocol::{crypto::DefaultCrypto, Context};
 use libsignal_service::{
     configuration::SignalServers,
     content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
+    prelude::phonenumber::PhoneNumber,
     ServiceAddress,
 };
 
@@ -32,7 +34,7 @@ enum Subcommand {
         #[structopt(long = "servers", short = "s", default_value = "staging")]
         servers: SignalServers,
         #[structopt(long, help = "Phone Number to register with in E.164 format")]
-        phone_number: String,
+        phone_number: PhoneNumber,
         #[structopt(long)]
         use_voice_call: bool,
     },
@@ -49,6 +51,8 @@ enum Subcommand {
         )]
         device_name: String,
     },
+    #[structopt(about = "debug only: rerun the pre-keys registration")]
+    RegisterPreKeys,
     #[structopt(about = "verify the code you got from the SMS or voice-call when you registered")]
     Verify {
         #[structopt(long, short = "c", help = "SMS / Voice-call confirmation code")]
@@ -59,7 +63,7 @@ enum Subcommand {
     #[structopt(about = "sends a message")]
     Send {
         #[structopt(long, short = "n", help = "Phone number of the recipient")]
-        phone_number: String,
+        phone_number: PhoneNumber,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
     },
@@ -72,7 +76,7 @@ enum Subcommand {
             required = true,
             help = "Phone number of the recipient"
         )]
-        phone_number: Vec<String>,
+        phone_number: Vec<PhoneNumber>,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
         #[structopt(long, short = "g", help = "ID of the legacy group (hex string)")]
@@ -88,10 +92,13 @@ enum Subcommand {
 
 #[derive(StructOpt)]
 enum ConfigSubcommand {
-    Print,
+    Print {
+        #[structopt(long, short = "k")]
+        key: String,
+    },
     ClearSessions {
         #[structopt(long = "recipient")]
-        recipient: String,
+        recipient: PhoneNumber,
     },
 }
 
@@ -104,18 +111,12 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::from_args();
 
-    let db_path = match args.db_path {
-        Some(path) => path,
-        None => {
-            let dir: PathBuf = ProjectDirs::from("org", "libsignal-service-rs", "signal-bot-rs")
-                .unwrap()
-                .config_dir()
-                .into();
-            std::fs::create_dir_all(&dir)?;
-            dir
-        }
-    };
-
+    let db_path = args.db_path.unwrap_or_else(|| {
+        ProjectDirs::from("org", "libsignal-service-rs", "signal-bot-rs")
+            .unwrap()
+            .config_dir()
+            .into()
+    });
     debug!("opening config database from {}", db_path.display());
     let config_store = SledConfigStore::new(db_path)?;
     let signal_context = Context::new(DefaultCrypto::default())?;
@@ -123,12 +124,20 @@ async fn main() -> anyhow::Result<()> {
     let mut manager = Manager::with_config_store(config_store, signal_context)?;
 
     match args.subcommand {
+        Subcommand::RegisterPreKeys => {
+            manager.register_pre_keys().await?;
+        }
         Subcommand::Config { command } => match command {
-            ConfigSubcommand::Print => println!("{:?}", manager.config_store.keys()),
+            ConfigSubcommand::Print { key } => {
+                println!(
+                    "{}",
+                    String::from_utf8_lossy(manager.config_store.get(&key)?.unwrap().as_bytes())
+                )
+            }
             ConfigSubcommand::ClearSessions { recipient } => {
                 let address = ServiceAddress {
                     uuid: None,
-                    e164: Some(recipient),
+                    phonenumber: Some(recipient),
                     relay: None,
                 };
                 manager.clear_sessions(&address)?;
@@ -181,8 +190,8 @@ async fn main() -> anyhow::Result<()> {
                                     "Reaction to message sent at {:?}: {:?}",
                                     reaction.target_sent_timestamp, reaction.emoji,
                                 )
-                            } else if let Some(body) = message.body {
-                                println!("Message from {:?}: {}", metadata.sender, body)
+                            } else {
+                                println!("Message from {:?}: {:?}", metadata, message)
                             }
                         }
                         ContentBody::SynchronizeMessage(m) => {

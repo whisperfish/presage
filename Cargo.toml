@@ -16,7 +16,6 @@ image = { version = "0.23", default-features = false, features = ["png"] }
 qrcode = "0.12"
 opener = "0.4"
 rand = "0.7"
-phonenumber = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
 base64 = "0.12"
@@ -26,10 +25,14 @@ serde = "1.0"
 log = "0.4.8"
 sled = "*"
 prost = "*"
-actix = "=0.11.0-beta.1"
-actix-rt = "=2.0.0-beta.1"
-actix-service = "=2.0.0-beta.3"
+actix = "0.11.0-beta.1"
+actix-http = "3.0.0-beta.1"
+actix-rt = "2.0"
 hex = "0.4.2"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
+
+[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
+libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+libsignal-service-actix = { path = "../libsignal-service-rs/libsignal-service-actix" }

@@ -8,6 +8,10 @@ pub enum Error {
     DbError(#[from] sled::Error),
     #[error("error decoding base64 data: {0}")]
     Base64Error(#[from] base64::DecodeError),
+    #[error("phone number parsing error: {0}")]
+    PhoneNumberError(#[from] libsignal_service::prelude::phonenumber::ParseError),
+    #[error("UUID decoding error: {0}")]
+    UuidError(#[from] libsignal_service::prelude::uuid::Error),
     #[error("libsignal-protocol error: {0}")]
     ProtocolError(#[from] libsignal_protocol::Error),
     #[error("libsignal-service error: {0}")]
