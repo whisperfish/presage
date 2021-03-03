@@ -12,10 +12,7 @@ use libsignal_protocol::{
     stores::{PreKeyStore, SerializedSession, SignedPreKeyStore},
     Address, Buffer, Context, Serializable,
 };
-use libsignal_service::{
-    configuration::{SignalServers, SignalingKey},
-    gv2::{AuthCredentialResponse, CredentialsCache, CredentialsCacheError},
-};
+use libsignal_service::configuration::{SignalServers, SignalingKey};
 use log::{trace, warn};
 use sled::IVec;
 
@@ -518,42 +515,6 @@ impl IdentityKeyStore for SledConfigStore {
                 libsignal_protocol::InternalError::Unknown
             })?
             .map(|v| Buffer::from(&v[..])))
-    }
-}
-
-impl CredentialsCache for SledConfigStore {
-    fn clear(&self) -> Result<(), CredentialsCacheError> {
-        let db = self.db.read().expect("poisoned mutex");
-        db.remove("gv2-credentials-cache")
-            .map_err(|e| CredentialsCacheError::WriteError(e.to_string()))?;
-        Ok(())
-    }
-
-    fn read(&self) -> Result<HashMap<i64, AuthCredentialResponse>, CredentialsCacheError> {
-        let db = self.db.read().expect("poisoned mutex");
-        if let Some(buf) = db.get("gv2-credentials-cache").map_err(|e| {
-            CredentialsCacheError::ReadError(format!("failed to read credentials cache: {}", e))
-        })? {
-            serde_json::from_slice(&buf).map_err(|e| {
-                CredentialsCacheError::ReadError(format!("failed to deserialize JSON: {}", e))
-            })
-        } else {
-            Ok(HashMap::new())
-        }
-    }
-
-    fn write(
-        &self,
-        value: &HashMap<i64, AuthCredentialResponse>,
-    ) -> Result<(), CredentialsCacheError> {
-        let db = self.db.read().expect("poisoned mutex");
-        let buf = serde_json::to_vec(value).map_err(|e| {
-            CredentialsCacheError::WriteError(format!("failed to serialize JSON: {}", e))
-        })?;
-        db.insert("gv2-credentials-cache", buf).map_err(|e| {
-            CredentialsCacheError::WriteError(format!("failed to write credentials cache: {}", e))
-        })?;
-        Ok(())
     }
 }
 

@@ -1,4 +1,4 @@
-use std::{path::PathBuf, time::UNIX_EPOCH};
+use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::bail;
 use directories::ProjectDirs;
@@ -13,7 +13,7 @@ use libsignal_protocol::{crypto::DefaultCrypto, Context};
 use libsignal_service::{
     configuration::SignalServers,
     content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
-    prelude::phonenumber::PhoneNumber,
+    prelude::{phonenumber::PhoneNumber, GroupMasterKey},
     ServiceAddress,
 };
 
@@ -166,51 +166,60 @@ async fn main() -> anyhow::Result<()> {
         Subcommand::Receive => {
             let (tx, mut rx) = channel(1);
 
-            let (receiver, printer) = future::join(manager.receive_messages(tx), async move {
-                while let Some((metadata, body)) = rx.next().await {
-                    match body {
-                        ContentBody::DataMessage(message)
-                        | ContentBody::SynchronizeMessage(SyncMessage {
-                            sent:
-                                Some(Sent {
-                                    message: Some(message),
-                                    ..
-                                }),
-                            ..
-                        }) => {
-                            if let Some(quote) = &message.quote {
-                                println!(
-                                    "Quote from {:?}: > {:?} / {}",
-                                    metadata.sender,
-                                    quote,
-                                    message.body().to_string(),
-                                );
-                            } else if let Some(reaction) = message.reaction {
-                                println!(
-                                    "Reaction to message sent at {:?}: {:?}",
-                                    reaction.target_sent_timestamp, reaction.emoji,
-                                )
-                            } else {
-                                println!("Message from {:?}: {:?}", metadata, message)
+            let (receiver, printer) =
+                future::join(manager.clone().receive_messages(tx), async move {
+                    while let Some((metadata, body)) = rx.next().await {
+                        match body {
+                            ContentBody::DataMessage(message)
+                            | ContentBody::SynchronizeMessage(SyncMessage {
+                                sent:
+                                    Some(Sent {
+                                        message: Some(message),
+                                        ..
+                                    }),
+                                ..
+                            }) => {
+                                if let Some(quote) = &message.quote {
+                                    println!(
+                                        "Quote from {:?}: > {:?} / {}",
+                                        metadata.sender,
+                                        quote,
+                                        message.body().to_string(),
+                                    );
+                                } else if let Some(reaction) = message.reaction {
+                                    println!(
+                                        "Reaction to message sent at {:?}: {:?}",
+                                        reaction.target_sent_timestamp, reaction.emoji,
+                                    )
+                                } else {
+                                    println!("Message from {:?}: {:?}", metadata, message);
+                                    // fetch the groups v2 info here, just for testing purposes
+                                    if let Some(group_v2) = message.group_v2 {
+                                        let master_key = GroupMasterKey::new(
+                                            group_v2.master_key.unwrap().try_into().unwrap(),
+                                        );
+                                        let group = manager.get_group_v2(master_key).await;
+                                        println!("Group v2: {:?}", group);
+                                    }
+                                }
+                            }
+                            ContentBody::SynchronizeMessage(m) => {
+                                eprintln!("Unhandled sync message: {:?}", m);
+                            }
+                            ContentBody::TypingMessage(_) => {
+                                println!("{:?} is typing", metadata.sender);
+                            }
+                            ContentBody::CallMessage(_) => {
+                                println!("{:?} is calling!", metadata.sender);
+                            }
+                            ContentBody::ReceiptMessage(_) => {
+                                println!("Got read receipt from: {:?}", metadata.sender);
                             }
                         }
-                        ContentBody::SynchronizeMessage(m) => {
-                            eprintln!("Unhandled sync message: {:?}", m);
-                        }
-                        ContentBody::TypingMessage(_) => {
-                            println!("{:?} is typing", metadata.sender);
-                        }
-                        ContentBody::CallMessage(_) => {
-                            println!("{:?} is calling!", metadata.sender);
-                        }
-                        ContentBody::ReceiptMessage(_) => {
-                            println!("Got read receipt from: {:?}", metadata.sender);
-                        }
                     }
-                }
-                Err(Error::MessagePipeInterruptedError)
-            })
-            .await;
+                    Err(Error::MessagePipeInterruptedError)
+                })
+                .await;
 
             let (_, _) = (receiver?, printer?);
         }

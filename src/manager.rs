@@ -23,12 +23,12 @@ use libsignal_service::{
     content::ContentBody,
     content::DataMessage,
     content::Metadata,
-    gv2::{CredentialsCache, GroupsV2Api},
-    messagepipe::Credentials,
+    gv2::{GroupsV2Api, InMemoryCredentialsCache},
+    messagepipe::ServiceCredentials,
     prelude::Content,
     prelude::{
-        phonenumber::PhoneNumber, uuid::Uuid, GroupMasterKey, GroupSecretParams, MessageSender,
-        PushService,
+        phonenumber::PhoneNumber, GroupMasterKey, GroupSecretParams, MessageSender, PushService,
+        Uuid,
     },
     push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
@@ -50,7 +50,6 @@ pub struct Manager<
         + SessionStore
         + IdentityKeyStore
         + Send
-        + CredentialsCache
         + 'static,
 > {
     pub config_store: C,
@@ -89,7 +88,6 @@ where
         + SignedPreKeyStore
         + SessionStore
         + IdentityKeyStore
-        + CredentialsCache
         + Send
         + 'static,
 {
@@ -115,7 +113,7 @@ where
         self.config_store.save(&self.state)
     }
 
-    fn credentials(&self) -> Result<Option<Credentials>, Error> {
+    fn credentials(&self) -> Result<Option<ServiceCredentials>, Error> {
         match &self.state {
             State::New => Err(Error::NotYetRegisteredError),
             State::Registration { .. } => Ok(None),
@@ -126,7 +124,7 @@ where
                 password,
                 signaling_key,
                 ..
-            } => Ok(Some(Credentials {
+            } => Ok(Some(ServiceCredentials {
                 uuid: Some(*uuid),
                 phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
@@ -148,7 +146,7 @@ where
 
         let mut push_service = AwcPushService::new(
             signal_servers.into(),
-            Some(Credentials {
+            Some(ServiceCredentials {
                 phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
                 uuid: None,
@@ -195,7 +193,7 @@ where
 
         let mut push_service = AwcPushService::new(
             (*signal_servers).into(),
-            Some(Credentials {
+            Some(ServiceCredentials {
                 phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
                 uuid: None,
@@ -540,9 +538,9 @@ where
     }
 
     pub async fn get_group_v2(
-        &self,
+        &mut self,
         group_master_key: GroupMasterKey,
-    ) -> Result<libsignal_service::proto::Group, Error> {
+    ) -> Result<libsignal_service::proto::DecryptedGroup, Error> {
         let (signal_servers, _phone_number, uuid, _device_id) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
@@ -561,9 +559,10 @@ where
 
         let push_service = AwcPushService::new(service_configuration, credentials, USER_AGENT);
 
+        let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
         let mut groups_v2_api = GroupsV2Api::new(
             push_service,
-            self.config_store.clone(),
+            &mut groups_v2_credentials_cache,
             server_public_params,
         );
 
@@ -572,6 +571,8 @@ where
             .get_authorization_for_today(*uuid, group_secret_params)
             .await?;
 
-        Ok(groups_v2_api.get_group(authorization).await?)
+        Ok(groups_v2_api
+            .get_group(group_secret_params, authorization)
+            .await?)
     }
 }

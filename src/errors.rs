@@ -11,7 +11,7 @@ pub enum Error {
     #[error("phone number parsing error: {0}")]
     PhoneNumberError(#[from] libsignal_service::prelude::phonenumber::ParseError),
     #[error("UUID decoding error: {0}")]
-    UuidError(#[from] libsignal_service::prelude::uuid::Error),
+    UuidError(#[from] libsignal_service::prelude::UuidError),
     #[error("libsignal-protocol error: {0}")]
     ProtocolError(#[from] libsignal_protocol::Error),
     #[error("libsignal-service error: {0}")]
