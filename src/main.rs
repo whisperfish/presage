@@ -239,7 +239,7 @@ async fn main() -> anyhow::Result<()> {
             });
 
             manager
-                .send_message(phone_number, message, timestamp)
+                .send_message(phone_number.into(), message, timestamp)
                 .await?;
         }
         Subcommand::SendToGroup {

@@ -30,7 +30,9 @@ use libsignal_service::{
         phonenumber::PhoneNumber, GroupMasterKey, GroupSecretParams, MessageSender, PushService,
         Uuid,
     },
-    provisioning::{ConfirmCodeMessage, ProvisioningManager, SecondaryDeviceProvisioning},
+    provisioning::{
+        ConfirmCodeMessage, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
+    },
     push_service::{ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     AccountManager, ServiceAddress, USER_AGENT,
@@ -254,14 +256,15 @@ where
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
 
+        let mut linking_manager: LinkingManager<HyperPushService> =
+            LinkingManager::new(signal_servers, password.clone());
+
         let (tx, mut rx) = channel(1);
 
         let (fut1, fut2) = future::join(
-            provision_secondary_device(
+            linking_manager.provision_secondary_device(
                 &self.context,
-                &signal_servers.into(),
-                &signaling_key,
-                &password,
+                signaling_key,
                 &device_name,
                 tx,
             ),
@@ -440,7 +443,7 @@ where
 
     pub async fn send_message(
         &self,
-        recipient_addr: impl AsRef<ServiceAddress>,
+        recipient_addr: ServiceAddress,
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error> {
@@ -448,13 +451,7 @@ where
 
         let online_only = false;
         sender
-            .send_message(
-                recipient_addr.as_ref(),
-                None,
-                message,
-                timestamp,
-                online_only,
-            )
+            .send_message(&recipient_addr, None, message, timestamp, online_only)
             .await?;
 
         Ok(())
