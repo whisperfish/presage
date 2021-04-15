@@ -23,21 +23,20 @@ use libsignal_service::{
     content::ContentBody,
     content::DataMessage,
     content::Metadata,
-    gv2::{GroupsV2Api, InMemoryCredentialsCache},
+    groups_v2::{GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     prelude::Content,
     prelude::{
         phonenumber::PhoneNumber, GroupMasterKey, GroupSecretParams, MessageSender, PushService,
         Uuid,
     },
-    push_service::{ConfirmCodeMessage, ProfileKey, DEFAULT_DEVICE_ID},
+    provisioning::{ConfirmCodeMessage, ProvisioningManager, SecondaryDeviceProvisioning},
+    push_service::{ProfileKey, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     AccountManager, ServiceAddress, USER_AGENT,
 };
-use libsignal_service_actix::{
-    provisioning::provision_secondary_device, provisioning::SecondaryDeviceProvisioning,
-    push_service::AwcPushService,
-};
+
+use libsignal_service_hyper::push_service::HyperPushService;
 
 use crate::{config::ConfigStore, Error};
 
@@ -144,25 +143,17 @@ where
         let rng = rand::rngs::OsRng::default();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
 
-        let mut push_service = AwcPushService::new(
-            signal_servers.into(),
-            Some(ServiceCredentials {
-                phonenumber: phone_number.clone(),
-                password: Some(password.clone()),
-                uuid: None,
-                signaling_key: None,
-                device_id: None,
-            }),
-            USER_AGENT,
-        );
+        let cfg: ServiceConfiguration = signal_servers.into();
+        let mut provisioning_manager: ProvisioningManager<HyperPushService> =
+            ProvisioningManager::new(cfg, phone_number.clone(), password.clone());
 
         if use_voice_call {
-            push_service
-                .request_voice_verification_code(phone_number.clone(), None, None)
+            provisioning_manager
+                .request_voice_verification_code(None, None)
                 .await?;
         } else {
-            push_service
-                .request_sms_verification_code(phone_number.clone(), None, None)
+            provisioning_manager
+                .request_sms_verification_code(None, None)
                 .await?;
         }
 
@@ -191,17 +182,20 @@ where
         let registration_id = libsignal_protocol::generate_registration_id(&self.context, 0)?;
         trace!("registration_id: {}", registration_id);
 
-        let mut push_service = AwcPushService::new(
-            (*signal_servers).into(),
-            Some(ServiceCredentials {
-                phonenumber: phone_number.clone(),
-                password: Some(password.clone()),
-                uuid: None,
-                signaling_key: None,
-                device_id: None,
-            }),
-            USER_AGENT,
-        );
+        // let mut push_service = HyperPushService::new(
+        //     (*signal_servers).into(),
+        //     Some(ServiceCredentials {
+        //         phonenumber: phone_number.clone(),
+        //         password: Some(password.clone()),
+        //         uuid: None,
+        //         signaling_key: None,
+        //         device_id: None,
+        //     }),
+        //     USER_AGENT,
+        // );
+        let cfg: ServiceConfiguration = (*signal_servers).into();
+        let mut provisioning_manager: ProvisioningManager<HyperPushService> =
+            ProvisioningManager::new(cfg, phone_number.clone(), password.to_string());
 
         let mut rng = rand::rngs::OsRng::default();
         // generate a 52 bytes signaling key
@@ -212,7 +206,7 @@ where
         rng.fill_bytes(&mut profile_key);
         let profile_key = ProfileKey(profile_key.to_vec());
 
-        let registered = push_service
+        let registered = provisioning_manager
             .confirm_verification_code(
                 confirm_code,
                 ConfirmCodeMessage::new(
@@ -348,8 +342,9 @@ where
             } => (signal_servers, profile_key),
         };
 
-        let push_service =
-            AwcPushService::new((*signal_servers).into(), self.credentials()?, USER_AGENT);
+        let cfg: ServiceConfiguration = (*signal_servers).into();
+
+        let push_service = HyperPushService::new(cfg, self.credentials()?, USER_AGENT);
 
         let mut account_manager = AccountManager::new(
             self.context.clone(),
@@ -406,7 +401,7 @@ where
         );
 
         let push_service =
-            AwcPushService::new(service_configuration, credentials.clone(), USER_AGENT);
+            HyperPushService::new(service_configuration, credentials.clone(), USER_AGENT);
 
         let mut receiver = MessageReceiver::new(push_service);
 
@@ -445,21 +440,21 @@ where
 
     pub async fn send_message(
         &self,
-        recipient_phone_number: PhoneNumber,
+        recipient_addr: impl AsRef<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error> {
         let mut sender = self.get_sender()?;
 
-        let recipient_addr = ServiceAddress {
-            uuid: None,
-            phonenumber: Some(recipient_phone_number.clone()),
-            relay: None,
-        };
-
         let online_only = false;
         sender
-            .send_message(&recipient_addr, None, message, timestamp, online_only)
+            .send_message(
+                recipient_addr.as_ref(),
+                None,
+                message,
+                timestamp,
+                online_only,
+            )
             .await?;
 
         Ok(())
@@ -493,7 +488,7 @@ where
         Ok(())
     }
 
-    fn get_sender(&self) -> Result<MessageSender<AwcPushService>, Error> {
+    fn get_sender(&self) -> Result<MessageSender<HyperPushService>, Error> {
         let (signal_servers, phone_number, uuid, device_id) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
@@ -509,7 +504,7 @@ where
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
         let certificate_validator = service_configuration.credentials_validator(&self.context)?;
-        let push_service = AwcPushService::new(service_configuration, credentials, USER_AGENT);
+        let push_service = HyperPushService::new(service_configuration, credentials, USER_AGENT);
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -557,10 +552,10 @@ where
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
         let server_public_params = service_configuration.zkgroup_server_public_params.clone();
 
-        let push_service = AwcPushService::new(service_configuration, credentials, USER_AGENT);
+        let push_service = HyperPushService::new(service_configuration, credentials, USER_AGENT);
 
         let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let mut groups_v2_api = GroupsV2Api::new(
+        let mut groups_v2_api = GroupsManager::new(
             push_service,
             &mut groups_v2_credentials_cache,
             server_public_params,

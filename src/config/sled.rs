@@ -1,5 +1,4 @@
 use std::{
-    collections::HashMap,
     path::PathBuf,
     str::FromStr,
     sync::{Arc, RwLock},

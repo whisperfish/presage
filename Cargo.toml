@@ -8,7 +8,7 @@ edition = "2018"
 [dependencies]
 libsignal-protocol = { git = "https://github.com/Michael-F-Bryan/libsignal-protocol-rs.git" }
 libsignal-service = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs", rev = "b940d05a" }
-libsignal-service-actix = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git", rev = "b940d05a" }
+libsignal-service-hyper = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git", rev = "b940d05a" }
 env_logger = "0.7"
 directories = "3.0"
 structopt = "0.3"
@@ -25,14 +25,12 @@ serde = "1.0"
 log = "0.4.8"
 sled = "*"
 prost = "*"
-actix = "0.11.0-beta.1"
-actix-http = "3.0.0-beta.1"
-actix-rt = "2.0"
 hex = "0.4.2"
+tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
 
 [patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
 libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-libsignal-service-actix = { path = "../libsignal-service-rs/libsignal-service-actix" }
+libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
