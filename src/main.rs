@@ -3,7 +3,6 @@ use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
 use anyhow::bail;
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
-use image::EncodableLayout;
 use log::debug;
 use presage::{config::SledConfigStore, prelude::sync_message::Sent, Error, Manager};
 
@@ -14,7 +13,6 @@ use libsignal_service::{
     configuration::SignalServers,
     content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
     prelude::{phonenumber::PhoneNumber, GroupMasterKey},
-    ServiceAddress,
 };
 
 #[derive(StructOpt)]
@@ -115,10 +113,10 @@ enum Subcommand {
     RegisterPreKeys,
 }
 
+#[cfg(feature = "quirks")]
 #[derive(StructOpt)]
 enum ConfigSubcommand {
     Print {
-        #[structopt(long, short = "k")]
         key: String,
     },
     ClearSessions {
