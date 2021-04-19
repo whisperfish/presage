@@ -2,6 +2,8 @@ use std::borrow::Cow;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+    #[error("captcha from https://signalcaptchas.org required")]
+    CaptchaRequired,
     #[error("input/output error: {0}")]
     IoError(#[from] std::io::Error),
     #[error("data store error: {0}")]

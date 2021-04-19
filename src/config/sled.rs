@@ -1,4 +1,5 @@
 use std::{
+    convert::TryInto,
     path::PathBuf,
     str::FromStr,
     sync::{Arc, RwLock},
@@ -209,7 +210,9 @@ impl ConfigStore for SledConfigStore {
                 profile_key: db
                     .get("profile_key")?
                     .ok_or_else(|| Error::MissingKeyError("profile_key".into()))?
-                    .to_vec(),
+                    .to_vec()
+                    .try_into()
+                    .unwrap(),
             })
         } else if db.contains_key("phone_number")? {
             trace!("Loading registration state");
@@ -262,7 +265,7 @@ impl ConfigStore for SledConfigStore {
                 db.insert("registration_id", &registration_id.to_le_bytes())?;
                 db.insert("private_key", private_key.serialize()?.as_slice())?;
                 db.insert("public_key", public_key.serialize()?.as_slice())?;
-                db.insert("profile_key", profile_key.as_slice())?;
+                db.insert("profile_key", profile_key)?;
             }
         };
         Ok(())

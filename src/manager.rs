@@ -1,3 +1,5 @@
+use std::convert::TryInto;
+
 use futures::{
     channel::mpsc::{channel, Sender},
     future, pin_mut, SinkExt, StreamExt,
@@ -32,8 +34,9 @@ use libsignal_service::{
     },
     provisioning::{
         ConfirmCodeMessage, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
+        VerificationCodeResponse,
     },
-    push_service::{ProfileKey, DEFAULT_DEVICE_ID},
+    push_service::{ProfileKey, WhoAmIResponse, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     AccountManager, ServiceAddress, USER_AGENT,
 };
@@ -77,7 +80,7 @@ pub enum State {
         registration_id: u32,
         private_key: PrivateKey,
         public_key: PublicKey,
-        profile_key: Vec<u8>,
+        profile_key: [u8; 32],
     },
 }
 
@@ -140,6 +143,7 @@ where
         signal_servers: SignalServers,
         phone_number: PhoneNumber,
         use_voice_call: bool,
+        captcha: Option<&str>,
     ) -> Result<(), Error> {
         // generate a random 24 bytes password
         let rng = rand::rngs::OsRng::default();
@@ -149,14 +153,18 @@ where
         let mut provisioning_manager: ProvisioningManager<HyperPushService> =
             ProvisioningManager::new(cfg, phone_number.clone(), password.clone());
 
-        if use_voice_call {
+        let verification_code_response = if use_voice_call {
             provisioning_manager
-                .request_voice_verification_code(None, None)
-                .await?;
+                .request_voice_verification_code(captcha.as_deref(), None)
+                .await?
         } else {
             provisioning_manager
-                .request_sms_verification_code(None, None)
-                .await?;
+                .request_sms_verification_code(captcha.as_deref(), None)
+                .await?
+        };
+
+        if let VerificationCodeResponse::CaptchaRequired = verification_code_response {
+            return Err(Error::CaptchaRequired);
         }
 
         self.state = State::Registration {
@@ -206,7 +214,7 @@ where
 
         let mut profile_key = [0u8; 32];
         rng.fill_bytes(&mut profile_key);
-        let profile_key = ProfileKey(profile_key.to_vec());
+        let profile_key = ProfileKey(profile_key);
 
         let registered = provisioning_manager
             .confirm_verification_code(
@@ -224,7 +232,7 @@ where
         self.state = State::Registered {
             signal_servers: *signal_servers,
             phone_number: phone_number.clone(),
-            uuid: Uuid::parse_str(&registered.uuid)?,
+            uuid: registered.uuid,
             password: password.clone(),
             signaling_key,
             device_id: None,
@@ -327,12 +335,28 @@ where
             registration_id,
             public_key,
             private_key,
-            profile_key,
+            profile_key: profile_key.try_into().unwrap(),
         };
 
         self.save()?;
         self.register_pre_keys().await?;
         Ok(())
+    }
+
+    pub async fn whoami(&self) -> Result<WhoAmIResponse, Error> {
+        // TODO: also factor this
+        let signal_servers = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered { signal_servers, .. } => signal_servers,
+        };
+
+        let credentials = self.credentials()?;
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+
+        let mut push_service =
+            HyperPushService::new(service_configuration, credentials.clone(), USER_AGENT);
+
+        Ok(push_service.whoami().await?)
     }
 
     pub async fn register_pre_keys(&self) -> Result<(), Error> {
@@ -459,20 +483,13 @@ where
 
     pub async fn send_message_to_group(
         &self,
-        recipients: impl IntoIterator<Item = PhoneNumber>,
+        recipients: impl IntoIterator<Item = ServiceAddress>,
         message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error> {
         let mut sender = self.get_sender()?;
 
-        let recipients: Vec<_> = recipients
-            .into_iter()
-            .map(|phone_number| ServiceAddress {
-                uuid: None,
-                phonenumber: Some(phone_number),
-                relay: None,
-            })
-            .collect();
+        let recipients: Vec<_> = recipients.into_iter().collect();
 
         let online_only = false;
         let results = sender

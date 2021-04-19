@@ -37,7 +37,14 @@ enum Subcommand {
         phone_number: PhoneNumber,
         #[structopt(long)]
         use_voice_call: bool,
+        #[structopt(
+            long = "captcha",
+            help = "Captcha obtained from https://signalcaptchas.org/registration/generate.html"
+        )]
+        captcha: Option<String>,
     },
+    #[structopt(about = "Unregister from Signal")]
+    Unregister,
     #[structopt(
         about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
     )]
@@ -51,15 +58,29 @@ enum Subcommand {
         )]
         device_name: String,
     },
-    #[structopt(about = "debug only: rerun the pre-keys registration")]
-    RegisterPreKeys,
     #[structopt(about = "verify the code you got from the SMS or voice-call when you registered")]
     Verify {
         #[structopt(long, short = "c", help = "SMS / Voice-call confirmation code")]
         confirmation_code: u32,
     },
-    #[structopt(about = "receives all pending messages and saves them to disk")]
+    #[structopt(about = "Get information on the registered user")]
+    Whoami,
+    #[structopt(about = "Sets a name, status and avatar")]
+    UpdateProfile,
+    #[structopt(about = "Check if a user is registered on Signal")]
+    GetUserStatus,
+    #[structopt(about = "Update the account attributes")]
+    UpdateAccount,
+    #[structopt(about = "Block the provided contacts or groups")]
+    Block,
+    #[structopt(about = "Unblock the provided contacts or groups")]
+    Unblock,
+    #[structopt(about = "Update the details of a contact")]
+    UpdateContact,
+    #[structopt(about = "Receives all pending messages and saves them to disk")]
     Receive,
+    #[structopt(about = "List group memberships")]
+    ListGroups,
     #[structopt(about = "sends a message")]
     Send {
         #[structopt(long, short = "n", help = "Phone number of the recipient")]
@@ -70,13 +91,13 @@ enum Subcommand {
     #[structopt(about = "sends a message to group")]
     SendToGroup {
         #[structopt(
-            long,
+            long = "phone-number",
             short = "n",
             min_values = 1,
             required = true,
             help = "Phone number of the recipient"
         )]
-        phone_number: Vec<PhoneNumber>,
+        recipients: Vec<PhoneNumber>,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
         #[structopt(long, short = "g", help = "ID of the legacy group (hex string)")]
@@ -84,10 +105,14 @@ enum Subcommand {
         #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
         master_key: Option<String>,
     },
+    #[cfg(feature = "quirks")]
     Config {
         #[structopt(flatten)]
         command: ConfigSubcommand,
     },
+    #[cfg(feature = "quirks")]
+    #[structopt(about = "debug only: rerun the pre-keys registration")]
+    RegisterPreKeys,
 }
 
 #[derive(StructOpt)]
@@ -124,9 +149,11 @@ async fn main() -> anyhow::Result<()> {
     let mut manager = Manager::with_config_store(config_store, signal_context)?;
 
     match args.subcommand {
+        #[cfg(feature = "quirks")]
         Subcommand::RegisterPreKeys => {
             manager.register_pre_keys().await?;
         }
+        #[cfg(feature = "quirks")]
         Subcommand::Config { command } => match command {
             ConfigSubcommand::Print { key } => {
                 println!(
@@ -147,9 +174,10 @@ async fn main() -> anyhow::Result<()> {
             servers,
             phone_number,
             use_voice_call,
+            captcha,
         } => {
             manager
-                .register(servers, phone_number, use_voice_call)
+                .register(servers, phone_number, use_voice_call, captcha.as_deref())
                 .await?;
         }
         Subcommand::LinkDevice {
@@ -243,7 +271,7 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
         }
         Subcommand::SendToGroup {
-            phone_number,
+            recipients,
             message,
             group_id,
             master_key,
@@ -279,8 +307,26 @@ async fn main() -> anyhow::Result<()> {
             };
 
             manager
-                .send_message_to_group(phone_number, data_message, timestamp)
+                .send_message_to_group(
+                    recipients.into_iter().map(Into::into),
+                    data_message,
+                    timestamp,
+                )
                 .await?;
+        }
+        Subcommand::Unregister => unimplemented!(),
+        Subcommand::UpdateProfile => unimplemented!(),
+        Subcommand::GetUserStatus => unimplemented!(),
+        Subcommand::UpdateAccount => unimplemented!(),
+        Subcommand::Block => unimplemented!(),
+        Subcommand::Unblock => unimplemented!(),
+        Subcommand::UpdateContact => unimplemented!(),
+        Subcommand::ListGroups => unimplemented!(),
+        Subcommand::Whoami => {
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&manager.whoami().await?)?
+            )
         }
     };
     Ok(())
