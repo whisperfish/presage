@@ -104,25 +104,7 @@ enum Subcommand {
         master_key: Option<String>,
     },
     #[cfg(feature = "quirks")]
-    Config {
-        #[structopt(flatten)]
-        command: ConfigSubcommand,
-    },
-    #[cfg(feature = "quirks")]
-    #[structopt(about = "debug only: rerun the pre-keys registration")]
-    RegisterPreKeys,
-}
-
-#[cfg(feature = "quirks")]
-#[derive(StructOpt)]
-enum ConfigSubcommand {
-    Print {
-        key: String,
-    },
-    ClearSessions {
-        #[structopt(long = "recipient")]
-        recipient: PhoneNumber,
-    },
+    RequestSyncContacts,
 }
 
 #[tokio::main]
@@ -147,27 +129,6 @@ async fn main() -> anyhow::Result<()> {
     let mut manager = Manager::with_config_store(config_store, signal_context)?;
 
     match args.subcommand {
-        #[cfg(feature = "quirks")]
-        Subcommand::RegisterPreKeys => {
-            manager.register_pre_keys().await?;
-        }
-        #[cfg(feature = "quirks")]
-        Subcommand::Config { command } => match command {
-            ConfigSubcommand::Print { key } => {
-                println!(
-                    "{}",
-                    String::from_utf8_lossy(manager.config_store.get(&key)?.unwrap().as_bytes())
-                )
-            }
-            ConfigSubcommand::ClearSessions { recipient } => {
-                let address = ServiceAddress {
-                    uuid: None,
-                    phonenumber: Some(recipient),
-                    relay: None,
-                };
-                manager.clear_sessions(&address)?;
-            }
-        },
         Subcommand::Register {
             servers,
             phone_number,
@@ -221,11 +182,11 @@ async fn main() -> anyhow::Result<()> {
                                     println!("Message from {:?}: {:?}", metadata, message);
                                     // fetch the groups v2 info here, just for testing purposes
                                     if let Some(group_v2) = message.group_v2 {
-                                        let master_key = GroupMasterKey::new(
+                                        let _master_key = GroupMasterKey::new(
                                             group_v2.master_key.unwrap().try_into().unwrap(),
                                         );
-                                        let group = manager.get_group_v2(master_key).await;
-                                        println!("Group v2: {:?}", group);
+                                        // let group = manager.get_group_v2(master_key).await;
+                                        // println!("Group v2: {:?}", group);
                                     }
                                 }
                             }
@@ -265,7 +226,7 @@ async fn main() -> anyhow::Result<()> {
             });
 
             manager
-                .send_message(phone_number.into(), message, timestamp)
+                .send_message(phone_number, message, timestamp)
                 .await?;
         }
         Subcommand::SendToGroup {
@@ -321,10 +282,11 @@ async fn main() -> anyhow::Result<()> {
         Subcommand::UpdateContact => unimplemented!(),
         Subcommand::ListGroups => unimplemented!(),
         Subcommand::Whoami => {
-            println!(
-                "{}",
-                serde_json::to_string_pretty(&manager.whoami().await?)?
-            )
+            println!("{:?}", &manager.whoami().await?)
+        }
+        #[cfg(feature = "quirks")]
+        Subcommand::RequestSyncContacts => {
+            manager.request_contacts_sync().await?;
         }
     };
     Ok(())

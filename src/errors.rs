@@ -1,5 +1,7 @@
 use std::borrow::Cow;
 
+use libsignal_service::models::ParseContactError;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
     #[error("captcha from https://signalcaptchas.org required")]
@@ -34,4 +36,6 @@ pub enum Error {
     MissingKeyError(Cow<'static, str>),
     #[error("receiving pipe was interrupted")]
     MessagePipeInterruptedError,
+    #[error("failed to parse contact information: {0}")]
+    ParseContactError(#[from] ParseContactError),
 }

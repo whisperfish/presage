@@ -16,3 +16,5 @@ pub mod prelude {
     pub use libsignal_service::prelude::Uuid;
     pub use libsignal_service::ServiceAddress;
 }
+
+const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-rs-", env!("CARGO_PKG_VERSION"));

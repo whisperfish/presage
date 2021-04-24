@@ -1,11 +1,12 @@
-use std::convert::TryInto;
+use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
 
 use futures::{
     channel::mpsc::{channel, Sender},
     future, pin_mut, SinkExt, StreamExt,
 };
 use image::Luma;
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
+use prost::bytes::Bytes;
 use qrcode::QrCode;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
 
@@ -19,26 +20,23 @@ use libsignal_protocol::{
 };
 use libsignal_service::{
     cipher::ServiceCipher,
-    configuration::ServiceConfiguration,
-    configuration::SignalServers,
-    configuration::SignalingKey,
-    content::ContentBody,
-    content::DataMessage,
-    content::Metadata,
+    configuration::{ServiceConfiguration, SignalServers, SignalingKey},
+    content::{ContentBody, DataMessage, Metadata},
     groups_v2::{GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
-    prelude::Content,
+    models::Contact,
     prelude::{
-        phonenumber::PhoneNumber, GroupMasterKey, GroupSecretParams, MessageSender, PushService,
-        Uuid,
+        phonenumber::PhoneNumber, Content, GroupMasterKey, GroupSecretParams, MessageSender,
+        PushService, Uuid,
     },
+    proto::{sync_message, SyncMessage},
     provisioning::{
         ConfirmCodeMessage, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
     },
     push_service::{ProfileKey, WhoAmIResponse, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
-    AccountManager, ServiceAddress, USER_AGENT,
+    AccountManager, ServiceAddress,
 };
 
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -151,7 +149,12 @@ where
 
         let cfg: ServiceConfiguration = signal_servers.into();
         let mut provisioning_manager: ProvisioningManager<HyperPushService> =
-            ProvisioningManager::new(cfg, phone_number.clone(), password.clone());
+            ProvisioningManager::new(
+                cfg,
+                crate::USER_AGENT.to_string(),
+                phone_number.clone(),
+                password.clone(),
+            );
 
         let verification_code_response = if use_voice_call {
             provisioning_manager
@@ -205,7 +208,12 @@ where
         // );
         let cfg: ServiceConfiguration = (*signal_servers).into();
         let mut provisioning_manager: ProvisioningManager<HyperPushService> =
-            ProvisioningManager::new(cfg, phone_number.clone(), password.to_string());
+            ProvisioningManager::new(
+                cfg,
+                crate::USER_AGENT.to_string(),
+                phone_number.clone(),
+                password.to_string(),
+            );
 
         let mut rng = rand::rngs::OsRng::default();
         // generate a 52 bytes signaling key
@@ -264,8 +272,11 @@ where
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
 
-        let mut linking_manager: LinkingManager<HyperPushService> =
-            LinkingManager::new(signal_servers, password.clone());
+        let mut linking_manager: LinkingManager<HyperPushService> = LinkingManager::new(
+            signal_servers,
+            crate::USER_AGENT.to_string(),
+            password.clone(),
+        );
 
         let (tx, mut rx) = channel(1);
 
@@ -308,7 +319,7 @@ where
                                 phone_number,
                                 device_id.device_id,
                                 registration_id,
-                                uuid.parse()?,
+                                uuid,
                                 private_key,
                                 public_key,
                                 profile_key,
@@ -353,8 +364,11 @@ where
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
-        let mut push_service =
-            HyperPushService::new(service_configuration, credentials.clone(), USER_AGENT);
+        let mut push_service = HyperPushService::new(
+            service_configuration,
+            credentials.clone(),
+            crate::USER_AGENT.to_string(),
+        );
 
         Ok(push_service.whoami().await?)
     }
@@ -370,8 +384,8 @@ where
         };
 
         let cfg: ServiceConfiguration = (*signal_servers).into();
-
-        let push_service = HyperPushService::new(cfg, self.credentials()?, USER_AGENT);
+        let push_service =
+            HyperPushService::new(cfg, self.credentials()?, crate::USER_AGENT.to_string());
 
         let mut account_manager = AccountManager::new(
             self.context.clone(),
@@ -396,6 +410,30 @@ where
         Ok(())
     }
 
+    pub async fn request_contacts_sync(&self) -> Result<(), Error> {
+        let phone_number = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered { phone_number, .. } => phone_number,
+        };
+
+        let sync_message = SyncMessage {
+            request: Some(sync_message::Request {
+                r#type: Some(sync_message::request::Type::Contacts as i32),
+            }),
+            ..Default::default()
+        };
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64;
+
+        self.send_message(phone_number.clone(), sync_message, timestamp)
+            .await?;
+
+        Ok(())
+    }
+
     pub async fn receive_messages(
         &self,
         mut tx: Sender<(Metadata, ContentBody)>,
@@ -409,6 +447,8 @@ where
                 ..
             } => (signal_servers, phone_number, uuid),
         };
+
+        // TODO: error if we're primary registered device, as this is only for secondary devices
 
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
@@ -427,8 +467,11 @@ where
             certificate_validator,
         );
 
-        let push_service =
-            HyperPushService::new(service_configuration, credentials.clone(), USER_AGENT);
+        let push_service = HyperPushService::new(
+            service_configuration.clone(),
+            credentials.clone(),
+            crate::USER_AGENT.to_string(),
+        );
 
         let mut receiver = MessageReceiver::new(push_service);
 
@@ -454,7 +497,21 @@ where
                         }
                     };
 
-                    tx.send((metadata, body)).await.expect("tx channel error");
+                    match &body {
+                        ContentBody::SynchronizeMessage(SyncMessage {
+                            contacts: Some(contacts),
+                            ..
+                        }) => {
+                            // TODO: save contacts here, for now we just print them
+                            let contacts: Result<Vec<Contact>, _> =
+                                receiver.retrieve_contacts(contacts).await?.collect();
+                            for c in contacts? {
+                                log::info!("Contact {}", c.name);
+                            }
+                            // let _ = cdn_push_service.get_contacts(contacts).await;
+                        }
+                        _ => tx.send((metadata, body)).await.expect("tx channel error"),
+                    };
                 }
                 Err(e) => {
                     error!("Error: {}", e);
@@ -467,7 +524,7 @@ where
 
     pub async fn send_message(
         &self,
-        recipient_addr: ServiceAddress,
+        recipient_addr: impl Into<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error> {
@@ -475,7 +532,13 @@ where
 
         let online_only = false;
         sender
-            .send_message(&recipient_addr, None, message, timestamp, online_only)
+            .send_message(
+                &recipient_addr.into(),
+                None,
+                message,
+                timestamp,
+                online_only,
+            )
             .await?;
 
         Ok(())
@@ -518,7 +581,11 @@ where
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
         let certificate_validator = service_configuration.credentials_validator(&self.context)?;
-        let push_service = HyperPushService::new(service_configuration, credentials, USER_AGENT);
+        let push_service = HyperPushService::new(
+            service_configuration,
+            credentials,
+            crate::USER_AGENT.to_string(),
+        );
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -566,7 +633,11 @@ where
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
         let server_public_params = service_configuration.zkgroup_server_public_params.clone();
 
-        let push_service = HyperPushService::new(service_configuration, credentials, USER_AGENT);
+        let push_service = HyperPushService::new(
+            service_configuration,
+            credentials,
+            crate::USER_AGENT.to_string(),
+        );
 
         let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
         let mut groups_v2_api = GroupsManager::new(
