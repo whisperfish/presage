@@ -63,6 +63,8 @@ enum Subcommand {
     },
     #[structopt(about = "Get information on the registered user")]
     Whoami,
+    #[structopt(about = "Retrieve the user profile")]
+    RetrieveProfile,
     #[structopt(about = "Sets a name, status and avatar")]
     UpdateProfile,
     #[structopt(about = "Check if a user is registered on Signal")]
@@ -274,6 +276,10 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
         }
         Subcommand::Unregister => unimplemented!(),
+        Subcommand::RetrieveProfile => {
+            let profile = manager.retrieve_profile().await?;
+            println!("{:#?}", profile);
+        }
         Subcommand::UpdateProfile => unimplemented!(),
         Subcommand::GetUserStatus => unimplemented!(),
         Subcommand::UpdateAccount => unimplemented!(),
