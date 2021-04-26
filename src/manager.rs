@@ -420,11 +420,8 @@ where
         let push_service =
             HyperPushService::new(cfg, self.credentials()?, crate::USER_AGENT.to_string());
 
-        let mut account_manager = AccountManager::new(
-            self.context.clone(),
-            push_service,
-            Some(profile_key.clone()),
-        );
+        let mut account_manager =
+            AccountManager::new(self.context.clone(), push_service, Some(*profile_key));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -488,7 +485,7 @@ where
         let certificate_validator = service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
-            uuid: Some(uuid.clone()),
+            uuid: Some(*uuid),
             phonenumber: Some(phone_number.clone()),
             relay: None,
         };
@@ -621,7 +618,7 @@ where
         );
 
         let local_addr = ServiceAddress {
-            uuid: Some(uuid.clone()),
+            uuid: Some(*uuid),
             phonenumber: Some(phone_number.clone()),
             relay: None,
         };
@@ -664,7 +661,7 @@ where
         let credentials = self.credentials()?;
 
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
-        let server_public_params = service_configuration.zkgroup_server_public_params.clone();
+        let server_public_params = service_configuration.zkgroup_server_public_params;
 
         let push_service = HyperPushService::new(
             service_configuration,
