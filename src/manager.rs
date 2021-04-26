@@ -10,14 +10,6 @@ use prost::bytes::Bytes;
 use qrcode::QrCode;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
 
-use libsignal_protocol::{
-    keys::{PrivateKey, PublicKey},
-    stores::IdentityKeyStore,
-    stores::PreKeyStore,
-    stores::SessionStore,
-    stores::SignedPreKeyStore,
-    Context, StoreContext,
-};
 use libsignal_service::{
     cipher::ServiceCipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
@@ -26,8 +18,12 @@ use libsignal_service::{
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
-        phonenumber::PhoneNumber, Content, GroupMasterKey, GroupSecretParams, MessageSender,
-        PushService, Uuid,
+        phonenumber::PhoneNumber,
+        protocol::{
+            Context, IdentityKeyStore, KeyPair, PreKeyStore, PrivateKey, PublicKey, SessionStore,
+            SignedPreKeyStore,
+        },
+        Content, GroupMasterKey, GroupSecretParams, MessageSender, PushService, Uuid,
     },
     proto::{sync_message, SyncMessage},
     provisioning::{
@@ -53,14 +49,16 @@ pub struct Manager<
         + IdentityKeyStore
         + Send
         + 'static,
+    R: rand::Rng + rand::CryptoRng,
 > {
     pub config_store: C,
     state: State,
-    context: Context,
-    store_context: StoreContext,
+    // context: Context,
+    csprng: R,
+    // store_context: StoreContext,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub enum State {
     New,
     Registration {
@@ -74,7 +72,7 @@ pub enum State {
         uuid: Uuid,
         password: String,
         signaling_key: SignalingKey,
-        device_id: Option<i32>,
+        device_id: Option<u32>,
         registration_id: u32,
         private_key: PrivateKey,
         public_key: PublicKey,
@@ -82,7 +80,7 @@ pub enum State {
     },
 }
 
-impl<C> Manager<C>
+impl<C, R> Manager<C, R>
 where
     C: Clone
         + ConfigStore
@@ -92,21 +90,14 @@ where
         + IdentityKeyStore
         + Send
         + 'static,
+    R: rand::Rng + rand::CryptoRng,
 {
-    pub fn with_config_store(config_store: C, context: Context) -> Result<Self, Error> {
-        let store_context = libsignal_protocol::store_context(
-            &context,
-            config_store.clone(),
-            config_store.clone(),
-            config_store.clone(),
-            config_store.clone(),
-        )?;
-        let state = config_store.state(&context)?;
+    pub fn with_config_store(config_store: C, csprng: R) -> Result<Self, Error> {
+        let state = config_store.state()?;
         Ok(Manager {
             config_store,
             state,
-            context,
-            store_context,
+            csprng,
         })
     }
 
@@ -192,7 +183,8 @@ where
             State::Registered { .. } => return Err(Error::AlreadyRegisteredError),
         };
 
-        let registration_id = libsignal_protocol::generate_registration_id(&self.context, 0)?;
+        // see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
+        let registration_id = self.csprng.gen_range(1, 16380);
         trace!("registration_id: {}", registration_id);
 
         // let mut push_service = HyperPushService::new(
@@ -235,7 +227,7 @@ where
             )
             .await?;
 
-        let identity_key_pair = libsignal_protocol::generate_identity_key_pair(&self.context)?;
+        let identity_key_pair = KeyPair::generate(&mut self.csprng);
 
         self.state = State::Registered {
             signal_servers: *signal_servers,
@@ -245,8 +237,8 @@ where
             signaling_key,
             device_id: None,
             registration_id,
-            private_key: identity_key_pair.private(),
-            public_key: identity_key_pair.public(),
+            private_key: identity_key_pair.private_key,
+            public_key: identity_key_pair.public_key,
             profile_key: profile_key.0,
         };
 
@@ -282,7 +274,8 @@ where
 
         let (fut1, fut2) = future::join(
             linking_manager.provision_secondary_device(
-                &self.context,
+                None,
+                &mut self.csprng,
                 signaling_key,
                 &device_name,
                 tx,
@@ -373,7 +366,7 @@ where
         Ok(push_service.whoami().await?)
     }
 
-    pub async fn register_pre_keys(&self) -> Result<(), Error> {
+    pub async fn register_pre_keys(&mut self) -> Result<(), Error> {
         let (signal_servers, profile_key) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
@@ -387,15 +380,15 @@ where
         let push_service =
             HyperPushService::new(cfg, self.credentials()?, crate::USER_AGENT.to_string());
 
-        let mut account_manager = AccountManager::new(
-            self.context.clone(),
-            push_service,
-            Some(profile_key.clone()),
-        );
+        let mut account_manager =
+            AccountManager::new(None, push_service, Some(profile_key.clone()));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
-                self.store_context.clone(),
+                &mut self.config_store.clone(),
+                &mut self.config_store.clone(),
+                &mut self.config_store.clone(),
+                &mut self.csprng,
                 self.config_store.pre_keys_offset_id()?,
                 self.config_store.next_signed_pre_key_id()?,
                 true,
@@ -428,8 +421,9 @@ where
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(phone_number.clone(), sync_message, timestamp)
-            .await?;
+        unimplemented!();
+        // self.send_message(phone_number.clone(), sync_message, timestamp)
+        //     .await?;
 
         Ok(())
     }
@@ -452,7 +446,7 @@ where
 
         let credentials = self.credentials()?;
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
-        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+        let certificate_validator = service_configuration.credentials_validator()?;
 
         let local_addr = ServiceAddress {
             uuid: Some(uuid.clone()),
@@ -461,8 +455,11 @@ where
         };
 
         let mut service_cipher = ServiceCipher::from_context(
-            self.context.clone(),
-            self.store_context.clone(),
+            None,
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
             local_addr,
             certificate_validator,
         );
@@ -485,17 +482,18 @@ where
         while let Some(step) = message_stream.next().await {
             match step {
                 Ok(envelope) => {
-                    let Content { body, metadata } = match service_cipher.open_envelope(envelope) {
-                        Ok(Some(content)) => content,
-                        Ok(None) => {
-                            warn!("Empty envelope...");
-                            continue;
-                        }
-                        Err(e) => {
-                            error!("Error opening envelope: {:?}, message will be skipped!", e);
-                            continue;
-                        }
-                    };
+                    let Content { body, metadata } =
+                        match service_cipher.open_envelope(envelope).await {
+                            Ok(Some(content)) => content,
+                            Ok(None) => {
+                                warn!("Empty envelope...");
+                                continue;
+                            }
+                            Err(e) => {
+                                error!("Error opening envelope: {:?}, message will be skipped!", e);
+                                continue;
+                            }
+                        };
 
                     match &body {
                         ContentBody::SynchronizeMessage(SyncMessage {
@@ -522,94 +520,95 @@ where
         Ok(())
     }
 
-    pub async fn send_message(
-        &self,
-        recipient_addr: impl Into<ServiceAddress>,
-        message: impl Into<ContentBody>,
-        timestamp: u64,
-    ) -> Result<(), Error> {
-        let mut sender = self.get_sender()?;
+    // pub async fn send_message(
+    //     &self,
+    //     recipient_addr: impl Into<ServiceAddress>,
+    //     message: impl Into<ContentBody>,
+    //     timestamp: u64,
+    // ) -> Result<(), Error> {
+    //     let mut sender = self.get_sender()?;
 
-        let online_only = false;
-        sender
-            .send_message(
-                &recipient_addr.into(),
-                None,
-                message,
-                timestamp,
-                online_only,
-            )
-            .await?;
+    //     let online_only = false;
+    //     sender
+    //         .send_message(
+    //             &recipient_addr.into(),
+    //             None,
+    //             message,
+    //             timestamp,
+    //             online_only,
+    //         )
+    //         .await?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    pub async fn send_message_to_group(
-        &self,
-        recipients: impl IntoIterator<Item = ServiceAddress>,
-        message: DataMessage,
-        timestamp: u64,
-    ) -> Result<(), Error> {
-        let mut sender = self.get_sender()?;
+    // pub async fn send_message_to_group(
+    //     &self,
+    //     recipients: impl IntoIterator<Item = ServiceAddress>,
+    //     message: DataMessage,
+    //     timestamp: u64,
+    // ) -> Result<(), Error> {
+    //     let mut sender = self.get_sender()?;
 
-        let recipients: Vec<_> = recipients.into_iter().collect();
+    //     let recipients: Vec<_> = recipients.into_iter().collect();
 
-        let online_only = false;
-        let results = sender
-            .send_message_to_group(recipients, None, message, timestamp, online_only)
-            .await;
+    //     let online_only = false;
+    //     let results = sender
+    //         .send_message_to_group(recipients, None, message, timestamp, online_only)
+    //         .await;
 
-        // return first error if any
-        results.into_iter().find(|res| res.is_err()).transpose()?;
+    //     // return first error if any
+    //     results.into_iter().find(|res| res.is_err()).transpose()?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    fn get_sender(&self) -> Result<MessageSender<HyperPushService>, Error> {
-        let (signal_servers, phone_number, uuid, device_id) = match &self.state {
-            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
-            State::Registered {
-                signal_servers,
-                phone_number,
-                uuid,
-                device_id,
-                ..
-            } => (signal_servers, phone_number, uuid, device_id),
-        };
+    // fn get_sender(&self) -> Result<MessageSender<HyperPushService>, Error> {
+    //     let (signal_servers, phone_number, uuid, device_id) = match &self.state {
+    //         State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+    //         State::Registered {
+    //             signal_servers,
+    //             phone_number,
+    //             uuid,
+    //             device_id,
+    //             ..
+    //         } => (signal_servers, phone_number, uuid, device_id),
+    //     };
 
-        let credentials = self.credentials()?;
-        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+    //     let credentials = self.credentials()?;
+    //     let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
-        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
-        let push_service = HyperPushService::new(
-            service_configuration,
-            credentials,
-            crate::USER_AGENT.to_string(),
-        );
+    //     let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+    //     let push_service = HyperPushService::new(
+    //         service_configuration,
+    //         credentials,
+    //         crate::USER_AGENT.to_string(),
+    //     );
 
-        let local_addr = ServiceAddress {
-            uuid: Some(uuid.clone()),
-            phonenumber: Some(phone_number.clone()),
-            relay: None,
-        };
+    //     let local_addr = ServiceAddress {
+    //         uuid: Some(uuid.clone()),
+    //         phonenumber: Some(phone_number.clone()),
+    //         relay: None,
+    //     };
 
-        let service_cipher = ServiceCipher::from_context(
-            self.context.clone(),
-            self.store_context.clone(),
-            local_addr,
-            certificate_validator,
-        );
+    //     let service_cipher = ServiceCipher::from_context(
+    //         self.context.clone(),
+    //         self.store_context.clone(),
+    //         local_addr,
+    //         certificate_validator,
+    //     );
 
-        Ok(MessageSender::new(
-            push_service,
-            service_cipher,
-            device_id.unwrap_or(DEFAULT_DEVICE_ID),
-        ))
-    }
+    //     Ok(MessageSender::new(
+    //         push_service,
+    //         service_cipher,
+    //         device_id.unwrap_or(DEFAULT_DEVICE_ID),
+    //     ))
+    // }
 
     pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
-        self.config_store
-            .delete_all_sessions(&recipient.identifier().as_bytes())?;
+        unimplemented!();
+        // self.config_store
+        //     .delete_all_sessions(&recipient.identifier().as_bytes())?;
         Ok(())
     }
 

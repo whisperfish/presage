@@ -5,14 +5,14 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use libsignal_protocol::{
-    keys::{PrivateKey, PublicKey},
-    stores::IdentityKeyStore,
-    stores::SessionStore,
-    stores::{PreKeyStore, SerializedSession, SignedPreKeyStore},
-    Address, Buffer, Context, Serializable,
+use libsignal_service::{
+    configuration::{SignalServers, SignalingKey},
+    prelude::protocol::{
+        Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
+        PreKeyStore, PrivateKey, ProtocolAddress, PublicKey, SessionRecord, SessionStore,
+        SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+    },
 };
-use libsignal_service::configuration::{SignalServers, SignalingKey};
 use log::{trace, warn};
 use sled::IVec;
 
@@ -139,16 +139,16 @@ impl SledConfigStore {
         format!("signed-prekey-{:09}", id)
     }
 
-    fn session_key(&self, addr: &Address) -> String {
-        format!("session-{}-{}", addr.as_str().unwrap(), addr.device_id())
+    fn session_key(&self, addr: &ProtocolAddress) -> String {
+        format!("session-{}-{}", addr, addr.device_id())
     }
 
     fn session_prefix(&self, name: &[u8]) -> String {
         format!("session-{}-", String::from_utf8_lossy(name))
     }
 
-    fn identity_key(&self, addr: &Address) -> String {
-        format!("identity-remote-{}", addr.as_str().unwrap(),)
+    fn identity_key(&self, addr: &ProtocolAddress) -> String {
+        format!("identity-remote-{}", addr)
     }
 
     pub fn keys(&self) -> (Vec<String>, Vec<String>) {
@@ -174,7 +174,7 @@ impl SledConfigStore {
 }
 
 impl ConfigStore for SledConfigStore {
-    fn state(&self, context: &Context) -> Result<State, Error> {
+    fn state(&self) -> Result<State, Error> {
         let db = self.db.read().expect("poisoned mutex");
         if db.contains_key("uuid")? {
             trace!("Loading registered state");
@@ -192,18 +192,16 @@ impl ConfigStore for SledConfigStore {
                     );
                     key
                 },
-                device_id: self.get_i32("device_id")?,
+                device_id: self.get_u32("device_id")?,
                 registration_id: self
                     .get_u32("registration_id")?
                     .ok_or_else(|| Error::MissingKeyError("registration_id".into()))?
                     as u32,
-                private_key: PrivateKey::decode_point(
-                    context,
+                private_key: PrivateKey::deserialize(
                     &db.get("private_key")?
                         .ok_or_else(|| Error::MissingKeyError("private_key".into()))?,
                 )?,
-                public_key: PublicKey::decode_point(
-                    context,
+                public_key: PublicKey::deserialize(
                     &db.get("public_key")?
                         .ok_or_else(|| Error::MissingKeyError("public_key".into()))?,
                 )?,
@@ -263,8 +261,8 @@ impl ConfigStore for SledConfigStore {
                     db.insert("device_id", &device_id.to_le_bytes())?;
                 }
                 db.insert("registration_id", &registration_id.to_le_bytes())?;
-                db.insert("private_key", private_key.serialize()?.as_slice())?;
-                db.insert("public_key", public_key.serialize()?.as_slice())?;
+                db.insert("private_key", private_key.serialize().as_slice())?;
+                db.insert("public_key", public_key.serialize())?;
                 db.insert("profile_key", profile_key)?;
             }
         };
@@ -288,65 +286,80 @@ impl ConfigStore for SledConfigStore {
     }
 }
 
+use async_trait::async_trait;
+
+#[async_trait(?Send)]
 impl PreKeyStore for SledConfigStore {
-    fn load(&self, id: u32, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        trace!("loading pre-key {}", id);
-        writer.write_all(
-            &self
-                .get(self.prekey_key(id))
-                .expect("sled error")
-                .expect("no pre key with this id"),
-        )
+    async fn get_pre_key(
+        &self,
+        prekey_id: u32,
+        _ctx: Context,
+    ) -> Result<PreKeyRecord, SignalProtocolError> {
+        let buf = self
+            .get(self.prekey_key(prekey_id))
+            .expect("sled error")
+            .expect("no pre key with this id");
+        PreKeyRecord::deserialize(&buf)
     }
 
-    fn store(&self, id: u32, body: &[u8]) -> Result<(), libsignal_protocol::Error> {
-        trace!("storing pre-key {}", id);
-        self.insert(self.prekey_key(id), body)
+    async fn save_pre_key(
+        &mut self,
+        prekey_id: u32,
+        record: &PreKeyRecord,
+        _ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        self.insert(self.prekey_key(prekey_id), record.serialize()?)
             .expect("failed to store pre-key");
         Ok(())
     }
 
-    fn contains(&self, id: u32) -> bool {
-        trace!("checking if pre-key {} exists", id);
-        self.contains(self.prekey_key(id)).unwrap()
-    }
-
-    fn remove(&self, id: u32) -> Result<(), libsignal_protocol::Error> {
-        self.remove(self.prekey_key(id)).unwrap();
+    async fn remove_pre_key(
+        &mut self,
+        prekey_id: u32,
+        _ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        self.remove(self.prekey_key(prekey_id))
+            .expect("failed to remove pre-key");
         Ok(())
     }
 }
 
+#[async_trait(?Send)]
 impl SignedPreKeyStore for SledConfigStore {
-    fn load(&self, id: u32, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
-        trace!("loading signed-pre key {}", id);
-        writer.write_all(&self.get(self.signed_prekey_key(id)).unwrap().unwrap())
+    async fn get_signed_pre_key(
+        &self,
+        signed_prekey_id: u32,
+        _ctx: Context,
+    ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
+        let buf = self
+            .get(self.signed_prekey_key(signed_prekey_id))
+            .unwrap()
+            .unwrap();
+        SignedPreKeyRecord::deserialize(&buf)
     }
 
-    fn store(&self, id: u32, body: &[u8]) -> Result<(), libsignal_protocol::Error> {
-        trace!("storing signed pre-key {}", id);
-        self.insert(self.signed_prekey_key(id), body).unwrap();
-        Ok(())
-    }
-
-    fn contains(&self, id: u32) -> bool {
-        trace!("checking is signed pre-key {} exists", id);
-        self.contains(self.signed_prekey_key(id)).unwrap()
-    }
-
-    fn remove(&self, id: u32) -> Result<(), libsignal_protocol::Error> {
-        trace!("removing signed pre-key {}", id);
-        self.remove(self.signed_prekey_key(id)).unwrap();
+    async fn save_signed_pre_key(
+        &mut self,
+        signed_prekey_id: u32,
+        record: &SignedPreKeyRecord,
+        ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        self.insert(
+            self.signed_prekey_key(signed_prekey_id),
+            record.serialize()?,
+        )
+        .unwrap();
         Ok(())
     }
 }
 
+#[async_trait(?Send)]
 impl SessionStore for SledConfigStore {
-    fn load_session(
+    async fn load_session(
         &self,
-        address: libsignal_protocol::Address,
-    ) -> Result<Option<libsignal_protocol::stores::SerializedSession>, libsignal_protocol::Error>
-    {
+        address: &ProtocolAddress,
+        _ctx: Context,
+    ) -> Result<Option<SessionRecord>, SignalProtocolError> {
         let key = self.session_key(&address);
         trace!("loading session from {}", key);
 
@@ -364,159 +377,96 @@ impl SessionStore for SledConfigStore {
         };
 
         trace!("session loaded!");
-        Ok(Some(SerializedSession {
-            session: Buffer::from(&buf[..]),
-            extra_data: None,
-        }))
+        Ok(Some(SessionRecord::deserialize(&buf)?))
     }
 
-    fn get_sub_device_sessions(
-        &self,
-        addr: &[u8],
-    ) -> Result<Vec<i32>, libsignal_protocol::InternalError> {
-        trace!("getting sub device sessions");
-
-        let session_prefix = self.session_prefix(addr);
-        let ids = self
-            .db
-            .read()
-            .expect("poisoned mutex")
-            .open_tree("sessions")
-            .unwrap()
-            .scan_prefix(&session_prefix)
-            .filter_map(|r| {
-                let (key, _) = r.unwrap();
-                let key_str = String::from_utf8_lossy(&key);
-                let device_id = key_str.strip_prefix(&session_prefix)?;
-                device_id.parse().ok()
-            })
-            .collect();
-
-        Ok(ids)
-    }
-
-    fn contains_session(
-        &self,
-        addr: libsignal_protocol::Address,
-    ) -> Result<bool, libsignal_protocol::Error> {
-        trace!("contains session for {:?}", addr);
-        self.db
-            .read()
-            .expect("poisoned mutex")
-            .open_tree("sessions")
-            .unwrap()
-            .contains_key(self.session_key(&addr))
-            .map_err(|e| libsignal_protocol::Error::Unknown {
-                reason: e.to_string(),
-            })
-    }
-
-    fn store_session(
-        &self,
-        addr: libsignal_protocol::Address,
-        session: libsignal_protocol::stores::SerializedSession,
-    ) -> Result<(), libsignal_protocol::InternalError> {
-        let key = self.session_key(&addr);
-        trace!("storing session for {:?} at {:?}", addr, key);
+    async fn store_session(
+        &mut self,
+        address: &ProtocolAddress,
+        record: &SessionRecord,
+        _ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        let key = self.session_key(&address);
+        trace!("storing session for {:?} at {:?}", address, key);
         self.db
             .try_write()
             .expect("poisoned mutex")
             .open_tree("sessions")
             .unwrap()
-            .insert(key, session.session.as_slice())
+            .insert(key, record.serialize()?)
             .unwrap();
         trace!("stored session");
         Ok(())
     }
-
-    fn delete_session(
-        &self,
-        addr: libsignal_protocol::Address,
-    ) -> Result<(), libsignal_protocol::Error> {
-        let key = self.session_key(&addr);
-        trace!("deleting session with key: {}", key);
-        self.db
-            .try_write()
-            .expect("poisoned mutex")
-            .open_tree("sessions")
-            .unwrap()
-            .remove(key)
-            .unwrap();
-        Ok(())
-    }
-
-    fn delete_all_sessions(&self, _name: &[u8]) -> Result<usize, libsignal_protocol::Error> {
-        trace!("deleting all sessions");
-        let tree = self
-            .db
-            .try_write()
-            .expect("poisoned mutex")
-            .open_tree("sessions")
-            .unwrap();
-        let s = tree.len();
-        tree.clear().unwrap();
-        Ok(s)
-    }
 }
 
+#[async_trait(?Send)]
 impl IdentityKeyStore for SledConfigStore {
-    fn identity_key_pair(
+    async fn get_identity_key_pair(
         &self,
-    ) -> Result<(libsignal_protocol::Buffer, libsignal_protocol::Buffer), libsignal_protocol::Error>
-    {
+        _ctx: Context,
+    ) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let public_key: &[u8] = &self.get("public_key").unwrap().unwrap();
-        let private_key: &[u8] = &self.get("private_key").unwrap().unwrap();
-        Ok((public_key.into(), private_key.into()))
+        let public_key = &self.get("public_key").unwrap().unwrap();
+        let private_key = &self.get("private_key").unwrap().unwrap();
+        let identity_key_pair = IdentityKeyPair::new(
+            IdentityKey::decode(public_key)?,
+            PrivateKey::deserialize(&private_key)?,
+        );
+        Ok(identity_key_pair)
     }
 
-    fn local_registration_id(&self) -> Result<u32, libsignal_protocol::Error> {
+    async fn get_local_registration_id(&self, ctx: Context) -> Result<u32, SignalProtocolError> {
         trace!("getting local_registration_id");
         Ok(self.get_u32("registration_id").unwrap().unwrap())
     }
 
-    fn is_trusted_identity(
+    async fn save_identity(
+        &mut self,
+        address: &ProtocolAddress,
+        identity_key: &IdentityKey,
+        _ctx: Context,
+    ) -> Result<bool, SignalProtocolError> {
+        trace!("saving identity");
+        self.insert(self.identity_key(&address), identity_key.serialize())
+            .map_err(|e| {
+                log::error!("error saving identity for {:?}: {}", address, e);
+                SignalProtocolError::InternalError("failed to save identity")
+            })?;
+        trace!("saved identity");
+        // FIXME: boolean means something here
+        Ok(true)
+    }
+
+    async fn is_trusted_identity(
         &self,
-        address: libsignal_protocol::Address,
-        identity_key: &[u8],
-    ) -> Result<bool, libsignal_protocol::Error> {
+        address: &ProtocolAddress,
+        identity_key: &IdentityKey,
+        direction: Direction,
+        _ctx: Context,
+    ) -> Result<bool, SignalProtocolError> {
         match self.get(self.identity_key(&address)).map_err(|e| {
-            log::error!("failed to read identity for {:?}: {}", address, e);
-            libsignal_protocol::InternalError::Unknown
+            SignalProtocolError::InternalError("failed to check if identity is trusted")
         })? {
             None => {
                 // when we encounter a new identity, we trust it by default
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(contents) => Ok(contents == identity_key),
+            Some(contents) => Ok(&IdentityKey::decode(&contents)? == identity_key),
         }
     }
 
-    fn save_identity(
+    async fn get_identity(
         &self,
-        address: libsignal_protocol::Address,
-        identity_key: &[u8],
-    ) -> Result<(), libsignal_protocol::Error> {
-        trace!("saving identity");
-        self.insert(self.identity_key(&address), identity_key)
-            .map_err(|e| {
-                log::error!("error saving identity for {:?}: {}", address, e);
-                libsignal_protocol::InternalError::Unknown
-            })?;
-        trace!("saved identity");
-        Ok(())
-    }
-
-    fn get_identity(&self, address: Address) -> Result<Option<Buffer>, libsignal_protocol::Error> {
-        trace!("getting identity of {:?}", &address);
-        Ok(self
-            .get(self.identity_key(&address))
-            .map_err(|e| {
-                log::error!("error getting identity of {:?}: {}", address, e);
-                libsignal_protocol::InternalError::Unknown
-            })?
-            .map(|v| Buffer::from(&v[..])))
+        address: &ProtocolAddress,
+        _ctx: Context,
+    ) -> Result<Option<IdentityKey>, SignalProtocolError> {
+        let buf = self.get(self.identity_key(&address)).map_err(|e| {
+            log::error!("error getting identity of {:?}: {}", address, e);
+            SignalProtocolError::InternalError("failed to read identity")
+        })?;
+        Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
     }
 }
 

@@ -1,12 +1,10 @@
-use libsignal_protocol::Context;
-
 use crate::{manager::State, Error};
 
 mod sled;
 pub use crate::config::sled::SledConfigStore;
 
 pub trait ConfigStore {
-    fn state(&self, context: &Context) -> Result<State, Error>;
+    fn state(&self) -> Result<State, Error>;
 
     fn save(&self, state: &State) -> Result<(), Error>;
 

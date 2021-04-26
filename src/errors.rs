@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use libsignal_service::models::ParseContactError;
+use libsignal_service::{models::ParseContactError, prelude::protocol::SignalProtocolError};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -17,7 +17,7 @@ pub enum Error {
     #[error("UUID decoding error: {0}")]
     UuidError(#[from] libsignal_service::prelude::UuidError),
     #[error("libsignal-protocol error: {0}")]
-    ProtocolError(#[from] libsignal_protocol::Error),
+    ProtocolError(#[from] SignalProtocolError),
     #[error("libsignal-service error: {0}")]
     ServiceError(#[from] libsignal_service::prelude::ServiceError),
     #[error("libsignal-service sending error: {0}")]

@@ -8,7 +8,6 @@ use presage::{config::SledConfigStore, prelude::sync_message::Sent, Error, Manag
 
 use structopt::StructOpt;
 
-use libsignal_protocol::{crypto::DefaultCrypto, Context};
 use libsignal_service::{
     configuration::SignalServers,
     content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
@@ -107,7 +106,7 @@ enum Subcommand {
     RequestSyncContacts,
 }
 
-#[tokio::main]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     if std::env::var("RUST_LOG").is_err() {
         std::env::set_var("RUST_LOG", format!("{}=debug", env!("CARGO_PKG_NAME")));
@@ -124,9 +123,9 @@ async fn main() -> anyhow::Result<()> {
     });
     debug!("opening config database from {}", db_path.display());
     let config_store = SledConfigStore::new(db_path)?;
-    let signal_context = Context::new(DefaultCrypto::default())?;
 
-    let mut manager = Manager::with_config_store(config_store, signal_context)?;
+    let csprng = rand::thread_rng();
+    let mut manager = Manager::with_config_store(config_store, csprng)?;
 
     match args.subcommand {
         Subcommand::Register {
@@ -225,9 +224,10 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             });
 
-            manager
-                .send_message(phone_number, message, timestamp)
-                .await?;
+            unimplemented!();
+            // manager
+            //     .send_message(phone_number, message, timestamp)
+            //     .await?;
         }
         Subcommand::SendToGroup {
             recipients,
@@ -265,13 +265,14 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             };
 
-            manager
-                .send_message_to_group(
-                    recipients.into_iter().map(Into::into),
-                    data_message,
-                    timestamp,
-                )
-                .await?;
+            unimplemented!();
+            // manager
+            //     .send_message_to_group(
+            //         recipients.into_iter().map(Into::into),
+            //         data_message,
+            //         timestamp,
+            //     )
+            //     .await?;
         }
         Subcommand::Unregister => unimplemented!(),
         Subcommand::UpdateProfile => unimplemented!(),
