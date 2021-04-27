@@ -1,12 +1,11 @@
-use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
+use std::{convert::TryInto, time::UNIX_EPOCH};
 
 use futures::{
     channel::mpsc::{channel, Sender},
     future, pin_mut, SinkExt, StreamExt,
 };
 use image::Luma;
-use log::{error, info, trace, warn};
-use prost::bytes::Bytes;
+use log::{error, trace, warn};
 use qrcode::QrCode;
 use rand::{distributions::Alphanumeric, Rng, RngCore};
 
@@ -36,7 +35,7 @@ use libsignal_service::{
     },
     push_service::{ProfileKey, WhoAmIResponse, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
-    AccountManager, ServiceAddress,
+    AccountManager, Profile, ServiceAddress,
 };
 
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -373,6 +372,40 @@ where
         Ok(push_service.whoami().await?)
     }
 
+    pub async fn retrieve_profile(&self) -> Result<Profile, Error> {
+        match &self.state {
+            State::New | State::Registration { .. } => Err(Error::NotYetRegisteredError),
+            State::Registered {
+                uuid, profile_key, ..
+            } => self.retrieve_profile_by_uuid(*uuid, *profile_key).await,
+        }
+    }
+
+    pub async fn retrieve_profile_by_uuid(
+        &self,
+        uuid: Uuid,
+        profile_key: [u8; 32],
+    ) -> Result<Profile, Error> {
+        let signal_servers = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered { signal_servers, .. } => signal_servers,
+        };
+
+        let credentials = self.credentials()?;
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+
+        let push_service = HyperPushService::new(
+            service_configuration,
+            credentials.clone(),
+            crate::USER_AGENT.to_string(),
+        );
+
+        let mut account_manager =
+            AccountManager::new(self.context.clone(), push_service, Some(profile_key));
+
+        Ok(account_manager.retrieve_profile(uuid).await?)
+    }
+
     pub async fn register_pre_keys(&self) -> Result<(), Error> {
         let (signal_servers, profile_key) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
@@ -387,11 +420,8 @@ where
         let push_service =
             HyperPushService::new(cfg, self.credentials()?, crate::USER_AGENT.to_string());
 
-        let mut account_manager = AccountManager::new(
-            self.context.clone(),
-            push_service,
-            Some(profile_key.clone()),
-        );
+        let mut account_manager =
+            AccountManager::new(self.context.clone(), push_service, Some(*profile_key));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -455,7 +485,7 @@ where
         let certificate_validator = service_configuration.credentials_validator(&self.context)?;
 
         let local_addr = ServiceAddress {
-            uuid: Some(uuid.clone()),
+            uuid: Some(*uuid),
             phonenumber: Some(phone_number.clone()),
             relay: None,
         };
@@ -588,7 +618,7 @@ where
         );
 
         let local_addr = ServiceAddress {
-            uuid: Some(uuid.clone()),
+            uuid: Some(*uuid),
             phonenumber: Some(phone_number.clone()),
             relay: None,
         };
@@ -631,7 +661,7 @@ where
         let credentials = self.credentials()?;
 
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
-        let server_public_params = service_configuration.zkgroup_server_public_params.clone();
+        let server_public_params = service_configuration.zkgroup_server_public_params;
 
         let push_service = HyperPushService::new(
             service_configuration,

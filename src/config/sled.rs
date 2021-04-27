@@ -563,7 +563,7 @@ mod tests {
             if !db.contains_session(addr.clone().0).unwrap() {
                 return false;
             }
-            let loaded_session = db.load_session(addr.clone().0).unwrap().unwrap();
+            let loaded_session = db.load_session(addr.0).unwrap().unwrap();
 
             session == loaded_session
         }
