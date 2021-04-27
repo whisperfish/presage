@@ -2,7 +2,7 @@ use std::{convert::TryInto, time::UNIX_EPOCH};
 
 use futures::{
     channel::mpsc::{channel, Sender},
-    future, pin_mut, SinkExt, StreamExt,
+    future, pin_mut, SinkExt, Stream, StreamExt,
 };
 use image::Luma;
 use log::{error, trace, warn};
@@ -25,8 +25,8 @@ use libsignal_service::{
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
-        phonenumber::PhoneNumber, Content, GroupMasterKey, GroupSecretParams, MessageSender,
-        PushService, Uuid,
+        phonenumber::PhoneNumber, Content, Envelope, GroupMasterKey, GroupSecretParams,
+        MessageSender, PushService, ServiceError, Uuid,
     },
     proto::{sync_message, SyncMessage},
     provisioning::{
@@ -132,6 +132,24 @@ where
                 signaling_key: Some(*signaling_key),
                 device_id: *device_id,
             })),
+        }
+    }
+
+    pub fn config_store(&self) -> &C {
+        &self.config_store
+    }
+
+    pub fn uuid(&self) -> Uuid {
+        match &self.state {
+            State::Registered { uuid, .. } => *uuid,
+            _ => Default::default(),
+        }
+    }
+
+    pub fn phone_number(&self) -> Option<&PhoneNumber> {
+        match &self.state {
+            State::Registered { phone_number, .. } => Some(phone_number),
+            _ => None,
         }
     }
 
@@ -462,6 +480,88 @@ where
             .await?;
 
         Ok(())
+    }
+
+    async fn receive_messages_encrypted_stream(
+        &self,
+    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
+        let signal_servers = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered { signal_servers, .. } => signal_servers,
+        };
+
+        // TODO: error if we're primary registered device, as this is only for secondary devices
+
+        let credentials = self.credentials()?;
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+
+        let push_service = HyperPushService::new(
+            service_configuration.clone(),
+            credentials.clone(),
+            crate::USER_AGENT.to_string(),
+        );
+
+        let mut receiver = MessageReceiver::new(push_service);
+
+        let pipe = receiver
+            .create_message_pipe(credentials.unwrap())
+            .await
+            .unwrap();
+        Ok(pipe.stream())
+    }
+
+    pub async fn receive_messages_stream(&self) -> Result<impl Stream<Item = Content>, Error> {
+        let encrypted_stream = self.receive_messages_encrypted_stream().await?;
+
+        let (signal_servers, phone_number, uuid) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered {
+                signal_servers,
+                phone_number,
+                uuid,
+                ..
+            } => (signal_servers, phone_number, uuid),
+        };
+
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let certificate_validator = service_configuration.credentials_validator(&self.context)?;
+
+        let local_addr = ServiceAddress {
+            uuid: Some(*uuid),
+            phonenumber: Some(phone_number.clone()),
+            relay: None,
+        };
+
+        let service_cipher = ServiceCipher::from_context(
+            self.context.clone(),
+            self.store_context.clone(),
+            local_addr,
+            certificate_validator,
+        );
+
+        let messages = encrypted_stream.filter_map(move |step| {
+            let mut service_cipher = service_cipher.clone();
+            async move {
+                match step {
+                    Ok(envelope) => match service_cipher.open_envelope(envelope) {
+                        Ok(Some(content)) => Some(content),
+                        Ok(None) => {
+                            warn!("Empty envelope...");
+                            None
+                        }
+                        Err(e) => {
+                            error!("Error opening envelope: {:?}, message will be skipped!", e);
+                            None
+                        }
+                    },
+                    Err(e) => {
+                        error!("Error: {}", e);
+                        None
+                    }
+                }
+            }
+        });
+        Ok(messages)
     }
 
     pub async fn receive_messages(
