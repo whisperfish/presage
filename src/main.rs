@@ -224,10 +224,9 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             });
 
-            unimplemented!();
-            // manager
-            //     .send_message(phone_number, message, timestamp)
-            //     .await?;
+            manager
+                .send_message(phone_number, message, timestamp)
+                .await?;
         }
         Subcommand::SendToGroup {
             recipients,
@@ -265,14 +264,13 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             };
 
-            unimplemented!();
-            // manager
-            //     .send_message_to_group(
-            //         recipients.into_iter().map(Into::into),
-            //         data_message,
-            //         timestamp,
-            //     )
-            //     .await?;
+            manager
+                .send_message_to_group(
+                    recipients.into_iter().map(Into::into),
+                    data_message,
+                    timestamp,
+                )
+                .await?;
         }
         Subcommand::Unregister => unimplemented!(),
         Subcommand::UpdateProfile => unimplemented!(),

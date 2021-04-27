@@ -1,14 +1,13 @@
-use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
+use std::{convert::TryInto, time::UNIX_EPOCH};
 
 use futures::{
     channel::mpsc::{channel, Sender},
     future, pin_mut, SinkExt, StreamExt,
 };
 use image::Luma;
-use log::{error, info, trace, warn};
-use prost::bytes::Bytes;
+use log::{error, trace, warn};
 use qrcode::QrCode;
-use rand::{distributions::Alphanumeric, Rng, RngCore};
+use rand::{distributions::Alphanumeric, CryptoRng, Rng, RngCore};
 
 use libsignal_service::{
     cipher::ServiceCipher,
@@ -20,18 +19,18 @@ use libsignal_service::{
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{
-            Context, IdentityKeyStore, KeyPair, PreKeyStore, PrivateKey, PublicKey, SessionStore,
-            SignedPreKeyStore,
+            IdentityKeyStore, KeyPair, PreKeyStore, PrivateKey, PublicKey, SignedPreKeyStore,
         },
         Content, GroupMasterKey, GroupSecretParams, MessageSender, PushService, Uuid,
     },
     proto::{sync_message, SyncMessage},
     provisioning::{
-        ConfirmCodeMessage, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
-        VerificationCodeResponse,
+        generate_registration_id, ConfirmCodeMessage, LinkingManager, ProvisioningManager,
+        SecondaryDeviceProvisioning, VerificationCodeResponse,
     },
     push_service::{ProfileKey, WhoAmIResponse, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
+    session_store::SessionStoreExt,
     AccountManager, ServiceAddress,
 };
 
@@ -45,7 +44,7 @@ pub struct Manager<
         + ConfigStore
         + PreKeyStore
         + SignedPreKeyStore
-        + SessionStore
+        + SessionStoreExt
         + IdentityKeyStore
         + Send
         + 'static,
@@ -53,9 +52,7 @@ pub struct Manager<
 > {
     pub config_store: C,
     state: State,
-    // context: Context,
     csprng: R,
-    // store_context: StoreContext,
 }
 
 #[derive(Clone)]
@@ -86,11 +83,11 @@ where
         + ConfigStore
         + PreKeyStore
         + SignedPreKeyStore
-        + SessionStore
+        + SessionStoreExt
         + IdentityKeyStore
         + Send
         + 'static,
-    R: rand::Rng + rand::CryptoRng,
+    R: Rng + CryptoRng + Clone,
 {
     pub fn with_config_store(config_store: C, csprng: R) -> Result<Self, Error> {
         let state = config_store.state()?;
@@ -184,7 +181,7 @@ where
         };
 
         // see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
-        let registration_id = self.csprng.gen_range(1, 16380);
+        let registration_id = generate_registration_id(&mut self.csprng);
         trace!("registration_id: {}", registration_id);
 
         // let mut push_service = HyperPushService::new(
@@ -274,7 +271,6 @@ where
 
         let (fut1, fut2) = future::join(
             linking_manager.provision_secondary_device(
-                None,
                 &mut self.csprng,
                 signaling_key,
                 &device_name,
@@ -380,8 +376,7 @@ where
         let push_service =
             HyperPushService::new(cfg, self.credentials()?, crate::USER_AGENT.to_string());
 
-        let mut account_manager =
-            AccountManager::new(None, push_service, Some(profile_key.clone()));
+        let mut account_manager = AccountManager::new(push_service, Some(profile_key.clone()));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -421,9 +416,8 @@ where
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        unimplemented!();
-        // self.send_message(phone_number.clone(), sync_message, timestamp)
-        //     .await?;
+        self.send_message(phone_number.clone(), sync_message, timestamp)
+            .await?;
 
         Ok(())
     }
@@ -432,14 +426,9 @@ where
         &self,
         mut tx: Sender<(Metadata, ContentBody)>,
     ) -> Result<(), Error> {
-        let (signal_servers, phone_number, uuid) = match &self.state {
+        let signal_servers = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
-            State::Registered {
-                signal_servers,
-                phone_number,
-                uuid,
-                ..
-            } => (signal_servers, phone_number, uuid),
+            State::Registered { signal_servers, .. } => signal_servers,
         };
 
         // TODO: error if we're primary registered device, as this is only for secondary devices
@@ -448,20 +437,13 @@ where
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
         let certificate_validator = service_configuration.credentials_validator()?;
 
-        let local_addr = ServiceAddress {
-            uuid: Some(uuid.clone()),
-            phonenumber: Some(phone_number.clone()),
-            relay: None,
-        };
-
-        let mut service_cipher = ServiceCipher::from_context(
-            None,
+        let mut service_cipher = ServiceCipher::new(
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
-            local_addr,
             certificate_validator,
+            self.csprng.clone(),
         );
 
         let push_service = HyperPushService::new(
@@ -520,95 +502,100 @@ where
         Ok(())
     }
 
-    // pub async fn send_message(
-    //     &self,
-    //     recipient_addr: impl Into<ServiceAddress>,
-    //     message: impl Into<ContentBody>,
-    //     timestamp: u64,
-    // ) -> Result<(), Error> {
-    //     let mut sender = self.get_sender()?;
+    pub async fn send_message(
+        &self,
+        recipient_addr: impl Into<ServiceAddress>,
+        message: impl Into<ContentBody>,
+        timestamp: u64,
+    ) -> Result<(), Error> {
+        let mut sender = self.get_sender()?;
 
-    //     let online_only = false;
-    //     sender
-    //         .send_message(
-    //             &recipient_addr.into(),
-    //             None,
-    //             message,
-    //             timestamp,
-    //             online_only,
-    //         )
-    //         .await?;
+        let online_only = false;
+        sender
+            .send_message(
+                &recipient_addr.into(),
+                None,
+                message,
+                timestamp,
+                online_only,
+            )
+            .await?;
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // pub async fn send_message_to_group(
-    //     &self,
-    //     recipients: impl IntoIterator<Item = ServiceAddress>,
-    //     message: DataMessage,
-    //     timestamp: u64,
-    // ) -> Result<(), Error> {
-    //     let mut sender = self.get_sender()?;
+    pub async fn send_message_to_group(
+        &self,
+        recipients: impl IntoIterator<Item = ServiceAddress>,
+        message: DataMessage,
+        timestamp: u64,
+    ) -> Result<(), Error> {
+        let mut sender = self.get_sender()?;
 
-    //     let recipients: Vec<_> = recipients.into_iter().collect();
+        let recipients: Vec<_> = recipients.into_iter().collect();
 
-    //     let online_only = false;
-    //     let results = sender
-    //         .send_message_to_group(recipients, None, message, timestamp, online_only)
-    //         .await;
+        let online_only = false;
+        let results = sender
+            .send_message_to_group(recipients, None, message, timestamp, online_only)
+            .await;
 
-    //     // return first error if any
-    //     results.into_iter().find(|res| res.is_err()).transpose()?;
+        // return first error if any
+        results.into_iter().find(|res| res.is_err()).transpose()?;
 
-    //     Ok(())
-    // }
+        Ok(())
+    }
 
-    // fn get_sender(&self) -> Result<MessageSender<HyperPushService>, Error> {
-    //     let (signal_servers, phone_number, uuid, device_id) = match &self.state {
-    //         State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
-    //         State::Registered {
-    //             signal_servers,
-    //             phone_number,
-    //             uuid,
-    //             device_id,
-    //             ..
-    //         } => (signal_servers, phone_number, uuid, device_id),
-    //     };
+    fn get_sender(&self) -> Result<MessageSender<HyperPushService, R>, Error> {
+        let (signal_servers, phone_number, uuid, device_id) = match &self.state {
+            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
+            State::Registered {
+                signal_servers,
+                phone_number,
+                uuid,
+                device_id,
+                ..
+            } => (signal_servers, phone_number, uuid, device_id),
+        };
 
-    //     let credentials = self.credentials()?;
-    //     let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let credentials = self.credentials()?;
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
 
-    //     let certificate_validator = service_configuration.credentials_validator(&self.context)?;
-    //     let push_service = HyperPushService::new(
-    //         service_configuration,
-    //         credentials,
-    //         crate::USER_AGENT.to_string(),
-    //     );
+        let certificate_validator = service_configuration.credentials_validator()?;
+        let push_service = HyperPushService::new(
+            service_configuration,
+            credentials,
+            crate::USER_AGENT.to_string(),
+        );
 
-    //     let local_addr = ServiceAddress {
-    //         uuid: Some(uuid.clone()),
-    //         phonenumber: Some(phone_number.clone()),
-    //         relay: None,
-    //     };
+        let local_addr = ServiceAddress {
+            uuid: Some(uuid.clone()),
+            phonenumber: Some(phone_number.clone()),
+            relay: None,
+        };
 
-    //     let service_cipher = ServiceCipher::from_context(
-    //         self.context.clone(),
-    //         self.store_context.clone(),
-    //         local_addr,
-    //         certificate_validator,
-    //     );
+        let service_cipher = ServiceCipher::new(
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            certificate_validator,
+            self.csprng.clone(),
+        );
 
-    //     Ok(MessageSender::new(
-    //         push_service,
-    //         service_cipher,
-    //         device_id.unwrap_or(DEFAULT_DEVICE_ID),
-    //     ))
-    // }
+        Ok(MessageSender::new(
+            push_service,
+            service_cipher,
+            self.csprng.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            local_addr,
+            device_id.unwrap_or(DEFAULT_DEVICE_ID),
+        ))
+    }
 
     pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
-        unimplemented!();
-        // self.config_store
-        //     .delete_all_sessions(&recipient.identifier().as_bytes())?;
+        self.config_store
+            .delete_all_sessions(&recipient.identifier())?;
         Ok(())
     }
 

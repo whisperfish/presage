@@ -30,6 +30,7 @@ async-trait = "0.1"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
+quickcheck_async = "*"
 
 [patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
 libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
