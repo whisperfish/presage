@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs" }
-libsignal-service-hyper = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git" }
+libsignal-service = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs", branch = "libsignal-client" }
+libsignal-service-hyper = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git", branch = "libsignal-client" }
 env_logger = "0.7"
 directories = "3.0"
 structopt = "0.3"
