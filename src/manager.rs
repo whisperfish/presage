@@ -114,10 +114,10 @@ where
         self.config_store.save(&self.state)
     }
 
-    fn credentials(&self) -> Result<Option<ServiceCredentials>, Error> {
+    fn credentials(&self) -> Result<ServiceCredentials, Error> {
         match &self.state {
             State::New => Err(Error::NotYetRegisteredError),
-            State::Registration { .. } => Ok(None),
+            State::Registration { .. } => Err(Error::NotYetRegisteredError),
             State::Registered {
                 phone_number,
                 uuid,
@@ -125,13 +125,21 @@ where
                 password,
                 signaling_key,
                 ..
-            } => Ok(Some(ServiceCredentials {
+            } => Ok(ServiceCredentials {
                 uuid: Some(*uuid),
                 phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
                 signaling_key: Some(*signaling_key),
                 device_id: *device_id,
-            })),
+            }),
+        }
+    }
+
+    /// Checks if the manager has a registered device.
+    pub fn is_registered(&self) -> bool {
+        match &self.state {
+            State::Registered { .. } => true,
+            _ => false,
         }
     }
 
@@ -383,7 +391,7 @@ where
 
         let mut push_service = HyperPushService::new(
             service_configuration,
-            credentials.clone(),
+            Some(credentials),
             crate::USER_AGENT.to_string(),
         );
 
@@ -414,7 +422,7 @@ where
 
         let push_service = HyperPushService::new(
             service_configuration,
-            credentials.clone(),
+            Some(credentials.clone()),
             crate::USER_AGENT.to_string(),
         );
 
@@ -435,8 +443,9 @@ where
         };
 
         let cfg: ServiceConfiguration = (*signal_servers).into();
+        let credentials = self.credentials()?;
         let push_service =
-            HyperPushService::new(cfg, self.credentials()?, crate::USER_AGENT.to_string());
+            HyperPushService::new(cfg, Some(credentials), crate::USER_AGENT.to_string());
 
         let mut account_manager =
             AccountManager::new(self.context.clone(), push_service, Some(*profile_key));
@@ -497,16 +506,13 @@ where
 
         let push_service = HyperPushService::new(
             service_configuration.clone(),
-            credentials.clone(),
+            Some(credentials.clone()),
             crate::USER_AGENT.to_string(),
         );
 
         let mut receiver = MessageReceiver::new(push_service);
 
-        let pipe = receiver
-            .create_message_pipe(credentials.unwrap())
-            .await
-            .unwrap();
+        let pipe = receiver.create_message_pipe(credentials).await?;
         Ok(pipe.stream())
     }
 
@@ -599,16 +605,13 @@ where
 
         let push_service = HyperPushService::new(
             service_configuration.clone(),
-            credentials.clone(),
+            Some(credentials.clone()),
             crate::USER_AGENT.to_string(),
         );
 
         let mut receiver = MessageReceiver::new(push_service);
 
-        let pipe = receiver
-            .create_message_pipe(credentials.unwrap())
-            .await
-            .unwrap();
+        let pipe = receiver.create_message_pipe(credentials).await.unwrap();
         let message_stream = pipe.stream();
         pin_mut!(message_stream);
 
@@ -713,7 +716,7 @@ where
         let certificate_validator = service_configuration.credentials_validator(&self.context)?;
         let push_service = HyperPushService::new(
             service_configuration,
-            credentials,
+            Some(credentials),
             crate::USER_AGENT.to_string(),
         );
 
@@ -765,7 +768,7 @@ where
 
         let push_service = HyperPushService::new(
             service_configuration,
-            credentials,
+            Some(credentials),
             crate::USER_AGENT.to_string(),
         );
 
