@@ -1,3 +1,4 @@
+mod cache;
 pub mod config;
 mod errors;
 mod manager;
