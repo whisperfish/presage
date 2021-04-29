@@ -128,14 +128,7 @@ async fn main() -> anyhow::Result<()> {
     let config_store = SledConfigStore::new(db_path)?;
 
     let csprng = rand::thread_rng();
-    let mut manager = Manager::new(
-        config_store.clone(),
-        config_store.clone(),
-        config_store.clone(),
-        config_store.clone(),
-        config_store,
-        csprng,
-    )?;
+    let mut manager = Manager::new(config_store, csprng)?;
 
     match args.subcommand {
         Subcommand::Register {

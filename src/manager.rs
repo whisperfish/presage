@@ -18,10 +18,7 @@ use libsignal_service::{
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
-        protocol::{
-            IdentityKeyStore, KeyPair, PreKeyStore, PrivateKey, PublicKey, SessionStore,
-            SignedPreKeyStore,
-        },
+        protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, GroupMasterKey, GroupSecretParams, MessageSender, PushService, Uuid,
     },
     proto::{sync_message, SyncMessage},
@@ -31,7 +28,6 @@ use libsignal_service::{
     },
     push_service::{ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
-    session_store::SessionStoreExt,
     AccountManager, Profile, ServiceAddress,
 };
 
@@ -40,14 +36,10 @@ use libsignal_service_hyper::push_service::HyperPushService;
 use crate::{config::ConfigStore, Error};
 
 #[derive(Clone)]
-pub struct Manager<C, I, S, SP, P, R> {
+pub struct Manager<C, R = rand::rngs::ThreadRng> {
     config_store: C,
-    identity_key_store: I,
-    session_store: S,
-    signed_pre_key_store: SP,
-    pre_key_store: P,
-    state: State,
     csprng: R,
+    state: State,
 }
 
 #[derive(Clone)]
@@ -72,30 +64,24 @@ pub enum State {
     },
 }
 
-impl<C, I, S, SP, P, R> Manager<C, I, S, SP, P, R>
+impl<C> Manager<C>
 where
     C: ConfigStore,
-    S: SessionStore + SessionStoreExt + Clone,
-    I: IdentityKeyStore + Clone,
-    SP: SignedPreKeyStore + Clone,
-    P: PreKeyStore + Clone,
+{
+    pub fn with_store(store: C) -> Result<Self, Error> {
+        Self::new(store, rand::thread_rng())
+    }
+}
+
+impl<C, R> Manager<C, R>
+where
+    C: ConfigStore,
     R: Rng + CryptoRng + Clone,
 {
-    pub fn new(
-        config_store: C,
-        session_store: S,
-        identity_key_store: I,
-        signed_pre_key_store: SP,
-        pre_key_store: P,
-        csprng: R,
-    ) -> Result<Self, Error> {
+    pub fn new(config_store: C, csprng: R) -> Result<Self, Error> {
         let state = config_store.state()?;
         Ok(Manager {
             config_store,
-            identity_key_store,
-            session_store,
-            signed_pre_key_store,
-            pre_key_store,
             csprng,
             state,
         })
@@ -522,10 +508,10 @@ where
             let service_configuration: ServiceConfiguration = (*signal_servers).into();
             let certificate_validator = service_configuration.credentials_validator().unwrap();
             let mut service_cipher = ServiceCipher::new(
-                self.session_store.clone(),
-                self.identity_key_store.clone(),
-                self.signed_pre_key_store.clone(),
-                self.pre_key_store.clone(),
+                self.config_store.clone(),
+                self.config_store.clone(),
+                self.config_store.clone(),
+                self.config_store.clone(),
                 self.csprng.clone(),
                 certificate_validator,
             );
@@ -670,7 +656,7 @@ where
         Ok(())
     }
 
-    fn get_sender(&self) -> Result<MessageSender<HyperPushService, S, I, SP, P, R>, Error> {
+    fn get_sender(&self) -> Result<MessageSender<HyperPushService, C, C, C, C, R>, Error> {
         let (signal_servers, phone_number, uuid, device_id) = match &self.state {
             State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
@@ -699,10 +685,10 @@ where
         };
 
         let service_cipher = ServiceCipher::new(
-            self.session_store.clone(),
-            self.identity_key_store.clone(),
-            self.signed_pre_key_store.clone(),
-            self.pre_key_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
             self.csprng.clone(),
             certificate_validator,
         );
@@ -711,8 +697,8 @@ where
             push_service,
             service_cipher,
             self.csprng.clone(),
-            self.session_store.clone(),
-            self.identity_key_store.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
             local_addr,
             device_id.unwrap_or(DEFAULT_DEVICE_ID),
         ))
