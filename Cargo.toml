@@ -32,13 +32,9 @@ async-trait = "0.1"
 quickcheck = "1.0.3"
 quickcheck_async = "*"
 
-#[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
-#libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-#libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
-
 [patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
-libsignal-service = { git = "https://github.com/gferon/libsignal-service-rs.git", branch = "libsignal-client" }
-libsignal-service-hyper = { git = "https://github.com/gferon/libsignal-service-rs.git", branch = "libsignal-client" }
+libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 
 [features]
 quirks = []

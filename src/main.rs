@@ -4,7 +4,7 @@ use anyhow::bail;
 use directories::ProjectDirs;
 use futures::{channel::mpsc::channel, future, StreamExt};
 use log::debug;
-use presage::{config::SledConfigStore, prelude::sync_message::Sent, Error, Manager};
+use presage::{config::SledConfigStore, Error, Manager};
 
 use structopt::StructOpt;
 
@@ -12,6 +12,7 @@ use libsignal_service::{
     configuration::SignalServers,
     content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
     prelude::{phonenumber::PhoneNumber, GroupMasterKey},
+    proto::sync_message::Sent,
 };
 
 #[derive(StructOpt)]
@@ -62,6 +63,8 @@ enum Subcommand {
     },
     #[structopt(about = "Get information on the registered user")]
     Whoami,
+    #[structopt(about = "Retrieve the user profile")]
+    RetrieveProfile,
     #[structopt(about = "Sets a name, status and avatar")]
     UpdateProfile,
     #[structopt(about = "Check if a user is registered on Signal")]
@@ -125,7 +128,14 @@ async fn main() -> anyhow::Result<()> {
     let config_store = SledConfigStore::new(db_path)?;
 
     let csprng = rand::thread_rng();
-    let mut manager = Manager::with_config_store(config_store, csprng)?;
+    let mut manager = Manager::new(
+        config_store.clone(),
+        config_store.clone(),
+        config_store.clone(),
+        config_store.clone(),
+        config_store,
+        csprng,
+    )?;
 
     match args.subcommand {
         Subcommand::Register {
@@ -273,6 +283,10 @@ async fn main() -> anyhow::Result<()> {
                 .await?;
         }
         Subcommand::Unregister => unimplemented!(),
+        Subcommand::RetrieveProfile => {
+            let profile = manager.retrieve_profile().await?;
+            println!("{:#?}", profile);
+        }
         Subcommand::UpdateProfile => unimplemented!(),
         Subcommand::GetUserStatus => unimplemented!(),
         Subcommand::UpdateAccount => unimplemented!(),
