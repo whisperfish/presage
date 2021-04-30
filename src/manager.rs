@@ -115,10 +115,7 @@ where
 
     /// Checks if the manager has a registered device.
     pub fn is_registered(&self) -> bool {
-        match &self.state {
-            State::Registered { .. } => true,
-            _ => false,
-        }
+        matches!(&self.state, State::Registered { .. })
     }
 
     pub fn config_store(&self) -> &C {
@@ -425,11 +422,11 @@ where
         let push_service =
             HyperPushService::new(cfg, Some(credentials), crate::USER_AGENT.to_string());
 
-        let mut account_manager = AccountManager::new(push_service, Some(profile_key.clone()));
+        let mut account_manager = AccountManager::new(push_service, Some(*profile_key));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
-                &mut self.config_store.clone(),
+                &self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.csprng,
@@ -704,9 +701,10 @@ where
         ))
     }
 
-    pub fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
+    pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
         self.config_store
-            .delete_all_sessions(&recipient.identifier())?;
+            .delete_all_sessions(&recipient.identifier())
+            .await?;
         Ok(())
     }
 

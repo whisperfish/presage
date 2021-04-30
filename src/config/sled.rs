@@ -10,9 +10,8 @@ use libsignal_service::{
     prelude::protocol::{
         Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
         PreKeyStore, PrivateKey, ProtocolAddress, PublicKey, SessionRecord, SessionStore,
-        SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+        SessionStoreExt, SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
     },
-    session_store::SessionStoreExt,
 };
 use log::{trace, warn};
 use sled::IVec;
@@ -379,7 +378,7 @@ impl SessionStore for SledConfigStore {
 
 #[async_trait(?Send)]
 impl SessionStoreExt for SledConfigStore {
-    fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
+    async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = self.session_prefix(name);
         let session_ids: Vec<u32> = self
             .db
@@ -398,7 +397,7 @@ impl SessionStoreExt for SledConfigStore {
         Ok(session_ids)
     }
 
-    fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
+    async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
         let key = self.session_key(&address);
         trace!("deleting session with key: {}", key);
         self.db
@@ -411,7 +410,7 @@ impl SessionStoreExt for SledConfigStore {
         Ok(())
     }
 
-    fn delete_all_sessions(&self, _name: &str) -> Result<usize, SignalProtocolError> {
+    async fn delete_all_sessions(&self, _name: &str) -> Result<usize, SignalProtocolError> {
         let tree = self
             .db
             .try_write()
@@ -422,10 +421,6 @@ impl SessionStoreExt for SledConfigStore {
         tree.clear()
             .map_err(|_e| SignalProtocolError::InternalError("failed to delete all sessions"))?;
         Ok(len)
-    }
-
-    fn as_mut_session_store(&mut self) -> &mut dyn SessionStore {
-        self
     }
 }
 

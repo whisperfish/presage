@@ -1,12 +1,11 @@
-use libsignal_service::{
-    prelude::protocol::{IdentityKeyStore, PreKeyStore, SignedPreKeyStore},
-    session_store::SessionStoreExt,
+use libsignal_service::prelude::protocol::{
+    IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore,
 };
 
 use crate::{manager::State, Error};
 
 mod sled;
-pub use crate::config::sled::SledConfigStore;
+pub use self::sled::SledConfigStore;
 
 pub trait ConfigStore:
     PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + Clone
