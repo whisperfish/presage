@@ -494,111 +494,95 @@ impl IdentityKeyStore for SledConfigStore {
     }
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-//     use quickcheck::{quickcheck, Arbitrary, Gen};
-//     use quickcheck_async::quickcheck_async;
+    use quickcheck::{quickcheck, Arbitrary, Gen};
 
-//     use std::collections::HashSet;
+    use std::collections::HashSet;
 
-//     #[derive(Debug, Clone)]
-//     struct Address(libsignal_protocol::Address);
+    #[derive(Debug, Clone)]
+    struct Address(ProtocolAddress);
 
-//     impl Arbitrary for Address {
-//         fn arbitrary(g: &mut Gen) -> Address {
-//             let name: String = Arbitrary::arbitrary(g);
-//             let device_id: u8 = Arbitrary::arbitrary(g);
-//             Address(libsignal_protocol::Address::new(name, device_id.into()))
-//         }
-//     }
+    impl Arbitrary for Address {
+        fn arbitrary(g: &mut Gen) -> Address {
+            let name: String = Arbitrary::arbitrary(g);
+            let device_id: u8 = Arbitrary::arbitrary(g);
+            Address(ProtocolAddress::new(name, device_id.into()))
+        }
+    }
 
-//     quickcheck! {
-//         fn test_save_get_trust_identity(addr: Address, identity_key: Vec<u8>) -> bool {
-//             let db = SledConfigStore::temporary().unwrap();
-//             db.save_identity(addr.clone().0, &identity_key).unwrap();
-//             let id = db.get_identity(addr.clone().0).unwrap().unwrap();
-//             if id.as_slice() != identity_key {
-//                 return false;
-//             }
-//             db.is_trusted_identity(addr.0, id.as_slice()).unwrap()
-//         }
-//     }
+    #[quickcheck_async::tokio]
+    async fn test_save_get_trust_identity(addr: Address, identity_key: Vec<u8>) -> bool {
+        let mut db = SledConfigStore::temporary().unwrap();
+        db.save_identity(&addr.0, &IdentityKey::decode(&identity_key).unwrap(), None)
+            .await
+            .unwrap();
+        let id = db.get_identity(&addr.0, None).await.unwrap().unwrap();
+        if id.serialize().into_vec() != identity_key {
+            return false;
+        }
+        db.is_trusted_identity(&addr.0, &id, Direction::Receiving, None)
+            .await
+            .unwrap()
+    }
 
-//     quickcheck! {
-//         fn test_store_load_session(addr: Address, session: Vec<u8>) -> bool {
-//             let session = libsignal_protocol::stores::SerializedSession {
-//                 session: session.into(),
-//                 extra_data: None,
-//             };
+    #[quickcheck_async::tokio]
+    async fn test_store_load_session(addr: Address, session: Vec<u8>) -> bool {
+        let session = SessionRecord::from_single_session_state(&session).unwrap();
 
-//             let db = SledConfigStore::temporary().unwrap();
-//             db.store_session(addr.clone().0, session.clone()).unwrap();
-//             if !db.contains_session(addr.clone().0).unwrap() {
-//                 return false;
-//             }
-//             let loaded_session = db.load_session(addr.clone().0).unwrap().unwrap();
+        let mut db = SledConfigStore::temporary().unwrap();
+        db.store_session(&addr.0, &session, None).await.unwrap();
+        if db.load_session(&addr.0, None).await.unwrap().is_none() {
+            return false;
+        }
+        let loaded_session = db.load_session(&addr.0, None).await.unwrap().unwrap();
+        session.serialize().unwrap() == loaded_session.serialize().unwrap()
+    }
 
-//             session == loaded_session
-//         }
-//     }
+    #[quickcheck_async::tokio]
+    async fn test_get_sub_device_sessions(name: String, device_ids: HashSet<u8>) -> bool {
+        let mut db = SledConfigStore::temporary().unwrap();
 
-//     #[quickcheck_async::tokio]
-//     async fn test_get_sub_device_sessions(name: String, device_ids: HashSet<u8>) -> bool {
-//         let mut db = SledConfigStore::temporary().unwrap();
+        for device_id in &device_ids {
+            let session = SessionRecord::new_fresh();
+            let addr = ProtocolAddress::new(name.clone(), (*device_id).into());
+            db.store_session(&addr, &session, None).await.unwrap();
+        }
 
-//         for device_id in &device_ids {
-//             let session = SessionRecord::new_fresh();
-//             let addr = ProtocolAddress::new(name.clone(), (*device_id).into());
-//             db.store_session(&addr, &session, None).await.unwrap();
-//         }
+        let stored_devices_ids = db
+            .get_sub_device_sessions(&name)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|id| id as u8)
+            .collect();
+        device_ids == stored_devices_ids
+    }
 
-//         let stored_devices_ids = db
-//             .get_sub_device_sessions(&name)
-//             .unwrap()
-//             .into_iter()
-//             .map(|id| id as u8)
-//             .collect();
-//         device_ids == stored_devices_ids
-//     }
+    #[quickcheck_async::tokio]
+    async fn test_prekey_store(id: u32, body: Vec<u8>) -> bool {
+        let mut db = SledConfigStore::temporary().unwrap();
+        let pre_key_record = PreKeyRecord::deserialize(&body).unwrap();
+        db.save_pre_key(id, &pre_key_record, None).await.unwrap();
+        if db.get_pre_key(id, None).await.is_err() {
+            return false;
+        }
 
-//     #[quickcheck_async::tokio]
-//     async fn test_prekey_store(id: u32, body: Vec<u8>) -> bool {
-//         let db = SledConfigStore::temporary().unwrap();
+        db.remove_pre_key(id, None).await.unwrap();
+        db.get_pre_key(id, None).await.is_err()
+    }
 
-//         db.save_pre_key(id, &body, None).await.unwrap();
-//         if !PreKeyStore::contains(&db, id) {
-//             return false;
-//         }
+    #[quickcheck_async::tokio]
+    async fn test_signed_prekey_store(id: u32, body: Vec<u8>) -> bool {
+        let mut db = SledConfigStore::temporary().unwrap();
 
-//         let mut loaded_body = Vec::new();
-//         PreKeyStore::load(&db, id, &mut loaded_body).unwrap();
-//         if body != loaded_body {
-//             return false;
-//         }
+        let signed_pre_key_record = SignedPreKeyRecord::deserialize(&body).unwrap();
+        db.save_signed_pre_key(id, &signed_pre_key_record, None)
+            .await
+            .unwrap();
 
-//         PreKeyStore::remove(&db, id).unwrap();
-//         !PreKeyStore::contains(&db, id)
-//     }
-
-//     quickcheck! {
-//         fn test_signed_prekey_store(id: u32, body: Vec<u8>) -> bool {
-//             let db = SledConfigStore::temporary().unwrap();
-
-//             SignedPreKeyStore::store(&db, id, &body).unwrap();
-//             if !SignedPreKeyStore::contains(&db, id) {
-//                 return false;
-//             }
-
-//             let mut loaded_body = Vec::new();
-//             SignedPreKeyStore::load(&db, id, &mut loaded_body).unwrap();
-//             if body != loaded_body {
-//                 return false;
-//             }
-
-//             SignedPreKeyStore::remove(&db, id).unwrap();
-//             !SignedPreKeyStore::contains(&db, id)
-//         }
-//     }
-// }
+        db.get_signed_pre_key(id, None).await.is_ok()
+    }
+}
