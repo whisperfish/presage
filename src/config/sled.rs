@@ -5,6 +5,7 @@ use std::{
     sync::{Arc, RwLock},
 };
 
+use async_trait::async_trait;
 use libsignal_service::{
     configuration::{SignalServers, SignalingKey},
     prelude::protocol::{
@@ -16,9 +17,8 @@ use libsignal_service::{
 use log::{trace, warn};
 use sled::IVec;
 
-use crate::{manager::State, Error};
-
 use super::ConfigStore;
+use crate::{manager::State, Error};
 
 #[derive(Debug, Clone)]
 pub struct SledConfigStore {
@@ -265,8 +265,6 @@ impl ConfigStore for SledConfigStore {
     }
 }
 
-use async_trait::async_trait;
-
 #[async_trait(?Send)]
 impl PreKeyStore for SledConfigStore {
     async fn get_pre_key(
@@ -463,11 +461,14 @@ impl IdentityKeyStore for SledConfigStore {
             .ok()
             .flatten()
             .ok_or(SignalProtocolError::InternalError("no identity public key"))?;
-        let private_key = &self
-            .get("private_key")
-            .ok()
-            .flatten()
-            .ok_or(SignalProtocolError::InternalError("no identity private key"))?;
+        let private_key =
+            &self
+                .get("private_key")
+                .ok()
+                .flatten()
+                .ok_or(SignalProtocolError::InternalError(
+                    "no identity private key",
+                ))?;
         let identity_key_pair = IdentityKeyPair::new(
             IdentityKey::decode(public_key)?,
             PrivateKey::deserialize(&private_key)?,
@@ -477,9 +478,10 @@ impl IdentityKeyStore for SledConfigStore {
 
     async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
         trace!("getting local_registration_id");
-        Ok(self.get_u32("registration_id").ok()
+        self.get_u32("registration_id")
+            .ok()
             .flatten()
-            .ok_or(SignalProtocolError::InternalError("no registration id"))?;)
+            .ok_or(SignalProtocolError::InternalError("no registration id"))
     }
 
     async fn save_identity(
@@ -534,7 +536,8 @@ impl IdentityKeyStore for SledConfigStore {
 #[cfg(test)]
 mod tests {
     use libsignal_service::prelude::protocol::{
-        self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+        self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore,
+        SessionStoreExt, SignedPreKeyRecord, SignedPreKeyStore,
     };
     use quickcheck::{quickcheck, Arbitrary, Gen};
 
