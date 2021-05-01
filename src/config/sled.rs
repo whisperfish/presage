@@ -127,25 +127,28 @@ impl SledConfigStore {
         format!("identity-remote-{}", addr)
     }
 
-    pub fn keys(&self) -> (Vec<String>, Vec<String>) {
-        let db = self.db.read().unwrap();
+    pub fn keys(&self) -> Result<(Vec<String>, Vec<String>), SignalProtocolError> {
+        let db = self.db.read().expect("poisoned mutex");
         let global_keys = db
             .iter()
-            .map(|r| {
-                let (k, _) = r.unwrap();
-                String::from_utf8_lossy(&k).to_string()
+            .filter_map(|r| {
+                let (k, _) = r.ok()?;
+                Some(String::from_utf8_lossy(&k).to_string())
             })
             .collect();
         let session_keys = db
             .open_tree("sessions")
-            .unwrap()
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
             .iter()
-            .map(|r| {
-                let (k, _) = r.unwrap();
-                String::from_utf8_lossy(&k).to_string()
+            .filter_map(|r| {
+                let (k, _) = r.ok()?;
+                Some(String::from_utf8_lossy(&k).to_string())
             })
             .collect();
-        (global_keys, session_keys)
+        Ok((global_keys, session_keys))
     }
 }
 
@@ -186,7 +189,7 @@ impl ConfigStore for SledConfigStore {
                     .ok_or_else(|| Error::MissingKeyError("profile_key".into()))?
                     .to_vec()
                     .try_into()
-                    .unwrap(),
+                    .map_err(|_| Error::MissingKeyError("invalid profile key length".into()))?,
             })
         } else if db.contains_key("phone_number")? {
             trace!("Loading registration state");
@@ -273,8 +276,11 @@ impl PreKeyStore for SledConfigStore {
     ) -> Result<PreKeyRecord, SignalProtocolError> {
         let buf = self
             .get(self.prekey_key(prekey_id))
-            .expect("sled error")
-            .expect("no pre key with this id");
+            .map_err(|e| {
+                log::error!("{}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
+            .ok_or(SignalProtocolError::InvalidPreKeyId)?;
         PreKeyRecord::deserialize(&buf)
     }
 
@@ -309,8 +315,11 @@ impl SignedPreKeyStore for SledConfigStore {
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf = self
             .get(self.signed_prekey_key(signed_prekey_id))
-            .unwrap()
-            .unwrap();
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
+            .ok_or(SignalProtocolError::InvalidSignedPreKeyId)?;
         SignedPreKeyRecord::deserialize(&buf)
     }
 
@@ -324,8 +333,10 @@ impl SignedPreKeyStore for SledConfigStore {
             self.signed_prekey_key(signed_prekey_id),
             record.serialize()?,
         )
-        .unwrap();
-        Ok(())
+        .map_err(|e| {
+            log::error!("sled error: {}", e);
+            SignalProtocolError::InternalError("sled error")
+        })
     }
 }
 
@@ -339,21 +350,23 @@ impl SessionStore for SledConfigStore {
         let key = self.session_key(&address);
         trace!("loading session from {}", key);
 
-        let buf = if let Ok(Some(buf)) = self
+        let buf = self
             .db
             .try_read()
             .expect("poisoned mutex")
             .open_tree("sessions")
-            .unwrap()
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
             .get(key)
-        {
-            buf
-        } else {
-            return Ok(None);
-        };
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?;
 
-        trace!("session loaded!");
-        Ok(Some(SessionRecord::deserialize(&buf)?))
+        buf.and_then(|buf| Some(SessionRecord::deserialize(&buf)))
+            .transpose()
     }
 
     async fn store_session(
@@ -368,10 +381,15 @@ impl SessionStore for SledConfigStore {
             .try_write()
             .expect("poisoned mutex")
             .open_tree("sessions")
-            .unwrap()
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
             .insert(key, record.serialize()?)
-            .unwrap();
-        trace!("stored session");
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?;
         Ok(())
     }
 }
@@ -385,7 +403,10 @@ impl SessionStoreExt for SledConfigStore {
             .read()
             .expect("poisoned mutex")
             .open_tree("sessions")
-            .unwrap()
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
             .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
@@ -404,7 +425,10 @@ impl SessionStoreExt for SledConfigStore {
             .try_write()
             .expect("poisoned mutex")
             .open_tree("sessions")
-            .unwrap()
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?
             .remove(key)
             .map_err(|_e| SignalProtocolError::InternalError("failed to delete session"))?;
         Ok(())
@@ -416,7 +440,10 @@ impl SessionStoreExt for SledConfigStore {
             .try_write()
             .expect("poisoned mutex")
             .open_tree("sessions")
-            .unwrap();
+            .map_err(|e| {
+                log::error!("failed to open sessions tree: {}", e);
+                SignalProtocolError::InternalError("sled error")
+            })?;
         let len = tree.len();
         tree.clear()
             .map_err(|_e| SignalProtocolError::InternalError("failed to delete all sessions"))?;
@@ -431,8 +458,16 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let public_key = &self.get("public_key").unwrap().unwrap();
-        let private_key = &self.get("private_key").unwrap().unwrap();
+        let public_key = &self
+            .get("public_key")
+            .ok()
+            .flatten()
+            .ok_or(SignalProtocolError::InternalError("no identity public key"))?;
+        let private_key = &self
+            .get("private_key")
+            .ok()
+            .flatten()
+            .ok_or(SignalProtocolError::InternalError("no identity private key"))?;
         let identity_key_pair = IdentityKeyPair::new(
             IdentityKey::decode(public_key)?,
             PrivateKey::deserialize(&private_key)?,
@@ -442,7 +477,9 @@ impl IdentityKeyStore for SledConfigStore {
 
     async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
         trace!("getting local_registration_id");
-        Ok(self.get_u32("registration_id").unwrap().unwrap())
+        Ok(self.get_u32("registration_id").ok()
+            .flatten()
+            .ok_or(SignalProtocolError::InternalError("no registration id"))?;)
     }
 
     async fn save_identity(
@@ -496,31 +533,51 @@ impl IdentityKeyStore for SledConfigStore {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
+    use libsignal_service::prelude::protocol::{
+        self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+    };
     use quickcheck::{quickcheck, Arbitrary, Gen};
 
-    use std::collections::HashSet;
+    use core::fmt;
+
+    use crate::SledConfigStore;
 
     #[derive(Debug, Clone)]
-    struct Address(ProtocolAddress);
+    struct ProtocolAddress(protocol::ProtocolAddress);
 
-    impl Arbitrary for Address {
-        fn arbitrary(g: &mut Gen) -> Address {
+    #[derive(Clone)]
+    struct KeyPair(protocol::KeyPair);
+
+    impl fmt::Debug for KeyPair {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            writeln!(f, "{}", base64::encode(self.0.public_key.serialize()))
+        }
+    }
+
+    impl Arbitrary for ProtocolAddress {
+        fn arbitrary(g: &mut Gen) -> Self {
             let name: String = Arbitrary::arbitrary(g);
             let device_id: u8 = Arbitrary::arbitrary(g);
-            Address(ProtocolAddress::new(name, device_id.into()))
+            ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
+        }
+    }
+
+    impl Arbitrary for KeyPair {
+        fn arbitrary(_g: &mut Gen) -> Self {
+            // Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241
+            KeyPair(protocol::KeyPair::generate(&mut rand::thread_rng()))
         }
     }
 
     #[quickcheck_async::tokio]
-    async fn test_save_get_trust_identity(addr: Address, identity_key: Vec<u8>) -> bool {
+    async fn test_save_get_trust_identity(addr: ProtocolAddress, key_pair: KeyPair) -> bool {
         let mut db = SledConfigStore::temporary().unwrap();
-        db.save_identity(&addr.0, &IdentityKey::decode(&identity_key).unwrap(), None)
+        let identity_key = protocol::IdentityKey::new(key_pair.0.public_key);
+        db.save_identity(&addr.0, &identity_key, None)
             .await
             .unwrap();
         let id = db.get_identity(&addr.0, None).await.unwrap().unwrap();
-        if id.serialize().into_vec() != identity_key {
+        if id != identity_key {
             return false;
         }
         db.is_trusted_identity(&addr.0, &id, Direction::Receiving, None)
@@ -529,8 +586,8 @@ mod tests {
     }
 
     #[quickcheck_async::tokio]
-    async fn test_store_load_session(addr: Address, session: Vec<u8>) -> bool {
-        let session = SessionRecord::from_single_session_state(&session).unwrap();
+    async fn test_store_load_session(addr: ProtocolAddress) -> bool {
+        let session = SessionRecord::new_fresh();
 
         let mut db = SledConfigStore::temporary().unwrap();
         db.store_session(&addr.0, &session, None).await.unwrap();
@@ -542,31 +599,13 @@ mod tests {
     }
 
     #[quickcheck_async::tokio]
-    async fn test_get_sub_device_sessions(name: String, device_ids: HashSet<u8>) -> bool {
+    async fn test_prekey_store(id: u32, key_pair: KeyPair) -> bool {
         let mut db = SledConfigStore::temporary().unwrap();
-
-        for device_id in &device_ids {
-            let session = SessionRecord::new_fresh();
-            let addr = ProtocolAddress::new(name.clone(), (*device_id).into());
-            db.store_session(&addr, &session, None).await.unwrap();
-        }
-
-        let stored_devices_ids = db
-            .get_sub_device_sessions(&name)
-            .await
-            .unwrap()
-            .into_iter()
-            .map(|id| id as u8)
-            .collect();
-        device_ids == stored_devices_ids
-    }
-
-    #[quickcheck_async::tokio]
-    async fn test_prekey_store(id: u32, body: Vec<u8>) -> bool {
-        let mut db = SledConfigStore::temporary().unwrap();
-        let pre_key_record = PreKeyRecord::deserialize(&body).unwrap();
+        let pre_key_record = PreKeyRecord::new(id, &key_pair.0);
         db.save_pre_key(id, &pre_key_record, None).await.unwrap();
-        if db.get_pre_key(id, None).await.is_err() {
+        if db.get_pre_key(id, None).await.unwrap().serialize().unwrap()
+            != pre_key_record.serialize().unwrap()
+        {
             return false;
         }
 
@@ -575,14 +614,23 @@ mod tests {
     }
 
     #[quickcheck_async::tokio]
-    async fn test_signed_prekey_store(id: u32, body: Vec<u8>) -> bool {
+    async fn test_signed_prekey_store(
+        id: u32,
+        timestamp: u64,
+        key_pair: KeyPair,
+        signature: Vec<u8>,
+    ) -> bool {
         let mut db = SledConfigStore::temporary().unwrap();
-
-        let signed_pre_key_record = SignedPreKeyRecord::deserialize(&body).unwrap();
+        let signed_pre_key_record = SignedPreKeyRecord::new(id, timestamp, &key_pair.0, &signature);
         db.save_signed_pre_key(id, &signed_pre_key_record, None)
             .await
             .unwrap();
 
-        db.get_signed_pre_key(id, None).await.is_ok()
+        db.get_signed_pre_key(id, None)
+            .await
+            .unwrap()
+            .serialize()
+            .unwrap()
+            == signed_pre_key_record.serialize().unwrap()
     }
 }
