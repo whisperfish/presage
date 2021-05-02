@@ -363,8 +363,7 @@ impl SessionStore for SledConfigStore {
                 SignalProtocolError::InternalError("sled error")
             })?;
 
-        buf.and_then(|buf| Some(SessionRecord::deserialize(&buf)))
-            .transpose()
+        buf.map(|buf| SessionRecord::deserialize(&buf)).transpose()
     }
 
     async fn store_session(
@@ -537,9 +536,9 @@ impl IdentityKeyStore for SledConfigStore {
 mod tests {
     use libsignal_service::prelude::protocol::{
         self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore,
-        SessionStoreExt, SignedPreKeyRecord, SignedPreKeyStore,
+        SignedPreKeyRecord, SignedPreKeyStore,
     };
-    use quickcheck::{quickcheck, Arbitrary, Gen};
+    use quickcheck::{Arbitrary, Gen};
 
     use core::fmt;
 
