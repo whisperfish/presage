@@ -2,6 +2,7 @@ use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::bail;
 use directories::ProjectDirs;
+use env_logger::Env;
 use futures::{channel::mpsc::channel, future, StreamExt};
 use log::debug;
 use presage::{config::SledConfigStore, Error, Manager};
@@ -111,10 +112,10 @@ enum Subcommand {
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
-    if std::env::var("RUST_LOG").is_err() {
-        std::env::set_var("RUST_LOG", format!("{}=debug", env!("CARGO_PKG_NAME")));
-    }
-    env_logger::builder().init();
+    env_logger::from_env(
+        Env::default().default_filter_or(format!("{}=info", env!("CARGO_PKG_NAME"))),
+    )
+    .init();
 
     let args = Args::from_args();
 
