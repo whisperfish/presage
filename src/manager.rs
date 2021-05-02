@@ -8,6 +8,7 @@ use image::Luma;
 use log::{error, trace, warn};
 use qrcode::QrCode;
 use rand::{distributions::Alphanumeric, CryptoRng, Rng, RngCore};
+use serde::{Deserialize, Serialize};
 
 use libsignal_service::{
     cipher,
@@ -28,6 +29,7 @@ use libsignal_service::{
     },
     push_service::{ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
+    utils::{serde_private_key, serde_public_key, serde_signaling_key},
     AccountManager, Profile, ServiceAddress,
 };
 
@@ -65,10 +67,22 @@ impl Cache {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Serialize, Deserialize)]
 pub enum State {
     New,
     Registration {
+        signal_servers: SignalServers,
+        phone_number: PhoneNumber,
+        use_voice_call: bool,
+        captcha: Option<String>,
+    },
+    Linking {
+        signal_servers: SignalServers,
+        #[serde(with = "serde_signaling_key")]
+        signaling_key: SignalingKey,
+        password: String,
+    },
+    Confirmation {
         signal_servers: SignalServers,
         phone_number: PhoneNumber,
         password: String,
@@ -78,12 +92,15 @@ pub enum State {
         phone_number: PhoneNumber,
         uuid: Uuid,
         password: String,
+        #[serde(with = "serde_signaling_key")]
         signaling_key: SignalingKey,
         device_id: Option<u32>,
         registration_id: u32,
+        #[serde(with = "serde_private_key")]
         private_key: PrivateKey,
+        #[serde(with = "serde_public_key")]
         public_key: PublicKey,
-        profile_key: [u8; 32],
+        profile_key: ProfileKey,
     },
 }
 
@@ -112,24 +129,31 @@ where
         })
     }
 
-    fn save_state(&self) -> Result<(), Error> {
-        trace!("saving configuration");
-        self.config_store.save(&self.state)
-    }
-
     /// Sets the state and saves it into the store.
     ///
     /// The cache is also cleared.
     fn set_state(&mut self, state: State) -> Result<(), Error> {
         self.state = state;
         self.cache.clear();
-        self.save_state()
+        self.config_store.save(&self.state)
     }
 
-    fn credentials(&self) -> Result<ServiceCredentials, Error> {
+    fn credentials(&self) -> Result<Option<ServiceCredentials>, Error> {
         match &self.state {
-            State::New => Err(Error::NotYetRegisteredError),
-            State::Registration { .. } => Err(Error::NotYetRegisteredError),
+            State::New { .. } => Err(Error::NotYetRegisteredError),
+            State::Registration { .. } => Ok(None),
+            State::Linking { .. } => Ok(None),
+            State::Confirmation {
+                phone_number,
+                password,
+                ..
+            } => Ok(Some(ServiceCredentials {
+                uuid: None,
+                phonenumber: phone_number.clone(),
+                password: Some(password.clone()),
+                signaling_key: None,
+                device_id: None,
+            })),
             State::Registered {
                 phone_number,
                 uuid,
@@ -137,13 +161,13 @@ where
                 password,
                 signaling_key,
                 ..
-            } => Ok(ServiceCredentials {
+            } => Ok(Some(ServiceCredentials {
                 uuid: Some(*uuid),
                 phonenumber: phone_number.clone(),
                 password: Some(password.clone()),
                 signaling_key: Some(*signaling_key),
                 device_id: *device_id,
-            }),
+            })),
         }
     }
 
@@ -170,16 +194,40 @@ where
         }
     }
 
+    #[cfg(feature = "quirks")]
+    pub fn dump_config(&self) -> Result<(), Error> {
+        serde_json::to_writer_pretty(std::io::stderr(), &self.state)?;
+        Ok(())
+    }
+
     pub async fn register(
         &mut self,
         signal_servers: SignalServers,
         phone_number: PhoneNumber,
         use_voice_call: bool,
-        captcha: Option<&str>,
+        captcha: Option<String>,
+        force: bool,
     ) -> Result<(), Error> {
         // generate a random 24 bytes password
         let rng = rand::rngs::OsRng::default();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
+
+        if !force
+            && matches!(
+                self.state,
+                State::Registration { .. } | State::Registered { .. }
+            )
+        {
+            return Err(Error::AlreadyRegisteredError);
+        }
+
+        // re-initialize the state to new with specified servers & phone number
+        self.set_state(State::Registration {
+            signal_servers,
+            phone_number: phone_number.clone(),
+            use_voice_call,
+            captcha: captcha.clone(),
+        })?;
 
         let mut push_service = self.push_service()?;
         let mut provisioning_manager: ProvisioningManager<HyperPushService> =
@@ -199,7 +247,7 @@ where
             return Err(Error::CaptchaRequired);
         }
 
-        self.set_state(State::Registration {
+        self.set_state(State::Confirmation {
             signal_servers,
             phone_number,
             password,
@@ -209,13 +257,13 @@ where
     pub async fn confirm_verification_code(&mut self, confirm_code: u32) -> Result<(), Error> {
         trace!("confirming verification code");
         let (signal_servers, phone_number, password) = match &self.state {
-            State::New => return Err(Error::NotYetRegisteredError),
-            State::Registration {
+            State::Confirmation {
                 signal_servers,
                 phone_number,
                 password,
             } => (*signal_servers, phone_number, password),
             State::Registered { .. } => return Err(Error::AlreadyRegisteredError),
+            _ => return Err(Error::NotYetRegisteredError),
         };
 
         // see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
@@ -275,7 +323,7 @@ where
             registration_id,
             private_key: identity_key_pair.private_key,
             public_key: identity_key_pair.public_key,
-            profile_key: profile_key.0,
+            profile_key,
         })?;
 
         trace!("confirmed! (and registered)");
@@ -297,6 +345,12 @@ where
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
+
+        self.set_state(State::Linking {
+            signal_servers,
+            password: password.clone(),
+            signaling_key,
+        })?;
 
         let push_service = self.push_service()?;
         let mut linking_manager: LinkingManager<HyperPushService> =
@@ -370,7 +424,7 @@ where
             registration_id,
             public_key,
             private_key,
-            profile_key: profile_key.try_into().unwrap(),
+            profile_key: ProfileKey(profile_key.try_into().expect("32 bytes for profile key")),
         })?;
 
         self.register_pre_keys().await?;
@@ -383,10 +437,10 @@ where
 
     pub async fn retrieve_profile(&self) -> Result<Profile, Error> {
         match &self.state {
-            State::New | State::Registration { .. } => Err(Error::NotYetRegisteredError),
             State::Registered {
                 uuid, profile_key, ..
-            } => self.retrieve_profile_by_uuid(*uuid, *profile_key).await,
+            } => self.retrieve_profile_by_uuid(*uuid, **profile_key).await,
+            _ => return Err(Error::NotYetRegisteredError),
         }
     }
 
@@ -401,11 +455,11 @@ where
 
     pub async fn register_pre_keys(&mut self) -> Result<(), Error> {
         let profile_key = match &self.state {
-            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered { profile_key, .. } => profile_key,
+            _ => return Err(Error::NotYetRegisteredError),
         };
 
-        let mut account_manager = AccountManager::new(self.push_service()?, Some(*profile_key));
+        let mut account_manager = AccountManager::new(self.push_service()?, Some(**profile_key));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -429,8 +483,8 @@ where
 
     pub async fn request_contacts_sync(&self) -> Result<(), Error> {
         let phone_number = match &self.state {
-            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered { phone_number, .. } => phone_number,
+            _ => return Err(Error::NotYetRegisteredError),
         };
 
         let sync_message = SyncMessage {
@@ -456,7 +510,7 @@ where
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
         // TODO: error if we're primary registered device, as this is only for secondary devices
 
-        let credentials = self.credentials()?;
+        let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
@@ -497,9 +551,7 @@ where
         &self,
         mut tx: Sender<(Metadata, ContentBody)>,
     ) -> Result<(), Error> {
-        // TODO: error if we're primary registered device, as this is only for secondary devices
-
-        let credentials = self.credentials()?;
+        let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
 
         let mut service_cipher = self.new_service_cipher()?;
         let mut receiver = MessageReceiver::new(self.push_service()?);
@@ -604,7 +656,6 @@ where
         group_master_key: GroupMasterKey,
     ) -> Result<libsignal_service::proto::DecryptedGroup, Error> {
         let (signal_servers, _phone_number, uuid, _device_id) = match &self.state {
-            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
                 signal_servers,
                 phone_number,
@@ -612,6 +663,7 @@ where
                 device_id,
                 ..
             } => (signal_servers, phone_number, uuid, device_id),
+            _ => return Err(Error::NotYetRegisteredError),
         };
 
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
@@ -640,10 +692,11 @@ where
     fn push_service(&self) -> Result<HyperPushService, Error> {
         self.cache.push_service.get(|| {
             let signal_servers = match &self.state {
-                State::New | State::Registration { .. } => {
-                    return Err(Error::NotYetRegisteredError)
-                }
-                State::Registered { signal_servers, .. } => signal_servers,
+                State::Registration { signal_servers, .. }
+                | State::Linking { signal_servers, .. }
+                | State::Confirmation { signal_servers, .. }
+                | State::Registered { signal_servers, .. } => signal_servers,
+                _ => return Err(Error::NotYetRegisteredError),
             };
 
             let credentials = self.credentials()?;
@@ -651,7 +704,7 @@ where
 
             Ok(HyperPushService::new(
                 service_configuration,
-                Some(credentials),
+                credentials,
                 crate::USER_AGENT.to_string(),
             ))
         })
@@ -660,13 +713,13 @@ where
     /// Creates a new message sender.
     fn new_message_sender(&self) -> Result<MessageSender<C, R>, Error> {
         let (phone_number, uuid, device_id) = match &self.state {
-            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered {
                 phone_number,
                 uuid,
                 device_id,
                 ..
             } => (phone_number, uuid, device_id),
+            _ => return Err(Error::NotYetRegisteredError),
         };
 
         let local_addr = ServiceAddress {
@@ -689,8 +742,8 @@ where
     /// Creates a new service cipher.
     fn new_service_cipher(&self) -> Result<ServiceCipher<C, R>, Error> {
         let signal_servers = match &self.state {
-            State::New | State::Registration { .. } => return Err(Error::NotYetRegisteredError),
             State::Registered { signal_servers, .. } => signal_servers,
+            _ => return Err(Error::NotYetRegisteredError),
         };
 
         let service_configuration: ServiceConfiguration = (*signal_servers).into();

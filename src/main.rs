@@ -41,6 +41,8 @@ enum Subcommand {
             help = "Captcha obtained from https://signalcaptchas.org/registration/generate.html"
         )]
         captcha: Option<String>,
+        #[structopt(long, help = "Force to register again if already registered")]
+        force: bool,
     },
     #[structopt(about = "Unregister from Signal")]
     Unregister,
@@ -108,6 +110,8 @@ enum Subcommand {
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
+    #[cfg(feature = "quirks")]
+    DumpConfig,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -120,7 +124,7 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::from_args();
 
     let db_path = args.db_path.unwrap_or_else(|| {
-        ProjectDirs::from("org", "libsignal-service-rs", "signal-bot-rs")
+        ProjectDirs::from("org", "whisperfish", "presage")
             .unwrap()
             .config_dir()
             .into()
@@ -137,9 +141,10 @@ async fn main() -> anyhow::Result<()> {
             phone_number,
             use_voice_call,
             captcha,
+            force,
         } => {
             manager
-                .register(servers, phone_number, use_voice_call, captcha.as_deref())
+                .register(servers, phone_number, use_voice_call, captcha, force)
                 .await?;
         }
         Subcommand::LinkDevice {
@@ -294,6 +299,10 @@ async fn main() -> anyhow::Result<()> {
         #[cfg(feature = "quirks")]
         Subcommand::RequestSyncContacts => {
             manager.request_contacts_sync().await?;
+        }
+        #[cfg(feature = "quirks")]
+        Subcommand::DumpConfig => {
+            manager.dump_config()?;
         }
     };
     Ok(())
