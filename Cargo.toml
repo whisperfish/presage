@@ -32,9 +32,9 @@ tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
 
-#[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
-#libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-#libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
+[patch."https://github.com/gferon/libsignal-service-rs.git"]
+libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 
 [features]
 quirks = []

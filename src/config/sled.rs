@@ -4,15 +4,18 @@ use std::{
 };
 
 use async_trait::async_trait;
-use libsignal_service::prelude::protocol::{
-    Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord, PreKeyStore,
-    ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
-    SignedPreKeyRecord, SignedPreKeyStore,
+use libsignal_service::{
+    models::Contact,
+    prelude::protocol::{
+        Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
+        PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
+        SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+    },
 };
 use log::{trace, warn};
 use sled::IVec;
 
-use super::ConfigStore;
+use super::{ConfigStore, ContactsStore};
 use crate::{manager::State, Error};
 
 #[derive(Debug, Clone)]
@@ -167,6 +170,28 @@ impl ConfigStore for SledConfigStore {
 
     fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error> {
         self.insert_u32("next_signed_pre_key_id", id)
+    }
+}
+
+impl ContactsStore for SledConfigStore {
+    fn save_contacts(&mut self, contacts: &[Contact]) -> Result<(), Error> {
+        // TODO: we probably want to store the contacts in a map of UUID > data
+        self.db
+            .write()
+            .expect("poisoned mutex")
+            .open_tree("contacts")?
+            .insert("contacts", serde_json::to_vec(contacts)?)?;
+        trace!("saved contacts");
+        Ok(())
+    }
+
+    fn contacts(&self) -> Result<Vec<Contact>, Error> {
+        self.db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree("contacts")?
+            .get("contacts")?
+            .map_or_else(|| Ok(vec![]), |buf| Ok(serde_json::from_slice(&buf)?))
     }
 }
 
