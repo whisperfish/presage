@@ -1,6 +1,7 @@
 # Signal client/bot Rust library
 
 ![CI](https://github.com/whisperfish/presage/workflows/CI/badge.svg)
+![License](https://shields.io/github/license/whisperfish/presage.svg)
 
 A Rust library that helps building clients for the [Signal Messenger](https://signal.org/en/), using [libsignal-service-rs](https://github.com/Michael-F-Bryan/libsignal-service-rs). It is designed to provide everything you need to get started.
 
