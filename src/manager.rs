@@ -27,7 +27,9 @@ use libsignal_service::{
         generate_registration_id, ConfirmCodeMessage, LinkingManager, ProvisioningManager,
         SecondaryDeviceProvisioning, VerificationCodeResponse,
     },
-    push_service::{ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID},
+    push_service::{
+        DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID,
+    },
     receiver::MessageReceiver,
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
     AccountManager, Profile, ServiceAddress,
@@ -195,7 +197,7 @@ where
     }
 
     #[cfg(feature = "quirks")]
-    pub fn dump_config(&self) -> Result<(), Error> {
+    pub fn dump_config(&mut self) -> Result<(), Error> {
         serde_json::to_writer_pretty(std::io::stderr(), &self.state)?;
         Ok(())
     }
@@ -329,6 +331,7 @@ where
         trace!("confirmed! (and registered)");
 
         self.register_pre_keys().await?;
+        self.set_account_attributes().await?;
 
         Ok(())
     }
@@ -428,6 +431,8 @@ where
         })?;
 
         self.register_pre_keys().await?;
+        self.set_account_attributes().await?;
+
         Ok(())
     }
 
@@ -453,7 +458,7 @@ where
         Ok(account_manager.retrieve_profile(uuid).await?)
     }
 
-    pub async fn register_pre_keys(&mut self) -> Result<(), Error> {
+    async fn register_pre_keys(&mut self) -> Result<(), Error> {
         let profile_key = match &self.state {
             State::Registered { profile_key, .. } => profile_key,
             _ => return Err(Error::NotYetRegisteredError),
@@ -478,6 +483,39 @@ where
         self.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
 
+        Ok(())
+    }
+
+    async fn set_account_attributes(&mut self) -> Result<(), Error> {
+        let (profile_key, registration_id) = match &self.state {
+            State::Registered {
+                profile_key,
+                registration_id,
+                ..
+            } => (profile_key, registration_id),
+            _ => return Err(Error::NotYetRegisteredError),
+        };
+        let mut account_manager = AccountManager::new(self.push_service()?, Some(**profile_key));
+        account_manager
+            .set_account_attributes(
+                None,
+                *registration_id,
+                false,
+                false,
+                true,
+                None,
+                None,
+                None,
+                false,
+                true,
+                DeviceCapabilities {
+                    uuid: true,
+                    gv2: true,
+                    storage: false,
+                    gv1_migration: true,
+                },
+            )
+            .await?;
         Ok(())
     }
 
