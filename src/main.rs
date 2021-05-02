@@ -50,7 +50,7 @@ enum Subcommand {
         about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
     )]
     LinkDevice {
-        #[structopt(long, short = "s", default_value = "staging")]
+        #[structopt(long, short = "s", default_value = "production")]
         servers: SignalServers,
         #[structopt(
             long,
