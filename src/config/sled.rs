@@ -1,18 +1,13 @@
 use std::{
-    convert::TryInto,
     path::PathBuf,
-    str::FromStr,
     sync::{Arc, RwLock},
 };
 
 use async_trait::async_trait;
-use libsignal_service::{
-    configuration::{SignalServers, SignalingKey},
-    prelude::protocol::{
-        Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
-        PreKeyStore, PrivateKey, ProtocolAddress, PublicKey, SessionRecord, SessionStore,
-        SessionStoreExt, SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
-    },
+use libsignal_service::prelude::protocol::{
+    Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord, PreKeyStore,
+    ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
+    SignedPreKeyRecord, SignedPreKeyStore,
 };
 use log::{trace, warn};
 use sled::IVec;
@@ -38,15 +33,6 @@ impl SledConfigStore {
         Ok(Self {
             db: Arc::new(RwLock::new(db)),
         })
-    }
-
-    fn get_string(db: &sled::Tree, key: &str) -> Result<String, Error> {
-        trace!("getting string {} from config", key);
-        Ok(String::from_utf8_lossy(
-            &db.get(key)?
-                .ok_or_else(|| Error::MissingKeyError(key.to_string().into()))?,
-        )
-        .to_string())
     }
 
     pub fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
@@ -155,96 +141,15 @@ impl SledConfigStore {
 impl ConfigStore for SledConfigStore {
     fn state(&self) -> Result<State, Error> {
         let db = self.db.read().expect("poisoned mutex");
-        if db.contains_key("uuid")? {
-            trace!("Loading registered state");
-            Ok(State::Registered {
-                signal_servers: SignalServers::from_str(&Self::get_string(&db, "signal_servers")?)
-                    .expect("unknown signal servers"),
-                phone_number: Self::get_string(&db, "phone_number")?.parse()?,
-                uuid: Self::get_string(&db, "uuid")?.parse()?,
-                password: Self::get_string(&db, "password")?,
-                signaling_key: {
-                    let mut key: SignalingKey = [0; 52];
-                    key.copy_from_slice(
-                        &db.get("signaling_key")?
-                            .ok_or_else(|| Error::MissingKeyError("signaling_key".into()))?,
-                    );
-                    key
-                },
-                device_id: self.get_u32("device_id")?,
-                registration_id: self
-                    .get_u32("registration_id")?
-                    .ok_or_else(|| Error::MissingKeyError("registration_id".into()))?
-                    as u32,
-                private_key: PrivateKey::deserialize(
-                    &db.get("private_key")?
-                        .ok_or_else(|| Error::MissingKeyError("private_key".into()))?,
-                )?,
-                public_key: PublicKey::deserialize(
-                    &db.get("public_key")?
-                        .ok_or_else(|| Error::MissingKeyError("public_key".into()))?,
-                )?,
-                profile_key: db
-                    .get("profile_key")?
-                    .ok_or_else(|| Error::MissingKeyError("profile_key".into()))?
-                    .to_vec()
-                    .try_into()
-                    .map_err(|_| Error::MissingKeyError("invalid profile key length".into()))?,
-            })
-        } else if db.contains_key("phone_number")? {
-            trace!("Loading registration state");
-            Ok(State::Registration {
-                signal_servers: SignalServers::from_str(&Self::get_string(&db, "signal_servers")?)
-                    .expect("unknown signal servers"),
-                phone_number: Self::get_string(&db, "phone_number")?.parse()?,
-                password: Self::get_string(&db, "password")?,
-            })
-        } else {
-            Ok(State::New)
-        }
+        db.get("state")?.map_or(Ok(State::New), |s| {
+            serde_json::from_slice(&s).map_err(Error::from)
+        })
     }
 
     fn save(&self, state: &State) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
-        match state {
-            State::New => (),
-            State::Registration {
-                signal_servers,
-                phone_number,
-                password,
-            } => {
-                trace!("saving registration data");
-                db.insert("signal_servers", signal_servers.to_string().as_bytes())?;
-                db.insert("phone_number", phone_number.to_string().as_bytes())?;
-                db.insert("password", password.as_bytes())?;
-            }
-            State::Registered {
-                signal_servers,
-                phone_number,
-                uuid,
-                password,
-                signaling_key,
-                device_id,
-                registration_id,
-                private_key,
-                public_key,
-                profile_key,
-            } => {
-                db.insert("signal_servers", signal_servers.to_string().as_bytes())?;
-                db.insert("phone_number", phone_number.to_string().as_bytes())?;
-                db.insert("uuid", uuid.to_string().as_bytes())?;
-                db.insert("password", password.as_bytes())?;
-                db.insert("signaling_key", signaling_key.to_vec())?;
-                if let Some(device_id) = device_id {
-                    db.insert("device_id", &device_id.to_le_bytes())?;
-                }
-                db.insert("registration_id", &registration_id.to_le_bytes())?;
-                db.insert("private_key", private_key.serialize().as_slice())?;
-                db.insert("public_key", public_key.serialize())?;
-                db.insert("profile_key", profile_key)?;
-            }
-        };
+        db.insert("state", serde_json::to_vec(state)?)?;
         Ok(())
     }
 
@@ -455,32 +360,39 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let public_key = &self
-            .get("public_key")
-            .ok()
-            .flatten()
-            .ok_or(SignalProtocolError::InternalError("no identity public key"))?;
-        let private_key =
-            &self
-                .get("private_key")
-                .ok()
-                .flatten()
-                .ok_or(SignalProtocolError::InternalError(
-                    "no identity private key",
-                ))?;
-        let identity_key_pair = IdentityKeyPair::new(
-            IdentityKey::decode(public_key)?,
-            PrivateKey::deserialize(&private_key)?,
-        );
-        Ok(identity_key_pair)
+        match self.state() {
+            Ok(State::Registered {
+                private_key,
+                public_key,
+                ..
+            }) => Ok(IdentityKeyPair::new(
+                IdentityKey::new(public_key),
+                private_key,
+            )),
+            Ok(_) => Err(SignalProtocolError::InternalError(
+                "wrong state: no registration data yet",
+            )),
+            Err(e) => {
+                log::error!("identity key store error: {}", e);
+                Err(SignalProtocolError::InternalError("unhandled error"))
+            }
+        }
     }
 
     async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
         trace!("getting local_registration_id");
-        self.get_u32("registration_id")
-            .ok()
-            .flatten()
-            .ok_or(SignalProtocolError::InternalError("no registration id"))
+        match self.state() {
+            Ok(State::Registered {
+                registration_id, ..
+            }) => Ok(registration_id),
+            Ok(_) => Err(SignalProtocolError::InternalError(
+                "wrong state: no registration data yet",
+            )),
+            Err(e) => {
+                log::error!("identity key store error: {}", e);
+                Err(SignalProtocolError::InternalError("unhandled error"))
+            }
+        }
     }
 
     async fn save_identity(
@@ -496,8 +408,7 @@ impl IdentityKeyStore for SledConfigStore {
                 SignalProtocolError::InternalError("failed to save identity")
             })?;
         trace!("saved identity");
-        // FIXME: boolean means something here
-        Ok(true)
+        Ok(false)
     }
 
     async fn is_trusted_identity(

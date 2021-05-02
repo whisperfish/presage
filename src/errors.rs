@@ -8,6 +8,8 @@ pub enum Error {
     CaptchaRequired,
     #[error("input/output error: {0}")]
     IoError(#[from] std::io::Error),
+    #[error("JSON error: {0}")]
+    JsonError(#[from] serde_json::Error),
     #[error("data store error: {0}")]
     DbError(#[from] sled::Error),
     #[error("error decoding base64 data: {0}")]
