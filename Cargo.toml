@@ -6,31 +6,31 @@ authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs" }
-libsignal-service-hyper = { git = "https://github.com/Michael-F-Bryan/libsignal-service-rs.git" }
-env_logger = "0.7"
-directories = "3.0"
-structopt = "0.3"
-image = { version = "0.23", default-features = false, features = ["png"] }
-qrcode = "0.12"
-opener = "0.4"
-rand = "0.7"
+libsignal-service = { git = "https://github.com/gferon/libsignal-service-rs", branch = "serde-keys" }
+libsignal-service-hyper = { git = "https://github.com/gferon/libsignal-service-rs.git", branch = "serde-keys" }
+
 anyhow = "1.0"
-thiserror = "1.0"
-base64 = "0.12"
-serde_json = "1.0"
-futures = "0.3"
-serde = "1.0"
-log = "0.4.8"
-sled = "*"
-prost = "*"
-hex = "0.4.2"
-tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
 async-trait = "0.1"
+base64 = "0.12"
+directories = "3.0"
+env_logger = "0.7"
+futures = "0.3"
+hex = "0.4.2"
+image = { version = "0.23", default-features = false, features = ["png"] }
+log = "0.4.8"
+opener = "0.4"
+qrcode = "0.12"
+rand = "0.7"
+serde = "1.0"
+serde_json = "1.0"
+sled = "0.34"
+structopt = "0.3"
+thiserror = "1.0"
+tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
-quickcheck_async = "*"
+quickcheck_async = "0.1"
 
 #[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
