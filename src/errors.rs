@@ -14,6 +14,8 @@ pub enum Error {
     DbError(#[from] sled::Error),
     #[error("error decoding base64 data: {0}")]
     Base64Error(#[from] base64::DecodeError),
+    #[error("wrong slice size: {0}")]
+    TryFromSliceError(#[from] std::array::TryFromSliceError),
     #[error("phone number parsing error: {0}")]
     PhoneNumberError(#[from] libsignal_service::prelude::phonenumber::ParseError),
     #[error("UUID decoding error: {0}")]
@@ -44,4 +46,6 @@ pub enum Error {
     MessagePipeInterruptedError,
     #[error("failed to parse contact information: {0}")]
     ParseContactError(#[from] ParseContactError),
+    #[error("failed to decrypt attachment: {0}")]
+    AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
 }
