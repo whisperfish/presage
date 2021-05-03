@@ -2,7 +2,7 @@ use std::{convert::TryInto, time::UNIX_EPOCH};
 
 use futures::{
     channel::mpsc::{channel, Sender},
-    future, pin_mut, SinkExt, Stream, StreamExt,
+    future, pin_mut, AsyncReadExt, SinkExt, Stream, StreamExt,
 };
 use image::Luma;
 use log::{error, trace, warn};
@@ -11,6 +11,7 @@ use rand::{distributions::Alphanumeric, CryptoRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 
 use libsignal_service::{
+    attachment_cipher::decrypt_in_place,
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, Metadata},
@@ -22,7 +23,7 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
-    proto::{sync_message, SyncMessage},
+    proto::{sync_message, AttachmentPointer, SyncMessage},
     provisioning::{
         generate_registration_id, ConfirmCodeMessage, LinkingManager, ProvisioningManager,
         SecondaryDeviceProvisioning, VerificationCodeResponse,
@@ -722,6 +723,25 @@ where
         Ok(groups_v2_api
             .get_group(group_secret_params, authorization)
             .await?)
+    }
+
+    pub async fn get_attachment(
+        &self,
+        attachment_pointer: &AttachmentPointer,
+    ) -> Result<Vec<u8>, Error> {
+        let mut service = self.push_service()?;
+        let mut attachment_stream = service.get_attachment(&attachment_pointer).await?;
+
+        // We need the whole file for the crypto to check out
+        let mut ciphertext = Vec::new();
+        let len = attachment_stream.read_to_end(&mut ciphertext).await?;
+
+        trace!("downloaded encrypted attachment of {} bytes", len);
+
+        let key: [u8; 64] = attachment_pointer.key().try_into()?;
+        decrypt_in_place(key, &mut ciphertext)?;
+
+        Ok(ciphertext)
     }
 
     /// Returns a clone of a cached push service.
