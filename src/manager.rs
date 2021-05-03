@@ -734,10 +734,7 @@ where
 
         // We need the whole file for the crypto to check out
         let mut ciphertext = Vec::new();
-        let len = attachment_stream
-            .read_to_end(&mut ciphertext)
-            .await
-            .expect("streamed attachment");
+        let len = attachment_stream.read_to_end(&mut ciphertext).await?;
 
         trace!("downloaded encrypted attachment of {} bytes", len);
 
