@@ -46,7 +46,7 @@ type MessageSender<C, R> =
 
 #[derive(Clone)]
 pub struct Manager<C, R = rand::rngs::ThreadRng> {
-    /// Persistant store
+    /// Persistent store
     config_store: C,
     /// Random generator
     csprng: R,
