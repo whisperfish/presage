@@ -18,6 +18,11 @@ use sled::IVec;
 use super::{ConfigStore, ContactsStore};
 use crate::{manager::State, Error};
 
+const SLED_KEY_STATE: &str = "state";
+const SLED_KEY_CONTACTS: &str = "contacts";
+
+const SLED_TREE_SESSIONS: &str = "sessions";
+
 #[derive(Debug, Clone)]
 pub struct SledConfigStore {
     db: Arc<RwLock<sled::Db>>,
@@ -126,7 +131,7 @@ impl SledConfigStore {
             })
             .collect();
         let session_keys = db
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -144,7 +149,7 @@ impl SledConfigStore {
 impl ConfigStore for SledConfigStore {
     fn state(&self) -> Result<State, Error> {
         let db = self.db.read().expect("poisoned mutex");
-        db.get("state")?.map_or(Ok(State::New), |s| {
+        db.get(SLED_KEY_STATE)?.map_or(Ok(State::New), |s| {
             serde_json::from_slice(&s).map_err(Error::from)
         })
     }
@@ -152,7 +157,7 @@ impl ConfigStore for SledConfigStore {
     fn save(&self, state: &State) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
-        db.insert("state", serde_json::to_vec(state)?)?;
+        db.insert(SLED_KEY_STATE, serde_json::to_vec(state)?)?;
         Ok(())
     }
 
@@ -179,8 +184,7 @@ impl ContactsStore for SledConfigStore {
         self.db
             .write()
             .expect("poisoned mutex")
-            .open_tree("contacts")?
-            .insert("contacts", serde_json::to_vec(contacts)?)?;
+            .insert(SLED_KEY_CONTACTS, serde_json::to_vec(contacts)?)?;
         trace!("saved contacts");
         Ok(())
     }
@@ -189,8 +193,7 @@ impl ContactsStore for SledConfigStore {
         self.db
             .read()
             .expect("poisoned mutex")
-            .open_tree("contacts")?
-            .get("contacts")?
+            .get(SLED_KEY_CONTACTS)?
             .map_or_else(|| Ok(vec![]), |buf| Ok(serde_json::from_slice(&buf)?))
     }
 }
@@ -282,7 +285,7 @@ impl SessionStore for SledConfigStore {
             .db
             .try_read()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -307,7 +310,7 @@ impl SessionStore for SledConfigStore {
         self.db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -329,7 +332,7 @@ impl SessionStoreExt for SledConfigStore {
             .db
             .read()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -351,7 +354,7 @@ impl SessionStoreExt for SledConfigStore {
         self.db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -366,7 +369,7 @@ impl SessionStoreExt for SledConfigStore {
             .db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
