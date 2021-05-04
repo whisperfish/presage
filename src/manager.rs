@@ -521,7 +521,10 @@ where
     }
 
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
-    /// which can be then received, decrypted and stored in the message receiving loop
+    /// which can be then received, decrypted and stored in the message receiving loop.
+    ///
+    /// Note: if this is successful, the contacts are not yet received & stored, and will only be
+    /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&self) -> Result<(), Error> {
         let phone_number = match &self.state {
             State::Registered { phone_number, .. } => phone_number,
