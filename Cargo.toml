@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/gferon/libsignal-service-rs", branch = "serde-keys" }
-libsignal-service-hyper = { git = "https://github.com/gferon/libsignal-service-rs.git", branch = "serde-keys" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git" }
 
 anyhow = "1.0"
 async-trait = "0.1"
@@ -32,7 +32,7 @@ tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
 
-#[patch."https://github.com/Michael-F-Bryan/libsignal-service-rs.git"]
+#[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
 #libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 

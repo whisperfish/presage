@@ -15,7 +15,7 @@ Features:
   - [x] SMS
   - [x] Voice call
 - [x] Link as secondary device from Android / iOS app (like Signal Desktop)
-- [x] Synchronize contacts from primary device (works, but not exposed currently)
+- [x] Synchronize contacts from primary device
 - [x] Receive messages
 - [x] Download + decrypt attachments
 - [x] Send messages

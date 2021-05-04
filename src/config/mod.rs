@@ -1,5 +1,6 @@
-use libsignal_service::prelude::protocol::{
-    IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore,
+use libsignal_service::{
+    models::Contact,
+    prelude::protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
 };
 
 use crate::{manager::State, Error};
@@ -8,7 +9,7 @@ mod sled;
 pub use self::sled::SledConfigStore;
 
 pub trait ConfigStore:
-    PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + Clone
+    PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + ContactsStore + Clone
 {
     fn state(&self) -> Result<State, Error>;
 
@@ -19,4 +20,9 @@ pub trait ConfigStore:
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error>;
     fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error>;
+}
+
+pub trait ContactsStore {
+    fn save_contacts(&mut self, contacts: &[Contact]) -> Result<(), Error>;
+    fn contacts(&self) -> Result<Vec<Contact>, Error>;
 }

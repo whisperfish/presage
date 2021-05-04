@@ -433,6 +433,7 @@ where
 
         self.register_pre_keys().await?;
         self.set_account_attributes().await?;
+        self.request_contacts_sync().await?;
 
         Ok(())
     }
@@ -520,6 +521,11 @@ where
         Ok(())
     }
 
+    /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
+    /// which can be then received, decrypted and stored in the message receiving loop.
+    ///
+    /// Note: if this is successful, the contacts are not yet received & stored, and will only be
+    /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&self) -> Result<(), Error> {
         let phone_number = match &self.state {
             State::Registered { phone_number, .. } => phone_number,
@@ -542,6 +548,10 @@ where
             .await?;
 
         Ok(())
+    }
+
+    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Contact>, Error> {
+        Ok(self.config_store.contacts()?.into_iter())
     }
 
     async fn receive_messages_encrypted_stream(
@@ -587,7 +597,7 @@ where
     }
 
     pub async fn receive_messages(
-        &self,
+        &mut self,
         mut tx: Sender<(Metadata, ContentBody)>,
     ) -> Result<(), Error> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
@@ -620,13 +630,9 @@ where
                             contacts: Some(contacts),
                             ..
                         }) => {
-                            // TODO: save contacts here, for now we just print them
                             let contacts: Result<Vec<Contact>, _> =
                                 receiver.retrieve_contacts(contacts).await?.collect();
-                            for c in contacts? {
-                                log::info!("Contact {}", c.name);
-                            }
-                            // let _ = cdn_push_service.get_contacts(contacts).await;
+                            self.config_store.save_contacts(&contacts?)?;
                         }
                         _ => tx.send((metadata, body)).await.expect("tx channel error"),
                     };

@@ -4,16 +4,24 @@ use std::{
 };
 
 use async_trait::async_trait;
-use libsignal_service::prelude::protocol::{
-    Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord, PreKeyStore,
-    ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
-    SignedPreKeyRecord, SignedPreKeyStore,
+use libsignal_service::{
+    models::Contact,
+    prelude::protocol::{
+        Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
+        PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
+        SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+    },
 };
 use log::{trace, warn};
 use sled::IVec;
 
-use super::ConfigStore;
+use super::{ConfigStore, ContactsStore};
 use crate::{manager::State, Error};
+
+const SLED_KEY_STATE: &str = "state";
+const SLED_KEY_CONTACTS: &str = "contacts";
+
+const SLED_TREE_SESSIONS: &str = "sessions";
 
 #[derive(Debug, Clone)]
 pub struct SledConfigStore {
@@ -102,11 +110,11 @@ impl SledConfigStore {
     }
 
     fn session_key(&self, addr: &ProtocolAddress) -> String {
-        format!("session-{}-{}", addr, addr.device_id())
+        format!("session-{}", addr)
     }
 
     fn session_prefix(&self, name: &str) -> String {
-        format!("session-{}-", name)
+        format!("session-{}.", name)
     }
 
     fn identity_key(&self, addr: &ProtocolAddress) -> String {
@@ -123,7 +131,7 @@ impl SledConfigStore {
             })
             .collect();
         let session_keys = db
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -141,7 +149,7 @@ impl SledConfigStore {
 impl ConfigStore for SledConfigStore {
     fn state(&self) -> Result<State, Error> {
         let db = self.db.read().expect("poisoned mutex");
-        db.get("state")?.map_or(Ok(State::New), |s| {
+        db.get(SLED_KEY_STATE)?.map_or(Ok(State::New), |s| {
             serde_json::from_slice(&s).map_err(Error::from)
         })
     }
@@ -149,7 +157,7 @@ impl ConfigStore for SledConfigStore {
     fn save(&self, state: &State) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
-        db.insert("state", serde_json::to_vec(state)?)?;
+        db.insert(SLED_KEY_STATE, serde_json::to_vec(state)?)?;
         Ok(())
     }
 
@@ -167,6 +175,25 @@ impl ConfigStore for SledConfigStore {
 
     fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error> {
         self.insert_u32("next_signed_pre_key_id", id)
+    }
+}
+
+impl ContactsStore for SledConfigStore {
+    fn save_contacts(&mut self, contacts: &[Contact]) -> Result<(), Error> {
+        self.db
+            .write()
+            .expect("poisoned mutex")
+            .insert(SLED_KEY_CONTACTS, serde_json::to_vec(contacts)?)?;
+        trace!("saved contacts");
+        Ok(())
+    }
+
+    fn contacts(&self) -> Result<Vec<Contact>, Error> {
+        self.db
+            .read()
+            .expect("poisoned mutex")
+            .get(SLED_KEY_CONTACTS)?
+            .map_or_else(|| Ok(vec![]), |buf| Ok(serde_json::from_slice(&buf)?))
     }
 }
 
@@ -257,7 +284,7 @@ impl SessionStore for SledConfigStore {
             .db
             .try_read()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -282,7 +309,7 @@ impl SessionStore for SledConfigStore {
         self.db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -304,12 +331,12 @@ impl SessionStoreExt for SledConfigStore {
             .db
             .read()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
             })?
-            .scan_prefix(&session_prefix)
+            .scan_prefix(dbg!(&session_prefix))
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
                 let key_str = String::from_utf8_lossy(&key);
@@ -317,7 +344,7 @@ impl SessionStoreExt for SledConfigStore {
                 device_id.parse().ok()
             })
             .collect();
-        Ok(session_ids)
+        Ok(dbg!(session_ids))
     }
 
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
@@ -326,7 +353,7 @@ impl SessionStoreExt for SledConfigStore {
         self.db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
@@ -341,7 +368,7 @@ impl SessionStoreExt for SledConfigStore {
             .db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree("sessions")
+            .open_tree(SLED_TREE_SESSIONS)
             .map_err(|e| {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
