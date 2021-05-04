@@ -110,11 +110,11 @@ impl SledConfigStore {
     }
 
     fn session_key(&self, addr: &ProtocolAddress) -> String {
-        format!("session-{}-{}", addr, addr.device_id())
+        format!("session-{}", addr)
     }
 
     fn session_prefix(&self, name: &str) -> String {
-        format!("session-{}-", name)
+        format!("session-{}.", name)
     }
 
     fn identity_key(&self, addr: &ProtocolAddress) -> String {
@@ -180,7 +180,6 @@ impl ConfigStore for SledConfigStore {
 
 impl ContactsStore for SledConfigStore {
     fn save_contacts(&mut self, contacts: &[Contact]) -> Result<(), Error> {
-        // TODO: we probably want to store the contacts in a map of UUID > data
         self.db
             .write()
             .expect("poisoned mutex")
@@ -337,7 +336,7 @@ impl SessionStoreExt for SledConfigStore {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
             })?
-            .scan_prefix(&session_prefix)
+            .scan_prefix(dbg!(&session_prefix))
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
                 let key_str = String::from_utf8_lossy(&key);
@@ -345,7 +344,7 @@ impl SessionStoreExt for SledConfigStore {
                 device_id.parse().ok()
             })
             .collect();
-        Ok(session_ids)
+        Ok(dbg!(session_ids))
     }
 
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {

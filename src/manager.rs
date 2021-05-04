@@ -549,6 +549,10 @@ where
         Ok(())
     }
 
+    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Contact>, Error> {
+        Ok(self.config_store.contacts()?.into_iter())
+    }
+
     async fn receive_messages_encrypted_stream(
         &self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {

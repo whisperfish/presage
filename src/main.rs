@@ -84,6 +84,13 @@ enum Subcommand {
     Receive,
     #[structopt(about = "List group memberships")]
     ListGroups,
+    #[structopt(about = "find a contact in the embedded DB")]
+    FindContact {
+        #[structopt(long, short = "p", help = "contact phone number")]
+        phone_number: Option<PhoneNumber>,
+        #[structopt(long, short = "name", help = "contact name")]
+        name: Option<String>,
+    },
     #[structopt(about = "sends a message")]
     Send {
         #[structopt(long, short = "n", help = "Phone number of the recipient")]
@@ -295,6 +302,22 @@ async fn main() -> anyhow::Result<()> {
         Subcommand::ListGroups => unimplemented!(),
         Subcommand::Whoami => {
             println!("{:?}", &manager.whoami().await?)
+        }
+        Subcommand::FindContact {
+            ref phone_number,
+            ref name,
+        } => {
+            for contact in manager
+                .get_contacts()?
+                .filter(|c| {
+                    phone_number
+                        .as_ref()
+                        .map_or(true, |p| c.address.phonenumber.as_ref() != Some(p))
+                })
+                .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
+            {
+                println!("{}: {}", contact.name, contact.address);
+            }
         }
         #[cfg(feature = "quirks")]
         Subcommand::RequestSyncContacts => {
