@@ -1,6 +1,6 @@
 use std::{convert::TryInto, time::UNIX_EPOCH};
 
-use futures::{channel::mpsc, future, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, future, AsyncReadExt, Sink, Stream, StreamExt};
 use image::Luma;
 use log::{error, trace, warn};
 use qrcode::QrCode;
@@ -13,7 +13,7 @@ use libsignal_service::{
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage},
     groups_v2::{GroupsManager, InMemoryCredentialsCache},
-    messagepipe::ServiceCredentials,
+    messagepipe::{MessagePipe, ServiceCredentials},
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
@@ -28,7 +28,7 @@ use libsignal_service::{
     push_service::{
         DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID,
     },
-    receiver::MessageReceiver,
+    sender::MessageToSend,
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
     AccountManager, Profile, ServiceAddress,
 };
@@ -553,44 +553,89 @@ where
 
     async fn receive_messages_encrypted(
         &self,
-    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
-        // TODO: error if we're primary registered device, as this is only for secondary devices
+    ) -> Result<
+        (
+            impl Sink<MessageToSend>,
+            impl Stream<Item = Result<Envelope, ServiceError>>,
+        ),
+        Error,
+    > {
+        // The part about sending messages
+        let (phone_number, uuid, device_id) = match &self.state {
+            State::Registered {
+                phone_number,
+                uuid,
+                device_id,
+                ..
+            } => (phone_number, uuid, device_id),
+            _ => return Err(Error::NotYetRegisteredError),
+        };
 
+        let local_addr = ServiceAddress {
+            uuid: Some(*uuid),
+            phonenumber: Some(phone_number.clone()),
+            relay: None,
+        };
+
+        let message_sender = MessageSender::new(
+            self.push_service()?,
+            self.new_service_cipher()?,
+            self.csprng.clone(),
+            self.config_store.clone(),
+            self.config_store.clone(),
+            local_addr,
+            device_id.unwrap_or(DEFAULT_DEVICE_ID),
+        );
+
+        // The part about receiving messages
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
-        let pipe = MessageReceiver::new(self.push_service()?)
-            .create_message_pipe(credentials)
+        let (websocket, stream) = self
+            .push_service()?
+            .ws("/v1/websocket/", Some(credentials.clone()))
             .await?;
-        Ok(pipe.stream())
+        let message_pipe = MessagePipe::from_socket(websocket, stream, credentials, message_sender);
+
+        Ok(message_pipe.split())
     }
 
-    pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(
+        &self,
+    ) -> Result<(impl Sink<MessageToSend>, impl Stream<Item = Content>), Error> {
         struct StreamState<S, C, R> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C, R>,
         }
 
+        let (sender, encrypted_messages_receiver) = self.receive_messages_encrypted().await?;
+
         let init = StreamState {
-            encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
+            encrypted_messages: Box::pin(encrypted_messages_receiver),
             service_cipher: self.new_service_cipher()?,
         };
 
-        Ok(futures::stream::unfold(init, |mut state| async move {
-            loop {
-                match state.encrypted_messages.next().await {
-                    Some(Ok(envelope)) => {
-                        match state.service_cipher.open_envelope(envelope).await {
-                            Ok(Some(content)) => return Some((content, state)),
-                            Ok(None) => warn!("Empty envelope..., message will be skipped!"),
-                            Err(e) => {
-                                error!("Error opening envelope: {:?}, message will be skipped!", e);
+        Ok((
+            sender,
+            futures::stream::unfold(init, |mut state| async move {
+                loop {
+                    match state.encrypted_messages.next().await {
+                        Some(Ok(envelope)) => {
+                            match state.service_cipher.open_envelope(envelope).await {
+                                Ok(Some(content)) => return Some((content, state)),
+                                Ok(None) => warn!("Empty envelope..., message will be skipped!"),
+                                Err(e) => {
+                                    error!(
+                                        "Error opening envelope: {:?}, message will be skipped!",
+                                        e
+                                    );
+                                }
                             }
                         }
+                        Some(Err(e)) => error!("Error: {}", e),
+                        None => return None,
                     }
-                    Some(Err(e)) => error!("Error: {}", e),
-                    None => return None,
                 }
-            }
-        }))
+            }),
+        ))
     }
 
     pub async fn send_message(

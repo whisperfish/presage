@@ -3,7 +3,8 @@ use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
 use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use env_logger::Env;
-use futures::{pin_mut, StreamExt};
+use futures::{pin_mut, SinkExt, StreamExt};
+use libsignal_service::{sender::MessageToSend, ServiceAddress};
 use log::debug;
 use presage::{
     config::sled::SledConfigStore,
@@ -169,12 +170,41 @@ async fn main() -> anyhow::Result<()> {
             manager.confirm_verification_code(confirmation_code).await?;
         }
         Subcommand::Receive => {
-            let messages = manager
+            let (messages, mut sender) = manager
                 .clone()
                 .receive_messages()
                 .await
                 .context("failed to initialize messages stream")?;
             pin_mut!(messages);
+            pin_mut!(sender);
+
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64;
+
+            let message = "Hello, world of websocket!".to_string();
+
+            let content_body = ContentBody::DataMessage(DataMessage {
+                body: Some(message),
+                timestamp: Some(timestamp),
+                ..Default::default()
+            });
+
+            let message = MessageToSend {
+                recipient: ServiceAddress {
+                    uuid: None,
+                    phonenumber: Some("+4917624102926".parse()?),
+                    relay: None,
+                },
+                unidentified_access: None,
+                content_body,
+                timestamp,
+                online: false,
+            };
+
+            sender.send(message).await?;
+
             while let Some(Content { metadata, body }) = messages.next().await {
                 match body {
                     ContentBody::DataMessage(message)

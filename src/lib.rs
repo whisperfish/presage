@@ -1,3 +1,5 @@
+#![deny(clippy::dbg_macro)]
+
 mod cache;
 pub mod config;
 mod errors;
