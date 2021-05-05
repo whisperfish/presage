@@ -27,14 +27,14 @@ Included in this repository is a CLI very similar (on purpose) to the great [sig
 
 ```
 # print help section
-cargo run -- --help
+cargo run --example=cli -- --help
 
 # link as secondary device, a PNG with a QR code to scan should open
-cargo run -- link-device --device-name presage
+cargo run --example=cli -- link-device --device-name presage
 
 # start receiving messages
-cargo run -- receive
+cargo run --example=cli -- receive
 ```
 
-For usage of the library, a few examples will be included under the `examples/` directory, but you might want to have a look
-at [src/main.rs](src/main.rs) for now.
+For usage of the library, a few examples are included under the `examples/` directory, and most features are demonstrated
+in [examples/cli.rs](./examples/cli.rs).

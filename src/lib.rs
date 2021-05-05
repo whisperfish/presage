@@ -3,7 +3,6 @@ pub mod config;
 mod errors;
 mod manager;
 
-pub use crate::config::SledConfigStore;
 pub use crate::errors::Error;
 pub use crate::manager::{Manager, State};
 
@@ -16,8 +15,9 @@ pub use libsignal_service::proto;
 pub mod prelude {
     pub mod service {
         pub use libsignal_service::{
+            configuration::SignalServers,
             content::{self, Content, ContentBody, Metadata},
-            prelude::{phonenumber, Uuid},
+            prelude::{phonenumber, GroupMasterKey, Uuid},
             proto, ServiceAddress,
         };
     }

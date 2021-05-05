@@ -9,11 +9,8 @@ edition = "2018"
 libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs" }
 libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git" }
 
-anyhow = "1.0"
 async-trait = "0.1"
 base64 = "0.12"
-directories = "3.0"
-env_logger = "0.7"
 futures = "0.3"
 hex = "0.4.2"
 image = { version = "0.23", default-features = false, features = ["png"] }
@@ -23,18 +20,32 @@ qrcode = "0.12"
 rand = "0.7"
 serde = "1.0"
 serde_json = "1.0"
-sled = "0.34"
-structopt = "0.3"
 thiserror = "1.0"
-tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
+
+sled = { version = "0.34", optional = true }
 
 [dev-dependencies]
+# for tests
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
+
+# for examples
+anyhow = "1.0"
+directories = "3.0"
+structopt = "0.3"
+env_logger = "0.7"
+tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
+hex = "0.4"
+serde_json = "1.0"
+rand = "0.7"
+log = "0.4"
+futures = "0.3"
+
+[features]
+default = ["sled-store"]
+quirks = []
+sled-store = ["sled"]
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
 #libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
-
-[features]
-quirks = []

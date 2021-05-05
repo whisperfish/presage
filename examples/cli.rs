@@ -5,18 +5,19 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{pin_mut, StreamExt};
 use log::debug;
-use presage::{config::SledConfigStore, Manager};
-
-use structopt::StructOpt;
-
-use libsignal_service::{
-    configuration::SignalServers,
-    content::{
-        Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
+use presage::{
+    config::sled::SledConfigStore,
+    prelude::service::{
+        content::{
+            Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
+        },
+        phonenumber::PhoneNumber,
+        proto::sync_message::Sent,
+        GroupMasterKey, SignalServers,
     },
-    prelude::{phonenumber::PhoneNumber, GroupMasterKey},
-    proto::sync_message::Sent,
+    Manager,
 };
+use structopt::StructOpt;
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]

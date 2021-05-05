@@ -5,8 +5,8 @@ use libsignal_service::{
 
 use crate::{manager::State, Error};
 
-mod sled;
-pub use self::sled::SledConfigStore;
+#[cfg(feature = "sled-store")]
+pub mod sled;
 
 pub trait ConfigStore:
     PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + ContactsStore + Clone

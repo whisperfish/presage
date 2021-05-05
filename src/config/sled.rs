@@ -29,9 +29,9 @@ pub struct SledConfigStore {
 }
 
 impl SledConfigStore {
-    pub fn new(path: PathBuf) -> Result<Self, Error> {
+    pub fn new(path: impl Into<PathBuf>) -> Result<Self, Error> {
         Ok(SledConfigStore {
-            db: Arc::new(RwLock::new(sled::open(path)?)),
+            db: Arc::new(RwLock::new(sled::open(path.into())?)),
         })
     }
 
@@ -472,15 +472,15 @@ impl IdentityKeyStore for SledConfigStore {
 
 #[cfg(test)]
 mod tests {
+    use core::fmt;
+
     use libsignal_service::prelude::protocol::{
         self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore,
         SignedPreKeyRecord, SignedPreKeyStore,
     };
     use quickcheck::{Arbitrary, Gen};
 
-    use core::fmt;
-
-    use crate::SledConfigStore;
+    use super::SledConfigStore;
 
     #[derive(Debug, Clone)]
     struct ProtocolAddress(protocol::ProtocolAddress);
