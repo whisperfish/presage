@@ -1,9 +1,6 @@
 use std::{convert::TryInto, time::UNIX_EPOCH};
 
-use futures::{
-    channel::mpsc::{channel, Sender},
-    future, pin_mut, AsyncReadExt, SinkExt, Stream, StreamExt,
-};
+use futures::{channel::mpsc, future, AsyncReadExt, Stream, StreamExt};
 use image::Luma;
 use log::{error, trace, warn};
 use qrcode::QrCode;
@@ -14,7 +11,7 @@ use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
-    content::{ContentBody, DataMessage, Metadata},
+    content::{ContentBody, DataMessage},
     groups_v2::{GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
@@ -360,7 +357,7 @@ where
         let mut linking_manager: LinkingManager<HyperPushService> =
             LinkingManager::new(push_service, password.clone());
 
-        let (tx, mut rx) = channel(1);
+        let (tx, mut rx) = mpsc::channel(1);
 
         let (fut1, fut2) = future::join(
             linking_manager.provision_secondary_device(
@@ -554,7 +551,7 @@ where
         Ok(self.config_store.contacts()?.into_iter())
     }
 
-    async fn receive_messages_encrypted_stream(
+    async fn receive_messages_encrypted(
         &self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
         // TODO: error if we're primary registered device, as this is only for secondary devices
@@ -566,14 +563,14 @@ where
         Ok(pipe.stream())
     }
 
-    pub async fn receive_messages_stream(&self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C, R> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C, R>,
         }
 
         let init = StreamState {
-            encrypted_messages: Box::pin(self.receive_messages_encrypted_stream().await?),
+            encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
         };
 
@@ -594,56 +591,6 @@ where
                 }
             }
         }))
-    }
-
-    pub async fn receive_messages(
-        &mut self,
-        mut tx: Sender<(Metadata, ContentBody)>,
-    ) -> Result<(), Error> {
-        let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
-
-        let mut service_cipher = self.new_service_cipher()?;
-        let mut receiver = MessageReceiver::new(self.push_service()?);
-
-        let pipe = receiver.create_message_pipe(credentials).await.unwrap();
-        let message_stream = pipe.stream();
-        pin_mut!(message_stream);
-
-        while let Some(step) = message_stream.next().await {
-            match step {
-                Ok(envelope) => {
-                    let Content { body, metadata } =
-                        match service_cipher.open_envelope(envelope).await {
-                            Ok(Some(content)) => content,
-                            Ok(None) => {
-                                warn!("Empty envelope...");
-                                continue;
-                            }
-                            Err(e) => {
-                                error!("Error opening envelope: {:?}, message will be skipped!", e);
-                                continue;
-                            }
-                        };
-
-                    match &body {
-                        ContentBody::SynchronizeMessage(SyncMessage {
-                            contacts: Some(contacts),
-                            ..
-                        }) => {
-                            let contacts: Result<Vec<Contact>, _> =
-                                receiver.retrieve_contacts(contacts).await?.collect();
-                            self.config_store.save_contacts(&contacts?)?;
-                        }
-                        _ => tx.send((metadata, body)).await.expect("tx channel error"),
-                    };
-                }
-                Err(e) => {
-                    error!("Error: {}", e);
-                }
-            }
-        }
-
-        Ok(())
     }
 
     pub async fn send_message(

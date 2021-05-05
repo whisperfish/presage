@@ -1,17 +1,19 @@
 use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
 
-use anyhow::bail;
+use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use env_logger::Env;
-use futures::{channel::mpsc::channel, future, StreamExt};
+use futures::{pin_mut, StreamExt};
 use log::debug;
-use presage::{config::SledConfigStore, Error, Manager};
+use presage::{config::SledConfigStore, Manager};
 
 use structopt::StructOpt;
 
 use libsignal_service::{
     configuration::SignalServers,
-    content::{ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage},
+    content::{
+        Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
+    },
     prelude::{phonenumber::PhoneNumber, GroupMasterKey},
     proto::sync_message::Sent,
 };
@@ -166,64 +168,61 @@ async fn main() -> anyhow::Result<()> {
             manager.confirm_verification_code(confirmation_code).await?;
         }
         Subcommand::Receive => {
-            let (tx, mut rx) = channel(1);
-
-            let (receiver, printer) =
-                future::join(manager.clone().receive_messages(tx), async move {
-                    while let Some((metadata, body)) = rx.next().await {
-                        match body {
-                            ContentBody::DataMessage(message)
-                            | ContentBody::SynchronizeMessage(SyncMessage {
-                                sent:
-                                    Some(Sent {
-                                        message: Some(message),
-                                        ..
-                                    }),
+            let messages = manager
+                .clone()
+                .receive_messages()
+                .await
+                .context("failed to initialize messages stream")?;
+            pin_mut!(messages);
+            while let Some(Content { metadata, body }) = messages.next().await {
+                match body {
+                    ContentBody::DataMessage(message)
+                    | ContentBody::SynchronizeMessage(SyncMessage {
+                        sent:
+                            Some(Sent {
+                                message: Some(message),
                                 ..
-                            }) => {
-                                if let Some(quote) = &message.quote {
-                                    println!(
-                                        "Quote from {:?}: > {:?} / {}",
-                                        metadata.sender,
-                                        quote,
-                                        message.body().to_string(),
-                                    );
-                                } else if let Some(reaction) = message.reaction {
-                                    println!(
-                                        "Reaction to message sent at {:?}: {:?}",
-                                        reaction.target_sent_timestamp, reaction.emoji,
-                                    )
-                                } else {
-                                    println!("Message from {:?}: {:?}", metadata, message);
-                                    // fetch the groups v2 info here, just for testing purposes
-                                    if let Some(group_v2) = message.group_v2 {
-                                        let _master_key = GroupMasterKey::new(
-                                            group_v2.master_key.unwrap().try_into().unwrap(),
-                                        );
-                                        // let group = manager.get_group_v2(master_key).await;
-                                        // println!("Group v2: {:?}", group);
-                                    }
-                                }
-                            }
-                            ContentBody::SynchronizeMessage(m) => {
-                                eprintln!("Unhandled sync message: {:?}", m);
-                            }
-                            ContentBody::TypingMessage(_) => {
-                                println!("{:?} is typing", metadata.sender);
-                            }
-                            ContentBody::CallMessage(_) => {
-                                println!("{:?} is calling!", metadata.sender);
-                            }
-                            ContentBody::ReceiptMessage(_) => {
-                                println!("Got read receipt from: {:?}", metadata.sender);
+                            }),
+                        ..
+                    }) => {
+                        if let Some(quote) = &message.quote {
+                            println!(
+                                "Quote from {:?}: > {:?} / {}",
+                                metadata.sender,
+                                quote,
+                                message.body().to_string(),
+                            );
+                        } else if let Some(reaction) = message.reaction {
+                            println!(
+                                "Reaction to message sent at {:?}: {:?}",
+                                reaction.target_sent_timestamp, reaction.emoji,
+                            )
+                        } else {
+                            println!("Message from {:?}: {:?}", metadata, message);
+                            // fetch the groups v2 info here, just for testing purposes
+                            if let Some(group_v2) = message.group_v2 {
+                                let _master_key = GroupMasterKey::new(
+                                    group_v2.master_key.unwrap().try_into().unwrap(),
+                                );
+                                // let group = manager.get_group_v2(master_key).await;
+                                // println!("Group v2: {:?}", group);
                             }
                         }
                     }
-                    Err(Error::MessagePipeInterruptedError)
-                })
-                .await;
-
-            let (_, _) = (receiver?, printer?);
+                    ContentBody::SynchronizeMessage(m) => {
+                        eprintln!("Unhandled sync message: {:?}", m);
+                    }
+                    ContentBody::TypingMessage(_) => {
+                        println!("{:?} is typing", metadata.sender);
+                    }
+                    ContentBody::CallMessage(_) => {
+                        println!("{:?} is calling!", metadata.sender);
+                    }
+                    ContentBody::ReceiptMessage(_) => {
+                        println!("Got read receipt from: {:?}", metadata.sender);
+                    }
+                }
+            }
         }
         Subcommand::Send {
             phone_number,
