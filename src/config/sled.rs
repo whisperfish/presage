@@ -336,7 +336,7 @@ impl SessionStoreExt for SledConfigStore {
                 log::error!("failed to open sessions tree: {}", e);
                 SignalProtocolError::InternalError("sled error")
             })?
-            .scan_prefix(dbg!(&session_prefix))
+            .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
                 let key_str = String::from_utf8_lossy(&key);
@@ -344,7 +344,7 @@ impl SessionStoreExt for SledConfigStore {
                 device_id.parse().ok()
             })
             .collect();
-        Ok(dbg!(session_ids))
+        Ok(session_ids)
     }
 
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
