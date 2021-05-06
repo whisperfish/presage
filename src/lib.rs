@@ -1,26 +1,27 @@
 mod cache;
-pub mod config;
+mod config;
 mod errors;
 mod manager;
 
-pub use crate::errors::Error;
-pub use crate::manager::{Manager, State};
+#[cfg(feature = "sled-store")]
+pub use config::sled::SledConfigStore;
 
-/// Re-export of `libsignal-service` crate
+pub use errors::Error;
+pub use manager::{Manager, State};
+
+#[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;
 
-/// Re-export of Signal protobufs
-pub use libsignal_service::proto;
-
 pub mod prelude {
-    pub mod service {
-        pub use libsignal_service::{
-            configuration::SignalServers,
-            content::{self, Content, ContentBody, Metadata},
-            prelude::{phonenumber, GroupMasterKey, Uuid},
-            proto, ServiceAddress,
-        };
-    }
+    pub use libsignal_service::{
+        configuration::SignalServers,
+        content::{self, Content, ContentBody, Metadata},
+        prelude::{
+            phonenumber::{self, PhoneNumber},
+            GroupMasterKey, Uuid,
+        },
+        proto, ServiceAddress,
+    };
 }
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-rs-", env!("CARGO_PKG_VERSION"));
