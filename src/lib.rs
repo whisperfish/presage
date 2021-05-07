@@ -15,10 +15,13 @@ pub use libsignal_service;
 pub mod prelude {
     pub use libsignal_service::{
         configuration::SignalServers,
-        content::{self, Content, ContentBody, Metadata},
+        content::{
+            self, Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType,
+            Metadata, SyncMessage,
+        },
         prelude::{
             phonenumber::{self, PhoneNumber},
-            GroupMasterKey, Uuid,
+            GroupMasterKey, GroupSecretParams, Uuid,
         },
         proto, ServiceAddress,
     };

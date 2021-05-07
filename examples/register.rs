@@ -1,9 +1,8 @@
 use std::io::{self, BufRead};
 
 use presage::{
-    config::sled::SledConfigStore,
-    prelude::service::{phonenumber::PhoneNumber, SignalServers},
-    Manager,
+    prelude::{phonenumber::PhoneNumber, SignalServers},
+    Manager, SledConfigStore,
 };
 
 fn read_line() -> String {

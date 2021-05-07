@@ -6,16 +6,15 @@ use env_logger::Env;
 use futures::{pin_mut, StreamExt};
 use log::debug;
 use presage::{
-    config::sled::SledConfigStore,
-    prelude::service::{
+    prelude::phonenumber::PhoneNumber,
+    prelude::{
         content::{
             Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
         },
-        phonenumber::PhoneNumber,
         proto::sync_message::Sent,
         GroupMasterKey, SignalServers,
     },
-    Manager,
+    Manager, SledConfigStore,
 };
 use structopt::StructOpt;
 

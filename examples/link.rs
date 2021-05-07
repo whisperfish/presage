@@ -1,4 +1,4 @@
-use presage::{config::sled::SledConfigStore, prelude::service::SignalServers, Manager};
+use presage::{prelude::SignalServers, Manager, SledConfigStore};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
