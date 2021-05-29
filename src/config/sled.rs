@@ -323,7 +323,7 @@ impl SessionStore for SledConfigStore {
     }
 }
 
-#[async_trait(?Send)]
+#[async_trait]
 impl SessionStoreExt for SledConfigStore {
     async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = self.session_prefix(name);
