@@ -29,6 +29,7 @@ use libsignal_service::{
         DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
+    sender::{AttachmentSpec, AttachmentUploadError},
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
     AccountManager, Profile, ServiceAddress,
 };
@@ -444,7 +445,7 @@ where
             State::Registered {
                 uuid, profile_key, ..
             } => self.retrieve_profile_by_uuid(*uuid, **profile_key).await,
-            _ => return Err(Error::NotYetRegisteredError),
+            _ => Err(Error::NotYetRegisteredError),
         }
     }
 
@@ -615,6 +616,18 @@ where
         Ok(())
     }
 
+    pub async fn upload_attachments(
+        &self,
+        attachments: Vec<(AttachmentSpec, Vec<u8>)>,
+    ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error> {
+        let sender = self.new_message_sender()?;
+        let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
+            let mut sender = sender.clone();
+            async move { sender.upload_attachment(spec, contents).await }
+        }));
+        Ok(upload.await)
+    }
+
     pub async fn send_message_to_group(
         &self,
         recipients: impl IntoIterator<Item = ServiceAddress>,
@@ -683,7 +696,7 @@ where
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error> {
         let mut service = self.push_service()?;
-        let mut attachment_stream = service.get_attachment(&attachment_pointer).await?;
+        let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
         // We need the whole file for the crypto to check out
         let mut ciphertext = Vec::new();
