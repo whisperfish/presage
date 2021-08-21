@@ -24,7 +24,9 @@ pub mod prelude {
             phonenumber::{self, PhoneNumber},
             GroupMasterKey, GroupSecretParams, Uuid,
         },
-        proto, ServiceAddress,
+        proto,
+        sender::AttachmentSpec,
+        ServiceAddress,
     };
 }
 

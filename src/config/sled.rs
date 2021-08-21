@@ -277,7 +277,7 @@ impl SessionStore for SledConfigStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
-        let key = self.session_key(&address);
+        let key = self.session_key(address);
         trace!("loading session from {}", key);
 
         let buf = self
@@ -304,7 +304,7 @@ impl SessionStore for SledConfigStore {
         record: &SessionRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        let key = self.session_key(&address);
+        let key = self.session_key(address);
         trace!("storing session for {:?} at {:?}", address, key);
         self.db
             .try_write()
@@ -327,6 +327,7 @@ impl SessionStore for SledConfigStore {
 impl SessionStoreExt for SledConfigStore {
     async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = self.session_prefix(name);
+        log::info!("get_sub_device_sessions: session_prefix={}", session_prefix);
         let session_ids: Vec<u32> = self
             .db
             .read()
@@ -348,7 +349,7 @@ impl SessionStoreExt for SledConfigStore {
     }
 
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
-        let key = self.session_key(&address);
+        let key = self.session_key(address);
         trace!("deleting session with key: {}", key);
         self.db
             .try_write()
@@ -429,7 +430,7 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         trace!("saving identity");
-        self.insert(self.identity_key(&address), identity_key.serialize())
+        self.insert(self.identity_key(address), identity_key.serialize())
             .map_err(|e| {
                 log::error!("error saving identity for {:?}: {}", address, e);
                 SignalProtocolError::InternalError("failed to save identity")
@@ -445,7 +446,7 @@ impl IdentityKeyStore for SledConfigStore {
         _direction: Direction,
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
-        match self.get(self.identity_key(&address)).map_err(|_| {
+        match self.get(self.identity_key(address)).map_err(|_| {
             SignalProtocolError::InternalError("failed to check if identity is trusted")
         })? {
             None => {
@@ -462,7 +463,7 @@ impl IdentityKeyStore for SledConfigStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let buf = self.get(self.identity_key(&address)).map_err(|e| {
+        let buf = self.get(self.identity_key(address)).map_err(|e| {
             log::error!("error getting identity of {:?}: {}", address, e);
             SignalProtocolError::InternalError("failed to read identity")
         })?;
