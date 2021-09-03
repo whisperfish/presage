@@ -525,8 +525,8 @@ where
     /// Note: if this is successful, the contacts are not yet received & stored, and will only be
     /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&self) -> Result<(), Error> {
-        let phone_number = match &self.state {
-            State::Registered { phone_number, .. } => phone_number,
+        let uuid = match &self.state {
+            State::Registered { uuid, .. } => uuid,
             _ => return Err(Error::NotYetRegisteredError),
         };
 
@@ -542,7 +542,7 @@ where
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(phone_number.clone(), sync_message, timestamp)
+        self.send_message(uuid.clone(), sync_message, timestamp)
             .await?;
 
         Ok(())
