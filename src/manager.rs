@@ -542,8 +542,7 @@ where
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(uuid.clone(), sync_message, timestamp)
-            .await?;
+        self.send_message(*uuid, sync_message, timestamp).await?;
 
         Ok(())
     }
