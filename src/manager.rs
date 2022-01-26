@@ -22,8 +22,8 @@ use libsignal_service::{
     },
     proto::{sync_message, AttachmentPointer, SyncMessage},
     provisioning::{
-        generate_registration_id, ConfirmCodeMessage, LinkingManager, ProvisioningManager,
-        SecondaryDeviceProvisioning, VerificationCodeResponse,
+        generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
+        VerificationCodeResponse,
     },
     push_service::{
         AccountAttributes, DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse,
@@ -486,13 +486,12 @@ where
     }
 
     pub async fn set_account_attributes(&mut self) -> Result<(), Error> {
-        let (profile_key, registration_id, device_name) = match &self.state {
+        let (profile_key, registration_id) = match &self.state {
             State::Registered {
                 profile_key,
                 registration_id,
-                device_name,
                 ..
-            } => (profile_key, registration_id, device_name),
+            } => (profile_key, registration_id),
             _ => return Err(Error::NotYetRegisteredError),
         };
         dbg!(profile_key.derive_access_key().len());

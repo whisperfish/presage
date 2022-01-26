@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "efd4ea86f57520d99141bb9c1c4b38a2ac646d6a" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "efd4ea86f57520d99141bb9c1c4b38a2ac646d6a" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -39,7 +39,7 @@ log = "0.4"
 rand = "0.7"
 serde_json = "1.0"
 structopt = "0.3"
-tokio = { version = "1.0", features = [ "macros", "rt-multi-thread" ] }
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
 url = "2.2.2"
 
 [features]
