@@ -6,7 +6,6 @@ use env_logger::Env;
 use futures::{pin_mut, StreamExt};
 use log::debug;
 use presage::{
-    prelude::phonenumber::PhoneNumber,
     prelude::{
         content::{
             Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
@@ -14,6 +13,7 @@ use presage::{
         proto::sync_message::Sent,
         GroupMasterKey, SignalServers,
     },
+    prelude::{phonenumber::PhoneNumber, Uuid},
     Manager, SledConfigStore,
 };
 use structopt::StructOpt;
@@ -95,8 +95,8 @@ enum Subcommand {
     },
     #[structopt(about = "sends a message")]
     Send {
-        #[structopt(long, short = "n", help = "Phone number of the recipient")]
-        phone_number: PhoneNumber,
+        #[structopt(long, short = "u", help = "uuid of the recipient")]
+        uuid: Uuid,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
     },
@@ -224,10 +224,7 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        Subcommand::Send {
-            phone_number,
-            message,
-        } => {
+        Subcommand::Send { uuid, message } => {
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
@@ -239,9 +236,7 @@ async fn main() -> anyhow::Result<()> {
                 ..Default::default()
             });
 
-            manager
-                .send_message(phone_number, message, timestamp)
-                .await?;
+            manager.send_message(uuid, message, timestamp).await?;
         }
         Subcommand::SendToGroup {
             recipients,
