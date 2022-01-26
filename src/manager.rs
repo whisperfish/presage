@@ -22,11 +22,12 @@ use libsignal_service::{
     },
     proto::{sync_message, AttachmentPointer, SyncMessage},
     provisioning::{
-        generate_registration_id, ConfirmCodeMessage, LinkingManager, ProvisioningManager,
-        SecondaryDeviceProvisioning, VerificationCodeResponse,
+        generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
+        VerificationCodeResponse,
     },
     push_service::{
-        DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse, DEFAULT_DEVICE_ID,
+        AccountAttributes, DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse,
+        DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -75,7 +76,6 @@ pub enum State {
         signal_servers: SignalServers,
         phone_number: PhoneNumber,
         use_voice_call: bool,
-        captcha: Option<String>,
     },
     Linking {
         signal_servers: SignalServers,
@@ -90,6 +90,7 @@ pub enum State {
     },
     Registered {
         signal_servers: SignalServers,
+        device_name: Option<String>,
         phone_number: PhoneNumber,
         uuid: Uuid,
         password: String,
@@ -107,7 +108,7 @@ pub enum State {
 
 impl<C> Manager<C>
 where
-    C: ConfigStore,
+    C: ConfigStore + Sync,
 {
     /// Creates a new manager from a store with a default random generator.
     pub fn with_store(store: C) -> Result<Self, Error> {
@@ -117,7 +118,7 @@ where
 
 impl<C, R> Manager<C, R>
 where
-    C: ConfigStore,
+    C: ConfigStore + Sync,
     R: Rng + CryptoRng + Clone,
 {
     pub fn new(config_store: C, csprng: R) -> Result<Self, Error> {
@@ -206,7 +207,7 @@ where
         signal_servers: SignalServers,
         phone_number: PhoneNumber,
         use_voice_call: bool,
-        captcha: Option<String>,
+        captcha: Option<&str>,
         force: bool,
     ) -> Result<(), Error> {
         // generate a random 24 bytes password
@@ -227,7 +228,6 @@ where
             signal_servers,
             phone_number: phone_number.clone(),
             use_voice_call,
-            captcha: captcha.clone(),
         })?;
 
         let mut push_service = self.push_service()?;
@@ -236,11 +236,11 @@ where
 
         let verification_code_response = if use_voice_call {
             provisioning_manager
-                .request_voice_verification_code(captcha.as_deref(), None)
+                .request_voice_verification_code(captcha, None)
                 .await?
         } else {
             provisioning_manager
-                .request_sms_verification_code(captcha.as_deref(), None)
+                .request_sms_verification_code(captcha, None)
                 .await?
         };
 
@@ -271,17 +271,6 @@ where
         let registration_id = generate_registration_id(&mut self.csprng);
         trace!("registration_id: {}", registration_id);
 
-        // let mut push_service = HyperPushService::new(
-        //     (*signal_servers).into(),
-        //     Some(ServiceCredentials {
-        //         phonenumber: phone_number.clone(),
-        //         password: Some(password.clone()),
-        //         uuid: None,
-        //         signaling_key: None,
-        //         device_id: None,
-        //     }),
-        //     USER_AGENT,
-        // );
         let mut push_service = self.push_service()?;
         let mut provisioning_manager: ProvisioningManager<HyperPushService> =
             ProvisioningManager::new(
@@ -290,7 +279,8 @@ where
                 password.to_string(),
             );
 
-        let mut rng = rand::rngs::OsRng::default();
+        let mut rng = rand::thread_rng();
+
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
@@ -302,11 +292,24 @@ where
         let registered = provisioning_manager
             .confirm_verification_code(
                 confirm_code,
-                ConfirmCodeMessage::new(
-                    signaling_key.to_vec(),
+                AccountAttributes {
+                    signaling_key: Some(signaling_key.to_vec()),
                     registration_id,
-                    profile_key.derive_access_key(),
-                ),
+                    voice: false,
+                    video: false,
+                    fetches_messages: true,
+                    pin: None,
+                    registration_lock: None,
+                    unidentified_access_key: Some(profile_key.derive_access_key()),
+                    unrestricted_unidentified_access: false, // TODO: make this configurable?
+                    discoverable_by_phone_number: true,
+                    capabilities: DeviceCapabilities {
+                        uuid: true,
+                        gv2: true,
+                        storage: false,
+                        gv1_migration: true,
+                    },
+                },
             )
             .await?;
 
@@ -316,6 +319,7 @@ where
         let password = password.clone();
         self.set_state(State::Registered {
             signal_servers,
+            device_name: None,
             phone_number,
             uuid: registered.uuid,
             password,
@@ -330,7 +334,6 @@ where
         trace!("confirmed! (and registered)");
 
         self.register_pre_keys().await?;
-        self.set_account_attributes().await?;
 
         Ok(())
     }
@@ -361,12 +364,7 @@ where
         let (tx, mut rx) = mpsc::channel(1);
 
         let (fut1, fut2) = future::join(
-            linking_manager.provision_secondary_device(
-                &mut self.csprng,
-                signaling_key,
-                &device_name,
-                tx,
-            ),
+            linking_manager.provision_secondary_device(&mut self.csprng, signaling_key, tx),
             async move {
                 while let Some(provisioning_step) = rx.next().await {
                     match provisioning_step {
@@ -418,6 +416,7 @@ where
 
         self.set_state(State::Registered {
             signal_servers,
+            device_name: Some(device_name),
             phone_number,
             uuid,
             signaling_key,
@@ -486,7 +485,7 @@ where
         Ok(())
     }
 
-    async fn set_account_attributes(&mut self) -> Result<(), Error> {
+    pub async fn set_account_attributes(&mut self) -> Result<(), Error> {
         let (profile_key, registration_id) = match &self.state {
             State::Registered {
                 profile_key,
@@ -495,26 +494,28 @@ where
             } => (profile_key, registration_id),
             _ => return Err(Error::NotYetRegisteredError),
         };
+        dbg!(profile_key.derive_access_key().len());
+
         let mut account_manager = AccountManager::new(self.push_service()?, Some(**profile_key));
         account_manager
-            .set_account_attributes(
-                None,
-                *registration_id,
-                false,
-                false,
-                true,
-                None,
-                None,
-                None,
-                false,
-                true,
-                DeviceCapabilities {
+            .set_account_attributes(AccountAttributes {
+                registration_id: *registration_id,
+                signaling_key: None,
+                voice: false,
+                video: false,
+                fetches_messages: true,
+                pin: None,
+                registration_lock: None,
+                unidentified_access_key: Some(profile_key.derive_access_key()),
+                unrestricted_unidentified_access: false,
+                discoverable_by_phone_number: true,
+                capabilities: DeviceCapabilities {
                     uuid: true,
-                    gv2: true,
                     storage: false,
+                    gv2: true,
                     gv1_migration: true,
                 },
-            )
+            })
             .await?;
         Ok(())
     }

@@ -17,6 +17,7 @@ use presage::{
     Manager, SledConfigStore,
 };
 use structopt::StructOpt;
+use url::Url;
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
@@ -42,7 +43,7 @@ enum Subcommand {
             long = "captcha",
             help = "Captcha obtained from https://signalcaptchas.org/registration/generate.html"
         )]
-        captcha: Option<String>,
+        captcha: Option<Url>,
         #[structopt(long, help = "Force to register again if already registered")]
         force: bool,
     },
@@ -153,7 +154,13 @@ async fn main() -> anyhow::Result<()> {
             force,
         } => {
             manager
-                .register(servers, phone_number, use_voice_call, captcha, force)
+                .register(
+                    servers,
+                    phone_number,
+                    use_voice_call,
+                    captcha.as_ref().map(|u| u.host_str().unwrap()),
+                    force,
+                )
                 .await?;
         }
         Subcommand::LinkDevice {
@@ -289,7 +296,9 @@ async fn main() -> anyhow::Result<()> {
         }
         Subcommand::UpdateProfile => unimplemented!(),
         Subcommand::GetUserStatus => unimplemented!(),
-        Subcommand::UpdateAccount => unimplemented!(),
+        Subcommand::UpdateAccount => {
+            manager.set_account_attributes().await?;
+        }
         Subcommand::Block => unimplemented!(),
         Subcommand::Unblock => unimplemented!(),
         Subcommand::UpdateContact => unimplemented!(),

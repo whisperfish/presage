@@ -4,7 +4,7 @@ use libsignal_service::{models::ParseContactError, prelude::protocol::SignalProt
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-    #[error("captcha from https://signalcaptchas.org required")]
+    #[error("captcha from https://signalcaptchas.org/registration/generate.html required")]
     CaptchaRequired,
     #[error("input/output error: {0}")]
     IoError(#[from] std::io::Error),
