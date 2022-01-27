@@ -12,7 +12,7 @@ use libsignal_service::{
         SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
     },
 };
-use log::{trace, warn};
+use log::{trace, warn, debug};
 use sled::IVec;
 
 use super::{ConfigStore, ContactsStore};
@@ -179,21 +179,32 @@ impl ConfigStore for SledConfigStore {
 }
 
 impl ContactsStore for SledConfigStore {
-    fn save_contacts(&mut self, contacts: &[Contact]) -> Result<(), Error> {
-        self.db
+    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
+        let tree = self
+            .db
             .write()
             .expect("poisoned mutex")
-            .insert(SLED_KEY_CONTACTS, serde_json::to_vec(contacts)?)?;
-        trace!("saved contacts");
+            .open_tree(SLED_KEY_CONTACTS)?;
+        for contact in contacts {
+            tree.insert(
+                contact.address.uuid.unwrap().to_string(),
+                serde_json::to_vec(&contact)?,
+            )?;
+        }
+        debug!("saved contacts");
         Ok(())
     }
 
     fn contacts(&self) -> Result<Vec<Contact>, Error> {
-        self.db
+        Ok(self
+            .db
             .read()
             .expect("poisoned mutex")
-            .get(SLED_KEY_CONTACTS)?
-            .map_or_else(|| Ok(vec![]), |buf| Ok(serde_json::from_slice(&buf)?))
+            .open_tree(SLED_KEY_CONTACTS)?
+            .iter()
+            .filter_map(Result::ok)
+            .filter_map(|(k, buf)| serde_json::from_slice(&buf).ok())
+            .collect())
     }
 }
 

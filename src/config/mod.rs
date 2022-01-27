@@ -23,6 +23,6 @@ pub trait ConfigStore:
 }
 
 pub trait ContactsStore {
-    fn save_contacts(&mut self, contacts: &[Contact]) -> Result<(), Error>;
+    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error>;
     fn contacts(&self) -> Result<Vec<Contact>, Error>;
 }

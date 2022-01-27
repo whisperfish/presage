@@ -11,7 +11,7 @@ use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
-    content::{ContentBody, DataMessage},
+    content::{ContentBody, DataMessage, Metadata, SyncMessage},
     groups_v2::{GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
@@ -20,7 +20,10 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
-    proto::{sync_message, AttachmentPointer, SyncMessage},
+    proto::{
+        sync_message::{self, Contacts},
+        AttachmentPointer, ContactDetails,
+    },
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -199,6 +202,7 @@ where
     #[cfg(feature = "quirks")]
     pub fn dump_config(&mut self) -> Result<(), Error> {
         serde_json::to_writer_pretty(std::io::stderr(), &self.state)?;
+
         Ok(())
     }
 
@@ -568,11 +572,15 @@ where
         struct StreamState<S, C, R> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C, R>,
+            push_service: HyperPushService,
+            config_store: C,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
+            push_service: self.push_service()?,
+            config_store: self.config_store.clone(),
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -580,6 +588,28 @@ where
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
+                            Ok(Some(Content {
+                                metadata: Metadata { sender, .. },
+                                body:
+                                    ContentBody::SynchronizeMessage(SyncMessage {
+                                        contacts: Some(contacts),
+                                        ..
+                                    }),
+                            })) => {
+                                let mut message_receiver =
+                                    MessageReceiver::new(state.push_service.clone());
+                                match message_receiver.retrieve_contacts(&contacts).await {
+                                    Ok(contacts_iter) => {
+                                        if let Err(e) = state
+                                            .config_store
+                                            .save_contacts(contacts_iter.filter_map(Result::ok))
+                                        {
+                                            error!("failed to save contacts: {}", e)
+                                        }
+                                    }
+                                    Err(e) => error!("failed to retrieve contacts: {}", e),
+                                }
+                            }
                             Ok(Some(content)) => return Some((content, state)),
                             Ok(None) => warn!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
