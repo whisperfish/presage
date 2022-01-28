@@ -1,9 +1,7 @@
 use std::{convert::TryInto, time::UNIX_EPOCH};
 
 use futures::{channel::mpsc, future, AsyncReadExt, Stream, StreamExt};
-use image::Luma;
 use log::{error, trace, warn};
-use qrcode::QrCode;
 use rand::{distributions::Alphanumeric, CryptoRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 
@@ -372,17 +370,9 @@ where
                     match provisioning_step {
                         SecondaryDeviceProvisioning::Url(url) => {
                             log::info!("generating qrcode from provisioning link: {}", &url);
-                            let code =
-                                QrCode::new(url.as_str()).expect("failed to generate qrcode");
-                            let image = code.render::<Luma<u8>>().build();
-                            let path = std::env::temp_dir().join("device-link.png");
-                            image.save(&path).map_err(|e| {
-                                log::error!("failed to generate qr code: {}", e);
-                                Error::QrCodeError
-                            })?;
-                            opener::open(path).map_err(|e| {
+                            qr2term::print_qr(url.to_string()).map_err(|e| {
                                 log::error!("failed to open qr code: {}", e);
-                                Error::QrCodeError
+                                Error::QrCodeError(e)
                             })?;
                         }
                         SecondaryDeviceProvisioning::NewDeviceRegistration {
