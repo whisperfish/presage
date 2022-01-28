@@ -53,6 +53,7 @@ enum Subcommand {
         about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
     )]
     LinkDevice {
+        /// Possible values: staging, production
         #[structopt(long, short = "s", default_value = "production")]
         servers: SignalServers,
         #[structopt(
@@ -197,7 +198,7 @@ async fn main() -> anyhow::Result<()> {
                                 "Quote from {:?}: > {:?} / {}",
                                 metadata.sender,
                                 quote,
-                                message.body().to_string(),
+                                message.body(),
                             );
                         } else if let Some(reaction) = message.reaction {
                             println!(
