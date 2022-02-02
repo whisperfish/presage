@@ -4,6 +4,7 @@ use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{pin_mut, StreamExt};
+use libsignal_service::{models::Contact, prelude::Contacts, ServiceAddress};
 use log::debug;
 use presage::{
     prelude::{
@@ -88,10 +89,12 @@ enum Subcommand {
     Receive,
     #[structopt(about = "List group memberships")]
     ListGroups,
+    #[structopt(about = "list contacts")]
+    ListContacts,
     #[structopt(about = "find a contact in the embedded DB")]
     FindContact {
-        #[structopt(long, short = "p", help = "contact phone number")]
-        phone_number: Option<PhoneNumber>,
+        #[structopt(long, short = "u", help = "contact UUID")]
+        uuid: Option<Uuid>,
         #[structopt(long, short = "name", help = "contact name")]
         name: Option<String>,
     },
@@ -304,20 +307,30 @@ async fn main() -> anyhow::Result<()> {
         Subcommand::Unblock => unimplemented!(),
         Subcommand::UpdateContact => unimplemented!(),
         Subcommand::ListGroups => unimplemented!(),
+        Subcommand::ListContacts => {
+            for contact in manager.get_contacts()? {
+                if let Contact {
+                    name,
+                    address:
+                        ServiceAddress {
+                            uuid: Some(uuid),
+                            phonenumber: Some(phonenumber),
+                            ..
+                        },
+                    ..
+                } = contact
+                {
+                    println!("{} / {} / {}", uuid, name, phonenumber);
+                }
+            }
+        }
         Subcommand::Whoami => {
             println!("{:?}", &manager.whoami().await?)
         }
-        Subcommand::FindContact {
-            ref phone_number,
-            ref name,
-        } => {
+        Subcommand::FindContact { uuid, ref name } => {
             for contact in manager
                 .get_contacts()?
-                .filter(|c| {
-                    phone_number
-                        .as_ref()
-                        .map_or(true, |p| c.address.phonenumber.as_ref() != Some(p))
-                })
+                .filter(|c| c.address.uuid == uuid)
                 .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
             {
                 println!("{}: {}", contact.name, contact.address);
