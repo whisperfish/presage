@@ -4,7 +4,7 @@ use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{pin_mut, StreamExt};
-use libsignal_service::prelude::Contacts;
+use libsignal_service::{models::Contact, prelude::Contacts, ServiceAddress};
 use log::debug;
 use presage::{
     prelude::{
@@ -308,7 +308,19 @@ async fn main() -> anyhow::Result<()> {
         Subcommand::ListGroups => unimplemented!(),
         Subcommand::ListContacts => {
             for contact in manager.get_contacts()? {
-                println!("{:#?}", contact);
+                if let Contact {
+                    name,
+                    address:
+                        ServiceAddress {
+                            uuid: Some(uuid),
+                            phonenumber: Some(phonenumber),
+                            ..
+                        },
+                    ..
+                } = contact
+                {
+                    println!("{} / {} / {}", uuid, name, phonenumber);
+                }
             }
         }
         Subcommand::Whoami => {
