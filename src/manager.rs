@@ -9,7 +9,7 @@ use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
-    content::{ContentBody, DataMessage, Metadata, SyncMessage},
+    content::{ContentBody, DataMessage, SyncMessage},
     groups_v2::{GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
@@ -18,10 +18,7 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
-    proto::{
-        sync_message::{self, Contacts},
-        AttachmentPointer, ContactDetails,
-    },
+    proto::{sync_message, AttachmentPointer},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -546,6 +543,10 @@ where
         Ok(self.config_store.contacts()?.into_iter())
     }
 
+    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        self.config_store.contact_by_id(id)
+    }
+
     async fn receive_messages_encrypted(
         &self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
@@ -579,12 +580,12 @@ where
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             Ok(Some(Content {
-                                metadata: Metadata { sender, .. },
                                 body:
                                     ContentBody::SynchronizeMessage(SyncMessage {
                                         contacts: Some(contacts),
                                         ..
                                     }),
+                                ..
                             })) => {
                                 let mut message_receiver =
                                     MessageReceiver::new(state.push_service.clone());

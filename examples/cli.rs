@@ -4,7 +4,7 @@ use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{pin_mut, StreamExt};
-use libsignal_service::{models::Contact, prelude::Contacts, ServiceAddress};
+use libsignal_service::ServiceAddress;
 use log::debug;
 use presage::{
     prelude::{
@@ -12,7 +12,7 @@ use presage::{
             Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
         },
         proto::sync_message::Sent,
-        GroupMasterKey, SignalServers,
+        Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, Uuid},
     Manager, SledConfigStore,

@@ -6,13 +6,16 @@ use std::{
 use async_trait::async_trait;
 use libsignal_service::{
     models::Contact,
-    prelude::protocol::{
-        Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
-        PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
-        SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+    prelude::{
+        protocol::{
+            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
+            PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
+            SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+        },
+        Uuid,
     },
 };
-use log::{trace, warn, debug};
+use log::{debug, trace, warn};
 use sled::IVec;
 
 use super::{ConfigStore, ContactsStore};
@@ -203,8 +206,20 @@ impl ContactsStore for SledConfigStore {
             .open_tree(SLED_KEY_CONTACTS)?
             .iter()
             .filter_map(Result::ok)
-            .filter_map(|(k, buf)| serde_json::from_slice(&buf).ok())
+            .filter_map(|(_key, buf)| serde_json::from_slice(&buf).ok())
             .collect())
+    }
+
+    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        let db = self.db.read().expect("poisoned mutex");
+        Ok(
+            if let Some(buf) = db.open_tree(SLED_KEY_CONTACTS)?.get(id.to_string())? {
+                let contact = serde_json::from_slice(&buf)?;
+                Some(contact)
+            } else {
+                None
+            },
+        )
     }
 }
 
