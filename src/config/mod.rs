@@ -1,6 +1,9 @@
 use libsignal_service::{
     models::Contact,
-    prelude::protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
+    prelude::{
+        protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
+        Uuid,
+    },
 };
 
 use crate::{manager::State, Error};
@@ -25,4 +28,5 @@ pub trait ConfigStore:
 pub trait ContactsStore {
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error>;
     fn contacts(&self) -> Result<Vec<Contact>, Error>;
+    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
