@@ -189,10 +189,11 @@ impl ContactsStore for SledConfigStore {
             .expect("poisoned mutex")
             .open_tree(SLED_KEY_CONTACTS)?;
         for contact in contacts {
-            tree.insert(
-                contact.address.uuid.unwrap().to_string(),
-                serde_json::to_vec(&contact)?,
-            )?;
+            if let Some(uuid) = contact.address.uuid {
+                tree.insert(uuid.to_string(), serde_json::to_vec(&contact)?)?;
+            } else {
+                warn!("skipping contact {:?} without uuid", contact);
+            }
         }
         debug!("saved contacts");
         Ok(())
