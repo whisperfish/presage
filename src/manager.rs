@@ -791,14 +791,16 @@ where
         };
 
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
-        let certificate_validator = service_configuration.credentials_validator()?;
+        let unidentified_sender_trust_root = PublicKey::deserialize(
+            &base64::decode(&service_configuration.unidentified_sender_trust_root).unwrap()
+        )?;
         let service_cipher = ServiceCipher::new(
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             self.csprng.clone(),
-            certificate_validator,
+            unidentified_sender_trust_root,
         );
 
         Ok(service_cipher)
