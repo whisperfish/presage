@@ -10,7 +10,7 @@ use libsignal_service::{
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, Metadata, SyncMessage},
-    groups_v2::{GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{Group, GroupChanges, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
@@ -19,8 +19,8 @@ use libsignal_service::{
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
     proto::{
-        sync_message::{self, Contacts},
-        AttachmentPointer, ContactDetails,
+        sync_message::{self},
+        AttachmentPointer, GroupContextV2,
     },
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
@@ -579,7 +579,7 @@ where
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             Ok(Some(Content {
-                                metadata: Metadata { sender, .. },
+                                metadata: Metadata { .. },
                                 body:
                                     ContentBody::SynchronizeMessage(SyncMessage {
                                         contacts: Some(contacts),
@@ -676,10 +676,7 @@ where
         Ok(())
     }
 
-    pub async fn get_group_v2(
-        &mut self,
-        group_master_key: GroupMasterKey,
-    ) -> Result<libsignal_service::proto::DecryptedGroup, Error> {
+    pub async fn get_group_v2(&self, group_master_key: GroupMasterKey) -> Result<Group, Error> {
         let (signal_servers, _phone_number, uuid, _device_id) = match &self.state {
             State::Registered {
                 signal_servers,
@@ -695,20 +692,51 @@ where
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
         let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let mut groups_v2_api = GroupsManager::new(
+        let mut groups_v2_manager = GroupsManager::new(
             self.push_service()?,
             &mut groups_v2_credentials_cache,
             server_public_params,
         );
 
         let group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
-        let authorization = groups_v2_api
+        let authorization = groups_v2_manager
             .get_authorization_for_today(*uuid, group_secret_params)
             .await?;
 
-        Ok(groups_v2_api
+        Ok(groups_v2_manager
             .get_group(group_secret_params, authorization)
             .await?)
+    }
+
+    pub fn decrypt_group_context(
+        &self,
+        group_context: GroupContextV2,
+    ) -> Result<Option<GroupChanges>, Error> {
+        let (signal_servers, _phone_number, uuid, _device_id) = match &self.state {
+            State::Registered {
+                signal_servers,
+                phone_number,
+                uuid,
+                device_id,
+                ..
+            } => (signal_servers, phone_number, uuid, device_id),
+            _ => return Err(Error::NotYetRegisteredError),
+        };
+
+        let service_configuration: ServiceConfiguration = (*signal_servers).into();
+        let server_public_params = service_configuration.zkgroup_server_public_params;
+        let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
+        let mut groups_v2_manager = GroupsManager::new(
+            self.push_service()?,
+            &mut groups_v2_credentials_cache,
+            server_public_params,
+        );
+
+        let group_changes = groups_v2_manager
+            .decrypt_group_context(group_context)
+            .map_err(|e| ServiceError::GroupsV2DecryptionError(e))?;
+
+        Ok(group_changes)
     }
 
     pub async fn get_attachment(
@@ -792,7 +820,7 @@ where
 
         let service_configuration: ServiceConfiguration = (*signal_servers).into();
         let unidentified_sender_trust_root = PublicKey::deserialize(
-            &base64::decode(&service_configuration.unidentified_sender_trust_root).unwrap()
+            &base64::decode(&service_configuration.unidentified_sender_trust_root).unwrap(),
         )?;
         let service_cipher = ServiceCipher::new(
             self.config_store.clone(),

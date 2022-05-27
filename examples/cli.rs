@@ -208,15 +208,18 @@ async fn main() -> anyhow::Result<()> {
                                 "Reaction to message sent at {:?}: {:?}",
                                 reaction.target_sent_timestamp, reaction.emoji,
                             )
+                        } else if let Some(group_context) = message.group_v2 {
+                            let group_changes = manager.decrypt_group_context(group_context)?;
+                            println!("Group change: {:?}", group_changes);
                         } else {
                             println!("Message from {:?}: {:?}", metadata, message);
                             // fetch the groups v2 info here, just for testing purposes
                             if let Some(group_v2) = message.group_v2 {
-                                let _master_key = GroupMasterKey::new(
+                                let master_key = GroupMasterKey::new(
                                     group_v2.master_key.unwrap().try_into().unwrap(),
                                 );
-                                // let group = manager.get_group_v2(master_key).await;
-                                // println!("Group v2: {:?}", group);
+                                let group = manager.get_group_v2(master_key).await?;
+                                println!("Group v2: {:?}", group.title);
                             }
                         }
                     }

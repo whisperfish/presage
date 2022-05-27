@@ -12,7 +12,7 @@ use libsignal_service::{
         SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
     },
 };
-use log::{trace, warn, debug};
+use log::{debug, trace, warn};
 use sled::IVec;
 
 use super::{ConfigStore, ContactsStore};
@@ -202,7 +202,7 @@ impl ContactsStore for SledConfigStore {
             .open_tree(SLED_KEY_CONTACTS)?
             .iter()
             .filter_map(Result::ok)
-            .filter_map(|(k, buf)| serde_json::from_slice(&buf).ok())
+            .filter_map(|(_k, buf)| serde_json::from_slice(&buf).ok())
             .collect())
     }
 }
@@ -290,7 +290,8 @@ impl SessionStore for SledConfigStore {
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_SESSIONS)
             .unwrap()
-            .get(key).unwrap();
+            .get(key)
+            .unwrap();
 
         buf.map(|buf| SessionRecord::deserialize(&buf)).transpose()
     }
@@ -357,8 +358,9 @@ impl SessionStoreExt for SledConfigStore {
             .open_tree(SLED_TREE_SESSIONS)
             .unwrap();
         let len = tree.len();
-        tree.clear()
-            .map_err(|_e| SignalProtocolError::InvalidSessionStructure("failed to delete all sessions"))?;
+        tree.clear().map_err(|_e| {
+            SignalProtocolError::InvalidSessionStructure("failed to delete all sessions")
+        })?;
         Ok(len)
     }
 }
@@ -379,10 +381,16 @@ impl IdentityKeyStore for SledConfigStore {
                 IdentityKey::new(public_key),
                 private_key,
             )),
-            Ok(_) => Err(SignalProtocolError::InvalidState("get_identity_key_pair", "no registration data yet".into())),
+            Ok(_) => Err(SignalProtocolError::InvalidState(
+                "get_identity_key_pair",
+                "no registration data yet".into(),
+            )),
             Err(e) => {
                 log::error!("identity key store error: {}", e);
-                Err(SignalProtocolError::InvalidState("get_identity_key_pair", "unhandled error".into()))
+                Err(SignalProtocolError::InvalidState(
+                    "get_identity_key_pair",
+                    "unhandled error".into(),
+                ))
             }
         }
     }
@@ -393,10 +401,16 @@ impl IdentityKeyStore for SledConfigStore {
             Ok(State::Registered {
                 registration_id, ..
             }) => Ok(registration_id),
-            Ok(_) => Err(SignalProtocolError::InvalidState("get_identity_key_pair", "no registration data yet".into())),
+            Ok(_) => Err(SignalProtocolError::InvalidState(
+                "get_identity_key_pair",
+                "no registration data yet".into(),
+            )),
             Err(e) => {
                 log::error!("identity key store error: {}", e);
-                Err(SignalProtocolError::InvalidState("get_local_registration_id", "unhandled error".into()))
+                Err(SignalProtocolError::InvalidState(
+                    "get_local_registration_id",
+                    "unhandled error".into(),
+                ))
             }
         }
     }
@@ -425,7 +439,10 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         match self.get(self.identity_key(address)).map_err(|_| {
-            SignalProtocolError::InvalidState("is_trusted_identity", "failed to check if identity is trusted".into())
+            SignalProtocolError::InvalidState(
+                "is_trusted_identity",
+                "failed to check if identity is trusted".into(),
+            )
         })? {
             None => {
                 // when we encounter a new identity, we trust it by default
