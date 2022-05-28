@@ -38,7 +38,7 @@ use libsignal_service::{
 
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, SledConfigStore};
+use crate::cache::CacheCell;
 use crate::{config::ConfigStore, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, ThreadRng>;
@@ -51,17 +51,6 @@ pub struct Manager<ConfigStore, State = New> {
     config_store: ConfigStore,
     /// Part of the manager which is persisted in the store.
     state: State,
-}
-
-#[derive(Clone, Default)]
-struct Cache {
-    push_service: CacheCell<HyperPushService>,
-}
-
-impl Cache {
-    fn clear(&self) {
-        self.push_service.clear();
-    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -99,7 +88,7 @@ pub struct Linking {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    cache: Cache,
+    cache: CacheCell<HyperPushService>,
     signal_servers: SignalServers,
     pub(crate) device_name: Option<String>,
     pub(crate) phone_number: PhoneNumber,
@@ -116,50 +105,6 @@ pub struct Registered {
     pub(crate) profile_key: ProfileKey,
 }
 
-// impl<C> Manager<C>
-// where
-//     C: ConfigStore + Sync,
-// {
-//     /// Creates a new manager from a store with a default random generator.
-//     pub fn with_store(store: C) -> Result<Self, Error> {
-//         Self::new(store, rand::thread_rng())
-//     }
-// }
-
-// impl<C, R> Manager<C, R>
-// where
-//     C: ConfigStore + Sync,
-//     R: Rng + CryptoRng + Clone,
-// {
-//     pub fn new(config_store: C, csprng: R) -> Result<Self, Error> {
-//         let state = config_store.state()?;
-//         Ok(Manager {
-//             config_store,
-//             csprng,
-//             state: New,
-//             cache: Default::default(),
-//         })
-//     }
-// }
-
-pub async fn blah() {
-    let config_store = SledConfigStore::new("").unwrap();
-    let m = Manager::register(
-        config_store,
-        RegistrationOptions {
-            signal_servers: todo!(),
-            phone_number: todo!(),
-            use_voice_call: todo!(),
-            captcha: todo!(),
-            force: todo!(),
-        },
-    )
-    .await
-    .unwrap();
-
-    let m = m.confirm_verification_code(1234).await.unwrap();
-}
-
 impl Manager<Registration> {
     pub async fn register<C: ConfigStore>(
         config_store: C,
@@ -172,6 +117,11 @@ impl Manager<Registration> {
             captcha,
             force,
         } = registration_options;
+
+        // check if we are already registered
+        if !force {
+            config_store.load_state()?;
+        }
 
         // generate a random 24 bytes password
         let rng = rand::thread_rng();
@@ -280,7 +230,7 @@ impl Manager<Linking> {
         let mut manager = Manager {
             config_store,
             state: Registered {
-                cache: Cache::default(),
+                cache: CacheCell::default(),
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -382,7 +332,7 @@ impl<C: ConfigStore> Manager<C, Confirmation> {
         let mut manager = Manager {
             config_store: self.config_store,
             state: Registered {
-                cache: Cache::default(),
+                cache: CacheCell::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -677,7 +627,7 @@ where
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let server_public_params = service_configuration.zkgroup_server_public_params;
         let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let mut groups_v2_manager = GroupsManager::new(
+        let groups_v2_manager = GroupsManager::new(
             self.push_service()?,
             &mut groups_v2_credentials_cache,
             server_public_params,
@@ -723,7 +673,7 @@ where
     ///
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error> {
-        self.state.cache.push_service.get(|| {
+        self.state.cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
 

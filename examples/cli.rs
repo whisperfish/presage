@@ -174,7 +174,7 @@ async fn main() -> anyhow::Result<()> {
             servers,
             device_name,
         } => {
-            let manager =
+            let _manager =
                 Manager::link_secondary_device(config_store, servers, device_name.clone()).await?;
         }
         Subcommand::Receive => {
