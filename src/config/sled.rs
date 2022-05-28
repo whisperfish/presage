@@ -15,10 +15,10 @@ use libsignal_service::{
 use log::{debug, trace, warn};
 use sled::IVec;
 
-use super::{ConfigStore, ContactsStore};
-use crate::{manager::State, Error};
+use super::{ConfigStore, ContactsStore, StateStore};
+use crate::{manager::Registered, Error};
 
-const SLED_KEY_STATE: &str = "state";
+const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
 
 const SLED_TREE_SESSIONS: &str = "sessions";
@@ -145,20 +145,30 @@ impl SledConfigStore {
     }
 }
 
-impl ConfigStore for SledConfigStore {
-    fn state(&self) -> Result<State, Error> {
+impl StateStore<Registered> for SledConfigStore {
+    fn load_state(&self) -> Result<Registered, Error> {
         let db = self.db.read().expect("poisoned mutex");
-        db.get(SLED_KEY_STATE)?.map_or(Ok(State::New), |s| {
-            serde_json::from_slice(&s).map_err(Error::from)
-        })
+        let data = db
+            .get(SLED_KEY_REGISTRATION)?
+            .ok_or(Error::NotYetRegisteredError)?;
+        serde_json::from_slice(&data).map_err(Error::from)
     }
 
-    fn save(&self, state: &State) -> Result<(), Error> {
+    fn save_state(&self, state: &Registered) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
-        db.insert(SLED_KEY_STATE, serde_json::to_vec(state)?)?;
+        db.insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
         Ok(())
     }
+}
+
+impl ConfigStore for SledConfigStore {
+    // fn state(&self) -> Result<State, Error> {
+    //     let db = self.db.read().expect("poisoned mutex");
+    //     db.get(SLED_KEY_REGISTRATION)?.map_or(Ok(State::New), |s| {
+    //         serde_json::from_slice(&s).map_err(Error::from)
+    //     })
+    // }
 
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
@@ -372,47 +382,20 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        match self.state() {
-            Ok(State::Registered {
-                private_key,
-                public_key,
-                ..
-            }) => Ok(IdentityKeyPair::new(
-                IdentityKey::new(public_key),
-                private_key,
-            )),
-            Ok(_) => Err(SignalProtocolError::InvalidState(
-                "get_identity_key_pair",
-                "no registration data yet".into(),
-            )),
-            Err(e) => {
-                log::error!("identity key store error: {}", e);
-                Err(SignalProtocolError::InvalidState(
-                    "get_identity_key_pair",
-                    "unhandled error".into(),
-                ))
-            }
-        }
+        let state = self.load_state().map_err(|e| {
+            SignalProtocolError::InvalidState("failed to load presage state", e.to_string())
+        })?;
+        Ok(IdentityKeyPair::new(
+            IdentityKey::new(state.public_key),
+            state.private_key,
+        ))
     }
 
     async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
-        trace!("getting local_registration_id");
-        match self.state() {
-            Ok(State::Registered {
-                registration_id, ..
-            }) => Ok(registration_id),
-            Ok(_) => Err(SignalProtocolError::InvalidState(
-                "get_identity_key_pair",
-                "no registration data yet".into(),
-            )),
-            Err(e) => {
-                log::error!("identity key store error: {}", e);
-                Err(SignalProtocolError::InvalidState(
-                    "get_local_registration_id",
-                    "unhandled error".into(),
-                ))
-            }
-        }
+        let state = self.load_state().map_err(|e| {
+            SignalProtocolError::InvalidState("failed to load presage state", e.to_string())
+        })?;
+        Ok(state.registration_id)
     }
 
     async fn save_identity(

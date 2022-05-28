@@ -3,23 +3,33 @@ use libsignal_service::{
     prelude::protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
 };
 
-use crate::{manager::State, Error};
+use crate::{manager::Registered, Error};
 
 #[cfg(feature = "sled-store")]
 pub mod sled;
 
 pub trait ConfigStore:
-    PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + ContactsStore + Clone
+    PreKeyStore
+    + SignedPreKeyStore
+    + SessionStoreExt
+    + IdentityKeyStore
+    + StateStore<Registered>
+    + ContactsStore
+    + Sync
+    + Clone
 {
-    fn state(&self) -> Result<State, Error>;
-
-    fn save(&self, state: &State) -> Result<(), Error>;
+    // fn state(&self) -> Result<State, Error>;
 
     fn pre_keys_offset_id(&self) -> Result<u32, Error>;
     fn set_pre_keys_offset_id(&self, id: u32) -> Result<(), Error>;
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error>;
     fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error>;
+}
+
+pub trait StateStore<S> {
+    fn load_state(&self) -> Result<Registered, Error>;
+    fn save_state(&self, state: &S) -> Result<(), Error>;
 }
 
 pub trait ContactsStore {

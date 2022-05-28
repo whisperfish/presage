@@ -2,7 +2,7 @@ use std::io::{self, BufRead};
 
 use presage::{
     prelude::{phonenumber::PhoneNumber, SignalServers},
-    Manager, SledConfigStore,
+    Manager, RegistrationOptions, SledConfigStore,
 };
 
 fn read_line() -> String {
@@ -20,9 +20,6 @@ fn read_line() -> String {
 async fn main() -> anyhow::Result<()> {
     let config_store = SledConfigStore::new("/tmp/presage-example")?;
 
-    let csprng = rand::thread_rng();
-    let mut manager = Manager::new(config_store, csprng)?;
-
     println!("phone number: ");
     let phone_number: PhoneNumber = io::stdin()
         .lock()
@@ -33,15 +30,17 @@ async fn main() -> anyhow::Result<()> {
         .trim()
         .parse()?;
 
-    manager
-        .register(
-            SignalServers::Production,
+    let manager = Manager::register(
+        config_store,
+        RegistrationOptions {
+            signal_servers: SignalServers::Production,
             phone_number,
-            false,
-            None, // use a token obtained from https://signalcaptchas.org/registration/generate.html if registration fails
-            false,
-        )
-        .await?;
+            use_voice_call: false,
+            captcha: None,
+            force: false,
+        },
+    )
+    .await?;
 
     print!("confirmation code: ");
     let confirmation_code: u32 = read_line().parse()?;
