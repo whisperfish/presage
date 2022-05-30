@@ -106,6 +106,34 @@ pub struct Registered {
 }
 
 impl Manager<Registration> {
+    /// Registers a new account with a phone number (and some options).
+    ///
+    /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
+    /// have to use to send the confirmation code.
+    ///
+    /// ```no_run
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     use std::str::FromStr;
+    ///
+    ///     use presage::{Manager, RegistrationOptions, prelude::{phonenumber::PhoneNumber, SignalServers}, SledConfigStore};
+    ///     
+    ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
+    ///
+    ///     let manager = Manager::register(
+    ///         config_store,
+    ///         RegistrationOptions {
+    ///             signal_servers: SignalServers::Production,
+    ///             phone_number: PhoneNumber::from_str("+16137827274")?,
+    ///             use_voice_call: false,
+    ///             captcha: None,
+    ///             force: false,
+    ///         }
+    ///     ).await?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn register<C: ConfigStore>(
         config_store: C,
         registration_options: RegistrationOptions<'_>,

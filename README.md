@@ -17,6 +17,7 @@ Features:
 - [x] Link as secondary device from Android / iOS app (like Signal Desktop)
 - [x] Synchronize contacts from primary device
 - [x] Receive messages
+- [x] Handle groups v2 (and change events)
 - [x] Download + decrypt attachments
 - [x] Send messages
 - [x] Groups support

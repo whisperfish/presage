@@ -45,7 +45,7 @@ enum Subcommand {
             long = "captcha",
             help = "Captcha obtained from https://signalcaptchas.org/registration/generate.html"
         )]
-        captcha: Option<Url>,
+        captcha: Url,
         #[structopt(long, help = "Force to register again if already registered")]
         force: bool,
     },
@@ -156,7 +156,7 @@ async fn main() -> anyhow::Result<()> {
                     signal_servers: servers,
                     phone_number,
                     use_voice_call,
-                    captcha: captcha.as_ref().map(|u| u.host_str().unwrap()),
+                    captcha: Some(captcha.host_str().unwrap()),
                     force,
                 },
             )
