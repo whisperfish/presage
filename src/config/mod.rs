@@ -18,8 +18,6 @@ pub trait ConfigStore:
     + Sync
     + Clone
 {
-    // fn state(&self) -> Result<State, Error>;
-
     fn pre_keys_offset_id(&self) -> Result<u32, Error>;
     fn set_pre_keys_offset_id(&self, id: u32) -> Result<(), Error>;
 

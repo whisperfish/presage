@@ -116,8 +116,11 @@ impl Manager<Registration> {
     /// async fn main() -> anyhow::Result<()> {
     ///     use std::str::FromStr;
     ///
-    ///     use presage::{Manager, RegistrationOptions, prelude::{phonenumber::PhoneNumber, SignalServers}, SledConfigStore};
-    ///     
+    ///     use presage::{
+    ///         prelude::{phonenumber::PhoneNumber, SignalServers},
+    ///         Manager, RegistrationOptions, SledConfigStore,
+    ///     };
+    ///
     ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
     ///
     ///     let manager = Manager::register(
@@ -128,8 +131,9 @@ impl Manager<Registration> {
     ///             use_voice_call: false,
     ///             captcha: None,
     ///             force: false,
-    ///         }
-    ///     ).await?;
+    ///         },
+    ///     )
+    ///     .await?;
     ///
     ///     Ok(())
     /// }
@@ -190,6 +194,27 @@ impl Manager<Registration> {
 }
 
 impl Manager<Linking> {
+    /// Links this client as a secondary device from the device used to register the account (usually a phone)
+    ///
+    /// ```no_run
+    /// use presage::{prelude::SignalServers, Manager, SledConfigStore};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
+    ///
+    ///     Manager::link_secondary_device(
+    ///         config_store,
+    ///         SignalServers::Production,
+    ///         "my-linked-client".into(),
+    ///     )
+    ///     .await?;
+    ///
+    ///     // scan the QR code that shows up with your main device
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
     pub async fn link_secondary_device<C: ConfigStore>(
         config_store: C,
         signal_servers: SignalServers,
@@ -284,6 +309,11 @@ impl Manager<Linking> {
 }
 
 impl<C: ConfigStore> Manager<C, Confirmation> {
+    /// Confirm a newly registered account using the code you
+    /// received by SMS or phone call.
+    ///
+    /// Returns a [registered manager](Manager::load_registered) that you can use
+    /// to send and receive messages.
     pub async fn confirm_verification_code(
         self,
         confirm_code: u32,
@@ -387,6 +417,9 @@ impl<C> Manager<C, Registered>
 where
     C: ConfigStore + Clone,
 {
+    /// Loads a previously registered account from the implemented [ConfigStore].
+    ///
+    /// Returns a instance of [Manager] you can use to send & receive messages.
     pub fn load_registered(config_store: C) -> Result<Self, Error> {
         let state = config_store.load_state()?;
         Ok(Self {
@@ -448,7 +481,7 @@ where
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
-    /// Note: if this is successful, the contacts are not yet received & stored, and will only be
+    /// **Note**: If successful, the contacts are not yet received and stored, but will only be
     /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&self) -> Result<(), Error> {
         let sync_message = SyncMessage {
@@ -469,23 +502,18 @@ where
         Ok(())
     }
 
-    // #[cfg(feature = "quirks")]
-    // pub fn dump_config(&mut self) -> Result<(), Error> {
-    //     serde_json::to_writer_pretty(std::io::stderr(), &self.state)?;
-
-    //     Ok(())
-    // }
-
+    /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error> {
         Ok(self.push_service()?.whoami().await?)
     }
 
-    // TODO: check if we really need this method, or retrieve_profile_by_uuid
+    /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&self) -> Result<Profile, Error> {
         self.retrieve_profile_by_uuid(self.state.uuid, *self.state.profile_key)
             .await
     }
 
+    /// Fetches the profile of the provided user by UUID and profile key.
     pub async fn retrieve_profile_by_uuid(
         &self,
         uuid: Uuid,
@@ -495,6 +523,10 @@ where
         Ok(account_manager.retrieve_profile(uuid).await?)
     }
 
+    /// Returns an iterator on contacts stored in the [ConfigStore].
+    ///
+    /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
+    /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
     pub fn get_contacts(&self) -> Result<impl Iterator<Item = Contact>, Error> {
         Ok(self.config_store.contacts()?.into_iter())
     }
@@ -509,6 +541,12 @@ where
         Ok(pipe.stream())
     }
 
+    /// Starts receiving messages.
+    ///
+    /// Returns a [Stream] of messages to consume.
+    ///
+    /// **Note**: messages that aren't consumed will be gone, as internally we acknknowledge all messages
+    /// upon receival.
     pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
@@ -565,6 +603,9 @@ where
         }))
     }
 
+    /// Sends a messages to the provided [ServiceAddress].
+    /// The timestamp should be set to now and is used by Signal mobile apps
+    /// to order messages later, and apply reactions.
     pub async fn send_message(
         &self,
         recipient_addr: impl Into<ServiceAddress>,
@@ -587,6 +628,7 @@ where
         Ok(())
     }
 
+    /// Uploads attachments prior to linking them in a message.
     pub async fn upload_attachments(
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
@@ -599,6 +641,7 @@ where
         Ok(upload.await)
     }
 
+    /// Sends one message in a group (v2).
     pub async fn send_message_to_group(
         &self,
         recipients: impl IntoIterator<Item = ServiceAddress>,
@@ -620,6 +663,7 @@ where
         Ok(())
     }
 
+    /// Clears all sessions established wiht [recipient](ServiceAddress).
     pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
         self.config_store
             .delete_all_sessions(&recipient.identifier())
@@ -648,6 +692,7 @@ where
             .await?)
     }
 
+    /// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.
     pub fn decrypt_group_context(
         &self,
         group_context: GroupContextV2,
@@ -668,6 +713,7 @@ where
         Ok(group_changes)
     }
 
+    /// Downloads and decrypts a single attachment.
     pub async fn get_attachment(
         &self,
         attachment_pointer: &AttachmentPointer,
@@ -750,70 +796,3 @@ where
         Ok(service_cipher)
     }
 }
-
-//     /// Sets the state and saves it into the store.
-//     ///
-//     /// The cache is also cleared.
-//     fn set_state(&mut self, state: State) -> Result<(), Error> {
-//         self.state = state;
-//         self.cache.clear();
-//         self.config_store.save(&self.state)
-//     }
-
-//     fn credentials(&self) -> Result<Option<ServiceCredentials>, Error> {
-//         match &self.state {
-//             State::New { .. } => Err(Error::NotYetRegisteredError),
-//             State::Registration { .. } => Ok(None),
-//             State::Linking { .. } => Ok(None),
-//             State::Confirmation {
-//                 phone_number,
-//                 password,
-//                 ..
-//             } => Ok(Some(ServiceCredentials {
-//                 uuid: None,
-//                 phonenumber: phone_number.clone(),
-//                 password: Some(password.clone()),
-//                 signaling_key: None,
-//                 device_id: None,
-//             })),
-//             State::Registered {
-//                 phone_number,
-//                 uuid,
-//                 device_id,
-//                 password,
-//                 signaling_key,
-//                 ..
-//             } => Ok(Some(ServiceCredentials {
-//                 uuid: Some(*uuid),
-//                 phonenumber: phone_number.clone(),
-//                 password: Some(password.clone()),
-//                 signaling_key: Some(*signaling_key),
-//                 device_id: *device_id,
-//             })),
-//         }
-//     }
-
-//     /// Checks if the manager has a registered device.
-//     pub fn is_registered(&self) -> bool {
-//         matches!(&self.state, State::Registered { .. })
-//     }
-
-//     pub fn config_store(&self) -> &C {
-//         &self.config_store
-//     }
-
-//     pub fn uuid(&self) -> Uuid {
-//         match &self.state {
-//             State::Registered { uuid, .. } => *uuid,
-//             _ => Default::default(),
-//         }
-//     }
-
-//     pub fn phone_number(&self) -> Option<&PhoneNumber> {
-//         match &self.state {
-//             State::Registered { phone_number, .. } => Some(phone_number),
-//             _ => None,
-//         }
-//     }
-
-// }
