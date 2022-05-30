@@ -1,4 +1,4 @@
-use std::{convert::TryInto, time::UNIX_EPOCH};
+use std::time::UNIX_EPOCH;
 
 use futures::{channel::mpsc, future, AsyncReadExt, Stream, StreamExt};
 use log::{error, trace, warn};

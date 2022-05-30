@@ -3,7 +3,7 @@
 name = "presage"
 version = "0.3.0"
 authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "68198913026c45d7616095e4e9d80d14deb32531" }

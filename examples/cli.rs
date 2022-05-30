@@ -1,4 +1,4 @@
-use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
+use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
