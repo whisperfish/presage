@@ -713,7 +713,7 @@ where
 
         let group_changes = groups_v2_manager
             .decrypt_group_context(group_context)
-            .map_err(|e| ServiceError::GroupsV2DecryptionError(e))?;
+            .map_err(ServiceError::GroupsV2DecryptionError)?;
 
         Ok(group_changes)
     }

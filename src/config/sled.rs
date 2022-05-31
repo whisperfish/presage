@@ -216,7 +216,6 @@ impl ContactsStore for SledConfigStore {
             .open_tree(SLED_KEY_CONTACTS)?
             .iter()
             .filter_map(Result::ok)
-            .filter_map(|(_k, buf)| serde_json::from_slice(&buf).ok())
             .filter_map(|(_key, buf)| serde_json::from_slice(&buf).ok())
             .collect())
     }
