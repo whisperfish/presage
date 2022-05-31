@@ -31,10 +31,6 @@ impl<T: Clone> CacheCell<T> {
         self.cell.set(Some(value.clone()));
         Ok(value)
     }
-
-    pub fn clear(&self) {
-        self.cell.set(None)
-    }
 }
 
 #[cfg(test)]
@@ -56,18 +52,7 @@ mod tests {
             .unwrap();
         assert_eq!(value, "Hello, World!");
 
-        let new_cache = cache.clone(); // clone should not touch the cache
         let value = cache
-            .get(|| -> Result<String, Infallible> { panic!("I should not run") })
-            .unwrap();
-        assert_eq!(value, "Hello, World!");
-
-        cache.clear();
-        let value = cache
-            .get(|| Ok::<_, Infallible>("Hi, Amigo!".to_string()))
-            .unwrap();
-        assert_eq!(value, "Hi, Amigo!");
-        let value = new_cache
             .get(|| -> Result<String, Infallible> { panic!("I should not run") })
             .unwrap();
         assert_eq!(value, "Hello, World!");

@@ -18,10 +18,10 @@ use libsignal_service::{
 use log::{debug, trace, warn};
 use sled::IVec;
 
-use super::{ConfigStore, ContactsStore};
-use crate::{manager::State, Error};
+use super::{ConfigStore, ContactsStore, StateStore};
+use crate::{manager::Registered, Error};
 
-const SLED_KEY_STATE: &str = "state";
+const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
 
 const SLED_TREE_SESSIONS: &str = "sessions";
@@ -135,10 +135,9 @@ impl SledConfigStore {
             .collect();
         let session_keys = db
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap_or_else(|e| {
+                panic!("failed to open sessions tree: {}", e);
+            })
             .iter()
             .filter_map(|r| {
                 let (k, _) = r.ok()?;
@@ -149,20 +148,30 @@ impl SledConfigStore {
     }
 }
 
-impl ConfigStore for SledConfigStore {
-    fn state(&self) -> Result<State, Error> {
+impl StateStore<Registered> for SledConfigStore {
+    fn load_state(&self) -> Result<Registered, Error> {
         let db = self.db.read().expect("poisoned mutex");
-        db.get(SLED_KEY_STATE)?.map_or(Ok(State::New), |s| {
-            serde_json::from_slice(&s).map_err(Error::from)
-        })
+        let data = db
+            .get(SLED_KEY_REGISTRATION)?
+            .ok_or(Error::NotYetRegisteredError)?;
+        serde_json::from_slice(&data).map_err(Error::from)
     }
 
-    fn save(&self, state: &State) -> Result<(), Error> {
+    fn save_state(&self, state: &Registered) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
-        db.insert(SLED_KEY_STATE, serde_json::to_vec(state)?)?;
+        db.insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
         Ok(())
     }
+}
+
+impl ConfigStore for SledConfigStore {
+    // fn state(&self) -> Result<State, Error> {
+    //     let db = self.db.read().expect("poisoned mutex");
+    //     db.get(SLED_KEY_REGISTRATION)?.map_or(Ok(State::New), |s| {
+    //         serde_json::from_slice(&s).map_err(Error::from)
+    //     })
+    // }
 
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
@@ -233,10 +242,7 @@ impl PreKeyStore for SledConfigStore {
     ) -> Result<PreKeyRecord, SignalProtocolError> {
         let buf = self
             .get(self.prekey_key(prekey_id))
-            .map_err(|e| {
-                log::error!("{}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap()
             .ok_or(SignalProtocolError::InvalidPreKeyId)?;
         PreKeyRecord::deserialize(&buf)
     }
@@ -272,10 +278,7 @@ impl SignedPreKeyStore for SledConfigStore {
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf = self
             .get(self.signed_prekey_key(signed_prekey_id))
-            .map_err(|e| {
-                log::error!("sled error: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap()
             .ok_or(SignalProtocolError::InvalidSignedPreKeyId)?;
         SignedPreKeyRecord::deserialize(&buf)
     }
@@ -292,7 +295,7 @@ impl SignedPreKeyStore for SledConfigStore {
         )
         .map_err(|e| {
             log::error!("sled error: {}", e);
-            SignalProtocolError::InternalError("sled error")
+            SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
         })
     }
 }
@@ -312,15 +315,9 @@ impl SessionStore for SledConfigStore {
             .try_read()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap()
             .get(key)
-            .map_err(|e| {
-                log::error!("sled error: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?;
+            .unwrap();
 
         buf.map(|buf| SessionRecord::deserialize(&buf)).transpose()
     }
@@ -337,15 +334,9 @@ impl SessionStore for SledConfigStore {
             .try_write()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap()
             .insert(key, record.serialize()?)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?;
+            .unwrap();
         Ok(())
     }
 }
@@ -360,10 +351,7 @@ impl SessionStoreExt for SledConfigStore {
             .read()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap()
             .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
@@ -382,12 +370,9 @@ impl SessionStoreExt for SledConfigStore {
             .try_write()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?
+            .unwrap()
             .remove(key)
-            .map_err(|_e| SignalProtocolError::InternalError("failed to delete session"))?;
+            .map_err(|_e| SignalProtocolError::SessionNotFound(address.clone()))?;
         Ok(())
     }
 
@@ -397,13 +382,11 @@ impl SessionStoreExt for SledConfigStore {
             .try_write()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(|e| {
-                log::error!("failed to open sessions tree: {}", e);
-                SignalProtocolError::InternalError("sled error")
-            })?;
+            .unwrap();
         let len = tree.len();
-        tree.clear()
-            .map_err(|_e| SignalProtocolError::InternalError("failed to delete all sessions"))?;
+        tree.clear().map_err(|_e| {
+            SignalProtocolError::InvalidSessionStructure("failed to delete all sessions")
+        })?;
         Ok(len)
     }
 }
@@ -415,39 +398,20 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        match self.state() {
-            Ok(State::Registered {
-                private_key,
-                public_key,
-                ..
-            }) => Ok(IdentityKeyPair::new(
-                IdentityKey::new(public_key),
-                private_key,
-            )),
-            Ok(_) => Err(SignalProtocolError::InternalError(
-                "wrong state: no registration data yet",
-            )),
-            Err(e) => {
-                log::error!("identity key store error: {}", e);
-                Err(SignalProtocolError::InternalError("unhandled error"))
-            }
-        }
+        let state = self.load_state().map_err(|e| {
+            SignalProtocolError::InvalidState("failed to load presage state", e.to_string())
+        })?;
+        Ok(IdentityKeyPair::new(
+            IdentityKey::new(state.public_key),
+            state.private_key,
+        ))
     }
 
     async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
-        trace!("getting local_registration_id");
-        match self.state() {
-            Ok(State::Registered {
-                registration_id, ..
-            }) => Ok(registration_id),
-            Ok(_) => Err(SignalProtocolError::InternalError(
-                "wrong state: no registration data yet",
-            )),
-            Err(e) => {
-                log::error!("identity key store error: {}", e);
-                Err(SignalProtocolError::InternalError("unhandled error"))
-            }
-        }
+        let state = self.load_state().map_err(|e| {
+            SignalProtocolError::InvalidState("failed to load presage state", e.to_string())
+        })?;
+        Ok(state.registration_id)
     }
 
     async fn save_identity(
@@ -460,7 +424,7 @@ impl IdentityKeyStore for SledConfigStore {
         self.insert(self.identity_key(address), identity_key.serialize())
             .map_err(|e| {
                 log::error!("error saving identity for {:?}: {}", address, e);
-                SignalProtocolError::InternalError("failed to save identity")
+                SignalProtocolError::InvalidState("save_identity", "failed to save identity".into())
             })?;
         trace!("saved identity");
         Ok(false)
@@ -474,7 +438,10 @@ impl IdentityKeyStore for SledConfigStore {
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         match self.get(self.identity_key(address)).map_err(|_| {
-            SignalProtocolError::InternalError("failed to check if identity is trusted")
+            SignalProtocolError::InvalidState(
+                "is_trusted_identity",
+                "failed to check if identity is trusted".into(),
+            )
         })? {
             None => {
                 // when we encounter a new identity, we trust it by default
@@ -492,7 +459,7 @@ impl IdentityKeyStore for SledConfigStore {
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
         let buf = self.get(self.identity_key(address)).map_err(|e| {
             log::error!("error getting identity of {:?}: {}", address, e);
-            SignalProtocolError::InternalError("failed to read identity")
+            SignalProtocolError::InvalidState("get_identity", "failed to read identity".into())
         })?;
         Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
     }

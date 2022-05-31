@@ -1,10 +1,10 @@
-use std::{convert::TryInto, path::PathBuf, time::UNIX_EPOCH};
+use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::{bail, Context as _};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{pin_mut, StreamExt};
-use libsignal_service::ServiceAddress;
+use libsignal_service::{models::Contact, ServiceAddress};
 use log::debug;
 use presage::{
     prelude::{
@@ -15,9 +15,10 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, Uuid},
-    Manager, SledConfigStore,
+    Manager, RegistrationOptions, SledConfigStore,
 };
 use structopt::StructOpt;
+use tokio::io::{self, AsyncBufReadExt, BufReader};
 use url::Url;
 
 #[derive(StructOpt)]
@@ -44,7 +45,7 @@ enum Subcommand {
             long = "captcha",
             help = "Captcha obtained from https://signalcaptchas.org/registration/generate.html"
         )]
-        captcha: Option<Url>,
+        captcha: Url,
         #[structopt(long, help = "Force to register again if already registered")]
         force: bool,
     },
@@ -64,11 +65,6 @@ enum Subcommand {
         )]
         device_name: String,
     },
-    #[structopt(about = "verify the code you got from the SMS or voice-call when you registered")]
-    Verify {
-        #[structopt(long, short = "c", help = "SMS / Voice-call confirmation code")]
-        confirmation_code: u32,
-    },
     #[structopt(about = "Get information on the registered user")]
     Whoami,
     #[structopt(about = "Retrieve the user profile")]
@@ -77,8 +73,6 @@ enum Subcommand {
     UpdateProfile,
     #[structopt(about = "Check if a user is registered on Signal")]
     GetUserStatus,
-    #[structopt(about = "Update the account attributes")]
-    UpdateAccount,
     #[structopt(about = "Block the provided contacts or groups")]
     Block,
     #[structopt(about = "Unblock the provided contacts or groups")]
@@ -146,8 +140,7 @@ async fn main() -> anyhow::Result<()> {
     debug!("opening config database from {}", db_path.display());
     let config_store = SledConfigStore::new(db_path)?;
 
-    let csprng = rand::thread_rng();
-    let mut manager = Manager::new(config_store, csprng)?;
+    // let mut manager = Manager::new(config_store, csprng)?;
 
     match args.subcommand {
         Subcommand::Register {
@@ -157,28 +150,35 @@ async fn main() -> anyhow::Result<()> {
             captcha,
             force,
         } => {
-            manager
-                .register(
-                    servers,
+            let manager = Manager::register(
+                config_store,
+                RegistrationOptions {
+                    signal_servers: servers,
                     phone_number,
                     use_voice_call,
-                    captcha.as_ref().map(|u| u.host_str().unwrap()),
+                    captcha: Some(captcha.host_str().unwrap()),
                     force,
-                )
-                .await?;
+                },
+            )
+            .await?;
+
+            // ask for confirmation code here
+            let stdin = io::stdin();
+            let reader = BufReader::new(stdin);
+            if let Some(line) = reader.lines().next_line().await? {
+                let confirmation_code = line.parse()?;
+                manager.confirm_verification_code(confirmation_code).await?;
+            }
         }
         Subcommand::LinkDevice {
             servers,
             device_name,
         } => {
-            manager
-                .link_secondary_device(servers, device_name.clone())
-                .await?;
-        }
-        Subcommand::Verify { confirmation_code } => {
-            manager.confirm_verification_code(confirmation_code).await?;
+            let _manager =
+                Manager::link_secondary_device(config_store, servers, device_name.clone()).await?;
         }
         Subcommand::Receive => {
+            let manager = Manager::load_registered(config_store)?;
             let messages = manager
                 .clone()
                 .receive_messages()
@@ -208,15 +208,18 @@ async fn main() -> anyhow::Result<()> {
                                 "Reaction to message sent at {:?}: {:?}",
                                 reaction.target_sent_timestamp, reaction.emoji,
                             )
+                        } else if let Some(group_context) = message.group_v2 {
+                            let group_changes = manager.decrypt_group_context(group_context)?;
+                            println!("Group change: {:?}", group_changes);
                         } else {
                             println!("Message from {:?}: {:?}", metadata, message);
                             // fetch the groups v2 info here, just for testing purposes
                             if let Some(group_v2) = message.group_v2 {
-                                let _master_key = GroupMasterKey::new(
+                                let master_key = GroupMasterKey::new(
                                     group_v2.master_key.unwrap().try_into().unwrap(),
                                 );
-                                // let group = manager.get_group_v2(master_key).await;
-                                // println!("Group v2: {:?}", group);
+                                let group = manager.get_group_v2(master_key).await?;
+                                println!("Group v2: {:?}", group.title);
                             }
                         }
                     }
@@ -236,6 +239,8 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         Subcommand::Send { uuid, message } => {
+            let manager = Manager::load_registered(config_store)?;
+
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
@@ -255,6 +260,8 @@ async fn main() -> anyhow::Result<()> {
             group_id,
             master_key,
         } => {
+            let manager = Manager::load_registered(config_store)?;
+
             match (group_id.as_ref(), master_key.as_ref()) {
                 (Some(_), Some(_)) => bail!("Options --group-id and --master-key are exclusive"),
                 (None, None) => bail!("Either --group-id or --master-key is required"),
@@ -295,19 +302,18 @@ async fn main() -> anyhow::Result<()> {
         }
         Subcommand::Unregister => unimplemented!(),
         Subcommand::RetrieveProfile => {
+            let manager = Manager::load_registered(config_store)?;
             let profile = manager.retrieve_profile().await?;
             println!("{:#?}", profile);
         }
         Subcommand::UpdateProfile => unimplemented!(),
         Subcommand::GetUserStatus => unimplemented!(),
-        Subcommand::UpdateAccount => {
-            manager.set_account_attributes().await?;
-        }
         Subcommand::Block => unimplemented!(),
         Subcommand::Unblock => unimplemented!(),
         Subcommand::UpdateContact => unimplemented!(),
         Subcommand::ListGroups => unimplemented!(),
         Subcommand::ListContacts => {
+            let manager = Manager::load_registered(config_store)?;
             for contact in manager.get_contacts()? {
                 if let Contact {
                     name,
@@ -325,9 +331,11 @@ async fn main() -> anyhow::Result<()> {
             }
         }
         Subcommand::Whoami => {
+            let manager = Manager::load_registered(config_store)?;
             println!("{:?}", &manager.whoami().await?)
         }
         Subcommand::FindContact { uuid, ref name } => {
+            let manager = Manager::load_registered(config_store)?;
             for contact in manager
                 .get_contacts()?
                 .filter(|c| c.address.uuid == uuid)
@@ -338,10 +346,12 @@ async fn main() -> anyhow::Result<()> {
         }
         #[cfg(feature = "quirks")]
         Subcommand::RequestSyncContacts => {
+            let manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
         }
         #[cfg(feature = "quirks")]
         Subcommand::DumpConfig => {
+            let manager = Manager::load_registered(config_store)?;
             manager.dump_config()?;
         }
     };
