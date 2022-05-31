@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["hangup","Nested message and enum types in `Hangup`."],["offer","Nested message and enum types in `Offer`."]],"struct":[["Answer",""],["Busy",""],["Hangup",""],["IceUpdate",""],["Offer",""],["Opaque",""]]});
