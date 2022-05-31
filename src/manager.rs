@@ -531,6 +531,10 @@ where
         Ok(self.config_store.contacts()?.into_iter())
     }
 
+    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        self.config_store.contact_by_id(id)
+    }
+
     async fn receive_messages_encrypted(
         &self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
@@ -574,6 +578,7 @@ where
                                         contacts: Some(contacts),
                                         ..
                                     }),
+                                ..
                             })) => {
                                 let mut message_receiver =
                                     MessageReceiver::new(state.push_service.clone());

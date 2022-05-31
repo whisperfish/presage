@@ -6,10 +6,13 @@ use std::{
 use async_trait::async_trait;
 use libsignal_service::{
     models::Contact,
-    prelude::protocol::{
-        Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
-        PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
-        SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+    prelude::{
+        protocol::{
+            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
+            PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
+            SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+        },
+        Uuid,
     },
 };
 use log::{debug, trace, warn};
@@ -195,10 +198,11 @@ impl ContactsStore for SledConfigStore {
             .expect("poisoned mutex")
             .open_tree(SLED_KEY_CONTACTS)?;
         for contact in contacts {
-            tree.insert(
-                contact.address.uuid.unwrap().to_string(),
-                serde_json::to_vec(&contact)?,
-            )?;
+            if let Some(uuid) = contact.address.uuid {
+                tree.insert(uuid.to_string(), serde_json::to_vec(&contact)?)?;
+            } else {
+                warn!("skipping contact {:?} without uuid", contact);
+            }
         }
         debug!("saved contacts");
         Ok(())
@@ -213,7 +217,20 @@ impl ContactsStore for SledConfigStore {
             .iter()
             .filter_map(Result::ok)
             .filter_map(|(_k, buf)| serde_json::from_slice(&buf).ok())
+            .filter_map(|(_key, buf)| serde_json::from_slice(&buf).ok())
             .collect())
+    }
+
+    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        let db = self.db.read().expect("poisoned mutex");
+        Ok(
+            if let Some(buf) = db.open_tree(SLED_KEY_CONTACTS)?.get(id.to_string())? {
+                let contact = serde_json::from_slice(&buf)?;
+                Some(contact)
+            } else {
+                None
+            },
+        )
     }
 }
 

@@ -1,0 +1,25 @@
+on:
+  push:
+    branches:
+      - main
+
+name: GitHub Pages
+
+jobs:
+  pages:
+    name: Update
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - uses: actions-rs/cargo@v1
+        with:
+          command: doc
+          args: --all-features --no-deps -p presage
+      - uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages
+          FOLDER: target/doc
+          CLEAN: true # Automatically remove deleted files from the deploy branch

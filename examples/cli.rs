@@ -12,7 +12,7 @@ use presage::{
             Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
         },
         proto::sync_message::Sent,
-        GroupMasterKey, SignalServers,
+        Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, Uuid},
     Manager, RegistrationOptions, SledConfigStore,

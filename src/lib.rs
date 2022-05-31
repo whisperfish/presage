@@ -20,6 +20,7 @@ pub mod prelude {
             self, Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType,
             Metadata, SyncMessage,
         },
+        models::Contact,
         prelude::{
             phonenumber::{self, PhoneNumber},
             GroupMasterKey, GroupSecretParams, Uuid,
