@@ -90,19 +90,19 @@ pub struct Registered {
     #[serde(skip)]
     cache: CacheCell<HyperPushService>,
     signal_servers: SignalServers,
-    pub(crate) device_name: Option<String>,
-    pub(crate) phone_number: PhoneNumber,
-    pub(crate) uuid: Uuid,
-    pub(crate) password: String,
+    device_name: Option<String>,
+    phone_number: PhoneNumber,
+    uuid: Uuid,
+    password: String,
     #[serde(with = "serde_signaling_key")]
-    pub(crate) signaling_key: SignalingKey,
-    pub(crate) device_id: Option<u32>,
+    signaling_key: SignalingKey,
+    device_id: Option<u32>,
     pub(crate) registration_id: u32,
     #[serde(with = "serde_private_key")]
     pub(crate) private_key: PrivateKey,
     #[serde(with = "serde_public_key")]
     pub(crate) public_key: PublicKey,
-    pub(crate) profile_key: ProfileKey,
+    profile_key: ProfileKey,
 }
 
 impl Manager<Registration> {
