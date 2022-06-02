@@ -1,11 +1,11 @@
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::{bail, Context as _};
+use chrono::Local;
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{pin_mut, StreamExt};
-use libsignal_service::{models::Contact, ServiceAddress};
-use log::debug;
+use log::{debug, info};
 use presage::{
     prelude::{
         content::{
@@ -14,11 +14,15 @@ use presage::{
         proto::sync_message::Sent,
         Contact, GroupMasterKey, SignalServers,
     },
-    prelude::{phonenumber::PhoneNumber, Uuid},
+    prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
     Manager, RegistrationOptions, SledConfigStore,
 };
 use structopt::StructOpt;
-use tokio::io::{self, AsyncBufReadExt, BufReader};
+use tempfile::Builder;
+use tokio::{
+    fs,
+    io::{self, AsyncBufReadExt, BufReader},
+};
 use url::Url;
 
 #[derive(StructOpt)]
@@ -118,8 +122,6 @@ enum Subcommand {
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
-    #[cfg(feature = "quirks")]
-    DumpConfig,
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -140,7 +142,11 @@ async fn main() -> anyhow::Result<()> {
     debug!("opening config database from {}", db_path.display());
     let config_store = SledConfigStore::new(db_path)?;
 
-    // let mut manager = Manager::new(config_store, csprng)?;
+    let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
+    info!(
+        "attachments will be stored in {}",
+        attachments_tmp_dir.path().display()
+    );
 
     match args.subcommand {
         Subcommand::Register {
@@ -221,6 +227,29 @@ async fn main() -> anyhow::Result<()> {
                                 let group = manager.get_group_v2(master_key).await?;
                                 println!("Group v2: {:?}", group.title);
                             }
+                        }
+
+                        for attachment_pointer in message.attachments {
+                            let attachment_data =
+                                manager.get_attachment(&attachment_pointer).await?;
+                            let extensions = mime_guess::get_mime_extensions_str(
+                                attachment_pointer
+                                    .content_type
+                                    .as_deref()
+                                    .unwrap_or("application/octet-stream"),
+                            );
+                            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
+                            let file_path = attachments_tmp_dir.path().join(format!(
+                                "presage-{}.{}",
+                                Local::now().format("%Y-%m-%d-%H-%M-%s"),
+                                extension
+                            ));
+                            fs::write(&file_path, &attachment_data).await?;
+                            info!(
+                                "saved received attachment from {} to {}",
+                                metadata.sender,
+                                file_path.display()
+                            );
                         }
                     }
                     ContentBody::SynchronizeMessage(m) => {
@@ -348,11 +377,6 @@ async fn main() -> anyhow::Result<()> {
         Subcommand::RequestSyncContacts => {
             let manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
-        }
-        #[cfg(feature = "quirks")]
-        Subcommand::DumpConfig => {
-            let manager = Manager::load_registered(config_store)?;
-            manager.dump_config()?;
         }
     };
     Ok(())
