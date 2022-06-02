@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Error",""]],"mod":[["prelude",""]],"struct":[["Manager",""],["RegistrationOptions",""],["SledConfigStore",""]],"trait":[["ConfigStore",""]]});
+initSidebarItems({"enum":[["Error",""]],"mod":[["prelude",""]],"struct":[["Confirmation",""],["Linking",""],["Manager",""],["New",""],["Registered",""],["Registration",""],["RegistrationOptions",""],["SledConfigStore",""]],"trait":[["ConfigStore",""]]});
