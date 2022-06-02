@@ -46,7 +46,7 @@ type MessageSender<C> =
     libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, ThreadRng>;
 
 #[derive(Clone)]
-pub struct Manager<ConfigStore, State = New> {
+pub struct Manager<ConfigStore, State> {
     /// Implementation of a config-store to give to libsignal
     config_store: ConfigStore,
     /// Part of the manager which is persisted in the store.
@@ -62,16 +62,9 @@ pub struct RegistrationOptions<'a> {
     pub force: bool,
 }
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct New;
+pub struct Registration;
+pub struct Linking;
 
-#[derive(Clone, Serialize, Deserialize)]
-pub struct Registration {
-    phone_number: PhoneNumber,
-    use_voice_call: bool,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
 pub struct Confirmation {
     signal_servers: SignalServers,
     phone_number: PhoneNumber,
@@ -79,24 +72,17 @@ pub struct Confirmation {
 }
 
 #[derive(Clone, Serialize, Deserialize)]
-pub struct Linking {
-    #[serde(with = "serde_signaling_key")]
-    signaling_key: SignalingKey,
-    password: String,
-}
-
-#[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
     cache: CacheCell<HyperPushService>,
-    signal_servers: SignalServers,
-    device_name: Option<String>,
-    phone_number: PhoneNumber,
-    uuid: Uuid,
+    pub signal_servers: SignalServers,
+    pub device_name: Option<String>,
+    pub phone_number: PhoneNumber,
+    pub uuid: Uuid,
     password: String,
     #[serde(with = "serde_signaling_key")]
     signaling_key: SignalingKey,
-    device_id: Option<u32>,
+    pub device_id: Option<u32>,
     pub(crate) registration_id: u32,
     #[serde(with = "serde_private_key")]
     pub(crate) private_key: PrivateKey,
@@ -105,7 +91,7 @@ pub struct Registered {
     profile_key: ProfileKey,
 }
 
-impl Manager<Registration> {
+impl<C: ConfigStore> Manager<C, Registration> {
     /// Registers a new account with a phone number (and some options).
     ///
     /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
@@ -138,7 +124,7 @@ impl Manager<Registration> {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn register<C: ConfigStore>(
+    pub async fn register(
         config_store: C,
         registration_options: RegistrationOptions<'_>,
     ) -> Result<Manager<C, Confirmation>, Error> {
@@ -193,7 +179,7 @@ impl Manager<Registration> {
     }
 }
 
-impl Manager<Linking> {
+impl<C: ConfigStore> Manager<C, Linking> {
     /// Links this client as a secondary device from the device used to register the account (usually a phone)
     ///
     /// ```no_run
@@ -215,7 +201,7 @@ impl Manager<Linking> {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn link_secondary_device<C: ConfigStore>(
+    pub async fn link_secondary_device(
         config_store: C,
         signal_servers: SignalServers,
         device_name: String,
@@ -413,10 +399,7 @@ impl<C: ConfigStore> Manager<C, Confirmation> {
     }
 }
 
-impl<C> Manager<C, Registered>
-where
-    C: ConfigStore + Clone,
-{
+impl<C: ConfigStore> Manager<C, Registered> {
     /// Loads a previously registered account from the implemented [ConfigStore].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
@@ -502,7 +485,12 @@ where
         Ok(())
     }
 
-    /// Get the profile uuid
+    /// Returns a handle on the registered state
+    pub fn state(&self) -> &Registered {
+        &self.state
+    }
+
+    /// Get the profile UUID
     pub fn uuid(&self) -> Uuid {
         self.state.uuid
     }
