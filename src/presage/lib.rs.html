@@ -37,8 +37,6 @@
 <span id="32">32</span>
 <span id="33">33</span>
 <span id="34">34</span>
-<span id="35">35</span>
-<span id="36">36</span>
 </pre><pre class="rust"><code><span class="kw">mod</span> <span class="ident">cache</span>;
 <span class="kw">mod</span> <span class="ident">config</span>;
 <span class="kw">mod</span> <span class="ident">errors</span>;
@@ -49,9 +47,7 @@
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::ConfigStore</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">errors::Error</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">manager</span>::{
-    <span class="ident">Confirmation</span>, <span class="ident">Linking</span>, <span class="ident">Manager</span>, <span class="ident">New</span>, <span class="ident">Registered</span>, <span class="ident">Registration</span>, <span class="ident">RegistrationOptions</span>,
-};
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">manager</span>::{<span class="ident">Confirmation</span>, <span class="ident">Linking</span>, <span class="ident">Manager</span>, <span class="ident">Registered</span>, <span class="ident">Registration</span>, <span class="ident">RegistrationOptions</span>};
 
 <span class="attribute">#[<span class="ident">deprecated</span>(<span class="ident">note</span> <span class="op">=</span> <span class="string">&quot;Please help use improve the prelude module instead&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">libsignal_service</span>;

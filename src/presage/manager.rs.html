@@ -799,18 +799,6 @@
 <span id="794">794</span>
 <span id="795">795</span>
 <span id="796">796</span>
-<span id="797">797</span>
-<span id="798">798</span>
-<span id="799">799</span>
-<span id="800">800</span>
-<span id="801">801</span>
-<span id="802">802</span>
-<span id="803">803</span>
-<span id="804">804</span>
-<span id="805">805</span>
-<span id="806">806</span>
-<span id="807">807</span>
-<span id="808">808</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
 
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
@@ -859,7 +847,7 @@
     <span class="ident">libsignal_service::prelude::MessageSender</span><span class="op">&lt;</span><span class="ident">HyperPushService</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">ConfigStore</span>, <span class="ident">State</span> <span class="op">=</span> <span class="ident">New</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">ConfigStore</span>, <span class="ident">State</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Implementation of a config-store to give to libsignal</span>
     <span class="ident">config_store</span>: <span class="ident">ConfigStore</span>,
     <span class="doccomment">/// Part of the manager which is persisted in the store.</span>
@@ -875,16 +863,9 @@
     <span class="kw">pub</span> <span class="ident">force</span>: <span class="ident">bool</span>,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">New</span>;
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Registration</span>;
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Linking</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Registration</span> {
-    <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-    <span class="ident">use_voice_call</span>: <span class="ident">bool</span>,
-}
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Confirmation</span> {
     <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
     <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
@@ -892,24 +873,17 @@
 }
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Linking</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_signaling_key&quot;</span>)]</span>
-    <span class="ident">signaling_key</span>: <span class="ident">SignalingKey</span>,
-    <span class="ident">password</span>: <span class="ident">String</span>,
-}
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Registered</span> {
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip</span>)]</span>
     <span class="ident">cache</span>: <span class="ident">CacheCell</span><span class="op">&lt;</span><span class="ident">HyperPushService</span><span class="op">&gt;</span>,
-    <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
-    <span class="ident">device_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-    <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
+    <span class="kw">pub</span> <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
+    <span class="kw">pub</span> <span class="ident">device_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
+    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
     <span class="ident">password</span>: <span class="ident">String</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_signaling_key&quot;</span>)]</span>
     <span class="ident">signaling_key</span>: <span class="ident">SignalingKey</span>,
-    <span class="ident">device_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span> <span class="ident">device_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">registration_id</span>: <span class="ident">u32</span>,
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_private_key&quot;</span>)]</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">private_key</span>: <span class="ident">PrivateKey</span>,
@@ -918,7 +892,7 @@
     <span class="ident">profile_key</span>: <span class="ident">ProfileKey</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">Registration</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">ConfigStore</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registration</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Registers a new account with a phone number (and some options).</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then</span>
@@ -951,7 +925,7 @@
     <span class="doccomment">///     Ok(())</span>
     <span class="doccomment">/// }</span>
     <span class="doccomment">/// ```</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">ConfigStore</span><span class="op">&gt;</span>(
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register</span>(
         <span class="ident">config_store</span>: <span class="ident">C</span>,
         <span class="ident">registration_options</span>: <span class="ident">RegistrationOptions</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Confirmation</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
@@ -1006,7 +980,7 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">Linking</span><span class="op">&gt;</span> {
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">ConfigStore</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Linking</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Links this client as a secondary device from the device used to register the account (usually a phone)</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// ```no_run</span>
@@ -1028,7 +1002,7 @@
     <span class="doccomment">///     Ok(())</span>
     <span class="doccomment">/// }</span>
     <span class="doccomment">/// ```</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">link_secondary_device</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">ConfigStore</span><span class="op">&gt;</span>(
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">link_secondary_device</span>(
         <span class="ident">config_store</span>: <span class="ident">C</span>,
         <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
         <span class="ident">device_name</span>: <span class="ident">String</span>,
@@ -1226,10 +1200,7 @@
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span>
-<span class="kw">where</span>
-    <span class="ident">C</span>: <span class="ident">ConfigStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-{
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">ConfigStore</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span> {
     <span class="doccomment">/// Loads a previously registered account from the implemented [ConfigStore].</span>
     <span class="doccomment">///</span>
     <span class="doccomment">/// Returns a instance of [Manager] you can use to send &amp; receive messages.</span>
@@ -1315,7 +1286,12 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Get the profile uuid</span>
+    <span class="doccomment">/// Returns a handle on the registered state</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident">Registered</span> {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">state</span>
+    }
+
+    <span class="doccomment">/// Get the profile UUID</span>
     <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">uuid</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">Uuid</span> {
         <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>
     }
