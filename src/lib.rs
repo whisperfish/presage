@@ -8,7 +8,9 @@ pub use config::sled::SledConfigStore;
 
 pub use config::ConfigStore;
 pub use errors::Error;
-pub use manager::{Manager, RegistrationOptions};
+pub use manager::{
+    Confirmation, Linking, Manager, New, Registered, Registration, RegistrationOptions,
+};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;

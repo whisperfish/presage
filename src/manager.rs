@@ -502,6 +502,11 @@ where
         Ok(())
     }
 
+    /// Get the profile uuid
+    pub fn uuid(&self) -> Uuid {
+        self.state.uuid
+    }
+
     /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error> {
         Ok(self.push_service()?.whoami().await?)
