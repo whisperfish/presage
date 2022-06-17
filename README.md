@@ -1,7 +1,7 @@
 # Presage
 
 ![CI](https://github.com/whisperfish/presage/workflows/CI/badge.svg)
-![License](https://img.shields.io/github/license/whisperfish/presage.svg)
+![License](https://img.shields.io/github/license/whisperfish/presage)
 [![API Docs](https://img.shields.io/badge/docs-presage-blue)](https://whisperfish.github.io/presage/presage)
 
 A Rust library that helps building clients for the [Signal Messenger](https://signal.org/en/), using [libsignal-service-rs](https://github.com/whisperfish/libsignal-service-rs). It is designed to provide everything you need to get started.
