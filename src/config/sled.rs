@@ -157,7 +157,7 @@ impl StateStore<Registered> for SledConfigStore {
         serde_json::from_slice(&data).map_err(Error::from)
     }
 
-    fn save_state(&self, state: &Registered) -> Result<(), Error> {
+    fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
         db.clear()?;
         db.insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
@@ -166,18 +166,11 @@ impl StateStore<Registered> for SledConfigStore {
 }
 
 impl ConfigStore for SledConfigStore {
-    // fn state(&self) -> Result<State, Error> {
-    //     let db = self.db.read().expect("poisoned mutex");
-    //     db.get(SLED_KEY_REGISTRATION)?.map_or(Ok(State::New), |s| {
-    //         serde_json::from_slice(&s).map_err(Error::from)
-    //     })
-    // }
-
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
     }
 
-    fn set_pre_keys_offset_id(&self, id: u32) -> Result<(), Error> {
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
         self.insert_u32("pre_keys_offset_id", id)
     }
 
@@ -185,7 +178,7 @@ impl ConfigStore for SledConfigStore {
         Ok(self.get_u32("next_signed_pre_key_id")?.unwrap_or(0))
     }
 
-    fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error> {
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
         self.insert_u32("next_signed_pre_key_id", id)
     }
 }
