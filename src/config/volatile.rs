@@ -28,8 +28,9 @@ pub struct VolatileConfigStore {
     pre_keys: HashMap<u32, Vec<u8>>,
     signed_pre_keys: HashMap<u32, Vec<u8>>,
 
+    // XXX: we need interior mutability + Sync until we fix the trait definition to use &mut self in libsignal-service
     sessions: Arc<RwLock<HashMap<String, Vec<u8>>>>,
-    identities: Arc<RwLock<HashMap<ProtocolAddress, Vec<u8>>>>,
+    identities: HashMap<ProtocolAddress, Vec<u8>>,
 
     registration: Option<Vec<u8>>,
 }
@@ -252,8 +253,6 @@ impl IdentityKeyStore for VolatileConfigStore {
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         self.identities
-            .try_write()
-            .expect("poisoned mutex")
             .insert(address.clone(), identity_key.serialize().to_vec());
         Ok(false)
     }
@@ -265,12 +264,7 @@ impl IdentityKeyStore for VolatileConfigStore {
         _direction: Direction,
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
-        match self
-            .identities
-            .try_read()
-            .expect("poisoned mutex")
-            .get(address)
-        {
+        match self.identities.get(address) {
             None => {
                 // when we encounter a new identity, we trust it by default
                 warn!("trusting new identity {:?}", address);
@@ -285,8 +279,7 @@ impl IdentityKeyStore for VolatileConfigStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let db = self.identities.try_read().expect("poisoned mutex");
-        let buf = db.get(address);
+        let buf = self.identities.get(address);
         Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
     }
 }
