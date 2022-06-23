@@ -15,7 +15,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    Manager, RegistrationOptions, SledConfigStore,
+    ConfigStore, Manager, RegistrationOptions, SledConfigStore, VolatileConfigStore,
 };
 use structopt::StructOpt;
 use tempfile::Builder;
@@ -28,8 +28,11 @@ use url::Url;
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
 struct Args {
-    #[structopt(long = "db-path", short = "d")]
+    #[structopt(long = "db-path", short = "d", group = "store")]
     db_path: Option<PathBuf>,
+
+    #[structopt(long = "volatile", group = "store")]
+    volatile: bool,
 
     #[structopt(flatten)]
     subcommand: Subcommand,
@@ -37,7 +40,7 @@ struct Args {
 
 #[derive(StructOpt)]
 enum Subcommand {
-    #[structopt(about = "register a primary device using a phone number")]
+    #[structopt(about = "Register using a phone number")]
     Register {
         #[structopt(long = "servers", short = "s", default_value = "staging")]
         servers: SignalServers,
@@ -56,7 +59,7 @@ enum Subcommand {
     #[structopt(about = "Unregister from Signal")]
     Unregister,
     #[structopt(
-        about = "generate a QR code to scan with Signal for iOS or Android to provision a secondary device on the same phone number"
+        about = "Generate a QR code to scan with Signal for iOS or Android to link this client as secondary device"
     )]
     LinkDevice {
         /// Possible values: staging, production
@@ -73,37 +76,37 @@ enum Subcommand {
     Whoami,
     #[structopt(about = "Retrieve the user profile")]
     RetrieveProfile,
-    #[structopt(about = "Sets a name, status and avatar")]
+    #[structopt(about = "Set a name, status and avatar")]
     UpdateProfile,
     #[structopt(about = "Check if a user is registered on Signal")]
     GetUserStatus,
-    #[structopt(about = "Block the provided contacts or groups")]
+    #[structopt(about = "Block contacts or groups")]
     Block,
-    #[structopt(about = "Unblock the provided contacts or groups")]
+    #[structopt(about = "Unblock contacts or groups")]
     Unblock,
     #[structopt(about = "Update the details of a contact")]
     UpdateContact,
-    #[structopt(about = "Receives all pending messages and saves them to disk")]
+    #[structopt(about = "Receive all pending messages and saves them to disk")]
     Receive,
     #[structopt(about = "List group memberships")]
     ListGroups,
-    #[structopt(about = "list contacts")]
+    #[structopt(about = "List contacts")]
     ListContacts,
-    #[structopt(about = "find a contact in the embedded DB")]
+    #[structopt(about = "Find a contact in the embedded DB")]
     FindContact {
         #[structopt(long, short = "u", help = "contact UUID")]
         uuid: Option<Uuid>,
         #[structopt(long, short = "name", help = "contact name")]
         name: Option<String>,
     },
-    #[structopt(about = "sends a message")]
+    #[structopt(about = "Send a message")]
     Send {
         #[structopt(long, short = "u", help = "uuid of the recipient")]
         uuid: Uuid,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
     },
-    #[structopt(about = "sends a message to group")]
+    #[structopt(about = "Send a message to group")]
     SendToGroup {
         #[structopt(
             long = "phone-number",
@@ -133,22 +136,23 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::from_args();
 
-    let db_path = args.db_path.unwrap_or_else(|| {
-        ProjectDirs::from("org", "whisperfish", "presage")
-            .unwrap()
-            .config_dir()
-            .into()
-    });
-    debug!("opening config database from {}", db_path.display());
-    let config_store = SledConfigStore::new(db_path)?;
+    if args.volatile {
+        run(args.subcommand, VolatileConfigStore::default()).await
+    } else {
+        let db_path = args.db_path.unwrap_or_else(|| {
+            ProjectDirs::from("org", "whisperfish", "presage")
+                .unwrap()
+                .config_dir()
+                .into()
+        });
+        debug!("opening config database from {}", db_path.display());
+        let config_store = SledConfigStore::new(db_path)?;
+        run(args.subcommand, config_store).await
+    }
+}
 
-    let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
-    info!(
-        "attachments will be stored in {}",
-        attachments_tmp_dir.path().display()
-    );
-
-    match args.subcommand {
+async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow::Result<()> {
+    match subcommand {
         Subcommand::Register {
             servers,
             phone_number,
@@ -184,6 +188,12 @@ async fn main() -> anyhow::Result<()> {
                 Manager::link_secondary_device(config_store, servers, device_name.clone()).await?;
         }
         Subcommand::Receive => {
+            let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
+            info!(
+                "attachments will be stored in {}",
+                attachments_tmp_dir.path().display()
+            );
+
             let manager = Manager::load_registered(config_store)?;
             let messages = manager
                 .clone()

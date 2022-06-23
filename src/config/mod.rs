@@ -11,6 +11,8 @@ use crate::{manager::Registered, Error};
 #[cfg(feature = "sled-store")]
 pub mod sled;
 
+pub mod volatile;
+
 pub trait ConfigStore:
     PreKeyStore
     + SignedPreKeyStore
@@ -22,15 +24,15 @@ pub trait ConfigStore:
     + Clone
 {
     fn pre_keys_offset_id(&self) -> Result<u32, Error>;
-    fn set_pre_keys_offset_id(&self, id: u32) -> Result<(), Error>;
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error>;
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error>;
-    fn set_next_signed_pre_key_id(&self, id: u32) -> Result<(), Error>;
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error>;
 }
 
 pub trait StateStore<S> {
     fn load_state(&self) -> Result<Registered, Error>;
-    fn save_state(&self, state: &S) -> Result<(), Error>;
+    fn save_state(&mut self, state: &S) -> Result<(), Error>;
 }
 
 pub trait ContactsStore {
