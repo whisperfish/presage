@@ -37,6 +37,7 @@
 <span id="32">32</span>
 <span id="33">33</span>
 <span id="34">34</span>
+<span id="35">35</span>
 </pre><pre class="rust"><code><span class="kw">mod</span> <span class="ident">cache</span>;
 <span class="kw">mod</span> <span class="ident">config</span>;
 <span class="kw">mod</span> <span class="ident">errors</span>;
@@ -44,6 +45,7 @@
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;sled-store&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::sled::SledConfigStore</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::volatile::VolatileConfigStore</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::ConfigStore</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">errors::Error</span>;
