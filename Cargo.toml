@@ -19,7 +19,7 @@ serde = "1.0"
 serde_json = "1.0"
 thiserror = "1.0"
 sled = { version = "0.34", optional = true }
-qr2term = "0.2.2"
+qr2term = { version = "0.2.2", optional = true}
 
 [dev-dependencies]
 # for tests
@@ -43,8 +43,9 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 url = "2.2.2"
 
 [features]
-default = ["sled-store"]
+default = ["sled-store", "qr2term"]
 quirks = []
+qr-to-term = ["qr2term"]
 sled-store = ["sled"]
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
