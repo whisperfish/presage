@@ -43,7 +43,7 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 url = "2.2.2"
 
 [features]
-default = ["sled-store", "qr2term"]
+default = ["sled-store", "qr-to-term"]
 quirks = []
 qr-to-term = ["qr2term"]
 sled-store = ["sled"]

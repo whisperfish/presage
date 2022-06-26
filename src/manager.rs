@@ -1,6 +1,6 @@
 use std::time::UNIX_EPOCH;
 
-use futures::{channel::mpsc, future, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, future, AsyncReadExt, SinkExt, Stream, StreamExt};
 use log::{error, trace, warn};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -180,17 +180,8 @@ impl<C: ConfigStore> Manager<C, Registration> {
 }
 
 impl<C: ConfigStore> Manager<C, Linking> {
-    #[cfg(feature = "qr-to-term")]
-    pub async fn link_secondary_device(
-        config_store: C,
-        signal_servers: SignalServers,
-        device_name: String,
-    ) -> Result<Manager<C, Registered>, Error> {
-        let callback: fn(String) -> Result<(), qr2term::QrError> = |url| qr2term::print_qr(url);
-        Self::link_secondary_device_callback(config_store, signal_servers, device_name, &callback)
-            .await
-    }
-    /// Links this client as a secondary device from the device used to register the account (usually a phone)
+    /// Like [Manager::link_secondary_device_callback] but will print the QR code in the
+    /// terminal.
     ///
     /// ```no_run
     /// use presage::{prelude::SignalServers, Manager, SledConfigStore};
@@ -211,15 +202,71 @@ impl<C: ConfigStore> Manager<C, Linking> {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn link_secondary_device_callback<E>(
+    #[cfg(feature = "qr-to-term")]
+    pub async fn link_secondary_device(
         config_store: C,
         signal_servers: SignalServers,
         device_name: String,
-        callback: &dyn Fn(String) -> Result<(), E>,
-    ) -> Result<Manager<C, Registered>, Error>
-    where
-        E: 'static + std::error::Error,
-    {
+    ) -> Result<Manager<C, Registered>, Error> {
+        let (mut tx, mut rx) = mpsc::channel(1);
+        let (manager, err) = future::join(
+            Manager::link_secondary_device_callback(
+                config_store,
+                signal_servers,
+                device_name,
+                &mut tx,
+            ),
+            async move {
+                match rx.next().await {
+                    Some(url) => qr2term::print_qr(url).map_err(|_| Error::LinkError).err(),
+                    None => Some(Error::LinkError),
+                }
+            },
+        )
+        .await;
+        if let Some(e) = err {
+            Err(e)
+        } else {
+            manager
+        }
+    }
+    /// Links this client as a secondary device from the device used to register the account (usually a phone).
+    /// The URL to present to the user will be sent in the channel given as the argument.
+    ///
+    /// ```no_run
+    /// use presage::{prelude::SignalServers, Manager, SledConfigStore};
+    /// use futures::{channel::mpsc, future, StreamExt};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> anyhow::Result<()> {
+    ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
+    ///
+    ///     let (mut tx, mut rx) = mpsc::channel(1);
+    ///     let (manager, err) = future::join(
+    ///         Manager::link_secondary_device_callback(
+    ///             config_store,
+    ///             SignalServers::Production,
+    ///             "my-linked-client".into(),
+    ///             &mut tx,
+    ///         ),
+    ///         async move {
+    ///             match rx.next().await {
+    ///                 Some(url) => println!("Show URL {} as QR code to user", url),
+    ///                 None => println!("Error linking device")
+    ///             }
+    ///         },
+    ///     )
+    ///     .await;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    pub async fn link_secondary_device_callback(
+        config_store: C,
+        signal_servers: SignalServers,
+        device_name: String,
+        callback: &mut mpsc::Sender<String>,
+    ) -> Result<Manager<C, Registered>, Error> {
         // generate a random 24 bytes password
         let mut rng = rand::thread_rng();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
@@ -244,7 +291,7 @@ impl<C: ConfigStore> Manager<C, Linking> {
                     match provisioning_step {
                         SecondaryDeviceProvisioning::Url(url) => {
                             log::info!("generating qrcode from provisioning link: {}", &url);
-                            callback(url.to_string()).map_err(|e| {
+                            callback.send(url.to_string()).await.map_err(|e| {
                                 log::error!("failed to open qr code: {}", e);
                                 Error::LinkError
                             })?;
