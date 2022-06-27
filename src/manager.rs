@@ -1,6 +1,6 @@
 use std::time::UNIX_EPOCH;
 
-use futures::{channel::mpsc, future, AsyncReadExt, SinkExt, Stream, StreamExt};
+use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
 use log::{error, trace, warn};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -37,6 +37,7 @@ use libsignal_service::{
 };
 
 use libsignal_service_hyper::push_service::HyperPushService;
+use url::Url;
 
 use crate::cache::CacheCell;
 use crate::{config::ConfigStore, Error};
@@ -180,70 +181,20 @@ impl<C: ConfigStore> Manager<C, Registration> {
 }
 
 impl<C: ConfigStore> Manager<C, Linking> {
-    /// Like [Manager::link_secondary_device_callback] but will print the QR code in the
-    /// terminal.
-    ///
-    /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledConfigStore};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
-    ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
-    ///
-    ///     Manager::link_secondary_device(
-    ///         config_store,
-    ///         SignalServers::Production,
-    ///         "my-linked-client".into(),
-    ///     )
-    ///     .await?;
-    ///
-    ///     // scan the QR code that shows up with your main device
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
-    #[cfg(feature = "qr-to-term")]
-    pub async fn link_secondary_device(
-        config_store: C,
-        signal_servers: SignalServers,
-        device_name: String,
-    ) -> Result<Manager<C, Registered>, Error> {
-        let (mut tx, mut rx) = mpsc::channel(1);
-        let (manager, err) = future::join(
-            Manager::link_secondary_device_callback(
-                config_store,
-                signal_servers,
-                device_name,
-                &mut tx,
-            ),
-            async move {
-                match rx.next().await {
-                    Some(url) => qr2term::print_qr(url).map_err(|_| Error::LinkError).err(),
-                    None => Some(Error::LinkError),
-                }
-            },
-        )
-        .await;
-        if let Some(e) = err {
-            Err(e)
-        } else {
-            manager
-        }
-    }
     /// Links this client as a secondary device from the device used to register the account (usually a phone).
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
     /// use presage::{prelude::SignalServers, Manager, SledConfigStore};
-    /// use futures::{channel::mpsc, future, StreamExt};
+    /// use futures::{channel::oneshot, future, StreamExt};
     ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
     ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
     ///
-    ///     let (mut tx, mut rx) = mpsc::channel(1);
+    ///     let (mut tx, mut rx) = oneshot::channel(1);
     ///     let (manager, err) = future::join(
-    ///         Manager::link_secondary_device_callback(
+    ///         Manager::link_secondary_device(
     ///             config_store,
     ///             SignalServers::Production,
     ///             "my-linked-client".into(),
@@ -261,11 +212,11 @@ impl<C: ConfigStore> Manager<C, Linking> {
     ///     Ok(())
     /// }
     /// ```
-    pub async fn link_secondary_device_callback(
+    pub async fn link_secondary_device(
         config_store: C,
         signal_servers: SignalServers,
         device_name: String,
-        callback: &mut mpsc::Sender<String>,
+        provisioning_link_channel: oneshot::Sender<Url>,
     ) -> Result<Manager<C, Registered>, Error> {
         // generate a random 24 bytes password
         let mut rng = rand::thread_rng();
@@ -287,38 +238,38 @@ impl<C: ConfigStore> Manager<C, Linking> {
         let (fut1, fut2) = future::join(
             linking_manager.provision_secondary_device(&mut rand::thread_rng(), signaling_key, tx),
             async move {
-                while let Some(provisioning_step) = rx.next().await {
-                    match provisioning_step {
-                        SecondaryDeviceProvisioning::Url(url) => {
-                            log::info!("generating qrcode from provisioning link: {}", &url);
-                            callback.send(url.to_string()).await.map_err(|e| {
-                                log::error!("failed to open qr code: {}", e);
-                                Error::LinkError
-                            })?;
-                        }
-                        SecondaryDeviceProvisioning::NewDeviceRegistration {
-                            phone_number,
-                            device_id,
-                            registration_id,
-                            uuid,
-                            private_key,
-                            public_key,
-                            profile_key,
-                        } => {
-                            log::info!("successfully registered device {}", &uuid);
-                            return Ok((
-                                phone_number,
-                                device_id.device_id,
-                                registration_id,
-                                uuid,
-                                private_key,
-                                public_key,
-                                profile_key,
-                            ));
-                        }
+                if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
+                    log::info!("generating qrcode from provisioning link: {}", &url);
+                    if let Err(_) = provisioning_link_channel.send(url) {
+                        return Err(Error::LinkError);
                     }
+                } else {
+                    return Err(Error::LinkError);
                 }
-                Err(Error::NoProvisioningMessageReceived)
+
+                if let Some(SecondaryDeviceProvisioning::NewDeviceRegistration {
+                    phone_number,
+                    device_id,
+                    registration_id,
+                    uuid,
+                    private_key,
+                    public_key,
+                    profile_key,
+                }) = rx.next().await
+                {
+                    log::info!("successfully registered device {}", &uuid);
+                    Ok((
+                        phone_number,
+                        device_id.device_id,
+                        registration_id,
+                        uuid,
+                        private_key,
+                        public_key,
+                        profile_key,
+                    ))
+                } else {
+                    Err(Error::NoProvisioningMessageReceived)
+                }
             },
         )
         .await;

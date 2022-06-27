@@ -4,7 +4,7 @@ use anyhow::{bail, Context as _};
 use chrono::Local;
 use directories::ProjectDirs;
 use env_logger::Env;
-use futures::{pin_mut, StreamExt};
+use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use log::{debug, info};
 use presage::{
     prelude::{
@@ -184,8 +184,24 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
             servers,
             device_name,
         } => {
-            let _manager =
-                Manager::link_secondary_device(config_store, servers, device_name.clone()).await?;
+            let (provisioning_link_tx, provisioning_link_rx) = oneshot::channel();
+            let _manager = future::join(
+                Manager::link_secondary_device(
+                    config_store,
+                    servers,
+                    device_name.clone(),
+                    provisioning_link_tx,
+                ),
+                async move {
+                    match provisioning_link_rx.await {
+                        Ok(url) => {
+                            qr2term::print_qr(url.to_string()).expect("failed to render qrcode")
+                        }
+                        Err(e) => log::error!("Error linking device: {e}"),
+                    }
+                },
+            )
+            .await;
         }
         Subcommand::Receive => {
             let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
