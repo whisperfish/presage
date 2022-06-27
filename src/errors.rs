@@ -39,8 +39,8 @@ pub enum Error {
     ProvisioningError(#[from] libsignal_service::provisioning::ProvisioningError),
     #[error("no provisioning message received")]
     NoProvisioningMessageReceived,
-    #[error("qr code error: {0}")]
-    QrCodeError(qr2term::QrError),
+    #[error("qr code error")]
+    LinkError,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
     #[error("receiving pipe was interrupted")]
