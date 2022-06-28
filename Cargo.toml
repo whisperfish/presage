@@ -20,6 +20,8 @@ serde_json = "1.0"
 thiserror = "1.0"
 sled = { version = "0.34", optional = true }
 url = "2.2.2"
+secrets = { git = "https://github.com/stouset/secrets", optional = true }
+# fedora: sudo dnf install libsodium-devel
 
 [dev-dependencies]
 # for tests
@@ -43,9 +45,11 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-store"]
+default = ["sled-store","volatile","secret-volatile"]
 quirks = []
 sled-store = ["sled"]
+secret-volatile = ["secrets"]
+volatile = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }

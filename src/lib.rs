@@ -6,6 +6,7 @@ mod manager;
 #[cfg(feature = "sled-store")]
 pub use config::sled::SledConfigStore;
 pub use config::volatile::VolatileConfigStore;
+pub use config::secret_volatile::SecretVolatileConfigStore;
 
 pub use config::ConfigStore;
 pub use errors::Error;

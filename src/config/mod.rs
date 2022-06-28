@@ -11,7 +11,11 @@ use crate::{manager::Registered, Error};
 #[cfg(feature = "sled-store")]
 pub mod sled;
 
+#[cfg(feature = "volatile")]
 pub mod volatile;
+
+#[cfg(feature = "secret-volatile")]
+pub mod secret_volatile;
 
 pub trait ConfigStore:
     PreKeyStore

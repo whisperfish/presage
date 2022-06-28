@@ -15,7 +15,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, RegistrationOptions, SledConfigStore, VolatileConfigStore,
+    ConfigStore, Manager, RegistrationOptions, SledConfigStore, VolatileConfigStore, SecretVolatileConfigStore,
 };
 use structopt::StructOpt;
 use tempfile::Builder;
@@ -24,6 +24,7 @@ use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
 };
 use url::Url;
+use futures::FutureExt;
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
@@ -71,6 +72,12 @@ enum Subcommand {
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
+        #[structopt(
+        long,
+        short = "f",
+        help = "Command to execute after linking the device. (Send or Receive)"
+        )]
+        follow_up_command: String,
     },
     #[structopt(about = "Get information on the registered user")]
     Whoami,
@@ -137,7 +144,7 @@ async fn main() -> anyhow::Result<()> {
     let args = Args::from_args();
 
     if args.volatile {
-        run(args.subcommand, VolatileConfigStore::default()).await
+        run(args.subcommand, SecretVolatileConfigStore::default()).await
     } else {
         let db_path = args.db_path.unwrap_or_else(|| {
             ProjectDirs::from("org", "whisperfish", "presage")
@@ -183,9 +190,10 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
         Subcommand::LinkDevice {
             servers,
             device_name,
+            follow_up_command,
         } => {
             let (provisioning_link_tx, provisioning_link_rx) = oneshot::channel();
-            let _manager = future::join(
+            let manager = future::join(
                 Manager::link_secondary_device(
                     config_store,
                     servers,
@@ -202,6 +210,127 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
                 },
             )
             .await;
+
+            match manager {
+                (Ok(manager),_) => {
+                    let uuid = manager.whoami().await.unwrap().uuid;
+                    println!("{:?}",uuid);
+
+                    match follow_up_command.as_ref() {
+                        "Send" => {
+                            let timestamp = std::time::SystemTime::now()
+                                .duration_since(UNIX_EPOCH)
+                                .expect("Time went backwards")
+                                .as_millis() as u64;
+
+                            let message = ContentBody::DataMessage(DataMessage {
+                                body: Some("Hello World!".to_string()),
+                                timestamp: Some(timestamp),
+                                ..Default::default()
+                            });
+
+                            manager.send_message(uuid, message, timestamp).await?;
+                        },
+                        "Receive" => {
+                            let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
+                            info!(
+                                    "attachments will be stored in {}",
+                                    attachments_tmp_dir.path().display()
+                                );
+
+                            let messages = manager
+                                .clone()
+                                .receive_messages()
+                                .await
+                                .context("failed to initialize messages stream")?;
+                            pin_mut!(messages);
+                            while let Some(Content { metadata, body }) = messages.next().await {
+                                match body {
+                                    ContentBody::DataMessage(message)
+                                    | ContentBody::SynchronizeMessage(SyncMessage {
+                                                                          sent:
+                                                                          Some(Sent {
+                                                                                   message: Some(message),
+                                                                                   ..
+                                                                               }),
+                                                                          ..
+                                                                      }) => {
+                                        if let Some(quote) = &message.quote {
+                                            println!(
+                                                "Quote from {:?}: > {:?} / {}",
+                                                metadata.sender,
+                                                quote,
+                                                message.body(),
+                                            );
+                                        } else if let Some(reaction) = message.reaction {
+                                            println!(
+                                                "Reaction to message sent at {:?}: {:?}",
+                                                reaction.target_sent_timestamp, reaction.emoji,
+                                            )
+                                        } else if let Some(group_context) = message.group_v2 {
+                                            let group_changes = manager.decrypt_group_context(group_context)?;
+                                            println!("Group change: {:?}", group_changes);
+                                        } else {
+                                            println!("Message from {:?}: {:?}", metadata, message);
+                                            // fetch the groups v2 info here, just for testing purposes
+                                            if let Some(group_v2) = message.group_v2 {
+                                                let master_key = GroupMasterKey::new(
+                                                    group_v2.master_key.unwrap().try_into().unwrap(),
+                                                );
+                                                let group = manager.get_group_v2(master_key).await?;
+                                                println!("Group v2: {:?}", group.title);
+                                            }
+                                        }
+
+                                        for attachment_pointer in message.attachments {
+                                            let attachment_data =
+                                                manager.get_attachment(&attachment_pointer).await?;
+                                            let extensions = mime_guess::get_mime_extensions_str(
+                                                attachment_pointer
+                                                    .content_type
+                                                    .as_deref()
+                                                    .unwrap_or("application/octet-stream"),
+                                            );
+                                            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
+                                            let file_path = attachments_tmp_dir.path().join(format!(
+                                                "presage-{}.{}",
+                                                Local::now().format("%Y-%m-%d-%H-%M-%s"),
+                                                extension
+                                            ));
+                                            fs::write(&file_path, &attachment_data).await?;
+                                            info!(
+                                "saved received attachment from {} to {}",
+                                metadata.sender,
+                                file_path.display()
+                            );
+                                        }
+                                    }
+                                    ContentBody::SynchronizeMessage(m) => {
+                                        eprintln!("Unhandled sync message: {:?}", m);
+                                    }
+                                    ContentBody::TypingMessage(_) => {
+                                        println!("{:?} is typing", metadata.sender);
+                                    }
+                                    ContentBody::CallMessage(_) => {
+                                        println!("{:?} is calling!", metadata.sender);
+                                    }
+                                    ContentBody::ReceiptMessage(_) => {
+                                        println!("Got read receipt from: {:?}", metadata.sender);
+                                    }
+                                }
+                            }
+                        },
+                        _ => {
+
+                        }
+                    };
+
+
+                },
+                (Err(err),_) => {
+                    println!("{:?}",err);
+                }
+            };
         }
         Subcommand::Receive => {
             let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
