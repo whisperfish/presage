@@ -5,7 +5,10 @@ mod manager;
 
 #[cfg(feature = "sled-store")]
 pub use config::sled::SledConfigStore;
+
+#[cfg(feature = "volatile")]
 pub use config::volatile::VolatileConfigStore;
+#[cfg(feature = "secret-volatile")]
 pub use config::secret_volatile::SecretVolatileConfigStore;
 
 pub use config::ConfigStore;

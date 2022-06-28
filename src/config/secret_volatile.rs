@@ -1,3 +1,4 @@
+
 use std::{
     collections::HashMap,
     sync::{Arc, RwLock, Mutex},
@@ -26,7 +27,7 @@ pub struct SecretVolatileConfigStore {
     // `Cell<u8>` cannot be shared between threads safely (part of SecretBox/SecretVec)
     // - therefore wrapped within a Mutex
     // - to be able to derive the Clone trait Arc is needed
-    // - Option enum to derive derive the Default trait
+    // - Option enum to derive the Default trait
     pre_keys_offset_id: Arc<Mutex<Option<SecretBox<u32>>>>,
     next_signed_pre_key_id: Arc<Mutex<Option<SecretBox<u32>>>>,
 
