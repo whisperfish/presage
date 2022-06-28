@@ -46,7 +46,7 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-store","volatile-config-store","secret-volatile-config-store"]
+default = ["sled-store","secret-volatile-config-store"]
 quirks = []
 sled-store = ["sled"]
 secret-volatile-config-store = ["libsodium-sys","secrets"]
