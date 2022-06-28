@@ -172,7 +172,7 @@ impl SignedPreKeyStore for SecretVolatileConfigStore {
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf = self
             .signed_pre_keys
-            .try_write()
+            .try_read()
             .expect("poisoned mutex");
         let b = buf
             .get(&signed_prekey_id)
