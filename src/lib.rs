@@ -3,7 +3,7 @@ mod config;
 mod errors;
 mod manager;
 
-#[cfg(feature = "sled-store")]
+#[cfg(feature = "sled-config-store")]
 pub use config::sled::SledConfigStore;
 
 #[cfg(feature = "volatile-config-store")]
