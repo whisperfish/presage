@@ -15,7 +15,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, RegistrationOptions, SledConfigStore, VolatileConfigStore, SecretVolatileConfigStore,
+    ConfigStore, Manager, RegistrationOptions, SledConfigStore, /*VolatileConfigStore,*/ SecretVolatileConfigStore,
 };
 use structopt::StructOpt;
 use tempfile::Builder;
@@ -24,7 +24,6 @@ use tokio::{
     io::{self, AsyncBufReadExt, BufReader},
 };
 use url::Url;
-use futures::FutureExt;
 
 #[derive(StructOpt)]
 #[structopt(about = "a basic signal CLI to try things out")]
