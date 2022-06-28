@@ -46,11 +46,11 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-store","volatile","secret-volatile"]
+default = ["sled-store","volatile-config-store","secret-volatile-config-store"]
 quirks = []
 sled-store = ["sled"]
-secret-volatile = ["libsodium-sys","secrets"]
-volatile = []
+secret-volatile-config-store = ["libsodium-sys","secrets"]
+volatile-config-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
