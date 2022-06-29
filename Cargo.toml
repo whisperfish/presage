@@ -22,7 +22,6 @@ sled = { version = "0.34", optional = true }
 url = "2.2.2"
 libsodium-sys = { version = "0.2.7", optional = true }
 secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true }
-# fedora: sudo dnf install libsodium-devel
 
 [dev-dependencies]
 # for tests

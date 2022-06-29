@@ -22,14 +22,25 @@ use secrets::{SecretBox, SecretVec};
 use super::{ConfigStore, ContactsStore, StateStore};
 use crate::{manager::Registered, Error};
 
+
+
+// - SecretId adds the Default trait to SecretBox<u32>
+#[derive(Debug, Clone)]
+struct SecretId(SecretBox<u32>);
+
+impl Default for SecretId {
+    fn default() -> Self {
+        SecretId(SecretBox::new(|s| *s=0u32))
+    }
+}
+
 #[derive(Default, Debug, Clone)]
 pub struct SecretVolatileConfigStore {
     // `Cell<u8>` cannot be shared between threads safely (part of SecretBox/SecretVec)
     // - therefore wrapped within a Mutex
     // - to be able to derive the Clone trait Arc is needed
-    // - Option enum to derive the Default trait
-    pre_keys_offset_id: Arc<Mutex<Option<SecretBox<u32>>>>,
-    next_signed_pre_key_id: Arc<Mutex<Option<SecretBox<u32>>>>,
+    pre_keys_offset_id: Arc<Mutex<SecretId>>,
+    next_signed_pre_key_id: Arc<Mutex<SecretId>>,
 
     pre_keys: Arc<RwLock<HashMap<u32, Mutex<SecretVec<u8>>>>>,
     signed_pre_keys: Arc<RwLock<HashMap<u32, Mutex<SecretVec<u8>>>>>,
@@ -38,7 +49,7 @@ pub struct SecretVolatileConfigStore {
     sessions: Arc<RwLock<HashMap<String, Mutex<SecretVec<u8>>>>>,
 
     identities: Arc<RwLock<HashMap<ProtocolAddress, Mutex<SecretVec<u8>>>>>,
-    registration: Arc<RwLock<Option<Mutex<SecretVec<u8>>>>>,
+    registration: Arc<Mutex<Option<SecretVec<u8>>>>,
 }
 // todo: to erase or zero out secrets passed into the secret store upstream refactoring is necessary,
 // parameters for example `id` for `set_pre_keys_offset_id` must be passed as &mut for the secrets crate to zero out the value.
@@ -57,16 +68,16 @@ impl StateStore<Registered> for SecretVolatileConfigStore {
     fn load_state(&self) -> Result<Registered, Error> {
         let d = self
             .registration
-            .try_read()
+            .try_lock()
             .expect("poisoned mutex");
         let data = d.as_ref()
             .ok_or(Error::NotYetRegisteredError)?;
-        let x = serde_json::from_slice(&(*data.try_lock().unwrap()).borrow()).map_err(Error::from); x
+        let x = serde_json::from_slice(&*data.borrow()).map_err(Error::from); x
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
         let mut data = serde_json::to_vec(state)?;
-        self.registration = Arc::new(RwLock::new(Some(Mutex::new(SecretVec::from(&mut data[..])))));
+        self.registration = Arc::new(Mutex::new(Some(SecretVec::from(&mut data[..]))));
         Ok(())
     }
 }
@@ -76,14 +87,15 @@ impl ConfigStore for SecretVolatileConfigStore {
         let d = self.pre_keys_offset_id
             .try_lock()
             .expect("poisoned mutex");
-        match d.as_ref() {
-            None => Ok(0u32),
-            Some(s) => Ok(*s.borrow()),
-        }
+        let x = *d.0.borrow();
+        Ok(x)
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.pre_keys_offset_id = Arc::new(Mutex::new(Some(SecretBox::<u32>::new(|s| *s=id))));
+        let mut d = self.pre_keys_offset_id
+            .try_lock()
+            .expect("poisoned mutex");
+        *d.0.borrow_mut() = id;
         Ok(())
     }
 
@@ -91,14 +103,15 @@ impl ConfigStore for SecretVolatileConfigStore {
         let d = self.next_signed_pre_key_id
             .try_lock()
             .expect("poisoned mutex");
-        match d.as_ref() {
-            None => Ok(0u32),
-            Some(s) => Ok(*s.borrow()),
-        }
+        let x = *d.0.borrow();
+        Ok(x)
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.next_signed_pre_key_id = Arc::new(Mutex::new(Some(SecretBox::<u32>::new(|s| *s=id))));
+        let mut d = self.next_signed_pre_key_id
+            .try_lock()
+            .expect("poisoned mutex");
+        *d.0.borrow_mut() = id;
         Ok(())
     }
 }
