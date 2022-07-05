@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["WebSocketStreamItem",""]],"struct":[["MessagePipe",""],["PanicingWebSocketService","WebSocketService that panics on every request, mainly for example code."]],"trait":[["WebSocketService",""]]});

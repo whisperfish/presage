@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["AnyPniCredentialPresentation",""]],"struct":[["PniCredentialPresentationV1",""],["PniCredentialPresentationV2",""]]});

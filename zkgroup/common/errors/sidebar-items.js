@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["ZkGroupDeserializationFailure","Deserialization failure in zkgroup"],["ZkGroupVerificationFailure","Verification failure in zkgroup"]]});

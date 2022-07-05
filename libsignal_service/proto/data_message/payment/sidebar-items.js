@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Item",""]],"mod":[["address","Nested message and enum types in `Address`."],["amount","Nested message and enum types in `Amount`."],["notification","Nested message and enum types in `Notification`."]],"struct":[["Address",""],["Amount",""],["Notification",""]]});

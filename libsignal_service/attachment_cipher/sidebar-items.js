@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["AttachmentCipherError",""]],"fn":[["decrypt_in_place","Decrypts an attachment in place, given the key material."],["encrypt_in_place","Encrypts an attachment in place, given the key material."]]});

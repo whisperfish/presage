@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["CredentialsCacheError",""],["GroupChange",""],["GroupDecryptionError",""]],"mod":[["utils",""]],"struct":[["Group",""],["GroupChanges",""],["GroupsManager",""],["InMemoryCredentialsCache",""]],"trait":[["CredentialsCache","Global cache for groups v2 credentials, as demonstrated in the libsignal-service java library of Signal-Android."]]});

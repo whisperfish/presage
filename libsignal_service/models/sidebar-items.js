@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["ParseContactError",""]],"struct":[["Attachment","Attachment represents an attachment received from a peer"],["Contact","Mirror of the protobuf ContactDetails message but with stronger types (e.g. `ServiceAddress` instead of optional uuid and string phone numbers) and some helper functions"]]});

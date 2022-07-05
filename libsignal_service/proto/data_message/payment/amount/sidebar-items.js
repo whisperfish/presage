@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["Amount",""]],"struct":[["MobileCoin",""]]});

@@ -1,0 +1,1 @@
+initSidebarItems({"struct":[["GroupMasterKey",""],["GroupPublicParams",""],["GroupSecretParams",""]]});
