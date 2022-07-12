@@ -84,12 +84,26 @@ pub struct Registered {
     #[serde(with = "serde_signaling_key")]
     signaling_key: SignalingKey,
     pub device_id: Option<u32>,
-    pub registration_id: u32,
+    pub(crate) registration_id: u32,
     #[serde(with = "serde_private_key")]
-    pub private_key: PrivateKey,
+    pub(crate) private_key: PrivateKey,
     #[serde(with = "serde_public_key")]
-    pub public_key: PublicKey,
+    pub(crate) public_key: PublicKey,
     profile_key: ProfileKey,
+}
+
+impl Registered {
+    pub fn registration_id(&self) -> u32 {
+        self.registration_id
+    }
+
+    pub fn private_key(&self) -> PrivateKey {
+        self.private_key.clone()
+    }
+
+    pub fn public_key(&self) -> PublicKey {
+        self.public_key.clone()
+    }
 }
 
 impl<C: ConfigStore> Manager<C, Registration> {
