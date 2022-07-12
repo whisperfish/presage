@@ -791,16 +791,15 @@ impl<C: ConfigStore> Manager<C, Registered> {
     /// Creates a new service cipher.
     fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let unidentified_sender_trust_root = PublicKey::deserialize(
-            &base64::decode(&service_configuration.unidentified_sender_trust_root).unwrap(),
-        )?;
         let service_cipher = ServiceCipher::new(
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             rand::thread_rng(),
-            unidentified_sender_trust_root,
+            service_configuration.unidentified_sender_trust_root,
+            self.state.uuid,
+            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
         );
 
         Ok(service_cipher)
