@@ -98,11 +98,11 @@ impl Registered {
     }
 
     pub fn private_key(&self) -> PrivateKey {
-        self.private_key.clone()
+        self.private_key
     }
 
     pub fn public_key(&self) -> PublicKey {
-        self.public_key.clone()
+        self.public_key
     }
 }
 
