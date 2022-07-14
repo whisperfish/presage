@@ -92,6 +92,20 @@ pub struct Registered {
     profile_key: ProfileKey,
 }
 
+impl Registered {
+    pub fn registration_id(&self) -> u32 {
+        self.registration_id
+    }
+
+    pub fn private_key(&self) -> PrivateKey {
+        self.private_key.clone()
+    }
+
+    pub fn public_key(&self) -> PublicKey {
+        self.public_key.clone()
+    }
+}
+
 impl<C: ConfigStore> Manager<C, Registration> {
     /// Registers a new account with a phone number (and some options).
     ///

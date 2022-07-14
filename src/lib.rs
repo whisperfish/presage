@@ -7,7 +7,7 @@ mod manager;
 pub use config::sled::SledConfigStore;
 pub use config::volatile::VolatileConfigStore;
 
-pub use config::ConfigStore;
+pub use config::{ConfigStore, ContactsStore, StateStore};
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 
