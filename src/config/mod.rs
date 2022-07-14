@@ -8,10 +8,14 @@ use libsignal_service::{
 
 use crate::{manager::Registered, Error};
 
-#[cfg(feature = "sled-store")]
+#[cfg(feature = "sled-config-store")]
 pub mod sled;
 
+#[cfg(feature = "volatile-config-store")]
 pub mod volatile;
+
+#[cfg(feature = "secret-volatile-config-store")]
+pub mod secret_volatile;
 
 pub trait ConfigStore:
     PreKeyStore
