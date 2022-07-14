@@ -43,18 +43,18 @@ The URL to present to the user will be sent in the channel given as the argument
 <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">main</span>() -&gt; <span class="ident">anyhow::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
     <span class="kw">let</span> <span class="ident">config_store</span> <span class="op">=</span> <span class="ident">SledConfigStore::new</span>(<span class="string">&quot;/tmp/presage-example&quot;</span>)<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> (<span class="kw-2">mut</span> <span class="ident">tx</span>, <span class="kw-2">mut</span> <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">oneshot::channel</span>(<span class="number">1</span>);
+    <span class="kw">let</span> (<span class="kw-2">mut</span> <span class="ident">tx</span>, <span class="kw-2">mut</span> <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">oneshot::channel</span>();
     <span class="kw">let</span> (<span class="ident">manager</span>, <span class="ident">err</span>) <span class="op">=</span> <span class="ident">future::join</span>(
         <span class="ident">Manager::link_secondary_device</span>(
             <span class="ident">config_store</span>,
             <span class="ident">SignalServers::Production</span>,
             <span class="string">&quot;my-linked-client&quot;</span>.<span class="ident">into</span>(),
-            <span class="kw-2">&amp;mut</span> <span class="ident">tx</span>,
+            <span class="ident">tx</span>,
         ),
         <span class="kw">async</span> <span class="kw">move</span> {
-            <span class="kw">match</span> <span class="ident">rx</span>.<span class="ident">next</span>().<span class="kw">await</span> {
-                <span class="prelude-val">Some</span>(<span class="ident">url</span>) =&gt; <span class="macro">println!</span>(<span class="string">&quot;Show URL {} as QR code to user&quot;</span>, <span class="ident">url</span>),
-                <span class="prelude-val">None</span> =&gt; <span class="macro">println!</span>(<span class="string">&quot;Error linking device&quot;</span>)
+            <span class="kw">match</span> <span class="ident">rx</span>.<span class="kw">await</span> {
+                <span class="prelude-val">Ok</span>(<span class="ident">url</span>) =&gt; <span class="macro">println!</span>(<span class="string">&quot;Show URL {} as QR code to user&quot;</span>, <span class="ident">url</span>),
+                <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="macro">println!</span>(<span class="string">&quot;Error linking device: {}&quot;</span>, <span class="ident">e</span>)
             }
         },
     )

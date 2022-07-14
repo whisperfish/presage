@@ -1004,18 +1004,18 @@
     <span class="doccomment">/// async fn main() -&gt; anyhow::Result&lt;()&gt; {</span>
     <span class="doccomment">///     let config_store = SledConfigStore::new(&quot;/tmp/presage-example&quot;)?;</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">///     let (mut tx, mut rx) = oneshot::channel(1);</span>
+    <span class="doccomment">///     let (mut tx, mut rx) = oneshot::channel();</span>
     <span class="doccomment">///     let (manager, err) = future::join(</span>
     <span class="doccomment">///         Manager::link_secondary_device(</span>
     <span class="doccomment">///             config_store,</span>
     <span class="doccomment">///             SignalServers::Production,</span>
     <span class="doccomment">///             &quot;my-linked-client&quot;.into(),</span>
-    <span class="doccomment">///             &amp;mut tx,</span>
+    <span class="doccomment">///             tx,</span>
     <span class="doccomment">///         ),</span>
     <span class="doccomment">///         async move {</span>
-    <span class="doccomment">///             match rx.next().await {</span>
-    <span class="doccomment">///                 Some(url) =&gt; println!(&quot;Show URL {} as QR code to user&quot;, url),</span>
-    <span class="doccomment">///                 None =&gt; println!(&quot;Error linking device&quot;)</span>
+    <span class="doccomment">///             match rx.await {</span>
+    <span class="doccomment">///                 Ok(url) =&gt; println!(&quot;Show URL {} as QR code to user&quot;, url),</span>
+    <span class="doccomment">///                 Err(e) =&gt; println!(&quot;Error linking device: {}&quot;, e)</span>
     <span class="doccomment">///             }</span>
     <span class="doccomment">///         },</span>
     <span class="doccomment">///     )</span>
