@@ -169,7 +169,7 @@ impl SessionStore for VolatileConfigStore {
         let key = self.session_key(address);
         let buf = db.get(&key);
 
-        buf.map(|buf| SessionRecord::deserialize(&buf)).transpose()
+        buf.map(|buf| SessionRecord::deserialize(buf)).transpose()
     }
 
     async fn store_session(
@@ -270,7 +270,7 @@ impl IdentityKeyStore for VolatileConfigStore {
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(contents) => Ok(&IdentityKey::decode(&contents)? == identity_key),
+            Some(contents) => Ok(&IdentityKey::decode(contents)? == identity_key),
         }
     }
 
@@ -280,6 +280,6 @@ impl IdentityKeyStore for VolatileConfigStore {
         _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
         let buf = self.identities.get(address);
-        Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
+        Ok(buf.map(|b| IdentityKey::decode(b).unwrap()))
     }
 }

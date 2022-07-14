@@ -240,7 +240,7 @@ impl<C: ConfigStore> Manager<C, Linking> {
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
                     log::info!("generating qrcode from provisioning link: {}", &url);
-                    if let Err(_) = provisioning_link_channel.send(url) {
+                    if provisioning_link_channel.send(url).is_err() {
                         return Err(Error::LinkError);
                     }
                 } else {
