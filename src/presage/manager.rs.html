@@ -810,6 +810,20 @@
 <span id="805">805</span>
 <span id="806">806</span>
 <span id="807">807</span>
+<span id="808">808</span>
+<span id="809">809</span>
+<span id="810">810</span>
+<span id="811">811</span>
+<span id="812">812</span>
+<span id="813">813</span>
+<span id="814">814</span>
+<span id="815">815</span>
+<span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
+<span id="821">821</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
 
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">channel::oneshot</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
@@ -902,6 +916,20 @@
     <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_public_key&quot;</span>)]</span>
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">public_key</span>: <span class="ident">PublicKey</span>,
     <span class="ident">profile_key</span>: <span class="ident">ProfileKey</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Registered</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
+        <span class="self">self</span>.<span class="ident">registration_id</span>
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">private_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">PrivateKey</span> {
+        <span class="self">self</span>.<span class="ident">private_key</span>.<span class="ident">clone</span>()
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">public_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">PublicKey</span> {
+        <span class="self">self</span>.<span class="ident">public_key</span>.<span class="ident">clone</span>()
+    }
 }
 
 <span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">ConfigStore</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registration</span><span class="op">&gt;</span> {

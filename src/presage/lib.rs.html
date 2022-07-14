@@ -47,7 +47,7 @@
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::sled::SledConfigStore</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::volatile::VolatileConfigStore</span>;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::ConfigStore</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config</span>::{<span class="ident">ConfigStore</span>, <span class="ident">ContactsStore</span>, <span class="ident">StateStore</span>};
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">errors::Error</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">manager</span>::{<span class="ident">Confirmation</span>, <span class="ident">Linking</span>, <span class="ident">Manager</span>, <span class="ident">Registered</span>, <span class="ident">Registration</span>, <span class="ident">RegistrationOptions</span>};
 
