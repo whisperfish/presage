@@ -192,18 +192,18 @@ impl<C: ConfigStore> Manager<C, Linking> {
     /// async fn main() -> anyhow::Result<()> {
     ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
     ///
-    ///     let (mut tx, mut rx) = oneshot::channel(1);
+    ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
     ///         Manager::link_secondary_device(
     ///             config_store,
     ///             SignalServers::Production,
     ///             "my-linked-client".into(),
-    ///             &mut tx,
+    ///             tx,
     ///         ),
     ///         async move {
-    ///             match rx.next().await {
-    ///                 Some(url) => println!("Show URL {} as QR code to user", url),
-    ///                 None => println!("Error linking device")
+    ///             match rx.await {
+    ///                 Ok(url) => println!("Show URL {} as QR code to user", url),
+    ///                 Err(e) => println!("Error linking device: {}", e)
     ///             }
     ///         },
     ///     )
