@@ -23,6 +23,12 @@ url = "2.2.2"
 libsodium-sys = { version = "0.2.7", optional = true }
 secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true }
 
+bytes = "1"
+prost = "0.10"
+
+[build-dependencies]
+prost-build = "0.10"
+
 [dev-dependencies]
 # for tests
 quickcheck = "1.0.3"

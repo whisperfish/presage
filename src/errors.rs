@@ -11,6 +11,8 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
+    #[error("Prost error: {0}")]
+    ProstError(#[from] prost::DecodeError),
     #[error("data store error: {0}")]
     DbError(#[from] sled::Error),
     #[error("error decoding base64 data: {0}")]

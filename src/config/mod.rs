@@ -2,7 +2,7 @@ use libsignal_service::{
     models::Contact,
     prelude::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
-        Uuid,
+        Content, Uuid,
     },
 };
 
@@ -43,4 +43,15 @@ pub trait ContactsStore {
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error>;
     fn contacts(&self) -> Result<Vec<Contact>, Error>;
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
+}
+
+pub trait MessageStore {
+    fn save_message(&mut self, sender: Uuid, timestamp: u64, message: Content)
+        -> Result<(), Error>;
+    fn messages(&self) -> Result<Vec<Content>, Error>;
+    fn message_by_sender_timestamp(
+        &self,
+        sender: Uuid,
+        timestamp: u64,
+    ) -> Result<Option<Content>, Error>;
 }

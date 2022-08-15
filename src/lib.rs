@@ -2,16 +2,17 @@ mod cache;
 mod config;
 mod errors;
 mod manager;
+mod proto;
 
 #[cfg(feature = "sled-config-store")]
 pub use config::sled::SledConfigStore;
 
-#[cfg(feature = "volatile-config-store")]
-pub use config::volatile::VolatileConfigStore;
 #[cfg(feature = "secret-volatile-config-store")]
 pub use config::secret_volatile::SecretVolatileConfigStore;
+#[cfg(feature = "volatile-config-store")]
+pub use config::volatile::VolatileConfigStore;
 
-pub use config::{ConfigStore, ContactsStore, StateStore};
+pub use config::{ConfigStore, ContactsStore, MessageStore, StateStore};
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 

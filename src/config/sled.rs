@@ -16,15 +16,17 @@ use libsignal_service::{
     },
 };
 use log::{debug, trace, warn};
+use prost::Message;
 use sled::IVec;
 
-use super::{ConfigStore, ContactsStore, StateStore};
-use crate::{manager::Registered, Error};
+use super::{ConfigStore, ContactsStore, MessageStore, StateStore};
+use crate::{manager::Registered, proto::ContentProto, Error};
 
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
 
 const SLED_TREE_SESSIONS: &str = "sessions";
+const SLED_TREE_MESSAGES: &str = "messages";
 
 #[derive(Debug, Clone)]
 pub struct SledConfigStore {
@@ -455,6 +457,62 @@ impl IdentityKeyStore for SledConfigStore {
             SignalProtocolError::InvalidState("get_identity", "failed to read identity".into())
         })?;
         Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
+    }
+}
+
+impl MessageStore for SledConfigStore {
+    fn save_message(
+        &mut self,
+        sender: Uuid,
+        timestamp: u64,
+        message: libsignal_service::prelude::Content,
+    ) -> Result<(), Error> {
+        let tree = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_MESSAGES)?;
+        let key_sender = sender.as_bytes();
+        let key_timestamp = timestamp.to_ne_bytes();
+        let key = [&key_sender[..], &key_timestamp[..]].concat();
+        let value = ContentProto::from_content(message);
+        tree.insert(key, value.encode_to_vec())?;
+        Ok(())
+    }
+
+    fn messages(&self) -> Result<Vec<libsignal_service::prelude::Content>, Error> {
+        Ok(self
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_MESSAGES)?
+            .iter()
+            .filter_map(Result::ok)
+            .filter_map(|(_key, buf)| ContentProto::decode(&*buf).ok())
+            .map(|c| c.into_content())
+            .collect())
+    }
+
+    fn message_by_sender_timestamp(
+        &self,
+        sender: Uuid,
+        timestamp: u64,
+    ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
+        let tree = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_MESSAGES)?;
+        let key_sender = sender.as_bytes();
+        let key_timestamp = timestamp.to_ne_bytes();
+        let key = [&key_sender[..], &key_timestamp[..]].concat();
+        let val = tree.get(key)?;
+        if let Some(val) = val {
+            let proto = ContentProto::decode(&*val)?;
+            Ok(Some(proto.into_content()))
+        } else {
+            Ok(None)
+        }
     }
 }
 

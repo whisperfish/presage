@@ -6,13 +6,18 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use log::{debug, info};
-use presage::{prelude::{
-    content::{
-        Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
+use presage::{
+    prelude::{
+        content::{
+            Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
+        },
+        proto::sync_message::Sent,
+        Contact, GroupMasterKey, SignalServers,
     },
-    proto::sync_message::Sent,
-    Contact, GroupMasterKey, SignalServers,
-}, prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid}, ConfigStore, Manager, RegistrationOptions, SledConfigStore, SecretVolatileConfigStore, Registered};
+    prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
+    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SecretVolatileConfigStore,
+    SledConfigStore,
+};
 use structopt::StructOpt;
 use tempfile::Builder;
 use tokio::{
@@ -68,9 +73,9 @@ enum Subcommand {
         )]
         device_name: String,
         #[structopt(
-        long,
-        short = "f",
-        help = "Command to execute after linking the device. (Send or Receive)"
+            long,
+            short = "f",
+            help = "Command to execute after linking the device. (Send or Receive)"
         )]
         follow_up_command: String,
     },
@@ -94,6 +99,8 @@ enum Subcommand {
     ListGroups,
     #[structopt(about = "List contacts")]
     ListContacts,
+    #[structopt(about = "List messages")]
+    ListMessages,
     #[structopt(about = "Find a contact in the embedded DB")]
     FindContact {
         #[structopt(long, short = "u", help = "contact UUID")]
@@ -153,7 +160,11 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-async fn send<C: ConfigStore>(msg: &str, uuid: &Uuid, manager: &Manager<C,Registered>) -> anyhow::Result<()> {
+async fn send<C: ConfigStore>(
+    msg: &str,
+    uuid: &Uuid,
+    manager: &Manager<C, Registered>,
+) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
@@ -169,16 +180,18 @@ async fn send<C: ConfigStore>(msg: &str, uuid: &Uuid, manager: &Manager<C,Regist
     Ok(())
 }
 
-async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Result<()> {
+async fn receive<C: ConfigStore + MessageStore>(
+    manager: &Manager<C, Registered>,
+) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
-                                    "attachments will be stored in {}",
-                                    attachments_tmp_dir.path().display()
-                                );
+        "attachments will be stored in {}",
+        attachments_tmp_dir.path().display()
+    );
 
-    let messages = manager
-        .clone()
-        .receive_messages()
+    let clone = manager.clone();
+    let messages = clone
+        .receive_messages_store()
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
@@ -186,13 +199,13 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
         match body {
             ContentBody::DataMessage(message)
             | ContentBody::SynchronizeMessage(SyncMessage {
-                                                  sent:
-                                                  Some(Sent {
-                                                           message: Some(message),
-                                                           ..
-                                                       }),
-                                                  ..
-                                              }) => {
+                sent:
+                    Some(Sent {
+                        message: Some(message),
+                        ..
+                    }),
+                ..
+            }) => {
                 if let Some(quote) = &message.quote {
                     println!(
                         "Quote from {:?}: > {:?} / {}",
@@ -212,17 +225,15 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
                     println!("Message from {:?}: {:?}", metadata, message);
                     // fetch the groups v2 info here, just for testing purposes
                     if let Some(group_v2) = message.group_v2 {
-                        let master_key = GroupMasterKey::new(
-                            group_v2.master_key.unwrap().try_into().unwrap(),
-                        );
+                        let master_key =
+                            GroupMasterKey::new(group_v2.master_key.unwrap().try_into().unwrap());
                         let group = manager.get_group_v2(master_key).await?;
                         println!("Group v2: {:?}", group.title);
                     }
                 }
 
                 for attachment_pointer in message.attachments {
-                    let attachment_data =
-                        manager.get_attachment(&attachment_pointer).await?;
+                    let attachment_data = manager.get_attachment(&attachment_pointer).await?;
                     let extensions = mime_guess::get_mime_extensions_str(
                         attachment_pointer
                             .content_type
@@ -237,10 +248,10 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
                     ));
                     fs::write(&file_path, &attachment_data).await?;
                     info!(
-                                "saved received attachment from {} to {}",
-                                metadata.sender,
-                                file_path.display()
-                            );
+                        "saved received attachment from {} to {}",
+                        metadata.sender,
+                        file_path.display()
+                    );
                 }
             }
             ContentBody::SynchronizeMessage(m) => {
@@ -260,7 +271,10 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
     Ok(())
 }
 
-async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow::Result<()> {
+async fn run<C: ConfigStore + MessageStore>(
+    subcommand: Subcommand,
+    config_store: C,
+) -> anyhow::Result<()> {
     match subcommand {
         Subcommand::Register {
             servers,
@@ -314,24 +328,22 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
             .await;
 
             match manager {
-                (Ok(manager),_) => {
+                (Ok(manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
-                    println!("{:?}",uuid);
+                    println!("{:?}", uuid);
 
                     match follow_up_command.as_ref() {
                         "Send" => {
-                            send("Hello World",&uuid,&manager).await?;
-                        },
+                            send("Hello World", &uuid, &manager).await?;
+                        }
                         "Receive" => {
                             receive(&manager).await?;
-                        },
-                        _ => {
-
                         }
+                        _ => {}
                     };
-                },
-                (Err(err),_) => {
-                    println!("{:?}",err);
+                }
+                (Err(err), _) => {
+                    println!("{:?}", err);
                 }
             };
         }
@@ -341,7 +353,7 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
         }
         Subcommand::Send { uuid, message } => {
             let manager = Manager::load_registered(config_store)?;
-            send(&message,&uuid,&manager).await?;
+            send(&message, &uuid, &manager).await?;
         }
         Subcommand::SendToGroup {
             recipients,
@@ -416,6 +428,30 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
                 } = contact
                 {
                     println!("{} / {} / {}", uuid, name, phonenumber);
+                }
+            }
+        }
+        Subcommand::ListMessages => {
+            let mut msgs = config_store.messages()?;
+            msgs.sort_by_key(|m| m.metadata.timestamp);
+            for msg in msgs {
+                match msg.body {
+                    ContentBody::DataMessage(message)
+                    | ContentBody::SynchronizeMessage(SyncMessage {
+                        sent:
+                            Some(Sent {
+                                message: Some(message),
+                                ..
+                            }),
+                        ..
+                    }) => {
+                        println!(
+                            "{}: {}",
+                            msg.metadata.sender.e164_or_uuid(),
+                            message.body.unwrap_or_else(|| "".to_string())
+                        )
+                    }
+                    _ => {}
                 }
             }
         }
