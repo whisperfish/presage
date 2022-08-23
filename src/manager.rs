@@ -827,9 +827,9 @@ where
     pub async fn receive_messages_store(&self) -> Result<impl Stream<Item = Content> + '_, Error> {
         let mut store = self.config_store.clone();
         Ok(self.receive_messages().await?.map(move |c| {
-            if let Some(sender_uuid) = c.metadata.sender.uuid {
+            if c.metadata.sender.uuid.is_some() {
                 // TODO: Error handling?
-                let _ = store.save_message(sender_uuid, c.metadata.timestamp, c.clone());
+                let _ = store.save_message(c.clone());
             }
             c
         }))

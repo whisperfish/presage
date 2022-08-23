@@ -5,6 +5,7 @@ use std::{
 
 use async_trait::async_trait;
 use libsignal_service::{
+    content::ContentBody,
     models::Contact,
     prelude::{
         protocol::{
@@ -14,12 +15,13 @@ use libsignal_service::{
         },
         Uuid,
     },
+    proto::{sync_message::Sent, GroupContextV2, SyncMessage},
 };
 use log::{debug, trace, warn};
 use prost::Message;
 use sled::IVec;
 
-use super::{ConfigStore, ContactsStore, MessageStore, StateStore};
+use super::{ConfigStore, ContactsStore, MessageIdentity, MessageStore, StateStore};
 use crate::{manager::Registered, proto::ContentProto, Error};
 
 const SLED_KEY_REGISTRATION: &str = "registration";
@@ -27,6 +29,8 @@ const SLED_KEY_CONTACTS: &str = "contacts";
 
 const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_MESSAGES: &str = "messages";
+const SLED_TREE_CONTACTS_TO_MESSAGES: &str = "contacts-to-messages";
+const SLED_TREE_GROUPS_TO_MESSAGES: &str = "groups-to-messages";
 
 #[derive(Debug, Clone)]
 pub struct SledConfigStore {
@@ -460,23 +464,66 @@ impl IdentityKeyStore for SledConfigStore {
     }
 }
 
+fn prefix_merge(_key: &[u8], old_value: Option<&[u8]>, merged_bytes: &[u8]) -> Option<Vec<u8>> {
+    let mut ret = merged_bytes.to_vec();
+
+    ret.extend_from_slice(old_value.unwrap_or_default());
+
+    Some(ret)
+}
+
 impl MessageStore for SledConfigStore {
-    fn save_message(
-        &mut self,
-        sender: Uuid,
-        timestamp: u64,
-        message: libsignal_service::prelude::Content,
-    ) -> Result<(), Error> {
-        let tree = self
+    fn save_message(&mut self, message: libsignal_service::prelude::Content) -> Result<(), Error> {
+        let id = MessageIdentity::try_from(&message)?;
+        log::trace!("Storing a message with id: {:?}", id);
+        let sender = id.0;
+        let timestamp = id.1;
+
+        let group_master_key = match message.body {
+            ContentBody::DataMessage(ref msg)
+            | ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(Sent {
+                        message: Some(ref msg),
+                        ..
+                    }),
+                ..
+            }) => msg.group_v2.clone().and_then(|g| g.master_key),
+            _ => None,
+        };
+
+        let tree_messages = self
             .db
             .try_read()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_MESSAGES)?;
+        let tree_contacts_to_messages = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_CONTACTS_TO_MESSAGES)?;
+        let tree_groups_to_messages = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_GROUPS_TO_MESSAGES)?;
+        tree_contacts_to_messages.set_merge_operator(prefix_merge);
+        tree_groups_to_messages.set_merge_operator(prefix_merge);
+
         let key_sender = sender.as_bytes();
         let key_timestamp = timestamp.to_ne_bytes();
         let key = [&key_sender[..], &key_timestamp[..]].concat();
         let value = ContentProto::from_content(message);
-        tree.insert(key, value.encode_to_vec())?;
+
+        tree_messages.insert(key, value.encode_to_vec())?;
+        let id_bytes: [u8; 24] = id.into();
+        if let Some(group) = group_master_key {
+            log::trace!("Storing message to group: {:?}", group);
+            tree_groups_to_messages.merge(group, id_bytes)?;
+        } else {
+            log::trace!("Storing message to contact: {:?}", sender);
+            tree_contacts_to_messages.merge(sender.as_bytes(), id_bytes)?;
+        }
         Ok(())
     }
 
@@ -493,11 +540,13 @@ impl MessageStore for SledConfigStore {
             .collect())
     }
 
-    fn message_by_sender_timestamp(
+    fn message_by_identity(
         &self,
-        sender: Uuid,
-        timestamp: u64,
+        id: &MessageIdentity,
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
+        let sender = id.0;
+        let timestamp = id.1;
+
         let tree = self
             .db
             .try_read()
@@ -513,6 +562,34 @@ impl MessageStore for SledConfigStore {
         } else {
             Ok(None)
         }
+    }
+
+    fn messages_by_contact(&self, contact: &Uuid) -> Result<Vec<MessageIdentity>, Error> {
+        log::trace!("Query messages by contact: {:?}", contact);
+        Ok(self
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_CONTACTS_TO_MESSAGES)?
+            .get(contact.as_bytes())?
+            .unwrap_or_default()
+            .chunks_exact(24)
+            .map(|c| MessageIdentity::from(<[u8; 24]>::try_from(c).unwrap()))
+            .collect())
+    }
+
+    fn messages_by_group(&self, group: &GroupContextV2) -> Result<Vec<MessageIdentity>, Error> {
+        log::trace!("Query messages by group: {:?}", group.master_key());
+        Ok(self
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_GROUPS_TO_MESSAGES)?
+            .get(group.master_key())?
+            .unwrap_or_default()
+            .chunks_exact(24)
+            .map(|c| MessageIdentity::from(<[u8; 24]>::try_from(c).unwrap()))
+            .collect())
     }
 }
 

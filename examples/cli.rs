@@ -101,6 +101,16 @@ enum Subcommand {
     ListContacts,
     #[structopt(about = "List messages")]
     ListMessages,
+    #[structopt(about = "List messages from contact")]
+    ListMessagesFromContact {
+        #[structopt(long, short = "u", help = "contact UUID")]
+        uuid: Uuid,
+    },
+    #[structopt(about = "List messages")]
+    ListMessagesFromGroup {
+        #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
+        master_key: String,
+    },
     #[structopt(about = "Find a contact in the embedded DB")]
     FindContact {
         #[structopt(long, short = "u", help = "contact UUID")]
@@ -473,6 +483,64 @@ async fn run<C: ConfigStore + MessageStore>(
         Subcommand::RequestSyncContacts => {
             let manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
+        }
+        Subcommand::ListMessagesFromContact { uuid } => {
+            let msg_ids = config_store.messages_by_contact(&uuid)?;
+            for msg_id in msg_ids {
+                let msg = config_store
+                    .message_by_identity(&msg_id)?
+                    .expect("Message ID to be in the store");
+                match msg.body {
+                    ContentBody::DataMessage(message)
+                    | ContentBody::SynchronizeMessage(SyncMessage {
+                        sent:
+                            Some(Sent {
+                                message: Some(message),
+                                ..
+                            }),
+                        ..
+                    }) => {
+                        println!(
+                            "{}: {}",
+                            msg.metadata.sender.e164_or_uuid(),
+                            message.body.unwrap_or_else(|| "".to_string())
+                        )
+                    }
+                    _ => {}
+                }
+            }
+        }
+        Subcommand::ListMessagesFromGroup { master_key } => {
+            let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
+            let context = GroupContextV2 {
+                master_key: Some(master_key_bytes),
+                revision: None,
+                group_change: None,
+            };
+            let msg_ids = config_store.messages_by_group(&context)?;
+            for msg_id in msg_ids {
+                let msg = config_store
+                    .message_by_identity(&msg_id)?
+                    .expect("Message ID to be in the store");
+                match msg.body {
+                    ContentBody::DataMessage(message)
+                    | ContentBody::SynchronizeMessage(SyncMessage {
+                        sent:
+                            Some(Sent {
+                                message: Some(message),
+                                ..
+                            }),
+                        ..
+                    }) => {
+                        println!(
+                            "{}: {}",
+                            msg.metadata.sender.e164_or_uuid(),
+                            message.body.unwrap_or_else(|| "".to_string())
+                        )
+                    }
+                    _ => {}
+                }
+            }
         }
     };
     Ok(())
