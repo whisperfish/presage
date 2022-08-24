@@ -4,7 +4,7 @@ use libsignal_service::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
         Content, Uuid,
     },
-    proto::GroupContextV2,
+    proto::{data_message::Quote, GroupContextV2},
 };
 
 use crate::{manager::Registered, Error};
@@ -55,6 +55,17 @@ impl TryFrom<&Content> for MessageIdentity {
         Ok(Self(
             c.metadata.sender.uuid.ok_or(Error::ContentMissingUuid)?,
             c.metadata.timestamp,
+        ))
+    }
+}
+
+impl TryFrom<&Quote> for MessageIdentity {
+    type Error = Error;
+
+    fn try_from(q: &Quote) -> Result<Self, Self::Error> {
+        Ok(Self(
+            Uuid::parse_str(q.author_uuid.as_ref().ok_or(Error::ContentMissingUuid)?)?,
+            q.id.ok_or(Error::ContentMissingUuid)?,
         ))
     }
 }
