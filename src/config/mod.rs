@@ -46,8 +46,8 @@ pub trait ContactsStore {
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
 
-#[derive(Debug)]
-pub struct MessageIdentity(Uuid, u64);
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+pub struct MessageIdentity(pub Uuid, pub u64);
 
 impl TryFrom<&Content> for MessageIdentity {
     type Error = Error;

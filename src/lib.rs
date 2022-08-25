@@ -12,9 +12,10 @@ pub use config::secret_volatile::SecretVolatileConfigStore;
 #[cfg(feature = "volatile-config-store")]
 pub use config::volatile::VolatileConfigStore;
 
-pub use config::{ConfigStore, ContactsStore, MessageStore, StateStore};
+pub use config::{ConfigStore, ContactsStore, MessageIdentity, MessageStore, StateStore};
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
+pub use proto::ContentProto;
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;
