@@ -1,18 +1,21 @@
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
-use anyhow::{bail, Context as _};
+use anyhow::Context as _;
 use chrono::Local;
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use log::{debug, info};
-use presage::{prelude::{
-    content::{
-        Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
+use presage::{
+    prelude::{
+        content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
+        proto::sync_message::Sent,
+        Contact, GroupMasterKey, SignalServers,
     },
-    proto::sync_message::Sent,
-    Contact, GroupMasterKey, SignalServers,
-}, prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid}, ConfigStore, Manager, RegistrationOptions, SledConfigStore, SecretVolatileConfigStore, Registered};
+    prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
+    ConfigStore, Manager, Registered, RegistrationOptions, SecretVolatileConfigStore,
+    SledConfigStore,
+};
 use structopt::StructOpt;
 use tempfile::Builder;
 use tokio::{
@@ -68,9 +71,9 @@ enum Subcommand {
         )]
         device_name: String,
         #[structopt(
-        long,
-        short = "f",
-        help = "Command to execute after linking the device. (Send or Receive)"
+            long,
+            short = "f",
+            help = "Command to execute after linking the device. (Send or Receive)"
         )]
         follow_up_command: String,
     },
@@ -110,20 +113,10 @@ enum Subcommand {
     },
     #[structopt(about = "Send a message to group")]
     SendToGroup {
-        #[structopt(
-            long = "phone-number",
-            short = "n",
-            min_values = 1,
-            required = true,
-            help = "Phone number of the recipient"
-        )]
-        recipients: Vec<PhoneNumber>,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
-        #[structopt(long, short = "g", help = "ID of the legacy group (hex string)")]
-        group_id: Option<String>,
         #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
-        master_key: Option<String>,
+        master_key: String,
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
@@ -153,7 +146,11 @@ async fn main() -> anyhow::Result<()> {
     }
 }
 
-async fn send<C: ConfigStore>(msg: &str, uuid: &Uuid, manager: &Manager<C,Registered>) -> anyhow::Result<()> {
+async fn send<C: ConfigStore>(
+    msg: &str,
+    uuid: &Uuid,
+    manager: &Manager<C, Registered>,
+) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
@@ -169,12 +166,12 @@ async fn send<C: ConfigStore>(msg: &str, uuid: &Uuid, manager: &Manager<C,Regist
     Ok(())
 }
 
-async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Result<()> {
+async fn receive<C: ConfigStore>(manager: &Manager<C, Registered>) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
-                                    "attachments will be stored in {}",
-                                    attachments_tmp_dir.path().display()
-                                );
+        "attachments will be stored in {}",
+        attachments_tmp_dir.path().display()
+    );
 
     let messages = manager
         .clone()
@@ -186,13 +183,13 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
         match body {
             ContentBody::DataMessage(message)
             | ContentBody::SynchronizeMessage(SyncMessage {
-                                                  sent:
-                                                  Some(Sent {
-                                                           message: Some(message),
-                                                           ..
-                                                       }),
-                                                  ..
-                                              }) => {
+                sent:
+                    Some(Sent {
+                        message: Some(message),
+                        ..
+                    }),
+                ..
+            }) => {
                 if let Some(quote) = &message.quote {
                     println!(
                         "Quote from {:?}: > {:?} / {}",
@@ -205,24 +202,23 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
                         "Reaction to message sent at {:?}: {:?}",
                         reaction.target_sent_timestamp, reaction.emoji,
                     )
-                } else if let Some(group_context) = message.group_v2 {
-                    let group_changes = manager.decrypt_group_context(group_context)?;
-                    println!("Group change: {:?}", group_changes);
                 } else {
                     println!("Message from {:?}: {:?}", metadata, message);
                     // fetch the groups v2 info here, just for testing purposes
                     if let Some(group_v2) = message.group_v2 {
-                        let master_key = GroupMasterKey::new(
-                            group_v2.master_key.unwrap().try_into().unwrap(),
-                        );
+                        let master_key_bytes: [u8; 32] =
+                            group_v2.master_key.clone().unwrap().try_into().unwrap();
+                        let master_key = GroupMasterKey::new(master_key_bytes);
                         let group = manager.get_group_v2(master_key).await?;
+                        let group_changes = manager.decrypt_group_context(group_v2)?;
                         println!("Group v2: {:?}", group.title);
+                        println!("Group change: {:?}", group_changes);
+                        println!("Group Master Key: {:?}", hex::encode(master_key_bytes));
                     }
                 }
 
                 for attachment_pointer in message.attachments {
-                    let attachment_data =
-                        manager.get_attachment(&attachment_pointer).await?;
+                    let attachment_data = manager.get_attachment(&attachment_pointer).await?;
                     let extensions = mime_guess::get_mime_extensions_str(
                         attachment_pointer
                             .content_type
@@ -237,10 +233,10 @@ async fn receive<C: ConfigStore>(manager: &Manager<C,Registered>) -> anyhow::Res
                     ));
                     fs::write(&file_path, &attachment_data).await?;
                     info!(
-                                "saved received attachment from {} to {}",
-                                metadata.sender,
-                                file_path.display()
-                            );
+                        "saved received attachment from {} to {}",
+                        metadata.sender,
+                        file_path.display()
+                    );
                 }
             }
             ContentBody::SynchronizeMessage(m) => {
@@ -314,24 +310,22 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
             .await;
 
             match manager {
-                (Ok(manager),_) => {
+                (Ok(manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
-                    println!("{:?}",uuid);
+                    println!("{:?}", uuid);
 
                     match follow_up_command.as_ref() {
                         "Send" => {
-                            send("Hello World",&uuid,&manager).await?;
-                        },
+                            send("Hello World", &uuid, &manager).await?;
+                        }
                         "Receive" => {
                             receive(&manager).await?;
-                        },
-                        _ => {
-
                         }
+                        _ => {}
                     };
-                },
-                (Err(err),_) => {
-                    println!("{:?}",err);
+                }
+                (Err(err), _) => {
+                    println!("{:?}", err);
                 }
             };
         }
@@ -341,24 +335,15 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
         }
         Subcommand::Send { uuid, message } => {
             let manager = Manager::load_registered(config_store)?;
-            send(&message,&uuid,&manager).await?;
+            send(&message, &uuid, &manager).await?;
         }
         Subcommand::SendToGroup {
-            recipients,
             message,
-            group_id,
             master_key,
         } => {
             let manager = Manager::load_registered(config_store)?;
 
-            match (group_id.as_ref(), master_key.as_ref()) {
-                (Some(_), Some(_)) => bail!("Options --group-id and --master-key are exclusive"),
-                (None, None) => bail!("Either --group-id or --master-key is required"),
-                _ => (),
-            }
-
-            let group_id = group_id.map(hex::decode).transpose()?;
-            let master_key = master_key.map(hex::decode).transpose()?;
+            let master_key = hex::decode(master_key)?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -368,22 +353,23 @@ async fn run<C: ConfigStore>(subcommand: Subcommand, config_store: C) -> anyhow:
             let data_message = DataMessage {
                 body: Some(message),
                 timestamp: Some(timestamp),
-                group: group_id.map(|id| GroupContext {
-                    id: Some(id),
-                    r#type: Some(GroupType::Deliver.into()),
-                    ..Default::default()
-                }),
-                group_v2: master_key.map(|key| GroupContextV2 {
-                    master_key: Some(key),
+                group_v2: Some(GroupContextV2 {
+                    master_key: Some(master_key.clone()),
                     revision: Some(0),
                     ..Default::default()
                 }),
                 ..Default::default()
             };
 
+            let group = manager
+                .get_group_v2(GroupMasterKey::new(
+                    master_key.try_into().expect("MasterKey to be 32 bytes"),
+                ))
+                .await?;
+
             manager
                 .send_message_to_group(
-                    recipients.into_iter().map(Into::into),
+                    group.members.into_iter().map(|m| m.uuid).map(Into::into),
                     data_message,
                     timestamp,
                 )
