@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["TungsteniteWebSocketError",""]],"struct":[["TungsteniteWebSocket",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["TungsteniteWebSocketError",""]],"struct":[["TungsteniteWebSocket",""]]};

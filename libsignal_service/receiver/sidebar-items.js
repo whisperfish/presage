@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["MessageReceiverError",""]],"struct":[["MessageReceiver","Equivalent of Java’s `SignalServiceMessageReceiver`."]]});
+window.SIDEBAR_ITEMS = {"enum":[["MessageReceiverError",""]],"struct":[["MessageReceiver","Equivalent of Java’s `SignalServiceMessageReceiver`."]]};

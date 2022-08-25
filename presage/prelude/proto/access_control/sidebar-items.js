@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["AccessRequired",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["AccessRequired",""]]};

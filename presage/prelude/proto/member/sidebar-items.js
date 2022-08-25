@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["Role",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["Role",""]]};

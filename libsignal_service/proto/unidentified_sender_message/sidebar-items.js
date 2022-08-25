@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["message","Nested message and enum types in `Message`."]],"struct":[["Message",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["message","Nested message and enum types in `Message`."]],"struct":[["Message",""]]};

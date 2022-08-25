@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["HyperPushService",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["HyperPushService",""]]};

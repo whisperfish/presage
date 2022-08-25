@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["QuotedAttachment",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["QuotedAttachment",""]]};

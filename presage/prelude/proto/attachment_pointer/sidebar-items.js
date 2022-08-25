@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["AttachmentIdentifier",""],["Flags",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["AttachmentIdentifier",""],["Flags",""]]};

@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["receipt_credential",""],["receipt_credential_presentation",""],["receipt_credential_request",""],["receipt_credential_request_context",""],["receipt_credential_response",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["receipt_credential",""],["receipt_credential_presentation",""],["receipt_credential_request",""],["receipt_credential_request_context",""],["receipt_credential_response",""]]};

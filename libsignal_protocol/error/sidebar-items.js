@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["SignalProtocolError",""]],"type":[["Result",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["SignalProtocolError",""]],"type":[["Result",""]]};

@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ProfileKeyCredentialRequest",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["ProfileKeyCredentialRequest",""]]};

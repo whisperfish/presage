@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ServerPublicParams",""],["ServerSecretParams",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["ServerPublicParams",""],["ServerSecretParams",""]]};

@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["auth_credential",""],["auth_credential_presentation",""],["auth_credential_response",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["auth_credential",""],["auth_credential_presentation",""],["auth_credential_response",""]]};

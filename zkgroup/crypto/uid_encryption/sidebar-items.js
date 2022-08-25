@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["Ciphertext",""],["KeyPair",""],["PublicKey",""],["SystemParams",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["Ciphertext",""],["KeyPair",""],["PublicKey",""],["SystemParams",""]]};

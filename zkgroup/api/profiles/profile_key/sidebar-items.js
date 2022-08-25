@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ProfileKey",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["ProfileKey",""]]};

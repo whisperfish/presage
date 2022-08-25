@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["PreKeyEntity",""],["PreKeyState",""],["SignedPreKey",""],["SignedPreKeyEntity",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["PreKeyEntity",""],["PreKeyState",""],["SignedPreKey",""],["SignedPreKeyEntity",""]]};

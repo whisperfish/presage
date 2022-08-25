@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ProfileKeyVersion",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["ProfileKeyVersion",""]]};

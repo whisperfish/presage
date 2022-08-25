@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["UnidentifiedDeliveryStatus",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["UnidentifiedDeliveryStatus",""]]};

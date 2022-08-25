@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["ReceiptCredentialResponse",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["ReceiptCredentialResponse",""]]};

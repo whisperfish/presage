@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["AuthCredential",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["AuthCredential",""]]};

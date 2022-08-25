@@ -1,1 +1,1 @@
-initSidebarItems({"enum":[["AssociatedValue",""]]});
+window.SIDEBAR_ITEMS = {"enum":[["AssociatedValue",""]]};

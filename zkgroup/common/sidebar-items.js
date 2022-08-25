@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["array_utils",""],["constants",""],["errors",""],["sho",""],["simple_types",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["array_utils",""],["constants",""],["errors",""],["sho",""],["simple_types",""]]};

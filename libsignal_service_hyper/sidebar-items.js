@@ -1,1 +1,1 @@
-initSidebarItems({"mod":[["prelude",""],["push_service",""],["websocket",""]]});
+window.SIDEBAR_ITEMS = {"mod":[["prelude",""],["push_service",""],["websocket",""]]};

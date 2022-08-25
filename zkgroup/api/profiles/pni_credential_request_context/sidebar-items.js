@@ -1,1 +1,1 @@
-initSidebarItems({"struct":[["PniCredentialRequestContext",""]]});
+window.SIDEBAR_ITEMS = {"struct":[["PniCredentialRequestContext",""]]};
