@@ -1,10 +1,11 @@
 use libsignal_service::{
+    content::ContentBody,
     models::Contact,
     prelude::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
         Content, Uuid,
     },
-    proto::{data_message::Quote, GroupContextV2},
+    proto::{data_message::Quote, sync_message::Sent, GroupContextV2, SyncMessage},
 };
 
 use crate::{manager::Registered, Error};
@@ -52,10 +53,20 @@ pub struct MessageIdentity(pub Uuid, pub u64);
 impl TryFrom<&Content> for MessageIdentity {
     type Error = Error;
     fn try_from(c: &Content) -> Result<Self, <Self as TryFrom<&Content>>::Error> {
-        Ok(Self(
-            c.metadata.sender.uuid.ok_or(Error::ContentMissingUuid)?,
-            c.metadata.timestamp,
-        ))
+        match &c.body {
+            ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(Sent {
+                        destination_uuid: Some(uuid),
+                        ..
+                    }),
+                ..
+            }) => Ok(Self(Uuid::parse_str(&uuid[..])?, c.metadata.timestamp)),
+            _ => Ok(Self(
+                c.metadata.sender.uuid.ok_or(Error::ContentMissingUuid)?,
+                c.metadata.timestamp,
+            )),
+        }
     }
 }
 
