@@ -1,6 +1,6 @@
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
-use anyhow::{bail, Context as _};
+use anyhow::Context as _;
 use chrono::Local;
 use directories::ProjectDirs;
 use env_logger::Env;
@@ -127,20 +127,10 @@ enum Subcommand {
     },
     #[structopt(about = "Send a message to group")]
     SendToGroup {
-        #[structopt(
-            long = "phone-number",
-            short = "n",
-            min_values = 1,
-            required = true,
-            help = "Phone number of the recipient"
-        )]
-        recipients: Vec<PhoneNumber>,
         #[structopt(long, short = "m", help = "Contents of the message to send")]
         message: String,
-        #[structopt(long, short = "g", help = "ID of the legacy group (hex string)")]
-        group_id: Option<String>,
         #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
-        master_key: Option<String>,
+        master_key: String,
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
@@ -228,17 +218,18 @@ async fn receive<C: ConfigStore + MessageStore>(
                         "Reaction to message sent at {:?}: {:?}",
                         reaction.target_sent_timestamp, reaction.emoji,
                     )
-                } else if let Some(group_context) = message.group_v2 {
-                    let group_changes = manager.decrypt_group_context(group_context)?;
-                    println!("Group change: {:?}", group_changes);
                 } else {
                     println!("Message from {:?}: {:?}", metadata, message);
                     // fetch the groups v2 info here, just for testing purposes
                     if let Some(group_v2) = message.group_v2 {
-                        let master_key =
-                            GroupMasterKey::new(group_v2.master_key.unwrap().try_into().unwrap());
+                        let master_key_bytes: [u8; 32] =
+                            group_v2.master_key.clone().unwrap().try_into().unwrap();
+                        let master_key = GroupMasterKey::new(master_key_bytes);
                         let group = manager.get_group_v2(master_key).await?;
+                        let group_changes = manager.decrypt_group_context(group_v2)?;
                         println!("Group v2: {:?}", group.title);
+                        println!("Group change: {:?}", group_changes);
+                        println!("Group Master Key: {:?}", hex::encode(master_key_bytes));
                     }
                 }
 
@@ -366,21 +357,12 @@ async fn run<C: ConfigStore + MessageStore>(
             send(&message, &uuid, &manager).await?;
         }
         Subcommand::SendToGroup {
-            recipients,
             message,
-            group_id,
             master_key,
         } => {
             let manager = Manager::load_registered(config_store)?;
 
-            match (group_id.as_ref(), master_key.as_ref()) {
-                (Some(_), Some(_)) => bail!("Options --group-id and --master-key are exclusive"),
-                (None, None) => bail!("Either --group-id or --master-key is required"),
-                _ => (),
-            }
-
-            let group_id = group_id.map(hex::decode).transpose()?;
-            let master_key = master_key.map(hex::decode).transpose()?;
+            let master_key = hex::decode(master_key)?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -390,22 +372,23 @@ async fn run<C: ConfigStore + MessageStore>(
             let data_message = DataMessage {
                 body: Some(message),
                 timestamp: Some(timestamp),
-                group: group_id.map(|id| GroupContext {
-                    id: Some(id),
-                    r#type: Some(GroupType::Deliver.into()),
-                    ..Default::default()
-                }),
-                group_v2: master_key.map(|key| GroupContextV2 {
-                    master_key: Some(key),
+                group_v2: Some(GroupContextV2 {
+                    master_key: Some(master_key.clone()),
                     revision: Some(0),
                     ..Default::default()
                 }),
                 ..Default::default()
             };
 
+            let group = manager
+                .get_group_v2(GroupMasterKey::new(
+                    master_key.try_into().expect("MasterKey to be 32 bytes"),
+                ))
+                .await?;
+
             manager
                 .send_message_to_group(
-                    recipients.into_iter().map(Into::into),
+                    group.members.into_iter().map(|m| m.uuid).map(Into::into),
                     data_message,
                     timestamp,
                 )
