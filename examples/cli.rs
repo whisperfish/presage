@@ -8,9 +8,7 @@ use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use log::{debug, info};
 use presage::{
     prelude::{
-        content::{
-            Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType, SyncMessage,
-        },
+        content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
         proto::sync_message::Sent,
         Contact, GroupMasterKey, SignalServers,
     },
@@ -189,8 +187,7 @@ async fn receive<C: ConfigStore + MessageStore>(
         attachments_tmp_dir.path().display()
     );
 
-    let clone = manager.clone();
-    let messages = clone
+    let messages = manager
         .receive_messages_store()
         .await
         .context("failed to initialize messages stream")?;
