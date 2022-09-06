@@ -86,7 +86,11 @@ impl TryFrom<&Reaction> for MessageIdentity {
 
     fn try_from(r: &Reaction) -> Result<Self, Self::Error> {
         Ok(Self(
-            Uuid::parse_str(r.target_author_uuid.as_ref().ok_or(Error::ContentMissingUuid)?)?,
+            Uuid::parse_str(
+                r.target_author_uuid
+                    .as_ref()
+                    .ok_or(Error::ContentMissingUuid)?,
+            )?,
             r.target_sent_timestamp.ok_or(Error::ContentMissingUuid)?,
         ))
     }
