@@ -1,5 +1,5 @@
 use libsignal_service::{
-    content::ContentBody,
+    content::{ContentBody, Reaction},
     models::Contact,
     prelude::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
@@ -77,6 +77,17 @@ impl TryFrom<&Quote> for MessageIdentity {
         Ok(Self(
             Uuid::parse_str(q.author_uuid.as_ref().ok_or(Error::ContentMissingUuid)?)?,
             q.id.ok_or(Error::ContentMissingUuid)?,
+        ))
+    }
+}
+
+impl TryFrom<&Reaction> for MessageIdentity {
+    type Error = Error;
+
+    fn try_from(r: &Reaction) -> Result<Self, Self::Error> {
+        Ok(Self(
+            Uuid::parse_str(r.target_author_uuid.as_ref().ok_or(Error::ContentMissingUuid)?)?,
+            r.target_sent_timestamp.ok_or(Error::ContentMissingUuid)?,
         ))
     }
 }
