@@ -2,7 +2,7 @@
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
 version = "0.3.0"
-authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
+authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
