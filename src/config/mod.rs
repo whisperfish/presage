@@ -1,11 +1,12 @@
 use libsignal_service::{
-    content::{ContentBody, Reaction},
+    content::Reaction,
     models::Contact,
     prelude::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
         Content, Uuid,
     },
-    proto::{data_message::Quote, sync_message::Sent, GroupContextV2, SyncMessage},
+    proto::{data_message::Quote, GroupContextV2},
+    ServiceAddress,
 };
 
 use crate::{manager::Registered, Error};
@@ -53,20 +54,10 @@ pub struct MessageIdentity(pub Uuid, pub u64);
 impl TryFrom<&Content> for MessageIdentity {
     type Error = Error;
     fn try_from(c: &Content) -> Result<Self, <Self as TryFrom<&Content>>::Error> {
-        match &c.body {
-            ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
-                        destination_uuid: Some(uuid),
-                        ..
-                    }),
-                ..
-            }) => Ok(Self(Uuid::parse_str(&uuid[..])?, c.metadata.timestamp)),
-            _ => Ok(Self(
-                c.metadata.sender.uuid.ok_or(Error::ContentMissingUuid)?,
-                c.metadata.timestamp,
-            )),
-        }
+        Ok(Self(
+            c.metadata.sender.uuid.ok_or(Error::ContentMissingUuid)?,
+            c.metadata.timestamp,
+        ))
     }
 }
 
@@ -118,7 +109,11 @@ impl From<MessageIdentity> for [u8; 24] {
 }
 
 pub trait MessageStore {
-    fn save_message(&mut self, message: Content) -> Result<(), Error>;
+    fn save_message(
+        &mut self,
+        message: Content,
+        receiver: Option<impl Into<ServiceAddress>>,
+    ) -> Result<(), Error>;
     fn messages(&self) -> Result<Vec<Content>, Error>;
     fn message_by_identity(&self, id: &MessageIdentity) -> Result<Option<Content>, Error>;
 

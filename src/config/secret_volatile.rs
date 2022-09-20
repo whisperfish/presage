@@ -14,6 +14,7 @@ use libsignal_service::{
         },
         Uuid,
     },
+    ServiceAddress,
 };
 use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
@@ -126,7 +127,11 @@ impl ContactsStore for SecretVolatileConfigStore {
 }
 
 impl MessageStore for SecretVolatileConfigStore {
-    fn save_message(&mut self, _message: libsignal_service::prelude::Content) -> Result<(), Error> {
+    fn save_message(
+        &mut self,
+        _message: libsignal_service::prelude::Content,
+        _: Option<impl Into<ServiceAddress>>,
+    ) -> Result<(), Error> {
         warn!("messages are not saved when using volatile storage.");
         Ok(())
     }

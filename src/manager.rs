@@ -833,7 +833,7 @@ where
         Ok(self.receive_messages().await?.map(move |c| {
             if c.metadata.sender.uuid.is_some() {
                 // TODO: Error handling?
-                let _ = store.save_message(c.clone());
+                let _ = store.save_message(c.clone(), None::<ServiceAddress>);
             }
             c
         }))
