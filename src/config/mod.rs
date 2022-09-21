@@ -48,6 +48,7 @@ pub trait ContactsStore {
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
 
+/// An identifier for a [Content] for retrieval from a [MessageStore].
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub struct MessageIdentity(pub Uuid, pub u64);
 
@@ -108,10 +109,13 @@ impl From<MessageIdentity> for [u8; 24] {
     }
 }
 
+/// A thread specifies where a message was sent, either to or from a contact or in a group.
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {
+    /// The message was sent inside a contact-chat.
     Contact(Uuid),
     // Cannot use GroupMasterKey as unable to extract the bytes.
+    /// The message was sent inside a groups-chat with the [GroupMasterKey](crate::prelude::GroupMasterKey) (specified as bytes).
     Group([u8; 32]),
 }
 
@@ -190,16 +194,24 @@ impl Thread {
     }
 }
 
+/// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
+/// [MessageIdentity], by [Thread] or completly.
 pub trait MessageStore {
     type MessagesIter: Iterator<Item = Content>;
 
+    /// Save a message. The receiver-argument specifies the [ServiceAddress] of the receiver of
+    /// that message and is needed for correct association of the message to a [Thread]. If that message was received, it should be `None`.
     fn save_message(
         &mut self,
         message: Content,
         receiver: Option<impl Into<ServiceAddress>>,
     ) -> Result<(), Error>;
+    /// Return all messages in arbitrary order. Should probably not be called if you are not sure
+    /// about the number of messages.
     fn messages(&self) -> Result<Vec<Content>, Error>;
+    /// Retrieve a message by its [MessageIdentity].
     fn message_by_identity(&self, id: &MessageIdentity) -> Result<Option<Content>, Error>;
+    /// Retrieve a message by a [Thread].
     fn messages_by_thread(
         &self,
         thread: &Thread,

@@ -520,18 +520,13 @@ impl MessageStore for SledConfigStore {
         &self,
         id: &MessageIdentity,
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
-        let sender = id.0;
-        let timestamp = id.1;
-
         let tree = self
             .db
             .try_read()
             .expect("poisoned mutex")
             .open_tree(SLED_TREE_MESSAGES)?;
-        let key_sender = sender.as_bytes();
         // Big-Endian needed, otherwise wrong ordering in sled.
-        let key_timestamp = timestamp.to_be_bytes();
-        let key = [&key_sender[..], &key_timestamp[..]].concat();
+        let key: [u8; 24] = id.clone().into();
         let val = tree.get(key)?;
         if let Some(val) = val {
             let proto = ContentProto::decode(&*val)?;
