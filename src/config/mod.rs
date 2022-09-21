@@ -1,11 +1,11 @@
 use libsignal_service::{
-    content::Reaction,
+    content::{ContentBody, Reaction},
     models::Contact,
     prelude::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
         Content, Uuid,
     },
-    proto::{data_message::Quote, GroupContextV2},
+    proto::{data_message::Quote, sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
     ServiceAddress,
 };
 
@@ -108,7 +108,91 @@ impl From<MessageIdentity> for [u8; 24] {
     }
 }
 
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+pub enum Thread {
+    Contact(Uuid),
+    // Cannot use GroupMasterKey as unable to extract the bytes.
+    Group([u8; 32]),
+}
+
+impl From<&Thread> for Vec<u8> {
+    fn from(val: &Thread) -> Self {
+        match val {
+            Thread::Contact(u) => u.as_bytes().to_vec(),
+            Thread::Group(g) => g.to_vec(),
+        }
+    }
+}
+
+impl Thread {
+    pub fn from_content_receiver(
+        content: &Content,
+        receiver: Option<&ServiceAddress>,
+    ) -> Result<Self, Error> {
+        if let Some(receiver_uuid) = receiver.and_then(|s| s.uuid.clone()) {
+            // Case 1: Message is beeing sent to someone
+            // => The receiver is the thread.
+            Ok(Self::Contact(receiver_uuid))
+        } else {
+            match &content.body {
+                // Case 2: SyncMessage sent from other device notifying about a message sent to
+                // someone else.
+                // => The receiver of the message mentioned in the SyncMessage is the thread.
+                ContentBody::SynchronizeMessage(SyncMessage {
+                    sent:
+                        Some(Sent {
+                            destination_uuid: Some(uuid),
+                            ..
+                        }),
+                    ..
+                }) => Ok(Self::Contact(Uuid::parse_str(uuid)?)),
+                // Case 3: The message is sent in a group.
+                // => The group is the thread.
+                ContentBody::DataMessage(DataMessage {
+                    group_v2:
+                        Some(GroupContextV2 {
+                            master_key: Some(key),
+                            ..
+                        }),
+                    ..
+                })
+                | ContentBody::SynchronizeMessage(SyncMessage {
+                    sent:
+                        Some(Sent {
+                            message:
+                                Some(DataMessage {
+                                    group_v2:
+                                        Some(GroupContextV2 {
+                                            master_key: Some(key),
+                                            ..
+                                        }),
+                                    ..
+                                }),
+                            ..
+                        }),
+                    ..
+                }) => Ok(Self::Group(
+                    key.clone()
+                        .try_into()
+                        .expect("Group master key to have 32 bytes"),
+                )),
+                // Case 4: The message was neither sent to someone, nor happened in a group.
+                // => The message sender is the thread.
+                _ => Ok(Thread::Contact(
+                    content
+                        .metadata
+                        .sender
+                        .uuid
+                        .ok_or(Error::ContentMissingUuid)?,
+                )),
+            }
+        }
+    }
+}
+
 pub trait MessageStore {
+    type MessagesIter: Iterator<Item = Content>;
+
     fn save_message(
         &mut self,
         message: Content,
@@ -116,7 +200,9 @@ pub trait MessageStore {
     ) -> Result<(), Error>;
     fn messages(&self) -> Result<Vec<Content>, Error>;
     fn message_by_identity(&self, id: &MessageIdentity) -> Result<Option<Content>, Error>;
-
-    fn messages_by_contact(&self, contact: &Uuid) -> Result<Vec<MessageIdentity>, Error>;
-    fn messages_by_group(&self, group: &GroupContextV2) -> Result<Vec<MessageIdentity>, Error>;
+    fn messages_by_thread(
+        &self,
+        thread: &Thread,
+        from: Option<u64>,
+    ) -> Result<Self::MessagesIter, Error>;
 }

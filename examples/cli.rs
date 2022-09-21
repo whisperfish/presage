@@ -14,7 +14,7 @@ use presage::{
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
     ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SecretVolatileConfigStore,
-    SledConfigStore,
+    SledConfigStore, Thread,
 };
 use structopt::StructOpt;
 use tempfile::Builder;
@@ -465,11 +465,9 @@ async fn run<C: ConfigStore + MessageStore>(
             manager.request_contacts_sync().await?;
         }
         Subcommand::ListMessagesFromContact { uuid } => {
-            let msg_ids = config_store.messages_by_contact(&uuid)?;
-            for msg_id in msg_ids {
-                let msg = config_store
-                    .message_by_identity(&msg_id)?
-                    .expect("Message ID to be in the store");
+            let thread = Thread::Contact(uuid);
+            let iter = config_store.messages_by_thread(&thread, None)?;
+            for msg in iter.take(10) {
                 match msg.body {
                     ContentBody::DataMessage(message)
                     | ContentBody::SynchronizeMessage(SyncMessage {
@@ -492,16 +490,13 @@ async fn run<C: ConfigStore + MessageStore>(
         }
         Subcommand::ListMessagesFromGroup { master_key } => {
             let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
-            let context = GroupContextV2 {
-                master_key: Some(master_key_bytes),
-                revision: None,
-                group_change: None,
-            };
-            let msg_ids = config_store.messages_by_group(&context)?;
-            for msg_id in msg_ids {
-                let msg = config_store
-                    .message_by_identity(&msg_id)?
-                    .expect("Message ID to be in the store");
+            let thread = Thread::Group(
+                master_key_bytes
+                    .try_into()
+                    .expect("Master key to be 32 bytes"),
+            );
+            let iter = config_store.messages_by_thread(&thread, None)?;
+            for msg in iter.take(10) {
                 match msg.body {
                     ContentBody::DataMessage(message)
                     | ContentBody::SynchronizeMessage(SyncMessage {

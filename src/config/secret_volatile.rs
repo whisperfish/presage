@@ -12,14 +12,14 @@ use libsignal_service::{
             PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
             SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Uuid,
+        Content, Uuid,
     },
     ServiceAddress,
 };
 use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
 
-use super::{ConfigStore, ContactsStore, MessageIdentity, StateStore};
+use super::{ConfigStore, ContactsStore, MessageIdentity, StateStore, Thread};
 use crate::{manager::Registered, Error, MessageStore};
 
 // - SecretId adds the Default trait to SecretBox<u32>
@@ -127,6 +127,7 @@ impl ContactsStore for SecretVolatileConfigStore {
 }
 
 impl MessageStore for SecretVolatileConfigStore {
+    type MessagesIter = std::vec::IntoIter<Content>;
     fn save_message(
         &mut self,
         _message: libsignal_service::prelude::Content,
@@ -149,17 +150,13 @@ impl MessageStore for SecretVolatileConfigStore {
         Ok(None)
     }
 
-    fn messages_by_contact(&self, _contact: &Uuid) -> Result<Vec<MessageIdentity>, Error> {
-        warn!("messages are not saved when using volatile storage.");
-        Ok(vec![])
-    }
-
-    fn messages_by_group(
+    fn messages_by_thread(
         &self,
-        _group: &libsignal_service::proto::GroupContextV2,
-    ) -> Result<Vec<MessageIdentity>, Error> {
+        _thread: &Thread,
+        _from: Option<u64>,
+    ) -> Result<Self::MessagesIter, Error> {
         warn!("messages are not saved when using volatile storage.");
-        Ok(vec![])
+        Ok(vec![].into_iter())
     }
 }
 
