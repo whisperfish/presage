@@ -94,16 +94,21 @@ enum Cmd {
     #[clap(about = "List contacts")]
     ListContacts,
     #[clap(about = "List messages")]
-    ListMessages,
-    #[clap(about = "List messages from contact")]
-    ListMessagesFromContact {
-        #[clap(long, short = 'u', help = "contact UUID")]
-        uuid: Uuid,
-    },
-    #[clap(about = "List messages")]
-    ListMessagesFromGroup {
-        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)")]
-        master_key: String,
+    ListMessages {
+        #[clap(
+            long,
+            short = 'u',
+            help = "contact UUID",
+            conflicts_with = "master-key"
+        )]
+        uuid: Option<Uuid>,
+        #[clap(
+            long,
+            short = 'k',
+            help = "Master Key of the V2 group (hex string)",
+            conflicts_with = "uuid"
+        )]
+        master_key: Option<String>,
     },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
@@ -433,34 +438,22 @@ async fn run<C: ConfigStore + MessageStore>(
             let manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
         }
-        Cmd::ListMessages => {
-            let mut msgs = config_store.messages()?;
-            msgs.sort_by_key(|m| m.metadata.timestamp);
-            for msg in msgs {
-                match msg.body {
-                    ContentBody::DataMessage(message)
-                    | ContentBody::SynchronizeMessage(SyncMessage {
-                        sent:
-                            Some(Sent {
-                                message: Some(message),
-                                ..
-                            }),
-                        ..
-                    }) => {
-                        println!(
-                            "{}: {}",
-                            msg.metadata.sender.e164_or_uuid(),
-                            message.body.unwrap_or_else(|| "".to_string())
-                        )
-                    }
-                    _ => {}
+        Cmd::ListMessages { master_key, uuid } => {
+            let thread = match (master_key, uuid) {
+                (Some(master_key), _) => {
+                    let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
+                    Thread::Group(
+                        master_key_bytes
+                            .try_into()
+                            .expect("Master key to be 32 bytes"),
+                    )
                 }
-            }
-        }
-        Cmd::ListMessagesFromContact { uuid } => {
-            let thread = Thread::Contact(uuid);
-            let iter = config_store.messages_by_thread(&thread, None)?;
-            for msg in iter.take(10) {
+                (_, Some(uuid)) => Thread::Contact(uuid),
+                _ => panic!("At least one of master-key or uuid has to be given"),
+            };
+            let iter = config_store.messages(&thread, None)?;
+            let mut printed = 0;
+            for msg in iter {
                 match msg.body {
                     ContentBody::DataMessage(message)
                     | ContentBody::SynchronizeMessage(SyncMessage {
@@ -470,41 +463,16 @@ async fn run<C: ConfigStore + MessageStore>(
                                 ..
                             }),
                         ..
-                    }) => {
+                    }) if message.body.is_some() => {
                         println!(
                             "{}: {}",
                             msg.metadata.sender.e164_or_uuid(),
                             message.body.unwrap_or_else(|| "".to_string())
-                        )
-                    }
-                    _ => {}
-                }
-            }
-        }
-        Cmd::ListMessagesFromGroup { master_key } => {
-            let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
-            let thread = Thread::Group(
-                master_key_bytes
-                    .try_into()
-                    .expect("Master key to be 32 bytes"),
-            );
-            let iter = config_store.messages_by_thread(&thread, None)?;
-            for msg in iter.take(10) {
-                match msg.body {
-                    ContentBody::DataMessage(message)
-                    | ContentBody::SynchronizeMessage(SyncMessage {
-                        sent:
-                            Some(Sent {
-                                message: Some(message),
-                                ..
-                            }),
-                        ..
-                    }) => {
-                        println!(
-                            "{}: {}",
-                            msg.metadata.sender.e164_or_uuid(),
-                            message.body.unwrap_or_else(|| "".to_string())
-                        )
+                        );
+                        printed += 1;
+                        if printed == 10 {
+                            break;
+                        }
                     }
                     _ => {}
                 }

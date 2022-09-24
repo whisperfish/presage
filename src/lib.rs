@@ -12,7 +12,7 @@ pub use config::secret_volatile::SecretVolatileConfigStore;
 #[cfg(feature = "volatile-config-store")]
 pub use config::volatile::VolatileConfigStore;
 
-pub use config::{ConfigStore, ContactsStore, MessageIdentity, MessageStore, StateStore, Thread};
+pub use config::{ConfigStore, ContactsStore, MessageStore, StateStore, Thread};
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 pub use proto::ContentProto;

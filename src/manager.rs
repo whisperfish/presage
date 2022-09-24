@@ -832,8 +832,9 @@ where
         let mut store = self.config_store.clone();
         Ok(self.receive_messages().await?.map(move |c| {
             if c.metadata.sender.uuid.is_some() {
-                // TODO: Error handling?
-                let _ = store.save_message(c.clone(), None::<ServiceAddress>);
+                if let Err(e) = store.save_message(c.clone(), None::<ServiceAddress>) {
+                    log::error!("Error saving message to store: {}", e);
+                }
             }
             c
         }))

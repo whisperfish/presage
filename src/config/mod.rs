@@ -1,11 +1,11 @@
 use libsignal_service::{
-    content::{ContentBody, Reaction},
+    content::ContentBody,
     models::Contact,
     prelude::{
         protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
         Content, Uuid,
     },
-    proto::{data_message::Quote, sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
     ServiceAddress,
 };
 
@@ -48,67 +48,6 @@ pub trait ContactsStore {
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
 
-/// An identifier for a [Content] for retrieval from a [MessageStore].
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
-pub struct MessageIdentity(pub Uuid, pub u64);
-
-impl TryFrom<&Content> for MessageIdentity {
-    type Error = Error;
-    fn try_from(c: &Content) -> Result<Self, <Self as TryFrom<&Content>>::Error> {
-        Ok(Self(
-            c.metadata.sender.uuid.ok_or(Error::ContentMissingUuid)?,
-            c.metadata.timestamp,
-        ))
-    }
-}
-
-impl TryFrom<&Quote> for MessageIdentity {
-    type Error = Error;
-
-    fn try_from(q: &Quote) -> Result<Self, Self::Error> {
-        Ok(Self(
-            Uuid::parse_str(q.author_uuid.as_ref().ok_or(Error::ContentMissingUuid)?)?,
-            q.id.ok_or(Error::ContentMissingUuid)?,
-        ))
-    }
-}
-
-impl TryFrom<&Reaction> for MessageIdentity {
-    type Error = Error;
-
-    fn try_from(r: &Reaction) -> Result<Self, Self::Error> {
-        Ok(Self(
-            Uuid::parse_str(
-                r.target_author_uuid
-                    .as_ref()
-                    .ok_or(Error::ContentMissingUuid)?,
-            )?,
-            r.target_sent_timestamp.ok_or(Error::ContentMissingUuid)?,
-        ))
-    }
-}
-
-// 16 bytes for Uuid, 8 for timestamp
-impl From<[u8; 24]> for MessageIdentity {
-    fn from(bytes: [u8; 24]) -> Self {
-        let bytes_uuid = &bytes[..16];
-        let bytes_timestamp = &bytes[16..];
-        Self(
-            Uuid::from_bytes(bytes_uuid.try_into().unwrap()),
-            u64::from_ne_bytes(bytes_timestamp.try_into().unwrap()),
-        )
-    }
-}
-
-impl From<MessageIdentity> for [u8; 24] {
-    fn from(m: MessageIdentity) -> Self {
-        [m.0.as_bytes() as &[u8], &m.1.to_ne_bytes()]
-            .concat()
-            .try_into()
-            .unwrap()
-    }
-}
-
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {
@@ -133,7 +72,7 @@ impl Thread {
         content: &Content,
         receiver: Option<&ServiceAddress>,
     ) -> Result<Self, Error> {
-        if let Some(receiver_uuid) = receiver.and_then(|s| s.uuid.clone()) {
+        if let Some(receiver_uuid) = receiver.and_then(|s| s.uuid) {
             // Case 1: Message is beeing sent to someone
             // => The receiver is the thread.
             Ok(Self::Contact(receiver_uuid))
@@ -206,15 +145,8 @@ pub trait MessageStore {
         message: Content,
         receiver: Option<impl Into<ServiceAddress>>,
     ) -> Result<(), Error>;
-    /// Return all messages in arbitrary order. Should probably not be called if you are not sure
-    /// about the number of messages.
-    fn messages(&self) -> Result<Vec<Content>, Error>;
-    /// Retrieve a message by its [MessageIdentity].
-    fn message_by_identity(&self, id: &MessageIdentity) -> Result<Option<Content>, Error>;
+    /// Retrieve a message by its a [Thread] and its timestamp.
+    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error>;
     /// Retrieve a message by a [Thread].
-    fn messages_by_thread(
-        &self,
-        thread: &Thread,
-        from: Option<u64>,
-    ) -> Result<Self::MessagesIter, Error>;
+    fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error>;
 }

@@ -20,7 +20,7 @@ use libsignal_service::{
 use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
 
-use super::{ConfigStore, ContactsStore, MessageIdentity, StateStore, Thread};
+use super::{ConfigStore, ContactsStore, StateStore, Thread};
 use crate::{manager::Registered, Error, MessageStore};
 
 // - SecretId adds the Default trait to SecretBox<u32>
@@ -138,24 +138,16 @@ impl MessageStore for SecretVolatileConfigStore {
         Ok(())
     }
 
-    fn messages(&self) -> Result<Vec<libsignal_service::prelude::Content>, Error> {
-        warn!("messages are not saved when using volatile storage.");
-        Ok(vec![])
-    }
-
-    fn message_by_identity(
+    fn message(
         &self,
-        _id: &MessageIdentity,
+        _thread: &Thread,
+        _timestamp: u64,
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
         warn!("messages are not saved when using volatile storage.");
         Ok(None)
     }
 
-    fn messages_by_thread(
-        &self,
-        _thread: &Thread,
-        _from: Option<u64>,
-    ) -> Result<Self::MessagesIter, Error> {
+    fn messages(&self, _thread: &Thread, _from: Option<u64>) -> Result<Self::MessagesIter, Error> {
         warn!("messages are not saved when using volatile storage.");
         Ok(vec![].into_iter())
     }
