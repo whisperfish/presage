@@ -289,6 +289,8 @@
 <span id="283">283</span>
 <span id="284">284</span>
 <span id="285">285</span>
+<span id="286">286</span>
+<span id="287">287</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{
     <span class="ident">collections::HashMap</span>,
     <span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">RwLock</span>},
@@ -305,6 +307,7 @@
         },
         <span class="ident">Uuid</span>,
     },
+    <span class="ident">push_service::DEFAULT_DEVICE_ID</span>,
 };
 <span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">trace</span>, <span class="ident">warn</span>};
 
@@ -492,6 +495,7 @@
                 <span class="kw">let</span> <span class="ident">device_id</span> <span class="op">=</span> <span class="ident">key</span>.<span class="ident">strip_prefix</span>(<span class="kw-2">&amp;</span><span class="ident">session_prefix</span>)<span class="question-mark">?</span>;
                 <span class="ident">device_id</span>.<span class="ident">parse</span>().<span class="ident">ok</span>()
             })
+            .<span class="ident">filter</span>(<span class="op">|</span><span class="ident">d</span><span class="op">|</span> <span class="kw-2">*</span><span class="ident">d</span> <span class="op">!</span><span class="op">=</span> <span class="ident">DEFAULT_DEVICE_ID</span>)
             .<span class="ident">collect</span>();
         <span class="prelude-val">Ok</span>(<span class="ident">session_ids</span>)
     }
