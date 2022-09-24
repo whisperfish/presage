@@ -288,7 +288,7 @@ impl<C: ConfigStore> Manager<C, Linking> {
         )
         .await;
 
-        let _ = fut1?;
+        fut1?;
         let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
             fut2?;
 
