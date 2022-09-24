@@ -51,10 +51,10 @@
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;sled-config-store&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::sled::SledConfigStore</span>;
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;volatile-config-store&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::volatile::VolatileConfigStore</span>;
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;secret-volatile-config-store&quot;</span>)]</span>
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::secret_volatile::SecretVolatileConfigStore</span>;
+<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;volatile-config-store&quot;</span>)]</span>
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config::volatile::VolatileConfigStore</span>;
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">config</span>::{<span class="ident">ConfigStore</span>, <span class="ident">ContactsStore</span>, <span class="ident">StateStore</span>};
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">errors::Error</span>;
