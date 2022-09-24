@@ -14,6 +14,7 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
+    push_service::DEFAULT_DEVICE_ID,
     ServiceAddress,
 };
 use log::{trace, warn};
@@ -278,6 +279,7 @@ impl SessionStoreExt for SecretVolatileConfigStore {
                 let device_id = key.strip_prefix(&session_prefix)?;
                 device_id.parse().ok()
             })
+            .filter(|d| *d != DEFAULT_DEVICE_ID)
             .collect();
         Ok(session_ids)
     }

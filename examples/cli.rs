@@ -2,6 +2,7 @@ use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::Context as _;
 use chrono::Local;
+use clap::{Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
@@ -13,10 +14,8 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SecretVolatileConfigStore,
-    SledConfigStore, Thread,
+    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SledConfigStore, Thread,
 };
-use structopt::StructOpt;
 use tempfile::Builder;
 use tokio::{
     fs,
@@ -24,110 +23,107 @@ use tokio::{
 };
 use url::Url;
 
-#[derive(StructOpt)]
-#[structopt(about = "a basic signal CLI to try things out")]
+#[derive(Parser)]
+#[clap(about = "a basic signal CLI to try things out")]
 struct Args {
-    #[structopt(long = "db-path", short = "d", group = "store")]
+    #[clap(long = "db-path", short = 'd', group = "store")]
     db_path: Option<PathBuf>,
 
-    #[structopt(long = "volatile", group = "store")]
-    volatile: bool,
-
-    #[structopt(flatten)]
-    subcommand: Subcommand,
+    #[clap(subcommand)]
+    subcommand: Cmd,
 }
 
-#[derive(StructOpt)]
-enum Subcommand {
-    #[structopt(about = "Register using a phone number")]
+#[derive(Subcommand)]
+enum Cmd {
+    #[clap(about = "Register using a phone number")]
     Register {
-        #[structopt(long = "servers", short = "s", default_value = "staging")]
+        #[clap(long = "servers", short = 's', default_value = "staging")]
         servers: SignalServers,
-        #[structopt(long, help = "Phone Number to register with in E.164 format")]
+        #[clap(long, help = "Phone Number to register with in E.164 format")]
         phone_number: PhoneNumber,
-        #[structopt(long)]
+        #[clap(long)]
         use_voice_call: bool,
-        #[structopt(
+        #[clap(
             long = "captcha",
             help = "Captcha obtained from https://signalcaptchas.org/registration/generate.html"
         )]
         captcha: Url,
-        #[structopt(long, help = "Force to register again if already registered")]
+        #[clap(long, help = "Force to register again if already registered")]
         force: bool,
     },
-    #[structopt(about = "Unregister from Signal")]
+    #[clap(about = "Unregister from Signal")]
     Unregister,
-    #[structopt(
+    #[clap(
         about = "Generate a QR code to scan with Signal for iOS or Android to link this client as secondary device"
     )]
     LinkDevice {
         /// Possible values: staging, production
-        #[structopt(long, short = "s", default_value = "production")]
+        #[clap(long, short = 's', default_value = "production")]
         servers: SignalServers,
-        #[structopt(
+        #[clap(
             long,
-            short = "n",
+            short = 'n',
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
-        #[structopt(
+        #[clap(
             long,
-            short = "f",
+            short = 'f',
             help = "Command to execute after linking the device. (Send or Receive)"
         )]
         follow_up_command: String,
     },
-    #[structopt(about = "Get information on the registered user")]
+    #[clap(about = "Get information on the registered user")]
     Whoami,
-    #[structopt(about = "Retrieve the user profile")]
+    #[clap(about = "Retrieve the user profile")]
     RetrieveProfile,
-    #[structopt(about = "Set a name, status and avatar")]
+    #[clap(about = "Set a name, status and avatar")]
     UpdateProfile,
-    #[structopt(about = "Check if a user is registered on Signal")]
+    #[clap(about = "Check if a user is registered on Signal")]
     GetUserStatus,
-    #[structopt(about = "Block contacts or groups")]
+    #[clap(about = "Block contacts or groups")]
     Block,
-    #[structopt(about = "Unblock contacts or groups")]
+    #[clap(about = "Unblock contacts or groups")]
     Unblock,
-    #[structopt(about = "Update the details of a contact")]
+    #[clap(about = "Update the details of a contact")]
     UpdateContact,
-    #[structopt(about = "Receive all pending messages and saves them to disk")]
+    #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive,
-    #[structopt(about = "List group memberships")]
+    #[clap(about = "List group memberships")]
     ListGroups,
-    #[structopt(about = "List contacts")]
+    #[clap(about = "List contacts")]
     ListContacts,
-    #[structopt(about = "List messages")]
+    #[clap(about = "List messages")]
     ListMessages,
-    #[structopt(about = "List messages from contact")]
+    #[clap(about = "List messages from contact")]
     ListMessagesFromContact {
-        #[structopt(long, short = "u", help = "contact UUID")]
+        #[clap(long, short = 'u', help = "contact UUID")]
         uuid: Uuid,
     },
-    #[structopt(about = "List messages")]
+    #[clap(about = "List messages")]
     ListMessagesFromGroup {
-        #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
+        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)")]
         master_key: String,
     },
-    #[structopt(about = "Find a contact in the embedded DB")]
+    #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
-        #[structopt(long, short = "u", help = "contact UUID")]
+        #[clap(long, short = 'u', help = "contact UUID")]
         uuid: Option<Uuid>,
-        #[structopt(long, short = "name", help = "contact name")]
+        #[clap(long, short = 'n', help = "contact name")]
         name: Option<String>,
     },
-    #[structopt(about = "Send a message")]
+    #[clap(about = "Send a message")]
     Send {
-        #[structopt(long, short = "u", help = "uuid of the recipient")]
+        #[clap(long, short = 'u', help = "uuid of the recipient")]
         uuid: Uuid,
-        #[structopt(long, short = "m", help = "Contents of the message to send")]
+        #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
     },
-    #[structopt(about = "Send a message to group")]
+    #[clap(about = "Send a message to group")]
     SendToGroup {
-        #[structopt(long, short = "m", help = "Contents of the message to send")]
+        #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[structopt(long, short = "k", help = "Master Key of the V2 group (hex string)")]
+        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)")]
         master_key: String,
     },
     #[cfg(feature = "quirks")]
@@ -141,21 +137,17 @@ async fn main() -> anyhow::Result<()> {
     )
     .init();
 
-    let args = Args::from_args();
+    let args = Args::parse();
 
-    if args.volatile {
-        run(args.subcommand, SecretVolatileConfigStore::default()).await
-    } else {
-        let db_path = args.db_path.unwrap_or_else(|| {
-            ProjectDirs::from("org", "whisperfish", "presage")
-                .unwrap()
-                .config_dir()
-                .into()
-        });
-        debug!("opening config database from {}", db_path.display());
-        let config_store = SledConfigStore::new(db_path)?;
-        run(args.subcommand, config_store).await
-    }
+    let db_path = args.db_path.unwrap_or_else(|| {
+        ProjectDirs::from("org", "whisperfish", "presage")
+            .unwrap()
+            .config_dir()
+            .into()
+    });
+    debug!("opening config database from {}", db_path.display());
+    let config_store = SledConfigStore::new(db_path)?;
+    run(args.subcommand, config_store).await
 }
 
 async fn send<C: ConfigStore>(
@@ -192,6 +184,7 @@ async fn receive<C: ConfigStore + MessageStore>(
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
+
     while let Some(Content { metadata, body }) = messages.next().await {
         match body {
             ContentBody::DataMessage(message)
@@ -270,11 +263,11 @@ async fn receive<C: ConfigStore + MessageStore>(
 }
 
 async fn run<C: ConfigStore + MessageStore>(
-    subcommand: Subcommand,
+    subcommand: Cmd,
     config_store: C,
 ) -> anyhow::Result<()> {
     match subcommand {
-        Subcommand::Register {
+        Cmd::Register {
             servers,
             phone_number,
             use_voice_call,
@@ -301,7 +294,7 @@ async fn run<C: ConfigStore + MessageStore>(
                 manager.confirm_verification_code(confirmation_code).await?;
             }
         }
-        Subcommand::LinkDevice {
+        Cmd::LinkDevice {
             servers,
             device_name,
             follow_up_command,
@@ -345,15 +338,15 @@ async fn run<C: ConfigStore + MessageStore>(
                 }
             };
         }
-        Subcommand::Receive => {
+        Cmd::Receive => {
             let manager = Manager::load_registered(config_store)?;
             receive(&manager).await?;
         }
-        Subcommand::Send { uuid, message } => {
+        Cmd::Send { uuid, message } => {
             let manager = Manager::load_registered(config_store)?;
             send(&message, &uuid, &manager).await?;
         }
-        Subcommand::SendToGroup {
+        Cmd::SendToGroup {
             message,
             master_key,
         } => {
@@ -391,19 +384,19 @@ async fn run<C: ConfigStore + MessageStore>(
                 )
                 .await?;
         }
-        Subcommand::Unregister => unimplemented!(),
-        Subcommand::RetrieveProfile => {
+        Cmd::Unregister => unimplemented!(),
+        Cmd::RetrieveProfile => {
             let manager = Manager::load_registered(config_store)?;
             let profile = manager.retrieve_profile().await?;
             println!("{:#?}", profile);
         }
-        Subcommand::UpdateProfile => unimplemented!(),
-        Subcommand::GetUserStatus => unimplemented!(),
-        Subcommand::Block => unimplemented!(),
-        Subcommand::Unblock => unimplemented!(),
-        Subcommand::UpdateContact => unimplemented!(),
-        Subcommand::ListGroups => unimplemented!(),
-        Subcommand::ListContacts => {
+        Cmd::UpdateProfile => unimplemented!(),
+        Cmd::GetUserStatus => unimplemented!(),
+        Cmd::Block => unimplemented!(),
+        Cmd::Unblock => unimplemented!(),
+        Cmd::UpdateContact => unimplemented!(),
+        Cmd::ListGroups => unimplemented!(),
+        Cmd::ListContacts => {
             let manager = Manager::load_registered(config_store)?;
             for contact in manager.get_contacts()? {
                 if let Contact {
@@ -421,7 +414,26 @@ async fn run<C: ConfigStore + MessageStore>(
                 }
             }
         }
-        Subcommand::ListMessages => {
+        Cmd::Whoami => {
+            let manager = Manager::load_registered(config_store)?;
+            println!("{:?}", &manager.whoami().await?)
+        }
+        Cmd::FindContact { uuid, ref name } => {
+            let manager = Manager::load_registered(config_store)?;
+            for contact in manager
+                .get_contacts()?
+                .filter(|c| c.address.uuid == uuid)
+                .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
+            {
+                println!("{}: {}", contact.name, contact.address);
+            }
+        }
+        #[cfg(feature = "quirks")]
+        Cmd::RequestSyncContacts => {
+            let manager = Manager::load_registered(config_store)?;
+            manager.request_contacts_sync().await?;
+        }
+        Cmd::ListMessages => {
             let mut msgs = config_store.messages()?;
             msgs.sort_by_key(|m| m.metadata.timestamp);
             for msg in msgs {
@@ -445,26 +457,7 @@ async fn run<C: ConfigStore + MessageStore>(
                 }
             }
         }
-        Subcommand::Whoami => {
-            let manager = Manager::load_registered(config_store)?;
-            println!("{:?}", &manager.whoami().await?)
-        }
-        Subcommand::FindContact { uuid, ref name } => {
-            let manager = Manager::load_registered(config_store)?;
-            for contact in manager
-                .get_contacts()?
-                .filter(|c| c.address.uuid == uuid)
-                .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
-            {
-                println!("{}: {}", contact.name, contact.address);
-            }
-        }
-        #[cfg(feature = "quirks")]
-        Subcommand::RequestSyncContacts => {
-            let manager = Manager::load_registered(config_store)?;
-            manager.request_contacts_sync().await?;
-        }
-        Subcommand::ListMessagesFromContact { uuid } => {
+        Cmd::ListMessagesFromContact { uuid } => {
             let thread = Thread::Contact(uuid);
             let iter = config_store.messages_by_thread(&thread, None)?;
             for msg in iter.take(10) {
@@ -488,7 +481,7 @@ async fn run<C: ConfigStore + MessageStore>(
                 }
             }
         }
-        Subcommand::ListMessagesFromGroup { master_key } => {
+        Cmd::ListMessagesFromGroup { master_key } => {
             let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
             let thread = Thread::Group(
                 master_key_bytes

@@ -2,12 +2,13 @@
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
 version = "0.3.0"
-authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
+authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "f9b54478c5413252e810089fd9648b6351bcc3bf" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "f9b54478c5413252e810089fd9648b6351bcc3bf" }
+# https://github.com/whisperfish/libsignal-service-rs/pull/156/commits
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "refs/pull/156/head" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "refs/pull/156/head" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -21,7 +22,9 @@ thiserror = "1.0"
 sled = { version = "0.34", optional = true }
 url = "2.2.2"
 libsodium-sys = { version = "0.2.7", optional = true }
-secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true }
+secrets = { version = "1.2.0", features = [
+    "use-libsodium-sys",
+], optional = true }
 
 bytes = "1"
 prost = "0.10"
@@ -37,6 +40,7 @@ quickcheck_async = "0.1"
 # for examples
 anyhow = "1.0"
 chrono = "0.4"
+clap = { version = "3.0", features = ["derive"] }
 directories = "3.0"
 env_logger = "0.7"
 futures = "0.3"
@@ -45,16 +49,20 @@ log = "0.4"
 mime_guess = "2.0"
 rand = "0.7"
 serde_json = "1.0"
-structopt = "0.3"
 tempfile = "3.3"
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
+tokio = { version = "1.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "io-std",
+    "io-util",
+] }
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-config-store","secret-volatile-config-store"]
+default = ["sled-config-store"]
 quirks = []
 sled-config-store = ["sled"]
-secret-volatile-config-store = ["libsodium-sys","secrets"]
+secret-volatile-config-store = ["libsodium-sys", "secrets"]
 volatile-config-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
