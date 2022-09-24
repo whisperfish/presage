@@ -1,6 +1,11 @@
-on: [push, pull_request]
-
 name: cargo
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v0.*
+  pull_request:
 
 env:
   CARGO_INCREMENTAL: 0
