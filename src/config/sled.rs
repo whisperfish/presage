@@ -12,20 +12,23 @@ use libsignal_service::{
             PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
             SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Uuid,
+        Content, Uuid,
     },
     push_service::DEFAULT_DEVICE_ID,
+    ServiceAddress,
 };
 use log::{debug, trace, warn};
+use prost::Message;
 use sled::IVec;
 
-use super::{ConfigStore, ContactsStore, StateStore};
-use crate::{manager::Registered, Error};
+use super::{ConfigStore, ContactsStore, MessageStore, StateStore};
+use crate::{config::Thread, manager::Registered, proto::ContentProto, Error};
 
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
 
 const SLED_TREE_SESSIONS: &str = "sessions";
+const SLED_TREE_THREAD_PREFIX: &str = "thread";
 
 #[derive(Debug, Clone)]
 pub struct SledConfigStore {
@@ -457,6 +460,90 @@ impl IdentityKeyStore for SledConfigStore {
             SignalProtocolError::InvalidState("get_identity", "failed to read identity".into())
         })?;
         Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
+    }
+}
+
+fn thread_key(t: &Thread) -> Vec<u8> {
+    let mut bytes = SLED_TREE_THREAD_PREFIX.as_bytes().to_owned();
+    bytes.append(&mut t.into());
+    bytes
+}
+
+impl MessageStore for SledConfigStore {
+    type MessagesIter = SledMessagesIter;
+    fn save_message(
+        &mut self,
+        message: libsignal_service::prelude::Content,
+        receiver: Option<impl Into<ServiceAddress>>,
+    ) -> Result<(), Error> {
+        let receiver = receiver.map(|s| s.into());
+
+        let thread = Thread::from_content_receiver(&message, receiver.as_ref())?;
+        let timestamp = &message.metadata.timestamp.to_be_bytes();
+        log::trace!(
+            "Storing a message with thread: {:?}, timestamp: {}",
+            thread,
+            message.metadata.timestamp
+        );
+
+        let tree_thread = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(thread_key(&thread))?;
+
+        let value = ContentProto::from_content(message);
+        let value_vec = value.encode_to_vec();
+
+        tree_thread.insert(timestamp, value_vec)?;
+        Ok(())
+    }
+
+    fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
+        let tree_thread = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(thread_key(thread))?;
+        // Big-Endian needed, otherwise wrong ordering in sled.
+        let val = tree_thread.get(timestamp.to_be_bytes())?;
+        if let Some(val) = val {
+            let proto = ContentProto::decode(&*val)?;
+            Ok(Some(proto.into_content()))
+        } else {
+            Ok(None)
+        }
+    }
+
+    fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+        let tree_thread = self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(thread_key(thread))?;
+        let iter = if let Some(from) = from {
+            tree_thread.range(..from.to_be_bytes())
+        } else {
+            tree_thread.range::<&[u8], std::ops::RangeFull>(..)
+        };
+        Ok(SledMessagesIter(iter.rev()))
+    }
+}
+
+pub struct SledMessagesIter(std::iter::Rev<sled::Iter>);
+
+impl Iterator for SledMessagesIter {
+    // TODO: If error, throw away the rest. Maybe return Result<Content, Error>?
+    type Item = Content;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let ivec = self.0.next()?.ok()?.1;
+        let proto = ContentProto::decode(&*ivec).ok()?;
+        Some(proto.into_content())
     }
 }
 

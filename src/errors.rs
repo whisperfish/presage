@@ -11,8 +11,12 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
+    #[error("Prost error: {0}")]
+    ProstError(#[from] prost::DecodeError),
     #[error("data store error: {0}")]
     DbError(#[from] sled::Error),
+    #[error("data store error: {0}")]
+    DbTransactionError(#[from] sled::transaction::TransactionError),
     #[error("error decoding base64 data: {0}")]
     Base64Error(#[from] base64::DecodeError),
     #[error("wrong slice size: {0}")]
@@ -49,4 +53,6 @@ pub enum Error {
     ParseContactError(#[from] ParseContactError),
     #[error("failed to decrypt attachment: {0}")]
     AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
+    #[error("message is missing a uuid")]
+    ContentMissingUuid,
 }

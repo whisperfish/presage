@@ -12,15 +12,16 @@ use libsignal_service::{
             PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
             SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Uuid,
+        Content, Uuid,
     },
     push_service::DEFAULT_DEVICE_ID,
+    ServiceAddress,
 };
 use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
 
-use super::{ConfigStore, ContactsStore, StateStore};
-use crate::{manager::Registered, Error};
+use super::{ConfigStore, ContactsStore, StateStore, Thread};
+use crate::{manager::Registered, Error, MessageStore};
 
 // - SecretId adds the Default trait to SecretBox<u32>
 #[derive(Debug, Clone)]
@@ -123,6 +124,32 @@ impl ContactsStore for SecretVolatileConfigStore {
     fn contact_by_id(&self, _: Uuid) -> Result<Option<Contact>, Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(None)
+    }
+}
+
+impl MessageStore for SecretVolatileConfigStore {
+    type MessagesIter = std::vec::IntoIter<Content>;
+    fn save_message(
+        &mut self,
+        _message: libsignal_service::prelude::Content,
+        _: Option<impl Into<ServiceAddress>>,
+    ) -> Result<(), Error> {
+        warn!("messages are not saved when using volatile storage.");
+        Ok(())
+    }
+
+    fn message(
+        &self,
+        _thread: &Thread,
+        _timestamp: u64,
+    ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
+        warn!("messages are not saved when using volatile storage.");
+        Ok(None)
+    }
+
+    fn messages(&self, _thread: &Thread, _from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+        warn!("messages are not saved when using volatile storage.");
+        Ok(vec![].into_iter())
     }
 }
 

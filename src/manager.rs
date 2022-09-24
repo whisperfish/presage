@@ -39,7 +39,7 @@ use libsignal_service::{
 use libsignal_service_hyper::push_service::HyperPushService;
 use url::Url;
 
-use crate::cache::CacheCell;
+use crate::{cache::CacheCell, config::MessageStore};
 use crate::{config::ConfigStore, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, ThreadRng>;
@@ -288,7 +288,7 @@ impl<C: ConfigStore> Manager<C, Linking> {
         )
         .await;
 
-        let _ = fut1?;
+        fut1?;
         let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
             fut2?;
 
@@ -821,5 +821,22 @@ impl<C: ConfigStore> Manager<C, Registered> {
         );
 
         Ok(service_cipher)
+    }
+}
+
+impl<C> Manager<C, Registered>
+where
+    C: ConfigStore + MessageStore,
+{
+    pub async fn receive_messages_store(&self) -> Result<impl Stream<Item = Content> + '_, Error> {
+        let mut store = self.config_store.clone();
+        Ok(self.receive_messages().await?.map(move |c| {
+            if c.metadata.sender.uuid.is_some() {
+                if let Err(e) = store.save_message(c.clone(), None::<ServiceAddress>) {
+                    log::error!("Error saving message to store: {}", e);
+                }
+            }
+            c
+        }))
     }
 }

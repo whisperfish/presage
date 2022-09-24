@@ -14,7 +14,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, Registered, RegistrationOptions, SledConfigStore,
+    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SledConfigStore, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -93,6 +93,23 @@ enum Cmd {
     ListGroups,
     #[clap(about = "List contacts")]
     ListContacts,
+    #[clap(about = "List messages")]
+    ListMessages {
+        #[clap(
+            long,
+            short = 'u',
+            help = "contact UUID",
+            conflicts_with = "master-key"
+        )]
+        uuid: Option<Uuid>,
+        #[clap(
+            long,
+            short = 'k',
+            help = "Master Key of the V2 group (hex string)",
+            conflicts_with = "uuid"
+        )]
+        master_key: Option<String>,
+    },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -158,7 +175,9 @@ async fn send<C: ConfigStore>(
     Ok(())
 }
 
-async fn receive<C: ConfigStore>(manager: &Manager<C, Registered>) -> anyhow::Result<()> {
+async fn receive<C: ConfigStore + MessageStore>(
+    manager: &Manager<C, Registered>,
+) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
         "attachments will be stored in {}",
@@ -166,11 +185,11 @@ async fn receive<C: ConfigStore>(manager: &Manager<C, Registered>) -> anyhow::Re
     );
 
     let messages = manager
-        .clone()
-        .receive_messages()
+        .receive_messages_store()
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
+
     while let Some(Content { metadata, body }) = messages.next().await {
         match body {
             ContentBody::DataMessage(message)
@@ -248,7 +267,10 @@ async fn receive<C: ConfigStore>(manager: &Manager<C, Registered>) -> anyhow::Re
     Ok(())
 }
 
-async fn run<C: ConfigStore>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<C: ConfigStore + MessageStore>(
+    subcommand: Cmd,
+    config_store: C,
+) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -415,6 +437,46 @@ async fn run<C: ConfigStore>(subcommand: Cmd, config_store: C) -> anyhow::Result
         Cmd::RequestSyncContacts => {
             let manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
+        }
+        Cmd::ListMessages { master_key, uuid } => {
+            let thread = match (master_key, uuid) {
+                (Some(master_key), _) => {
+                    let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
+                    Thread::Group(
+                        master_key_bytes
+                            .try_into()
+                            .expect("Master key to be 32 bytes"),
+                    )
+                }
+                (_, Some(uuid)) => Thread::Contact(uuid),
+                _ => panic!("At least one of master-key or uuid has to be given"),
+            };
+            let iter = config_store.messages(&thread, None)?;
+            let mut printed = 0;
+            for msg in iter {
+                match msg.body {
+                    ContentBody::DataMessage(message)
+                    | ContentBody::SynchronizeMessage(SyncMessage {
+                        sent:
+                            Some(Sent {
+                                message: Some(message),
+                                ..
+                            }),
+                        ..
+                    }) if message.body.is_some() => {
+                        println!(
+                            "{}: {}",
+                            msg.metadata.sender.e164_or_uuid(),
+                            message.body.unwrap_or_else(|| "".to_string())
+                        );
+                        printed += 1;
+                        if printed == 10 {
+                            break;
+                        }
+                    }
+                    _ => {}
+                }
+            }
         }
     };
     Ok(())

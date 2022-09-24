@@ -10,7 +10,10 @@ A Rust library that helps building clients for the [Signal Messenger](https://si
 
 Features:
 
-- [x] Configuration and secrets storage (using [sled](https://github.com/spacejam/sled))
+- [x] Local storage (using [sled](https://github.com/spacejam/sled))
+  - [x] Registration/linking
+  - [x] Contacts
+  - [x] Messages
   - [ ] Local encryption
 - [x] Registration
   - [x] SMS
