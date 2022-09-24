@@ -21,7 +21,9 @@ thiserror = "1.0"
 sled = { version = "0.34", optional = true }
 url = "2.2.2"
 libsodium-sys = { version = "0.2.7", optional = true }
-secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true }
+secrets = { version = "1.2.0", features = [
+    "use-libsodium-sys",
+], optional = true }
 
 [dev-dependencies]
 # for tests
@@ -41,14 +43,19 @@ rand = "0.7"
 serde_json = "1.0"
 structopt = "0.3"
 tempfile = "3.3"
-tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
+tokio = { version = "1.0", features = [
+    "macros",
+    "rt-multi-thread",
+    "io-std",
+    "io-util",
+] }
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-config-store","secret-volatile-config-store"]
+default = ["sled-config-store"]
 quirks = []
 sled-config-store = ["sled"]
-secret-volatile-config-store = ["libsodium-sys","secrets"]
+secret-volatile-config-store = ["libsodium-sys", "secrets"]
 volatile-config-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]

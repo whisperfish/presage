@@ -13,8 +13,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, Registered, RegistrationOptions, SecretVolatileConfigStore,
-    SledConfigStore,
+    ConfigStore, Manager, Registered, RegistrationOptions, SledConfigStore,
 };
 use structopt::StructOpt;
 use tempfile::Builder;
@@ -29,9 +28,6 @@ use url::Url;
 struct Args {
     #[structopt(long = "db-path", short = "d", group = "store")]
     db_path: Option<PathBuf>,
-
-    #[structopt(long = "volatile", group = "store")]
-    volatile: bool,
 
     #[structopt(flatten)]
     subcommand: Subcommand,
@@ -131,19 +127,15 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::from_args();
 
-    if args.volatile {
-        run(args.subcommand, SecretVolatileConfigStore::default()).await
-    } else {
-        let db_path = args.db_path.unwrap_or_else(|| {
-            ProjectDirs::from("org", "whisperfish", "presage")
-                .unwrap()
-                .config_dir()
-                .into()
-        });
-        debug!("opening config database from {}", db_path.display());
-        let config_store = SledConfigStore::new(db_path)?;
-        run(args.subcommand, config_store).await
-    }
+    let db_path = args.db_path.unwrap_or_else(|| {
+        ProjectDirs::from("org", "whisperfish", "presage")
+            .unwrap()
+            .config_dir()
+            .into()
+    });
+    debug!("opening config database from {}", db_path.display());
+    let config_store = SledConfigStore::new(db_path)?;
+    run(args.subcommand, config_store).await
 }
 
 async fn send<C: ConfigStore>(
