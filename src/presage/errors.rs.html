@@ -56,6 +56,12 @@
 <span id="50">50</span>
 <span id="51">51</span>
 <span id="52">52</span>
+<span id="53">53</span>
+<span id="54">54</span>
+<span id="55">55</span>
+<span id="56">56</span>
+<span id="57">57</span>
+<span id="58">58</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::borrow::Cow</span>;
 
 <span class="kw">use</span> <span class="ident">libsignal_service</span>::{<span class="ident">models::ParseContactError</span>, <span class="ident">prelude::protocol::SignalProtocolError</span>};
@@ -69,8 +75,12 @@
     <span class="ident">IoError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">std::io::Error</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;JSON error: {0}&quot;</span>)]</span>
     <span class="ident">JsonError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">serde_json::Error</span>),
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Prost error: {0}&quot;</span>)]</span>
+    <span class="ident">ProstError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">prost::DecodeError</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;data store error: {0}&quot;</span>)]</span>
     <span class="ident">DbError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">sled::Error</span>),
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;data store error: {0}&quot;</span>)]</span>
+    <span class="ident">DbTransactionError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">sled::transaction::TransactionError</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;error decoding base64 data: {0}&quot;</span>)]</span>
     <span class="ident">Base64Error</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">base64::DecodeError</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;wrong slice size: {0}&quot;</span>)]</span>
@@ -107,6 +117,8 @@
     <span class="ident">ParseContactError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">ParseContactError</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;failed to decrypt attachment: {0}&quot;</span>)]</span>
     <span class="ident">AttachmentCipherError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">libsignal_service::attachment_cipher::AttachmentCipherError</span>),
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;message is missing a uuid&quot;</span>)]</span>
+    <span class="ident">ContentMissingUuid</span>,
 }
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.63.0 (4b91a6ea7 2022-08-08)" ></div>

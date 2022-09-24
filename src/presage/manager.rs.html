@@ -829,6 +829,23 @@
 <span id="823">823</span>
 <span id="824">824</span>
 <span id="825">825</span>
+<span id="826">826</span>
+<span id="827">827</span>
+<span id="828">828</span>
+<span id="829">829</span>
+<span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
 
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">channel::oneshot</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
@@ -870,7 +887,7 @@
 <span class="kw">use</span> <span class="ident">libsignal_service_hyper::push_service::HyperPushService</span>;
 <span class="kw">use</span> <span class="ident">url::Url</span>;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::cache::CacheCell</span>;
+<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">cache::CacheCell</span>, <span class="ident">config::MessageStore</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">config::ConfigStore</span>, <span class="ident">Error</span>};
 
 <span class="kw">type</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">cipher::ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
@@ -1119,7 +1136,7 @@
         )
         .<span class="kw">await</span>;
 
-        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">fut1</span><span class="question-mark">?</span>;
+        <span class="ident">fut1</span><span class="question-mark">?</span>;
         <span class="kw">let</span> (<span class="ident">phone_number</span>, <span class="ident">device_id</span>, <span class="ident">registration_id</span>, <span class="ident">uuid</span>, <span class="ident">private_key</span>, <span class="ident">public_key</span>, <span class="ident">profile_key</span>) <span class="op">=</span>
             <span class="ident">fut2</span><span class="question-mark">?</span>;
 
@@ -1652,6 +1669,23 @@
         );
 
         <span class="prelude-val">Ok</span>(<span class="ident">service_cipher</span>)
+    }
+}
+
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span>
+<span class="kw">where</span>
+    <span class="ident">C</span>: <span class="ident">ConfigStore</span> <span class="op">+</span> <span class="ident">MessageStore</span>,
+{
+    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">receive_messages_store</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">Content</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;_</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">store</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>();
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">receive_messages</span>().<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">map</span>(<span class="kw">move</span> <span class="op">|</span><span class="ident">c</span><span class="op">|</span> {
+            <span class="kw">if</span> <span class="ident">c</span>.<span class="ident">metadata</span>.<span class="ident">sender</span>.<span class="ident">uuid</span>.<span class="ident">is_some</span>() {
+                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">store</span>.<span class="ident">save_message</span>(<span class="ident">c</span>.<span class="ident">clone</span>(), <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="ident">ServiceAddress</span><span class="op">&gt;</span>) {
+                    <span class="macro">log::error!</span>(<span class="string">&quot;Error saving message to store: {}&quot;</span>, <span class="ident">e</span>);
+                }
+            }
+            <span class="ident">c</span>
+        }))
     }
 }
 </code></pre></div>
