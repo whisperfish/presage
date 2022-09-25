@@ -8,21 +8,21 @@ use libsignal_service::{
     models::Contact,
     prelude::{
         protocol::{
-            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
-            SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, SessionRecord, SessionStore,
+            SessionStoreExt, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
         },
         Content, Uuid,
     },
     push_service::DEFAULT_DEVICE_ID,
-    ServiceAddress,
 };
 use log::{debug, trace, warn};
 use prost::Message;
 use sled::IVec;
 
 use super::{ConfigStore, ContactsStore, MessageStore, StateStore};
-use crate::{config::Thread, manager::Registered, proto::ContentProto, Error};
+use crate::{manager::Registered, proto::ContentProto, store::Thread, Error};
 
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
@@ -31,13 +31,13 @@ const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_THREAD_PREFIX: &str = "thread";
 
 #[derive(Debug, Clone)]
-pub struct SledConfigStore {
+pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
 }
 
-impl SledConfigStore {
+impl SledStore {
     pub fn new(path: impl Into<PathBuf>) -> Result<Self, Error> {
-        Ok(SledConfigStore {
+        Ok(SledStore {
             db: Arc::new(RwLock::new(sled::open(path.into())?)),
         })
     }
@@ -108,11 +108,11 @@ impl SledConfigStore {
         Ok(())
     }
 
-    fn prekey_key(&self, id: u32) -> String {
+    fn prekey_key(&self, id: PreKeyId) -> String {
         format!("prekey-{:09}", id)
     }
 
-    fn signed_prekey_key(&self, id: u32) -> String {
+    fn signed_prekey_key(&self, id: SignedPreKeyId) -> String {
         format!("signed-prekey-{:09}", id)
     }
 
@@ -152,7 +152,7 @@ impl SledConfigStore {
     }
 }
 
-impl StateStore<Registered> for SledConfigStore {
+impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
         let db = self.db.read().expect("poisoned mutex");
         let data = db
@@ -169,7 +169,7 @@ impl StateStore<Registered> for SledConfigStore {
     }
 }
 
-impl ConfigStore for SledConfigStore {
+impl ConfigStore for SledStore {
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
     }
@@ -187,7 +187,7 @@ impl ConfigStore for SledConfigStore {
     }
 }
 
-impl ContactsStore for SledConfigStore {
+impl ContactsStore for SledStore {
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
         let tree = self
             .db
@@ -231,10 +231,10 @@ impl ContactsStore for SledConfigStore {
 }
 
 #[async_trait(?Send)]
-impl PreKeyStore for SledConfigStore {
+impl PreKeyStore for SledStore {
     async fn get_pre_key(
         &self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<PreKeyRecord, SignalProtocolError> {
         let buf = self
@@ -246,7 +246,7 @@ impl PreKeyStore for SledConfigStore {
 
     async fn save_pre_key(
         &mut self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         record: &PreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
@@ -257,7 +257,7 @@ impl PreKeyStore for SledConfigStore {
 
     async fn remove_pre_key(
         &mut self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.remove(self.prekey_key(prekey_id))
@@ -267,10 +267,10 @@ impl PreKeyStore for SledConfigStore {
 }
 
 #[async_trait(?Send)]
-impl SignedPreKeyStore for SledConfigStore {
+impl SignedPreKeyStore for SledStore {
     async fn get_signed_pre_key(
         &self,
-        signed_prekey_id: u32,
+        signed_prekey_id: SignedPreKeyId,
         _ctx: Context,
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf = self
@@ -282,7 +282,7 @@ impl SignedPreKeyStore for SledConfigStore {
 
     async fn save_signed_pre_key(
         &mut self,
-        signed_prekey_id: u32,
+        signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
@@ -298,7 +298,7 @@ impl SignedPreKeyStore for SledConfigStore {
 }
 
 #[async_trait(?Send)]
-impl SessionStore for SledConfigStore {
+impl SessionStore for SledStore {
     async fn load_session(
         &self,
         address: &ProtocolAddress,
@@ -339,7 +339,7 @@ impl SessionStore for SledConfigStore {
 }
 
 #[async_trait]
-impl SessionStoreExt for SledConfigStore {
+impl SessionStoreExt for SledStore {
     async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = self.session_prefix(name);
         log::info!("get_sub_device_sessions: session_prefix={}", session_prefix);
@@ -390,7 +390,7 @@ impl SessionStoreExt for SledConfigStore {
 }
 
 #[async_trait(?Send)]
-impl IdentityKeyStore for SledConfigStore {
+impl IdentityKeyStore for SledStore {
     async fn get_identity_key_pair(
         &self,
         _ctx: Context,
@@ -469,16 +469,11 @@ fn thread_key(t: &Thread) -> Vec<u8> {
     bytes
 }
 
-impl MessageStore for SledConfigStore {
+impl MessageStore for SledStore {
     type MessagesIter = SledMessagesIter;
-    fn save_message(
-        &mut self,
-        message: libsignal_service::prelude::Content,
-        receiver: Option<impl Into<ServiceAddress>>,
-    ) -> Result<(), Error> {
-        let receiver = receiver.map(|s| s.into());
 
-        let thread = Thread::from_content_receiver(&message, receiver.as_ref())?;
+    fn save_message(&mut self, message: libsignal_service::prelude::Content) -> Result<(), Error> {
+        let thread = Thread::try_from(&message)?;
         let timestamp = &message.metadata.timestamp.to_be_bytes();
         log::trace!(
             "Storing a message with thread: {:?}, timestamp: {}",
@@ -492,11 +487,20 @@ impl MessageStore for SledConfigStore {
             .expect("poisoned mutex")
             .open_tree(thread_key(&thread))?;
 
-        let value = ContentProto::from_content(message);
-        let value_vec = value.encode_to_vec();
+        let value: ContentProto = message.into();
 
-        tree_thread.insert(timestamp, value_vec)?;
+        tree_thread.insert(timestamp, value.encode_to_vec())?;
         Ok(())
+    }
+
+    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
+        Ok(self
+            .db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(thread_key(thread))?
+            .remove(timestamp.to_be_bytes())?
+            .is_some())
     }
 
     fn message(
@@ -512,8 +516,9 @@ impl MessageStore for SledConfigStore {
         // Big-Endian needed, otherwise wrong ordering in sled.
         let val = tree_thread.get(timestamp.to_be_bytes())?;
         if let Some(val) = val {
-            let proto = ContentProto::decode(&*val)?;
-            Ok(Some(proto.into_content()))
+            let proto = ContentProto::decode(&val[..])?;
+            let content = proto.try_into()?;
+            Ok(Some(content))
         } else {
             Ok(None)
         }
@@ -543,7 +548,7 @@ impl Iterator for SledMessagesIter {
     fn next(&mut self) -> Option<Self::Item> {
         let ivec = self.0.next()?.ok()?.1;
         let proto = ContentProto::decode(&*ivec).ok()?;
-        Some(proto.into_content())
+        proto.try_into().ok()
     }
 }
 
@@ -557,7 +562,7 @@ mod tests {
     };
     use quickcheck::{Arbitrary, Gen};
 
-    use super::SledConfigStore;
+    use super::SledStore;
 
     #[derive(Debug, Clone)]
     struct ProtocolAddress(protocol::ProtocolAddress);
@@ -574,7 +579,7 @@ mod tests {
     impl Arbitrary for ProtocolAddress {
         fn arbitrary(g: &mut Gen) -> Self {
             let name: String = Arbitrary::arbitrary(g);
-            let device_id: u8 = Arbitrary::arbitrary(g);
+            let device_id: u32 = Arbitrary::arbitrary(g);
             ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
         }
     }
@@ -588,7 +593,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_save_get_trust_identity(addr: ProtocolAddress, key_pair: KeyPair) -> bool {
-        let mut db = SledConfigStore::temporary().unwrap();
+        let mut db = SledStore::temporary().unwrap();
         let identity_key = protocol::IdentityKey::new(key_pair.0.public_key);
         db.save_identity(&addr.0, &identity_key, None)
             .await
@@ -606,7 +611,7 @@ mod tests {
     async fn test_store_load_session(addr: ProtocolAddress) -> bool {
         let session = SessionRecord::new_fresh();
 
-        let mut db = SledConfigStore::temporary().unwrap();
+        let mut db = SledStore::temporary().unwrap();
         db.store_session(&addr.0, &session, None).await.unwrap();
         if db.load_session(&addr.0, None).await.unwrap().is_none() {
             return false;
@@ -617,7 +622,8 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_prekey_store(id: u32, key_pair: KeyPair) -> bool {
-        let mut db = SledConfigStore::temporary().unwrap();
+        let id = id.into();
+        let mut db = SledStore::temporary().unwrap();
         let pre_key_record = PreKeyRecord::new(id, &key_pair.0);
         db.save_pre_key(id, &pre_key_record, None).await.unwrap();
         if db.get_pre_key(id, None).await.unwrap().serialize().unwrap()
@@ -637,7 +643,8 @@ mod tests {
         key_pair: KeyPair,
         signature: Vec<u8>,
     ) -> bool {
-        let mut db = SledConfigStore::temporary().unwrap();
+        let mut db = SledStore::temporary().unwrap();
+        let id = id.into();
         let signed_pre_key_record = SignedPreKeyRecord::new(id, timestamp, &key_pair.0, &signature);
         db.save_signed_pre_key(id, &signed_pre_key_record, None)
             .await

@@ -39,17 +39,17 @@ use libsignal_service::{
 use libsignal_service_hyper::push_service::HyperPushService;
 use url::Url;
 
-use crate::{cache::CacheCell, config::MessageStore};
-use crate::{config::ConfigStore, Error};
+use crate::{cache::CacheCell, store::MessageStore};
+use crate::{store::ConfigStore, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, ThreadRng>;
 type MessageSender<C> =
     libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, ThreadRng>;
 
 #[derive(Clone)]
-pub struct Manager<ConfigStore, State> {
+pub struct Manager<Store, State> {
     /// Implementation of a config-store to give to libsignal
-    config_store: ConfigStore,
+    config_store: Store,
     /// Part of the manager which is persisted in the store.
     state: State,
 }
@@ -119,10 +119,10 @@ impl<C: ConfigStore> Manager<C, Registration> {
     ///
     ///     use presage::{
     ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, RegistrationOptions, SledConfigStore,
+    ///         Manager, RegistrationOptions, SledStore,
     ///     };
     ///
-    ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
+    ///     let config_store = SledStore::new("/tmp/presage-example")?;
     ///
     ///     let manager = Manager::register(
     ///         config_store,
@@ -199,12 +199,12 @@ impl<C: ConfigStore> Manager<C, Linking> {
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledConfigStore};
+    /// use presage::{prelude::SignalServers, Manager, SledStore};
     /// use futures::{channel::oneshot, future, StreamExt};
     ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
-    ///     let config_store = SledConfigStore::new("/tmp/presage-example")?;
+    ///     let config_store = SledStore::new("/tmp/presage-example")?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -426,7 +426,7 @@ impl<C: ConfigStore> Manager<C, Confirmation> {
 }
 
 impl<C: ConfigStore> Manager<C, Registered> {
-    /// Loads a previously registered account from the implemented [ConfigStore].
+    /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
     pub fn load_registered(config_store: C) -> Result<Self, Error> {
@@ -546,7 +546,7 @@ impl<C: ConfigStore> Manager<C, Registered> {
         Ok(account_manager.retrieve_profile(uuid).await?)
     }
 
-    /// Returns an iterator on contacts stored in the [ConfigStore].
+    /// Returns an iterator on contacts stored in the [Store].
     ///
     /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
     /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
@@ -802,7 +802,7 @@ impl<C: ConfigStore> Manager<C, Registered> {
             self.config_store.clone(),
             self.config_store.clone(),
             local_addr,
-            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
+            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
         ))
     }
 
@@ -832,7 +832,7 @@ where
         let mut store = self.config_store.clone();
         Ok(self.receive_messages().await?.map(move |c| {
             if c.metadata.sender.uuid.is_some() {
-                if let Err(e) = store.save_message(c.clone(), None::<ServiceAddress>) {
+                if let Err(e) = store.save_message(c.clone()) {
                     log::error!("Error saving message to store: {}", e);
                 }
             }

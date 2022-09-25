@@ -14,7 +14,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SledConfigStore, Thread,
+    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SledStore, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -151,7 +151,7 @@ async fn main() -> anyhow::Result<()> {
             .into()
     });
     debug!("opening config database from {}", db_path.display());
-    let config_store = SledConfigStore::new(db_path)?;
+    let config_store = SledStore::new(db_path)?;
     run(args.subcommand, config_store).await
 }
 

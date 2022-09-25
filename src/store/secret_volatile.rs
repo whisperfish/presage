@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    sync::{Arc, RwLock},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use async_trait::async_trait;
@@ -8,35 +8,53 @@ use libsignal_service::{
     models::Contact,
     prelude::{
         protocol::{
-            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
-            SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, SessionRecord, SessionStore,
+            SessionStoreExt, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
         },
-        Uuid,
+        Content, Uuid,
     },
     push_service::DEFAULT_DEVICE_ID,
+    ServiceAddress,
 };
 use log::{trace, warn};
+use secrets::{SecretBox, SecretVec};
 
-use super::{ConfigStore, ContactsStore, StateStore};
-use crate::{manager::Registered, Error};
+use super::{ConfigStore, ContactsStore, StateStore, Thread};
+use crate::{manager::Registered, Error, MessageStore};
 
-#[derive(Default, Debug, Clone)]
-pub struct VolatileConfigStore {
-    pre_keys_offset_id: u32,
-    next_signed_pre_key_id: u32,
+// - SecretId adds the Default trait to SecretBox<u32>
+#[derive(Debug, Clone)]
+struct SecretId(SecretBox<u32>);
 
-    pre_keys: HashMap<u32, Vec<u8>>,
-    signed_pre_keys: HashMap<u32, Vec<u8>>,
-
-    // XXX: we need interior mutability + Sync until we fix the trait definition to use &mut self in libsignal-service
-    sessions: Arc<RwLock<HashMap<String, Vec<u8>>>>,
-    identities: HashMap<ProtocolAddress, Vec<u8>>,
-
-    registration: Option<Vec<u8>>,
+impl Default for SecretId {
+    fn default() -> Self {
+        SecretId(SecretBox::new(|s| *s = 0u32))
+    }
 }
 
-impl VolatileConfigStore {
+#[derive(Default, Debug, Clone)]
+pub struct SecretVolatileStore {
+    // `Cell<u8>` cannot be shared between threads safely (part of SecretBox/SecretVec)
+    // - therefore wrapped within a Mutex
+    // - to be able to derive the Clone trait Arc is needed
+    pre_keys_offset_id: Arc<Mutex<SecretId>>,
+    next_signed_pre_key_id: Arc<Mutex<SecretId>>,
+
+    pre_keys: Arc<RwLock<HashMap<PreKeyId, Mutex<SecretVec<u8>>>>>,
+    signed_pre_keys: Arc<RwLock<HashMap<SignedPreKeyId, Mutex<SecretVec<u8>>>>>,
+
+    // XXX: we need interior mutability + Sync until we fix the trait definition to use &mut self in libsignal-service
+    sessions: Arc<RwLock<HashMap<String, Mutex<SecretVec<u8>>>>>,
+
+    identities: Arc<RwLock<HashMap<ProtocolAddress, Mutex<SecretVec<u8>>>>>,
+    registration: Arc<Mutex<Option<SecretVec<u8>>>>,
+}
+// todo: to erase or zero out secrets passed into the secret store upstream refactoring is necessary,
+// parameters for example `id` for `set_pre_keys_offset_id` must be passed as &mut for the secrets crate to zero out the value.
+
+impl SecretVolatileStore {
     fn session_key(&self, addr: &ProtocolAddress) -> String {
         format!("session-{}", addr)
     }
@@ -46,43 +64,54 @@ impl VolatileConfigStore {
     }
 }
 
-impl StateStore<Registered> for VolatileConfigStore {
+impl StateStore<Registered> for SecretVolatileStore {
     fn load_state(&self) -> Result<Registered, Error> {
-        let data = self
-            .registration
-            .as_ref()
-            .ok_or(Error::NotYetRegisteredError)?;
-        serde_json::from_slice(data).map_err(Error::from)
+        let d = self.registration.try_lock().expect("poisoned mutex");
+        let data = d.as_ref().ok_or(Error::NotYetRegisteredError)?;
+        let x = serde_json::from_slice(&*data.borrow()).map_err(Error::from);
+        x
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
-        let data = serde_json::to_vec(state)?;
-        self.registration = Some(data);
+        let mut data = serde_json::to_vec(state)?;
+        self.registration = Arc::new(Mutex::new(Some(SecretVec::from(&mut data[..]))));
         Ok(())
     }
 }
 
-impl ConfigStore for VolatileConfigStore {
+impl ConfigStore for SecretVolatileStore {
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
-        Ok(self.pre_keys_offset_id)
+        let d = self.pre_keys_offset_id.try_lock().expect("poisoned mutex");
+        let x = *d.0.borrow();
+        Ok(x)
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.pre_keys_offset_id = id;
+        let mut d = self.pre_keys_offset_id.try_lock().expect("poisoned mutex");
+        *d.0.borrow_mut() = id;
         Ok(())
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
-        Ok(self.next_signed_pre_key_id)
+        let d = self
+            .next_signed_pre_key_id
+            .try_lock()
+            .expect("poisoned mutex");
+        let x = *d.0.borrow();
+        Ok(x)
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.next_signed_pre_key_id = id;
+        let mut d = self
+            .next_signed_pre_key_id
+            .try_lock()
+            .expect("poisoned mutex");
+        *d.0.borrow_mut() = id;
         Ok(())
     }
 }
 
-impl ContactsStore for VolatileConfigStore {
+impl ContactsStore for SecretVolatileStore {
     fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(())
@@ -100,67 +129,80 @@ impl ContactsStore for VolatileConfigStore {
 }
 
 #[async_trait(?Send)]
-impl PreKeyStore for VolatileConfigStore {
+impl PreKeyStore for SecretVolatileStore {
     async fn get_pre_key(
         &self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<PreKeyRecord, SignalProtocolError> {
-        let buf = self
-            .pre_keys
+        let buf = self.pre_keys.try_read().expect("poisoned mutex");
+        let b = buf
             .get(&prekey_id)
             .ok_or(SignalProtocolError::InvalidPreKeyId)?;
-        PreKeyRecord::deserialize(buf)
+        let x = PreKeyRecord::deserialize(&(*b.try_lock().unwrap()).borrow());
+        x
     }
 
     async fn save_pre_key(
         &mut self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         record: &PreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        self.pre_keys.insert(prekey_id, record.serialize()?);
+        self.pre_keys.try_write().expect("poisoned mutex").insert(
+            prekey_id,
+            Mutex::new(SecretVec::from(&mut record.serialize()?[..])),
+        );
         Ok(())
     }
 
     async fn remove_pre_key(
         &mut self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        self.pre_keys.remove(&prekey_id);
+        self.pre_keys
+            .try_write()
+            .expect("poisoned mutex")
+            .remove(&prekey_id);
         Ok(())
     }
 }
 
 #[async_trait(?Send)]
-impl SignedPreKeyStore for VolatileConfigStore {
+impl SignedPreKeyStore for SecretVolatileStore {
     async fn get_signed_pre_key(
         &self,
-        signed_prekey_id: u32,
+        signed_prekey_id: SignedPreKeyId,
         _ctx: Context,
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
-        let buf = self
-            .signed_pre_keys
+        let buf = self.signed_pre_keys.try_read().expect("poisoned mutex");
+        let b = buf
             .get(&signed_prekey_id)
             .ok_or(SignalProtocolError::InvalidSignedPreKeyId)?;
-        SignedPreKeyRecord::deserialize(buf)
+        let x = SignedPreKeyRecord::deserialize(&(*b.try_lock().unwrap()).borrow());
+        x
     }
 
     async fn save_signed_pre_key(
         &mut self,
-        signed_prekey_id: u32,
+        signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.signed_pre_keys
-            .insert(signed_prekey_id, record.serialize()?);
+            .try_write()
+            .expect("poisoned mutex")
+            .insert(
+                signed_prekey_id,
+                Mutex::new(SecretVec::from(&mut record.serialize()?[..])),
+            );
         Ok(())
     }
 }
 
 #[async_trait(?Send)]
-impl SessionStore for VolatileConfigStore {
+impl SessionStore for SecretVolatileStore {
     async fn load_session(
         &self,
         address: &ProtocolAddress,
@@ -170,7 +212,8 @@ impl SessionStore for VolatileConfigStore {
         let key = self.session_key(address);
         let buf = db.get(&key);
 
-        buf.map(|buf| SessionRecord::deserialize(buf)).transpose()
+        buf.map(|buf| SessionRecord::deserialize(&(*buf.try_lock().unwrap()).borrow()))
+            .transpose()
     }
 
     async fn store_session(
@@ -180,16 +223,17 @@ impl SessionStore for VolatileConfigStore {
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         let key = self.session_key(address);
+        let mut data = record.serialize()?;
         self.sessions
             .try_write()
             .expect("poisoned mutex")
-            .insert(key, record.serialize()?);
+            .insert(key, Mutex::new(SecretVec::from(&mut data[..])));
         Ok(())
     }
 }
 
 #[async_trait]
-impl SessionStoreExt for VolatileConfigStore {
+impl SessionStoreExt for SecretVolatileStore {
     async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = self.session_prefix(name);
         log::info!("get_sub_device_sessions: session_prefix={}", session_prefix);
@@ -226,7 +270,7 @@ impl SessionStoreExt for VolatileConfigStore {
 }
 
 #[async_trait(?Send)]
-impl IdentityKeyStore for VolatileConfigStore {
+impl IdentityKeyStore for SecretVolatileStore {
     async fn get_identity_key_pair(
         &self,
         _ctx: Context,
@@ -254,8 +298,10 @@ impl IdentityKeyStore for VolatileConfigStore {
         identity_key: &IdentityKey,
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
-        self.identities
-            .insert(address.clone(), identity_key.serialize().to_vec());
+        self.identities.try_write().expect("poisoned mutex").insert(
+            address.clone(),
+            Mutex::new(SecretVec::from(&mut identity_key.serialize().to_vec()[..])),
+        );
         Ok(false)
     }
 
@@ -266,13 +312,20 @@ impl IdentityKeyStore for VolatileConfigStore {
         _direction: Direction,
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
-        match self.identities.get(address) {
+        match self
+            .identities
+            .try_read()
+            .expect("poisoned mutex")
+            .get(address)
+        {
             None => {
                 // when we encounter a new identity, we trust it by default
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(contents) => Ok(&IdentityKey::decode(contents)? == identity_key),
+            Some(contents) => Ok(
+                &IdentityKey::decode(&(*contents.try_lock().unwrap()).borrow())? == identity_key,
+            ),
         }
     }
 
@@ -281,7 +334,8 @@ impl IdentityKeyStore for VolatileConfigStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let buf = self.identities.get(address);
-        Ok(buf.map(|b| IdentityKey::decode(b).unwrap()))
+        let identities = self.identities.try_write().expect("poisoned mutex");
+        let buf = identities.get(address);
+        Ok(buf.map(|b| IdentityKey::decode(&(*b.try_lock().unwrap()).borrow()).unwrap()))
     }
 }
