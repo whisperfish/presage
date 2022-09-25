@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::Context as _;
 use chrono::Local;
-use clap::{Parser, Subcommand};
+use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
@@ -93,22 +93,24 @@ enum Cmd {
     ListGroups,
     #[clap(about = "List contacts")]
     ListContacts,
-    #[clap(about = "List messages")]
+    #[clap(
+        about = "List messages",
+        group(
+            ArgGroup::new("list-messages")
+                .required(true)
+                .args(&["uuid", "master-key"]),
+        )
+    )]
     ListMessages {
-        #[clap(
-            long,
-            short = 'u',
-            help = "contact UUID",
-            conflicts_with = "master-key"
-        )]
-        uuid: Option<Uuid>,
+        #[clap(long, short = 'u', help = "contact UUID")]
+        contact_uuid: Option<Uuid>,
         #[clap(
             long,
             short = 'k',
             help = "Master Key of the V2 group (hex string)",
-            conflicts_with = "uuid"
+            value_parser = parse_master_key,
         )]
-        master_key: Option<String>,
+        group_master_key: Option<[u8; 32]>,
     },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
@@ -128,11 +130,18 @@ enum Cmd {
     SendToGroup {
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)")]
-        master_key: String,
+        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_master_key)]
+        master_key: [u8; 32],
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
+}
+
+fn parse_master_key(value: &str) -> anyhow::Result<[u8; 32]> {
+    let master_key_bytes = hex::decode(value)?;
+    master_key_bytes
+        .try_into()
+        .map_err(|_| anyhow::format_err!("master key should be 32 bytes long"))
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -224,7 +233,7 @@ async fn receive<C: ConfigStore + MessageStore>(
                         let group_changes = manager.decrypt_group_context(group_v2)?;
                         println!("Group v2: {:?}", group.title);
                         println!("Group change: {:?}", group_changes);
-                        println!("Group Master Key: {:?}", hex::encode(master_key_bytes));
+                        println!("Group master key: {:?}", hex::encode(&master_key_bytes));
                     }
                 }
 
@@ -357,8 +366,6 @@ async fn run<C: ConfigStore + MessageStore>(
         } => {
             let manager = Manager::load_registered(config_store)?;
 
-            let master_key = hex::decode(master_key)?;
-
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .expect("Time went backwards")
@@ -368,7 +375,7 @@ async fn run<C: ConfigStore + MessageStore>(
                 body: Some(message),
                 timestamp: Some(timestamp),
                 group_v2: Some(GroupContextV2 {
-                    master_key: Some(master_key.clone()),
+                    master_key: Some(master_key.to_vec()),
                     revision: Some(0),
                     ..Default::default()
                 }),
@@ -376,9 +383,7 @@ async fn run<C: ConfigStore + MessageStore>(
             };
 
             let group = manager
-                .get_group_v2(GroupMasterKey::new(
-                    master_key.try_into().expect("MasterKey to be 32 bytes"),
-                ))
+                .get_group_v2(GroupMasterKey::new(master_key))
                 .await?;
 
             manager
@@ -438,18 +443,14 @@ async fn run<C: ConfigStore + MessageStore>(
             let manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
         }
-        Cmd::ListMessages { master_key, uuid } => {
-            let thread = match (master_key, uuid) {
-                (Some(master_key), _) => {
-                    let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
-                    Thread::Group(
-                        master_key_bytes
-                            .try_into()
-                            .expect("Master key to be 32 bytes"),
-                    )
-                }
+        Cmd::ListMessages {
+            group_master_key,
+            contact_uuid,
+        } => {
+            let thread = match (group_master_key, contact_uuid) {
+                (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
-                _ => panic!("At least one of master-key or uuid has to be given"),
+                _ => unreachable!(),
             };
             let iter = config_store.messages(&thread, None)?;
             let mut printed = 0;

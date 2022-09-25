@@ -1,14 +1,14 @@
 [package]
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
-version = "0.4.0"
+version = "0.3.0"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
 # https://github.com/whisperfish/libsignal-service-rs/pull/156/commits
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "5c0042207f76dc2f5da15d2ba1e516647090d42f" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "5c0042207f76dc2f5da15d2ba1e516647090d42f" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "refs/pull/156/head" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "refs/pull/156/head" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -59,15 +59,15 @@ tokio = { version = "1.0", features = [
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-store"]
+default = ["sled-config-store"]
 quirks = []
-sled-store = ["sled"]
-secret-volatile-store = ["libsodium-sys", "secrets"]
-volatile-store = []
+sled-config-store = ["sled"]
+secret-volatile-config-store = ["libsodium-sys", "secrets"]
+volatile-config-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
 #libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 
 [patch.crates-io]
-curve25519-dalek = { git = "https://github.com/signalapp/curve25519-dalek", branch = "lizard2" }
+"curve25519-dalek" = { git = 'https://github.com/signalapp/curve25519-dalek', branch = 'lizard2' }
