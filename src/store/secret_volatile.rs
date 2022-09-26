@@ -21,7 +21,7 @@ use libsignal_service::{
 use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
 
-use super::{ConfigStore, ContactsStore, StateStore, Thread};
+use super::{Store, Store, StateStore, Thread};
 use crate::{manager::Registered, Error, MessageStore};
 
 // - SecretId adds the Default trait to SecretBox<u32>
@@ -79,7 +79,7 @@ impl StateStore<Registered> for SecretVolatileStore {
     }
 }
 
-impl ConfigStore for SecretVolatileStore {
+impl Store for SecretVolatileStore {
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         let d = self.pre_keys_offset_id.try_lock().expect("poisoned mutex");
         let x = *d.0.borrow();
@@ -111,7 +111,7 @@ impl ConfigStore for SecretVolatileStore {
     }
 }
 
-impl ContactsStore for SecretVolatileStore {
+impl Store for SecretVolatileStore {
     fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(())

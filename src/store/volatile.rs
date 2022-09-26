@@ -19,7 +19,7 @@ use libsignal_service::{
 };
 use log::{trace, warn};
 
-use super::{ConfigStore, ContactsStore, StateStore};
+use super::{StateStore, Store};
 use crate::{manager::Registered, Error};
 
 #[derive(Default, Debug, Clone)]
@@ -63,7 +63,7 @@ impl StateStore<Registered> for VolatileStore {
     }
 }
 
-impl ConfigStore for VolatileStore {
+impl Store for VolatileStore {
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.pre_keys_offset_id)
     }
@@ -83,7 +83,7 @@ impl ConfigStore for VolatileStore {
     }
 }
 
-impl ContactsStore for VolatileStore {
+impl Store for VolatileStore {
     fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(())

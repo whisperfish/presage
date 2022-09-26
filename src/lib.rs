@@ -9,13 +9,14 @@ pub use store::sled::SledStore;
 
 #[cfg(feature = "secret-volatile-store")]
 pub use store::secret_volatile::SecretVolatileStore;
+
 #[cfg(feature = "volatile-store")]
 pub use store::volatile::VolatileStore;
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 pub use proto::ContentProto;
-pub use store::{ConfigStore, ContactsStore, MessageStore, StateStore, Thread};
+pub use store::{ContactsStore, MessageStore, StateStore, Store, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;

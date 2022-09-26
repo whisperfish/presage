@@ -14,7 +14,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SledStore, Thread,
+    Manager, MessageStore, Registered, RegistrationOptions, SledStore, Store, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -98,12 +98,12 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["uuid", "master-key"]),
+                .args(&["recipient-uuid", "group-master-key"]),
         )
     )]
     ListMessages {
-        #[clap(long, short = 'u', help = "contact UUID")]
-        contact_uuid: Option<Uuid>,
+        #[clap(long, short = 'u', help = "recipient UUID")]
+        recipient_uuid: Option<Uuid>,
         #[clap(
             long,
             short = 'k',
@@ -164,10 +164,10 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: ConfigStore>(
+async fn send<C: Store>(
     msg: &str,
     uuid: &Uuid,
-    manager: &Manager<C, Registered>,
+    manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -184,8 +184,8 @@ async fn send<C: ConfigStore>(
     Ok(())
 }
 
-async fn receive<C: ConfigStore + MessageStore>(
-    manager: &Manager<C, Registered>,
+async fn receive<C: Store + MessageStore>(
+    manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
@@ -194,7 +194,7 @@ async fn receive<C: ConfigStore + MessageStore>(
     );
 
     let messages = manager
-        .receive_messages_store()
+        .receive_messages()
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
@@ -276,10 +276,7 @@ async fn receive<C: ConfigStore + MessageStore>(
     Ok(())
 }
 
-async fn run<C: ConfigStore + MessageStore>(
-    subcommand: Cmd,
-    config_store: C,
-) -> anyhow::Result<()> {
+async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -333,16 +330,16 @@ async fn run<C: ConfigStore + MessageStore>(
             .await;
 
             match manager {
-                (Ok(manager), _) => {
+                (Ok(mut manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
                     println!("{:?}", uuid);
 
                     match follow_up_command.as_ref() {
                         "Send" => {
-                            send("Hello World", &uuid, &manager).await?;
+                            send("Hello World", &uuid, &mut manager).await?;
                         }
                         "Receive" => {
-                            receive(&manager).await?;
+                            receive(&mut manager).await?;
                         }
                         _ => {}
                     };
@@ -353,18 +350,18 @@ async fn run<C: ConfigStore + MessageStore>(
             };
         }
         Cmd::Receive => {
-            let manager = Manager::load_registered(config_store)?;
-            receive(&manager).await?;
+            let mut manager = Manager::load_registered(config_store)?;
+            receive(&mut manager).await?;
         }
         Cmd::Send { uuid, message } => {
-            let manager = Manager::load_registered(config_store)?;
-            send(&message, &uuid, &manager).await?;
+            let mut manager = Manager::load_registered(config_store)?;
+            send(&message, &uuid, &mut manager).await?;
         }
         Cmd::SendToGroup {
             message,
             master_key,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store)?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -440,14 +437,14 @@ async fn run<C: ConfigStore + MessageStore>(
         }
         #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
-            let manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
         }
         Cmd::ListMessages {
             group_master_key,
-            contact_uuid,
+            recipient_uuid,
         } => {
-            let thread = match (group_master_key, contact_uuid) {
+            let thread = match (group_master_key, recipient_uuid) {
                 (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
                 _ => unreachable!(),
@@ -467,7 +464,7 @@ async fn run<C: ConfigStore + MessageStore>(
                     }) if message.body.is_some() => {
                         println!(
                             "{}: {}",
-                            msg.metadata.sender.e164_or_uuid(),
+                            msg.metadata.sender.identifier(),
                             message.body.unwrap_or_else(|| "".to_string())
                         );
                         printed += 1;

@@ -1,3 +1,4 @@
+use crate::{manager::Registered, ContentProto, Error};
 use libsignal_service::{
     content::ContentBody,
     models::Contact,
@@ -8,8 +9,6 @@ use libsignal_service::{
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
 
-use crate::{manager::Registered, Error};
-
 #[cfg(feature = "sled-store")]
 pub mod sled;
 
@@ -19,13 +18,14 @@ pub mod volatile;
 #[cfg(feature = "secret-volatile-store")]
 pub mod secret_volatile;
 
-pub trait ConfigStore:
+pub trait Store:
     PreKeyStore
     + SignedPreKeyStore
     + SessionStoreExt
     + IdentityKeyStore
     + StateStore<Registered>
     + ContactsStore
+    + MessageStore
     + Sync
     + Clone
 {
@@ -71,8 +71,7 @@ impl TryFrom<&Content> for Thread {
 
     fn try_from(content: &Content) -> Result<Self, Error> {
         match &content.body {
-            // Case 2: SyncMessage sent from other device notifying about a message sent to
-            // someone else.
+            // Case 1: SyncMessage sent from other device notifying about a message sent to someone else.
             // => The receiver of the message mentioned in the SyncMessage is the thread.
             ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
@@ -82,7 +81,7 @@ impl TryFrom<&Content> for Thread {
                     }),
                 ..
             }) => Ok(Self::Contact(Uuid::parse_str(uuid)?)),
-            // Case 3: The message is sent in a group.
+            // Case 2: The message is sent in a group.
             // => The group is the thread.
             ContentBody::DataMessage(DataMessage {
                 group_v2:
@@ -112,8 +111,8 @@ impl TryFrom<&Content> for Thread {
                     .try_into()
                     .expect("Group master key to have 32 bytes"),
             )),
-            // Case 4: The message was neither sent to someone, nor happened in a group.
-            // => The message sender is the thread.
+            // Case 3: The message was neither sent to someone, nor happened in a group.
+            // => The message sender is the thread (a.k.a. notes to self).
             _ => Ok(Thread::Contact(
                 content
                     .metadata
@@ -130,9 +129,13 @@ impl TryFrom<&Content> for Thread {
 pub trait MessageStore {
     type MessagesIter: Iterator<Item = Content>;
 
-    /// Save a message. The recipient-argument specifies the [ServiceAddress] of the recipient of
-    /// that message and is needed for correct association of the message to a [Thread]. If that message was received, it should be `None`.
-    fn save_message(&mut self, message: Content) -> Result<(), Error>;
+    /// Save a message in a [Thread] identified by a timestamp.
+    fn save_message(
+        &mut self,
+        thread: &Thread,
+        timestamp: u64,
+        message: impl Into<ContentProto>,
+    ) -> Result<(), Error>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error>;

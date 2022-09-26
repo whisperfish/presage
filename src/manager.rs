@@ -39,8 +39,8 @@ use libsignal_service::{
 use libsignal_service_hyper::push_service::HyperPushService;
 use url::Url;
 
-use crate::{cache::CacheCell, store::MessageStore};
-use crate::{store::ConfigStore, Error};
+use crate::{cache::CacheCell, Thread};
+use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, ThreadRng>;
 type MessageSender<C> =
@@ -93,6 +93,10 @@ pub struct Registered {
 }
 
 impl Registered {
+    pub fn device_id(&self) -> u32 {
+        self.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    }
+
     pub fn registration_id(&self) -> u32 {
         self.registration_id
     }
@@ -106,7 +110,7 @@ impl Registered {
     }
 }
 
-impl<C: ConfigStore> Manager<C, Registration> {
+impl<C: Store> Manager<C, Registration> {
     /// Registers a new account with a phone number (and some options).
     ///
     /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
@@ -194,7 +198,7 @@ impl<C: ConfigStore> Manager<C, Registration> {
     }
 }
 
-impl<C: ConfigStore> Manager<C, Linking> {
+impl<C: Store> Manager<C, Linking> {
     /// Links this client as a secondary device from the device used to register the account (usually a phone).
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
@@ -320,7 +324,7 @@ impl<C: ConfigStore> Manager<C, Linking> {
     }
 }
 
-impl<C: ConfigStore> Manager<C, Confirmation> {
+impl<C: Store> Manager<C, Confirmation> {
     /// Confirm a newly registered account using the code you
     /// received by SMS or phone call.
     ///
@@ -425,7 +429,7 @@ impl<C: ConfigStore> Manager<C, Confirmation> {
     }
 }
 
-impl<C: ConfigStore> Manager<C, Registered> {
+impl<C: Store> Manager<C, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
@@ -496,7 +500,7 @@ impl<C: ConfigStore> Manager<C, Registered> {
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
     /// processed when they're received using the `MessageReceiver`.
-    pub async fn request_contacts_sync(&self) -> Result<(), Error> {
+    pub async fn request_contacts_sync(&mut self) -> Result<(), Error> {
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts as i32),
@@ -568,12 +572,11 @@ impl<C: ConfigStore> Manager<C, Registered> {
         Ok(pipe.stream())
     }
 
-    /// Starts receiving messages.
+    /// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume.
     ///
-    /// **Note**: messages that aren't consumed will be gone, as internally we acknknowledge all messages
-    /// upon receival.
+    /// **Note**: messages that aren't consumed will be gone from the Signal servers, as internally we ACK all incoming messages.
     pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
@@ -617,7 +620,12 @@ impl<C: ConfigStore> Manager<C, Registered> {
                                     Err(e) => error!("failed to retrieve contacts: {}", e),
                                 }
                             }
-                            Ok(Some(content)) => return Some((content, state)),
+                            Ok(Some(content)) => {
+                                if let Err(e) = state.config_store.save_message(content.clone()) {
+                                    log::error!("Error saving message to store: {}", e);
+                                }
+                                return Some((content, state));
+                            }
                             Ok(None) => warn!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
                                 error!("Error opening envelope: {:?}, message will be skipped!", e);
@@ -635,7 +643,7 @@ impl<C: ConfigStore> Manager<C, Registered> {
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
     pub async fn send_message(
-        &self,
+        &mut self,
         recipient_addr: impl Into<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
@@ -643,15 +651,30 @@ impl<C: ConfigStore> Manager<C, Registered> {
         let mut sender = self.new_message_sender()?;
 
         let online_only = false;
+        let content_body: ContentBody = message.into();
+
         sender
             .send_message(
                 &recipient_addr.into(),
                 None,
-                message,
+                content_body.clone(),
                 timestamp,
                 online_only,
             )
             .await?;
+
+        let save_content = Content {
+            metadata: Metadata {
+                sender: self.state.uuid.into(),
+                sender_device: self.state.device_id(),
+                timestamp,
+                needs_receipt: false,
+            },
+            body: content_body.into(),
+        };
+
+        let thread = Thread::try_from()?;
+        self.config_store.save_message(save_content)?;
 
         Ok(())
     }
@@ -671,7 +694,7 @@ impl<C: ConfigStore> Manager<C, Registered> {
 
     /// Sends one message in a group (v2).
     pub async fn send_message_to_group(
-        &self,
+        &mut self,
         recipients: impl IntoIterator<Item = ServiceAddress>,
         message: DataMessage,
         timestamp: u64,
@@ -682,11 +705,23 @@ impl<C: ConfigStore> Manager<C, Registered> {
 
         let online_only = false;
         let results = sender
-            .send_message_to_group(recipients, None, message, timestamp, online_only)
+            .send_message_to_group(recipients, None, message.clone(), timestamp, online_only)
             .await;
 
         // return first error if any
         results.into_iter().find(|res| res.is_err()).transpose()?;
+
+        let save_content = Content {
+            metadata: Metadata {
+                sender: self.state.uuid.into(),
+                sender_device: self.state.device_id(),
+                timestamp,
+                needs_receipt: false,
+            },
+            body: message.into(),
+        };
+
+        self.config_store.save_message(save_content)?;
 
         Ok(())
     }
@@ -821,22 +856,5 @@ impl<C: ConfigStore> Manager<C, Registered> {
         );
 
         Ok(service_cipher)
-    }
-}
-
-impl<C> Manager<C, Registered>
-where
-    C: ConfigStore + MessageStore,
-{
-    pub async fn receive_messages_store(&self) -> Result<impl Stream<Item = Content> + '_, Error> {
-        let mut store = self.config_store.clone();
-        Ok(self.receive_messages().await?.map(move |c| {
-            if c.metadata.sender.uuid.is_some() {
-                if let Err(e) = store.save_message(c.clone()) {
-                    log::error!("Error saving message to store: {}", e);
-                }
-            }
-            c
-        }))
     }
 }

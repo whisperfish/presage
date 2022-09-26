@@ -21,8 +21,8 @@ use log::{debug, trace, warn};
 use prost::Message;
 use sled::IVec;
 
-use super::{ConfigStore, ContactsStore, MessageStore, StateStore};
-use crate::{manager::Registered, proto::ContentProto, store::Thread, Error};
+use super::{ContactsStore, MessageStore, StateStore};
+use crate::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
 
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
@@ -169,7 +169,7 @@ impl StateStore<Registered> for SledStore {
     }
 }
 
-impl ConfigStore for SledStore {
+impl Store for SledStore {
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
     }
@@ -472,13 +472,16 @@ fn thread_key(t: &Thread) -> Vec<u8> {
 impl MessageStore for SledStore {
     type MessagesIter = SledMessagesIter;
 
-    fn save_message(&mut self, message: libsignal_service::prelude::Content) -> Result<(), Error> {
-        let thread = Thread::try_from(&message)?;
-        let timestamp = &message.metadata.timestamp.to_be_bytes();
+    fn save_message(
+        &mut self,
+        thread: &Thread,
+        timestamp: u64,
+        message: impl Into<ContentProto>,
+    ) -> Result<(), Error> {
         log::trace!(
             "Storing a message with thread: {:?}, timestamp: {}",
             thread,
-            message.metadata.timestamp
+            timestamp,
         );
 
         let tree_thread = self
@@ -487,9 +490,7 @@ impl MessageStore for SledStore {
             .expect("poisoned mutex")
             .open_tree(thread_key(&thread))?;
 
-        let value: ContentProto = message.into();
-
-        tree_thread.insert(timestamp, value.encode_to_vec())?;
+        tree_thread.insert(timestamp.to_be_bytes(), message.into().encode_to_vec())?;
         Ok(())
     }
 
