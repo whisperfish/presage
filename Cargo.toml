@@ -38,7 +38,7 @@ quickcheck_async = "0.1"
 
 # for examples
 anyhow = "1.0"
-chrono = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
 clap = { version = "3.0", features = ["derive"] }
 directories = "3.0"
 env_logger = "0.7"
