@@ -66,12 +66,6 @@ enum Cmd {
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
-        #[clap(
-            long,
-            short = 'f',
-            help = "Command to execute after linking the device. (Send or Receive)"
-        )]
-        follow_up_command: String,
     },
     #[clap(about = "Get information on the registered user")]
     Whoami,
@@ -308,7 +302,6 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::LinkDevice {
             servers,
             device_name,
-            follow_up_command,
         } => {
             let (provisioning_link_tx, provisioning_link_rx) = oneshot::channel();
             let manager = future::join(
@@ -330,19 +323,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             .await;
 
             match manager {
-                (Ok(mut manager), _) => {
+                (Ok(manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
                     println!("{:?}", uuid);
-
-                    match follow_up_command.as_ref() {
-                        "Send" => {
-                            send("Hello World", &uuid, &mut manager).await?;
-                        }
-                        "Receive" => {
-                            receive(&mut manager).await?;
-                        }
-                        _ => {}
-                    };
                 }
                 (Err(err), _) => {
                     println!("{:?}", err);

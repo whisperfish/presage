@@ -472,16 +472,11 @@ fn thread_key(t: &Thread) -> Vec<u8> {
 impl MessageStore for SledStore {
     type MessagesIter = SledMessagesIter;
 
-    fn save_message(
-        &mut self,
-        thread: &Thread,
-        timestamp: u64,
-        message: impl Into<ContentProto>,
-    ) -> Result<(), Error> {
+    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
         log::trace!(
             "Storing a message with thread: {:?}, timestamp: {}",
             thread,
-            timestamp,
+            message.metadata.timestamp,
         );
 
         let tree_thread = self
@@ -490,7 +485,9 @@ impl MessageStore for SledStore {
             .expect("poisoned mutex")
             .open_tree(thread_key(&thread))?;
 
-        tree_thread.insert(timestamp.to_be_bytes(), message.into().encode_to_vec())?;
+        let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
+        let proto: ContentProto = message.into();
+        tree_thread.insert(timestamp_bytes, proto.encode_to_vec())?;
         Ok(())
     }
 

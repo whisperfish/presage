@@ -1,9 +1,10 @@
 use std::time::UNIX_EPOCH;
 
 use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
-use log::{error, trace, warn};
+use log::{debug, error, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
+use url::Url;
 
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -35,9 +36,7 @@ use libsignal_service::{
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
     AccountManager, Profile, ServiceAddress,
 };
-
 use libsignal_service_hyper::push_service::HyperPushService;
-use url::Url;
 
 use crate::{cache::CacheCell, Thread};
 use crate::{store::Store, Error};
@@ -597,6 +596,7 @@ impl<C: Store> Manager<C, Registered> {
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
+                            // contacts synchronization sent from the primary device (happens after linking, or on demand)
                             Ok(Some(Content {
                                 metadata: Metadata { .. },
                                 body:
@@ -621,12 +621,18 @@ impl<C: Store> Manager<C, Registered> {
                                 }
                             }
                             Ok(Some(content)) => {
-                                if let Err(e) = state.config_store.save_message(content.clone()) {
-                                    log::error!("Error saving message to store: {}", e);
+                                if let Ok(thread) = Thread::try_from(&content) {
+                                    // TODO: handle reactions here, we should update the original message?
+                                    if let Err(e) =
+                                        state.config_store.save_message(&thread, content.clone())
+                                    {
+                                        log::error!("Error saving message to store: {}", e);
+                                    }
                                 }
+
                                 return Some((content, state));
                             }
-                            Ok(None) => warn!("Empty envelope..., message will be skipped!"),
+                            Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
                                 error!("Error opening envelope: {:?}, message will be skipped!", e);
                             }
@@ -651,11 +657,12 @@ impl<C: Store> Manager<C, Registered> {
         let mut sender = self.new_message_sender()?;
 
         let online_only = false;
+        let recipient = recipient_addr.into();
         let content_body: ContentBody = message.into();
 
         sender
             .send_message(
-                &recipient_addr.into(),
+                &recipient,
                 None,
                 content_body.clone(),
                 timestamp,
@@ -663,18 +670,19 @@ impl<C: Store> Manager<C, Registered> {
             )
             .await?;
 
-        let save_content = Content {
+        // save the message
+        let thread = Thread::Contact(recipient.uuid.ok_or(Error::ContentMissingUuid)?);
+        let content = Content {
             metadata: Metadata {
                 sender: self.state.uuid.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
-                needs_receipt: false,
+                needs_receipt: false, // TODO: this is wrong
             },
-            body: content_body.into(),
+            body: content_body,
         };
 
-        let thread = Thread::try_from()?;
-        self.config_store.save_message(save_content)?;
+        self.config_store.save_message(&thread, content)?;
 
         Ok(())
     }
@@ -711,17 +719,17 @@ impl<C: Store> Manager<C, Registered> {
         // return first error if any
         results.into_iter().find(|res| res.is_err()).transpose()?;
 
-        let save_content = Content {
+        let content = Content {
             metadata: Metadata {
                 sender: self.state.uuid.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
-                needs_receipt: false,
+                needs_receipt: false, // TODO: this is just wrong
             },
             body: message.into(),
         };
-
-        self.config_store.save_message(save_content)?;
+        let thread = Thread::try_from(&content)?;
+        self.config_store.save_message(&thread, content)?;
 
         Ok(())
     }

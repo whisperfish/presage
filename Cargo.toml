@@ -65,9 +65,9 @@ sled-store = ["sled"]
 secret-volatile-store = ["libsodium-sys", "secrets"]
 volatile-store = []
 
-#[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
-#libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-#libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
+[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
+libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 
 [patch.crates-io]
 "curve25519-dalek" = { git = 'https://github.com/signalapp/curve25519-dalek', branch = 'lizard2' }

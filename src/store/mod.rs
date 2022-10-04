@@ -1,4 +1,4 @@
-use crate::{manager::Registered, ContentProto, Error};
+use crate::{manager::Registered, Error};
 use libsignal_service::{
     content::ContentBody,
     models::Contact,
@@ -72,7 +72,7 @@ impl TryFrom<&Content> for Thread {
     fn try_from(content: &Content) -> Result<Self, Error> {
         match &content.body {
             // Case 1: SyncMessage sent from other device notifying about a message sent to someone else.
-            // => The receiver of the message mentioned in the SyncMessage is the thread.
+            // => The recipient of the message mentioned in the SyncMessage is the thread.
             ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
                     Some(Sent {
@@ -81,7 +81,7 @@ impl TryFrom<&Content> for Thread {
                     }),
                 ..
             }) => Ok(Self::Contact(Uuid::parse_str(uuid)?)),
-            // Case 2: The message is sent in a group.
+            // Case 2: Received a group message
             // => The group is the thread.
             ContentBody::DataMessage(DataMessage {
                 group_v2:
@@ -111,8 +111,8 @@ impl TryFrom<&Content> for Thread {
                     .try_into()
                     .expect("Group master key to have 32 bytes"),
             )),
-            // Case 3: The message was neither sent to someone, nor happened in a group.
-            // => The message sender is the thread (a.k.a. notes to self).
+            // Case 3: Received a 1-1 message
+            // => The message sender is the thread.
             _ => Ok(Thread::Contact(
                 content
                     .metadata
@@ -130,12 +130,8 @@ pub trait MessageStore {
     type MessagesIter: Iterator<Item = Content>;
 
     /// Save a message in a [Thread] identified by a timestamp.
-    fn save_message(
-        &mut self,
-        thread: &Thread,
-        timestamp: u64,
-        message: impl Into<ContentProto>,
-    ) -> Result<(), Error>;
+    /// TODO: deriving the thread happens from the content, so we can also ditch the first parameter
+    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error>;

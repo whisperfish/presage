@@ -9,6 +9,7 @@ use std::str::FromStr;
 use self::textsecure::AddressProto;
 use self::textsecure::MetadataProto;
 use crate::prelude::{PhoneNumber, ServiceAddress};
+use libsignal_service::content::ContentBody;
 use libsignal_service::content::Metadata;
 use libsignal_service::prelude::Content;
 use libsignal_service::prelude::Uuid;
@@ -84,9 +85,15 @@ pub struct ContentProto {
 
 impl From<Content> for ContentProto {
     fn from(c: Content) -> Self {
+        (c.metadata, c.body).into()
+    }
+}
+
+impl From<(Metadata, ContentBody)> for ContentProto {
+    fn from((metadata, content_body): (Metadata, ContentBody)) -> Self {
         ContentProto {
-            metadata: c.metadata.into(),
-            content: c.body.into_proto(),
+            metadata: metadata.into(),
+            content: content_body.into_proto(),
         }
     }
 }

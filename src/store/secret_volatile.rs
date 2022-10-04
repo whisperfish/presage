@@ -16,13 +16,12 @@ use libsignal_service::{
         Content, Uuid,
     },
     push_service::DEFAULT_DEVICE_ID,
-    ServiceAddress,
 };
 use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
 
-use super::{Store, Store, StateStore, Thread};
-use crate::{manager::Registered, Error, MessageStore};
+use super::{StateStore, Store, Thread};
+use crate::{manager::Registered, ContactsStore, Error, MessageStore};
 
 // - SecretId adds the Default trait to SecretBox<u32>
 #[derive(Debug, Clone)]
@@ -111,7 +110,7 @@ impl Store for SecretVolatileStore {
     }
 }
 
-impl Store for SecretVolatileStore {
+impl ContactsStore for SecretVolatileStore {
     fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(())
@@ -337,5 +336,25 @@ impl IdentityKeyStore for SecretVolatileStore {
         let identities = self.identities.try_write().expect("poisoned mutex");
         let buf = identities.get(address);
         Ok(buf.map(|b| IdentityKey::decode(&(*b.try_lock().unwrap()).borrow()).unwrap()))
+    }
+}
+
+impl MessageStore for SecretVolatileStore {
+    type MessagesIter = std::iter::Empty<Content>;
+
+    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
+        todo!()
+    }
+
+    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error> {
+        todo!()
+    }
+
+    fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+        todo!()
     }
 }

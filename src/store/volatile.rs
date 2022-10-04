@@ -13,14 +13,14 @@ use libsignal_service::{
             SessionStoreExt, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
             SignedPreKeyStore,
         },
-        Uuid,
+        Content, Uuid,
     },
     push_service::DEFAULT_DEVICE_ID,
 };
 use log::{trace, warn};
 
 use super::{StateStore, Store};
-use crate::{manager::Registered, Error};
+use crate::{manager::Registered, ContactsStore, Error, MessageStore};
 
 #[derive(Default, Debug, Clone)]
 pub struct VolatileStore {
@@ -83,7 +83,7 @@ impl Store for VolatileStore {
     }
 }
 
-impl Store for VolatileStore {
+impl ContactsStore for VolatileStore {
     fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(())
@@ -284,5 +284,37 @@ impl IdentityKeyStore for VolatileStore {
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
         let buf = self.identities.get(address);
         Ok(buf.map(|b| IdentityKey::decode(b).unwrap()))
+    }
+}
+
+impl MessageStore for VolatileStore {
+    type MessagesIter = std::iter::Empty<Content>;
+
+    fn save_message(
+        &mut self,
+        thread: &crate::Thread,
+        message: libsignal_service::prelude::Content,
+    ) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn delete_message(&mut self, thread: &crate::Thread, timestamp: u64) -> Result<bool, Error> {
+        todo!()
+    }
+
+    fn message(
+        &self,
+        thread: &crate::Thread,
+        timestamp: u64,
+    ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
+        todo!()
+    }
+
+    fn messages(
+        &self,
+        thread: &crate::Thread,
+        from: Option<u64>,
+    ) -> Result<Self::MessagesIter, Error> {
+        todo!()
     }
 }
