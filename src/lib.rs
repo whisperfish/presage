@@ -1,21 +1,22 @@
 mod cache;
-mod config;
 mod errors;
 mod manager;
 mod proto;
+mod store;
 
-#[cfg(feature = "sled-config-store")]
-pub use config::sled::SledConfigStore;
+#[cfg(feature = "sled-store")]
+pub use store::sled::SledStore;
 
-#[cfg(feature = "secret-volatile-config-store")]
-pub use config::secret_volatile::SecretVolatileConfigStore;
-#[cfg(feature = "volatile-config-store")]
-pub use config::volatile::VolatileConfigStore;
+#[cfg(feature = "secret-volatile-store")]
+pub use store::secret_volatile::SecretVolatileStore;
 
-pub use config::{ConfigStore, ContactsStore, MessageStore, StateStore, Thread};
+#[cfg(feature = "volatile-store")]
+pub use store::volatile::VolatileStore;
+
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 pub use proto::ContentProto;
+pub use store::{ContactsStore, MessageStore, StateStore, Store, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;

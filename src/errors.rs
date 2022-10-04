@@ -55,4 +55,6 @@ pub enum Error {
     AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
     #[error("message is missing a uuid")]
     ContentMissingUuid,
+    #[error("invalid content, no valid messages")]
+    ContentMissingMessage,
 }

@@ -2,7 +2,7 @@ use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::Context as _;
 use chrono::Local;
-use clap::{Parser, Subcommand};
+use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
@@ -14,7 +14,7 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    ConfigStore, Manager, MessageStore, Registered, RegistrationOptions, SledConfigStore, Thread,
+    Manager, MessageStore, Registered, RegistrationOptions, SledStore, Store, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -66,12 +66,6 @@ enum Cmd {
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
-        #[clap(
-            long,
-            short = 'f',
-            help = "Command to execute after linking the device. (Send or Receive)"
-        )]
-        follow_up_command: String,
     },
     #[clap(about = "Get information on the registered user")]
     Whoami,
@@ -93,22 +87,24 @@ enum Cmd {
     ListGroups,
     #[clap(about = "List contacts")]
     ListContacts,
-    #[clap(about = "List messages")]
+    #[clap(
+        about = "List messages",
+        group(
+            ArgGroup::new("list-messages")
+                .required(true)
+                .args(&["recipient-uuid", "group-master-key"]),
+        )
+    )]
     ListMessages {
-        #[clap(
-            long,
-            short = 'u',
-            help = "contact UUID",
-            conflicts_with = "master-key"
-        )]
-        uuid: Option<Uuid>,
+        #[clap(long, short = 'u', help = "recipient UUID")]
+        recipient_uuid: Option<Uuid>,
         #[clap(
             long,
             short = 'k',
             help = "Master Key of the V2 group (hex string)",
-            conflicts_with = "uuid"
+            value_parser = parse_master_key,
         )]
-        master_key: Option<String>,
+        group_master_key: Option<[u8; 32]>,
     },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
@@ -128,11 +124,18 @@ enum Cmd {
     SendToGroup {
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)")]
-        master_key: String,
+        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_master_key)]
+        master_key: [u8; 32],
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
+}
+
+fn parse_master_key(value: &str) -> anyhow::Result<[u8; 32]> {
+    let master_key_bytes = hex::decode(value)?;
+    master_key_bytes
+        .try_into()
+        .map_err(|_| anyhow::format_err!("master key should be 32 bytes long"))
 }
 
 #[tokio::main(flavor = "current_thread")]
@@ -151,14 +154,14 @@ async fn main() -> anyhow::Result<()> {
             .into()
     });
     debug!("opening config database from {}", db_path.display());
-    let config_store = SledConfigStore::new(db_path)?;
+    let config_store = SledStore::new(db_path)?;
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: ConfigStore>(
+async fn send<C: Store>(
     msg: &str,
     uuid: &Uuid,
-    manager: &Manager<C, Registered>,
+    manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -175,8 +178,8 @@ async fn send<C: ConfigStore>(
     Ok(())
 }
 
-async fn receive<C: ConfigStore + MessageStore>(
-    manager: &Manager<C, Registered>,
+async fn receive<C: Store + MessageStore>(
+    manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
@@ -185,7 +188,7 @@ async fn receive<C: ConfigStore + MessageStore>(
     );
 
     let messages = manager
-        .receive_messages_store()
+        .receive_messages()
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
@@ -224,7 +227,7 @@ async fn receive<C: ConfigStore + MessageStore>(
                         let group_changes = manager.decrypt_group_context(group_v2)?;
                         println!("Group v2: {:?}", group.title);
                         println!("Group change: {:?}", group_changes);
-                        println!("Group Master Key: {:?}", hex::encode(master_key_bytes));
+                        println!("Group master key: {:?}", hex::encode(&master_key_bytes));
                     }
                 }
 
@@ -267,10 +270,7 @@ async fn receive<C: ConfigStore + MessageStore>(
     Ok(())
 }
 
-async fn run<C: ConfigStore + MessageStore>(
-    subcommand: Cmd,
-    config_store: C,
-) -> anyhow::Result<()> {
+async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -302,7 +302,6 @@ async fn run<C: ConfigStore + MessageStore>(
         Cmd::LinkDevice {
             servers,
             device_name,
-            follow_up_command,
         } => {
             let (provisioning_link_tx, provisioning_link_rx) = oneshot::channel();
             let manager = future::join(
@@ -327,16 +326,6 @@ async fn run<C: ConfigStore + MessageStore>(
                 (Ok(manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
                     println!("{:?}", uuid);
-
-                    match follow_up_command.as_ref() {
-                        "Send" => {
-                            send("Hello World", &uuid, &manager).await?;
-                        }
-                        "Receive" => {
-                            receive(&manager).await?;
-                        }
-                        _ => {}
-                    };
                 }
                 (Err(err), _) => {
                     println!("{:?}", err);
@@ -344,20 +333,18 @@ async fn run<C: ConfigStore + MessageStore>(
             };
         }
         Cmd::Receive => {
-            let manager = Manager::load_registered(config_store)?;
-            receive(&manager).await?;
+            let mut manager = Manager::load_registered(config_store)?;
+            receive(&mut manager).await?;
         }
         Cmd::Send { uuid, message } => {
-            let manager = Manager::load_registered(config_store)?;
-            send(&message, &uuid, &manager).await?;
+            let mut manager = Manager::load_registered(config_store)?;
+            send(&message, &uuid, &mut manager).await?;
         }
         Cmd::SendToGroup {
             message,
             master_key,
         } => {
-            let manager = Manager::load_registered(config_store)?;
-
-            let master_key = hex::decode(master_key)?;
+            let mut manager = Manager::load_registered(config_store)?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -368,7 +355,7 @@ async fn run<C: ConfigStore + MessageStore>(
                 body: Some(message),
                 timestamp: Some(timestamp),
                 group_v2: Some(GroupContextV2 {
-                    master_key: Some(master_key.clone()),
+                    master_key: Some(master_key.to_vec()),
                     revision: Some(0),
                     ..Default::default()
                 }),
@@ -376,9 +363,7 @@ async fn run<C: ConfigStore + MessageStore>(
             };
 
             let group = manager
-                .get_group_v2(GroupMasterKey::new(
-                    master_key.try_into().expect("MasterKey to be 32 bytes"),
-                ))
+                .get_group_v2(GroupMasterKey::new(master_key))
                 .await?;
 
             manager
@@ -435,21 +420,17 @@ async fn run<C: ConfigStore + MessageStore>(
         }
         #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
-            let manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store)?;
             manager.request_contacts_sync().await?;
         }
-        Cmd::ListMessages { master_key, uuid } => {
-            let thread = match (master_key, uuid) {
-                (Some(master_key), _) => {
-                    let master_key_bytes = hex::decode(master_key).expect("Master Key to be hex");
-                    Thread::Group(
-                        master_key_bytes
-                            .try_into()
-                            .expect("Master key to be 32 bytes"),
-                    )
-                }
+        Cmd::ListMessages {
+            group_master_key,
+            recipient_uuid,
+        } => {
+            let thread = match (group_master_key, recipient_uuid) {
+                (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
-                _ => panic!("At least one of master-key or uuid has to be given"),
+                _ => unreachable!(),
             };
             let iter = config_store.messages(&thread, None)?;
             let mut printed = 0;
@@ -466,7 +447,7 @@ async fn run<C: ConfigStore + MessageStore>(
                     }) if message.body.is_some() => {
                         println!(
                             "{}: {}",
-                            msg.metadata.sender.e164_or_uuid(),
+                            msg.metadata.sender.identifier(),
                             message.body.unwrap_or_else(|| "".to_string())
                         );
                         printed += 1;

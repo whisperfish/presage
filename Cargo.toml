@@ -1,14 +1,13 @@
 [package]
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-# https://github.com/whisperfish/libsignal-service-rs/pull/156/commits
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "refs/pull/156/head" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "refs/pull/156/head" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "72503de963331e3afd28ab837965af7ca7203b80" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "72503de963331e3afd28ab837965af7ca7203b80" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -39,7 +38,7 @@ quickcheck_async = "0.1"
 
 # for examples
 anyhow = "1.0"
-chrono = "0.4"
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
 clap = { version = "3.0", features = ["derive"] }
 directories = "3.0"
 env_logger = "0.7"
@@ -59,11 +58,11 @@ tokio = { version = "1.0", features = [
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-config-store"]
+default = ["sled-store"]
 quirks = []
-sled-config-store = ["sled"]
-secret-volatile-config-store = ["libsodium-sys", "secrets"]
-volatile-config-store = []
+sled-store = ["sled"]
+secret-volatile-store = ["libsodium-sys", "secrets"]
+volatile-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
