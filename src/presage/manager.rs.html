@@ -866,6 +866,26 @@
 <span id="866">866</span>
 <span id="867">867</span>
 <span id="868">868</span>
+<span id="869">869</span>
+<span id="870">870</span>
+<span id="871">871</span>
+<span id="872">872</span>
+<span id="873">873</span>
+<span id="874">874</span>
+<span id="875">875</span>
+<span id="876">876</span>
+<span id="877">877</span>
+<span id="878">878</span>
+<span id="879">879</span>
+<span id="880">880</span>
+<span id="881">881</span>
+<span id="882">882</span>
+<span id="883">883</span>
+<span id="884">884</span>
+<span id="885">885</span>
+<span id="886">886</span>
+<span id="887">887</span>
+<span id="888">888</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
 
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">channel::oneshot</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
@@ -1011,7 +1031,7 @@
     <span class="doccomment">/// }</span>
     <span class="doccomment">/// ```</span>
     <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register</span>(
-        <span class="ident">config_store</span>: <span class="ident">C</span>,
+        <span class="kw-2">mut</span> <span class="ident">config_store</span>: <span class="ident">C</span>,
         <span class="ident">registration_options</span>: <span class="ident">RegistrationOptions</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Confirmation</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">RegistrationOptions</span> {
@@ -1023,9 +1043,11 @@
         } <span class="op">=</span> <span class="ident">registration_options</span>;
 
         <span class="comment">// check if we are already registered</span>
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">force</span> {
-            <span class="ident">config_store</span>.<span class="ident">load_state</span>()<span class="question-mark">?</span>;
+        <span class="kw">if</span> <span class="op">!</span><span class="ident">force</span> <span class="op">&amp;&amp;</span> <span class="ident">config_store</span>.<span class="ident">load_state</span>().<span class="ident">is_ok</span>() {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::AlreadyRegisteredError</span>);
         }
+
+        <span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password</span>
         <span class="kw">let</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
@@ -1098,11 +1120,15 @@
     <span class="doccomment">/// }</span>
     <span class="doccomment">/// ```</span>
     <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">link_secondary_device</span>(
-        <span class="ident">config_store</span>: <span class="ident">C</span>,
+        <span class="kw-2">mut</span> <span class="ident">config_store</span>: <span class="ident">C</span>,
         <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
         <span class="ident">device_name</span>: <span class="ident">String</span>,
         <span class="ident">provisioning_link_channel</span>: <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="ident">Url</span><span class="op">&gt;</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated</span>
+        <span class="comment">// and you won&#39;t be able to use this client anyways</span>
+        <span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+
         <span class="comment">// generate a random 24 bytes password</span>
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
         <span class="kw">let</span> <span class="ident">password</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">rng</span>.<span class="ident">sample_iter</span>(<span class="kw-2">&amp;</span><span class="ident">Alphanumeric</span>).<span class="ident">take</span>(<span class="number">24</span>).<span class="ident">collect</span>();
@@ -1183,11 +1209,14 @@
 
         <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">save_state</span>(<span class="kw-2">&amp;</span><span class="ident">manager</span>.<span class="ident">state</span>)<span class="question-mark">?</span>;
 
-        <span class="ident">manager</span>.<span class="ident">register_pre_keys</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="ident">manager</span>.<span class="ident">set_account_attributes</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="ident">manager</span>.<span class="ident">request_contacts_sync</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(<span class="ident">manager</span>)
+        <span class="kw">match</span> (
+            <span class="ident">manager</span>.<span class="ident">register_pre_keys</span>().<span class="kw">await</span>,
+            <span class="ident">manager</span>.<span class="ident">set_account_attributes</span>().<span class="kw">await</span>,
+            <span class="ident">manager</span>.<span class="ident">request_contacts_sync</span>().<span class="kw">await</span>,
+        ) {
+            (<span class="prelude-val">Err</span>(<span class="ident">e</span>), <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">|</span> (<span class="kw">_</span>, <span class="prelude-val">Err</span>(<span class="ident">e</span>), <span class="kw">_</span>) <span class="op">|</span> (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(<span class="ident">e</span>)) =&gt; <span class="prelude-val">Err</span>(<span class="ident">e</span>),
+            <span class="kw">_</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">manager</span>),
+        }
     }
 }
 
@@ -1290,9 +1319,12 @@
 
         <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">save_state</span>(<span class="kw-2">&amp;</span><span class="ident">manager</span>.<span class="ident">state</span>)<span class="question-mark">?</span>;
 
-        <span class="ident">manager</span>.<span class="ident">register_pre_keys</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(<span class="ident">manager</span>)
+        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">manager</span>.<span class="ident">register_pre_keys</span>().<span class="kw">await</span> {
+            <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+            <span class="prelude-val">Err</span>(<span class="ident">e</span>)
+        } <span class="kw">else</span> {
+            <span class="prelude-val">Ok</span>(<span class="ident">manager</span>)
+        }
     }
 }
 
@@ -1309,6 +1341,7 @@
     }
 
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register_pre_keys</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="macro">trace!</span>(<span class="string">&quot;registering pre keys&quot;</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">account_manager</span> <span class="op">=</span>
             <span class="ident">AccountManager::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">state</span>.<span class="ident">profile_key</span>));
 
@@ -1329,12 +1362,15 @@
         <span class="self">self</span>.<span class="ident">config_store</span>
             .<span class="ident">set_next_signed_pre_key_id</span>(<span class="ident">next_signed_pre_key_id</span>)<span class="question-mark">?</span>;
 
+        <span class="macro">trace!</span>(<span class="string">&quot;registered pre keys&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">set_account_attributes</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="macro">trace!</span>(<span class="string">&quot;setting account attributes&quot;</span>);
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">account_manager</span> <span class="op">=</span>
             <span class="ident">AccountManager::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">state</span>.<span class="ident">profile_key</span>));
+
         <span class="ident">account_manager</span>
             .<span class="ident">set_account_attributes</span>(<span class="ident">AccountAttributes</span> {
                 <span class="ident">name</span>: <span class="self">self</span>
@@ -1359,6 +1395,8 @@
                 },
             })
             .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="macro">trace!</span>(<span class="string">&quot;done setting account attributes&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1368,6 +1406,7 @@
     <span class="doccomment">/// **Note**: If successful, the contacts are not yet received and stored, but will only be</span>
     <span class="doccomment">/// processed when they&#39;re received using the `MessageReceiver`.</span>
     <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">request_contacts_sync</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="macro">trace!</span>(<span class="string">&quot;requesting contacts sync&quot;</span>);
         <span class="kw">let</span> <span class="ident">sync_message</span> <span class="op">=</span> <span class="ident">SyncMessage</span> {
             <span class="ident">request</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::Request</span> {
                 <span class="ident">r#type</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::request::Type::Contacts</span> <span class="kw">as</span> <span class="ident">i32</span>),
@@ -1383,6 +1422,7 @@
         <span class="self">self</span>.<span class="ident">send_message</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>, <span class="ident">sync_message</span>, <span class="ident">timestamp</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
+        <span class="macro">trace!</span>(<span class="string">&quot;requested contacts sync&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 

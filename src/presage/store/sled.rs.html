@@ -656,6 +656,14 @@
 <span id="656">656</span>
 <span id="657">657</span>
 <span id="658">658</span>
+<span id="659">659</span>
+<span id="660">660</span>
+<span id="661">661</span>
+<span id="662">662</span>
+<span id="663">663</span>
+<span id="664">664</span>
+<span id="665">665</span>
+<span id="666">666</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{
     <span class="ident">path::PathBuf</span>,
     <span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">RwLock</span>},
@@ -821,27 +829,35 @@
 
     <span class="kw">fn</span> <span class="ident">save_state</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">Registered</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">try_write</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
-        <span class="ident">db</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
         <span class="ident">db</span>.<span class="ident">insert</span>(<span class="ident">SLED_KEY_REGISTRATION</span>, <span class="ident">serde_json::to_vec</span>(<span class="ident">state</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
 
+<span class="kw">const</span> <span class="ident">PRE_KEYS_OFFSET_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;pre_keys_offset_id&quot;</span>;
+<span class="kw">const</span> <span class="ident">NEXT_SIGNED_PRE_KEY_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
+
 <span class="kw">impl</span> <span class="ident">Store</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
+    <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">try_write</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
+        <span class="ident">db</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="kw">fn</span> <span class="ident">pre_keys_offset_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_u32</span>(<span class="string">&quot;pre_keys_offset_id&quot;</span>)<span class="question-mark">?</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>))
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_u32</span>(<span class="ident">PRE_KEYS_OFFSET_ID</span>)<span class="question-mark">?</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>))
     }
 
     <span class="kw">fn</span> <span class="ident">set_pre_keys_offset_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert_u32</span>(<span class="string">&quot;pre_keys_offset_id&quot;</span>, <span class="ident">id</span>)
+        <span class="self">self</span>.<span class="ident">insert_u32</span>(<span class="ident">PRE_KEYS_OFFSET_ID</span>, <span class="ident">id</span>)
     }
 
     <span class="kw">fn</span> <span class="ident">next_signed_pre_key_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_u32</span>(<span class="string">&quot;next_signed_pre_key_id&quot;</span>)<span class="question-mark">?</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>))
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_u32</span>(<span class="ident">NEXT_SIGNED_PRE_KEY_ID</span>)<span class="question-mark">?</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>))
     }
 
     <span class="kw">fn</span> <span class="ident">set_next_signed_pre_key_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert_u32</span>(<span class="string">&quot;next_signed_pre_key_id&quot;</span>, <span class="ident">id</span>)
+        <span class="self">self</span>.<span class="ident">insert_u32</span>(<span class="ident">NEXT_SIGNED_PRE_KEY_ID</span>, <span class="ident">id</span>)
     }
 }
 
@@ -1141,7 +1157,7 @@
             .<span class="ident">db</span>
             .<span class="ident">try_read</span>()
             .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">thread_key</span>(<span class="kw-2">&amp;</span><span class="ident">thread</span>))<span class="question-mark">?</span>;
+            .<span class="ident">open_tree</span>(<span class="ident">thread_key</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let</span> <span class="ident">timestamp_bytes</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">metadata</span>.<span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>();
         <span class="kw">let</span> <span class="ident">proto</span>: <span class="ident">ContentProto</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">into</span>();

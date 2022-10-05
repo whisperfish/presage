@@ -134,13 +134,13 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ServiceAddress</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">AddressProto</span> {
-    <span class="kw">fn</span> <span class="ident">into</span>(<span class="self">self</span>) -&gt; <span class="ident">ServiceAddress</span> {
+<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">AddressProto</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ServiceAddress</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">address</span>: <span class="ident">AddressProto</span>) -&gt; <span class="self">Self</span> {
         <span class="ident">ServiceAddress</span> {
-            <span class="ident">uuid</span>: <span class="self">self</span>
+            <span class="ident">uuid</span>: <span class="ident">address</span>
                 .<span class="ident">uuid</span>
                 .<span class="ident">map</span>(<span class="op">|</span><span class="ident">u</span><span class="op">|</span> <span class="ident">Uuid::from_bytes</span>(<span class="ident">u</span>.<span class="ident">try_into</span>().<span class="ident">expect</span>(<span class="string">&quot;Proto to have 16 bytes uuid&quot;</span>))),
-            <span class="ident">phonenumber</span>: <span class="self">self</span>.<span class="ident">e164</span>.<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="ident">PhoneNumber::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">ok</span>()),
+            <span class="ident">phonenumber</span>: <span class="ident">address</span>.<span class="ident">e164</span>.<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="ident">PhoneNumber::from_str</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">ok</span>()),
             <span class="ident">relay</span>: <span class="prelude-val">None</span>,
         }
     }
@@ -162,10 +162,10 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">Metadata</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">MetadataProto</span> {
-    <span class="kw">fn</span> <span class="ident">into</span>(<span class="self">self</span>) -&gt; <span class="ident">Metadata</span> {
+<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">MetadataProto</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">Metadata</span> {
+    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">metadata</span>: <span class="ident">MetadataProto</span>) -&gt; <span class="ident">Metadata</span> {
         <span class="ident">Metadata</span> {
-            <span class="ident">sender</span>: <span class="self">self</span>
+            <span class="ident">sender</span>: <span class="ident">metadata</span>
                 .<span class="ident">address</span>
                 .<span class="ident">map</span>(<span class="op">|</span><span class="ident">a</span><span class="op">|</span> <span class="ident">a</span>.<span class="ident">into</span>())
                 .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">ServiceAddress</span> {
@@ -173,15 +173,15 @@
                     <span class="ident">phonenumber</span>: <span class="prelude-val">None</span>,
                     <span class="ident">relay</span>: <span class="prelude-val">None</span>,
                 }),
-            <span class="ident">sender_device</span>: <span class="self">self</span>
+            <span class="ident">sender_device</span>: <span class="ident">metadata</span>
                 .<span class="ident">sender_device</span>
                 .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">m</span><span class="op">|</span> <span class="ident">m</span>.<span class="ident">try_into</span>().<span class="ident">ok</span>())
                 .<span class="ident">unwrap_or_default</span>(),
-            <span class="ident">timestamp</span>: <span class="self">self</span>
+            <span class="ident">timestamp</span>: <span class="ident">metadata</span>
                 .<span class="ident">timestamp</span>
                 .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">m</span><span class="op">|</span> <span class="ident">m</span>.<span class="ident">try_into</span>().<span class="ident">ok</span>())
                 .<span class="ident">unwrap_or_default</span>(),
-            <span class="ident">needs_receipt</span>: <span class="self">self</span>.<span class="ident">needs_receipt</span>.<span class="ident">unwrap_or_default</span>(),
+            <span class="ident">needs_receipt</span>: <span class="ident">metadata</span>.<span class="ident">needs_receipt</span>.<span class="ident">unwrap_or_default</span>(),
         }
     }
 }

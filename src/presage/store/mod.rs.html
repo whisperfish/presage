@@ -142,6 +142,11 @@
 <span id="142">142</span>
 <span id="143">143</span>
 <span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
+<span id="147">147</span>
+<span id="148">148</span>
+<span id="149">149</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">manager::Registered</span>, <span class="ident">Error</span>};
 <span class="kw">use</span> <span class="ident">libsignal_service</span>::{
     <span class="ident">content::ContentBody</span>,
@@ -173,6 +178,11 @@
     <span class="op">+</span> <span class="ident">Sync</span>
     <span class="op">+</span> <span class="ident">Clone</span>
 {
+    <span class="doccomment">/// Clear the entire store, this can be useful when re-initializing an existing client</span>
+    <span class="doccomment">/// Note: you can implement this the way you want and only clear the database partially</span>
+    <span class="doccomment">/// but should always make sure the state and all keys are gone.</span>
+    <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>;
+
     <span class="kw">fn</span> <span class="ident">pre_keys_offset_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span>;
     <span class="kw">fn</span> <span class="ident">set_pre_keys_offset_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>;
 
