@@ -471,11 +471,13 @@ impl MessageStore for SledStore {
             message.metadata.timestamp,
         );
 
-        let tree_thread = self.db.open_tree(thread_key(thread))?;
-
         let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
-        tree_thread.insert(timestamp_bytes, proto.encode_to_vec())?;
+
+        self.db
+            .open_tree(thread_key(thread))?
+            .insert(timestamp_bytes, proto.encode_to_vec())?;
+
         Ok(())
     }
 
