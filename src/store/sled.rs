@@ -1,7 +1,4 @@
-use std::{
-    path::PathBuf,
-    sync::{Arc, RwLock},
-};
+use std::{path::PathBuf, sync::Arc};
 
 use async_trait::async_trait;
 use libsignal_service::{
@@ -41,7 +38,7 @@ const SLED_TREE_THREAD_PREFIX: &str = "threads";
 
 #[derive(Clone)]
 pub struct SledStore {
-    db: Arc<RwLock<sled::Db>>,
+    db: Arc<sled::Db>,
     cipher: Option<Arc<StoreCipher>>,
 }
 
@@ -59,7 +56,7 @@ impl SledStore {
             .map(|p| Self::get_or_create_store_cipher(&database, p))
             .transpose()?;
         Ok(SledStore {
-            db: Arc::new(RwLock::new(database)),
+            db: Arc::new(database),
             cipher: cipher.map(Arc::new),
         })
     }
@@ -87,17 +84,13 @@ impl SledStore {
     fn temporary() -> Result<Self, Error> {
         let db = sled::Config::new().temporary(true).open()?;
         Ok(Self {
-            db: Arc::new(RwLock::new(db)),
+            db: Arc::new(db),
             cipher: None,
         })
     }
 
     fn tree(&self, tree: &str) -> Result<sled::Tree, Error> {
-        self.db
-            .try_read()
-            .expect("poisoned mutex")
-            .open_tree(tree)
-            .map_err(Error::DbError)
+        self.db.open_tree(tree).map_err(Error::DbError)
     }
 
     pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, Error>
@@ -143,29 +136,28 @@ impl SledStore {
 
 impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
-        let db = self.db.read().expect("poisoned mutex");
-        let data = db
+        let data = self
+            .db
             .get(SLED_KEY_REGISTRATION)?
             .ok_or(Error::NotYetRegisteredError)?;
         serde_json::from_slice(&data).map_err(Error::from)
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
-        let db = self.db.try_write().expect("poisoned mutex");
-        db.insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
+        self.db
+            .insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
         Ok(())
     }
 }
 
 impl Store for SledStore {
     fn clear(&mut self) -> Result<(), Error> {
-        let db = self.db.try_write().expect("poisoned mutex");
-        db.drop_tree(SLED_TREE_DEFAULT)?;
-        db.drop_tree(SLED_TREE_IDENTITIES)?;
-        db.drop_tree(SLED_TREE_PRE_KEYS)?;
-        db.drop_tree(SLED_TREE_SESSIONS)?;
-        db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
-        db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_DEFAULT)?;
+        self.db.drop_tree(SLED_TREE_IDENTITIES)?;
+        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SESSIONS)?;
+        self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
 
         Ok(())
     }
@@ -193,11 +185,7 @@ impl Store for SledStore {
 
 impl ContactsStore for SledStore {
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
-        let tree = self
-            .db
-            .write()
-            .expect("poisoned mutex")
-            .open_tree(SLED_KEY_CONTACTS)?;
+        let tree = self.db.open_tree(SLED_KEY_CONTACTS)?;
         for contact in contacts {
             if let Some(uuid) = contact.address.uuid {
                 tree.insert(uuid.to_string(), serde_json::to_vec(&contact)?)?;
@@ -212,8 +200,6 @@ impl ContactsStore for SledStore {
     fn contacts(&self) -> Result<Vec<Contact>, Error> {
         Ok(self
             .db
-            .read()
-            .expect("poisoned mutex")
             .open_tree(SLED_KEY_CONTACTS)?
             .iter()
             .filter_map(Result::ok)
@@ -222,9 +208,8 @@ impl ContactsStore for SledStore {
     }
 
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        let db = self.db.read().expect("poisoned mutex");
         Ok(
-            if let Some(buf) = db.open_tree(SLED_KEY_CONTACTS)?.get(id.to_string())? {
+            if let Some(buf) = self.db.open_tree(SLED_KEY_CONTACTS)?.get(id.to_string())? {
                 let contact = serde_json::from_slice(&buf)?;
                 Some(contact)
             } else {
@@ -381,8 +366,6 @@ impl SessionStoreExt for SledStore {
             .for_each(|k| batch.remove(k));
 
         self.db
-            .try_write()
-            .expect("poisoned mutex")
             .apply_batch(batch)
             .map_err(Error::DbError)
             .map_err(Error::into_signal_error)?;
@@ -488,11 +471,7 @@ impl MessageStore for SledStore {
             message.metadata.timestamp,
         );
 
-        let tree_thread = self
-            .db
-            .try_read()
-            .expect("poisoned mutex")
-            .open_tree(thread_key(thread))?;
+        let tree_thread = self.db.open_tree(thread_key(thread))?;
 
         let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
@@ -503,8 +482,6 @@ impl MessageStore for SledStore {
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
         Ok(self
             .db
-            .try_read()
-            .expect("poisoned mutex")
             .open_tree(thread_key(thread))?
             .remove(timestamp.to_be_bytes())?
             .is_some())
@@ -515,11 +492,7 @@ impl MessageStore for SledStore {
         thread: &Thread,
         timestamp: u64,
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
-        let tree_thread = self
-            .db
-            .try_read()
-            .expect("poisoned mutex")
-            .open_tree(thread_key(thread))?;
+        let tree_thread = self.db.open_tree(thread_key(thread))?;
         // Big-Endian needed, otherwise wrong ordering in sled.
         let val = tree_thread.get(timestamp.to_be_bytes())?;
         if let Some(val) = val {
@@ -532,11 +505,7 @@ impl MessageStore for SledStore {
     }
 
     fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
-        let tree_thread = self
-            .db
-            .try_read()
-            .expect("poisoned mutex")
-            .open_tree(thread_key(thread))?;
+        let tree_thread = self.db.open_tree(thread_key(thread))?;
         let iter = if let Some(from) = from {
             tree_thread.range(..from.to_be_bytes())
         } else {

@@ -138,7 +138,7 @@ fn parse_master_key(value: &str) -> anyhow::Result<[u8; 32]> {
         .map_err(|_| anyhow::format_err!("master key should be 32 bytes long"))
 }
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::from_env(
         Env::default().default_filter_or(format!("{}=info", env!("CARGO_PKG_NAME"))),
