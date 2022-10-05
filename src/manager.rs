@@ -143,7 +143,7 @@ impl<C: Store> Manager<C, Registration> {
     /// }
     /// ```
     pub async fn register(
-        config_store: C,
+        mut config_store: C,
         registration_options: RegistrationOptions<'_>,
     ) -> Result<Manager<C, Confirmation>, Error> {
         let RegistrationOptions {
@@ -158,6 +158,8 @@ impl<C: Store> Manager<C, Registration> {
         if !force && config_store.load_state().is_ok() {
             return Err(Error::AlreadyRegisteredError);
         }
+
+        config_store.clear()?;
 
         // generate a random 24 bytes password
         let rng = rand::thread_rng();
@@ -230,11 +232,15 @@ impl<C: Store> Manager<C, Linking> {
     /// }
     /// ```
     pub async fn link_secondary_device(
-        config_store: C,
+        mut config_store: C,
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
     ) -> Result<Manager<C, Registered>, Error> {
+        // clear the database: the moment we start the process, old API credentials are invalidated
+        // and you won't be able to use this client anyways
+        config_store.clear()?;
+
         // generate a random 24 bytes password
         let mut rng = rand::thread_rng();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
