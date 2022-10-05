@@ -155,8 +155,8 @@ impl<C: Store> Manager<C, Registration> {
         } = registration_options;
 
         // check if we are already registered
-        if !force {
-            config_store.load_state()?;
+        if !force && config_store.load_state().is_ok() {
+            return Err(Error::AlreadyRegisteredError);
         }
 
         // generate a random 24 bytes password
