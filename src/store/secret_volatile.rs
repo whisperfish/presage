@@ -73,12 +73,19 @@ impl StateStore<Registered> for SecretVolatileStore {
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
         let mut data = serde_json::to_vec(state)?;
-        self.registration = Arc::new(Mutex::new(Some(SecretVec::from(&mut data[..]))));
+        let mut registration = self.registration.try_lock().expect("poisoned mutex");
+        *registration = Some(SecretVec::from(&mut data[..]));
         Ok(())
     }
 }
 
 impl Store for SecretVolatileStore {
+    fn clear(&mut self) -> Result<(), Error> {
+        let mut new_store: SecretVolatileStore = Default::default();
+        std::mem::swap(self, &mut new_store);
+        Ok(())
+    }
+
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         let d = self.pre_keys_offset_id.try_lock().expect("poisoned mutex");
         let x = *d.0.borrow();

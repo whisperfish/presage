@@ -64,6 +64,12 @@ impl StateStore<Registered> for VolatileStore {
 }
 
 impl Store for VolatileStore {
+    fn clear(&mut self) -> Result<(), Error> {
+        let mut new_store: VolatileStore = Default::default();
+        std::mem::swap(self, &mut new_store);
+        Ok(())
+    }
+
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self.pre_keys_offset_id)
     }

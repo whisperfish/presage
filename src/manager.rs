@@ -143,7 +143,7 @@ impl<C: Store> Manager<C, Registration> {
     /// }
     /// ```
     pub async fn register(
-        config_store: C,
+        mut config_store: C,
         registration_options: RegistrationOptions<'_>,
     ) -> Result<Manager<C, Confirmation>, Error> {
         let RegistrationOptions {
@@ -155,9 +155,11 @@ impl<C: Store> Manager<C, Registration> {
         } = registration_options;
 
         // check if we are already registered
-        if !force {
-            config_store.load_state()?;
+        if !force && config_store.load_state().is_ok() {
+            return Err(Error::AlreadyRegisteredError);
         }
+
+        config_store.clear()?;
 
         // generate a random 24 bytes password
         let rng = rand::thread_rng();
@@ -230,11 +232,15 @@ impl<C: Store> Manager<C, Linking> {
     /// }
     /// ```
     pub async fn link_secondary_device(
-        config_store: C,
+        mut config_store: C,
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
     ) -> Result<Manager<C, Registered>, Error> {
+        // clear the database: the moment we start the process, old API credentials are invalidated
+        // and you won't be able to use this client anyways
+        config_store.clear()?;
+
         // generate a random 24 bytes password
         let mut rng = rand::thread_rng();
         let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
@@ -315,11 +321,14 @@ impl<C: Store> Manager<C, Linking> {
 
         manager.config_store.save_state(&manager.state)?;
 
-        manager.register_pre_keys().await?;
-        manager.set_account_attributes().await?;
-        manager.request_contacts_sync().await?;
-
-        Ok(manager)
+        match (
+            manager.register_pre_keys().await,
+            manager.set_account_attributes().await,
+            manager.request_contacts_sync().await,
+        ) {
+            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => Err(e),
+            _ => Ok(manager),
+        }
     }
 }
 
@@ -422,9 +431,12 @@ impl<C: Store> Manager<C, Confirmation> {
 
         manager.config_store.save_state(&manager.state)?;
 
-        manager.register_pre_keys().await?;
-
-        Ok(manager)
+        if let Err(e) = manager.register_pre_keys().await {
+            manager.config_store.clear()?;
+            Err(e)
+        } else {
+            Ok(manager)
+        }
     }
 }
 
@@ -441,6 +453,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn register_pre_keys(&mut self) -> Result<(), Error> {
+        trace!("registering pre keys");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(*self.state.profile_key));
 
@@ -461,12 +474,15 @@ impl<C: Store> Manager<C, Registered> {
         self.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
 
+        trace!("registered pre keys");
         Ok(())
     }
 
     async fn set_account_attributes(&mut self) -> Result<(), Error> {
+        trace!("setting account attributes");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(*self.state.profile_key));
+
         account_manager
             .set_account_attributes(AccountAttributes {
                 name: self
@@ -491,6 +507,8 @@ impl<C: Store> Manager<C, Registered> {
                 },
             })
             .await?;
+
+        trace!("done setting account attributes");
         Ok(())
     }
 
@@ -500,6 +518,7 @@ impl<C: Store> Manager<C, Registered> {
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
     /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&mut self) -> Result<(), Error> {
+        trace!("requesting contacts sync");
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts as i32),
@@ -515,6 +534,7 @@ impl<C: Store> Manager<C, Registered> {
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
 
+        trace!("requested contacts sync");
         Ok(())
     }
 

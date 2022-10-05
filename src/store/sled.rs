@@ -163,27 +163,35 @@ impl StateStore<Registered> for SledStore {
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
-        db.clear()?;
         db.insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
         Ok(())
     }
 }
 
+const PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
+const NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
+
 impl Store for SledStore {
+    fn clear(&mut self) -> Result<(), Error> {
+        let db = self.db.try_write().expect("poisoned mutex");
+        db.clear()?;
+        Ok(())
+    }
+
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
-        Ok(self.get_u32("pre_keys_offset_id")?.unwrap_or(0))
+        Ok(self.get_u32(PRE_KEYS_OFFSET_ID)?.unwrap_or(0))
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert_u32("pre_keys_offset_id", id)
+        self.insert_u32(PRE_KEYS_OFFSET_ID, id)
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
-        Ok(self.get_u32("next_signed_pre_key_id")?.unwrap_or(0))
+        Ok(self.get_u32(NEXT_SIGNED_PRE_KEY_ID)?.unwrap_or(0))
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert_u32("next_signed_pre_key_id", id)
+        self.insert_u32(NEXT_SIGNED_PRE_KEY_ID, id)
     }
 }
 
@@ -483,7 +491,7 @@ impl MessageStore for SledStore {
             .db
             .try_read()
             .expect("poisoned mutex")
-            .open_tree(thread_key(&thread))?;
+            .open_tree(thread_key(thread))?;
 
         let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
