@@ -17,6 +17,8 @@ pub enum Error {
     DbError(#[from] sled::Error),
     #[error("data store error: {0}")]
     DbTransactionError(#[from] sled::transaction::TransactionError),
+    #[error("store cipher error: {0}")]
+    StoreCipherError(#[from] matrix_sdk_store_encryption::Error),
     #[error("error decoding base64 data: {0}")]
     Base64Error(#[from] base64::DecodeError),
     #[error("wrong slice size: {0}")]
@@ -57,4 +59,10 @@ pub enum Error {
     ContentMissingUuid,
     #[error("invalid content, no valid messages")]
     ContentMissingMessage,
+}
+
+impl Error {
+    pub(crate) fn into_signal_error(self) -> SignalProtocolError {
+        SignalProtocolError::InvalidState("presage error", self.to_string())
+    }
 }

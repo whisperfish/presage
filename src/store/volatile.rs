@@ -20,7 +20,7 @@ use libsignal_service::{
 use log::{trace, warn};
 
 use super::{StateStore, Store};
-use crate::{manager::Registered, ContactsStore, Error, MessageStore};
+use crate::{manager::Registered, ContactsStore, Error, MessageStore, Thread};
 
 #[derive(Default, Debug, Clone)]
 pub struct VolatileStore {
@@ -296,31 +296,19 @@ impl IdentityKeyStore for VolatileStore {
 impl MessageStore for VolatileStore {
     type MessagesIter = std::iter::Empty<Content>;
 
-    fn save_message(
-        &mut self,
-        thread: &crate::Thread,
-        message: libsignal_service::prelude::Content,
-    ) -> Result<(), Error> {
+    fn save_message(&mut self, _thread: &Thread, _message: Content) -> Result<(), Error> {
         todo!()
     }
 
-    fn delete_message(&mut self, thread: &crate::Thread, timestamp: u64) -> Result<bool, Error> {
+    fn delete_message(&mut self, _thread: &Thread, _timestamp: u64) -> Result<bool, Error> {
         todo!()
     }
 
-    fn message(
-        &self,
-        thread: &crate::Thread,
-        timestamp: u64,
-    ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
+    fn message(&self, _thread: &Thread, _timestamp: u64) -> Result<Option<Content>, Error> {
         todo!()
     }
 
-    fn messages(
-        &self,
-        thread: &crate::Thread,
-        from: Option<u64>,
-    ) -> Result<Self::MessagesIter, Error> {
+    fn messages(&self, _thread: &Thread, _from: Option<u64>) -> Result<Self::MessagesIter, Error> {
         todo!()
     }
 }

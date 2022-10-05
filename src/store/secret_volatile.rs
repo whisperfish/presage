@@ -349,19 +349,19 @@ impl IdentityKeyStore for SecretVolatileStore {
 impl MessageStore for SecretVolatileStore {
     type MessagesIter = std::iter::Empty<Content>;
 
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
+    fn save_message(&mut self, _thread: &Thread, _message: Content) -> Result<(), Error> {
         todo!()
     }
 
-    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
+    fn delete_message(&mut self, _thread: &Thread, _timestamp: u64) -> Result<bool, Error> {
         todo!()
     }
 
-    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error> {
+    fn message(&self, _thread: &Thread, _timestamp: u64) -> Result<Option<Content>, Error> {
         todo!()
     }
 
-    fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+    fn messages(&self, _thread: &Thread, _from: Option<u64>) -> Result<Self::MessagesIter, Error> {
         todo!()
     }
 }

@@ -18,28 +18,69 @@ use libsignal_service::{
     push_service::DEFAULT_DEVICE_ID,
 };
 use log::{debug, trace, warn};
+use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
-use sled::IVec;
+use serde::{de::DeserializeOwned, Serialize};
+use sled::Batch;
 
 use super::{ContactsStore, MessageStore, StateStore};
 use crate::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
 
-const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_CONTACTS: &str = "contacts";
+const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
+const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
+const SLED_KEY_REGISTRATION: &str = "registration";
+const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
 
+const SLED_TREE_DEFAULT: &str = "state";
+const SLED_TREE_PRE_KEYS: &str = "pre_keys";
+const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
+const SLED_TREE_IDENTITIES: &str = "identities";
 const SLED_TREE_SESSIONS: &str = "sessions";
-const SLED_TREE_THREAD_PREFIX: &str = "thread";
+const SLED_TREE_THREAD_PREFIX: &str = "threads";
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
+    cipher: Option<Arc<StoreCipher>>,
 }
 
 impl SledStore {
-    pub fn new(path: impl Into<PathBuf>) -> Result<Self, Error> {
+    pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
+        Self::open_with_passphrase(path, None)
+    }
+
+    pub fn open_with_passphrase(
+        path: impl Into<PathBuf>,
+        passphrase: Option<&str>,
+    ) -> Result<Self, Error> {
+        let database = sled::open(path.into())?;
+        let cipher = passphrase
+            .map(|p| Self::get_or_create_store_cipher(&database, p))
+            .transpose()?;
         Ok(SledStore {
-            db: Arc::new(RwLock::new(sled::open(path.into())?)),
+            db: Arc::new(RwLock::new(database)),
+            cipher: cipher.map(Arc::new),
         })
+    }
+
+    fn get_or_create_store_cipher(
+        database: &sled::Db,
+        passphrase: &str,
+    ) -> Result<StoreCipher, Error> {
+        let cipher = if let Some(key) = database.get(SLED_KEY_STORE_CIPHER)? {
+            StoreCipher::import(passphrase, &key)?
+        } else {
+            let cipher = StoreCipher::new()?;
+            #[cfg(not(test))]
+            let export = cipher.export(passphrase);
+            #[cfg(test)]
+            let export = cipher._insecure_export_fast_for_testing(passphrase);
+            database.insert(SLED_KEY_STORE_CIPHER, export?)?;
+            cipher
+        };
+
+        Ok(cipher)
     }
 
     #[cfg(test)]
@@ -47,108 +88,56 @@ impl SledStore {
         let db = sled::Config::new().temporary(true).open()?;
         Ok(Self {
             db: Arc::new(RwLock::new(db)),
+            cipher: None,
         })
     }
 
-    pub fn get<K>(&self, key: K) -> Result<Option<IVec>, Error>
-    where
-        K: AsRef<str>,
-    {
-        trace!("get {}", key.as_ref());
-        Ok(self.db.read().expect("poisoned mutex").get(key.as_ref())?)
+    fn tree(&self, tree: &str) -> Result<sled::Tree, Error> {
+        self.db
+            .try_read()
+            .expect("poisoned mutex")
+            .open_tree(tree)
+            .map_err(Error::DbError)
     }
 
-    fn get_u32<S>(&self, key: S) -> Result<Option<u32>, Error>
+    pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, Error>
     where
-        S: AsRef<str>,
+        K: AsRef<[u8]>,
+        V: DeserializeOwned,
     {
-        trace!("getting u32 {}", key.as_ref());
-        Ok(self.get(key.as_ref())?.map(|data| {
-            let mut a: [u8; 4] = Default::default();
-            a.copy_from_slice(&data);
-            u32::from_le_bytes(a)
-        }))
+        self.tree(tree)?
+            .get(key.as_ref())?
+            .map(|p| {
+                self.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(&p).map_err(Error::from),
+                    |c| c.decrypt_value(&p).map_err(Error::from),
+                )
+            })
+            .transpose()
+            .map_err(Error::from)
     }
 
-    fn insert<K, V>(&self, key: K, value: V) -> Result<(), Error>
+    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), Error>
     where
         K: AsRef<str>,
-        IVec: From<V>,
+        V: Serialize,
     {
         trace!("inserting {}", key.as_ref());
-        let _ = self
-            .db
-            .try_write()
-            .expect("poisoned mutex")
-            .insert(key.as_ref(), value)?;
+        let encrypted_value = self.cipher.as_ref().map_or_else(
+            || serde_json::to_vec(&value).map_err(Error::from),
+            |c| c.encrypt_value(&value).map_err(Error::from),
+        )?;
+        let _ = self.tree(tree)?.insert(key.as_ref(), encrypted_value)?;
         Ok(())
     }
 
-    fn insert_u32<S>(&self, key: S, value: u32) -> Result<(), Error>
-    where
-        S: AsRef<str>,
-    {
-        trace!("inserting u32 {}", key.as_ref());
-        self.db
-            .try_write()
-            .expect("poisoned mutex")
-            .insert(key.as_ref(), &value.to_le_bytes())?;
-        Ok(())
-    }
-
-    fn remove<S>(&self, key: S) -> Result<(), Error>
+    fn remove<S>(&self, tree: &str, key: S) -> Result<(), Error>
     where
         S: AsRef<str>,
     {
         trace!("removing {} from db", key.as_ref());
-        self.db
-            .try_write()
-            .expect("poisoned mutex")
-            .remove(key.as_ref())?;
+        self.tree(tree)?.remove(key.as_ref())?;
         Ok(())
-    }
-
-    fn prekey_key(&self, id: PreKeyId) -> String {
-        format!("prekey-{:09}", id)
-    }
-
-    fn signed_prekey_key(&self, id: SignedPreKeyId) -> String {
-        format!("signed-prekey-{:09}", id)
-    }
-
-    fn session_key(&self, addr: &ProtocolAddress) -> String {
-        format!("session-{}", addr)
-    }
-
-    fn session_prefix(&self, name: &str) -> String {
-        format!("session-{}.", name)
-    }
-
-    fn identity_key(&self, addr: &ProtocolAddress) -> String {
-        format!("identity-remote-{}", addr)
-    }
-
-    pub fn keys(&self) -> Result<(Vec<String>, Vec<String>), SignalProtocolError> {
-        let db = self.db.read().expect("poisoned mutex");
-        let global_keys = db
-            .iter()
-            .filter_map(|r| {
-                let (k, _) = r.ok()?;
-                Some(String::from_utf8_lossy(&k).to_string())
-            })
-            .collect();
-        let session_keys = db
-            .open_tree(SLED_TREE_SESSIONS)
-            .unwrap_or_else(|e| {
-                panic!("failed to open sessions tree: {}", e);
-            })
-            .iter()
-            .filter_map(|r| {
-                let (k, _) = r.ok()?;
-                Some(String::from_utf8_lossy(&k).to_string())
-            })
-            .collect();
-        Ok((global_keys, session_keys))
     }
 }
 
@@ -168,30 +157,37 @@ impl StateStore<Registered> for SledStore {
     }
 }
 
-const PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
-const NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
-
 impl Store for SledStore {
     fn clear(&mut self) -> Result<(), Error> {
         let db = self.db.try_write().expect("poisoned mutex");
-        db.clear()?;
+        db.drop_tree(SLED_TREE_DEFAULT)?;
+        db.drop_tree(SLED_TREE_IDENTITIES)?;
+        db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_SESSIONS)?;
+        db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_PRE_KEYS)?;
+
         Ok(())
     }
 
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
-        Ok(self.get_u32(PRE_KEYS_OFFSET_ID)?.unwrap_or(0))
+        Ok(self
+            .get(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID)?
+            .unwrap_or(0))
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert_u32(PRE_KEYS_OFFSET_ID, id)
+        self.insert(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
-        Ok(self.get_u32(NEXT_SIGNED_PRE_KEY_ID)?.unwrap_or(0))
+        Ok(self
+            .get(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
+            .unwrap_or(0))
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert_u32(NEXT_SIGNED_PRE_KEY_ID, id)
+        self.insert(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
     }
 }
 
@@ -245,10 +241,12 @@ impl PreKeyStore for SledStore {
         prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<PreKeyRecord, SignalProtocolError> {
-        let buf = self
-            .get(self.prekey_key(prekey_id))
-            .unwrap()
+        let buf: Vec<u8> = self
+            .get(SLED_TREE_PRE_KEYS, prekey_id.to_string())
+            .ok()
+            .flatten()
             .ok_or(SignalProtocolError::InvalidPreKeyId)?;
+
         PreKeyRecord::deserialize(&buf)
     }
 
@@ -258,8 +256,12 @@ impl PreKeyStore for SledStore {
         record: &PreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        self.insert(self.prekey_key(prekey_id), record.serialize()?)
-            .expect("failed to store pre-key");
+        self.insert(
+            SLED_TREE_PRE_KEYS,
+            prekey_id.to_string(),
+            record.serialize()?,
+        )
+        .expect("failed to store pre-key");
         Ok(())
     }
 
@@ -268,7 +270,7 @@ impl PreKeyStore for SledStore {
         prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        self.remove(self.prekey_key(prekey_id))
+        self.remove(SLED_TREE_PRE_KEYS, prekey_id.to_string())
             .expect("failed to remove pre-key");
         Ok(())
     }
@@ -281,9 +283,10 @@ impl SignedPreKeyStore for SledStore {
         signed_prekey_id: SignedPreKeyId,
         _ctx: Context,
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
-        let buf = self
-            .get(self.signed_prekey_key(signed_prekey_id))
-            .unwrap()
+        let buf: Vec<u8> = self
+            .get(SLED_TREE_SIGNED_PRE_KEYS, signed_prekey_id.to_string())
+            .ok()
+            .flatten()
             .ok_or(SignalProtocolError::InvalidSignedPreKeyId)?;
         SignedPreKeyRecord::deserialize(&buf)
     }
@@ -295,7 +298,8 @@ impl SignedPreKeyStore for SledStore {
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.insert(
-            self.signed_prekey_key(signed_prekey_id),
+            SLED_TREE_SIGNED_PRE_KEYS,
+            signed_prekey_id.to_string(),
             record.serialize()?,
         )
         .map_err(|e| {
@@ -312,19 +316,11 @@ impl SessionStore for SledStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
-        let key = self.session_key(address);
-        trace!("loading session from {}", key);
-
-        let buf = self
-            .db
-            .try_read()
-            .expect("poisoned mutex")
-            .open_tree(SLED_TREE_SESSIONS)
-            .unwrap()
-            .get(key)
-            .unwrap();
-
-        buf.map(|buf| SessionRecord::deserialize(&buf)).transpose()
+        trace!("loading session {}", address);
+        self.get(SLED_TREE_SESSIONS, address.to_string())
+            .map_err(Error::into_signal_error)?
+            .map(|b: Vec<u8>| SessionRecord::deserialize(&b))
+            .transpose()
     }
 
     async fn store_session(
@@ -333,30 +329,20 @@ impl SessionStore for SledStore {
         record: &SessionRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        let key = self.session_key(address);
-        trace!("storing session for {:?} at {:?}", address, key);
-        self.db
-            .try_write()
-            .expect("poisoned mutex")
-            .open_tree(SLED_TREE_SESSIONS)
-            .unwrap()
-            .insert(key, record.serialize()?)
-            .unwrap();
-        Ok(())
+        trace!("storing session {}", address);
+        self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
+            .map_err(Error::into_signal_error)
     }
 }
 
 #[async_trait]
 impl SessionStoreExt for SledStore {
     async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
-        let session_prefix = self.session_prefix(name);
-        log::info!("get_sub_device_sessions: session_prefix={}", session_prefix);
+        let session_prefix = format!("{name}.");
+        log::info!("get_sub_device_sessions {}", session_prefix);
         let session_ids: Vec<u32> = self
-            .db
-            .read()
-            .expect("poisoned mutex")
-            .open_tree(SLED_TREE_SESSIONS)
-            .unwrap()
+            .tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)?
             .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
@@ -370,25 +356,37 @@ impl SessionStoreExt for SledStore {
     }
 
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
-        let key = self.session_key(address);
-        trace!("deleting session with key: {}", key);
-        self.db
-            .try_write()
-            .expect("poisoned mutex")
-            .open_tree(SLED_TREE_SESSIONS)
-            .unwrap()
-            .remove(key)
+        trace!("deleting session {}", address);
+        self.tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)?
+            .remove(address.to_string())
             .map_err(|_e| SignalProtocolError::SessionNotFound(address.clone()))?;
         Ok(())
     }
 
-    async fn delete_all_sessions(&self, _name: &str) -> Result<usize, SignalProtocolError> {
+    async fn delete_all_sessions(&self, name: &str) -> Result<usize, SignalProtocolError> {
         let tree = self
-            .db
+            .tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)?;
+
+        let mut batch = Batch::default();
+
+        self.tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)?
+            .scan_prefix(name)
+            .filter_map(|r| {
+                let (key, _) = r.ok()?;
+                Some(key)
+            })
+            .for_each(|k| batch.remove(k));
+
+        self.db
             .try_write()
             .expect("poisoned mutex")
-            .open_tree(SLED_TREE_SESSIONS)
-            .unwrap();
+            .apply_batch(batch)
+            .map_err(Error::DbError)
+            .map_err(Error::into_signal_error)?;
+
         let len = tree.len();
         tree.clear().map_err(|_e| {
             SignalProtocolError::InvalidSessionStructure("failed to delete all sessions")
@@ -427,11 +425,15 @@ impl IdentityKeyStore for SledStore {
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         trace!("saving identity");
-        self.insert(self.identity_key(address), identity_key.serialize())
-            .map_err(|e| {
-                log::error!("error saving identity for {:?}: {}", address, e);
-                SignalProtocolError::InvalidState("save_identity", "failed to save identity".into())
-            })?;
+        self.insert(
+            SLED_TREE_IDENTITIES,
+            address.to_string(),
+            identity_key.serialize(),
+        )
+        .map_err(|e| {
+            log::error!("error saving identity for {:?}: {}", address, e);
+            SignalProtocolError::InvalidState("save_identity", "failed to save identity".into())
+        })?;
         trace!("saved identity");
         Ok(false)
     }
@@ -439,22 +441,22 @@ impl IdentityKeyStore for SledStore {
     async fn is_trusted_identity(
         &self,
         address: &ProtocolAddress,
-        identity_key: &IdentityKey,
+        right_identity_key: &IdentityKey,
         _direction: Direction,
         _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
-        match self.get(self.identity_key(address)).map_err(|_| {
-            SignalProtocolError::InvalidState(
-                "is_trusted_identity",
-                "failed to check if identity is trusted".into(),
-            )
-        })? {
+        match self
+            .get(SLED_TREE_IDENTITIES, address.to_string())
+            .map_err(Error::into_signal_error)?
+            .map(|b: Vec<u8>| IdentityKey::decode(&b))
+            .transpose()?
+        {
             None => {
                 // when we encounter a new identity, we trust it by default
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(contents) => Ok(&IdentityKey::decode(&contents)? == identity_key),
+            Some(left_identity_key) => Ok(left_identity_key == *right_identity_key),
         }
     }
 
@@ -463,11 +465,10 @@ impl IdentityKeyStore for SledStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let buf = self.get(self.identity_key(address)).map_err(|e| {
-            log::error!("error getting identity of {:?}: {}", address, e);
-            SignalProtocolError::InvalidState("get_identity", "failed to read identity".into())
-        })?;
-        Ok(buf.map(|ref b| IdentityKey::decode(b).unwrap()))
+        self.get(SLED_TREE_IDENTITIES, address.to_string())
+            .map_err(Error::into_signal_error)?
+            .map(|b: Vec<u8>| IdentityKey::decode(&b))
+            .transpose()
     }
 }
 

@@ -154,7 +154,7 @@ async fn main() -> anyhow::Result<()> {
             .into()
     });
     debug!("opening config database from {}", db_path.display());
-    let config_store = SledStore::new(db_path)?;
+    let config_store = SledStore::open_with_passphrase(db_path, "empty".into())?;
     run(args.subcommand, config_store).await
 }
 
