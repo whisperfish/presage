@@ -491,7 +491,7 @@ impl MessageStore for SledStore {
             .db
             .try_read()
             .expect("poisoned mutex")
-            .open_tree(thread_key(&thread))?;
+            .open_tree(thread_key(thread))?;
 
         let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();

@@ -23,13 +23,13 @@ impl From<ServiceAddress> for AddressProto {
     }
 }
 
-impl Into<ServiceAddress> for AddressProto {
-    fn into(self) -> ServiceAddress {
+impl From<AddressProto> for ServiceAddress {
+    fn from(address: AddressProto) -> Self {
         ServiceAddress {
-            uuid: self
+            uuid: address
                 .uuid
                 .map(|u| Uuid::from_bytes(u.try_into().expect("Proto to have 16 bytes uuid"))),
-            phonenumber: self.e164.and_then(|p| PhoneNumber::from_str(&p).ok()),
+            phonenumber: address.e164.and_then(|p| PhoneNumber::from_str(&p).ok()),
             relay: None,
         }
     }
@@ -51,10 +51,10 @@ impl From<Metadata> for MetadataProto {
     }
 }
 
-impl Into<Metadata> for MetadataProto {
-    fn into(self) -> Metadata {
+impl From<MetadataProto> for Metadata {
+    fn from(metadata: MetadataProto) -> Metadata {
         Metadata {
-            sender: self
+            sender: metadata
                 .address
                 .map(|a| a.into())
                 .unwrap_or_else(|| ServiceAddress {
@@ -62,15 +62,15 @@ impl Into<Metadata> for MetadataProto {
                     phonenumber: None,
                     relay: None,
                 }),
-            sender_device: self
+            sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())
                 .unwrap_or_default(),
-            timestamp: self
+            timestamp: metadata
                 .timestamp
                 .and_then(|m| m.try_into().ok())
                 .unwrap_or_default(),
-            needs_receipt: self.needs_receipt.unwrap_or_default(),
+            needs_receipt: metadata.needs_receipt.unwrap_or_default(),
         }
     }
 }
