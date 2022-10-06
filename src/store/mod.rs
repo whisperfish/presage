@@ -132,7 +132,7 @@ impl TryFrom<&Content> for Thread {
 /// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
 /// [MessageIdentity], by [Thread] or completely.
 pub trait MessageStore {
-    type MessagesIter: Iterator<Item = Content>;
+    type MessagesIter: Iterator<Item = Result<Content, Error>>;
 
     /// Save a message in a [Thread] identified by a timestamp.
     /// TODO: deriving the thread happens from the content, so we can also ditch the first parameter

@@ -434,7 +434,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             };
             let iter = config_store.messages(&thread, None)?;
             let mut printed = 0;
-            for msg in iter {
+            for msg in iter.filter_map(Result::ok) {
                 match msg.body {
                     ContentBody::DataMessage(message)
                     | ContentBody::SynchronizeMessage(SyncMessage {

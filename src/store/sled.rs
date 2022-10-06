@@ -112,10 +112,9 @@ impl SledStore {
 
     fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), Error>
     where
-        K: AsRef<str>,
+        K: AsRef<[u8]>,
         V: Serialize,
     {
-        trace!("inserting {}", key.as_ref());
         let encrypted_value = self.cipher.as_ref().map_or_else(
             || serde_json::to_vec(&value).map_err(Error::from),
             |c| c.encrypt_value(&value).map_err(Error::from),
@@ -124,13 +123,11 @@ impl SledStore {
         Ok(())
     }
 
-    fn remove<S>(&self, tree: &str, key: S) -> Result<(), Error>
+    fn remove<K>(&self, tree: &str, key: K) -> Result<bool, Error>
     where
-        S: AsRef<str>,
+        K: AsRef<[u8]>,
     {
-        trace!("removing {} from db", key.as_ref());
-        self.tree(tree)?.remove(key.as_ref())?;
-        Ok(())
+        Ok(self.tree(tree)?.remove(key.as_ref())?.is_some())
     }
 }
 
@@ -185,10 +182,13 @@ impl Store for SledStore {
 
 impl ContactsStore for SledStore {
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
-        let tree = self.db.open_tree(SLED_KEY_CONTACTS)?;
         for contact in contacts {
             if let Some(uuid) = contact.address.uuid {
-                tree.insert(uuid.to_string(), serde_json::to_vec(&contact)?)?;
+                self.insert(
+                    SLED_KEY_CONTACTS,
+                    uuid.to_string(),
+                    serde_json::to_vec(&contact)?,
+                )?;
             } else {
                 warn!("skipping contact {:?} without uuid", contact);
             }
@@ -197,6 +197,7 @@ impl ContactsStore for SledStore {
         Ok(())
     }
 
+    // TODO: iterator on decrypted data
     fn contacts(&self) -> Result<Vec<Contact>, Error> {
         Ok(self
             .db
@@ -208,14 +209,10 @@ impl ContactsStore for SledStore {
     }
 
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        Ok(
-            if let Some(buf) = self.db.open_tree(SLED_KEY_CONTACTS)?.get(id.to_string())? {
-                let contact = serde_json::from_slice(&buf)?;
-                Some(contact)
-            } else {
-                None
-            },
-        )
+        self.get(SLED_KEY_CONTACTS, &id.to_string())?
+            .map(|b: Vec<u8>| serde_json::from_slice(&b))
+            .transpose()
+            .map_err(Error::from)
     }
 }
 
@@ -455,10 +452,8 @@ impl IdentityKeyStore for SledStore {
     }
 }
 
-fn thread_key(t: &Thread) -> Vec<u8> {
-    let mut bytes = SLED_TREE_THREAD_PREFIX.as_bytes().to_owned();
-    bytes.append(&mut t.into());
-    bytes
+fn thread_key(t: &Thread) -> String {
+    format!("{SLED_TREE_THREAD_PREFIX}{t:?}")
 }
 
 impl MessageStore for SledStore {
@@ -474,19 +469,13 @@ impl MessageStore for SledStore {
         let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
 
-        self.db
-            .open_tree(thread_key(thread))?
-            .insert(timestamp_bytes, proto.encode_to_vec())?;
+        self.insert(&thread_key(thread), timestamp_bytes, proto.encode_to_vec())?;
 
         Ok(())
     }
 
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
-        Ok(self
-            .db
-            .open_tree(thread_key(thread))?
-            .remove(timestamp.to_be_bytes())?
-            .is_some())
+        self.remove(&thread_key(thread), timestamp.to_be_bytes())
     }
 
     fn message(
@@ -494,39 +483,53 @@ impl MessageStore for SledStore {
         thread: &Thread,
         timestamp: u64,
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
-        let tree_thread = self.db.open_tree(thread_key(thread))?;
         // Big-Endian needed, otherwise wrong ordering in sled.
-        let val = tree_thread.get(timestamp.to_be_bytes())?;
-        if let Some(val) = val {
-            let proto = ContentProto::decode(&val[..])?;
-            let content = proto.try_into()?;
-            Ok(Some(content))
-        } else {
-            Ok(None)
+        let val: Option<Vec<u8>> = self.get(&thread_key(thread), timestamp.to_be_bytes())?;
+        match val {
+            Some(ref v) => {
+                let proto = ContentProto::decode(v.as_slice())?;
+                let content = proto.try_into()?;
+                Ok(Some(content))
+            }
+            None => Ok(None),
         }
     }
 
     fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
         let tree_thread = self.db.open_tree(thread_key(thread))?;
+        debug!("{} messages in this tree", tree_thread.len());
         let iter = if let Some(from) = from {
             tree_thread.range(..from.to_be_bytes())
         } else {
             tree_thread.range::<&[u8], std::ops::RangeFull>(..)
         };
-        Ok(SledMessagesIter(iter.rev()))
+        Ok(SledMessagesIter {
+            cipher: self.cipher.clone(),
+            iter: iter.rev(),
+        })
     }
 }
 
-pub struct SledMessagesIter(std::iter::Rev<sled::Iter>);
+pub struct SledMessagesIter {
+    cipher: Option<Arc<StoreCipher>>,
+    iter: std::iter::Rev<sled::Iter>,
+}
 
 impl Iterator for SledMessagesIter {
-    // TODO: If error, throw away the rest. Maybe return Result<Content, Error>?
-    type Item = Content;
+    type Item = Result<Content, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let ivec = self.0.next()?.ok()?.1;
-        let proto = ContentProto::decode(&*ivec).ok()?;
-        proto.try_into().ok()
+        self.iter
+            .next()?
+            .map_err(Error::from)
+            .and_then(|(_key, value)| {
+                self.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(&value).map_err(Error::from),
+                    |c| c.decrypt_value(&value).map_err(Error::from),
+                )
+            })
+            .and_then(|data: Vec<u8>| ContentProto::decode(&data[..]).map_err(Error::from))
+            .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
     }
 }
 
