@@ -326,7 +326,11 @@ impl<C: Store> Manager<C, Linking> {
             manager.set_account_attributes().await,
             manager.request_contacts_sync().await,
         ) {
-            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => Err(e),
+            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
+                // clear the entire store on any error, there's no possible recovery here
+                manager.config_store.clear()?;
+                Err(e)
+            }
             _ => Ok(manager),
         }
     }
@@ -432,6 +436,7 @@ impl<C: Store> Manager<C, Confirmation> {
         manager.config_store.save_state(&manager.state)?;
 
         if let Err(e) = manager.register_pre_keys().await {
+            // clear the entire store on any error, there's no possible recovery here
             manager.config_store.clear()?;
             Err(e)
         } else {
