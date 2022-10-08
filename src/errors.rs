@@ -59,6 +59,8 @@ pub enum Error {
     ContentMissingUuid,
     #[error("invalid content, no valid messages")]
     ContentMissingMessage,
+    #[error("database migration is not supported")]
+    MigrationConflict,
 }
 
 impl Error {

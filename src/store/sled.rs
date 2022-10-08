@@ -40,16 +40,35 @@ const SLED_TREE_THREAD_PREFIX: &str = "threads";
 pub struct SledStore {
     db: Arc<sled::Db>,
     cipher: Option<Arc<StoreCipher>>,
+    migration_conflict_strategy: MigrationConflictStrategy,
+}
+
+/// Sometimes Migrations can't proceed without having to drop existing
+/// data. This allows you to configure, how these cases should be handled.
+#[derive(PartialEq, Eq, Clone, Debug)]
+pub enum MigrationConflictStrategy {
+    /// Just drop the data, we don't care that we have to register or link again
+    Drop,
+    /// Raise a `Error::MigrationConflict` error with the path to the
+    /// DB in question. The caller then has to take care about what they want
+    /// to do and try again after.
+    Raise,
+    /// _Default_: The _entire_ database is backed up under, before the databases are dropped.
+    BackupAndDrop,
 }
 
 impl SledStore {
-    pub fn open(path: impl Into<PathBuf>) -> Result<Self, Error> {
-        Self::open_with_passphrase(path, None::<&str>)
+    pub fn open(
+        path: impl Into<PathBuf>,
+        migration_conflict_strategy: MigrationConflictStrategy,
+    ) -> Result<Self, Error> {
+        Self::open_with_passphrase(path, None::<&str>, migration_conflict_strategy)
     }
 
     pub fn open_with_passphrase(
         path: impl Into<PathBuf>,
         passphrase: Option<impl AsRef<str>>,
+        migration_conflict_strategy: MigrationConflictStrategy,
     ) -> Result<Self, Error> {
         let database = sled::open(path.into())?;
         let cipher = passphrase
@@ -58,6 +77,7 @@ impl SledStore {
         Ok(SledStore {
             db: Arc::new(database),
             cipher: cipher.map(Arc::new),
+            migration_conflict_strategy,
         })
     }
 
