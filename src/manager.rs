@@ -1,7 +1,7 @@
 use std::time::UNIX_EPOCH;
 
 use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -578,7 +578,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
     /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
-    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Contact>, Error> {
+    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
         Ok(self.config_store.contacts()?.into_iter())
     }
 
@@ -635,12 +635,14 @@ impl<C: Store> Manager<C, Registered> {
                                     MessageReceiver::new(state.push_service.clone());
                                 match message_receiver.retrieve_contacts(&contacts).await {
                                     Ok(contacts_iter) => {
+                                        let _ = state.config_store.clear_contacts();
                                         if let Err(e) = state
                                             .config_store
                                             .save_contacts(contacts_iter.filter_map(Result::ok))
                                         {
                                             error!("failed to save contacts: {}", e)
                                         }
+                                        info!("saved contacts");
                                     }
                                     Err(e) => error!("failed to retrieve contacts: {}", e),
                                 }

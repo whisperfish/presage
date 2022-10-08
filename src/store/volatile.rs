@@ -90,6 +90,10 @@ impl Store for VolatileStore {
 }
 
 impl ContactsStore for VolatileStore {
+    fn clear_contacts(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
+
     fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(())

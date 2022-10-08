@@ -29,6 +29,14 @@ struct Args {
     #[clap(long = "db-path", short = 'd', group = "store")]
     db_path: Option<PathBuf>,
 
+    #[clap(
+        help = "passphrase to encrypt the local storage",
+        long = "passphrase",
+        short = 'p',
+        group = "store"
+    )]
+    passphrase: Option<String>,
+
     #[clap(subcommand)]
     subcommand: Cmd,
 }
@@ -154,7 +162,7 @@ async fn main() -> anyhow::Result<()> {
             .into()
     });
     debug!("opening config database from {}", db_path.display());
-    let config_store = SledStore::open_with_passphrase(db_path, "empty".into())?;
+    let config_store = SledStore::open_with_passphrase(db_path, args.passphrase)?;
     run(args.subcommand, config_store).await
 }
 
@@ -398,7 +406,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                             ..
                         },
                     ..
-                } = contact
+                } = contact?
                 {
                     println!("{} / {} / {}", uuid, name, phonenumber);
                 }
@@ -412,10 +420,11 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             let manager = Manager::load_registered(config_store)?;
             for contact in manager
                 .get_contacts()?
+                .filter_map(Result::ok)
                 .filter(|c| c.address.uuid == uuid)
                 .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
             {
-                println!("{}: {}", contact.name, contact.address);
+                println!("{contact:#?}");
             }
         }
         #[cfg(feature = "quirks")]
@@ -433,30 +442,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 _ => unreachable!(),
             };
             let iter = config_store.messages(&thread, None)?;
-            let mut printed = 0;
             for msg in iter.filter_map(Result::ok) {
-                match msg.body {
-                    ContentBody::DataMessage(message)
-                    | ContentBody::SynchronizeMessage(SyncMessage {
-                        sent:
-                            Some(Sent {
-                                message: Some(message),
-                                ..
-                            }),
-                        ..
-                    }) if message.body.is_some() => {
-                        println!(
-                            "{}: {}",
-                            msg.metadata.sender.identifier(),
-                            message.body.unwrap_or_else(|| "".to_string())
-                        );
-                        printed += 1;
-                        if printed == 10 {
-                            break;
-                        }
-                    }
-                    _ => {}
-                }
+                println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
             }
         }
     };
