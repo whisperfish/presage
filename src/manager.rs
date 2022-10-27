@@ -802,7 +802,7 @@ impl<C: ConfigStore> Manager<C, Registered> {
             self.config_store.clone(),
             self.config_store.clone(),
             local_addr,
-            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
+            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
         ))
     }
 

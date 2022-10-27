@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <feron.gabriel@gmail.com>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "f9b54478c5413252e810089fd9648b6351bcc3bf" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "f9b54478c5413252e810089fd9648b6351bcc3bf" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "8666ba56f47e405aaf8ed243be6e2ad1b5ad68c1" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "8666ba56f47e405aaf8ed243be6e2ad1b5ad68c1" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -45,10 +45,10 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 qr2term = { version = "0.2.2" }
 
 [features]
-default = ["sled-config-store","secret-volatile-config-store"]
+default = ["sled-config-store"]
 quirks = []
 sled-config-store = ["sled"]
-secret-volatile-config-store = ["libsodium-sys","secrets"]
+secret-volatile-config-store = ["libsodium-sys", "secrets"]
 volatile-config-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]

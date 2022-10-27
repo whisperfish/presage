@@ -8,9 +8,10 @@ use libsignal_service::{
     models::Contact,
     prelude::{
         protocol::{
-            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, SessionRecord, SessionStore, SessionStoreExt,
-            SignalProtocolError, SignedPreKeyRecord, SignedPreKeyStore,
+            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, SessionRecord, SessionStore,
+            SessionStoreExt, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
         },
         Uuid,
     },
@@ -104,11 +105,11 @@ impl SledConfigStore {
         Ok(())
     }
 
-    fn prekey_key(&self, id: u32) -> String {
+    fn prekey_key(&self, id: PreKeyId) -> String {
         format!("prekey-{:09}", id)
     }
 
-    fn signed_prekey_key(&self, id: u32) -> String {
+    fn signed_prekey_key(&self, id: SignedPreKeyId) -> String {
         format!("signed-prekey-{:09}", id)
     }
 
@@ -230,7 +231,7 @@ impl ContactsStore for SledConfigStore {
 impl PreKeyStore for SledConfigStore {
     async fn get_pre_key(
         &self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<PreKeyRecord, SignalProtocolError> {
         let buf = self
@@ -242,7 +243,7 @@ impl PreKeyStore for SledConfigStore {
 
     async fn save_pre_key(
         &mut self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         record: &PreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
@@ -253,7 +254,7 @@ impl PreKeyStore for SledConfigStore {
 
     async fn remove_pre_key(
         &mut self,
-        prekey_id: u32,
+        prekey_id: PreKeyId,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.remove(self.prekey_key(prekey_id))
@@ -266,7 +267,7 @@ impl PreKeyStore for SledConfigStore {
 impl SignedPreKeyStore for SledConfigStore {
     async fn get_signed_pre_key(
         &self,
-        signed_prekey_id: u32,
+        signed_prekey_id: SignedPreKeyId,
         _ctx: Context,
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf = self
@@ -278,7 +279,7 @@ impl SignedPreKeyStore for SledConfigStore {
 
     async fn save_signed_pre_key(
         &mut self,
-        signed_prekey_id: u32,
+        signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
@@ -485,7 +486,7 @@ mod tests {
     impl Arbitrary for ProtocolAddress {
         fn arbitrary(g: &mut Gen) -> Self {
             let name: String = Arbitrary::arbitrary(g);
-            let device_id: u8 = Arbitrary::arbitrary(g);
+            let device_id: u32 = Arbitrary::arbitrary(g);
             ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
         }
     }
