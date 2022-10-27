@@ -1,4 +1,10 @@
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    borrow::Cow,
+    ops::Range,
+    path::Path,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
+};
 
 use async_trait::async_trait;
 use libsignal_service::{
@@ -17,11 +23,13 @@ use libsignal_service::{
 use log::{debug, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sled::Batch;
 
 use super::{ContactsStore, MessageStore, StateStore};
 use crate::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
+
+const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 
 const SLED_KEY_CONTACTS: &str = "contacts";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -40,7 +48,6 @@ const SLED_TREE_THREAD_PREFIX: &str = "threads";
 pub struct SledStore {
     db: Arc<sled::Db>,
     cipher: Option<Arc<StoreCipher>>,
-    migration_conflict_strategy: MigrationConflictStrategy,
 }
 
 /// Sometimes Migrations can't proceed without having to drop existing
@@ -57,27 +64,56 @@ pub enum MigrationConflictStrategy {
     BackupAndDrop,
 }
 
+#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
+pub enum SchemaVersion {
+    /// prior to any versioning of the schema
+    V0 = 0,
+    /// the current version
+    V1 = 1,
+}
+
+impl SchemaVersion {
+    fn current() -> SchemaVersion {
+        Self::V1
+    }
+
+    /// return an iterator on all the necessary migration steps from another version
+    fn steps(self) -> impl Iterator<Item = SchemaVersion> {
+        Range {
+            start: self as u8,
+            end: Self::current() as u8,
+        }
+        .map(|i| match i {
+            0 => SchemaVersion::V0,
+            1 => SchemaVersion::V1,
+            _ => unreachable!("oops"),
+        })
+    }
+}
+
 impl SledStore {
     pub fn open(
-        path: impl Into<PathBuf>,
+        db_path: impl AsRef<Path>,
         migration_conflict_strategy: MigrationConflictStrategy,
     ) -> Result<Self, Error> {
-        Self::open_with_passphrase(path, None::<&str>, migration_conflict_strategy)
+        Self::open_with_passphrase(db_path, None::<&str>, migration_conflict_strategy)
     }
 
     pub fn open_with_passphrase(
-        path: impl Into<PathBuf>,
+        db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
         migration_conflict_strategy: MigrationConflictStrategy,
     ) -> Result<Self, Error> {
-        let database = sled::open(path.into())?;
+        migrate(&db_path, migration_conflict_strategy)?;
+
+        let database = sled::open(db_path)?;
         let cipher = passphrase
             .map(|p| Self::get_or_create_store_cipher(&database, p.as_ref()))
             .transpose()?;
+
         Ok(SledStore {
             db: Arc::new(database),
             cipher: cipher.map(Arc::new),
-            migration_conflict_strategy,
         })
     }
 
@@ -116,14 +152,23 @@ impl SledStore {
         self.db.open_tree(tree).map_err(Error::DbError)
     }
 
-    pub fn get<T, K, V>(&self, tree: T, key: K) -> Result<Option<V>, Error>
+    fn key<K>(&self, tree: &str, key: K) -> Vec<u8>
     where
-        T: AsRef<[u8]>,
+        K: AsRef<[u8]>,
+    {
+        self.cipher.as_ref().map_or_else(
+            || key.as_ref().to_vec(),
+            |c| c.hash_key(tree, key.as_ref()).to_vec(),
+        )
+    }
+
+    pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, Error>
+    where
         K: AsRef<[u8]>,
         V: DeserializeOwned,
     {
         self.tree(tree)?
-            .get(key.as_ref())?
+            .get(key)?
             .map(|p| {
                 self.cipher.as_ref().map_or_else(
                     || serde_json::from_slice(&p).map_err(Error::from),
@@ -134,34 +179,84 @@ impl SledStore {
             .map_err(Error::from)
     }
 
-    fn insert<T, K, V>(&self, tree: T, key: K, value: V) -> Result<(), Error>
+    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), Error>
     where
-        T: AsRef<[u8]>,
         K: AsRef<[u8]>,
         V: Serialize,
     {
-        let encrypted_value = self.cipher.as_ref().map_or_else(
+        let value = self.cipher.as_ref().map_or_else(
             || serde_json::to_vec(&value).map_err(Error::from),
             |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
-        let _ = self
-            .tree(tree.as_ref())?
-            .insert(key.as_ref(), encrypted_value)?;
+        let _ = self.tree(tree)?.insert(key, value)?;
         Ok(())
     }
 
-    fn remove<T, K>(&self, tree: T, key: K) -> Result<bool, Error>
+    fn remove<K>(&self, tree: &str, key: K) -> Result<bool, Error>
     where
-        T: AsRef<[u8]>,
         K: AsRef<[u8]>,
     {
-        Ok(self.tree(tree)?.remove(key.as_ref())?.is_some())
+        Ok(self.tree(tree)?.remove(key)?.is_some())
     }
 
     /// build a hashed messages thread key
     fn messages_thread_key(&self, t: &Thread) -> String {
         format!("{SLED_TREE_THREAD_PREFIX}{t:?}")
     }
+}
+
+fn migrate(
+    db_path: impl AsRef<Path>,
+    migration_conflict_strategy: MigrationConflictStrategy,
+) -> Result<(), Error> {
+    // first, open the database and get the list of versions, then close it
+    let database = sled::open(db_path)?;
+    let stored_version = database.get(SLED_KEY_SCHEMA_VERSION)?.map_or_else(
+        || Ok(SchemaVersion::V0),
+        |value| serde_json::from_slice(&value[..]),
+    )?;
+
+    let run_migrations = move || {
+        for step in stored_version.steps() {
+            match step {
+                SchemaVersion::V0 => unreachable!("nothing to do here"),
+                // migration from v0 to v1
+                SchemaVersion::V1 => return Err(Error::MigrationConflict),
+            }
+
+            // database.insert(
+            //     SLED_KEY_SCHEMA_VERSION,
+            //     serde_json::to_vec(&step)?.as_slice(),
+            // )?;
+        }
+
+        Ok(())
+    };
+
+    let migration_res = run_migrations();
+    if let Err(Error::MigrationConflict) = migration_res {
+        match migration_conflict_strategy {
+            MigrationConflictStrategy::BackupAndDrop => {
+                let mut new_db_path = db_path.as_ref().to_path_buf();
+                new_db_path.set_extension(format!(
+                    "{}.backup",
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .expect("time doesn't go backwards")
+                        .as_secs()
+                ));
+                fs_extra::dir::create_all(&new_db_path, false)?;
+                fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
+                store.clear()?;
+            }
+            MigrationConflictStrategy::Drop => {
+                store.clear()?;
+            }
+            MigrationConflictStrategy::Raise => migration_res?,
+        }
+    }
+
+    Ok(())
 }
 
 impl StateStore<Registered> for SledStore {
@@ -516,16 +611,20 @@ impl MessageStore for SledStore {
             thread,
             message.metadata.timestamp,
         );
-
-        let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
 
-        self.insert(
-            &self.messages_thread_key(thread),
-            timestamp_bytes,
-            proto.encode_to_vec(),
+        let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
+
+        let tree = self.messages_thread_key(thread);
+        let key = self.key(&tree, &timestamp_bytes);
+
+        let value = proto.encode_to_vec();
+        let value = self.cipher.as_ref().map_or_else(
+            || serde_json::to_vec(&value).map_err(Error::from),
+            |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
 
+        let _ = self.tree(tree)?.insert(key, value)?;
         Ok(())
     }
 
@@ -578,7 +677,7 @@ impl Iterator for SledMessagesIter {
         self.iter
             .next()?
             .map_err(Error::from)
-            .and_then(|(_key, value)| {
+            .and_then(|(_, value)| {
                 self.cipher.as_ref().map_or_else(
                     || serde_json::from_slice(&value).map_err(Error::from),
                     |c| c.decrypt_value(&value).map_err(Error::from),

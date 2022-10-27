@@ -61,6 +61,8 @@ pub enum Error {
     ContentMissingMessage,
     #[error("database migration is not supported")]
     MigrationConflict,
+    #[error("I/O error: {0}")]
+    FsError(#[from] fs_extra::error::Error),
 }
 
 impl Error {

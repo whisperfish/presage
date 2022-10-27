@@ -25,6 +25,7 @@ secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true
 matrix-sdk-store-encryption = { version = "0.2.0", optional = true }
 bytes = "1"
 prost = "0.10"
+fs_extra = "1.2"
 
 [build-dependencies]
 prost-build = "0.10"
