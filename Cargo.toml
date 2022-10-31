@@ -55,8 +55,6 @@ qr2term = { version = "0.2.2" }
 default = ["sled-store"]
 quirks = []
 sled-store = ["sled", "matrix-sdk-store-encryption"]
-secret-volatile-store = ["libsodium-sys", "secrets"]
-volatile-store = []
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }

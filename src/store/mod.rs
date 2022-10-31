@@ -65,15 +65,6 @@ pub enum Thread {
     Group([u8; 32]),
 }
 
-impl From<&Thread> for Vec<u8> {
-    fn from(val: &Thread) -> Self {
-        match val {
-            Thread::Contact(u) => u.as_bytes().to_vec(),
-            Thread::Group(g) => g.to_vec(),
-        }
-    }
-}
-
 impl TryFrom<&Content> for Thread {
     type Error = Error;
 

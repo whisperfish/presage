@@ -1,5 +1,4 @@
 use std::{
-    borrow::Cow,
     ops::Range,
     path::Path,
     sync::Arc,
@@ -80,13 +79,12 @@ impl SchemaVersion {
     /// return an iterator on all the necessary migration steps from another version
     fn steps(self) -> impl Iterator<Item = SchemaVersion> {
         Range {
-            start: self as u8,
+            start: self as u8 + 1,
             end: Self::current() as u8,
         }
         .map(|i| match i {
-            0 => SchemaVersion::V0,
             1 => SchemaVersion::V1,
-            _ => unreachable!("oops"),
+            _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
 }
@@ -200,8 +198,11 @@ impl SledStore {
     }
 
     /// build a hashed messages thread key
-    fn messages_thread_key(&self, t: &Thread) -> String {
-        format!("{SLED_TREE_THREAD_PREFIX}{t:?}")
+    fn messages_thread_tree_name(&self, t: &Thread) -> String {
+        match t {
+            Thread::Contact(uuid) => format!("{SLED_TREE_THREAD_PREFIX}:contact:{uuid}"),
+            Thread::Group(group_id) => format!("{SLED_TREE_THREAD_PREFIX}:group:{}", base64::encode(group_id)),
+        }
     }
 }
 
@@ -209,19 +210,23 @@ fn migrate(
     db_path: impl AsRef<Path>,
     migration_conflict_strategy: MigrationConflictStrategy,
 ) -> Result<(), Error> {
-    // first, open the database and get the list of versions, then close it
-    let database = sled::open(db_path)?;
+    // first, open the database and get the list of versions
+    let database = sled::open(&db_path)?;
     let stored_version = database.get(SLED_KEY_SCHEMA_VERSION)?.map_or_else(
         || Ok(SchemaVersion::V0),
         |value| serde_json::from_slice(&value[..]),
     )?;
 
     let run_migrations = move || {
+        // open the DB again
         for step in stored_version.steps() {
             match step {
-                SchemaVersion::V0 => unreachable!("nothing to do here"),
                 // migration from v0 to v1
-                SchemaVersion::V1 => return Err(Error::MigrationConflict),
+                SchemaVersion::V0 => {
+                    // here we go!
+                    unreachable!("this is a V0 database")
+                },
+                _ => return Err(Error::MigrationConflict),
             }
 
             // database.insert(
@@ -247,10 +252,15 @@ fn migrate(
                 ));
                 fs_extra::dir::create_all(&new_db_path, false)?;
                 fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
-                store.clear()?;
+                
+                for tree in database.tree_names() {
+                    database.drop_tree(tree)?;
+                }
             }
             MigrationConflictStrategy::Drop => {
-                store.clear()?;
+                for tree in database.tree_names() {
+                    database.drop_tree(tree)?;
+                }
             }
             MigrationConflictStrategy::Raise => migration_res?,
         }
@@ -611,11 +621,10 @@ impl MessageStore for SledStore {
             thread,
             message.metadata.timestamp,
         );
+        let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
 
-        let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
-
-        let tree = self.messages_thread_key(thread);
+        let tree = self.messages_thread_tree_name(thread);
         let key = self.key(&tree, &timestamp_bytes);
 
         let value = proto.encode_to_vec();
@@ -629,7 +638,8 @@ impl MessageStore for SledStore {
     }
 
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
-        self.remove(&self.messages_thread_key(thread), timestamp.to_be_bytes())
+        let tree = self.messages_thread_tree_name(thread);
+        self.remove(&tree, timestamp.to_be_bytes())
     }
 
     fn message(
@@ -639,7 +649,7 @@ impl MessageStore for SledStore {
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
         // Big-Endian needed, otherwise wrong ordering in sled.
         let val: Option<Vec<u8>> =
-            self.get(&self.messages_thread_key(thread), timestamp.to_be_bytes())?;
+            self.get(&self.messages_thread_tree_name(thread), timestamp.to_be_bytes())?;
         match val {
             Some(ref v) => {
                 let proto = ContentProto::decode(v.as_slice())?;
@@ -651,7 +661,7 @@ impl MessageStore for SledStore {
     }
 
     fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
-        let tree_thread = self.db.open_tree(self.messages_thread_key(thread))?;
+        let tree_thread = self.db.open_tree(self.messages_thread_tree_name(thread))?;
         debug!("{} messages in this tree", tree_thread.len());
         let iter = if let Some(from) = from {
             tree_thread.range(..from.to_be_bytes())
