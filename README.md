@@ -14,7 +14,7 @@ Features:
   - [x] Registration/linking
   - [x] Contacts
   - [x] Messages
-  - [ ] Local encryption
+  - [x] Local encryption (using [matrix-sdk-store-encryption](https://crates.io/crates/matrix-sdk-store-encryption))
 - [x] Registration
   - [x] SMS
   - [x] Voice call

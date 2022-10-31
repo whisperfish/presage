@@ -47,8 +47,11 @@ pub trait StateStore<S> {
 }
 
 pub trait ContactsStore {
+    type ContactsIter: Iterator<Item = Result<Contact, Error>>;
+
+    fn clear_contacts(&mut self) -> Result<(), Error>;
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error>;
-    fn contacts(&self) -> Result<Vec<Contact>, Error>;
+    fn contacts(&self) -> Result<Self::ContactsIter, Error>;
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
 
@@ -60,15 +63,6 @@ pub enum Thread {
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [GroupMasterKey](crate::prelude::GroupMasterKey) (specified as bytes).
     Group([u8; 32]),
-}
-
-impl From<&Thread> for Vec<u8> {
-    fn from(val: &Thread) -> Self {
-        match val {
-            Thread::Contact(u) => u.as_bytes().to_vec(),
-            Thread::Group(g) => g.to_vec(),
-        }
-    }
 }
 
 impl TryFrom<&Content> for Thread {
@@ -132,7 +126,7 @@ impl TryFrom<&Content> for Thread {
 /// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
 /// [MessageIdentity], by [Thread] or completely.
 pub trait MessageStore {
-    type MessagesIter: Iterator<Item = Content>;
+    type MessagesIter: Iterator<Item = Result<Content, Error>>;
 
     /// Save a message in a [Thread] identified by a timestamp.
     /// TODO: deriving the thread happens from the content, so we can also ditch the first parameter

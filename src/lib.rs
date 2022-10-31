@@ -5,13 +5,7 @@ mod proto;
 mod store;
 
 #[cfg(feature = "sled-store")]
-pub use store::sled::SledStore;
-
-#[cfg(feature = "secret-volatile-store")]
-pub use store::secret_volatile::SecretVolatileStore;
-
-#[cfg(feature = "volatile-store")]
-pub use store::volatile::VolatileStore;
+pub use store::sled::{MigrationConflictStrategy, SledStore};
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};

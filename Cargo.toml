@@ -11,22 +11,24 @@ libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-serv
 
 async-trait = "0.1"
 base64 = "0.12"
+bytes = "1"
+fs_extra = "1.2"
 futures = "0.3"
 hex = "0.4.2"
 log = "0.4.8"
+prost = "0.10"
 rand = "0.7"
 serde = "1.0"
 serde_json = "1.0"
+sha2 = "0.10"
 thiserror = "1.0"
-sled = { version = "0.34", optional = true }
 url = "2.2.2"
-libsodium-sys = { version = "0.2.7", optional = true }
-secrets = { version = "1.2.0", features = [
-    "use-libsodium-sys",
-], optional = true }
 
-bytes = "1"
-prost = "0.10"
+# specific to store impl
+libsodium-sys = { version = "0.2.7", optional = true }
+matrix-sdk-store-encryption = { version = "0.2.0", optional = true }
+secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true }
+sled = { version = "0.34", optional = true }
 
 [build-dependencies]
 prost-build = "0.10"
@@ -49,20 +51,13 @@ mime_guess = "2.0"
 rand = "0.7"
 serde_json = "1.0"
 tempfile = "3.3"
-tokio = { version = "1.0", features = [
-    "macros",
-    "rt-multi-thread",
-    "io-std",
-    "io-util",
-] }
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
 qr2term = { version = "0.2.2" }
 
 [features]
 default = ["sled-store"]
 quirks = []
-sled-store = ["sled"]
-secret-volatile-store = ["libsodium-sys", "secrets"]
-volatile-store = []
+sled-store = ["sled", "matrix-sdk-store-encryption"]
 
 #[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 #libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }

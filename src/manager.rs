@@ -1,7 +1,7 @@
 use std::time::UNIX_EPOCH;
 
 use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
-use log::{debug, error, trace};
+use log::{debug, error, info, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -122,10 +122,10 @@ impl<C: Store> Manager<C, Registration> {
     ///
     ///     use presage::{
     ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, RegistrationOptions, SledStore,
+    ///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy
     ///     };
     ///
-    ///     let config_store = SledStore::new("/tmp/presage-example")?;
+    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let manager = Manager::register(
     ///         config_store,
@@ -204,12 +204,12 @@ impl<C: Store> Manager<C, Linking> {
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledStore};
+    /// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};
     /// use futures::{channel::oneshot, future, StreamExt};
     ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
-    ///     let config_store = SledStore::new("/tmp/presage-example")?;
+    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -578,8 +578,8 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
     /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
-    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Contact>, Error> {
-        Ok(self.config_store.contacts()?.into_iter())
+    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
+        self.config_store.contacts()
     }
 
     pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
@@ -635,12 +635,14 @@ impl<C: Store> Manager<C, Registered> {
                                     MessageReceiver::new(state.push_service.clone());
                                 match message_receiver.retrieve_contacts(&contacts).await {
                                     Ok(contacts_iter) => {
+                                        let _ = state.config_store.clear_contacts();
                                         if let Err(e) = state
                                             .config_store
                                             .save_contacts(contacts_iter.filter_map(Result::ok))
                                         {
                                             error!("failed to save contacts: {}", e)
                                         }
+                                        info!("saved contacts");
                                     }
                                     Err(e) => error!("failed to retrieve contacts: {}", e),
                                 }
