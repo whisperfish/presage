@@ -58,6 +58,18 @@
 <span id="58">58</span>
 <span id="59">59</span>
 <span id="60">60</span>
+<span id="61">61</span>
+<span id="62">62</span>
+<span id="63">63</span>
+<span id="64">64</span>
+<span id="65">65</span>
+<span id="66">66</span>
+<span id="67">67</span>
+<span id="68">68</span>
+<span id="69">69</span>
+<span id="70">70</span>
+<span id="71">71</span>
+<span id="72">72</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::borrow::Cow</span>;
 
 <span class="kw">use</span> <span class="ident">libsignal_service</span>::{<span class="ident">models::ParseContactError</span>, <span class="ident">prelude::protocol::SignalProtocolError</span>};
@@ -77,6 +89,8 @@
     <span class="ident">DbError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">sled::Error</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;data store error: {0}&quot;</span>)]</span>
     <span class="ident">DbTransactionError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">sled::transaction::TransactionError</span>),
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;store cipher error: {0}&quot;</span>)]</span>
+    <span class="ident">StoreCipherError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">matrix_sdk_store_encryption::Error</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;error decoding base64 data: {0}&quot;</span>)]</span>
     <span class="ident">Base64Error</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">base64::DecodeError</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;wrong slice size: {0}&quot;</span>)]</span>
@@ -117,6 +131,16 @@
     <span class="ident">ContentMissingUuid</span>,
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;invalid content, no valid messages&quot;</span>)]</span>
     <span class="ident">ContentMissingMessage</span>,
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;database migration is not supported&quot;</span>)]</span>
+    <span class="ident">MigrationConflict</span>,
+    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;I/O error: {0}&quot;</span>)]</span>
+    <span class="ident">FsError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">fs_extra::error::Error</span>),
+}
+
+<span class="kw">impl</span> <span class="ident">Error</span> {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">into_signal_error</span>(<span class="self">self</span>) -&gt; <span class="ident">SignalProtocolError</span> {
+        <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;presage error&quot;</span>, <span class="self">self</span>.<span class="ident">to_string</span>())
+    }
 }
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>

@@ -664,9 +664,159 @@
 <span id="664">664</span>
 <span id="665">665</span>
 <span id="666">666</span>
+<span id="667">667</span>
+<span id="668">668</span>
+<span id="669">669</span>
+<span id="670">670</span>
+<span id="671">671</span>
+<span id="672">672</span>
+<span id="673">673</span>
+<span id="674">674</span>
+<span id="675">675</span>
+<span id="676">676</span>
+<span id="677">677</span>
+<span id="678">678</span>
+<span id="679">679</span>
+<span id="680">680</span>
+<span id="681">681</span>
+<span id="682">682</span>
+<span id="683">683</span>
+<span id="684">684</span>
+<span id="685">685</span>
+<span id="686">686</span>
+<span id="687">687</span>
+<span id="688">688</span>
+<span id="689">689</span>
+<span id="690">690</span>
+<span id="691">691</span>
+<span id="692">692</span>
+<span id="693">693</span>
+<span id="694">694</span>
+<span id="695">695</span>
+<span id="696">696</span>
+<span id="697">697</span>
+<span id="698">698</span>
+<span id="699">699</span>
+<span id="700">700</span>
+<span id="701">701</span>
+<span id="702">702</span>
+<span id="703">703</span>
+<span id="704">704</span>
+<span id="705">705</span>
+<span id="706">706</span>
+<span id="707">707</span>
+<span id="708">708</span>
+<span id="709">709</span>
+<span id="710">710</span>
+<span id="711">711</span>
+<span id="712">712</span>
+<span id="713">713</span>
+<span id="714">714</span>
+<span id="715">715</span>
+<span id="716">716</span>
+<span id="717">717</span>
+<span id="718">718</span>
+<span id="719">719</span>
+<span id="720">720</span>
+<span id="721">721</span>
+<span id="722">722</span>
+<span id="723">723</span>
+<span id="724">724</span>
+<span id="725">725</span>
+<span id="726">726</span>
+<span id="727">727</span>
+<span id="728">728</span>
+<span id="729">729</span>
+<span id="730">730</span>
+<span id="731">731</span>
+<span id="732">732</span>
+<span id="733">733</span>
+<span id="734">734</span>
+<span id="735">735</span>
+<span id="736">736</span>
+<span id="737">737</span>
+<span id="738">738</span>
+<span id="739">739</span>
+<span id="740">740</span>
+<span id="741">741</span>
+<span id="742">742</span>
+<span id="743">743</span>
+<span id="744">744</span>
+<span id="745">745</span>
+<span id="746">746</span>
+<span id="747">747</span>
+<span id="748">748</span>
+<span id="749">749</span>
+<span id="750">750</span>
+<span id="751">751</span>
+<span id="752">752</span>
+<span id="753">753</span>
+<span id="754">754</span>
+<span id="755">755</span>
+<span id="756">756</span>
+<span id="757">757</span>
+<span id="758">758</span>
+<span id="759">759</span>
+<span id="760">760</span>
+<span id="761">761</span>
+<span id="762">762</span>
+<span id="763">763</span>
+<span id="764">764</span>
+<span id="765">765</span>
+<span id="766">766</span>
+<span id="767">767</span>
+<span id="768">768</span>
+<span id="769">769</span>
+<span id="770">770</span>
+<span id="771">771</span>
+<span id="772">772</span>
+<span id="773">773</span>
+<span id="774">774</span>
+<span id="775">775</span>
+<span id="776">776</span>
+<span id="777">777</span>
+<span id="778">778</span>
+<span id="779">779</span>
+<span id="780">780</span>
+<span id="781">781</span>
+<span id="782">782</span>
+<span id="783">783</span>
+<span id="784">784</span>
+<span id="785">785</span>
+<span id="786">786</span>
+<span id="787">787</span>
+<span id="788">788</span>
+<span id="789">789</span>
+<span id="790">790</span>
+<span id="791">791</span>
+<span id="792">792</span>
+<span id="793">793</span>
+<span id="794">794</span>
+<span id="795">795</span>
+<span id="796">796</span>
+<span id="797">797</span>
+<span id="798">798</span>
+<span id="799">799</span>
+<span id="800">800</span>
+<span id="801">801</span>
+<span id="802">802</span>
+<span id="803">803</span>
+<span id="804">804</span>
+<span id="805">805</span>
+<span id="806">806</span>
+<span id="807">807</span>
+<span id="808">808</span>
+<span id="809">809</span>
+<span id="810">810</span>
+<span id="811">811</span>
+<span id="812">812</span>
+<span id="813">813</span>
+<span id="814">814</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{
-    <span class="ident">path::PathBuf</span>,
-    <span class="ident">sync</span>::{<span class="ident">Arc</span>, <span class="ident">RwLock</span>},
+    <span class="ident">ops::Range</span>,
+    <span class="ident">path::Path</span>,
+    <span class="ident">sync::Arc</span>,
+    <span class="ident">time</span>::{<span class="ident">SystemTime</span>, <span class="ident">UNIX_EPOCH</span>},
 };
 
 <span class="kw">use</span> <span class="ident">async_trait::async_trait</span>;
@@ -684,193 +834,322 @@
     <span class="ident">push_service::DEFAULT_DEVICE_ID</span>,
 };
 <span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">debug</span>, <span class="ident">trace</span>, <span class="ident">warn</span>};
+<span class="kw">use</span> <span class="ident">matrix_sdk_store_encryption::StoreCipher</span>;
 <span class="kw">use</span> <span class="ident">prost::Message</span>;
-<span class="kw">use</span> <span class="ident">sled::IVec</span>;
+<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">de::DeserializeOwned</span>, <span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
+<span class="kw">use</span> <span class="ident">sha2</span>::{<span class="ident">Digest</span>, <span class="ident">Sha256</span>};
+<span class="kw">use</span> <span class="ident">sled::Batch</span>;
 
 <span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">ContactsStore</span>, <span class="ident">MessageStore</span>, <span class="ident">StateStore</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">manager::Registered</span>, <span class="ident">proto::ContentProto</span>, <span class="ident">store::Thread</span>, <span class="ident">Error</span>, <span class="ident">Store</span>};
 
-<span class="kw">const</span> <span class="ident">SLED_KEY_REGISTRATION</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;registration&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_KEY_SCHEMA_VERSION</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;schema_version&quot;</span>;
+
 <span class="kw">const</span> <span class="ident">SLED_KEY_CONTACTS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;contacts&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_KEY_PRE_KEYS_OFFSET_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;pre_keys_offset_id&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_KEY_NEXT_SIGNED_PRE_KEY_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_KEY_REGISTRATION</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;registration&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_KEY_STORE_CIPHER</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;store_cipher&quot;</span>;
 
+<span class="kw">const</span> <span class="ident">SLED_TREE_DEFAULT</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;state&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_TREE_PRE_KEYS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;pre_keys&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;signed_pre_keys&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_TREE_IDENTITIES</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;identities&quot;</span>;
 <span class="kw">const</span> <span class="ident">SLED_TREE_SESSIONS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;sessions&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_THREAD_PREFIX</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;thread&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_TREE_THREAD_PREFIX</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;threads&quot;</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledStore</span> {
-    <span class="ident">db</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">RwLock</span><span class="op">&lt;</span><span class="ident">sled::Db</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">db</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">sled::Db</span><span class="op">&gt;</span>,
+    <span class="ident">cipher</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">StoreCipher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+}
+
+<span class="doccomment">/// Sometimes Migrations can&#39;t proceed without having to drop existing</span>
+<span class="doccomment">/// data. This allows you to configure, how these cases should be handled.</span>
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MigrationConflictStrategy</span> {
+    <span class="doccomment">/// Just drop the data, we don&#39;t care that we have to register or link again</span>
+    <span class="ident">Drop</span>,
+    <span class="doccomment">/// Raise a `Error::MigrationConflict` error with the path to the</span>
+    <span class="doccomment">/// DB in question. The caller then has to take care about what they want</span>
+    <span class="doccomment">/// to do and try again after.</span>
+    <span class="ident">Raise</span>,
+    <span class="doccomment">/// _Default_: The _entire_ database is backed up under, before the databases are dropped.</span>
+    <span class="ident">BackupAndDrop</span>,
+}
+
+<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
+<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SchemaVersion</span> {
+    <span class="doccomment">/// prior to any versioning of the schema</span>
+    <span class="ident">V0</span> <span class="op">=</span> <span class="number">0</span>,
+    <span class="doccomment">/// the current version</span>
+    <span class="ident">V1</span> <span class="op">=</span> <span class="number">1</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">SchemaVersion</span> {
+    <span class="kw">fn</span> <span class="ident">current</span>() -&gt; <span class="ident">SchemaVersion</span> {
+        <span class="ident"><span class="self">Self</span>::V1</span>
+    }
+
+    <span class="doccomment">/// return an iterator on all the necessary migration steps from another version</span>
+    <span class="kw">fn</span> <span class="ident">steps</span>(<span class="self">self</span>) -&gt; <span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">SchemaVersion</span><span class="op">&gt;</span> {
+        <span class="ident">Range</span> {
+            <span class="ident">start</span>: <span class="self">self</span> <span class="kw">as</span> <span class="ident">u8</span> <span class="op">+</span> <span class="number">1</span>,
+            <span class="ident">end</span>: <span class="ident"><span class="self">Self</span>::current</span>() <span class="kw">as</span> <span class="ident">u8</span>,
+        }
+        .<span class="ident">map</span>(<span class="op">|</span><span class="ident">i</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">i</span> {
+            <span class="number">1</span> =&gt; <span class="ident">SchemaVersion::V1</span>,
+            <span class="kw">_</span> =&gt; <span class="macro">unreachable!</span>(<span class="string">&quot;oops, this not supposed to happen!&quot;</span>),
+        })
+    }
 }
 
 <span class="kw">impl</span> <span class="ident">SledStore</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">path</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">PathBuf</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">open</span>(
+        <span class="ident">db_path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">Path</span><span class="op">&gt;</span>,
+        <span class="ident">migration_conflict_strategy</span>: <span class="ident">MigrationConflictStrategy</span>,
+    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="ident"><span class="self">Self</span>::open_with_passphrase</span>(<span class="ident">db_path</span>, <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">migration_conflict_strategy</span>)
+    }
+
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">open_with_passphrase</span>(
+        <span class="ident">db_path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">Path</span><span class="op">&gt;</span>,
+        <span class="ident">passphrase</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+        <span class="ident">migration_conflict_strategy</span>: <span class="ident">MigrationConflictStrategy</span>,
+    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="ident">migrate</span>(<span class="kw-2">&amp;</span><span class="ident">db_path</span>, <span class="ident">migration_conflict_strategy</span>)<span class="question-mark">?</span>;
+
+        <span class="kw">let</span> <span class="ident">database</span> <span class="op">=</span> <span class="ident">sled::open</span>(<span class="ident">db_path</span>)<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">passphrase</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="ident"><span class="self">Self</span>::get_or_create_store_cipher</span>(<span class="kw-2">&amp;</span><span class="ident">database</span>, <span class="ident">p</span>.<span class="ident">as_ref</span>()))
+            .<span class="ident">transpose</span>()<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(<span class="ident">SledStore</span> {
-            <span class="ident">db</span>: <span class="ident">Arc::new</span>(<span class="ident">RwLock::new</span>(<span class="ident">sled::open</span>(<span class="ident">path</span>.<span class="ident">into</span>())<span class="question-mark">?</span>)),
+            <span class="ident">db</span>: <span class="ident">Arc::new</span>(<span class="ident">database</span>),
+            <span class="ident">cipher</span>: <span class="ident">cipher</span>.<span class="ident">map</span>(<span class="ident">Arc::new</span>),
         })
+    }
+
+    <span class="kw">fn</span> <span class="ident">get_or_create_store_cipher</span>(
+        <span class="ident">database</span>: <span class="kw-2">&amp;</span><span class="ident">sled::Db</span>,
+        <span class="ident">passphrase</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
+    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">StoreCipher</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">key</span>) <span class="op">=</span> <span class="ident">database</span>.<span class="ident">get</span>(<span class="ident">SLED_KEY_STORE_CIPHER</span>)<span class="question-mark">?</span> {
+            <span class="ident">StoreCipher::import</span>(<span class="ident">passphrase</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>)<span class="question-mark">?</span>
+        } <span class="kw">else</span> {
+            <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">StoreCipher::new</span>()<span class="question-mark">?</span>;
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">test</span>))]</span>
+            <span class="kw">let</span> <span class="ident">export</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">export</span>(<span class="ident">passphrase</span>);
+            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
+            <span class="kw">let</span> <span class="ident">export</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">_insecure_export_fast_for_testing</span>(<span class="ident">passphrase</span>);
+            <span class="ident">database</span>.<span class="ident">insert</span>(<span class="ident">SLED_KEY_STORE_CIPHER</span>, <span class="ident">export</span><span class="question-mark">?</span>)<span class="question-mark">?</span>;
+            <span class="ident">cipher</span>
+        };
+
+        <span class="prelude-val">Ok</span>(<span class="ident">cipher</span>)
     }
 
     <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
     <span class="kw">fn</span> <span class="ident">temporary</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">sled::Config::new</span>().<span class="ident">temporary</span>(<span class="bool-val">true</span>).<span class="ident">open</span>()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">db</span>: <span class="ident">Arc::new</span>(<span class="ident">RwLock::new</span>(<span class="ident">db</span>)),
+            <span class="ident">db</span>: <span class="ident">Arc::new</span>(<span class="ident">db</span>),
+            <span class="ident">cipher</span>: <span class="prelude-val">None</span>,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IVec</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span>
+    <span class="kw">fn</span> <span class="ident">tree</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="ident">T</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">sled::Tree</span>, <span class="ident">Error</span><span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
+        <span class="ident">T</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
     {
-        <span class="macro">trace!</span>(<span class="string">&quot;get {}&quot;</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>());
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">db</span>.<span class="ident">read</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>).<span class="ident">get</span>(<span class="ident">key</span>.<span class="ident">as_ref</span>())<span class="question-mark">?</span>)
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">tree</span>).<span class="ident">map_err</span>(<span class="ident">Error::DbError</span>)
     }
 
-    <span class="kw">fn</span> <span class="ident">get_u32</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="ident">S</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span>
+    <span class="kw">fn</span> <span class="ident">key</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">S</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
+        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
     {
-        <span class="macro">trace!</span>(<span class="string">&quot;getting u32 {}&quot;</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>());
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get</span>(<span class="ident">key</span>.<span class="ident">as_ref</span>())<span class="question-mark">?</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">data</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">a</span>: [<span class="ident">u8</span>; <span class="number">4</span>] <span class="op">=</span> <span class="ident">Default::default</span>();
-            <span class="ident">a</span>.<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>);
-            <span class="ident">u32::from_le_bytes</span>(<span class="ident">a</span>)
-        }))
+        <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
+            <span class="op">|</span><span class="op">|</span> <span class="ident">key</span>.<span class="ident">as_ref</span>().<span class="ident">to_vec</span>(),
+            <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">hash_key</span>(<span class="ident">tree</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>()).<span class="ident">to_vec</span>(),
+        )
     }
 
-    <span class="kw">fn</span> <span class="ident">insert</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="ident">K</span>, <span class="ident">value</span>: <span class="ident">V</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>
+    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">IVec</span>: <span class="ident">From</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>,
+        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
+        <span class="ident">V</span>: <span class="ident">DeserializeOwned</span>,
     {
-        <span class="macro">trace!</span>(<span class="string">&quot;inserting {}&quot;</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>());
-        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">insert</span>(<span class="ident">key</span>.<span class="ident">as_ref</span>(), <span class="ident">value</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>
+            .<span class="ident">get</span>(<span class="ident">key</span>)<span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">p</span><span class="op">|</span> {
+                <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
+                    <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+                    <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">decrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+                )
+            })
+            .<span class="ident">transpose</span>()
+            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+    }
+
+    <span class="kw">fn</span> <span class="ident">insert</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>, <span class="ident">value</span>: <span class="ident">V</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>
+    <span class="kw">where</span>
+        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
+        <span class="ident">V</span>: <span class="ident">Serialize</span>,
+    {
+        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
+            <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+            <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">encrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+        )<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">insert_u32</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="ident">S</span>, <span class="ident">value</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>
+    <span class="kw">fn</span> <span class="ident">remove</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">Error</span><span class="op">&gt;</span>
     <span class="kw">where</span>
-        <span class="ident">S</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
+        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
     {
-        <span class="macro">trace!</span>(<span class="string">&quot;inserting u32 {}&quot;</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>());
-        <span class="self">self</span>.<span class="ident">db</span>
-            .<span class="ident">try_write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">insert</span>(<span class="ident">key</span>.<span class="ident">as_ref</span>(), <span class="kw-2">&amp;</span><span class="ident">value</span>.<span class="ident">to_le_bytes</span>())<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>.<span class="ident">remove</span>(<span class="ident">key</span>)<span class="question-mark">?</span>.<span class="ident">is_some</span>())
+    }
+
+    <span class="doccomment">/// build a hashed messages thread key</span>
+    <span class="kw">fn</span> <span class="ident">messages_thread_tree_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">t</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>) -&gt; <span class="ident">String</span> {
+        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">t</span> {
+            <span class="ident">Thread::Contact</span>(<span class="ident">uuid</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:contact:{uuid}&quot;</span>),
+            <span class="ident">Thread::Group</span>(<span class="ident">group_id</span>) =&gt; <span class="macro">format!</span>(
+                <span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:group:{}&quot;</span>,
+                <span class="ident">base64::encode</span>(<span class="ident">group_id</span>)
+            ),
+        };
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hasher</span> <span class="op">=</span> <span class="ident">Sha256::new</span>();
+        <span class="ident">hasher</span>.<span class="ident">update</span>(<span class="ident">key</span>.<span class="ident">as_bytes</span>());
+        <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:{:x}&quot;</span>, <span class="ident">hasher</span>.<span class="ident">finalize</span>())
+    }
+}
+
+<span class="kw">fn</span> <span class="ident">migrate</span>(
+    <span class="ident">db_path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">Path</span><span class="op">&gt;</span>,
+    <span class="ident">migration_conflict_strategy</span>: <span class="ident">MigrationConflictStrategy</span>,
+) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+    <span class="comment">// first, open the database and get the list of versions</span>
+    <span class="kw">let</span> <span class="ident">database</span> <span class="op">=</span> <span class="ident">sled::open</span>(<span class="kw-2">&amp;</span><span class="ident">db_path</span>)<span class="question-mark">?</span>;
+    <span class="kw">let</span> <span class="ident">stored_version</span> <span class="op">=</span> <span class="ident">database</span>.<span class="ident">get</span>(<span class="ident">SLED_KEY_SCHEMA_VERSION</span>)<span class="question-mark">?</span>.<span class="ident">map_or_else</span>(
+        <span class="op">|</span><span class="op">|</span> <span class="prelude-val">Ok</span>(<span class="ident">SchemaVersion::V0</span>),
+        <span class="op">|</span><span class="ident">value</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>[..]),
+    )<span class="question-mark">?</span>;
+
+    <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">database</span>.<span class="ident">clone</span>();
+    <span class="kw">let</span> <span class="ident">run_migrations</span> <span class="op">=</span> <span class="kw">move</span> <span class="op">|</span><span class="op">|</span> {
+        <span class="comment">// open the DB again</span>
+        <span class="kw">for</span> <span class="ident">step</span> <span class="kw">in</span> <span class="ident">stored_version</span>.<span class="ident">steps</span>() {
+            <span class="kw">match</span> <span class="ident">step</span> {
+                <span class="ident">SchemaVersion::V1</span> =&gt; {
+                    <span class="macro">warn!</span>(<span class="string">&quot;migrating from v0, nothing to do&quot;</span>)
+                }
+                <span class="kw">_</span> =&gt; <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MigrationConflict</span>),
+            }
+
+            <span class="ident">db</span>.<span class="ident">insert</span>(
+                <span class="ident">SLED_KEY_SCHEMA_VERSION</span>,
+                <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">step</span>)<span class="question-mark">?</span>.<span class="ident">as_slice</span>(),
+            )<span class="question-mark">?</span>;
+        }
+
         <span class="prelude-val">Ok</span>(())
+    };
+
+    <span class="kw">let</span> <span class="ident">migration_res</span> <span class="op">=</span> <span class="ident">run_migrations</span>();
+    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MigrationConflict</span>) <span class="op">=</span> <span class="ident">migration_res</span> {
+        <span class="kw">match</span> <span class="ident">migration_conflict_strategy</span> {
+            <span class="ident">MigrationConflictStrategy::BackupAndDrop</span> =&gt; {
+                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">new_db_path</span> <span class="op">=</span> <span class="ident">db_path</span>.<span class="ident">as_ref</span>().<span class="ident">to_path_buf</span>();
+                <span class="ident">new_db_path</span>.<span class="ident">set_extension</span>(<span class="macro">format!</span>(
+                    <span class="string">&quot;{}.backup&quot;</span>,
+                    <span class="ident">SystemTime::now</span>()
+                        .<span class="ident">duration_since</span>(<span class="ident">UNIX_EPOCH</span>)
+                        .<span class="ident">expect</span>(<span class="string">&quot;time doesn&#39;t go backwards&quot;</span>)
+                        .<span class="ident">as_secs</span>()
+                ));
+                <span class="ident">fs_extra::dir::create_all</span>(<span class="kw-2">&amp;</span><span class="ident">new_db_path</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+                <span class="ident">fs_extra::dir::copy</span>(<span class="ident">db_path</span>, <span class="ident">new_db_path</span>, <span class="kw-2">&amp;</span><span class="ident">fs_extra::dir::CopyOptions::new</span>())<span class="question-mark">?</span>;
+
+                <span class="kw">for</span> <span class="ident">tree</span> <span class="kw">in</span> <span class="ident">database</span>.<span class="ident">tree_names</span>() {
+                    <span class="ident">database</span>.<span class="ident">drop_tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>;
+                }
+            }
+            <span class="ident">MigrationConflictStrategy::Drop</span> =&gt; {
+                <span class="kw">for</span> <span class="ident">tree</span> <span class="kw">in</span> <span class="ident">database</span>.<span class="ident">tree_names</span>() {
+                    <span class="ident">database</span>.<span class="ident">drop_tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>;
+                }
+            }
+            <span class="ident">MigrationConflictStrategy::Raise</span> =&gt; <span class="ident">migration_res</span><span class="question-mark">?</span>,
+        }
     }
 
-    <span class="kw">fn</span> <span class="ident">remove</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">key</span>: <span class="ident">S</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">S</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
-    {
-        <span class="macro">trace!</span>(<span class="string">&quot;removing {} from db&quot;</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>());
-        <span class="self">self</span>.<span class="ident">db</span>
-            .<span class="ident">try_write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">remove</span>(<span class="ident">key</span>.<span class="ident">as_ref</span>())<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="kw">fn</span> <span class="ident">prekey_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">PreKeyId</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;prekey-{:09}&quot;</span>, <span class="ident">id</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">signed_prekey_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">SignedPreKeyId</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;signed-prekey-{:09}&quot;</span>, <span class="ident">id</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">session_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">addr</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;session-{}&quot;</span>, <span class="ident">addr</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">session_prefix</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;session-{}.&quot;</span>, <span class="ident">name</span>)
-    }
-
-    <span class="kw">fn</span> <span class="ident">identity_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">addr</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>) -&gt; <span class="ident">String</span> {
-        <span class="macro">format!</span>(<span class="string">&quot;identity-remote-{}&quot;</span>, <span class="ident">addr</span>)
-    }
-
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">keys</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">read</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
-        <span class="kw">let</span> <span class="ident">global_keys</span> <span class="op">=</span> <span class="ident">db</span>
-            .<span class="ident">iter</span>()
-            .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> {
-                <span class="kw">let</span> (<span class="ident">k</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">r</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>;
-                <span class="prelude-val">Some</span>(<span class="ident">String::from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">k</span>).<span class="ident">to_string</span>())
-            })
-            .<span class="ident">collect</span>();
-        <span class="kw">let</span> <span class="ident">session_keys</span> <span class="op">=</span> <span class="ident">db</span>
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-                <span class="macro">panic!</span>(<span class="string">&quot;failed to open sessions tree: {}&quot;</span>, <span class="ident">e</span>);
-            })
-            .<span class="ident">iter</span>()
-            .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> {
-                <span class="kw">let</span> (<span class="ident">k</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">r</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>;
-                <span class="prelude-val">Some</span>(<span class="ident">String::from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">k</span>).<span class="ident">to_string</span>())
-            })
-            .<span class="ident">collect</span>();
-        <span class="prelude-val">Ok</span>((<span class="ident">global_keys</span>, <span class="ident">session_keys</span>))
-    }
+    <span class="prelude-val">Ok</span>(())
 }
 
 <span class="kw">impl</span> <span class="ident">StateStore</span><span class="op">&lt;</span><span class="ident">Registered</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
     <span class="kw">fn</span> <span class="ident">load_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Registered</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">read</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
-        <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">db</span>
+        <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="self">self</span>
+            .<span class="ident">db</span>
             .<span class="ident">get</span>(<span class="ident">SLED_KEY_REGISTRATION</span>)<span class="question-mark">?</span>
             .<span class="ident">ok_or</span>(<span class="ident">Error::NotYetRegisteredError</span>)<span class="question-mark">?</span>;
         <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
     }
 
     <span class="kw">fn</span> <span class="ident">save_state</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">Registered</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">try_write</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
-        <span class="ident">db</span>.<span class="ident">insert</span>(<span class="ident">SLED_KEY_REGISTRATION</span>, <span class="ident">serde_json::to_vec</span>(<span class="ident">state</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>
+            .<span class="ident">insert</span>(<span class="ident">SLED_KEY_REGISTRATION</span>, <span class="ident">serde_json::to_vec</span>(<span class="ident">state</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
 
-<span class="kw">const</span> <span class="ident">PRE_KEYS_OFFSET_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;pre_keys_offset_id&quot;</span>;
-<span class="kw">const</span> <span class="ident">NEXT_SIGNED_PRE_KEY_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
-
 <span class="kw">impl</span> <span class="ident">Store</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
     <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">try_write</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
-        <span class="ident">db</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_DEFAULT</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_IDENTITIES</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>)<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">fn</span> <span class="ident">pre_keys_offset_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_u32</span>(<span class="ident">PRE_KEYS_OFFSET_ID</span>)<span class="question-mark">?</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>))
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>
+            .<span class="ident">get</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_PRE_KEYS_OFFSET_ID</span>)<span class="question-mark">?</span>
+            .<span class="ident">unwrap_or</span>(<span class="number">0</span>))
     }
 
     <span class="kw">fn</span> <span class="ident">set_pre_keys_offset_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert_u32</span>(<span class="ident">PRE_KEYS_OFFSET_ID</span>, <span class="ident">id</span>)
+        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_PRE_KEYS_OFFSET_ID</span>, <span class="ident">id</span>)
     }
 
     <span class="kw">fn</span> <span class="ident">next_signed_pre_key_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_u32</span>(<span class="ident">NEXT_SIGNED_PRE_KEY_ID</span>)<span class="question-mark">?</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>))
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>
+            .<span class="ident">get</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_NEXT_SIGNED_PRE_KEY_ID</span>)<span class="question-mark">?</span>
+            .<span class="ident">unwrap_or</span>(<span class="number">0</span>))
     }
 
     <span class="kw">fn</span> <span class="ident">set_next_signed_pre_key_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert_u32</span>(<span class="ident">NEXT_SIGNED_PRE_KEY_ID</span>, <span class="ident">id</span>)
+        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_NEXT_SIGNED_PRE_KEY_ID</span>, <span class="ident">id</span>)
     }
 }
 
 <span class="kw">impl</span> <span class="ident">ContactsStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
+    <span class="kw">type</span> <span class="ident">ContactsIter</span> <span class="op">=</span> <span class="ident">SledContactsIter</span>;
+
+    <span class="kw">fn</span> <span class="ident">clear_contacts</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="kw">fn</span> <span class="ident">save_contacts</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">contacts</span>: <span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">Contact</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>;
         <span class="kw">for</span> <span class="ident">contact</span> <span class="kw">in</span> <span class="ident">contacts</span> {
             <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">uuid</span>) <span class="op">=</span> <span class="ident">contact</span>.<span class="ident">address</span>.<span class="ident">uuid</span> {
-                <span class="ident">tree</span>.<span class="ident">insert</span>(<span class="ident">uuid</span>.<span class="ident">to_string</span>(), <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">contact</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+                <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_KEY_CONTACTS</span>, <span class="ident">uuid</span>, <span class="ident">contact</span>)<span class="question-mark">?</span>;
             } <span class="kw">else</span> {
                 <span class="macro">warn!</span>(<span class="string">&quot;skipping contact {:?} without uuid&quot;</span>, <span class="ident">contact</span>);
             }
@@ -879,28 +1158,41 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">contacts</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Contact</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>
-            .<span class="ident">iter</span>()
-            .<span class="ident">filter_map</span>(<span class="ident">Result::ok</span>)
-            .<span class="ident">filter_map</span>(<span class="op">|</span>(<span class="ident">_key</span>, <span class="ident">buf</span>)<span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>).<span class="ident">ok</span>())
-            .<span class="ident">collect</span>())
+    <span class="comment">// TODO: iterator on decrypted data</span>
+    <span class="kw">fn</span> <span class="ident">contacts</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ContactsIter</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        <span class="prelude-val">Ok</span>(<span class="ident">SledContactsIter</span> {
+            <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>.<span class="ident">iter</span>(),
+            <span class="ident">cipher</span>: <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">clone</span>(),
+        })
     }
 
     <span class="kw">fn</span> <span class="ident">contact_by_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">Uuid</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Contact</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">read</span>().<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>);
-        <span class="prelude-val">Ok</span>(
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">buf</span>) <span class="op">=</span> <span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>.<span class="ident">get</span>(<span class="ident">id</span>.<span class="ident">to_string</span>())<span class="question-mark">?</span> {
-                <span class="kw">let</span> <span class="ident">contact</span> <span class="op">=</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>)<span class="question-mark">?</span>;
-                <span class="prelude-val">Some</span>(<span class="ident">contact</span>)
-            } <span class="kw">else</span> {
-                <span class="prelude-val">None</span>
-            },
-        )
+        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_KEY_CONTACTS</span>, <span class="ident">id</span>)<span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
+            .<span class="ident">transpose</span>()
+            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+    }
+}
+
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledContactsIter</span> {
+    <span class="ident">cipher</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">StoreCipher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">iter</span>: <span class="ident">sled::Iter</span>,
+}
+
+<span class="kw">impl</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">SledContactsIter</span> {
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Contact</span>, <span class="ident">Error</span><span class="op">&gt;</span>;
+
+    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::Item</span><span class="op">&gt;</span> {
+        <span class="self">self</span>.<span class="ident">iter</span>
+            .<span class="ident">next</span>()<span class="question-mark">?</span>
+            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+            .<span class="ident">and_then</span>(<span class="op">|</span>(<span class="ident">_key</span>, <span class="ident">value</span>)<span class="op">|</span> {
+                <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
+                    <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+                    <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">decrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+                )
+            })
+            .<span class="ident">into</span>()
     }
 }
 
@@ -911,10 +1203,12 @@
         <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PreKeyRecord</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get</span>(<span class="self">self</span>.<span class="ident">prekey_key</span>(<span class="ident">prekey_id</span>))
-            .<span class="ident">unwrap</span>()
+        <span class="kw">let</span> <span class="ident">buf</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
+            .<span class="ident">get</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>, <span class="ident">prekey_id</span>.<span class="ident">to_string</span>())
+            .<span class="ident">ok</span>()
+            .<span class="ident">flatten</span>()
             .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidPreKeyId</span>)<span class="question-mark">?</span>;
+
         <span class="ident">PreKeyRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>)
     }
 
@@ -924,8 +1218,12 @@
         <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeyRecord</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert</span>(<span class="self">self</span>.<span class="ident">prekey_key</span>(<span class="ident">prekey_id</span>), <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;failed to store pre-key&quot;</span>);
+        <span class="self">self</span>.<span class="ident">insert</span>(
+            <span class="ident">SLED_TREE_PRE_KEYS</span>,
+            <span class="ident">prekey_id</span>.<span class="ident">to_string</span>(),
+            <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>,
+        )
+        .<span class="ident">expect</span>(<span class="string">&quot;failed to store pre-key&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -934,7 +1232,7 @@
         <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">remove</span>(<span class="self">self</span>.<span class="ident">prekey_key</span>(<span class="ident">prekey_id</span>))
+        <span class="self">self</span>.<span class="ident">remove</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>, <span class="ident">prekey_id</span>.<span class="ident">to_string</span>())
             .<span class="ident">expect</span>(<span class="string">&quot;failed to remove pre-key&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
@@ -947,9 +1245,10 @@
         <span class="ident">signed_prekey_id</span>: <span class="ident">SignedPreKeyId</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SignedPreKeyRecord</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get</span>(<span class="self">self</span>.<span class="ident">signed_prekey_key</span>(<span class="ident">signed_prekey_id</span>))
-            .<span class="ident">unwrap</span>()
+        <span class="kw">let</span> <span class="ident">buf</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
+            .<span class="ident">get</span>(<span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>, <span class="ident">signed_prekey_id</span>.<span class="ident">to_string</span>())
+            .<span class="ident">ok</span>()
+            .<span class="ident">flatten</span>()
             .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidSignedPreKeyId</span>)<span class="question-mark">?</span>;
         <span class="ident">SignedPreKeyRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>)
     }
@@ -961,7 +1260,8 @@
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
         <span class="self">self</span>.<span class="ident">insert</span>(
-            <span class="self">self</span>.<span class="ident">signed_prekey_key</span>(<span class="ident">signed_prekey_id</span>),
+            <span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>,
+            <span class="ident">signed_prekey_id</span>.<span class="ident">to_string</span>(),
             <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>,
         )
         .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
@@ -978,19 +1278,11 @@
         <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SessionRecord</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">session_key</span>(<span class="ident">address</span>);
-        <span class="macro">trace!</span>(<span class="string">&quot;loading session from {}&quot;</span>, <span class="ident">key</span>);
-
-        <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">get</span>(<span class="ident">key</span>)
-            .<span class="ident">unwrap</span>();
-
-        <span class="ident">buf</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">buf</span><span class="op">|</span> <span class="ident">SessionRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>)).<span class="ident">transpose</span>()
+        <span class="macro">trace!</span>(<span class="string">&quot;loading session {}&quot;</span>, <span class="ident">address</span>);
+        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_SESSIONS</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">SessionRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
+            .<span class="ident">transpose</span>()
     }
 
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">store_session</span>(
@@ -999,30 +1291,20 @@
         <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SessionRecord</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">session_key</span>(<span class="ident">address</span>);
-        <span class="macro">trace!</span>(<span class="string">&quot;storing session for {:?} at {:?}&quot;</span>, <span class="ident">address</span>, <span class="ident">key</span>);
-        <span class="self">self</span>.<span class="ident">db</span>
-            .<span class="ident">try_write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
-            .<span class="ident">unwrap</span>();
-        <span class="prelude-val">Ok</span>(())
+        <span class="macro">trace!</span>(<span class="string">&quot;storing session {}&quot;</span>, <span class="ident">address</span>);
+        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_SESSIONS</span>, <span class="ident">address</span>.<span class="ident">to_string</span>(), <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)
     }
 }
 
 <span class="attribute">#[<span class="ident">async_trait</span>]</span>
 <span class="kw">impl</span> <span class="ident">SessionStoreExt</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_sub_device_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">session_prefix</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">session_prefix</span>(<span class="ident">name</span>);
-        <span class="macro">log::info!</span>(<span class="string">&quot;get_sub_device_sessions: session_prefix={}&quot;</span>, <span class="ident">session_prefix</span>);
+        <span class="kw">let</span> <span class="ident">session_prefix</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;{name}.&quot;</span>);
+        <span class="macro">log::info!</span>(<span class="string">&quot;get_sub_device_sessions {}&quot;</span>, <span class="ident">session_prefix</span>);
         <span class="kw">let</span> <span class="ident">session_ids</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">unwrap</span>()
+            .<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
             .<span class="ident">scan_prefix</span>(<span class="kw-2">&amp;</span><span class="ident">session_prefix</span>)
             .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> {
                 <span class="kw">let</span> (<span class="ident">key</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">r</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>;
@@ -1036,25 +1318,35 @@
     }
 
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_session</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">session_key</span>(<span class="ident">address</span>);
-        <span class="macro">trace!</span>(<span class="string">&quot;deleting session with key: {}&quot;</span>, <span class="ident">key</span>);
-        <span class="self">self</span>.<span class="ident">db</span>
-            .<span class="ident">try_write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">remove</span>(<span class="ident">key</span>)
+        <span class="macro">trace!</span>(<span class="string">&quot;deleting session {}&quot;</span>, <span class="ident">address</span>);
+        <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
+            .<span class="ident">remove</span>(<span class="ident">address</span>.<span class="ident">to_string</span>())
             .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">_e</span><span class="op">|</span> <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">address</span>.<span class="ident">clone</span>()))<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_all_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_all_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_write</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">unwrap</span>();
+            .<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>;
+
+        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">batch</span> <span class="op">=</span> <span class="ident">Batch::default</span>();
+
+        <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
+            .<span class="ident">scan_prefix</span>(<span class="ident">name</span>)
+            .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> {
+                <span class="kw">let</span> (<span class="ident">key</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">r</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>;
+                <span class="prelude-val">Some</span>(<span class="ident">key</span>)
+            })
+            .<span class="ident">for_each</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> <span class="ident">batch</span>.<span class="ident">remove</span>(<span class="ident">k</span>));
+
+        <span class="self">self</span>.<span class="ident">db</span>
+            .<span class="ident">apply_batch</span>(<span class="ident">batch</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::DbError</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>;
+
         <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">tree</span>.<span class="ident">len</span>();
         <span class="ident">tree</span>.<span class="ident">clear</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">_e</span><span class="op">|</span> {
             <span class="ident">SignalProtocolError::InvalidSessionStructure</span>(<span class="string">&quot;failed to delete all sessions&quot;</span>)
@@ -1093,11 +1385,15 @@
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
         <span class="macro">trace!</span>(<span class="string">&quot;saving identity&quot;</span>);
-        <span class="self">self</span>.<span class="ident">insert</span>(<span class="self">self</span>.<span class="ident">identity_key</span>(<span class="ident">address</span>), <span class="ident">identity_key</span>.<span class="ident">serialize</span>())
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-                <span class="macro">log::error!</span>(<span class="string">&quot;error saving identity for {:?}: {}&quot;</span>, <span class="ident">address</span>, <span class="ident">e</span>);
-                <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;save_identity&quot;</span>, <span class="string">&quot;failed to save identity&quot;</span>.<span class="ident">into</span>())
-            })<span class="question-mark">?</span>;
+        <span class="self">self</span>.<span class="ident">insert</span>(
+            <span class="ident">SLED_TREE_IDENTITIES</span>,
+            <span class="ident">address</span>.<span class="ident">to_string</span>(),
+            <span class="ident">identity_key</span>.<span class="ident">serialize</span>(),
+        )
+        .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
+            <span class="macro">log::error!</span>(<span class="string">&quot;error saving identity for {:?}: {}&quot;</span>, <span class="ident">address</span>, <span class="ident">e</span>);
+            <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;save_identity&quot;</span>, <span class="string">&quot;failed to save identity&quot;</span>.<span class="ident">into</span>())
+        })<span class="question-mark">?</span>;
         <span class="macro">trace!</span>(<span class="string">&quot;saved identity&quot;</span>);
         <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
     }
@@ -1105,22 +1401,22 @@
     <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">is_trusted_identity</span>(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">identity_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
+        <span class="ident">right_identity_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
         <span class="ident">_direction</span>: <span class="ident">Direction</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get</span>(<span class="self">self</span>.<span class="ident">identity_key</span>(<span class="ident">address</span>)).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="ident">SignalProtocolError::InvalidState</span>(
-                <span class="string">&quot;is_trusted_identity&quot;</span>,
-                <span class="string">&quot;failed to check if identity is trusted&quot;</span>.<span class="ident">into</span>(),
-            )
-        })<span class="question-mark">?</span> {
+        <span class="kw">match</span> <span class="self">self</span>
+            .<span class="ident">get</span>(<span class="ident">SLED_TREE_IDENTITIES</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
+            .<span class="ident">transpose</span>()<span class="question-mark">?</span>
+        {
             <span class="prelude-val">None</span> =&gt; {
                 <span class="comment">// when we encounter a new identity, we trust it by default</span>
                 <span class="macro">warn!</span>(<span class="string">&quot;trusting new identity {:?}&quot;</span>, <span class="ident">address</span>);
                 <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
             }
-            <span class="prelude-val">Some</span>(<span class="ident">contents</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">contents</span>)<span class="question-mark">?</span> <span class="op">==</span> <span class="ident">identity_key</span>),
+            <span class="prelude-val">Some</span>(<span class="ident">left_identity_key</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">left_identity_key</span> <span class="op">==</span> <span class="kw-2">*</span><span class="ident">right_identity_key</span>),
         }
     }
 
@@ -1129,18 +1425,11 @@
         <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
         <span class="ident">_ctx</span>: <span class="ident">Context</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IdentityKey</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get</span>(<span class="self">self</span>.<span class="ident">identity_key</span>(<span class="ident">address</span>)).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="macro">log::error!</span>(<span class="string">&quot;error getting identity of {:?}: {}&quot;</span>, <span class="ident">address</span>, <span class="ident">e</span>);
-            <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;get_identity&quot;</span>, <span class="string">&quot;failed to read identity&quot;</span>.<span class="ident">into</span>())
-        })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">buf</span>.<span class="ident">map</span>(<span class="op">|</span><span class="kw-2">ref</span> <span class="ident">b</span><span class="op">|</span> <span class="ident">IdentityKey::decode</span>(<span class="ident">b</span>).<span class="ident">unwrap</span>()))
+        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_IDENTITIES</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
+            .<span class="ident">transpose</span>()
     }
-}
-
-<span class="kw">fn</span> <span class="ident">thread_key</span>(<span class="ident">t</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">bytes</span> <span class="op">=</span> <span class="ident">SLED_TREE_THREAD_PREFIX</span>.<span class="ident">as_bytes</span>().<span class="ident">to_owned</span>();
-    <span class="ident">bytes</span>.<span class="ident">append</span>(<span class="kw-2">&amp;mut</span> <span class="ident">t</span>.<span class="ident">into</span>());
-    <span class="ident">bytes</span>
 }
 
 <span class="kw">impl</span> <span class="ident">MessageStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
@@ -1152,27 +1441,25 @@
             <span class="ident">thread</span>,
             <span class="ident">message</span>.<span class="ident">metadata</span>.<span class="ident">timestamp</span>,
         );
-
-        <span class="kw">let</span> <span class="ident">tree_thread</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">thread_key</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>;
-
         <span class="kw">let</span> <span class="ident">timestamp_bytes</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">metadata</span>.<span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>();
         <span class="kw">let</span> <span class="ident">proto</span>: <span class="ident">ContentProto</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">into</span>();
-        <span class="ident">tree_thread</span>.<span class="ident">insert</span>(<span class="ident">timestamp_bytes</span>, <span class="ident">proto</span>.<span class="ident">encode_to_vec</span>())<span class="question-mark">?</span>;
+
+        <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>);
+        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">key</span>(<span class="kw-2">&amp;</span><span class="ident">tree</span>, <span class="kw-2">&amp;</span><span class="ident">timestamp_bytes</span>);
+
+        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">proto</span>.<span class="ident">encode_to_vec</span>();
+        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
+            <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+            <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">encrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+        )<span class="question-mark">?</span>;
+
+        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">fn</span> <span class="ident">delete_message</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>, <span class="ident">timestamp</span>: <span class="ident">u64</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">thread_key</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>
-            .<span class="ident">remove</span>(<span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>())<span class="question-mark">?</span>
-            .<span class="ident">is_some</span>())
+        <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>);
+        <span class="self">self</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">tree</span>, <span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>())
     }
 
     <span class="kw">fn</span> <span class="ident">message</span>(
@@ -1180,47 +1467,56 @@
         <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>,
         <span class="ident">timestamp</span>: <span class="ident">u64</span>,
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">libsignal_service::prelude::Content</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tree_thread</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">thread_key</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>;
         <span class="comment">// Big-Endian needed, otherwise wrong ordering in sled.</span>
-        <span class="kw">let</span> <span class="ident">val</span> <span class="op">=</span> <span class="ident">tree_thread</span>.<span class="ident">get</span>(<span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>())<span class="question-mark">?</span>;
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">val</span>) <span class="op">=</span> <span class="ident">val</span> {
-            <span class="kw">let</span> <span class="ident">proto</span> <span class="op">=</span> <span class="ident">ContentProto::decode</span>(<span class="kw-2">&amp;</span><span class="ident">val</span>[..])<span class="question-mark">?</span>;
-            <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">proto</span>.<span class="ident">try_into</span>()<span class="question-mark">?</span>;
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">content</span>))
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+        <span class="kw">let</span> <span class="ident">val</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get</span>(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>),
+            <span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>(),
+        )<span class="question-mark">?</span>;
+        <span class="kw">match</span> <span class="ident">val</span> {
+            <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">v</span>) =&gt; {
+                <span class="kw">let</span> <span class="ident">proto</span> <span class="op">=</span> <span class="ident">ContentProto::decode</span>(<span class="ident">v</span>.<span class="ident">as_slice</span>())<span class="question-mark">?</span>;
+                <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">proto</span>.<span class="ident">try_into</span>()<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">content</span>))
+            }
+            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
     }
 
     <span class="kw">fn</span> <span class="ident">messages</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>, <span class="ident">from</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u64</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::MessagesIter</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tree_thread</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">try_read</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;poisoned mutex&quot;</span>)
-            .<span class="ident">open_tree</span>(<span class="ident">thread_key</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>;
+        <span class="kw">let</span> <span class="ident">tree_thread</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>;
+        <span class="macro">debug!</span>(<span class="string">&quot;{} messages in this tree&quot;</span>, <span class="ident">tree_thread</span>.<span class="ident">len</span>());
         <span class="kw">let</span> <span class="ident">iter</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">from</span>) <span class="op">=</span> <span class="ident">from</span> {
             <span class="ident">tree_thread</span>.<span class="ident">range</span>(..<span class="ident">from</span>.<span class="ident">to_be_bytes</span>())
         } <span class="kw">else</span> {
             <span class="ident">tree_thread</span>.<span class="ident">range</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">std::ops::RangeFull</span><span class="op">&gt;</span>(..)
         };
-        <span class="prelude-val">Ok</span>(<span class="ident">SledMessagesIter</span>(<span class="ident">iter</span>.<span class="ident">rev</span>()))
+        <span class="prelude-val">Ok</span>(<span class="ident">SledMessagesIter</span> {
+            <span class="ident">cipher</span>: <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">clone</span>(),
+            <span class="ident">iter</span>: <span class="ident">iter</span>.<span class="ident">rev</span>(),
+        })
     }
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledMessagesIter</span>(<span class="ident">std::iter::Rev</span><span class="op">&lt;</span><span class="ident">sled::Iter</span><span class="op">&gt;</span>);
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledMessagesIter</span> {
+    <span class="ident">cipher</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">StoreCipher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+    <span class="ident">iter</span>: <span class="ident">std::iter::Rev</span><span class="op">&lt;</span><span class="ident">sled::Iter</span><span class="op">&gt;</span>,
+}
 
 <span class="kw">impl</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">SledMessagesIter</span> {
-    <span class="comment">// TODO: If error, throw away the rest. Maybe return Result&lt;Content, Error&gt;?</span>
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">Content</span>;
+    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Content</span>, <span class="ident">Error</span><span class="op">&gt;</span>;
 
     <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::Item</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ivec</span> <span class="op">=</span> <span class="self">self</span>.<span class="number">0</span>.<span class="ident">next</span>()<span class="question-mark">?</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>.<span class="number">1</span>;
-        <span class="kw">let</span> <span class="ident">proto</span> <span class="op">=</span> <span class="ident">ContentProto::decode</span>(<span class="kw-2">&amp;</span><span class="kw-2">*</span><span class="ident">ivec</span>).<span class="ident">ok</span>()<span class="question-mark">?</span>;
-        <span class="ident">proto</span>.<span class="ident">try_into</span>().<span class="ident">ok</span>()
+        <span class="self">self</span>.<span class="ident">iter</span>
+            .<span class="ident">next</span>()<span class="question-mark">?</span>
+            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+            .<span class="ident">and_then</span>(<span class="op">|</span>(<span class="kw">_</span>, <span class="ident">value</span>)<span class="op">|</span> {
+                <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
+                    <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+                    <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">decrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+                )
+            })
+            .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">data</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">ContentProto::decode</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>[..]).<span class="ident">map_err</span>(<span class="ident">Error::from</span>))
+            .<span class="ident">map_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(<span class="ident">e</span>)), <span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">p</span>.<span class="ident">try_into</span>()))
     }
 }
 

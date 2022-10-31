@@ -34,12 +34,6 @@
 <span id="34">34</span>
 <span id="35">35</span>
 <span id="36">36</span>
-<span id="37">37</span>
-<span id="38">38</span>
-<span id="39">39</span>
-<span id="40">40</span>
-<span id="41">41</span>
-<span id="42">42</span>
 </pre><pre class="rust"><code><span class="kw">mod</span> <span class="ident">cache</span>;
 <span class="kw">mod</span> <span class="ident">errors</span>;
 <span class="kw">mod</span> <span class="ident">manager</span>;
@@ -47,13 +41,7 @@
 <span class="kw">mod</span> <span class="ident">store</span>;
 
 <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;sled-store&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">store::sled::SledStore</span>;
-
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;secret-volatile-store&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">store::secret_volatile::SecretVolatileStore</span>;
-
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;volatile-store&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">store::volatile::VolatileStore</span>;
+<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">store::sled</span>::{<span class="ident">MigrationConflictStrategy</span>, <span class="ident">SledStore</span>};
 
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">errors::Error</span>;
 <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">manager</span>::{<span class="ident">Confirmation</span>, <span class="ident">Linking</span>, <span class="ident">Manager</span>, <span class="ident">Registered</span>, <span class="ident">Registration</span>, <span class="ident">RegistrationOptions</span>};
