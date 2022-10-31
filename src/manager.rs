@@ -122,10 +122,10 @@ impl<C: Store> Manager<C, Registration> {
     ///
     ///     use presage::{
     ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, RegistrationOptions, SledStore,
+    ///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy
     ///     };
     ///
-    ///     let config_store = SledStore::new("/tmp/presage-example")?;
+    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let manager = Manager::register(
     ///         config_store,
@@ -204,12 +204,12 @@ impl<C: Store> Manager<C, Linking> {
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledStore};
+    /// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};
     /// use futures::{channel::oneshot, future, StreamExt};
     ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
-    ///     let config_store = SledStore::new("/tmp/presage-example")?;
+    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -579,7 +579,7 @@ impl<C: Store> Manager<C, Registered> {
     /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
     /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
     pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
-        Ok(self.config_store.contacts()?.into_iter())
+        self.config_store.contacts()
     }
 
     pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {

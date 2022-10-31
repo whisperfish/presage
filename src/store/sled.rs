@@ -23,6 +23,7 @@ use log::{debug, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use sha2::{Digest, Sha256};
 use sled::Batch;
 
 use super::{ContactsStore, MessageStore, StateStore};
@@ -199,10 +200,16 @@ impl SledStore {
 
     /// build a hashed messages thread key
     fn messages_thread_tree_name(&self, t: &Thread) -> String {
-        match t {
+        let key = match t {
             Thread::Contact(uuid) => format!("{SLED_TREE_THREAD_PREFIX}:contact:{uuid}"),
-            Thread::Group(group_id) => format!("{SLED_TREE_THREAD_PREFIX}:group:{}", base64::encode(group_id)),
-        }
+            Thread::Group(group_id) => format!(
+                "{SLED_TREE_THREAD_PREFIX}:group:{}",
+                base64::encode(group_id)
+            ),
+        };
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        format!("{SLED_TREE_THREAD_PREFIX}:{:x}", hasher.finalize())
     }
 }
 
@@ -217,22 +224,21 @@ fn migrate(
         |value| serde_json::from_slice(&value[..]),
     )?;
 
+    let db = database.clone();
     let run_migrations = move || {
         // open the DB again
         for step in stored_version.steps() {
             match step {
-                // migration from v0 to v1
-                SchemaVersion::V0 => {
-                    // here we go!
-                    unreachable!("this is a V0 database")
-                },
+                SchemaVersion::V1 => {
+                    warn!("migrating from v0, nothing to do")
+                }
                 _ => return Err(Error::MigrationConflict),
             }
 
-            // database.insert(
-            //     SLED_KEY_SCHEMA_VERSION,
-            //     serde_json::to_vec(&step)?.as_slice(),
-            // )?;
+            db.insert(
+                SLED_KEY_SCHEMA_VERSION,
+                serde_json::to_vec(&step)?.as_slice(),
+            )?;
         }
 
         Ok(())
@@ -252,7 +258,7 @@ fn migrate(
                 ));
                 fs_extra::dir::create_all(&new_db_path, false)?;
                 fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
-                
+
                 for tree in database.tree_names() {
                     database.drop_tree(tree)?;
                 }
@@ -329,7 +335,7 @@ impl ContactsStore for SledStore {
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
         for contact in contacts {
             if let Some(uuid) = contact.address.uuid {
-                self.insert(SLED_KEY_CONTACTS, uuid.to_string(), contact)?;
+                self.insert(SLED_KEY_CONTACTS, uuid, contact)?;
             } else {
                 warn!("skipping contact {:?} without uuid", contact);
             }
@@ -347,7 +353,7 @@ impl ContactsStore for SledStore {
     }
 
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        self.get(SLED_KEY_CONTACTS, &id.to_string())?
+        self.get(SLED_KEY_CONTACTS, id)?
             .map(|b: Vec<u8>| serde_json::from_slice(&b))
             .transpose()
             .map_err(Error::from)
@@ -648,8 +654,10 @@ impl MessageStore for SledStore {
         timestamp: u64,
     ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
         // Big-Endian needed, otherwise wrong ordering in sled.
-        let val: Option<Vec<u8>> =
-            self.get(&self.messages_thread_tree_name(thread), timestamp.to_be_bytes())?;
+        let val: Option<Vec<u8>> = self.get(
+            &self.messages_thread_tree_name(thread),
+            timestamp.to_be_bytes(),
+        )?;
         match val {
             Some(ref v) => {
                 let proto = ContentProto::decode(v.as_slice())?;

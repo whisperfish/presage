@@ -14,7 +14,8 @@ use presage::{
         Contact, GroupMasterKey, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    Manager, MessageStore, Registered, RegistrationOptions, SledStore, Store, Thread, MigrationConflictStrategy,
+    Manager, MessageStore, MigrationConflictStrategy, Registered, RegistrationOptions, SledStore,
+    Store, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -162,7 +163,11 @@ async fn main() -> anyhow::Result<()> {
             .into()
     });
     debug!("opening config database from {}", db_path.display());
-    let config_store = SledStore::open_with_passphrase(db_path, args.passphrase, MigrationConflictStrategy::BackupAndDrop)?;
+    let config_store = SledStore::open_with_passphrase(
+        db_path,
+        args.passphrase,
+        MigrationConflictStrategy::BackupAndDrop,
+    )?;
     run(args.subcommand, config_store).await
 }
 

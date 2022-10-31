@@ -5,7 +5,7 @@ mod proto;
 mod store;
 
 #[cfg(feature = "sled-store")]
-pub use store::sled::{SledStore, MigrationConflictStrategy};
+pub use store::sled::{MigrationConflictStrategy, SledStore};
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
