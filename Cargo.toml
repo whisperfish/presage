@@ -59,9 +59,9 @@ default = ["sled-store"]
 quirks = []
 sled-store = ["sled", "matrix-sdk-store-encryption"]
 
-#[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
-#libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-#libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
+[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
+libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 
 [patch.crates-io]
 "curve25519-dalek" = { git = 'https://github.com/signalapp/curve25519-dalek', branch = 'lizard2' }

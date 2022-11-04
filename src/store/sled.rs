@@ -11,9 +11,9 @@ use libsignal_service::{
     prelude::{
         protocol::{
             Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, SessionRecord, SessionStore,
-            SessionStoreExt, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, SenderKeyRecord, SenderKeyStore,
+            SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
+            SignedPreKeyRecord, SignedPreKeyStore,
         },
         Content, Uuid,
     },
@@ -43,6 +43,7 @@ const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_IDENTITIES: &str = "identities";
 const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_THREAD_PREFIX: &str = "threads";
+const SLED_TREE_SENDER_KEYS: &str = "sender_keys";
 
 #[derive(Clone)]
 pub struct SledStore {
@@ -614,6 +615,45 @@ impl IdentityKeyStore for SledStore {
         self.get(SLED_TREE_IDENTITIES, address.to_string())
             .map_err(Error::into_signal_error)?
             .map(|b: Vec<u8>| IdentityKey::decode(&b))
+            .transpose()
+    }
+}
+
+#[async_trait(?Send)]
+impl SenderKeyStore for SledStore {
+    async fn store_sender_key(
+        &mut self,
+        sender: &ProtocolAddress,
+        distribution_id: Uuid,
+        record: &SenderKeyRecord,
+        _ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        let key = format!(
+            "{}.{}/{}",
+            sender.name(),
+            sender.device_id(),
+            distribution_id
+        );
+        dbg!("SAVING SENDER KEY");
+        self.insert(SLED_TREE_SENDER_KEYS, &key, record.serialize()?)
+            .map_err(Error::into_signal_error)
+    }
+
+    async fn load_sender_key(
+        &mut self,
+        sender: &ProtocolAddress,
+        distribution_id: Uuid,
+        _ctx: Context,
+    ) -> Result<Option<SenderKeyRecord>, SignalProtocolError> {
+        let key = format!(
+            "{}.{}/{}",
+            sender.name(),
+            sender.device_id(),
+            distribution_id
+        );
+        self.get(SLED_TREE_SENDER_KEYS, &key)
+            .map_err(Error::into_signal_error)?
+            .map(|b: Vec<u8>| SenderKeyRecord::deserialize(&b))
             .transpose()
     }
 }

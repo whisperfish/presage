@@ -9,6 +9,7 @@ use std::str::FromStr;
 use self::textsecure::AddressProto;
 use self::textsecure::MetadataProto;
 use crate::prelude::{PhoneNumber, ServiceAddress};
+use crate::Error;
 use libsignal_service::content::ContentBody;
 use libsignal_service::content::Metadata;
 use libsignal_service::prelude::Content;
@@ -105,7 +106,6 @@ impl TryInto<Content> for ContentProto {
     type Error = crate::Error;
 
     fn try_into(self) -> Result<Content, Self::Error> {
-        Content::from_proto(self.content, self.metadata.into())
-            .ok_or(crate::Error::ContentMissingMessage)
+        Content::from_proto(self.content, self.metadata.into()).map_err(Error::from)
     }
 }
