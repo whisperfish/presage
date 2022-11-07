@@ -634,7 +634,6 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        dbg!("SAVING SENDER KEY");
         self.insert(SLED_TREE_SENDER_KEYS, &key, record.serialize()?)
             .map_err(Error::into_signal_error)
     }

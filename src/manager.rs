@@ -571,7 +571,7 @@ impl<C: Store> Manager<C, Registered> {
         profile_key: [u8; 32],
     ) -> Result<Profile, Error> {
         let mut account_manager = AccountManager::new(self.push_service()?, Some(profile_key));
-        Ok(account_manager.retrieve_profile(uuid).await?)
+        Ok(account_manager.retrieve_profile(uuid.into()).await?)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
