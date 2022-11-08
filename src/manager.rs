@@ -41,9 +41,9 @@ use libsignal_service_hyper::push_service::HyperPushService;
 use crate::{cache::CacheCell, Thread};
 use crate::{store::Store, Error};
 
-type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, ThreadRng>;
+type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, ThreadRng>;
 type MessageSender<C> =
-    libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, ThreadRng>;
+    libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, C, ThreadRng>;
 
 #[derive(Clone)]
 pub struct Manager<Store, State> {
@@ -571,7 +571,7 @@ impl<C: Store> Manager<C, Registered> {
         profile_key: [u8; 32],
     ) -> Result<Profile, Error> {
         let mut account_manager = AccountManager::new(self.push_service()?, Some(profile_key));
-        Ok(account_manager.retrieve_profile(uuid).await?)
+        Ok(account_manager.retrieve_profile(uuid.into()).await?)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
@@ -598,9 +598,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Starts receiving and storing messages.
     ///
-    /// Returns a [Stream] of messages to consume.
-    ///
-    /// **Note**: messages that aren't consumed will be gone from the Signal servers, as internally we ACK all incoming messages.
+    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
     pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
@@ -880,6 +878,7 @@ impl<C: Store> Manager<C, Registered> {
     fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let service_cipher = ServiceCipher::new(
+            self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),

@@ -3,7 +3,9 @@ use libsignal_service::{
     content::ContentBody,
     models::Contact,
     prelude::{
-        protocol::{IdentityKeyStore, PreKeyStore, SessionStoreExt, SignedPreKeyStore},
+        protocol::{
+            IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
+        },
         Content, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
@@ -26,6 +28,7 @@ pub trait Store:
     + StateStore<Registered>
     + ContactsStore
     + MessageStore
+    + SenderKeyStore
     + Sync
     + Clone
 {
