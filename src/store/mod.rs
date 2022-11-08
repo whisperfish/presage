@@ -2,13 +2,17 @@ use crate::{manager::Registered, Error};
 use libsignal_service::{
     content::ContentBody,
     models::Contact,
+    prelude::{Content, Uuid},
+};
+
+pub use libsignal_service::{
+    models::Contact,
     prelude::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
         Content, Uuid,
     },
-    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
 
 #[cfg(feature = "sled-store")]
