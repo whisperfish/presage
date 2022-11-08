@@ -141,12 +141,17 @@
 <span id="141">141</span>
 <span id="142">142</span>
 <span id="143">143</span>
+<span id="144">144</span>
+<span id="145">145</span>
+<span id="146">146</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">manager::Registered</span>, <span class="ident">Error</span>};
 <span class="kw">use</span> <span class="ident">libsignal_service</span>::{
     <span class="ident">content::ContentBody</span>,
     <span class="ident">models::Contact</span>,
     <span class="ident">prelude</span>::{
-        <span class="ident">protocol</span>::{<span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeyStore</span>, <span class="ident">SessionStoreExt</span>, <span class="ident">SignedPreKeyStore</span>},
+        <span class="ident">protocol</span>::{
+            <span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeyStore</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SessionStoreExt</span>, <span class="ident">SignedPreKeyStore</span>,
+        },
         <span class="ident">Content</span>, <span class="ident">Uuid</span>,
     },
     <span class="ident">proto</span>::{<span class="ident">sync_message::Sent</span>, <span class="ident">DataMessage</span>, <span class="ident">GroupContextV2</span>, <span class="ident">SyncMessage</span>},
@@ -169,6 +174,7 @@
     <span class="op">+</span> <span class="ident">StateStore</span><span class="op">&lt;</span><span class="ident">Registered</span><span class="op">&gt;</span>
     <span class="op">+</span> <span class="ident">ContactsStore</span>
     <span class="op">+</span> <span class="ident">MessageStore</span>
+    <span class="op">+</span> <span class="ident">SenderKeyStore</span>
     <span class="op">+</span> <span class="ident">Sync</span>
     <span class="op">+</span> <span class="ident">Clone</span>
 {

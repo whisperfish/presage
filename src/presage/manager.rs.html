@@ -892,7 +892,6 @@
 <span id="892">892</span>
 <span id="893">893</span>
 <span id="894">894</span>
-<span id="895">895</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
 
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">channel::oneshot</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
@@ -936,9 +935,9 @@
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">cache::CacheCell</span>, <span class="ident">Thread</span>};
 <span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">store::Store</span>, <span class="ident">Error</span>};
 
-<span class="kw">type</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">cipher::ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
+<span class="kw">type</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">cipher::ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
 <span class="kw">type</span> <span class="ident">MessageSender</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="op">=</span>
-    <span class="ident">libsignal_service::prelude::MessageSender</span><span class="op">&lt;</span><span class="ident">HyperPushService</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
+    <span class="ident">libsignal_service::prelude::MessageSender</span><span class="op">&lt;</span><span class="ident">HyperPushService</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">Store</span>, <span class="ident">State</span><span class="op">&gt;</span> {
@@ -1466,7 +1465,7 @@
         <span class="ident">profile_key</span>: [<span class="ident">u8</span>; <span class="number">32</span>],
     ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Profile</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">account_manager</span> <span class="op">=</span> <span class="ident">AccountManager::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="ident">profile_key</span>));
-        <span class="prelude-val">Ok</span>(<span class="ident">account_manager</span>.<span class="ident">retrieve_profile</span>(<span class="ident">uuid</span>).<span class="kw">await</span><span class="question-mark">?</span>)
+        <span class="prelude-val">Ok</span>(<span class="ident">account_manager</span>.<span class="ident">retrieve_profile</span>(<span class="ident">uuid</span>.<span class="ident">into</span>()).<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].</span>
@@ -1493,9 +1492,7 @@
 
     <span class="doccomment">/// Starts receiving and storing messages.</span>
     <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns a [Stream] of messages to consume.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// **Note**: messages that aren&#39;t consumed will be gone from the Signal servers, as internally we ACK all incoming messages.</span>
+    <span class="doccomment">/// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].</span>
     <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">receive_messages</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">Content</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">struct</span> <span class="ident">StreamState</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span> {
             <span class="ident">encrypted_messages</span>: <span class="ident">S</span>,
@@ -1775,6 +1772,7 @@
     <span class="kw">fn</span> <span class="ident">new_service_cipher</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
         <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>.<span class="ident">into</span>();
         <span class="kw">let</span> <span class="ident">service_cipher</span> <span class="op">=</span> <span class="ident">ServiceCipher::new</span>(
+            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
             <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
             <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
             <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),

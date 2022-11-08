@@ -68,8 +68,6 @@
 <span id="68">68</span>
 <span id="69">69</span>
 <span id="70">70</span>
-<span id="71">71</span>
-<span id="72">72</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::borrow::Cow</span>;
 
 <span class="kw">use</span> <span class="ident">libsignal_service</span>::{<span class="ident">models::ParseContactError</span>, <span class="ident">prelude::protocol::SignalProtocolError</span>};
@@ -129,8 +127,6 @@
     <span class="ident">AttachmentCipherError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">libsignal_service::attachment_cipher::AttachmentCipherError</span>),
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;message is missing a uuid&quot;</span>)]</span>
     <span class="ident">ContentMissingUuid</span>,
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;invalid content, no valid messages&quot;</span>)]</span>
-    <span class="ident">ContentMissingMessage</span>,
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;database migration is not supported&quot;</span>)]</span>
     <span class="ident">MigrationConflict</span>,
     <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;I/O error: {0}&quot;</span>)]</span>

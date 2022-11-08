@@ -812,6 +812,45 @@
 <span id="812">812</span>
 <span id="813">813</span>
 <span id="814">814</span>
+<span id="815">815</span>
+<span id="816">816</span>
+<span id="817">817</span>
+<span id="818">818</span>
+<span id="819">819</span>
+<span id="820">820</span>
+<span id="821">821</span>
+<span id="822">822</span>
+<span id="823">823</span>
+<span id="824">824</span>
+<span id="825">825</span>
+<span id="826">826</span>
+<span id="827">827</span>
+<span id="828">828</span>
+<span id="829">829</span>
+<span id="830">830</span>
+<span id="831">831</span>
+<span id="832">832</span>
+<span id="833">833</span>
+<span id="834">834</span>
+<span id="835">835</span>
+<span id="836">836</span>
+<span id="837">837</span>
+<span id="838">838</span>
+<span id="839">839</span>
+<span id="840">840</span>
+<span id="841">841</span>
+<span id="842">842</span>
+<span id="843">843</span>
+<span id="844">844</span>
+<span id="845">845</span>
+<span id="846">846</span>
+<span id="847">847</span>
+<span id="848">848</span>
+<span id="849">849</span>
+<span id="850">850</span>
+<span id="851">851</span>
+<span id="852">852</span>
+<span id="853">853</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{
     <span class="ident">ops::Range</span>,
     <span class="ident">path::Path</span>,
@@ -825,9 +864,9 @@
     <span class="ident">prelude</span>::{
         <span class="ident">protocol</span>::{
             <span class="ident">Context</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKey</span>, <span class="ident">IdentityKeyPair</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeyId</span>,
-            <span class="ident">PreKeyRecord</span>, <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">SessionRecord</span>, <span class="ident">SessionStore</span>,
-            <span class="ident">SessionStoreExt</span>, <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyId</span>, <span class="ident">SignedPreKeyRecord</span>,
-            <span class="ident">SignedPreKeyStore</span>,
+            <span class="ident">PreKeyRecord</span>, <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">SenderKeyRecord</span>, <span class="ident">SenderKeyStore</span>,
+            <span class="ident">SessionRecord</span>, <span class="ident">SessionStore</span>, <span class="ident">SessionStoreExt</span>, <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyId</span>,
+            <span class="ident">SignedPreKeyRecord</span>, <span class="ident">SignedPreKeyStore</span>,
         },
         <span class="ident">Content</span>, <span class="ident">Uuid</span>,
     },
@@ -857,6 +896,7 @@
 <span class="kw">const</span> <span class="ident">SLED_TREE_IDENTITIES</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;identities&quot;</span>;
 <span class="kw">const</span> <span class="ident">SLED_TREE_SESSIONS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;sessions&quot;</span>;
 <span class="kw">const</span> <span class="ident">SLED_TREE_THREAD_PREFIX</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;threads&quot;</span>;
+<span class="kw">const</span> <span class="ident">SLED_TREE_SENDER_KEYS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;sender_keys&quot;</span>;
 
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
 <span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledStore</span> {
@@ -1428,6 +1468,44 @@
         <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_IDENTITIES</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
             .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
             .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
+            .<span class="ident">transpose</span>()
+    }
+}
+
+<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
+<span class="kw">impl</span> <span class="ident">SenderKeyStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
+    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">store_sender_key</span>(
+        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
+        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
+        <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
+        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SenderKeyRecord</span>,
+        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
+    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="macro">format!</span>(
+            <span class="string">&quot;{}.{}/{}&quot;</span>,
+            <span class="ident">sender</span>.<span class="ident">name</span>(),
+            <span class="ident">sender</span>.<span class="ident">device_id</span>(),
+            <span class="ident">distribution_id</span>
+        );
+        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_SENDER_KEYS</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)
+    }
+
+    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">load_sender_key</span>(
+        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
+        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
+        <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
+        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
+    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SenderKeyRecord</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="macro">format!</span>(
+            <span class="string">&quot;{}.{}/{}&quot;</span>,
+            <span class="ident">sender</span>.<span class="ident">name</span>(),
+            <span class="ident">sender</span>.<span class="ident">device_id</span>(),
+            <span class="ident">distribution_id</span>
+        );
+        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_SENDER_KEYS</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>)
+            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
+            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">SenderKeyRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
             .<span class="ident">transpose</span>()
     }
 }

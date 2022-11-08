@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/8666ba5/libsignal-service/src/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/0e851d8/libsignal-service/src/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -422,16 +422,140 @@
 <span id="422">422</span>
 <span id="423">423</span>
 <span id="424">424</span>
+<span id="425">425</span>
+<span id="426">426</span>
+<span id="427">427</span>
+<span id="428">428</span>
+<span id="429">429</span>
+<span id="430">430</span>
+<span id="431">431</span>
+<span id="432">432</span>
+<span id="433">433</span>
+<span id="434">434</span>
+<span id="435">435</span>
+<span id="436">436</span>
+<span id="437">437</span>
+<span id="438">438</span>
+<span id="439">439</span>
+<span id="440">440</span>
+<span id="441">441</span>
+<span id="442">442</span>
+<span id="443">443</span>
+<span id="444">444</span>
+<span id="445">445</span>
+<span id="446">446</span>
+<span id="447">447</span>
+<span id="448">448</span>
+<span id="449">449</span>
+<span id="450">450</span>
+<span id="451">451</span>
+<span id="452">452</span>
+<span id="453">453</span>
+<span id="454">454</span>
+<span id="455">455</span>
+<span id="456">456</span>
+<span id="457">457</span>
+<span id="458">458</span>
+<span id="459">459</span>
+<span id="460">460</span>
+<span id="461">461</span>
+<span id="462">462</span>
+<span id="463">463</span>
+<span id="464">464</span>
+<span id="465">465</span>
+<span id="466">466</span>
+<span id="467">467</span>
+<span id="468">468</span>
+<span id="469">469</span>
+<span id="470">470</span>
+<span id="471">471</span>
+<span id="472">472</span>
+<span id="473">473</span>
+<span id="474">474</span>
+<span id="475">475</span>
+<span id="476">476</span>
+<span id="477">477</span>
+<span id="478">478</span>
+<span id="479">479</span>
+<span id="480">480</span>
+<span id="481">481</span>
+<span id="482">482</span>
+<span id="483">483</span>
+<span id="484">484</span>
+<span id="485">485</span>
+<span id="486">486</span>
+<span id="487">487</span>
+<span id="488">488</span>
+<span id="489">489</span>
+<span id="490">490</span>
+<span id="491">491</span>
+<span id="492">492</span>
+<span id="493">493</span>
+<span id="494">494</span>
+<span id="495">495</span>
+<span id="496">496</span>
+<span id="497">497</span>
+<span id="498">498</span>
+<span id="499">499</span>
+<span id="500">500</span>
+<span id="501">501</span>
+<span id="502">502</span>
+<span id="503">503</span>
+<span id="504">504</span>
+<span id="505">505</span>
+<span id="506">506</span>
+<span id="507">507</span>
+<span id="508">508</span>
+<span id="509">509</span>
+<span id="510">510</span>
+<span id="511">511</span>
+<span id="512">512</span>
+<span id="513">513</span>
+<span id="514">514</span>
+<span id="515">515</span>
+<span id="516">516</span>
+<span id="517">517</span>
+<span id="518">518</span>
+<span id="519">519</span>
+<span id="520">520</span>
+<span id="521">521</span>
+<span id="522">522</span>
+<span id="523">523</span>
+<span id="524">524</span>
+<span id="525">525</span>
+<span id="526">526</span>
+<span id="527">527</span>
+<span id="528">528</span>
+<span id="529">529</span>
+<span id="530">530</span>
+<span id="531">531</span>
+<span id="532">532</span>
+<span id="533">533</span>
+<span id="534">534</span>
+<span id="535">535</span>
+<span id="536">536</span>
+<span id="537">537</span>
+<span id="538">538</span>
+<span id="539">539</span>
+<span id="540">540</span>
+<span id="541">541</span>
+<span id="542">542</span>
+<span id="543">543</span>
+<span id="544">544</span>
+<span id="545">545</span>
+<span id="546">546</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::convert::TryFrom</span>;
 
 <span class="kw">use</span> <span class="ident">block_modes::block_padding</span>::{<span class="ident">Iso7816</span>, <span class="ident">Padding</span>};
 <span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{
-    <span class="ident">message_decrypt_prekey</span>, <span class="ident">message_decrypt_signal</span>, <span class="ident">message_encrypt</span>,
-    <span class="ident">sealed_sender_decrypt</span>, <span class="ident">sealed_sender_encrypt</span>, <span class="ident">CiphertextMessageType</span>,
-    <span class="ident">DeviceId</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeySignalMessage</span>, <span class="ident">PreKeyStore</span>,
-    <span class="ident">ProtocolAddress</span>, <span class="ident">PublicKey</span>, <span class="ident">SealedSenderDecryptionResult</span>,
-    <span class="ident">SenderCertificate</span>, <span class="ident">SessionStore</span>, <span class="ident">SignalMessage</span>, <span class="ident">SignalProtocolError</span>,
-    <span class="ident">SignedPreKeyStore</span>,
+    <span class="ident">group_decrypt</span>, <span class="ident">message_decrypt_prekey</span>, <span class="ident">message_decrypt_signal</span>,
+    <span class="ident">message_encrypt</span>, <span class="ident">process_sender_key_distribution_message</span>,
+    <span class="ident">sealed_sender_decrypt_to_usmc</span>, <span class="ident">sealed_sender_encrypt</span>,
+    <span class="ident">CiphertextMessageType</span>, <span class="ident">Context</span>, <span class="ident">DeviceId</span>, <span class="ident">IdentityKeyStore</span>,
+    <span class="ident">PreKeySignalMessage</span>, <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">PublicKey</span>,
+    <span class="ident">SealedSenderDecryptionResult</span>, <span class="ident">SenderCertificate</span>,
+    <span class="ident">SenderKeyDistributionMessage</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SessionStore</span>, <span class="ident">SignalMessage</span>,
+    <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyStore</span>,
 };
 <span class="kw">use</span> <span class="ident">prost::Message</span>;
 <span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">CryptoRng</span>, <span class="ident">Rng</span>};
@@ -444,27 +568,28 @@
     <span class="ident">sender::OutgoingPushMessage</span>,
     <span class="ident">ServiceAddress</span>,
 };
-
 <span class="doccomment">/// Decrypts incoming messages and encrypts outgoing messages.</span>
 <span class="doccomment">///</span>
 <span class="doccomment">/// Equivalent of SignalServiceCipher in Java.</span>
 <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">R</span><span class="op">&gt;</span> {
+<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span> {
     <span class="ident">session_store</span>: <span class="ident">S</span>,
     <span class="ident">identity_key_store</span>: <span class="ident">I</span>,
     <span class="ident">signed_pre_key_store</span>: <span class="ident">SP</span>,
     <span class="ident">pre_key_store</span>: <span class="ident">P</span>,
+    <span class="ident">sender_key_store</span>: <span class="ident">SK</span>,
     <span class="ident">csprng</span>: <span class="ident">R</span>,
     <span class="ident">trust_root</span>: <span class="ident">PublicKey</span>,
     <span class="ident">local_uuid</span>: <span class="ident">Uuid</span>,
     <span class="ident">local_device_id</span>: <span class="ident">u32</span>,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">R</span><span class="op">&gt;</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">R</span><span class="op">&gt;</span>
+<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span>
 <span class="kw">where</span>
     <span class="ident">S</span>: <span class="ident">SessionStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
     <span class="ident">I</span>: <span class="ident">IdentityKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
     <span class="ident">SP</span>: <span class="ident">SignedPreKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
+    <span class="ident">SK</span>: <span class="ident">SenderKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
     <span class="ident">P</span>: <span class="ident">PreKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
     <span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span> <span class="op">+</span> <span class="ident">Clone</span>,
 {
@@ -474,6 +599,7 @@
         <span class="ident">identity_key_store</span>: <span class="ident">I</span>,
         <span class="ident">signed_pre_key_store</span>: <span class="ident">SP</span>,
         <span class="ident">pre_key_store</span>: <span class="ident">P</span>,
+        <span class="ident">sender_key_store</span>: <span class="ident">SK</span>,
         <span class="ident">csprng</span>: <span class="ident">R</span>,
         <span class="ident">trust_root</span>: <span class="ident">PublicKey</span>,
         <span class="ident">local_uuid</span>: <span class="ident">Uuid</span>,
@@ -484,6 +610,7 @@
             <span class="ident">identity_key_store</span>,
             <span class="ident">signed_pre_key_store</span>,
             <span class="ident">pre_key_store</span>,
+            <span class="ident">sender_key_store</span>,
             <span class="ident">csprng</span>,
             <span class="ident">trust_root</span>,
             <span class="ident">local_uuid</span>,
@@ -507,7 +634,20 @@
             <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">envelope</span>).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span>
                 <span class="ident"><span class="kw">crate</span>::proto::Content::decode</span>(<span class="ident">plaintext</span>.<span class="ident">data</span>.<span class="ident">as_slice</span>())<span class="question-mark">?</span>;
-            <span class="prelude-val">Ok</span>(<span class="ident">Content::from_proto</span>(<span class="ident">message</span>, <span class="ident">plaintext</span>.<span class="ident">metadata</span>))
+            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">bytes</span>) <span class="op">=</span> <span class="ident">message</span>.<span class="ident">sender_key_distribution_message</span> {
+                <span class="kw">let</span> <span class="ident">skdm</span> <span class="op">=</span> <span class="ident">SenderKeyDistributionMessage::try_from</span>(<span class="kw-2">&amp;</span><span class="ident">bytes</span>[..])<span class="question-mark">?</span>;
+                <span class="ident">process_sender_key_distribution_message</span>(
+                    <span class="kw-2">&amp;</span><span class="ident">plaintext</span>.<span class="ident">metadata</span>.<span class="ident">protocol_address</span>(),
+                    <span class="kw-2">&amp;</span><span class="ident">skdm</span>,
+                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">sender_key_store</span>,
+                    <span class="prelude-val">None</span>,
+                )
+                .<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+            } <span class="kw">else</span> {
+                <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">Content::from_proto</span>(<span class="ident">message</span>, <span class="ident">plaintext</span>.<span class="ident">metadata</span>)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">content</span>))
+            }
         } <span class="kw">else</span> {
             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
         }
@@ -631,6 +771,7 @@
                     <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
                     <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">pre_key_store</span>,
                     <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">signed_pre_key_store</span>,
+                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">sender_key_store</span>,
                     <span class="prelude-val">None</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -845,6 +986,109 @@
     }
 
     <span class="prelude-val">Ok</span>(<span class="ident">ProtocolAddress::new</span>(<span class="ident">address</span>.<span class="ident">identifier</span>(), <span class="ident">device_id</span>))
+}
+
+<span class="doccomment">/// Decrypt a Sealed Sender message `ciphertext` in either the v1 or v2 format, validate its sender</span>
+<span class="doccomment">/// certificate, and then decrypt the inner message payload.</span>
+<span class="doccomment">///</span>
+<span class="doccomment">/// This method calls [`sealed_sender_decrypt_to_usmc`] to extract the sender information, including</span>
+<span class="doccomment">/// the embedded [`SenderCertificate`]. The sender certificate (signed by the [`ServerCertificate`])</span>
+<span class="doccomment">/// is then validated against the `trust_root` baked into the client to ensure that the sender&#39;s</span>
+<span class="doccomment">/// identity was not forged.</span>
+<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::too_many_arguments</span>)]</span>
+<span class="kw">async</span> <span class="kw">fn</span> <span class="ident">sealed_sender_decrypt</span>(
+    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
+    <span class="ident">trust_root</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
+    <span class="ident">timestamp</span>: <span class="ident">u64</span>,
+    <span class="ident">local_e164</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="ident">local_uuid</span>: <span class="ident">String</span>,
+    <span class="ident">local_device_id</span>: <span class="ident">DeviceId</span>,
+    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
+    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
+    <span class="ident">pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">PreKeyStore</span>,
+    <span class="ident">signed_pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SignedPreKeyStore</span>,
+    <span class="ident">sender_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SenderKeyStore</span>,
+    <span class="ident">ctx</span>: <span class="ident">Context</span>,
+) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SealedSenderDecryptionResult</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+    <span class="kw">let</span> <span class="ident">usmc</span> <span class="op">=</span>
+        <span class="ident">sealed_sender_decrypt_to_usmc</span>(<span class="ident">ciphertext</span>, <span class="ident">identity_store</span>, <span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+
+    <span class="kw">if</span> <span class="op">!</span><span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">validate</span>(<span class="ident">trust_root</span>, <span class="ident">timestamp</span>)<span class="question-mark">?</span> {
+        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidSealedSenderMessage</span>(
+            <span class="string">&quot;trust root validation failed&quot;</span>.<span class="ident">to_string</span>(),
+        ));
+    }
+
+    <span class="kw">let</span> <span class="ident">is_local_uuid</span> <span class="op">=</span> <span class="ident">local_uuid</span> <span class="op">==</span> <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_uuid</span>()<span class="question-mark">?</span>;
+
+    <span class="kw">let</span> <span class="ident">is_local_e164</span> <span class="op">=</span> <span class="kw">match</span> (<span class="ident">local_e164</span>, <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_e164</span>()<span class="question-mark">?</span>) {
+        (<span class="prelude-val">Some</span>(<span class="ident">l</span>), <span class="prelude-val">Some</span>(<span class="ident">s</span>)) =&gt; <span class="ident">l</span> <span class="op">==</span> <span class="ident">s</span>,
+        (<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
+    };
+
+    <span class="kw">if</span> (<span class="ident">is_local_e164</span> <span class="op">|</span><span class="op">|</span> <span class="ident">is_local_uuid</span>)
+        <span class="op">&amp;&amp;</span> <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_device_id</span>()<span class="question-mark">?</span> <span class="op">==</span> <span class="ident">local_device_id</span>
+    {
+        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::SealedSenderSelfSend</span>);
+    }
+
+    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::rngs::OsRng</span>;
+
+    <span class="kw">let</span> <span class="ident">remote_address</span> <span class="op">=</span> <span class="ident">ProtocolAddress::new</span>(
+        <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_uuid</span>()<span class="question-mark">?</span>.<span class="ident">to_string</span>(),
+        <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_device_id</span>()<span class="question-mark">?</span>,
+    );
+
+    <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">usmc</span>.<span class="ident">msg_type</span>()<span class="question-mark">?</span> {
+        <span class="ident">CiphertextMessageType::Whisper</span> =&gt; {
+            <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">SignalMessage::try_from</span>(<span class="ident">usmc</span>.<span class="ident">contents</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+            <span class="ident">message_decrypt_signal</span>(
+                <span class="kw-2">&amp;</span><span class="ident">ctext</span>,
+                <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
+                <span class="ident">session_store</span>,
+                <span class="ident">identity_store</span>,
+                <span class="kw-2">&amp;mut</span> <span class="ident">rng</span>,
+                <span class="ident">ctx</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>
+        },
+        <span class="ident">CiphertextMessageType::PreKey</span> =&gt; {
+            <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">PreKeySignalMessage::try_from</span>(<span class="ident">usmc</span>.<span class="ident">contents</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+            <span class="ident">message_decrypt_prekey</span>(
+                <span class="kw-2">&amp;</span><span class="ident">ctext</span>,
+                <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
+                <span class="ident">session_store</span>,
+                <span class="ident">identity_store</span>,
+                <span class="ident">pre_key_store</span>,
+                <span class="ident">signed_pre_key_store</span>,
+                <span class="kw-2">&amp;mut</span> <span class="ident">rng</span>,
+                <span class="ident">ctx</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>
+        },
+        <span class="ident">CiphertextMessageType::SenderKey</span> =&gt; {
+            <span class="ident">group_decrypt</span>(
+                <span class="ident">usmc</span>.<span class="ident">contents</span>()<span class="question-mark">?</span>,
+                <span class="ident">sender_key_store</span>,
+                <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
+                <span class="ident">ctx</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>
+        },
+        <span class="ident">msg_type</span> =&gt; {
+            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
+                <span class="ident">msg_type</span>,
+                <span class="string">&quot;unexpected message type for sealed_sender_decrypt&quot;</span>,
+            ));
+        },
+    };
+
+    <span class="prelude-val">Ok</span>(<span class="ident">SealedSenderDecryptionResult</span> {
+        <span class="ident">sender_uuid</span>: <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_uuid</span>()<span class="question-mark">?</span>.<span class="ident">to_string</span>(),
+        <span class="ident">sender_e164</span>: <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_e164</span>()<span class="question-mark">?</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>()),
+        <span class="ident">device_id</span>: <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_device_id</span>()<span class="question-mark">?</span>,
+        <span class="ident">message</span>,
+    })
 }
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
