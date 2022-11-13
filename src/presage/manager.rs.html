@@ -892,6 +892,8 @@
 <span id="892">892</span>
 <span id="893">893</span>
 <span id="894">894</span>
+<span id="895">895</span>
+<span id="896">896</span>
 </pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
 
 <span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">channel::oneshot</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
@@ -1596,7 +1598,8 @@
                 <span class="ident">sender</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>.<span class="ident">into</span>(),
                 <span class="ident">sender_device</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>(),
                 <span class="ident">timestamp</span>,
-                <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>, <span class="comment">// TODO: this is wrong</span>
+                <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>,
+                <span class="ident">unidentified_sender</span>: <span class="bool-val">false</span>,
             },
             <span class="ident">body</span>: <span class="ident">content_body</span>,
         };
@@ -1644,6 +1647,7 @@
                 <span class="ident">sender_device</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>(),
                 <span class="ident">timestamp</span>,
                 <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>, <span class="comment">// TODO: this is just wrong</span>
+                <span class="ident">unidentified_sender</span>: <span class="bool-val">false</span>,
             },
             <span class="ident">body</span>: <span class="ident">message</span>.<span class="ident">into</span>(),
         };
