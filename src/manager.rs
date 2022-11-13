@@ -702,7 +702,8 @@ impl<C: Store> Manager<C, Registered> {
                 sender: self.state.uuid.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
-                needs_receipt: false, // TODO: this is wrong
+                needs_receipt: false,
+                unidentified_sender: false,
             },
             body: content_body,
         };
@@ -750,6 +751,7 @@ impl<C: Store> Manager<C, Registered> {
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
+                unidentified_sender: false,
             },
             body: message.into(),
         };

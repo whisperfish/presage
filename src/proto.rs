@@ -72,6 +72,7 @@ impl From<MetadataProto> for Metadata {
                 .and_then(|m| m.try_into().ok())
                 .unwrap_or_default(),
             needs_receipt: metadata.needs_receipt.unwrap_or_default(),
+            unidentified_sender: false,
         }
     }
 }
