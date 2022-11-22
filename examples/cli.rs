@@ -1,11 +1,13 @@
+use core::fmt;
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
-use anyhow::Context as _;
+use anyhow::{anyhow, bail, Context as _};
 use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
+use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
 use log::{debug, info};
 use presage::{
     prelude::{
@@ -79,7 +81,15 @@ enum Cmd {
     #[clap(about = "Get information on the registered user")]
     Whoami,
     #[clap(about = "Retrieve the user profile")]
-    RetrieveProfile,
+    RetrieveProfile {
+        /// Id of the user to retrieve the profile. When omitted, retrieves the registered user
+        /// profile.
+        #[clap(long)]
+        uuid: Option<Uuid>,
+        /// Base64-encoded profile key of user to be able to access their profile
+        #[clap(long, value_parser = parse_base64_profile_key)]
+        profile_key: Option<ProfileKey>,
+    },
     #[clap(about = "Set a name, status and avatar")]
     UpdateProfile,
     #[clap(about = "Check if a user is registered on Signal")]
@@ -92,6 +102,11 @@ enum Cmd {
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive,
+    /// Get information about a group
+    GetGroup {
+        #[clap(long, short = 'k', value_parser = parse_base64_master_key)]
+        group_master_key: GroupMasterKey,
+    },
     #[clap(about = "List group memberships")]
     ListGroups,
     #[clap(about = "List contacts")]
@@ -388,10 +403,19 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 .await?;
         }
         Cmd::Unregister => unimplemented!(),
-        Cmd::RetrieveProfile => {
+        Cmd::RetrieveProfile { uuid, profile_key } => {
             let manager = Manager::load_registered(config_store)?;
-            let profile = manager.retrieve_profile().await?;
-            println!("{:#?}", profile);
+            let profile = match (uuid, profile_key) {
+                (None, None) => manager.retrieve_profile().await?,
+                (None, Some(_)) => bail!("profile key without provided user uuid"),
+                (Some(_), None) => bail!("user uuid without provided profile key"),
+                (Some(uuid), Some(profile_key)) => {
+                    manager
+                        .retrieve_profile_by_uuid(uuid, profile_key.0)
+                        .await?
+                }
+            };
+            println!("{profile:#?}");
         }
         Cmd::UpdateProfile => unimplemented!(),
         Cmd::GetUserStatus => unimplemented!(),
@@ -451,6 +475,43 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
             }
         }
+        Cmd::GetGroup { group_master_key } => {
+            let manager = Manager::load_registered(config_store)?;
+            let group = manager.get_group_v2(group_master_key).await?;
+            println!("{:#?}", DebugGroup(&group));
+            for member in &group.members {
+                let profile_key = base64::encode(&member.profile_key.bytes);
+                println!("{member:#?} => profile_key = {profile_key}",);
+            }
+        }
     };
     Ok(())
+}
+
+fn parse_base64_master_key(s: &str) -> anyhow::Result<GroupMasterKey> {
+    let bytes = base64::decode(s)?
+        .try_into()
+        .map_err(|_| anyhow!("group master key of invalid length"))?;
+    Ok(GroupMasterKey::new(bytes))
+}
+
+fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
+    let bytes = base64::decode(s)?
+        .try_into()
+        .map_err(|_| anyhow!("profile key of invalid length"))?;
+    Ok(ProfileKey(bytes))
+}
+
+struct DebugGroup<'a>(&'a Group);
+
+impl fmt::Debug for DebugGroup<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let group = &self.0;
+        f.debug_struct("Group")
+            .field("title", &group.title)
+            .field("avatar", &group.avatar)
+            .field("version", &group.version)
+            .field("description", &group.description)
+            .finish()
+    }
 }
