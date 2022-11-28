@@ -457,7 +457,7 @@ impl<C: Store> Manager<C, Registered> {
         })
     }
 
-    async fn register_pre_keys(&mut self) -> Result<(), Error> {
+    pub async fn register_pre_keys(&mut self) -> Result<(), Error> {
         trace!("registering pre keys");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(*self.state.profile_key));
@@ -483,7 +483,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn set_account_attributes(&mut self) -> Result<(), Error> {
+    pub async fn set_account_attributes(&mut self) -> Result<(), Error> {
         trace!("setting account attributes");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(*self.state.profile_key));
