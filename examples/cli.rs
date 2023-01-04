@@ -1,4 +1,5 @@
 use core::fmt;
+use std::convert::TryInto;
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::{anyhow, bail, Context as _};
@@ -7,15 +8,17 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
+use libsignal_service::push_service::WhoAmIResponse;
 use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
 use log::{debug, info};
+use notify_rust::Notification;
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
         proto::sync_message::Sent,
-        Contact, GroupMasterKey, SignalServers,
+        Contact, GroupMasterKey, SignalServers, Uuid,
     },
-    prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
+    prelude::{phonenumber::PhoneNumber, ServiceAddress},
     Manager, MessageStore, MigrationConflictStrategy, Registered, RegistrationOptions, SledStore,
     Store, Thread,
 };
@@ -31,6 +34,9 @@ use url::Url;
 struct Args {
     #[clap(long = "db-path", short = 'd', group = "store")]
     db_path: Option<PathBuf>,
+
+    #[clap(long = "notifications", short = 'n', group = "store", takes_value = false)]
+    notifications: bool,
 
     #[clap(
         help = "passphrase to encrypt the local storage",
@@ -116,7 +122,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient-uuid", "group-master-key"]),
+                .args(&["recipient-uuid", "group-master-key"])
         )
     )]
     ListMessages {
@@ -126,7 +132,7 @@ enum Cmd {
             long,
             short = 'k',
             help = "Master Key of the V2 group (hex string)",
-            value_parser = parse_master_key,
+            value_parser = parse_master_key
         )]
         group_master_key: Option<[u8; 32]>,
     },
@@ -148,7 +154,12 @@ enum Cmd {
     SendToGroup {
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_master_key)]
+        #[clap(
+            long,
+            short = 'k',
+            help = "Master Key of the V2 group (hex string)",
+            value_parser = parse_master_key
+        )]
         master_key: [u8; 32],
     },
     #[cfg(feature = "quirks")]
@@ -237,25 +248,82 @@ async fn receive<C: Store + MessageStore>(
                         "Quote from {:?}: > {:?} / {}",
                         metadata.sender,
                         quote,
-                        message.body(),
+                        message.body()
                     );
                 } else if let Some(reaction) = message.reaction {
                     println!(
                         "Reaction to message sent at {:?}: {:?}",
-                        reaction.target_sent_timestamp, reaction.emoji,
-                    )
+                        reaction.target_sent_timestamp, reaction.emoji
+                    );
                 } else {
-                    println!("Message from {:?}: {:?}", metadata, message);
-                    // fetch the groups v2 info here, just for testing purposes
+                    let self_is_sender = metadata.sender.uuid
+                    == Some(
+                        manager
+                        .whoami()
+                        .await
+                        .unwrap_or(WhoAmIResponse { uuid: Uuid::nil() })
+                        .uuid,
+                    );
+                    if self_is_sender {
+                        println!("Message sent to {:?}: {:?}", metadata.sender, message);
+                    } else {
+                        println!("Message from {:?}: {:?}", metadata.sender, message);
+                    }
+                    let body = message.body().to_string();
+                    let mut session_name: String = "Unknown contact".to_string();
+                    // fetch the groups v2 info here
                     if let Some(group_v2) = message.group_v2 {
                         let master_key_bytes: [u8; 32] =
                             group_v2.master_key.clone().unwrap().try_into().unwrap();
                         let master_key = GroupMasterKey::new(master_key_bytes);
                         let group = manager.get_group_v2(master_key).await?;
                         let group_changes = manager.decrypt_group_context(group_v2)?;
-                        println!("Group v2: {:?}", group.title);
+                        session_name = group.title;
+                        println!("Group v2: {:?}", session_name);
                         println!("Group change: {:?}", group_changes);
                         println!("Group master key: {:?}", hex::encode(&master_key_bytes));
+                    } else if !self_is_sender {
+                        //get the contact name
+                        match metadata.sender.uuid {
+                            Some(uuid) => {
+                                println!("uuid: {:?}", uuid);
+                                for contact in manager
+                                    .get_contacts()?
+                                    .filter_map(Result::ok)
+                                    .filter(|c| c.address.uuid == Some(uuid))
+                                {
+                                    if contact.name == "" {
+                                        let profile_key: [u8; 32] =
+                                            match (contact.profile_key).try_into() {
+                                                Ok(profile_key) => profile_key,
+                                                Err(_) => [0; 32],
+                                            };
+                                        session_name = match manager
+                                            .retrieve_profile_by_uuid(uuid, profile_key)
+                                            .await
+                                        {
+                                            Ok(profile) => match profile.name {
+                                                Some(name) => name.to_string(),
+                                                None => uuid.to_string(),
+                                            },
+                                            Err(_) => uuid.to_string(),
+                                        };
+                                    } else {
+                                        session_name = contact.name;
+                                    }
+                                }
+                            }
+                            None => println!("No uuid found"),
+                        };
+                    }
+                    // only show notification if the message is not from us
+                    let args = Args::parse();
+                    if !self_is_sender && args.notifications{
+                        Notification::new()
+                            .summary(&format!("{}", session_name))
+                            .body(&body)
+                            .icon("presage")
+                            .show()?;
                     }
                 }
 
@@ -358,7 +426,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 (Err(err), _) => {
                     println!("{:?}", err);
                 }
-            };
+            }
         }
         Cmd::Receive => {
             let mut manager = Manager::load_registered(config_store)?;
@@ -465,7 +533,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         }
         Cmd::Whoami => {
             let manager = Manager::load_registered(config_store)?;
-            println!("{:?}", &manager.whoami().await?)
+            println!("{:?}", &manager.whoami().await?);
         }
         Cmd::FindContact { uuid, ref name } => {
             let manager = Manager::load_registered(config_store)?;
@@ -503,10 +571,10 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             println!("{:#?}", DebugGroup(&group));
             for member in &group.members {
                 let profile_key = base64::encode(&member.profile_key.bytes);
-                println!("{member:#?} => profile_key = {profile_key}",);
+                println!("{member:#?} => profile_key = {profile_key}");
             }
         }
-    };
+    }
     Ok(())
 }
 
