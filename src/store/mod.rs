@@ -54,6 +54,7 @@ pub trait ContactsStore {
 
     fn clear_contacts(&mut self) -> Result<(), Error>;
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error>;
+    fn save_contact(&mut self, contact: Contact) -> Result<(), Error>;
     fn contacts(&self) -> Result<Self::ContactsIter, Error>;
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }

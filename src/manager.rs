@@ -586,6 +586,10 @@ impl<C: Store> Manager<C, Registered> {
         self.config_store.contact_by_id(id)
     }
 
+    pub fn save_contact(&mut self, contact: Contact) -> Result<(), Error> {
+        self.config_store.save_contact(contact)
+    }
+
     async fn receive_messages_encrypted(
         &self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {

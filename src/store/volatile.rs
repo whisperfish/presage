@@ -99,6 +99,11 @@ impl ContactsStore for VolatileStore {
         Ok(())
     }
 
+    fn save_contact(&mut self, _: impl Contact) -> Result<Contact, Error> {
+        warn!("contact is not saved when using volatile storage.");
+        Ok(contact)
+    }
+
     fn contacts(&self) -> Result<Vec<Contact>, Error> {
         warn!("contacts are not saved when using volatile storage.");
         Ok(vec![])

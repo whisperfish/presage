@@ -345,6 +345,15 @@ impl ContactsStore for SledStore {
         Ok(())
     }
 
+    fn save_contact(&mut self, contact: Contact) -> Result<(), Error> {
+        if let Some(uuid) = contact.address.uuid {
+            self.insert(SLED_KEY_CONTACTS, uuid, contact)?;
+        } else {
+            warn!("skipping contact {:?} without uuid", contact);
+        }
+        Ok(())
+    }
+
     // TODO: iterator on decrypted data
     fn contacts(&self) -> Result<Self::ContactsIter, Error> {
         Ok(SledContactsIter {
