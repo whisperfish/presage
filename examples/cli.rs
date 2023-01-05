@@ -256,14 +256,7 @@ async fn receive<C: Store + MessageStore>(
                         reaction.target_sent_timestamp, reaction.emoji
                     );
                 } else {
-                    let self_is_sender = metadata.sender.uuid
-                    == Some(
-                        manager
-                        .whoami()
-                        .await
-                        .unwrap_or(WhoAmIResponse { uuid: Uuid::nil() })
-                        .uuid,
-                    );
+                    let self_is_sender = metadata.sender.uuid == Some(manager.uuid());
                     if self_is_sender {
                         println!("Message sent to {:?}: {:?}", metadata.sender, message);
                     } else {
