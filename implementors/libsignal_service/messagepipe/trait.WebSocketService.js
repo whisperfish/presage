@@ -1,4 +1,4 @@
-(function() {var implementors = {};
-implementors["libsignal_service"] = [];
-implementors["libsignal_service_hyper"] = [{"text":"impl <a class=\"trait\" href=\"libsignal_service/messagepipe/trait.WebSocketService.html\" title=\"trait libsignal_service::messagepipe::WebSocketService\">WebSocketService</a> for <a class=\"struct\" href=\"libsignal_service_hyper/websocket/struct.TungsteniteWebSocket.html\" title=\"struct libsignal_service_hyper::websocket::TungsteniteWebSocket\">TungsteniteWebSocket</a>","synthetic":false,"types":["libsignal_service_hyper::websocket::TungsteniteWebSocket"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"libsignal_service":[],
+"libsignal_service_hyper":[["impl <a class=\"trait\" href=\"libsignal_service/messagepipe/trait.WebSocketService.html\" title=\"trait libsignal_service::messagepipe::WebSocketService\">WebSocketService</a> for <a class=\"struct\" href=\"libsignal_service_hyper/websocket/struct.TungsteniteWebSocket.html\" title=\"struct libsignal_service_hyper::websocket::TungsteniteWebSocket\">TungsteniteWebSocket</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

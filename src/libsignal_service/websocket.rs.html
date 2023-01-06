@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/websocket.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>websocket.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/websocket.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>websocket.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -388,256 +388,256 @@
 <span id="388">388</span>
 <span id="389">389</span>
 <span id="390">390</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::collections</span>::{<span class="ident">HashMap</span>, <span class="ident">HashSet</span>};
-<span class="kw">use</span> <span class="ident">std::sync</span>::{<span class="ident">Arc</span>, <span class="ident">Mutex</span>, <span class="ident">MutexGuard</span>};
+</pre><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<span class="kw">use </span>std::sync::{Arc, Mutex, MutexGuard};
 
-<span class="kw">use</span> <span class="ident">std::future::Future</span>;
+<span class="kw">use </span>std::future::Future;
 
-<span class="kw">use</span> <span class="ident">bytes::Bytes</span>;
-<span class="kw">use</span> <span class="ident">futures::channel::oneshot::Canceled</span>;
-<span class="kw">use</span> <span class="ident">futures::channel</span>::{<span class="ident">mpsc</span>, <span class="ident">oneshot</span>};
-<span class="kw">use</span> <span class="ident">futures::future::BoxFuture</span>;
-<span class="kw">use</span> <span class="ident">futures::prelude</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">futures::stream::FuturesUnordered</span>;
-<span class="kw">use</span> <span class="ident">prost::Message</span>;
+<span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>futures::channel::oneshot::Canceled;
+<span class="kw">use </span>futures::channel::{mpsc, oneshot};
+<span class="kw">use </span>futures::future::BoxFuture;
+<span class="kw">use </span>futures::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>futures::stream::FuturesUnordered;
+<span class="kw">use </span>prost::Message;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::messagepipe</span>::{<span class="ident">WebSocketService</span>, <span class="ident">WebSocketStreamItem</span>};
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto</span>::{
-    <span class="ident">web_socket_message</span>, <span class="ident">WebSocketMessage</span>, <span class="ident">WebSocketRequestMessage</span>,
-    <span class="ident">WebSocketResponseMessage</span>,
+<span class="kw">use </span><span class="kw">crate</span>::messagepipe::{WebSocketService, WebSocketStreamItem};
+<span class="kw">use </span><span class="kw">crate</span>::proto::{
+    web_socket_message, WebSocketMessage, WebSocketRequestMessage,
+    WebSocketResponseMessage,
 };
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::push_service::ServiceError</span>;
+<span class="kw">use </span><span class="kw">crate</span>::push_service::ServiceError;
 
-<span class="kw">type</span> <span class="ident">RequestStreamItem</span> <span class="op">=</span> (
-    <span class="ident">WebSocketRequestMessage</span>,
-    <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span><span class="op">&gt;</span>,
+<span class="kw">type </span>RequestStreamItem = (
+    WebSocketRequestMessage,
+    oneshot::Sender&lt;WebSocketResponseMessage&gt;,
 );
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SignalRequestStream</span> {
-    <span class="ident">inner</span>: <span class="ident">mpsc::Receiver</span><span class="op">&lt;</span><span class="ident">RequestStreamItem</span><span class="op">&gt;</span>,
+<span class="kw">pub struct </span>SignalRequestStream {
+    inner: mpsc::Receiver&lt;RequestStreamItem&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">Stream</span> <span class="kw">for</span> <span class="ident">SignalRequestStream</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="ident">RequestStreamItem</span>;
+<span class="kw">impl </span>Stream <span class="kw">for </span>SignalRequestStream {
+    <span class="kw">type </span>Item = RequestStreamItem;
 
-    <span class="kw">fn</span> <span class="ident">poll_next</span>(
-        <span class="kw-2">mut</span> <span class="self">self</span>: <span class="ident">std::pin::Pin</span><span class="op">&lt;</span><span class="kw-2">&amp;mut</span> <span class="self">Self</span><span class="op">&gt;</span>,
-        <span class="ident">cx</span>: <span class="kw-2">&amp;mut</span> <span class="ident">std::task::Context</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="ident">std::task::Poll</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::Item</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">inner</span> <span class="op">=</span> <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">inner</span>;
-        <span class="macro">futures::pin_mut!</span>(<span class="ident">inner</span>);
-        <span class="ident">Stream::poll_next</span>(<span class="ident">inner</span>, <span class="ident">cx</span>)
+    <span class="kw">fn </span>poll_next(
+        <span class="kw-2">mut </span><span class="self">self</span>: std::pin::Pin&lt;<span class="kw-2">&amp;mut </span><span class="self">Self</span>&gt;,
+        cx: <span class="kw-2">&amp;mut </span>std::task::Context&lt;<span class="lifetime">&#39;_</span>&gt;,
+    ) -&gt; std::task::Poll&lt;<span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt;&gt; {
+        <span class="kw">let </span>inner = <span class="kw-2">&amp;mut </span><span class="self">self</span>.inner;
+        <span class="macro">futures::pin_mut!</span>(inner);
+        Stream::poll_next(inner, cx)
     }
 }
 
-<span class="doccomment">/// A dispatching web socket client for the Signal web socket API.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// This structure can be freely cloned, since this acts as a *facade* for multiple entry and exit</span>
-<span class="doccomment">/// points.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SignalWebSocket</span> {
-    <span class="ident">inner</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">Mutex</span><span class="op">&lt;</span><span class="ident">SignalWebSocketInner</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="ident">request_sink</span>: <span class="ident">mpsc::Sender</span><span class="op">&lt;</span>(
-        <span class="ident">WebSocketRequestMessage</span>,
-        <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    )<span class="op">&gt;</span>,
+<span class="doccomment">/// A dispatching web socket client for the Signal web socket API.
+///
+/// This structure can be freely cloned, since this acts as a *facade* for multiple entry and exit
+/// points.
+</span><span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>SignalWebSocket {
+    inner: Arc&lt;Mutex&lt;SignalWebSocketInner&gt;&gt;,
+    request_sink: mpsc::Sender&lt;(
+        WebSocketRequestMessage,
+        oneshot::Sender&lt;<span class="prelude-ty">Result</span>&lt;WebSocketResponseMessage, ServiceError&gt;&gt;,
+    )&gt;,
 }
 
-<span class="kw">struct</span> <span class="ident">SignalWebSocketInner</span> {
-    <span class="ident">stream</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SignalRequestStream</span><span class="op">&gt;</span>,
+<span class="kw">struct </span>SignalWebSocketInner {
+    stream: <span class="prelude-ty">Option</span>&lt;SignalRequestStream&gt;,
 }
 
-<span class="kw">struct</span> <span class="ident">SignalWebSocketProcess</span><span class="op">&lt;</span><span class="ident">WS</span>: <span class="ident">WebSocketService</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Whether to enable keep-alive or not</span>
-    <span class="ident">keep_alive</span>: <span class="ident">bool</span>,
+<span class="kw">struct </span>SignalWebSocketProcess&lt;WS: WebSocketService&gt; {
+    <span class="doccomment">/// Whether to enable keep-alive or not
+    </span>keep_alive: bool,
 
-    <span class="doccomment">/// Receives requests from the application, which we forward to Signal.</span>
-    <span class="ident">requests</span>: <span class="ident">mpsc::Receiver</span><span class="op">&lt;</span>(
-        <span class="ident">WebSocketRequestMessage</span>,
-        <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    )<span class="op">&gt;</span>,
-    <span class="doccomment">/// Signal&#39;s requests should go in here, to be delivered to the application.</span>
-    <span class="ident">request_sink</span>: <span class="ident">mpsc::Sender</span><span class="op">&lt;</span><span class="ident">RequestStreamItem</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Receives requests from the application, which we forward to Signal.
+    </span>requests: mpsc::Receiver&lt;(
+        WebSocketRequestMessage,
+        oneshot::Sender&lt;<span class="prelude-ty">Result</span>&lt;WebSocketResponseMessage, ServiceError&gt;&gt;,
+    )&gt;,
+    <span class="doccomment">/// Signal&#39;s requests should go in here, to be delivered to the application.
+    </span>request_sink: mpsc::Sender&lt;RequestStreamItem&gt;,
 
-    <span class="ident">outgoing_request_map</span>: <span class="ident">HashMap</span><span class="op">&lt;</span>
-        <span class="ident">u64</span>,
-        <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="op">&gt;</span>,
+    outgoing_request_map: HashMap&lt;
+        u64,
+        oneshot::Sender&lt;<span class="prelude-ty">Result</span>&lt;WebSocketResponseMessage, ServiceError&gt;&gt;,
+    &gt;,
 
-    <span class="ident">outgoing_keep_alive_set</span>: <span class="ident">HashSet</span><span class="op">&lt;</span><span class="ident">u64</span><span class="op">&gt;</span>,
+    outgoing_keep_alive_set: HashSet&lt;u64&gt;,
 
-    <span class="ident">outgoing_responses</span>: <span class="ident">FuturesUnordered</span><span class="op">&lt;</span>
-        <span class="ident">BoxFuture</span><span class="op">&lt;</span><span class="lifetime">&#39;static</span>, <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span>, <span class="ident">Canceled</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="op">&gt;</span>,
+    outgoing_responses: FuturesUnordered&lt;
+        BoxFuture&lt;<span class="lifetime">&#39;static</span>, <span class="prelude-ty">Result</span>&lt;WebSocketResponseMessage, Canceled&gt;&gt;,
+    &gt;,
 
-    <span class="comment">// WS backend stuff</span>
-    <span class="ident">ws</span>: <span class="ident">WS</span>,
-    <span class="ident">stream</span>: <span class="ident">WS::Stream</span>,
+    <span class="comment">// WS backend stuff
+    </span>ws: WS,
+    stream: WS::Stream,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">WS</span>: <span class="ident">WebSocketService</span><span class="op">&gt;</span> <span class="ident">SignalWebSocketProcess</span><span class="op">&lt;</span><span class="ident">WS</span><span class="op">&gt;</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">process_frame</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">frame</span>: <span class="ident">Bytes</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">WebSocketMessage::decode</span>(<span class="ident">frame</span>)<span class="question-mark">?</span>;
-        <span class="macro">log::trace!</span>(<span class="string">&quot;Decoded {:?}&quot;</span>, <span class="ident">msg</span>);
+<span class="kw">impl</span>&lt;WS: WebSocketService&gt; SignalWebSocketProcess&lt;WS&gt; {
+    <span class="kw">async fn </span>process_frame(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        frame: Bytes,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+        <span class="kw">let </span>msg = WebSocketMessage::decode(frame)<span class="question-mark">?</span>;
+        <span class="macro">log::trace!</span>(<span class="string">&quot;Decoded {:?}&quot;</span>, msg);
 
-        <span class="kw">use</span> <span class="ident">web_socket_message::Type</span>;
-        <span class="kw">match</span> (<span class="ident">msg</span>.<span class="ident">r#type</span>(), <span class="ident">msg</span>.<span class="ident">request</span>, <span class="ident">msg</span>.<span class="ident">response</span>) {
-            (<span class="ident">Type::Unknown</span>, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-                <span class="ident">reason</span>: <span class="string">&quot;Unknown frame type&quot;</span>.<span class="ident">into</span>(),
+        <span class="kw">use </span>web_socket_message::Type;
+        <span class="kw">match </span>(msg.r#type(), msg.request, msg.response) {
+            (Type::Unknown, <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+                reason: <span class="string">&quot;Unknown frame type&quot;</span>.into(),
             }),
-            (<span class="ident">Type::Request</span>, <span class="prelude-val">Some</span>(<span class="ident">request</span>), <span class="kw">_</span>) =&gt; {
-                <span class="kw">let</span> (<span class="ident">sink</span>, <span class="ident">recv</span>) <span class="op">=</span> <span class="ident">oneshot::channel</span>();
-                <span class="self">self</span>.<span class="ident">request_sink</span>.<span class="ident">send</span>((<span class="ident">request</span>, <span class="ident">sink</span>)).<span class="kw">await</span>.<span class="ident">map_err</span>(
-                    <span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">ServiceError::WsError</span> {
-                        <span class="ident">reason</span>: <span class="string">&quot;request handler failed&quot;</span>.<span class="ident">into</span>(),
+            (Type::Request, <span class="prelude-val">Some</span>(request), <span class="kw">_</span>) =&gt; {
+                <span class="kw">let </span>(sink, recv) = oneshot::channel();
+                <span class="self">self</span>.request_sink.send((request, sink)).<span class="kw">await</span>.map_err(
+                    |<span class="kw">_</span>| ServiceError::WsError {
+                        reason: <span class="string">&quot;request handler failed&quot;</span>.into(),
                     },
                 )<span class="question-mark">?</span>;
-                <span class="self">self</span>.<span class="ident">outgoing_responses</span>.<span class="ident">push</span>(<span class="ident">Box::pin</span>(<span class="ident">recv</span>));
+                <span class="self">self</span>.outgoing_responses.push(Box::pin(recv));
 
                 <span class="prelude-val">Ok</span>(())
             },
-            (<span class="ident">Type::Request</span>, <span class="prelude-val">None</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-                <span class="ident">reason</span>: <span class="string">&quot;Type was request, but does not contain request.&quot;</span>
-                    .<span class="ident">into</span>(),
+            (Type::Request, <span class="prelude-val">None</span>, <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+                reason: <span class="string">&quot;Type was request, but does not contain request.&quot;
+                    </span>.into(),
             }),
-            (<span class="ident">Type::Response</span>, <span class="kw">_</span>, <span class="prelude-val">Some</span>(<span class="ident">response</span>)) =&gt; {
-                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">id</span>) <span class="op">=</span> <span class="ident">response</span>.<span class="ident">id</span> {
-                    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">responder</span>) <span class="op">=</span>
-                        <span class="self">self</span>.<span class="ident">outgoing_request_map</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>)
+            (Type::Response, <span class="kw">_</span>, <span class="prelude-val">Some</span>(response)) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(id) = response.id {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(responder) =
+                        <span class="self">self</span>.outgoing_request_map.remove(<span class="kw-2">&amp;</span>id)
                     {
-                        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">responder</span>.<span class="ident">send</span>(<span class="prelude-val">Ok</span>(<span class="ident">response</span>)) {
+                        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = responder.send(<span class="prelude-val">Ok</span>(response)) {
                             <span class="macro">log::warn!</span>(
                                 <span class="string">&quot;Could not deliver response for id {}: {:?}&quot;</span>,
-                                <span class="ident">id</span>,
-                                <span class="ident">e</span>
+                                id,
+                                e
                             );
                         }
-                    } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">_x</span>) <span class="op">=</span>
-                        <span class="self">self</span>.<span class="ident">outgoing_keep_alive_set</span>.<span class="ident">take</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>)
+                    } <span class="kw">else if let </span><span class="prelude-val">Some</span>(_x) =
+                        <span class="self">self</span>.outgoing_keep_alive_set.take(<span class="kw-2">&amp;</span>id)
                     {
-                        <span class="kw">if</span> <span class="ident">response</span>.<span class="ident">status</span>() <span class="op">!</span><span class="op">=</span> <span class="number">200</span> {
+                        <span class="kw">if </span>response.status() != <span class="number">200 </span>{
                             <span class="macro">log::warn!</span>(
                                 <span class="string">&quot;Response code for keep-alive is not 200: {:?}&quot;</span>,
-                                <span class="ident">response</span>
+                                response
                             );
-                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::UnhandledResponseCode</span> {
-                                <span class="ident">http_code</span>: <span class="ident">response</span>.<span class="ident">status</span>() <span class="kw">as</span> <span class="ident">u16</span>,
+                            <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::UnhandledResponseCode {
+                                http_code: response.status() <span class="kw">as </span>u16,
                             });
                         }
-                    } <span class="kw">else</span> {
+                    } <span class="kw">else </span>{
                         <span class="macro">log::warn!</span>(
                             <span class="string">&quot;Response for non existing request: {:?}&quot;</span>,
-                            <span class="ident">response</span>
+                            response
                         );
                     }
                 }
 
                 <span class="prelude-val">Ok</span>(())
             },
-            (<span class="ident">Type::Response</span>, <span class="kw">_</span>, <span class="prelude-val">None</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-                <span class="ident">reason</span>: <span class="string">&quot;Type was response, but does not contain response.&quot;</span>
-                    .<span class="ident">into</span>(),
+            (Type::Response, <span class="kw">_</span>, <span class="prelude-val">None</span>) =&gt; <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+                reason: <span class="string">&quot;Type was response, but does not contain response.&quot;
+                    </span>.into(),
             }),
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">next_request_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u64</span> {
-        <span class="kw">use</span> <span class="ident">rand::Rng</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
-        <span class="kw">loop</span> {
-            <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="ident">rng</span>.<span class="ident">gen</span>();
-            <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">outgoing_request_map</span>.<span class="ident">contains_key</span>(<span class="kw-2">&amp;</span><span class="ident">id</span>) {
-                <span class="kw">return</span> <span class="ident">id</span>;
+    <span class="kw">fn </span>next_request_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+        <span class="kw">use </span>rand::Rng;
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
+        <span class="kw">loop </span>{
+            <span class="kw">let </span>id = rng.gen();
+            <span class="kw">if </span>!<span class="self">self</span>.outgoing_request_map.contains_key(<span class="kw-2">&amp;</span>id) {
+                <span class="kw">return </span>id;
             }
         }
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">run</span>(<span class="kw-2">mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">loop</span> {
-            <span class="macro">futures::select!</span> {
-                <span class="comment">// Process requests from the application, forward them to Signal</span>
-                <span class="ident">x</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">requests</span>.<span class="ident">next</span>() =&gt; {
-                    <span class="kw">match</span> <span class="ident">x</span> {
-                        <span class="prelude-val">Some</span>((<span class="kw-2">mut</span> <span class="ident">request</span>, <span class="ident">responder</span>)) =&gt; {
-                            <span class="comment">// Regenerate ID if already in the table</span>
-                            <span class="ident">request</span>.<span class="ident">id</span> <span class="op">=</span> <span class="prelude-val">Some</span>(
-                                <span class="ident">request</span>
-                                    .<span class="ident">id</span>
-                                    .<span class="ident">filter</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">outgoing_request_map</span>.<span class="ident">contains_key</span>(<span class="ident">x</span>))
-                                    .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="self">self</span>.<span class="ident">next_request_id</span>()),
+    <span class="kw">async fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+        <span class="kw">loop </span>{
+            <span class="macro">futures::select! </span>{
+                <span class="comment">// Process requests from the application, forward them to Signal
+                </span>x = <span class="self">self</span>.requests.next() =&gt; {
+                    <span class="kw">match </span>x {
+                        <span class="prelude-val">Some</span>((<span class="kw-2">mut </span>request, responder)) =&gt; {
+                            <span class="comment">// Regenerate ID if already in the table
+                            </span>request.id = <span class="prelude-val">Some</span>(
+                                request
+                                    .id
+                                    .filter(|x| !<span class="self">self</span>.outgoing_request_map.contains_key(x))
+                                    .unwrap_or_else(|| <span class="self">self</span>.next_request_id()),
                             );
-                            <span class="macro">log::trace!</span>(<span class="string">&quot;Sending request {:?}&quot;</span>, <span class="ident">request</span>);
+                            <span class="macro">log::trace!</span>(<span class="string">&quot;Sending request {:?}&quot;</span>, request);
 
-                            <span class="self">self</span>.<span class="ident">outgoing_request_map</span>.<span class="ident">insert</span>(<span class="ident">request</span>.<span class="ident">id</span>.<span class="ident">unwrap</span>(), <span class="ident">responder</span>);
-                            <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">WebSocketMessage</span> {
-                                <span class="ident">r#type</span>: <span class="prelude-val">Some</span>(<span class="ident">web_socket_message::Type::Request</span>.<span class="ident">into</span>()),
-                                <span class="ident">request</span>: <span class="prelude-val">Some</span>(<span class="ident">request</span>),
-                                ..<span class="ident">Default::default</span>()
+                            <span class="self">self</span>.outgoing_request_map.insert(request.id.unwrap(), responder);
+                            <span class="kw">let </span>msg = WebSocketMessage {
+                                r#type: <span class="prelude-val">Some</span>(web_socket_message::Type::Request.into()),
+                                request: <span class="prelude-val">Some</span>(request),
+                                ..Default::default()
                             };
-                            <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">encode_to_vec</span>();
-                            <span class="self">self</span>.<span class="ident">ws</span>.<span class="ident">send_message</span>(<span class="ident">buffer</span>.<span class="ident">into</span>()).<span class="kw">await</span><span class="question-mark">?</span>
-                        }
-                        <span class="prelude-val">None</span> =&gt; {
-                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::WsError</span> {
-                                <span class="ident">reason</span>: <span class="string">&quot;SignalWebSocket: end of application request stream; socket closing&quot;</span>.<span class="ident">into</span>()
+                            <span class="kw">let </span>buffer = msg.encode_to_vec();
+                            <span class="self">self</span>.ws.send_message(buffer.into()).<span class="kw">await</span><span class="question-mark">?
+                        </span>}
+                        <span class="prelude-val">None </span>=&gt; {
+                            <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::WsError {
+                                reason: <span class="string">&quot;SignalWebSocket: end of application request stream; socket closing&quot;</span>.into()
                             });
                         }
                     }
                 }
-                <span class="ident">web_socket_item</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">stream</span>.<span class="ident">next</span>() =&gt; {
-                    <span class="kw">match</span> <span class="ident">web_socket_item</span> {
-                        <span class="prelude-val">Some</span>(<span class="ident">WebSocketStreamItem::Message</span>(<span class="ident">frame</span>)) =&gt; {
-                            <span class="self">self</span>.<span class="ident">process_frame</span>(<span class="ident">frame</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+                web_socket_item = <span class="self">self</span>.stream.next() =&gt; {
+                    <span class="kw">match </span>web_socket_item {
+                        <span class="prelude-val">Some</span>(WebSocketStreamItem::Message(frame)) =&gt; {
+                            <span class="self">self</span>.process_frame(frame).<span class="kw">await</span><span class="question-mark">?</span>;
                         }
-                        <span class="prelude-val">Some</span>(<span class="ident">WebSocketStreamItem::KeepAliveRequest</span>) <span class="kw">if</span> <span class="self">self</span>.<span class="ident">keep_alive</span> =&gt; {
-                            <span class="comment">// XXX: would be nicer if we could drop this request into the request</span>
-                            <span class="comment">// queue above.</span>
-                            <span class="macro">log::debug!</span>(<span class="string">&quot;Sending keep alive upon request&quot;</span>);
-                            <span class="kw">let</span> <span class="ident">request</span> <span class="op">=</span> <span class="ident">WebSocketRequestMessage</span> {
-                                <span class="ident">id</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">next_request_id</span>()),
-                                <span class="ident">path</span>: <span class="prelude-val">Some</span>(<span class="string">&quot;/v1/keepalive&quot;</span>.<span class="ident">into</span>()),
-                                <span class="ident">verb</span>: <span class="prelude-val">Some</span>(<span class="string">&quot;GET&quot;</span>.<span class="ident">into</span>()),
-                                ..<span class="ident">Default::default</span>()
+                        <span class="prelude-val">Some</span>(WebSocketStreamItem::KeepAliveRequest) <span class="kw">if </span><span class="self">self</span>.keep_alive =&gt; {
+                            <span class="comment">// XXX: would be nicer if we could drop this request into the request
+                            // queue above.
+                            </span><span class="macro">log::debug!</span>(<span class="string">&quot;Sending keep alive upon request&quot;</span>);
+                            <span class="kw">let </span>request = WebSocketRequestMessage {
+                                id: <span class="prelude-val">Some</span>(<span class="self">self</span>.next_request_id()),
+                                path: <span class="prelude-val">Some</span>(<span class="string">&quot;/v1/keepalive&quot;</span>.into()),
+                                verb: <span class="prelude-val">Some</span>(<span class="string">&quot;GET&quot;</span>.into()),
+                                ..Default::default()
                             };
-                            <span class="self">self</span>.<span class="ident">outgoing_keep_alive_set</span>.<span class="ident">insert</span>(<span class="ident">request</span>.<span class="ident">id</span>.<span class="ident">unwrap</span>());
-                            <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">WebSocketMessage</span> {
-                                <span class="ident">r#type</span>: <span class="prelude-val">Some</span>(<span class="ident">web_socket_message::Type::Request</span>.<span class="ident">into</span>()),
-                                <span class="ident">request</span>: <span class="prelude-val">Some</span>(<span class="ident">request</span>),
-                                ..<span class="ident">Default::default</span>()
+                            <span class="self">self</span>.outgoing_keep_alive_set.insert(request.id.unwrap());
+                            <span class="kw">let </span>msg = WebSocketMessage {
+                                r#type: <span class="prelude-val">Some</span>(web_socket_message::Type::Request.into()),
+                                request: <span class="prelude-val">Some</span>(request),
+                                ..Default::default()
                             };
-                            <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">encode_to_vec</span>();
-                            <span class="self">self</span>.<span class="ident">ws</span>.<span class="ident">send_message</span>(<span class="ident">buffer</span>.<span class="ident">into</span>()).<span class="kw">await</span><span class="question-mark">?</span>
-                        }
-                        <span class="prelude-val">Some</span>(<span class="ident">WebSocketStreamItem::KeepAliveRequest</span>) =&gt; {
+                            <span class="kw">let </span>buffer = msg.encode_to_vec();
+                            <span class="self">self</span>.ws.send_message(buffer.into()).<span class="kw">await</span><span class="question-mark">?
+                        </span>}
+                        <span class="prelude-val">Some</span>(WebSocketStreamItem::KeepAliveRequest) =&gt; {
                             <span class="macro">log::debug!</span>(<span class="string">&quot;keep alive is disabled: ignoring request&quot;</span>);
                         }
-                        <span class="prelude-val">None</span> =&gt; {
-                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::WsError</span> {
-                                <span class="ident">reason</span>: <span class="string">&quot;end of web request stream; socket closing&quot;</span>.<span class="ident">into</span>()
+                        <span class="prelude-val">None </span>=&gt; {
+                            <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::WsError {
+                                reason: <span class="string">&quot;end of web request stream; socket closing&quot;</span>.into()
                             });
                         }
                     }
                 }
-                <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">outgoing_responses</span>.<span class="ident">next</span>() =&gt; {
-                    <span class="kw">match</span> <span class="ident">response</span> {
-                        <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(<span class="ident">response</span>)) =&gt; {
-                            <span class="macro">log::trace!</span>(<span class="string">&quot;Sending response {:?}&quot;</span>, <span class="ident">response</span>);
+                response = <span class="self">self</span>.outgoing_responses.next() =&gt; {
+                    <span class="kw">match </span>response {
+                        <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(response)) =&gt; {
+                            <span class="macro">log::trace!</span>(<span class="string">&quot;Sending response {:?}&quot;</span>, response);
 
-                            <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">WebSocketMessage</span> {
-                                <span class="ident">r#type</span>: <span class="prelude-val">Some</span>(<span class="ident">web_socket_message::Type::Response</span>.<span class="ident">into</span>()),
-                                <span class="ident">response</span>: <span class="prelude-val">Some</span>(<span class="ident">response</span>),
-                                ..<span class="ident">Default::default</span>()
+                            <span class="kw">let </span>msg = WebSocketMessage {
+                                r#type: <span class="prelude-val">Some</span>(web_socket_message::Type::Response.into()),
+                                response: <span class="prelude-val">Some</span>(response),
+                                ..Default::default()
                             };
-                            <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">encode_to_vec</span>();
-                            <span class="self">self</span>.<span class="ident">ws</span>.<span class="ident">send_message</span>(<span class="ident">buffer</span>.<span class="ident">into</span>()).<span class="kw">await</span><span class="question-mark">?</span>;
+                            <span class="kw">let </span>buffer = msg.encode_to_vec();
+                            <span class="self">self</span>.ws.send_message(buffer.into()).<span class="kw">await</span><span class="question-mark">?</span>;
                         }
-                        <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(<span class="ident">e</span>)) =&gt; {
-                            <span class="macro">log::error!</span>(<span class="string">&quot;could not generate response to a Signal request; responder was canceled: {}. Continuing.&quot;</span>, <span class="ident">e</span>);
+                        <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)) =&gt; {
+                            <span class="macro">log::error!</span>(<span class="string">&quot;could not generate response to a Signal request; responder was canceled: {}. Continuing.&quot;</span>, e);
                         }
-                        <span class="prelude-val">None</span> =&gt; {
+                        <span class="prelude-val">None </span>=&gt; {
                             <span class="macro">unreachable!</span>(<span class="string">&quot;outgoing responses should never fuse&quot;</span>)
                         }
                     }
@@ -647,136 +647,136 @@
     }
 }
 
-<span class="kw">impl</span> <span class="ident">SignalWebSocket</span> {
-    <span class="kw">fn</span> <span class="ident">inner_locked</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">MutexGuard</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span>, <span class="ident">SignalWebSocketInner</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">inner</span>.<span class="ident">lock</span>().<span class="ident">unwrap</span>()
+<span class="kw">impl </span>SignalWebSocket {
+    <span class="kw">fn </span>inner_locked(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; MutexGuard&lt;<span class="lifetime">&#39;_</span>, SignalWebSocketInner&gt; {
+        <span class="self">self</span>.inner.lock().unwrap()
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_socket</span><span class="op">&lt;</span><span class="ident">WS</span>: <span class="ident">WebSocketService</span> <span class="op">+</span> <span class="lifetime">&#39;static</span><span class="op">&gt;</span>(
-        <span class="ident">ws</span>: <span class="ident">WS</span>,
-        <span class="ident">stream</span>: <span class="ident">WS::Stream</span>,
-        <span class="ident">keep_alive</span>: <span class="ident">bool</span>,
-    ) -&gt; (<span class="self">Self</span>, <span class="kw">impl</span> <span class="ident">Future</span><span class="op">&lt;</span><span class="ident">Output</span> <span class="op">=</span> ()<span class="op">&gt;</span>) {
-        <span class="comment">// Create process</span>
-        <span class="kw">let</span> (<span class="ident">incoming_request_sink</span>, <span class="ident">incoming_request_stream</span>) <span class="op">=</span> <span class="ident">mpsc::channel</span>(<span class="number">1</span>);
-        <span class="kw">let</span> (<span class="ident">outgoing_request_sink</span>, <span class="ident">outgoing_requests</span>) <span class="op">=</span> <span class="ident">mpsc::channel</span>(<span class="number">1</span>);
+    <span class="kw">pub fn </span>from_socket&lt;WS: WebSocketService + <span class="lifetime">&#39;static</span>&gt;(
+        ws: WS,
+        stream: WS::Stream,
+        keep_alive: bool,
+    ) -&gt; (<span class="self">Self</span>, <span class="kw">impl </span>Future&lt;Output = ()&gt;) {
+        <span class="comment">// Create process
+        </span><span class="kw">let </span>(incoming_request_sink, incoming_request_stream) = mpsc::channel(<span class="number">1</span>);
+        <span class="kw">let </span>(outgoing_request_sink, outgoing_requests) = mpsc::channel(<span class="number">1</span>);
 
-        <span class="kw">let</span> <span class="ident">process</span> <span class="op">=</span> <span class="ident">SignalWebSocketProcess</span> {
-            <span class="ident">keep_alive</span>,
-            <span class="ident">requests</span>: <span class="ident">outgoing_requests</span>,
-            <span class="ident">request_sink</span>: <span class="ident">incoming_request_sink</span>,
-            <span class="ident">outgoing_request_map</span>: <span class="ident">HashMap::default</span>(),
-            <span class="ident">outgoing_keep_alive_set</span>: <span class="ident">HashSet::new</span>(),
-            <span class="comment">// Initializing the FuturesUnordered with a `pending` future means it will never fuse</span>
-            <span class="comment">// itself, so an &quot;empty&quot; FuturesUnordered will still allow new futures to be added.</span>
-            <span class="ident">outgoing_responses</span>: <span class="macro">vec!</span>[
-                <span class="ident">Box::pin</span>(<span class="ident">futures::future::pending</span>()) <span class="kw">as</span> <span class="ident">BoxFuture</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span>
+        <span class="kw">let </span>process = SignalWebSocketProcess {
+            keep_alive,
+            requests: outgoing_requests,
+            request_sink: incoming_request_sink,
+            outgoing_request_map: HashMap::default(),
+            outgoing_keep_alive_set: HashSet::new(),
+            <span class="comment">// Initializing the FuturesUnordered with a `pending` future means it will never fuse
+            // itself, so an &quot;empty&quot; FuturesUnordered will still allow new futures to be added.
+            </span>outgoing_responses: <span class="macro">vec!</span>[
+                Box::pin(futures::future::pending()) <span class="kw">as </span>BoxFuture&lt;<span class="kw">_</span>&gt;
             ]
-            .<span class="ident">into_iter</span>()
-            .<span class="ident">collect</span>(),
-            <span class="ident">ws</span>,
-            <span class="ident">stream</span>,
+            .into_iter()
+            .collect(),
+            ws,
+            stream,
         };
-        <span class="kw">let</span> <span class="ident">process</span> <span class="op">=</span> <span class="ident">process</span>.<span class="ident">run</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">x</span> {
+        <span class="kw">let </span>process = process.run().map(|x| <span class="kw">match </span>x {
             <span class="prelude-val">Ok</span>(()) =&gt; (),
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-                <span class="macro">log::error!</span>(<span class="string">&quot;SignalWebSocket: {}&quot;</span>, <span class="ident">e</span>);
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                <span class="macro">log::error!</span>(<span class="string">&quot;SignalWebSocket: {}&quot;</span>, e);
             },
         });
 
         (
-            <span class="self">Self</span> {
-                <span class="ident">request_sink</span>: <span class="ident">outgoing_request_sink</span>,
-                <span class="ident">inner</span>: <span class="ident">Arc::new</span>(<span class="ident">Mutex::new</span>(<span class="ident">SignalWebSocketInner</span> {
-                    <span class="ident">stream</span>: <span class="prelude-val">Some</span>(<span class="ident">SignalRequestStream</span> {
-                        <span class="ident">inner</span>: <span class="ident">incoming_request_stream</span>,
+            <span class="self">Self </span>{
+                request_sink: outgoing_request_sink,
+                inner: Arc::new(Mutex::new(SignalWebSocketInner {
+                    stream: <span class="prelude-val">Some</span>(SignalRequestStream {
+                        inner: incoming_request_stream,
                     }),
                 })),
             },
-            <span class="ident">process</span>,
+            process,
         )
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">take_request_stream</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SignalRequestStream</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">inner_locked</span>().<span class="ident">stream</span>.<span class="ident">take</span>()
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>take_request_stream(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Option</span>&lt;SignalRequestStream&gt; {
+        <span class="self">self</span>.inner_locked().stream.take()
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">return_request_stream</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">r</span>: <span class="ident">SignalRequestStream</span>) {
-        <span class="self">self</span>.<span class="ident">inner_locked</span>().<span class="ident">stream</span>.<span class="ident">replace</span>(<span class="ident">r</span>);
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>return_request_stream(<span class="kw-2">&amp;mut </span><span class="self">self</span>, r: SignalRequestStream) {
+        <span class="self">self</span>.inner_locked().stream.replace(r);
     }
 
-    <span class="comment">// XXX Ideally, this should take an *async* closure, then we could get rid of the</span>
-    <span class="comment">// `take_request_stream` and `return_request_stream`.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">with_request_stream</span><span class="op">&lt;</span>
-        <span class="ident">R</span>: <span class="lifetime">&#39;static</span>,
-        <span class="ident">F</span>: <span class="ident">FnOnce</span>(<span class="kw-2">&amp;mut</span> <span class="ident">SignalRequestStream</span>) -&gt; <span class="ident">R</span>,
-    <span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">f</span>: <span class="ident">F</span>,
-    ) -&gt; <span class="ident">R</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">s</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">inner_locked</span>()
-            .<span class="ident">stream</span>
-            .<span class="ident">take</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;request stream invariant&quot;</span>);
-        <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="ident">f</span>(<span class="kw-2">&amp;mut</span> <span class="ident">s</span>);
-        <span class="self">self</span>.<span class="ident">inner_locked</span>().<span class="ident">stream</span>.<span class="ident">replace</span>(<span class="ident">s</span>);
-        <span class="ident">r</span>
+    <span class="comment">// XXX Ideally, this should take an *async* closure, then we could get rid of the
+    // `take_request_stream` and `return_request_stream`.
+    </span><span class="kw">pub async fn </span>with_request_stream&lt;
+        R: <span class="lifetime">&#39;static</span>,
+        F: FnOnce(<span class="kw-2">&amp;mut </span>SignalRequestStream) -&gt; R,
+    &gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        f: F,
+    ) -&gt; R {
+        <span class="kw">let </span><span class="kw-2">mut </span>s = <span class="self">self
+            </span>.inner_locked()
+            .stream
+            .take()
+            .expect(<span class="string">&quot;request stream invariant&quot;</span>);
+        <span class="kw">let </span>r = f(<span class="kw-2">&amp;mut </span>s);
+        <span class="self">self</span>.inner_locked().stream.replace(s);
+        r
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">request</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">r</span>: <span class="ident">WebSocketRequestMessage</span>,
-    ) -&gt; <span class="kw">impl</span> <span class="ident">Future</span><span class="op">&lt;</span><span class="ident">Output</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>
+    <span class="kw">pub fn </span>request(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        r: WebSocketRequestMessage,
+    ) -&gt; <span class="kw">impl </span>Future&lt;Output = <span class="prelude-ty">Result</span>&lt;WebSocketResponseMessage, ServiceError&gt;&gt;
     {
-        <span class="kw">let</span> (<span class="ident">sink</span>, <span class="ident">recv</span>): (
-            <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+        <span class="kw">let </span>(sink, recv): (
+            oneshot::Sender&lt;<span class="prelude-ty">Result</span>&lt;WebSocketResponseMessage, ServiceError&gt;&gt;,
             <span class="kw">_</span>,
-        ) <span class="op">=</span> <span class="ident">oneshot::channel</span>();
+        ) = oneshot::channel();
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">request_sink</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">request_sink</span>.<span class="ident">clone</span>();
-        <span class="kw">async</span> <span class="kw">move</span> {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">_e</span>) <span class="op">=</span> <span class="ident">request_sink</span>.<span class="ident">send</span>((<span class="ident">r</span>, <span class="ident">sink</span>)).<span class="kw">await</span> {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::WsClosing</span> {
-                    <span class="ident">reason</span>: <span class="string">&quot;WebSocket closing while sending request.&quot;</span>.<span class="ident">into</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>request_sink = <span class="self">self</span>.request_sink.clone();
+        <span class="kw">async move </span>{
+            <span class="kw">if let </span><span class="prelude-val">Err</span>(_e) = request_sink.send((r, sink)).<span class="kw">await </span>{
+                <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::WsClosing {
+                    reason: <span class="string">&quot;WebSocket closing while sending request.&quot;</span>.into(),
                 });
             }
-            <span class="comment">// Handle the oneshot sender error for dropped senders.</span>
-            <span class="kw">match</span> <span class="ident">recv</span>.<span class="kw">await</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">x</span>) =&gt; <span class="ident">x</span>,
-                <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">ServiceError::WsClosing</span> {
-                    <span class="ident">reason</span>: <span class="string">&quot;WebSocket closing while waiting for a response.&quot;</span>
-                        .<span class="ident">into</span>(),
+            <span class="comment">// Handle the oneshot sender error for dropped senders.
+            </span><span class="kw">match </span>recv.<span class="kw">await </span>{
+                <span class="prelude-val">Ok</span>(x) =&gt; x,
+                <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ServiceError::WsClosing {
+                    reason: <span class="string">&quot;WebSocket closing while waiting for a response.&quot;
+                        </span>.into(),
                 }),
             }
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">request_json</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">r</span>: <span class="ident">WebSocketRequestMessage</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">T</span>: <span class="ident">serde::Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>request_json&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        r: WebSocketRequestMessage,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: serde::Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
     {
-        <span class="kw">let</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">request</span>(<span class="ident">r</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">if</span> <span class="ident">response</span>.<span class="ident">status</span>() <span class="op">!</span><span class="op">=</span> <span class="number">200</span> {
+        <span class="kw">let </span>response = <span class="self">self</span>.request(r).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">if </span>response.status() != <span class="number">200 </span>{
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;request_json with non-200 status code. message: {}&quot;</span>,
-                <span class="ident">response</span>.<span class="ident">message</span>()
+                response.message()
             );
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::UnhandledResponseCode</span> {
-                <span class="ident">http_code</span>: <span class="ident">response</span>.<span class="ident">status</span>() <span class="kw">as</span> <span class="ident">u16</span>,
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::UnhandledResponseCode {
+                http_code: response.status() <span class="kw">as </span>u16,
             });
         }
-        <span class="ident">serde_json::from_slice</span>(<span class="ident">response</span>.<span class="ident">body</span>()).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::JsonDecodeError</span> {
-                <span class="ident">reason</span>: <span class="ident">e</span>.<span class="ident">to_string</span>(),
+        serde_json::from_slice(response.body()).map_err(|e| {
+            ServiceError::JsonDecodeError {
+                reason: e.to_string(),
             }
         })
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

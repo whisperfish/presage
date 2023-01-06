@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../presage/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../presage/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -894,517 +894,517 @@
 <span id="894">894</span>
 <span id="895">895</span>
 <span id="896">896</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::UNIX_EPOCH</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>std::time::UNIX_EPOCH;
 
-<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc</span>, <span class="ident">channel::oneshot</span>, <span class="ident">future</span>, <span class="ident">AsyncReadExt</span>, <span class="ident">Stream</span>, <span class="ident">StreamExt</span>};
-<span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">debug</span>, <span class="ident">error</span>, <span class="ident">info</span>, <span class="ident">trace</span>};
-<span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">distributions::Alphanumeric</span>, <span class="ident">prelude::ThreadRng</span>, <span class="ident">Rng</span>, <span class="ident">RngCore</span>};
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">url::Url</span>;
+<span class="kw">use </span>futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
+<span class="kw">use </span>log::{debug, error, info, trace};
+<span class="kw">use </span>rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>url::Url;
 
-<span class="kw">use</span> <span class="ident">libsignal_service</span>::{
-    <span class="ident">attachment_cipher::decrypt_in_place</span>,
-    <span class="ident">cipher</span>,
-    <span class="ident">configuration</span>::{<span class="ident">ServiceConfiguration</span>, <span class="ident">SignalServers</span>, <span class="ident">SignalingKey</span>},
-    <span class="ident">content</span>::{<span class="ident">ContentBody</span>, <span class="ident">DataMessage</span>, <span class="ident">Metadata</span>, <span class="ident">SyncMessage</span>},
-    <span class="ident">groups_v2</span>::{<span class="ident">Group</span>, <span class="ident">GroupChanges</span>, <span class="ident">GroupsManager</span>, <span class="ident">InMemoryCredentialsCache</span>},
-    <span class="ident">messagepipe::ServiceCredentials</span>,
-    <span class="ident">models::Contact</span>,
-    <span class="ident">prelude</span>::{
-        <span class="ident">phonenumber::PhoneNumber</span>,
-        <span class="ident">protocol</span>::{<span class="ident">KeyPair</span>, <span class="ident">PrivateKey</span>, <span class="ident">PublicKey</span>},
-        <span class="ident">Content</span>, <span class="ident">Envelope</span>, <span class="ident">GroupMasterKey</span>, <span class="ident">GroupSecretParams</span>, <span class="ident">PushService</span>, <span class="ident">Uuid</span>,
+<span class="kw">use </span>libsignal_service::{
+    attachment_cipher::decrypt_in_place,
+    cipher,
+    configuration::{ServiceConfiguration, SignalServers, SignalingKey},
+    content::{ContentBody, DataMessage, Metadata, SyncMessage},
+    groups_v2::{Group, GroupChanges, GroupsManager, InMemoryCredentialsCache},
+    messagepipe::ServiceCredentials,
+    models::Contact,
+    prelude::{
+        phonenumber::PhoneNumber,
+        protocol::{KeyPair, PrivateKey, PublicKey},
+        Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
-    <span class="ident">proto</span>::{
-        <span class="ident">sync_message</span>::{<span class="self">self</span>},
-        <span class="ident">AttachmentPointer</span>, <span class="ident">GroupContextV2</span>,
+    proto::{
+        sync_message::{<span class="self">self</span>},
+        AttachmentPointer, GroupContextV2,
     },
-    <span class="ident">provisioning</span>::{
-        <span class="ident">generate_registration_id</span>, <span class="ident">LinkingManager</span>, <span class="ident">ProvisioningManager</span>, <span class="ident">SecondaryDeviceProvisioning</span>,
-        <span class="ident">VerificationCodeResponse</span>,
+    provisioning::{
+        generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
+        VerificationCodeResponse,
     },
-    <span class="ident">push_service</span>::{
-        <span class="ident">AccountAttributes</span>, <span class="ident">DeviceCapabilities</span>, <span class="ident">ProfileKey</span>, <span class="ident">ServiceError</span>, <span class="ident">WhoAmIResponse</span>,
-        <span class="ident">DEFAULT_DEVICE_ID</span>,
+    push_service::{
+        AccountAttributes, DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse,
+        DEFAULT_DEVICE_ID,
     },
-    <span class="ident">receiver::MessageReceiver</span>,
-    <span class="ident">sender</span>::{<span class="ident">AttachmentSpec</span>, <span class="ident">AttachmentUploadError</span>},
-    <span class="ident">utils</span>::{<span class="ident">serde_private_key</span>, <span class="ident">serde_public_key</span>, <span class="ident">serde_signaling_key</span>},
-    <span class="ident">AccountManager</span>, <span class="ident">Profile</span>, <span class="ident">ServiceAddress</span>,
+    receiver::MessageReceiver,
+    sender::{AttachmentSpec, AttachmentUploadError},
+    utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    AccountManager, Profile, ServiceAddress,
 };
-<span class="kw">use</span> <span class="ident">libsignal_service_hyper::push_service::HyperPushService</span>;
+<span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">cache::CacheCell</span>, <span class="ident">Thread</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">store::Store</span>, <span class="ident">Error</span>};
+<span class="kw">use crate</span>::{cache::CacheCell, Thread};
+<span class="kw">use crate</span>::{store::Store, Error};
 
-<span class="kw">type</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">cipher::ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
-<span class="kw">type</span> <span class="ident">MessageSender</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> <span class="op">=</span>
-    <span class="ident">libsignal_service::prelude::MessageSender</span><span class="op">&lt;</span><span class="ident">HyperPushService</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">C</span>, <span class="ident">ThreadRng</span><span class="op">&gt;</span>;
+<span class="kw">type </span>ServiceCipher&lt;C&gt; = cipher::ServiceCipher&lt;C, C, C, C, C, ThreadRng&gt;;
+<span class="kw">type </span>MessageSender&lt;C&gt; =
+    libsignal_service::prelude::MessageSender&lt;HyperPushService, C, C, C, C, C, ThreadRng&gt;;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">Store</span>, <span class="ident">State</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Implementation of a config-store to give to libsignal</span>
-    <span class="ident">config_store</span>: <span class="ident">Store</span>,
-    <span class="doccomment">/// Part of the manager which is persisted in the store.</span>
-    <span class="ident">state</span>: <span class="ident">State</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>Manager&lt;Store, State&gt; {
+    <span class="doccomment">/// Implementation of a config-store to give to libsignal
+    </span>config_store: Store,
+    <span class="doccomment">/// Part of the manager which is persisted in the store.
+    </span>state: State,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">RegistrationOptions</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
-    <span class="kw">pub</span> <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-    <span class="kw">pub</span> <span class="ident">use_voice_call</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">captcha</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">force</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>RegistrationOptions&lt;<span class="lifetime">&#39;a</span>&gt; {
+    <span class="kw">pub </span>signal_servers: SignalServers,
+    <span class="kw">pub </span>phone_number: PhoneNumber,
+    <span class="kw">pub </span>use_voice_call: bool,
+    <span class="kw">pub </span>captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
+    <span class="kw">pub </span>force: bool,
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Registration</span>;
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Linking</span>;
+<span class="kw">pub struct </span>Registration;
+<span class="kw">pub struct </span>Linking;
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Confirmation</span> {
-    <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
-    <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-    <span class="ident">password</span>: <span class="ident">String</span>,
+<span class="kw">pub struct </span>Confirmation {
+    signal_servers: SignalServers,
+    phone_number: PhoneNumber,
+    password: String,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Registered</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip</span>)]</span>
-    <span class="ident">cache</span>: <span class="ident">CacheCell</span><span class="op">&lt;</span><span class="ident">HyperPushService</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
-    <span class="kw">pub</span> <span class="ident">device_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-    <span class="ident">password</span>: <span class="ident">String</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_signaling_key&quot;</span>)]</span>
-    <span class="ident">signaling_key</span>: <span class="ident">SignalingKey</span>,
-    <span class="kw">pub</span> <span class="ident">device_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">registration_id</span>: <span class="ident">u32</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_private_key&quot;</span>)]</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">private_key</span>: <span class="ident">PrivateKey</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_public_key&quot;</span>)]</span>
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">public_key</span>: <span class="ident">PublicKey</span>,
-    <span class="ident">profile_key</span>: <span class="ident">ProfileKey</span>,
+<span class="attribute">#[derive(Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>Registered {
+    <span class="attribute">#[serde(skip)]
+    </span>cache: CacheCell&lt;HyperPushService&gt;,
+    <span class="kw">pub </span>signal_servers: SignalServers,
+    <span class="kw">pub </span>device_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>phone_number: PhoneNumber,
+    <span class="kw">pub </span>uuid: Uuid,
+    password: String,
+    <span class="attribute">#[serde(with = <span class="string">&quot;serde_signaling_key&quot;</span>)]
+    </span>signaling_key: SignalingKey,
+    <span class="kw">pub </span>device_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) registration_id: u32,
+    <span class="attribute">#[serde(with = <span class="string">&quot;serde_private_key&quot;</span>)]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) private_key: PrivateKey,
+    <span class="attribute">#[serde(with = <span class="string">&quot;serde_public_key&quot;</span>)]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) public_key: PublicKey,
+    profile_key: ProfileKey,
 }
 
-<span class="kw">impl</span> <span class="ident">Registered</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">device_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
-        <span class="self">self</span>.<span class="ident">device_id</span>.<span class="ident">unwrap_or</span>(<span class="ident">DEFAULT_DEVICE_ID</span>)
+<span class="kw">impl </span>Registered {
+    <span class="kw">pub fn </span>device_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="self">self</span>.device_id.unwrap_or(DEFAULT_DEVICE_ID)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
-        <span class="self">self</span>.<span class="ident">registration_id</span>
+    <span class="kw">pub fn </span>registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="self">self</span>.registration_id
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">private_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">PrivateKey</span> {
-        <span class="self">self</span>.<span class="ident">private_key</span>
+    <span class="kw">pub fn </span>private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PrivateKey {
+        <span class="self">self</span>.private_key
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">public_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">PublicKey</span> {
-        <span class="self">self</span>.<span class="ident">public_key</span>
+    <span class="kw">pub fn </span>public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PublicKey {
+        <span class="self">self</span>.public_key
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Store</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registration</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Registers a new account with a phone number (and some options).</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then</span>
-    <span class="doccomment">/// have to use to send the confirmation code.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// #[tokio::main]</span>
-    <span class="doccomment">/// async fn main() -&gt; anyhow::Result&lt;()&gt; {</span>
-    <span class="doccomment">///     use std::str::FromStr;</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">///     use presage::{</span>
-    <span class="doccomment">///         prelude::{phonenumber::PhoneNumber, SignalServers},</span>
-    <span class="doccomment">///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy</span>
-    <span class="doccomment">///     };</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">///     let config_store = SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">///     let manager = Manager::register(</span>
-    <span class="doccomment">///         config_store,</span>
-    <span class="doccomment">///         RegistrationOptions {</span>
-    <span class="doccomment">///             signal_servers: SignalServers::Production,</span>
-    <span class="doccomment">///             phone_number: PhoneNumber::from_str(&quot;+16137827274&quot;)?,</span>
-    <span class="doccomment">///             use_voice_call: false,</span>
-    <span class="doccomment">///             captcha: None,</span>
-    <span class="doccomment">///             force: false,</span>
-    <span class="doccomment">///         },</span>
-    <span class="doccomment">///     )</span>
-    <span class="doccomment">///     .await?;</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">///     Ok(())</span>
-    <span class="doccomment">/// }</span>
-    <span class="doccomment">/// ```</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register</span>(
-        <span class="kw-2">mut</span> <span class="ident">config_store</span>: <span class="ident">C</span>,
-        <span class="ident">registration_options</span>: <span class="ident">RegistrationOptions</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Confirmation</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">RegistrationOptions</span> {
-            <span class="ident">signal_servers</span>,
-            <span class="ident">phone_number</span>,
-            <span class="ident">use_voice_call</span>,
-            <span class="ident">captcha</span>,
-            <span class="ident">force</span>,
-        } <span class="op">=</span> <span class="ident">registration_options</span>;
+<span class="kw">impl</span>&lt;C: Store&gt; Manager&lt;C, Registration&gt; {
+    <span class="doccomment">/// Registers a new account with a phone number (and some options).
+    ///
+    /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
+    /// have to use to send the confirmation code.
+    ///
+    /// ```no_run
+    /// #[tokio::main]
+    /// async fn main() -&gt; anyhow::Result&lt;()&gt; {
+    ///     use std::str::FromStr;
+    ///
+    ///     use presage::{
+    ///         prelude::{phonenumber::PhoneNumber, SignalServers},
+    ///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy
+    ///     };
+    ///
+    ///     let config_store = SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
+    ///
+    ///     let manager = Manager::register(
+    ///         config_store,
+    ///         RegistrationOptions {
+    ///             signal_servers: SignalServers::Production,
+    ///             phone_number: PhoneNumber::from_str(&quot;+16137827274&quot;)?,
+    ///             use_voice_call: false,
+    ///             captcha: None,
+    ///             force: false,
+    ///         },
+    ///     )
+    ///     .await?;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    </span><span class="kw">pub async fn </span>register(
+        <span class="kw-2">mut </span>config_store: C,
+        registration_options: RegistrationOptions&lt;<span class="lifetime">&#39;_</span>&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Confirmation&gt;, Error&gt; {
+        <span class="kw">let </span>RegistrationOptions {
+            signal_servers,
+            phone_number,
+            use_voice_call,
+            captcha,
+            force,
+        } = registration_options;
 
-        <span class="comment">// check if we are already registered</span>
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">force</span> <span class="op">&amp;&amp;</span> <span class="ident">config_store</span>.<span class="ident">load_state</span>().<span class="ident">is_ok</span>() {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::AlreadyRegisteredError</span>);
+        <span class="comment">// check if we are already registered
+        </span><span class="kw">if </span>!force &amp;&amp; config_store.load_state().is_ok() {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(Error::AlreadyRegisteredError);
         }
 
-        <span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+        config_store.clear()<span class="question-mark">?</span>;
 
-        <span class="comment">// generate a random 24 bytes password</span>
-        <span class="kw">let</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
-        <span class="kw">let</span> <span class="ident">password</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">rng</span>.<span class="ident">sample_iter</span>(<span class="kw-2">&amp;</span><span class="ident">Alphanumeric</span>).<span class="ident">take</span>(<span class="number">24</span>).<span class="ident">collect</span>();
+        <span class="comment">// generate a random 24 bytes password
+        </span><span class="kw">let </span>rng = rand::thread_rng();
+        <span class="kw">let </span>password: String = rng.sample_iter(<span class="kw-2">&amp;</span>Alphanumeric).take(<span class="number">24</span>).collect();
 
-        <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="ident">signal_servers</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">push_service</span> <span class="op">=</span>
-            <span class="ident">HyperPushService::new</span>(<span class="ident">service_configuration</span>, <span class="prelude-val">None</span>, <span class="ident"><span class="kw">crate</span>::USER_AGENT</span>.<span class="ident">to_string</span>());
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
+        <span class="kw">let </span><span class="kw-2">mut </span>push_service =
+            HyperPushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">provisioning_manager</span>: <span class="ident">ProvisioningManager</span><span class="op">&lt;</span><span class="ident">HyperPushService</span><span class="op">&gt;</span> <span class="op">=</span>
-            <span class="ident">ProvisioningManager::new</span>(<span class="kw-2">&amp;mut</span> <span class="ident">push_service</span>, <span class="ident">phone_number</span>.<span class="ident">clone</span>(), <span class="ident">password</span>.<span class="ident">clone</span>());
+        <span class="kw">let </span><span class="kw-2">mut </span>provisioning_manager: ProvisioningManager&lt;HyperPushService&gt; =
+            ProvisioningManager::new(<span class="kw-2">&amp;mut </span>push_service, phone_number.clone(), password.clone());
 
-        <span class="kw">let</span> <span class="ident">verification_code_response</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">use_voice_call</span> {
-            <span class="ident">provisioning_manager</span>
-                .<span class="ident">request_voice_verification_code</span>(<span class="ident">captcha</span>, <span class="prelude-val">None</span>)
-                .<span class="kw">await</span><span class="question-mark">?</span>
-        } <span class="kw">else</span> {
-            <span class="ident">provisioning_manager</span>
-                .<span class="ident">request_sms_verification_code</span>(<span class="ident">captcha</span>, <span class="prelude-val">None</span>)
-                .<span class="kw">await</span><span class="question-mark">?</span>
-        };
+        <span class="kw">let </span>verification_code_response = <span class="kw">if </span>use_voice_call {
+            provisioning_manager
+                .request_voice_verification_code(captcha, <span class="prelude-val">None</span>)
+                .<span class="kw">await</span><span class="question-mark">?
+        </span>} <span class="kw">else </span>{
+            provisioning_manager
+                .request_sms_verification_code(captcha, <span class="prelude-val">None</span>)
+                .<span class="kw">await</span><span class="question-mark">?
+        </span>};
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="ident">VerificationCodeResponse::CaptchaRequired</span> <span class="op">=</span> <span class="ident">verification_code_response</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::CaptchaRequired</span>);
+        <span class="kw">if let </span>VerificationCodeResponse::CaptchaRequired = verification_code_response {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(Error::CaptchaRequired);
         }
 
-        <span class="kw">let</span> <span class="ident">manager</span> <span class="op">=</span> <span class="ident">Manager</span> {
-            <span class="ident">config_store</span>,
-            <span class="ident">state</span>: <span class="ident">Confirmation</span> {
-                <span class="ident">signal_servers</span>,
-                <span class="ident">phone_number</span>,
-                <span class="ident">password</span>,
+        <span class="kw">let </span>manager = Manager {
+            config_store,
+            state: Confirmation {
+                signal_servers,
+                phone_number,
+                password,
             },
         };
 
-        <span class="prelude-val">Ok</span>(<span class="ident">manager</span>)
+        <span class="prelude-val">Ok</span>(manager)
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Store</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Linking</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Links this client as a secondary device from the device used to register the account (usually a phone).</span>
-    <span class="doccomment">/// The URL to present to the user will be sent in the channel given as the argument.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// ```no_run</span>
-    <span class="doccomment">/// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};</span>
-    <span class="doccomment">/// use futures::{channel::oneshot, future, StreamExt};</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// #[tokio::main]</span>
-    <span class="doccomment">/// async fn main() -&gt; anyhow::Result&lt;()&gt; {</span>
-    <span class="doccomment">///     let config_store = SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">///     let (mut tx, mut rx) = oneshot::channel();</span>
-    <span class="doccomment">///     let (manager, err) = future::join(</span>
-    <span class="doccomment">///         Manager::link_secondary_device(</span>
-    <span class="doccomment">///             config_store,</span>
-    <span class="doccomment">///             SignalServers::Production,</span>
-    <span class="doccomment">///             &quot;my-linked-client&quot;.into(),</span>
-    <span class="doccomment">///             tx,</span>
-    <span class="doccomment">///         ),</span>
-    <span class="doccomment">///         async move {</span>
-    <span class="doccomment">///             match rx.await {</span>
-    <span class="doccomment">///                 Ok(url) =&gt; println!(&quot;Show URL {} as QR code to user&quot;, url),</span>
-    <span class="doccomment">///                 Err(e) =&gt; println!(&quot;Error linking device: {}&quot;, e)</span>
-    <span class="doccomment">///             }</span>
-    <span class="doccomment">///         },</span>
-    <span class="doccomment">///     )</span>
-    <span class="doccomment">///     .await;</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">///     Ok(())</span>
-    <span class="doccomment">/// }</span>
-    <span class="doccomment">/// ```</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">link_secondary_device</span>(
-        <span class="kw-2">mut</span> <span class="ident">config_store</span>: <span class="ident">C</span>,
-        <span class="ident">signal_servers</span>: <span class="ident">SignalServers</span>,
-        <span class="ident">device_name</span>: <span class="ident">String</span>,
-        <span class="ident">provisioning_link_channel</span>: <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="ident">Url</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated</span>
-        <span class="comment">// and you won&#39;t be able to use this client anyways</span>
-        <span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+<span class="kw">impl</span>&lt;C: Store&gt; Manager&lt;C, Linking&gt; {
+    <span class="doccomment">/// Links this client as a secondary device from the device used to register the account (usually a phone).
+    /// The URL to present to the user will be sent in the channel given as the argument.
+    ///
+    /// ```no_run
+    /// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};
+    /// use futures::{channel::oneshot, future, StreamExt};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -&gt; anyhow::Result&lt;()&gt; {
+    ///     let config_store = SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
+    ///
+    ///     let (mut tx, mut rx) = oneshot::channel();
+    ///     let (manager, err) = future::join(
+    ///         Manager::link_secondary_device(
+    ///             config_store,
+    ///             SignalServers::Production,
+    ///             &quot;my-linked-client&quot;.into(),
+    ///             tx,
+    ///         ),
+    ///         async move {
+    ///             match rx.await {
+    ///                 Ok(url) =&gt; println!(&quot;Show URL {} as QR code to user&quot;, url),
+    ///                 Err(e) =&gt; println!(&quot;Error linking device: {}&quot;, e)
+    ///             }
+    ///         },
+    ///     )
+    ///     .await;
+    ///
+    ///     Ok(())
+    /// }
+    /// ```
+    </span><span class="kw">pub async fn </span>link_secondary_device(
+        <span class="kw-2">mut </span>config_store: C,
+        signal_servers: SignalServers,
+        device_name: String,
+        provisioning_link_channel: oneshot::Sender&lt;Url&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
+        <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated
+        // and you won&#39;t be able to use this client anyways
+        </span>config_store.clear()<span class="question-mark">?</span>;
 
-        <span class="comment">// generate a random 24 bytes password</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
-        <span class="kw">let</span> <span class="ident">password</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">rng</span>.<span class="ident">sample_iter</span>(<span class="kw-2">&amp;</span><span class="ident">Alphanumeric</span>).<span class="ident">take</span>(<span class="number">24</span>).<span class="ident">collect</span>();
+        <span class="comment">// generate a random 24 bytes password
+        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
+        <span class="kw">let </span>password: String = rng.sample_iter(<span class="kw-2">&amp;</span>Alphanumeric).take(<span class="number">24</span>).collect();
 
-        <span class="comment">// generate a 52 bytes signaling key</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signaling_key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">52</span>];
-        <span class="ident">rng</span>.<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">signaling_key</span>);
+        <span class="comment">// generate a 52 bytes signaling key
+        </span><span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
 
-        <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="ident">signal_servers</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">push_service</span> <span class="op">=</span>
-            <span class="ident">HyperPushService::new</span>(<span class="ident">service_configuration</span>, <span class="prelude-val">None</span>, <span class="ident"><span class="kw">crate</span>::USER_AGENT</span>.<span class="ident">to_string</span>());
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
+        <span class="kw">let </span>push_service =
+            HyperPushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">linking_manager</span>: <span class="ident">LinkingManager</span><span class="op">&lt;</span><span class="ident">HyperPushService</span><span class="op">&gt;</span> <span class="op">=</span>
-            <span class="ident">LinkingManager::new</span>(<span class="ident">push_service</span>, <span class="ident">password</span>.<span class="ident">clone</span>());
+        <span class="kw">let </span><span class="kw-2">mut </span>linking_manager: LinkingManager&lt;HyperPushService&gt; =
+            LinkingManager::new(push_service, password.clone());
 
-        <span class="kw">let</span> (<span class="ident">tx</span>, <span class="kw-2">mut</span> <span class="ident">rx</span>) <span class="op">=</span> <span class="ident">mpsc::channel</span>(<span class="number">1</span>);
+        <span class="kw">let </span>(tx, <span class="kw-2">mut </span>rx) = mpsc::channel(<span class="number">1</span>);
 
-        <span class="kw">let</span> (<span class="ident">fut1</span>, <span class="ident">fut2</span>) <span class="op">=</span> <span class="ident">future::join</span>(
-            <span class="ident">linking_manager</span>.<span class="ident">provision_secondary_device</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rand::thread_rng</span>(), <span class="ident">signaling_key</span>, <span class="ident">tx</span>),
-            <span class="kw">async</span> <span class="kw">move</span> {
-                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">SecondaryDeviceProvisioning::Url</span>(<span class="ident">url</span>)) <span class="op">=</span> <span class="ident">rx</span>.<span class="ident">next</span>().<span class="kw">await</span> {
-                    <span class="macro">log::info!</span>(<span class="string">&quot;generating qrcode from provisioning link: {}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">url</span>);
-                    <span class="kw">if</span> <span class="ident">provisioning_link_channel</span>.<span class="ident">send</span>(<span class="ident">url</span>).<span class="ident">is_err</span>() {
-                        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::LinkError</span>);
+        <span class="kw">let </span>(fut1, fut2) = future::join(
+            linking_manager.provision_secondary_device(<span class="kw-2">&amp;mut </span>rand::thread_rng(), signaling_key, tx),
+            <span class="kw">async move </span>{
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::Url(url)) = rx.next().<span class="kw">await </span>{
+                    <span class="macro">log::info!</span>(<span class="string">&quot;generating qrcode from provisioning link: {}&quot;</span>, <span class="kw-2">&amp;</span>url);
+                    <span class="kw">if </span>provisioning_link_channel.send(url).is_err() {
+                        <span class="kw">return </span><span class="prelude-val">Err</span>(Error::LinkError);
                     }
-                } <span class="kw">else</span> {
-                    <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::LinkError</span>);
+                } <span class="kw">else </span>{
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(Error::LinkError);
                 }
 
-                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">SecondaryDeviceProvisioning::NewDeviceRegistration</span> {
-                    <span class="ident">phone_number</span>,
-                    <span class="ident">device_id</span>,
-                    <span class="ident">registration_id</span>,
-                    <span class="ident">uuid</span>,
-                    <span class="ident">private_key</span>,
-                    <span class="ident">public_key</span>,
-                    <span class="ident">profile_key</span>,
-                }) <span class="op">=</span> <span class="ident">rx</span>.<span class="ident">next</span>().<span class="kw">await</span>
-                {
-                    <span class="macro">log::info!</span>(<span class="string">&quot;successfully registered device {}&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">uuid</span>);
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::NewDeviceRegistration {
+                    phone_number,
+                    device_id,
+                    registration_id,
+                    uuid,
+                    private_key,
+                    public_key,
+                    profile_key,
+                }) = rx.next().<span class="kw">await
+                </span>{
+                    <span class="macro">log::info!</span>(<span class="string">&quot;successfully registered device {}&quot;</span>, <span class="kw-2">&amp;</span>uuid);
                     <span class="prelude-val">Ok</span>((
-                        <span class="ident">phone_number</span>,
-                        <span class="ident">device_id</span>.<span class="ident">device_id</span>,
-                        <span class="ident">registration_id</span>,
-                        <span class="ident">uuid</span>,
-                        <span class="ident">private_key</span>,
-                        <span class="ident">public_key</span>,
-                        <span class="ident">profile_key</span>,
+                        phone_number,
+                        device_id.device_id,
+                        registration_id,
+                        uuid,
+                        private_key,
+                        public_key,
+                        profile_key,
                     ))
-                } <span class="kw">else</span> {
-                    <span class="prelude-val">Err</span>(<span class="ident">Error::NoProvisioningMessageReceived</span>)
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(Error::NoProvisioningMessageReceived)
                 }
             },
         )
         .<span class="kw">await</span>;
 
-        <span class="ident">fut1</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">phone_number</span>, <span class="ident">device_id</span>, <span class="ident">registration_id</span>, <span class="ident">uuid</span>, <span class="ident">private_key</span>, <span class="ident">public_key</span>, <span class="ident">profile_key</span>) <span class="op">=</span>
-            <span class="ident">fut2</span><span class="question-mark">?</span>;
+        fut1<span class="question-mark">?</span>;
+        <span class="kw">let </span>(phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
+            fut2<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">manager</span> <span class="op">=</span> <span class="ident">Manager</span> {
-            <span class="ident">config_store</span>,
-            <span class="ident">state</span>: <span class="ident">Registered</span> {
-                <span class="ident">cache</span>: <span class="ident">CacheCell::default</span>(),
-                <span class="ident">signal_servers</span>,
-                <span class="ident">device_name</span>: <span class="prelude-val">Some</span>(<span class="ident">device_name</span>),
-                <span class="ident">phone_number</span>,
-                <span class="ident">uuid</span>,
-                <span class="ident">signaling_key</span>,
-                <span class="ident">password</span>,
-                <span class="ident">device_id</span>: <span class="prelude-val">Some</span>(<span class="ident">device_id</span>),
-                <span class="ident">registration_id</span>,
-                <span class="ident">public_key</span>,
-                <span class="ident">private_key</span>,
-                <span class="ident">profile_key</span>: <span class="ident">ProfileKey</span>(<span class="ident">profile_key</span>.<span class="ident">try_into</span>().<span class="ident">expect</span>(<span class="string">&quot;32 bytes for profile key&quot;</span>)),
+        <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
+            config_store,
+            state: Registered {
+                cache: CacheCell::default(),
+                signal_servers,
+                device_name: <span class="prelude-val">Some</span>(device_name),
+                phone_number,
+                uuid,
+                signaling_key,
+                password,
+                device_id: <span class="prelude-val">Some</span>(device_id),
+                registration_id,
+                public_key,
+                private_key,
+                profile_key: ProfileKey(profile_key.try_into().expect(<span class="string">&quot;32 bytes for profile key&quot;</span>)),
             },
         };
 
-        <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">save_state</span>(<span class="kw-2">&amp;</span><span class="ident">manager</span>.<span class="ident">state</span>)<span class="question-mark">?</span>;
+        manager.config_store.save_state(<span class="kw-2">&amp;</span>manager.state)<span class="question-mark">?</span>;
 
-        <span class="kw">match</span> (
-            <span class="ident">manager</span>.<span class="ident">register_pre_keys</span>().<span class="kw">await</span>,
-            <span class="ident">manager</span>.<span class="ident">set_account_attributes</span>().<span class="kw">await</span>,
-            <span class="ident">manager</span>.<span class="ident">request_contacts_sync</span>().<span class="kw">await</span>,
+        <span class="kw">match </span>(
+            manager.register_pre_keys().<span class="kw">await</span>,
+            manager.set_account_attributes().<span class="kw">await</span>,
+            manager.request_contacts_sync().<span class="kw">await</span>,
         ) {
-            (<span class="prelude-val">Err</span>(<span class="ident">e</span>), <span class="kw">_</span>, <span class="kw">_</span>) <span class="op">|</span> (<span class="kw">_</span>, <span class="prelude-val">Err</span>(<span class="ident">e</span>), <span class="kw">_</span>) <span class="op">|</span> (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(<span class="ident">e</span>)) =&gt; {
-                <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here</span>
-                <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
-                <span class="prelude-val">Err</span>(<span class="ident">e</span>)
+            (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>, <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e), <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
+                <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
+                </span>manager.config_store.clear()<span class="question-mark">?</span>;
+                <span class="prelude-val">Err</span>(e)
             }
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">manager</span>),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(manager),
         }
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Store</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Confirmation</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Confirm a newly registered account using the code you</span>
-    <span class="doccomment">/// received by SMS or phone call.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns a [registered manager](Manager::load_registered) that you can use</span>
-    <span class="doccomment">/// to send and receive messages.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">confirm_verification_code</span>(
+<span class="kw">impl</span>&lt;C: Store&gt; Manager&lt;C, Confirmation&gt; {
+    <span class="doccomment">/// Confirm a newly registered account using the code you
+    /// received by SMS or phone call.
+    ///
+    /// Returns a [registered manager](Manager::load_registered) that you can use
+    /// to send and receive messages.
+    </span><span class="kw">pub async fn </span>confirm_verification_code(
         <span class="self">self</span>,
-        <span class="ident">confirm_code</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
+        confirm_code: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;confirming verification code&quot;</span>);
 
-        <span class="comment">// see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id</span>
-        <span class="kw">let</span> <span class="ident">registration_id</span> <span class="op">=</span> <span class="ident">generate_registration_id</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rand::thread_rng</span>());
-        <span class="macro">trace!</span>(<span class="string">&quot;registration_id: {}&quot;</span>, <span class="ident">registration_id</span>);
+        <span class="comment">// see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
+        </span><span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>rand::thread_rng());
+        <span class="macro">trace!</span>(<span class="string">&quot;registration_id: {}&quot;</span>, registration_id);
 
-        <span class="kw">let</span> <span class="ident">credentials</span> <span class="op">=</span> <span class="ident">ServiceCredentials</span> {
-            <span class="ident">uuid</span>: <span class="prelude-val">None</span>,
-            <span class="ident">phonenumber</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">phone_number</span>.<span class="ident">clone</span>(),
-            <span class="ident">password</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">password</span>.<span class="ident">clone</span>()),
-            <span class="ident">signaling_key</span>: <span class="prelude-val">None</span>,
-            <span class="ident">device_id</span>: <span class="prelude-val">None</span>,
+        <span class="kw">let </span>credentials = ServiceCredentials {
+            uuid: <span class="prelude-val">None</span>,
+            phonenumber: <span class="self">self</span>.state.phone_number.clone(),
+            password: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.password.clone()),
+            signaling_key: <span class="prelude-val">None</span>,
+            device_id: <span class="prelude-val">None</span>,
         };
 
-        <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">push_service</span> <span class="op">=</span> <span class="ident">HyperPushService::new</span>(
-            <span class="ident">service_configuration</span>,
-            <span class="prelude-val">Some</span>(<span class="ident">credentials</span>),
-            <span class="ident"><span class="kw">crate</span>::USER_AGENT</span>.<span class="ident">to_string</span>(),
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
+        <span class="kw">let </span><span class="kw-2">mut </span>push_service = HyperPushService::new(
+            service_configuration,
+            <span class="prelude-val">Some</span>(credentials),
+            <span class="kw">crate</span>::USER_AGENT.to_string(),
         );
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">provisioning_manager</span>: <span class="ident">ProvisioningManager</span><span class="op">&lt;</span><span class="ident">HyperPushService</span><span class="op">&gt;</span> <span class="op">=</span>
-            <span class="ident">ProvisioningManager::new</span>(
-                <span class="kw-2">&amp;mut</span> <span class="ident">push_service</span>,
-                <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">phone_number</span>.<span class="ident">clone</span>(),
-                <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">password</span>.<span class="ident">to_string</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>provisioning_manager: ProvisioningManager&lt;HyperPushService&gt; =
+            ProvisioningManager::new(
+                <span class="kw-2">&amp;mut </span>push_service,
+                <span class="self">self</span>.state.phone_number.clone(),
+                <span class="self">self</span>.state.password.to_string(),
             );
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
 
-        <span class="comment">// generate a 52 bytes signaling key</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">signaling_key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">52</span>];
-        <span class="ident">rng</span>.<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">signaling_key</span>);
+        <span class="comment">// generate a 52 bytes signaling key
+        </span><span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">profile_key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">32</span>];
-        <span class="ident">rng</span>.<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">profile_key</span>);
-        <span class="kw">let</span> <span class="ident">profile_key</span> <span class="op">=</span> <span class="ident">ProfileKey</span>(<span class="ident">profile_key</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>profile_key = [<span class="number">0u8</span>; <span class="number">32</span>];
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
+        <span class="kw">let </span>profile_key = ProfileKey(profile_key);
 
-        <span class="kw">let</span> <span class="ident">registered</span> <span class="op">=</span> <span class="ident">provisioning_manager</span>
-            .<span class="ident">confirm_verification_code</span>(
-                <span class="ident">confirm_code</span>,
-                <span class="ident">AccountAttributes</span> {
-                    <span class="ident">name</span>: <span class="string">&quot;&quot;</span>.<span class="ident">to_string</span>(),
-                    <span class="ident">signaling_key</span>: <span class="prelude-val">Some</span>(<span class="ident">signaling_key</span>.<span class="ident">to_vec</span>()),
-                    <span class="ident">registration_id</span>,
-                    <span class="ident">voice</span>: <span class="bool-val">false</span>,
-                    <span class="ident">video</span>: <span class="bool-val">false</span>,
-                    <span class="ident">fetches_messages</span>: <span class="bool-val">true</span>,
-                    <span class="ident">pin</span>: <span class="prelude-val">None</span>,
-                    <span class="ident">registration_lock</span>: <span class="prelude-val">None</span>,
-                    <span class="ident">unidentified_access_key</span>: <span class="prelude-val">Some</span>(<span class="ident">profile_key</span>.<span class="ident">derive_access_key</span>()),
-                    <span class="ident">unrestricted_unidentified_access</span>: <span class="bool-val">false</span>, <span class="comment">// TODO: make this configurable?</span>
-                    <span class="ident">discoverable_by_phone_number</span>: <span class="bool-val">true</span>,
-                    <span class="ident">capabilities</span>: <span class="ident">DeviceCapabilities</span> {
-                        <span class="ident">gv2</span>: <span class="bool-val">true</span>,
-                        <span class="ident">gv1_migration</span>: <span class="bool-val">true</span>,
-                        ..<span class="ident">Default::default</span>()
+        <span class="kw">let </span>registered = provisioning_manager
+            .confirm_verification_code(
+                confirm_code,
+                AccountAttributes {
+                    name: <span class="string">&quot;&quot;</span>.to_string(),
+                    signaling_key: <span class="prelude-val">Some</span>(signaling_key.to_vec()),
+                    registration_id,
+                    voice: <span class="bool-val">false</span>,
+                    video: <span class="bool-val">false</span>,
+                    fetches_messages: <span class="bool-val">true</span>,
+                    pin: <span class="prelude-val">None</span>,
+                    registration_lock: <span class="prelude-val">None</span>,
+                    unidentified_access_key: <span class="prelude-val">Some</span>(profile_key.derive_access_key()),
+                    unrestricted_unidentified_access: <span class="bool-val">false</span>, <span class="comment">// TODO: make this configurable?
+                    </span>discoverable_by_phone_number: <span class="bool-val">true</span>,
+                    capabilities: DeviceCapabilities {
+                        gv2: <span class="bool-val">true</span>,
+                        gv1_migration: <span class="bool-val">true</span>,
+                        ..Default::default()
                     },
                 },
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">identity_key_pair</span> <span class="op">=</span> <span class="ident">KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rand::thread_rng</span>());
+        <span class="kw">let </span>identity_key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>rand::thread_rng());
 
-        <span class="kw">let</span> <span class="ident">phone_number</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">phone_number</span>.<span class="ident">clone</span>();
-        <span class="kw">let</span> <span class="ident">password</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">password</span>.<span class="ident">clone</span>();
+        <span class="kw">let </span>phone_number = <span class="self">self</span>.state.phone_number.clone();
+        <span class="kw">let </span>password = <span class="self">self</span>.state.password.clone();
 
         <span class="macro">trace!</span>(<span class="string">&quot;confirmed! (and registered)&quot;</span>);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">manager</span> <span class="op">=</span> <span class="ident">Manager</span> {
-            <span class="ident">config_store</span>: <span class="self">self</span>.<span class="ident">config_store</span>,
-            <span class="ident">state</span>: <span class="ident">Registered</span> {
-                <span class="ident">cache</span>: <span class="ident">CacheCell::default</span>(),
-                <span class="ident">signal_servers</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>,
-                <span class="ident">device_name</span>: <span class="prelude-val">None</span>,
-                <span class="ident">phone_number</span>,
-                <span class="ident">uuid</span>: <span class="ident">registered</span>.<span class="ident">uuid</span>,
-                <span class="ident">password</span>,
-                <span class="ident">signaling_key</span>,
-                <span class="ident">device_id</span>: <span class="prelude-val">None</span>,
-                <span class="ident">registration_id</span>,
-                <span class="ident">private_key</span>: <span class="ident">identity_key_pair</span>.<span class="ident">private_key</span>,
-                <span class="ident">public_key</span>: <span class="ident">identity_key_pair</span>.<span class="ident">public_key</span>,
-                <span class="ident">profile_key</span>,
+        <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
+            config_store: <span class="self">self</span>.config_store,
+            state: Registered {
+                cache: CacheCell::default(),
+                signal_servers: <span class="self">self</span>.state.signal_servers,
+                device_name: <span class="prelude-val">None</span>,
+                phone_number,
+                uuid: registered.uuid,
+                password,
+                signaling_key,
+                device_id: <span class="prelude-val">None</span>,
+                registration_id,
+                private_key: identity_key_pair.private_key,
+                public_key: identity_key_pair.public_key,
+                profile_key,
             },
         };
 
-        <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">save_state</span>(<span class="kw-2">&amp;</span><span class="ident">manager</span>.<span class="ident">state</span>)<span class="question-mark">?</span>;
+        manager.config_store.save_state(<span class="kw-2">&amp;</span>manager.state)<span class="question-mark">?</span>;
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">manager</span>.<span class="ident">register_pre_keys</span>().<span class="kw">await</span> {
-            <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here</span>
-            <span class="ident">manager</span>.<span class="ident">config_store</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>)
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">manager</span>)
+        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
+            <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
+            </span>manager.config_store.clear()<span class="question-mark">?</span>;
+            <span class="prelude-val">Err</span>(e)
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(manager)
         }
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">C</span>: <span class="ident">Store</span><span class="op">&gt;</span> <span class="ident">Manager</span><span class="op">&lt;</span><span class="ident">C</span>, <span class="ident">Registered</span><span class="op">&gt;</span> {
-    <span class="doccomment">/// Loads a previously registered account from the implemented [Store].</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns a instance of [Manager] you can use to send &amp; receive messages.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">load_registered</span>(<span class="ident">config_store</span>: <span class="ident">C</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">config_store</span>.<span class="ident">load_state</span>()<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">config_store</span>,
-            <span class="ident">state</span>,
+<span class="kw">impl</span>&lt;C: Store&gt; Manager&lt;C, Registered&gt; {
+    <span class="doccomment">/// Loads a previously registered account from the implemented [Store].
+    ///
+    /// Returns a instance of [Manager] you can use to send &amp; receive messages.
+    </span><span class="kw">pub fn </span>load_registered(config_store: C) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+        <span class="kw">let </span>state = config_store.load_state()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            config_store,
+            state,
         })
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register_pre_keys</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+    <span class="kw">async fn </span>register_pre_keys(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;registering pre keys&quot;</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">account_manager</span> <span class="op">=</span>
-            <span class="ident">AccountManager::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">state</span>.<span class="ident">profile_key</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
+            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.state.profile_key));
 
-        <span class="kw">let</span> (<span class="ident">pre_keys_offset_id</span>, <span class="ident">next_signed_pre_key_id</span>) <span class="op">=</span> <span class="ident">account_manager</span>
-            .<span class="ident">update_pre_key_bundle</span>(
-                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-                <span class="kw-2">&amp;mut</span> <span class="ident">rand::thread_rng</span>(),
-                <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">pre_keys_offset_id</span>()<span class="question-mark">?</span>,
-                <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">next_signed_pre_key_id</span>()<span class="question-mark">?</span>,
+        <span class="kw">let </span>(pre_keys_offset_id, next_signed_pre_key_id) = account_manager
+            .update_pre_key_bundle(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.config_store.clone(),
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
+                <span class="kw-2">&amp;mut </span>rand::thread_rng(),
+                <span class="self">self</span>.config_store.pre_keys_offset_id()<span class="question-mark">?</span>,
+                <span class="self">self</span>.config_store.next_signed_pre_key_id()<span class="question-mark">?</span>,
                 <span class="bool-val">true</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="self">self</span>.<span class="ident">config_store</span>
-            .<span class="ident">set_pre_keys_offset_id</span>(<span class="ident">pre_keys_offset_id</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">config_store</span>
-            .<span class="ident">set_next_signed_pre_key_id</span>(<span class="ident">next_signed_pre_key_id</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.config_store
+            .set_pre_keys_offset_id(pre_keys_offset_id)<span class="question-mark">?</span>;
+        <span class="self">self</span>.config_store
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)<span class="question-mark">?</span>;
 
         <span class="macro">trace!</span>(<span class="string">&quot;registered pre keys&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">set_account_attributes</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+    <span class="kw">async fn </span>set_account_attributes(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;setting account attributes&quot;</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">account_manager</span> <span class="op">=</span>
-            <span class="ident">AccountManager::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.<span class="ident">state</span>.<span class="ident">profile_key</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
+            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.state.profile_key));
 
-        <span class="ident">account_manager</span>
-            .<span class="ident">set_account_attributes</span>(<span class="ident">AccountAttributes</span> {
-                <span class="ident">name</span>: <span class="self">self</span>
-                    .<span class="ident">state</span>
-                    .<span class="ident">device_name</span>
-                    .<span class="ident">clone</span>()
-                    .<span class="ident">expect</span>(<span class="string">&quot;Device name to be set&quot;</span>),
-                <span class="ident">registration_id</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">registration_id</span>,
-                <span class="ident">signaling_key</span>: <span class="prelude-val">None</span>,
-                <span class="ident">voice</span>: <span class="bool-val">false</span>,
-                <span class="ident">video</span>: <span class="bool-val">false</span>,
-                <span class="ident">fetches_messages</span>: <span class="bool-val">true</span>,
-                <span class="ident">pin</span>: <span class="prelude-val">None</span>,
-                <span class="ident">registration_lock</span>: <span class="prelude-val">None</span>,
-                <span class="ident">unidentified_access_key</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">profile_key</span>.<span class="ident">derive_access_key</span>()),
-                <span class="ident">unrestricted_unidentified_access</span>: <span class="bool-val">false</span>,
-                <span class="ident">discoverable_by_phone_number</span>: <span class="bool-val">true</span>,
-                <span class="ident">capabilities</span>: <span class="ident">DeviceCapabilities</span> {
-                    <span class="ident">gv2</span>: <span class="bool-val">true</span>,
-                    <span class="ident">gv1_migration</span>: <span class="bool-val">true</span>,
-                    ..<span class="ident">Default::default</span>()
+        account_manager
+            .set_account_attributes(AccountAttributes {
+                name: <span class="self">self
+                    </span>.state
+                    .device_name
+                    .clone()
+                    .expect(<span class="string">&quot;Device name to be set&quot;</span>),
+                registration_id: <span class="self">self</span>.state.registration_id,
+                signaling_key: <span class="prelude-val">None</span>,
+                voice: <span class="bool-val">false</span>,
+                video: <span class="bool-val">false</span>,
+                fetches_messages: <span class="bool-val">true</span>,
+                pin: <span class="prelude-val">None</span>,
+                registration_lock: <span class="prelude-val">None</span>,
+                unidentified_access_key: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key.derive_access_key()),
+                unrestricted_unidentified_access: <span class="bool-val">false</span>,
+                discoverable_by_phone_number: <span class="bool-val">true</span>,
+                capabilities: DeviceCapabilities {
+                    gv2: <span class="bool-val">true</span>,
+                    gv1_migration: <span class="bool-val">true</span>,
+                    ..Default::default()
                 },
             })
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1413,382 +1413,382 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Request that the primary device to encrypt &amp; send all of its contacts as a message to ourselves</span>
-    <span class="doccomment">/// which can be then received, decrypted and stored in the message receiving loop.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// **Note**: If successful, the contacts are not yet received and stored, but will only be</span>
-    <span class="doccomment">/// processed when they&#39;re received using the `MessageReceiver`.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">request_contacts_sync</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+    <span class="doccomment">/// Request that the primary device to encrypt &amp; send all of its contacts as a message to ourselves
+    /// which can be then received, decrypted and stored in the message receiving loop.
+    ///
+    /// **Note**: If successful, the contacts are not yet received and stored, but will only be
+    /// processed when they&#39;re received using the `MessageReceiver`.
+    </span><span class="kw">pub async fn </span>request_contacts_sync(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;requesting contacts sync&quot;</span>);
-        <span class="kw">let</span> <span class="ident">sync_message</span> <span class="op">=</span> <span class="ident">SyncMessage</span> {
-            <span class="ident">request</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::Request</span> {
-                <span class="ident">r#type</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::request::Type::Contacts</span> <span class="kw">as</span> <span class="ident">i32</span>),
+        <span class="kw">let </span>sync_message = SyncMessage {
+            request: <span class="prelude-val">Some</span>(sync_message::Request {
+                r#type: <span class="prelude-val">Some</span>(sync_message::request::Type::Contacts <span class="kw">as </span>i32),
             }),
-            ..<span class="ident">Default::default</span>()
+            ..Default::default()
         };
 
-        <span class="kw">let</span> <span class="ident">timestamp</span> <span class="op">=</span> <span class="ident">std::time::SystemTime::now</span>()
-            .<span class="ident">duration_since</span>(<span class="ident">UNIX_EPOCH</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;Time went backwards&quot;</span>)
-            .<span class="ident">as_millis</span>() <span class="kw">as</span> <span class="ident">u64</span>;
+        <span class="kw">let </span>timestamp = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect(<span class="string">&quot;Time went backwards&quot;</span>)
+            .as_millis() <span class="kw">as </span>u64;
 
-        <span class="self">self</span>.<span class="ident">send_message</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>, <span class="ident">sync_message</span>, <span class="ident">timestamp</span>)
+        <span class="self">self</span>.send_message(<span class="self">self</span>.state.uuid, sync_message, timestamp)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="macro">trace!</span>(<span class="string">&quot;requested contacts sync&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Returns a handle on the registered state</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident">Registered</span> {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">state</span>
+    <span class="doccomment">/// Returns a handle on the registered state
+    </span><span class="kw">pub fn </span>state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Registered {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.state
     }
 
-    <span class="doccomment">/// Get the profile UUID</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">uuid</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">Uuid</span> {
-        <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>
+    <span class="doccomment">/// Get the profile UUID
+    </span><span class="kw">pub fn </span>uuid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Uuid {
+        <span class="self">self</span>.state.uuid
     }
 
-    <span class="doccomment">/// Fetches basic information on the registered device.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">whoami</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WhoAmIResponse</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>.<span class="ident">whoami</span>().<span class="kw">await</span><span class="question-mark">?</span>)
+    <span class="doccomment">/// Fetches basic information on the registered device.
+    </span><span class="kw">pub async fn </span>whoami(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, Error&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.push_service()<span class="question-mark">?</span>.whoami().<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
-    <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_profile</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Profile</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">retrieve_profile_by_uuid</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>, <span class="kw-2">*</span><span class="self">self</span>.<span class="ident">state</span>.<span class="ident">profile_key</span>)
-            .<span class="kw">await</span>
-    }
+    <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.
+    </span><span class="kw">pub async fn </span>retrieve_profile(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
+        <span class="self">self</span>.retrieve_profile_by_uuid(<span class="self">self</span>.state.uuid, <span class="kw-2">*</span><span class="self">self</span>.state.profile_key)
+            .<span class="kw">await
+    </span>}
 
-    <span class="doccomment">/// Fetches the profile of the provided user by UUID and profile key.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_profile_by_uuid</span>(
+    <span class="doccomment">/// Fetches the profile of the provided user by UUID and profile key.
+    </span><span class="kw">pub async fn </span>retrieve_profile_by_uuid(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-        <span class="ident">profile_key</span>: [<span class="ident">u8</span>; <span class="number">32</span>],
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Profile</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">account_manager</span> <span class="op">=</span> <span class="ident">AccountManager::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="ident">profile_key</span>));
-        <span class="prelude-val">Ok</span>(<span class="ident">account_manager</span>.<span class="ident">retrieve_profile</span>(<span class="ident">uuid</span>.<span class="ident">into</span>()).<span class="kw">await</span><span class="question-mark">?</span>)
+        uuid: Uuid,
+        profile_key: [u8; <span class="number">32</span>],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(profile_key));
+        <span class="prelude-val">Ok</span>(account_manager.retrieve_profile(uuid.into()).<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
-    <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need</span>
-    <span class="doccomment">/// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_contacts</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Contact</span>, <span class="ident">Error</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">contacts</span>()
+    <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].
+    ///
+    /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
+    /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
+    </span><span class="kw">pub fn </span>get_contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&gt;&gt;, Error&gt; {
+        <span class="self">self</span>.config_store.contacts()
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_contact_by_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">Uuid</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Contact</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">contact_by_id</span>(<span class="ident">id</span>)
+    <span class="kw">pub fn </span>get_contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
+        <span class="self">self</span>.config_store.contact_by_id(id)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">receive_messages_encrypted</span>(
+    <span class="kw">async fn </span>receive_messages_encrypted(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Envelope</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">credentials</span>()<span class="question-mark">?</span>.<span class="ident">ok_or</span>(<span class="ident">Error::NotYetRegisteredError</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">pipe</span> <span class="op">=</span> <span class="ident">MessageReceiver::new</span>(<span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>)
-            .<span class="ident">create_message_pipe</span>(<span class="ident">credentials</span>)
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Envelope, ServiceError&gt;&gt;, Error&gt; {
+        <span class="kw">let </span>credentials = <span class="self">self</span>.credentials()<span class="question-mark">?</span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
+        <span class="kw">let </span>pipe = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>)
+            .create_message_pipe(credentials)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">pipe</span>.<span class="ident">stream</span>())
+        <span class="prelude-val">Ok</span>(pipe.stream())
     }
 
-    <span class="doccomment">/// Starts receiving and storing messages.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">receive_messages</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">Content</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">struct</span> <span class="ident">StreamState</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span> {
-            <span class="ident">encrypted_messages</span>: <span class="ident">S</span>,
-            <span class="ident">service_cipher</span>: <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>,
-            <span class="ident">push_service</span>: <span class="ident">HyperPushService</span>,
-            <span class="ident">config_store</span>: <span class="ident">C</span>,
+    <span class="doccomment">/// Starts receiving and storing messages.
+    ///
+    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
+    </span><span class="kw">pub async fn </span>receive_messages(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&gt; {
+        <span class="kw">struct </span>StreamState&lt;S, C&gt; {
+            encrypted_messages: S,
+            service_cipher: ServiceCipher&lt;C&gt;,
+            push_service: HyperPushService,
+            config_store: C,
         }
 
-        <span class="kw">let</span> <span class="ident">init</span> <span class="op">=</span> <span class="ident">StreamState</span> {
-            <span class="ident">encrypted_messages</span>: <span class="ident">Box::pin</span>(<span class="self">self</span>.<span class="ident">receive_messages_encrypted</span>().<span class="kw">await</span><span class="question-mark">?</span>),
-            <span class="ident">service_cipher</span>: <span class="self">self</span>.<span class="ident">new_service_cipher</span>()<span class="question-mark">?</span>,
-            <span class="ident">push_service</span>: <span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>,
-            <span class="ident">config_store</span>: <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
+        <span class="kw">let </span>init = StreamState {
+            encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
+            service_cipher: <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
+            push_service: <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            config_store: <span class="self">self</span>.config_store.clone(),
         };
 
-        <span class="prelude-val">Ok</span>(<span class="ident">futures::stream::unfold</span>(<span class="ident">init</span>, <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">state</span><span class="op">|</span> <span class="kw">async</span> <span class="kw">move</span> {
-            <span class="kw">loop</span> {
-                <span class="kw">match</span> <span class="ident">state</span>.<span class="ident">encrypted_messages</span>.<span class="ident">next</span>().<span class="kw">await</span> {
-                    <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(<span class="ident">envelope</span>)) =&gt; {
-                        <span class="kw">match</span> <span class="ident">state</span>.<span class="ident">service_cipher</span>.<span class="ident">open_envelope</span>(<span class="ident">envelope</span>).<span class="kw">await</span> {
-                            <span class="comment">// contacts synchronization sent from the primary device (happens after linking, or on demand)</span>
-                            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">Content</span> {
-                                <span class="ident">metadata</span>: <span class="ident">Metadata</span> { .. },
-                                <span class="ident">body</span>:
-                                    <span class="ident">ContentBody::SynchronizeMessage</span>(<span class="ident">SyncMessage</span> {
-                                        <span class="ident">contacts</span>: <span class="prelude-val">Some</span>(<span class="ident">contacts</span>),
+        <span class="prelude-val">Ok</span>(futures::stream::unfold(init, |<span class="kw-2">mut </span>state| <span class="kw">async move </span>{
+            <span class="kw">loop </span>{
+                <span class="kw">match </span>state.encrypted_messages.next().<span class="kw">await </span>{
+                    <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(envelope)) =&gt; {
+                        <span class="kw">match </span>state.service_cipher.open_envelope(envelope).<span class="kw">await </span>{
+                            <span class="comment">// contacts synchronization sent from the primary device (happens after linking, or on demand)
+                            </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Content {
+                                metadata: Metadata { .. },
+                                body:
+                                    ContentBody::SynchronizeMessage(SyncMessage {
+                                        contacts: <span class="prelude-val">Some</span>(contacts),
                                         ..
                                     }),
                                 ..
                             })) =&gt; {
-                                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">message_receiver</span> <span class="op">=</span>
-                                    <span class="ident">MessageReceiver::new</span>(<span class="ident">state</span>.<span class="ident">push_service</span>.<span class="ident">clone</span>());
-                                <span class="kw">match</span> <span class="ident">message_receiver</span>.<span class="ident">retrieve_contacts</span>(<span class="kw-2">&amp;</span><span class="ident">contacts</span>).<span class="kw">await</span> {
-                                    <span class="prelude-val">Ok</span>(<span class="ident">contacts_iter</span>) =&gt; {
-                                        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">config_store</span>.<span class="ident">clear_contacts</span>();
-                                        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span> <span class="ident">state</span>
-                                            .<span class="ident">config_store</span>
-                                            .<span class="ident">save_contacts</span>(<span class="ident">contacts_iter</span>.<span class="ident">filter_map</span>(<span class="ident">Result::ok</span>))
+                                <span class="kw">let </span><span class="kw-2">mut </span>message_receiver =
+                                    MessageReceiver::new(state.push_service.clone());
+                                <span class="kw">match </span>message_receiver.retrieve_contacts(<span class="kw-2">&amp;</span>contacts).<span class="kw">await </span>{
+                                    <span class="prelude-val">Ok</span>(contacts_iter) =&gt; {
+                                        <span class="kw">let _ </span>= state.config_store.clear_contacts();
+                                        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = state
+                                            .config_store
+                                            .save_contacts(contacts_iter.filter_map(Result::ok))
                                         {
-                                            <span class="macro">error!</span>(<span class="string">&quot;failed to save contacts: {}&quot;</span>, <span class="ident">e</span>)
+                                            <span class="macro">error!</span>(<span class="string">&quot;failed to save contacts: {}&quot;</span>, e)
                                         }
                                         <span class="macro">info!</span>(<span class="string">&quot;saved contacts&quot;</span>);
                                     }
-                                    <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="macro">error!</span>(<span class="string">&quot;failed to retrieve contacts: {}&quot;</span>, <span class="ident">e</span>),
+                                    <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">error!</span>(<span class="string">&quot;failed to retrieve contacts: {}&quot;</span>, e),
                                 }
                             }
-                            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">content</span>)) =&gt; {
-                                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">thread</span>) <span class="op">=</span> <span class="ident">Thread::try_from</span>(<span class="kw-2">&amp;</span><span class="ident">content</span>) {
-                                    <span class="comment">// TODO: handle reactions here, we should update the original message?</span>
-                                    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>) <span class="op">=</span>
-                                        <span class="ident">state</span>.<span class="ident">config_store</span>.<span class="ident">save_message</span>(<span class="kw-2">&amp;</span><span class="ident">thread</span>, <span class="ident">content</span>.<span class="ident">clone</span>())
+                            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(content)) =&gt; {
+                                <span class="kw">if let </span><span class="prelude-val">Ok</span>(thread) = Thread::try_from(<span class="kw-2">&amp;</span>content) {
+                                    <span class="comment">// TODO: handle reactions here, we should update the original message?
+                                    </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) =
+                                        state.config_store.save_message(<span class="kw-2">&amp;</span>thread, content.clone())
                                     {
-                                        <span class="macro">log::error!</span>(<span class="string">&quot;Error saving message to store: {}&quot;</span>, <span class="ident">e</span>);
+                                        <span class="macro">log::error!</span>(<span class="string">&quot;Error saving message to store: {}&quot;</span>, e);
                                     }
                                 }
 
-                                <span class="kw">return</span> <span class="prelude-val">Some</span>((<span class="ident">content</span>, <span class="ident">state</span>));
+                                <span class="kw">return </span><span class="prelude-val">Some</span>((content, state));
                             }
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;Empty envelope..., message will be skipped!&quot;</span>),
-                            <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-                                <span class="macro">error!</span>(<span class="string">&quot;Error opening envelope: {:?}, message will be skipped!&quot;</span>, <span class="ident">e</span>);
+                            <span class="prelude-val">Err</span>(e) =&gt; {
+                                <span class="macro">error!</span>(<span class="string">&quot;Error opening envelope: {:?}, message will be skipped!&quot;</span>, e);
                             }
                         }
                     }
-                    <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(<span class="ident">e</span>)) =&gt; <span class="macro">error!</span>(<span class="string">&quot;Error: {}&quot;</span>, <span class="ident">e</span>),
-                    <span class="prelude-val">None</span> =&gt; <span class="kw">return</span> <span class="prelude-val">None</span>,
+                    <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)) =&gt; <span class="macro">error!</span>(<span class="string">&quot;Error: {}&quot;</span>, e),
+                    <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
                 }
             }
         }))
     }
 
-    <span class="doccomment">/// Sends a messages to the provided [ServiceAddress].</span>
-    <span class="doccomment">/// The timestamp should be set to now and is used by Signal mobile apps</span>
-    <span class="doccomment">/// to order messages later, and apply reactions.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_message</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient_addr</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ServiceAddress</span><span class="op">&gt;</span>,
-        <span class="ident">message</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ContentBody</span><span class="op">&gt;</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sender</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">new_message_sender</span>()<span class="question-mark">?</span>;
+    <span class="doccomment">/// Sends a messages to the provided [ServiceAddress].
+    /// The timestamp should be set to now and is used by Signal mobile apps
+    /// to order messages later, and apply reactions.
+    </span><span class="kw">pub async fn </span>send_message(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient_addr: <span class="kw">impl </span>Into&lt;ServiceAddress&gt;,
+        message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
+        timestamp: u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">online_only</span> <span class="op">=</span> <span class="bool-val">false</span>;
-        <span class="kw">let</span> <span class="ident">recipient</span> <span class="op">=</span> <span class="ident">recipient_addr</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">content_body</span>: <span class="ident">ContentBody</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">into</span>();
+        <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
+        <span class="kw">let </span>recipient = recipient_addr.into();
+        <span class="kw">let </span>content_body: ContentBody = message.into();
 
-        <span class="ident">sender</span>
-            .<span class="ident">send_message</span>(
-                <span class="kw-2">&amp;</span><span class="ident">recipient</span>,
+        sender
+            .send_message(
+                <span class="kw-2">&amp;</span>recipient,
                 <span class="prelude-val">None</span>,
-                <span class="ident">content_body</span>.<span class="ident">clone</span>(),
-                <span class="ident">timestamp</span>,
-                <span class="ident">online_only</span>,
+                content_body.clone(),
+                timestamp,
+                online_only,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="comment">// save the message</span>
-        <span class="kw">let</span> <span class="ident">thread</span> <span class="op">=</span> <span class="ident">Thread::Contact</span>(<span class="ident">recipient</span>.<span class="ident">uuid</span>.<span class="ident">ok_or</span>(<span class="ident">Error::ContentMissingUuid</span>)<span class="question-mark">?</span>);
-        <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">Content</span> {
-            <span class="ident">metadata</span>: <span class="ident">Metadata</span> {
-                <span class="ident">sender</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>.<span class="ident">into</span>(),
-                <span class="ident">sender_device</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>(),
-                <span class="ident">timestamp</span>,
-                <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>,
-                <span class="ident">unidentified_sender</span>: <span class="bool-val">false</span>,
+        <span class="comment">// save the message
+        </span><span class="kw">let </span>thread = Thread::Contact(recipient.uuid.ok_or(Error::ContentMissingUuid)<span class="question-mark">?</span>);
+        <span class="kw">let </span>content = Content {
+            metadata: Metadata {
+                sender: <span class="self">self</span>.state.uuid.into(),
+                sender_device: <span class="self">self</span>.state.device_id(),
+                timestamp,
+                needs_receipt: <span class="bool-val">false</span>,
+                unidentified_sender: <span class="bool-val">false</span>,
             },
-            <span class="ident">body</span>: <span class="ident">content_body</span>,
+            body: content_body,
         };
 
-        <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">save_message</span>(<span class="kw-2">&amp;</span><span class="ident">thread</span>, <span class="ident">content</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.config_store.save_message(<span class="kw-2">&amp;</span>thread, content)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Uploads attachments prior to linking them in a message.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">upload_attachments</span>(
+    <span class="doccomment">/// Uploads attachments prior to linking them in a message.
+    </span><span class="kw">pub async fn </span>upload_attachments(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">attachments</span>: <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">AttachmentSpec</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>)<span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AttachmentPointer</span>, <span class="ident">AttachmentUploadError</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">new_message_sender</span>()<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">upload</span> <span class="op">=</span> <span class="ident">future::join_all</span>(<span class="ident">attachments</span>.<span class="ident">into_iter</span>().<span class="ident">map</span>(<span class="kw">move</span> <span class="op">|</span>(<span class="ident">spec</span>, <span class="ident">contents</span>)<span class="op">|</span> {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">sender</span>.<span class="ident">clone</span>();
-            <span class="kw">async</span> <span class="kw">move</span> { <span class="ident">sender</span>.<span class="ident">upload_attachment</span>(<span class="ident">spec</span>, <span class="ident">contents</span>).<span class="kw">await</span> }
+        attachments: Vec&lt;(AttachmentSpec, Vec&lt;u8&gt;)&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;&gt;, Error&gt; {
+        <span class="kw">let </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
+        <span class="kw">let </span>upload = future::join_all(attachments.into_iter().map(<span class="kw">move </span>|(spec, contents)| {
+            <span class="kw">let </span><span class="kw-2">mut </span>sender = sender.clone();
+            <span class="kw">async move </span>{ sender.upload_attachment(spec, contents).<span class="kw">await </span>}
         }));
-        <span class="prelude-val">Ok</span>(<span class="ident">upload</span>.<span class="kw">await</span>)
+        <span class="prelude-val">Ok</span>(upload.<span class="kw">await</span>)
     }
 
-    <span class="doccomment">/// Sends one message in a group (v2).</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_message_to_group</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipients</span>: <span class="kw">impl</span> <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">ServiceAddress</span><span class="op">&gt;</span>,
-        <span class="ident">message</span>: <span class="ident">DataMessage</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sender</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">new_message_sender</span>()<span class="question-mark">?</span>;
+    <span class="doccomment">/// Sends one message in a group (v2).
+    </span><span class="kw">pub async fn </span>send_message_to_group(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipients: <span class="kw">impl </span>IntoIterator&lt;Item = ServiceAddress&gt;,
+        message: DataMessage,
+        timestamp: u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">recipients</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">recipients</span>.<span class="ident">into_iter</span>().<span class="ident">collect</span>();
+        <span class="kw">let </span>recipients: Vec&lt;<span class="kw">_</span>&gt; = recipients.into_iter().collect();
 
-        <span class="kw">let</span> <span class="ident">online_only</span> <span class="op">=</span> <span class="bool-val">false</span>;
-        <span class="kw">let</span> <span class="ident">results</span> <span class="op">=</span> <span class="ident">sender</span>
-            .<span class="ident">send_message_to_group</span>(<span class="ident">recipients</span>, <span class="prelude-val">None</span>, <span class="ident">message</span>.<span class="ident">clone</span>(), <span class="ident">timestamp</span>, <span class="ident">online_only</span>)
+        <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
+        <span class="kw">let </span>results = sender
+            .send_message_to_group(recipients, <span class="prelude-val">None</span>, message.clone(), timestamp, online_only)
             .<span class="kw">await</span>;
 
-        <span class="comment">// return first error if any</span>
-        <span class="ident">results</span>.<span class="ident">into_iter</span>().<span class="ident">find</span>(<span class="op">|</span><span class="ident">res</span><span class="op">|</span> <span class="ident">res</span>.<span class="ident">is_err</span>()).<span class="ident">transpose</span>()<span class="question-mark">?</span>;
+        <span class="comment">// return first error if any
+        </span>results.into_iter().find(|res| res.is_err()).transpose()<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">Content</span> {
-            <span class="ident">metadata</span>: <span class="ident">Metadata</span> {
-                <span class="ident">sender</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>.<span class="ident">into</span>(),
-                <span class="ident">sender_device</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>(),
-                <span class="ident">timestamp</span>,
-                <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>, <span class="comment">// TODO: this is just wrong</span>
-                <span class="ident">unidentified_sender</span>: <span class="bool-val">false</span>,
+        <span class="kw">let </span>content = Content {
+            metadata: Metadata {
+                sender: <span class="self">self</span>.state.uuid.into(),
+                sender_device: <span class="self">self</span>.state.device_id(),
+                timestamp,
+                needs_receipt: <span class="bool-val">false</span>, <span class="comment">// TODO: this is just wrong
+                </span>unidentified_sender: <span class="bool-val">false</span>,
             },
-            <span class="ident">body</span>: <span class="ident">message</span>.<span class="ident">into</span>(),
+            body: message.into(),
         };
-        <span class="kw">let</span> <span class="ident">thread</span> <span class="op">=</span> <span class="ident">Thread::try_from</span>(<span class="kw-2">&amp;</span><span class="ident">content</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">save_message</span>(<span class="kw-2">&amp;</span><span class="ident">thread</span>, <span class="ident">content</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>content)<span class="question-mark">?</span>;
+        <span class="self">self</span>.config_store.save_message(<span class="kw-2">&amp;</span>thread, content)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">clear_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">recipient</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">config_store</span>
-            .<span class="ident">delete_all_sessions</span>(<span class="kw-2">&amp;</span><span class="ident">recipient</span>.<span class="ident">identifier</span>())
+    <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).
+    </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.config_store
+            .delete_all_sessions(<span class="kw-2">&amp;</span>recipient.identifier())
             .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_group_v2</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">group_master_key</span>: <span class="ident">GroupMasterKey</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Group</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">server_public_params</span> <span class="op">=</span> <span class="ident">service_configuration</span>.<span class="ident">zkgroup_server_public_params</span>;
+    <span class="kw">pub async fn </span>get_group_v2(<span class="kw-2">&amp;</span><span class="self">self</span>, group_master_key: GroupMasterKey) -&gt; <span class="prelude-ty">Result</span>&lt;Group, Error&gt; {
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
+        <span class="kw">let </span>server_public_params = service_configuration.zkgroup_server_public_params;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">groups_v2_credentials_cache</span> <span class="op">=</span> <span class="ident">InMemoryCredentialsCache::default</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">groups_v2_manager</span> <span class="op">=</span> <span class="ident">GroupsManager::new</span>(
-            <span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">groups_v2_credentials_cache</span>,
-            <span class="ident">server_public_params</span>,
+        <span class="kw">let </span><span class="kw-2">mut </span>groups_v2_credentials_cache = InMemoryCredentialsCache::default();
+        <span class="kw">let </span><span class="kw-2">mut </span>groups_v2_manager = GroupsManager::new(
+            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            <span class="kw-2">&amp;mut </span>groups_v2_credentials_cache,
+            server_public_params,
         );
 
-        <span class="kw">let</span> <span class="ident">group_secret_params</span> <span class="op">=</span> <span class="ident">GroupSecretParams::derive_from_master_key</span>(<span class="ident">group_master_key</span>);
-        <span class="kw">let</span> <span class="ident">authorization</span> <span class="op">=</span> <span class="ident">groups_v2_manager</span>
-            .<span class="ident">get_authorization_for_today</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>, <span class="ident">group_secret_params</span>)
+        <span class="kw">let </span>group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
+        <span class="kw">let </span>authorization = groups_v2_manager
+            .get_authorization_for_today(<span class="self">self</span>.state.uuid, group_secret_params)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">groups_v2_manager</span>
-            .<span class="ident">get_group</span>(<span class="ident">group_secret_params</span>, <span class="ident">authorization</span>)
+        <span class="prelude-val">Ok</span>(groups_v2_manager
+            .get_group(group_secret_params, authorization)
             .<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
-    <span class="doccomment">/// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decrypt_group_context</span>(
+    <span class="doccomment">/// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.
+    </span><span class="kw">pub fn </span>decrypt_group_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_context</span>: <span class="ident">GroupContextV2</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">GroupChanges</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">server_public_params</span> <span class="op">=</span> <span class="ident">service_configuration</span>.<span class="ident">zkgroup_server_public_params</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">groups_v2_credentials_cache</span> <span class="op">=</span> <span class="ident">InMemoryCredentialsCache::default</span>();
-        <span class="kw">let</span> <span class="ident">groups_v2_manager</span> <span class="op">=</span> <span class="ident">GroupsManager::new</span>(
-            <span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">groups_v2_credentials_cache</span>,
-            <span class="ident">server_public_params</span>,
+        group_context: GroupContextV2,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;GroupChanges&gt;, Error&gt; {
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
+        <span class="kw">let </span>server_public_params = service_configuration.zkgroup_server_public_params;
+        <span class="kw">let </span><span class="kw-2">mut </span>groups_v2_credentials_cache = InMemoryCredentialsCache::default();
+        <span class="kw">let </span>groups_v2_manager = GroupsManager::new(
+            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            <span class="kw-2">&amp;mut </span>groups_v2_credentials_cache,
+            server_public_params,
         );
 
-        <span class="kw">let</span> <span class="ident">group_changes</span> <span class="op">=</span> <span class="ident">groups_v2_manager</span>
-            .<span class="ident">decrypt_group_context</span>(<span class="ident">group_context</span>)
-            .<span class="ident">map_err</span>(<span class="ident">ServiceError::GroupsV2DecryptionError</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>group_changes = groups_v2_manager
+            .decrypt_group_context(group_context)
+            .map_err(ServiceError::GroupsV2DecryptionError)<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">group_changes</span>)
+        <span class="prelude-val">Ok</span>(group_changes)
     }
 
-    <span class="doccomment">/// Downloads and decrypts a single attachment.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_attachment</span>(
+    <span class="doccomment">/// Downloads and decrypts a single attachment.
+    </span><span class="kw">pub async fn </span>get_attachment(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">attachment_pointer</span>: <span class="kw-2">&amp;</span><span class="ident">AttachmentPointer</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">service</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">attachment_stream</span> <span class="op">=</span> <span class="ident">service</span>.<span class="ident">get_attachment</span>(<span class="ident">attachment_pointer</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+        attachment_pointer: <span class="kw-2">&amp;</span>AttachmentPointer,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, Error&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>service = <span class="self">self</span>.push_service()<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>attachment_stream = service.get_attachment(attachment_pointer).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="comment">// We need the whole file for the crypto to check out</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">attachment_stream</span>.<span class="ident">read_to_end</span>(<span class="kw-2">&amp;mut</span> <span class="ident">ciphertext</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="comment">// We need the whole file for the crypto to check out
+        </span><span class="kw">let </span><span class="kw-2">mut </span>ciphertext = Vec::new();
+        <span class="kw">let </span>len = attachment_stream.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="macro">trace!</span>(<span class="string">&quot;downloaded encrypted attachment of {} bytes&quot;</span>, <span class="ident">len</span>);
+        <span class="macro">trace!</span>(<span class="string">&quot;downloaded encrypted attachment of {} bytes&quot;</span>, len);
 
-        <span class="kw">let</span> <span class="ident">key</span>: [<span class="ident">u8</span>; <span class="number">64</span>] <span class="op">=</span> <span class="ident">attachment_pointer</span>.<span class="ident">key</span>().<span class="ident">try_into</span>()<span class="question-mark">?</span>;
-        <span class="ident">decrypt_in_place</span>(<span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">ciphertext</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>key: [u8; <span class="number">64</span>] = attachment_pointer.key().try_into()<span class="question-mark">?</span>;
+        decrypt_in_place(key, <span class="kw-2">&amp;mut </span>ciphertext)<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">ciphertext</span>)
+        <span class="prelude-val">Ok</span>(ciphertext)
     }
 
-    <span class="kw">fn</span> <span class="ident">credentials</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ServiceCredentials</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">ServiceCredentials</span> {
-            <span class="ident">uuid</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>),
-            <span class="ident">phonenumber</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">phone_number</span>.<span class="ident">clone</span>(),
-            <span class="ident">password</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">password</span>.<span class="ident">clone</span>()),
-            <span class="ident">signaling_key</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signaling_key</span>),
-            <span class="ident">device_id</span>: <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>,
+    <span class="kw">fn </span>credentials(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;, Error&gt; {
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(ServiceCredentials {
+            uuid: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.uuid),
+            phonenumber: <span class="self">self</span>.state.phone_number.clone(),
+            password: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.password.clone()),
+            signaling_key: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.signaling_key),
+            device_id: <span class="self">self</span>.state.device_id,
         }))
     }
 
-    <span class="doccomment">/// Returns a clone of a cached push service.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// If no service is yet cached, it will create and cache one.</span>
-    <span class="kw">fn</span> <span class="ident">push_service</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">HyperPushService</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">cache</span>.<span class="ident">get</span>(<span class="op">|</span><span class="op">|</span> {
-            <span class="kw">let</span> <span class="ident">credentials</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">credentials</span>()<span class="question-mark">?</span>;
-            <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>.<span class="ident">into</span>();
+    <span class="doccomment">/// Returns a clone of a cached push service.
+    ///
+    /// If no service is yet cached, it will create and cache one.
+    </span><span class="kw">fn </span>push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HyperPushService, Error&gt; {
+        <span class="self">self</span>.state.cache.get(|| {
+            <span class="kw">let </span>credentials = <span class="self">self</span>.credentials()<span class="question-mark">?</span>;
+            <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
 
-            <span class="prelude-val">Ok</span>(<span class="ident">HyperPushService::new</span>(
-                <span class="ident">service_configuration</span>,
-                <span class="ident">credentials</span>,
-                <span class="ident"><span class="kw">crate</span>::USER_AGENT</span>.<span class="ident">to_string</span>(),
+            <span class="prelude-val">Ok</span>(HyperPushService::new(
+                service_configuration,
+                credentials,
+                <span class="kw">crate</span>::USER_AGENT.to_string(),
             ))
         })
     }
 
-    <span class="doccomment">/// Creates a new message sender.</span>
-    <span class="kw">fn</span> <span class="ident">new_message_sender</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">MessageSender</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">local_addr</span> <span class="op">=</span> <span class="ident">ServiceAddress</span> {
-            <span class="ident">uuid</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>),
-            <span class="ident">phonenumber</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">state</span>.<span class="ident">phone_number</span>.<span class="ident">clone</span>()),
-            <span class="ident">relay</span>: <span class="prelude-val">None</span>,
+    <span class="doccomment">/// Creates a new message sender.
+    </span><span class="kw">fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;C&gt;, Error&gt; {
+        <span class="kw">let </span>local_addr = ServiceAddress {
+            uuid: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.uuid),
+            phonenumber: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.phone_number.clone()),
+            relay: <span class="prelude-val">None</span>,
         };
 
-        <span class="prelude-val">Ok</span>(<span class="ident">MessageSender::new</span>(
-            <span class="self">self</span>.<span class="ident">push_service</span>()<span class="question-mark">?</span>,
-            <span class="self">self</span>.<span class="ident">new_service_cipher</span>()<span class="question-mark">?</span>,
-            <span class="ident">rand::thread_rng</span>(),
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="ident">local_addr</span>,
-            <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>.<span class="ident">unwrap_or</span>(<span class="ident">DEFAULT_DEVICE_ID</span>).<span class="ident">into</span>(),
+        <span class="prelude-val">Ok</span>(MessageSender::new(
+            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
+            rand::thread_rng(),
+            <span class="self">self</span>.config_store.clone(),
+            <span class="self">self</span>.config_store.clone(),
+            local_addr,
+            <span class="self">self</span>.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
         ))
     }
 
-    <span class="doccomment">/// Creates a new service cipher.</span>
-    <span class="kw">fn</span> <span class="ident">new_service_cipher</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">service_configuration</span>: <span class="ident">ServiceConfiguration</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">signal_servers</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">service_cipher</span> <span class="op">=</span> <span class="ident">ServiceCipher::new</span>(
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="self">self</span>.<span class="ident">config_store</span>.<span class="ident">clone</span>(),
-            <span class="ident">rand::thread_rng</span>(),
-            <span class="ident">service_configuration</span>.<span class="ident">unidentified_sender_trust_root</span>,
-            <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">uuid</span>,
-            <span class="self">self</span>.<span class="ident">state</span>.<span class="ident">device_id</span>.<span class="ident">unwrap_or</span>(<span class="ident">DEFAULT_DEVICE_ID</span>),
+    <span class="doccomment">/// Creates a new service cipher.
+    </span><span class="kw">fn </span>new_service_cipher(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceCipher&lt;C&gt;, Error&gt; {
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
+        <span class="kw">let </span>service_cipher = ServiceCipher::new(
+            <span class="self">self</span>.config_store.clone(),
+            <span class="self">self</span>.config_store.clone(),
+            <span class="self">self</span>.config_store.clone(),
+            <span class="self">self</span>.config_store.clone(),
+            <span class="self">self</span>.config_store.clone(),
+            rand::thread_rng(),
+            service_configuration.unidentified_sender_trust_root,
+            <span class="self">self</span>.state.uuid,
+            <span class="self">self</span>.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
         );
 
-        <span class="prelude-val">Ok</span>(<span class="ident">service_cipher</span>)
+        <span class="prelude-val">Ok</span>(service_cipher)
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

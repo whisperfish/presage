@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/sender.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/sender.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -794,801 +794,801 @@
 <span id="794">794</span>
 <span id="795">795</span>
 <span id="796">796</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::time::SystemTime</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>std::time::SystemTime;
 
-<span class="kw">use</span> <span class="ident">chrono::prelude</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{
-    <span class="ident">process_prekey_bundle</span>, <span class="ident">DeviceId</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeyStore</span>,
-    <span class="ident">ProtocolAddress</span>, <span class="ident">SenderCertificate</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SessionStore</span>,
-    <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyStore</span>,
+<span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>libsignal_protocol::{
+    process_prekey_bundle, DeviceId, IdentityKeyStore, PreKeyStore,
+    ProtocolAddress, SenderCertificate, SenderKeyStore, SessionStore,
+    SignalProtocolError, SignedPreKeyStore,
 };
-<span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">info</span>, <span class="ident">trace</span>};
-<span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">CryptoRng</span>, <span class="ident">Rng</span>};
+<span class="kw">use </span>log::{info, trace};
+<span class="kw">use </span>rand::{CryptoRng, Rng};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">cipher</span>::{<span class="ident">get_preferred_protocol_address</span>, <span class="ident">ServiceCipher</span>},
-    <span class="ident">content::ContentBody</span>,
-    <span class="ident">proto</span>::{
-        <span class="ident">attachment_pointer::AttachmentIdentifier</span>,
-        <span class="ident">attachment_pointer::Flags</span> <span class="kw">as</span> <span class="ident">AttachmentPointerFlags</span>, <span class="ident">sync_message</span>,
-        <span class="ident">AttachmentPointer</span>, <span class="ident">SyncMessage</span>,
+<span class="kw">use crate</span>::{
+    cipher::{get_preferred_protocol_address, ServiceCipher},
+    content::ContentBody,
+    proto::{
+        attachment_pointer::AttachmentIdentifier,
+        attachment_pointer::Flags <span class="kw">as </span>AttachmentPointerFlags, sync_message,
+        AttachmentPointer, SyncMessage,
     },
-    <span class="ident">push_service</span>::<span class="kw-2">*</span>,
-    <span class="ident">session_store::SessionStoreExt</span>,
-    <span class="ident">ServiceAddress</span>,
+    push_service::<span class="kw-2">*</span>,
+    session_store::SessionStoreExt,
+    ServiceAddress,
 };
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto</span>::{<span class="ident">ContactDetails</span>, <span class="ident">GroupDetails</span>};
+<span class="kw">pub use </span><span class="kw">crate</span>::proto::{ContactDetails, GroupDetails};
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">serde::Serialize</span>, <span class="ident">Debug</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">OutgoingPushMessage</span> {
-    <span class="kw">pub</span> <span class="ident">r#type</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">destination_device_id</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">destination_registration_id</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">content</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(serde::Serialize, Debug)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>OutgoingPushMessage {
+    <span class="kw">pub </span>r#type: u32,
+    <span class="kw">pub </span>destination_device_id: u32,
+    <span class="kw">pub </span>destination_registration_id: u32,
+    <span class="kw">pub </span>content: String,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">serde::Serialize</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">OutgoingPushMessages</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="ident">destination</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="ident">str</span>,
-    <span class="kw">pub</span> <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-    <span class="kw">pub</span> <span class="ident">messages</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OutgoingPushMessage</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">online</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(serde::Serialize, Debug)]
+</span><span class="kw">pub struct </span>OutgoingPushMessages&lt;<span class="lifetime">&#39;a</span>&gt; {
+    <span class="kw">pub </span>destination: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
+    <span class="kw">pub </span>timestamp: u64,
+    <span class="kw">pub </span>messages: Vec&lt;OutgoingPushMessage&gt;,
+    <span class="kw">pub </span>online: bool,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">serde::Deserialize</span>, <span class="ident">Debug</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SendMessageResponse</span> {
-    <span class="kw">pub</span> <span class="ident">needs_sync</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(serde::Deserialize, Debug)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>SendMessageResponse {
+    <span class="kw">pub </span>needs_sync: bool,
 }
 
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">SendMessageResult</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SentMessage</span>, <span class="ident">MessageSenderError</span><span class="op">&gt;</span>;
+<span class="kw">pub type </span>SendMessageResult = <span class="prelude-ty">Result</span>&lt;SentMessage, MessageSenderError&gt;;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SentMessage</span> {
-    <span class="ident">recipient</span>: <span class="ident">ServiceAddress</span>,
-    <span class="ident">unidentified</span>: <span class="ident">bool</span>,
-    <span class="ident">needs_sync</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>SentMessage {
+    recipient: ServiceAddress,
+    unidentified: bool,
+    needs_sync: bool,
 }
 
-<span class="doccomment">/// Attachment specification to be used for uploading.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Loose equivalent of Java&#39;s `SignalServiceAttachmentStream`.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AttachmentSpec</span> {
-    <span class="kw">pub</span> <span class="ident">content_type</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">length</span>: <span class="ident">usize</span>,
-    <span class="kw">pub</span> <span class="ident">file_name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">preview</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">voice_note</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">borderless</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">width</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">height</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">caption</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">blur_hash</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+<span class="doccomment">/// Attachment specification to be used for uploading.
+///
+/// Loose equivalent of Java&#39;s `SignalServiceAttachmentStream`.
+</span><span class="kw">pub struct </span>AttachmentSpec {
+    <span class="kw">pub </span>content_type: String,
+    <span class="kw">pub </span>length: usize,
+    <span class="kw">pub </span>file_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>preview: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+    <span class="kw">pub </span>voice_note: <span class="prelude-ty">Option</span>&lt;bool&gt;,
+    <span class="kw">pub </span>borderless: <span class="prelude-ty">Option</span>&lt;bool&gt;,
+    <span class="kw">pub </span>width: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+    <span class="kw">pub </span>height: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+    <span class="kw">pub </span>caption: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>blur_hash: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
-<span class="doccomment">/// Equivalent of Java&#39;s `SignalServiceMessageSender`.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MessageSender</span><span class="op">&lt;</span><span class="ident">Service</span>, <span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span> {
-    <span class="ident">service</span>: <span class="ident">Service</span>,
-    <span class="ident">cipher</span>: <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span>,
-    <span class="ident">csprng</span>: <span class="ident">R</span>,
-    <span class="ident">session_store</span>: <span class="ident">S</span>,
-    <span class="ident">identity_key_store</span>: <span class="ident">I</span>,
-    <span class="ident">local_address</span>: <span class="ident">ServiceAddress</span>,
-    <span class="ident">device_id</span>: <span class="ident">DeviceId</span>,
+<span class="doccomment">/// Equivalent of Java&#39;s `SignalServiceMessageSender`.
+</span><span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>MessageSender&lt;Service, S, I, SP, P, SK, R&gt; {
+    service: Service,
+    cipher: ServiceCipher&lt;S, I, SP, P, SK, R&gt;,
+    csprng: R,
+    session_store: S,
+    identity_key_store: I,
+    local_address: ServiceAddress,
+    device_id: DeviceId,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">thiserror::Error</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AttachmentUploadError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{0}&quot;</span>)]</span>
-    <span class="ident">ServiceError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">ServiceError</span>),
+<span class="attribute">#[derive(thiserror::Error, Debug)]
+</span><span class="kw">pub enum </span>AttachmentUploadError {
+    <span class="attribute">#[error(<span class="string">&quot;{0}&quot;</span>)]
+    </span>ServiceError(<span class="attribute">#[from] </span>ServiceError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Could not read attachment contents&quot;</span>)]</span>
-    <span class="ident">IoError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">std::io::Error</span>),
+    <span class="attribute">#[error(<span class="string">&quot;Could not read attachment contents&quot;</span>)]
+    </span>IoError(<span class="attribute">#[from] </span>std::io::Error),
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">thiserror::Error</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MessageSenderError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{0}&quot;</span>)]</span>
-    <span class="ident">ServiceError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">ServiceError</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;protocol error: {0}&quot;</span>)]</span>
-    <span class="ident">ProtocolError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">SignalProtocolError</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Failed to upload attachment {0}&quot;</span>)]</span>
-    <span class="ident">AttachmentUploadError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">AttachmentUploadError</span>),
+<span class="attribute">#[derive(thiserror::Error, Debug)]
+</span><span class="kw">pub enum </span>MessageSenderError {
+    <span class="attribute">#[error(<span class="string">&quot;{0}&quot;</span>)]
+    </span>ServiceError(<span class="attribute">#[from] </span>ServiceError),
+    <span class="attribute">#[error(<span class="string">&quot;protocol error: {0}&quot;</span>)]
+    </span>ProtocolError(<span class="attribute">#[from] </span>SignalProtocolError),
+    <span class="attribute">#[error(<span class="string">&quot;Failed to upload attachment {0}&quot;</span>)]
+    </span>AttachmentUploadError(<span class="attribute">#[from] </span>AttachmentUploadError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Untrusted identity key with {identifier}&quot;</span>)]</span>
-    <span class="ident">UntrustedIdentity</span> { <span class="ident">identifier</span>: <span class="ident">String</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Untrusted identity key with {identifier}&quot;</span>)]
+    </span>UntrustedIdentity { identifier: String },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;No pre-key found to establish session with {0:?}&quot;</span>)]</span>
-    <span class="ident">NoPreKey</span>(<span class="ident">ServiceAddress</span>),
+    <span class="attribute">#[error(<span class="string">&quot;No pre-key found to establish session with {0:?}&quot;</span>)]
+    </span>NoPreKey(ServiceAddress),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Please try again&quot;</span>)]</span>
-    <span class="ident">TryAgain</span>,
+    <span class="attribute">#[error(<span class="string">&quot;Please try again&quot;</span>)]
+    </span>TryAgain,
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Exceeded maximum number of retries&quot;</span>)]</span>
-    <span class="ident">MaximumRetriesLimitExceeded</span>,
+    <span class="attribute">#[error(<span class="string">&quot;Exceeded maximum number of retries&quot;</span>)]
+    </span>MaximumRetriesLimitExceeded,
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Network failure sending message to {recipient}&quot;</span>)]</span>
-    <span class="ident">NetworkFailure</span> { <span class="ident">recipient</span>: <span class="ident">ServiceAddress</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Network failure sending message to {recipient}&quot;</span>)]
+    </span>NetworkFailure { recipient: ServiceAddress },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Unregistered recipient {recipient}&quot;</span>)]</span>
-    <span class="ident">UnregisteredFailure</span> { <span class="ident">recipient</span>: <span class="ident">ServiceAddress</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Unregistered recipient {recipient}&quot;</span>)]
+    </span>UnregisteredFailure { recipient: ServiceAddress },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Identity verification failure with {recipient}&quot;</span>)]</span>
-    <span class="ident">IdentityFailure</span> { <span class="ident">recipient</span>: <span class="ident">ServiceAddress</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Identity verification failure with {recipient}&quot;</span>)]
+    </span>IdentityFailure { recipient: ServiceAddress },
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">Service</span>, <span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span> <span class="ident">MessageSender</span><span class="op">&lt;</span><span class="ident">Service</span>, <span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span>
-<span class="kw">where</span>
-    <span class="ident">Service</span>: <span class="ident">PushService</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">S</span>: <span class="ident">SessionStore</span> <span class="op">+</span> <span class="ident">SessionStoreExt</span> <span class="op">+</span> <span class="ident">Sync</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">I</span>: <span class="ident">IdentityKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">SP</span>: <span class="ident">SignedPreKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">SK</span>: <span class="ident">SenderKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">P</span>: <span class="ident">PreKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span> <span class="op">+</span> <span class="ident">Clone</span>,
+<span class="kw">impl</span>&lt;Service, S, I, SP, P, SK, R&gt; MessageSender&lt;Service, S, I, SP, P, SK, R&gt;
+<span class="kw">where
+    </span>Service: PushService + Clone,
+    S: SessionStore + SessionStoreExt + Sync + Clone,
+    I: IdentityKeyStore + Clone,
+    SP: SignedPreKeyStore + Clone,
+    SK: SenderKeyStore + Clone,
+    P: PreKeyStore + Clone,
+    R: Rng + CryptoRng + Clone,
 {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">service</span>: <span class="ident">Service</span>,
-        <span class="ident">cipher</span>: <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span>,
-        <span class="ident">csprng</span>: <span class="ident">R</span>,
-        <span class="ident">session_store</span>: <span class="ident">S</span>,
-        <span class="ident">identity_key_store</span>: <span class="ident">I</span>,
-        <span class="ident">local_address</span>: <span class="ident">ServiceAddress</span>,
-        <span class="ident">device_id</span>: <span class="ident">DeviceId</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="ident">MessageSender</span> {
-            <span class="ident">service</span>,
-            <span class="ident">cipher</span>,
-            <span class="ident">csprng</span>,
-            <span class="ident">session_store</span>,
-            <span class="ident">identity_key_store</span>,
-            <span class="ident">local_address</span>,
-            <span class="ident">device_id</span>,
+    <span class="kw">pub fn </span>new(
+        service: Service,
+        cipher: ServiceCipher&lt;S, I, SP, P, SK, R&gt;,
+        csprng: R,
+        session_store: S,
+        identity_key_store: I,
+        local_address: ServiceAddress,
+        device_id: DeviceId,
+    ) -&gt; <span class="self">Self </span>{
+        MessageSender {
+            service,
+            cipher,
+            csprng,
+            session_store,
+            identity_key_store,
+            local_address,
+            device_id,
         }
     }
 
-    <span class="doccomment">/// Encrypts and uploads an attachment</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Contents are accepted as an owned, plain text Vec, because encryption happens in-place.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">upload_attachment</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">spec</span>: <span class="ident">AttachmentSpec</span>,
-        <span class="kw-2">mut</span> <span class="ident">contents</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AttachmentPointer</span>, <span class="ident">AttachmentUploadError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">contents</span>.<span class="ident">len</span>();
-        <span class="comment">// Encrypt</span>
-        <span class="kw">let</span> (<span class="ident">key</span>, <span class="ident">iv</span>) <span class="op">=</span> {
-            <span class="kw">use</span> <span class="ident">rand::RngCore</span>;
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">64</span>];
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">iv</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
-            <span class="comment">// thread_rng is guaranteed to be cryptographically secure</span>
-            <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key</span>);
-            <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">iv</span>);
-            (<span class="ident">key</span>, <span class="ident">iv</span>)
+    <span class="doccomment">/// Encrypts and uploads an attachment
+    ///
+    /// Contents are accepted as an owned, plain text Vec, because encryption happens in-place.
+    </span><span class="kw">pub async fn </span>upload_attachment(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        spec: AttachmentSpec,
+        <span class="kw-2">mut </span>contents: Vec&lt;u8&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt; {
+        <span class="kw">let </span>len = contents.len();
+        <span class="comment">// Encrypt
+        </span><span class="kw">let </span>(key, iv) = {
+            <span class="kw">use </span>rand::RngCore;
+            <span class="kw">let </span><span class="kw-2">mut </span>key = [<span class="number">0u8</span>; <span class="number">64</span>];
+            <span class="kw">let </span><span class="kw-2">mut </span>iv = [<span class="number">0u8</span>; <span class="number">16</span>];
+            <span class="comment">// thread_rng is guaranteed to be cryptographically secure
+            </span>rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>key);
+            rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>iv);
+            (key, iv)
         };
 
-        <span class="comment">// Padded length uses an exponential bracketting thingy.</span>
-        <span class="comment">// If you want to see how it looks:</span>
-        <span class="comment">// https://www.wolframalpha.com/input/?i=plot+floor%281.05%5Eceil%28log_1.05%28x%29%29%29+for+x+from+0+to+5000000</span>
-        <span class="kw">let</span> <span class="ident">padded_len</span>: <span class="ident">usize</span> <span class="op">=</span> {
-            <span class="comment">// Java:</span>
-            <span class="comment">// return (int) Math.max(541, Math.floor(Math.pow(1.05, Math.ceil(Math.log(size) / Math.log(1.05)))))</span>
-            <span class="ident">std::cmp::max</span>(
+        <span class="comment">// Padded length uses an exponential bracketting thingy.
+        // If you want to see how it looks:
+        // https://www.wolframalpha.com/input/?i=plot+floor%281.05%5Eceil%28log_1.05%28x%29%29%29+for+x+from+0+to+5000000
+        </span><span class="kw">let </span>padded_len: usize = {
+            <span class="comment">// Java:
+            // return (int) Math.max(541, Math.floor(Math.pow(1.05, Math.ceil(Math.log(size) / Math.log(1.05)))))
+            </span>std::cmp::max(
                 <span class="number">541</span>,
-                <span class="number">1.05f64</span>.<span class="ident">powf</span>((<span class="ident">len</span> <span class="kw">as</span> <span class="ident">f64</span>).<span class="ident">log</span>(<span class="number">1.05</span>).<span class="ident">ceil</span>()).<span class="ident">floor</span>() <span class="kw">as</span> <span class="ident">usize</span>,
+                <span class="number">1.05f64</span>.powf((len <span class="kw">as </span>f64).log(<span class="number">1.05</span>).ceil()).floor() <span class="kw">as </span>usize,
             )
         };
-        <span class="kw">if</span> <span class="ident">padded_len</span> <span class="op">&lt;</span> <span class="ident">len</span> {
+        <span class="kw">if </span>padded_len &lt; len {
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;Padded len {} &lt; len {}. Continuing with a privacy risk.&quot;</span>,
-                <span class="ident">padded_len</span>,
-                <span class="ident">len</span>
+                padded_len,
+                len
             );
-        } <span class="kw">else</span> {
-            <span class="ident">contents</span>.<span class="ident">resize</span>(<span class="ident">padded_len</span>, <span class="number">0</span>);
+        } <span class="kw">else </span>{
+            contents.resize(padded_len, <span class="number">0</span>);
         }
 
-        <span class="ident"><span class="kw">crate</span>::attachment_cipher::encrypt_in_place</span>(<span class="ident">iv</span>, <span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">contents</span>);
+        <span class="kw">crate</span>::attachment_cipher::encrypt_in_place(iv, key, <span class="kw-2">&amp;mut </span>contents);
 
-        <span class="comment">// Request upload attributes</span>
-        <span class="macro">log::trace!</span>(<span class="string">&quot;Requesting upload attributes&quot;</span>);
-        <span class="kw">let</span> <span class="ident">attrs</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">service</span>.<span class="ident">get_attachment_v2_upload_attributes</span>().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="comment">// Request upload attributes
+        </span><span class="macro">log::trace!</span>(<span class="string">&quot;Requesting upload attributes&quot;</span>);
+        <span class="kw">let </span>attrs = <span class="self">self</span>.service.get_attachment_v2_upload_attributes().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="macro">log::trace!</span>(<span class="string">&quot;Uploading attachment&quot;</span>);
-        <span class="kw">let</span> (<span class="ident">id</span>, <span class="ident">digest</span>) <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">service</span>
-            .<span class="ident">upload_attachment</span>(<span class="kw-2">&amp;</span><span class="ident">attrs</span>, <span class="kw-2">&amp;mut</span> <span class="ident">std::io::Cursor::new</span>(<span class="kw-2">&amp;</span><span class="ident">contents</span>))
+        <span class="kw">let </span>(id, digest) = <span class="self">self
+            </span>.service
+            .upload_attachment(<span class="kw-2">&amp;</span>attrs, <span class="kw-2">&amp;mut </span>std::io::Cursor::new(<span class="kw-2">&amp;</span>contents))
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">AttachmentPointer</span> {
-            <span class="ident">content_type</span>: <span class="prelude-val">Some</span>(<span class="ident">spec</span>.<span class="ident">content_type</span>),
-            <span class="ident">key</span>: <span class="prelude-val">Some</span>(<span class="ident">key</span>.<span class="ident">to_vec</span>()),
-            <span class="ident">size</span>: <span class="prelude-val">Some</span>(<span class="ident">len</span> <span class="kw">as</span> <span class="ident">u32</span>),
-            <span class="comment">// thumbnail: Option&lt;Vec&lt;u8&gt;&gt;,</span>
-            <span class="ident">digest</span>: <span class="prelude-val">Some</span>(<span class="ident">digest</span>),
-            <span class="ident">file_name</span>: <span class="ident">spec</span>.<span class="ident">file_name</span>,
-            <span class="ident">flags</span>: <span class="prelude-val">Some</span>(
-                <span class="kw">if</span> <span class="ident">spec</span>.<span class="ident">voice_note</span> <span class="op">==</span> <span class="prelude-val">Some</span>(<span class="bool-val">true</span>) {
-                    <span class="ident">AttachmentPointerFlags::VoiceMessage</span> <span class="kw">as</span> <span class="ident">u32</span>
-                } <span class="kw">else</span> {
-                    <span class="number">0</span>
-                } <span class="op">|</span> <span class="kw">if</span> <span class="ident">spec</span>.<span class="ident">borderless</span> <span class="op">==</span> <span class="prelude-val">Some</span>(<span class="bool-val">true</span>) {
-                    <span class="ident">AttachmentPointerFlags::Borderless</span> <span class="kw">as</span> <span class="ident">u32</span>
-                } <span class="kw">else</span> {
-                    <span class="number">0</span>
-                },
+        <span class="prelude-val">Ok</span>(AttachmentPointer {
+            content_type: <span class="prelude-val">Some</span>(spec.content_type),
+            key: <span class="prelude-val">Some</span>(key.to_vec()),
+            size: <span class="prelude-val">Some</span>(len <span class="kw">as </span>u32),
+            <span class="comment">// thumbnail: Option&lt;Vec&lt;u8&gt;&gt;,
+            </span>digest: <span class="prelude-val">Some</span>(digest),
+            file_name: spec.file_name,
+            flags: <span class="prelude-val">Some</span>(
+                <span class="kw">if </span>spec.voice_note == <span class="prelude-val">Some</span>(<span class="bool-val">true</span>) {
+                    AttachmentPointerFlags::VoiceMessage <span class="kw">as </span>u32
+                } <span class="kw">else </span>{
+                    <span class="number">0
+                </span>} | <span class="kw">if </span>spec.borderless == <span class="prelude-val">Some</span>(<span class="bool-val">true</span>) {
+                    AttachmentPointerFlags::Borderless <span class="kw">as </span>u32
+                } <span class="kw">else </span>{
+                    <span class="number">0
+                </span>},
             ),
-            <span class="ident">width</span>: <span class="ident">spec</span>.<span class="ident">width</span>,
-            <span class="ident">height</span>: <span class="ident">spec</span>.<span class="ident">height</span>,
-            <span class="ident">caption</span>: <span class="ident">spec</span>.<span class="ident">caption</span>,
-            <span class="ident">blur_hash</span>: <span class="ident">spec</span>.<span class="ident">blur_hash</span>,
-            <span class="ident">upload_timestamp</span>: <span class="prelude-val">Some</span>(
-                <span class="ident">SystemTime::now</span>()
-                    .<span class="ident">duration_since</span>(<span class="ident">SystemTime::UNIX_EPOCH</span>)
-                    .<span class="ident">expect</span>(<span class="string">&quot;unix epoch in the past&quot;</span>)
-                    .<span class="ident">as_millis</span>() <span class="kw">as</span> <span class="ident">u64</span>,
+            width: spec.width,
+            height: spec.height,
+            caption: spec.caption,
+            blur_hash: spec.blur_hash,
+            upload_timestamp: <span class="prelude-val">Some</span>(
+                SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .expect(<span class="string">&quot;unix epoch in the past&quot;</span>)
+                    .as_millis() <span class="kw">as </span>u64,
             ),
-            <span class="ident">cdn_number</span>: <span class="prelude-val">Some</span>(<span class="number">0</span>),
-            <span class="ident">attachment_identifier</span>: <span class="prelude-val">Some</span>(<span class="ident">AttachmentIdentifier::CdnId</span>(<span class="ident">id</span>)),
-            ..<span class="ident">Default::default</span>()
+            cdn_number: <span class="prelude-val">Some</span>(<span class="number">0</span>),
+            attachment_identifier: <span class="prelude-val">Some</span>(AttachmentIdentifier::CdnId(id)),
+            ..Default::default()
         })
     }
 
-    <span class="doccomment">/// Upload group details to the CDN</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns attachment ID and the attachment digest</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">upload_group_details</span><span class="op">&lt;</span><span class="ident">Groups</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">groups</span>: <span class="ident">Groups</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AttachmentPointer</span>, <span class="ident">AttachmentUploadError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">Groups</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">GroupDetails</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Upload group details to the CDN
+    ///
+    /// Returns attachment ID and the attachment digest
+    </span><span class="kw">async fn </span>upload_group_details&lt;Groups&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        groups: Groups,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;
+    <span class="kw">where
+        </span>Groups: IntoIterator&lt;Item = GroupDetails&gt;,
     {
-        <span class="kw">use</span> <span class="ident">prost::Message</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">out</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="kw">for</span> <span class="ident">group</span> <span class="kw">in</span> <span class="ident">groups</span> {
-            <span class="ident">group</span>
-                .<span class="ident">encode_length_delimited</span>(<span class="kw-2">&amp;mut</span> <span class="ident">out</span>)
-                .<span class="ident">expect</span>(<span class="string">&quot;infallible encoding&quot;</span>);
-            <span class="comment">// XXX add avatar here</span>
-        }
+        <span class="kw">use </span>prost::Message;
+        <span class="kw">let </span><span class="kw-2">mut </span>out = Vec::new();
+        <span class="kw">for </span>group <span class="kw">in </span>groups {
+            group
+                .encode_length_delimited(<span class="kw-2">&amp;mut </span>out)
+                .expect(<span class="string">&quot;infallible encoding&quot;</span>);
+            <span class="comment">// XXX add avatar here
+        </span>}
 
-        <span class="kw">let</span> <span class="ident">spec</span> <span class="op">=</span> <span class="ident">AttachmentSpec</span> {
-            <span class="ident">content_type</span>: <span class="string">&quot;application/octet-stream&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">length</span>: <span class="ident">out</span>.<span class="ident">len</span>(),
-            <span class="ident">file_name</span>: <span class="prelude-val">None</span>,
-            <span class="ident">preview</span>: <span class="prelude-val">None</span>,
-            <span class="ident">voice_note</span>: <span class="prelude-val">None</span>,
-            <span class="ident">borderless</span>: <span class="prelude-val">None</span>,
-            <span class="ident">width</span>: <span class="prelude-val">None</span>,
-            <span class="ident">height</span>: <span class="prelude-val">None</span>,
-            <span class="ident">caption</span>: <span class="prelude-val">None</span>,
-            <span class="ident">blur_hash</span>: <span class="prelude-val">None</span>,
+        <span class="kw">let </span>spec = AttachmentSpec {
+            content_type: <span class="string">&quot;application/octet-stream&quot;</span>.into(),
+            length: out.len(),
+            file_name: <span class="prelude-val">None</span>,
+            preview: <span class="prelude-val">None</span>,
+            voice_note: <span class="prelude-val">None</span>,
+            borderless: <span class="prelude-val">None</span>,
+            width: <span class="prelude-val">None</span>,
+            height: <span class="prelude-val">None</span>,
+            caption: <span class="prelude-val">None</span>,
+            blur_hash: <span class="prelude-val">None</span>,
         };
-        <span class="self">self</span>.<span class="ident">upload_attachment</span>(<span class="ident">spec</span>, <span class="ident">out</span>).<span class="kw">await</span>
-    }
+        <span class="self">self</span>.upload_attachment(spec, out).<span class="kw">await
+    </span>}
 
-    <span class="doccomment">/// Upload contact details to the CDN</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns attachment ID and the attachment digest</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">upload_contact_details</span><span class="op">&lt;</span><span class="ident">Contacts</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">contacts</span>: <span class="ident">Contacts</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AttachmentPointer</span>, <span class="ident">AttachmentUploadError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">Contacts</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">ContactDetails</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Upload contact details to the CDN
+    ///
+    /// Returns attachment ID and the attachment digest
+    </span><span class="kw">async fn </span>upload_contact_details&lt;Contacts&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        contacts: Contacts,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;
+    <span class="kw">where
+        </span>Contacts: IntoIterator&lt;Item = ContactDetails&gt;,
     {
-        <span class="kw">use</span> <span class="ident">prost::Message</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">out</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="kw">for</span> <span class="ident">contact</span> <span class="kw">in</span> <span class="ident">contacts</span> {
-            <span class="ident">contact</span>
-                .<span class="ident">encode_length_delimited</span>(<span class="kw-2">&amp;mut</span> <span class="ident">out</span>)
-                .<span class="ident">expect</span>(<span class="string">&quot;infallible encoding&quot;</span>);
-            <span class="comment">// XXX add avatar here</span>
-        }
+        <span class="kw">use </span>prost::Message;
+        <span class="kw">let </span><span class="kw-2">mut </span>out = Vec::new();
+        <span class="kw">for </span>contact <span class="kw">in </span>contacts {
+            contact
+                .encode_length_delimited(<span class="kw-2">&amp;mut </span>out)
+                .expect(<span class="string">&quot;infallible encoding&quot;</span>);
+            <span class="comment">// XXX add avatar here
+        </span>}
 
-        <span class="kw">let</span> <span class="ident">spec</span> <span class="op">=</span> <span class="ident">AttachmentSpec</span> {
-            <span class="ident">content_type</span>: <span class="string">&quot;application/octet-stream&quot;</span>.<span class="ident">into</span>(),
-            <span class="ident">length</span>: <span class="ident">out</span>.<span class="ident">len</span>(),
-            <span class="ident">file_name</span>: <span class="prelude-val">None</span>,
-            <span class="ident">preview</span>: <span class="prelude-val">None</span>,
-            <span class="ident">voice_note</span>: <span class="prelude-val">None</span>,
-            <span class="ident">borderless</span>: <span class="prelude-val">None</span>,
-            <span class="ident">width</span>: <span class="prelude-val">None</span>,
-            <span class="ident">height</span>: <span class="prelude-val">None</span>,
-            <span class="ident">caption</span>: <span class="prelude-val">None</span>,
-            <span class="ident">blur_hash</span>: <span class="prelude-val">None</span>,
+        <span class="kw">let </span>spec = AttachmentSpec {
+            content_type: <span class="string">&quot;application/octet-stream&quot;</span>.into(),
+            length: out.len(),
+            file_name: <span class="prelude-val">None</span>,
+            preview: <span class="prelude-val">None</span>,
+            voice_note: <span class="prelude-val">None</span>,
+            borderless: <span class="prelude-val">None</span>,
+            width: <span class="prelude-val">None</span>,
+            height: <span class="prelude-val">None</span>,
+            caption: <span class="prelude-val">None</span>,
+            blur_hash: <span class="prelude-val">None</span>,
         };
-        <span class="self">self</span>.<span class="ident">upload_attachment</span>(<span class="ident">spec</span>, <span class="ident">out</span>).<span class="kw">await</span>
-    }
+        <span class="self">self</span>.upload_attachment(spec, out).<span class="kw">await
+    </span>}
 
-    <span class="doccomment">/// Send a message `content` to a single `recipient`.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_message</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="ident">message</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ContentBody</span><span class="op">&gt;</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-        <span class="ident">online</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="ident">SendMessageResult</span> {
-        <span class="kw">let</span> <span class="ident">content_body</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">into</span>();
+    <span class="doccomment">/// Send a message `content` to a single `recipient`.
+    </span><span class="kw">pub async fn </span>send_message(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
+        timestamp: u64,
+        online: bool,
+    ) -&gt; SendMessageResult {
+        <span class="kw">let </span>content_body = message.into();
 
-        <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto::data_message::Flags</span>;
-        <span class="kw">let</span> <span class="ident">end_session</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">content_body</span> {
-            <span class="ident">ContentBody::DataMessage</span>(<span class="ident">message</span>) =&gt; {
-                <span class="ident">message</span>.<span class="ident">flags</span> <span class="op">==</span> <span class="prelude-val">Some</span>(<span class="ident">Flags::EndSession</span> <span class="kw">as</span> <span class="ident">u32</span>)
+        <span class="kw">use </span><span class="kw">crate</span>::proto::data_message::Flags;
+        <span class="kw">let </span>end_session = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
+            ContentBody::DataMessage(message) =&gt; {
+                message.flags == <span class="prelude-val">Some</span>(Flags::EndSession <span class="kw">as </span>u32)
             },
-            <span class="kw">_</span> =&gt; <span class="bool-val">false</span>,
+            <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
         };
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">results</span> <span class="op">=</span> <span class="macro">vec!</span>[
-            <span class="self">self</span>.<span class="ident">try_send_message</span>(
-                <span class="ident">recipient</span>.<span class="ident">clone</span>(),
-                <span class="ident">unidentified_access</span>,
-                <span class="kw-2">&amp;</span><span class="ident">content_body</span>,
-                <span class="ident">timestamp</span>,
-                <span class="ident">online</span>,
+        <span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[
+            <span class="self">self</span>.try_send_message(
+                recipient.clone(),
+                unidentified_access,
+                <span class="kw-2">&amp;</span>content_body,
+                timestamp,
+                online,
             )
             .<span class="kw">await</span>,
         ];
 
-        <span class="kw">match</span> (<span class="kw-2">&amp;</span><span class="ident">content_body</span>, <span class="kw-2">&amp;</span><span class="ident">results</span>[<span class="number">0</span>]) {
-            <span class="comment">// if we sent a data message and we have linked devices, we need to send a sync message</span>
-            (
-                <span class="ident">ContentBody::DataMessage</span>(<span class="ident">message</span>),
-                <span class="prelude-val">Ok</span>(<span class="ident">SentMessage</span> { <span class="ident">needs_sync</span>, .. }),
-            ) <span class="kw">if</span> <span class="kw-2">*</span><span class="ident">needs_sync</span> =&gt; {
+        <span class="kw">match </span>(<span class="kw-2">&amp;</span>content_body, <span class="kw-2">&amp;</span>results[<span class="number">0</span>]) {
+            <span class="comment">// if we sent a data message and we have linked devices, we need to send a sync message
+            </span>(
+                ContentBody::DataMessage(message),
+                <span class="prelude-val">Ok</span>(SentMessage { needs_sync, .. }),
+            ) <span class="kw">if </span><span class="kw-2">*</span>needs_sync =&gt; {
                 <span class="macro">log::debug!</span>(<span class="string">&quot;sending multi-device sync message&quot;</span>);
-                <span class="kw">let</span> <span class="ident">sync_message</span> <span class="op">=</span> <span class="self">self</span>
-                    .<span class="ident">create_multi_device_sent_transcript_content</span>(
-                        <span class="prelude-val">Some</span>(<span class="ident">recipient</span>),
-                        <span class="prelude-val">Some</span>(<span class="ident">message</span>.<span class="ident">clone</span>()),
-                        <span class="ident">timestamp</span>,
-                        <span class="kw-2">&amp;</span><span class="ident">results</span>,
+                <span class="kw">let </span>sync_message = <span class="self">self
+                    </span>.create_multi_device_sent_transcript_content(
+                        <span class="prelude-val">Some</span>(recipient),
+                        <span class="prelude-val">Some</span>(message.clone()),
+                        timestamp,
+                        <span class="kw-2">&amp;</span>results,
                     );
-                <span class="self">self</span>.<span class="ident">try_send_message</span>(
-                    <span class="self">self</span>.<span class="ident">local_address</span>.<span class="ident">clone</span>(),
+                <span class="self">self</span>.try_send_message(
+                    <span class="self">self</span>.local_address.clone(),
                     <span class="prelude-val">None</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">sync_message</span>,
-                    <span class="ident">timestamp</span>,
+                    <span class="kw-2">&amp;</span>sync_message,
+                    timestamp,
                     <span class="bool-val">false</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
             },
-            <span class="kw">_</span> =&gt; (),
+            <span class="kw">_ </span>=&gt; (),
         }
 
-        <span class="kw">if</span> <span class="ident">end_session</span> {
-            <span class="macro">log::debug!</span>(<span class="string">&quot;ending session with {}&quot;</span>, <span class="ident">recipient</span>);
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">uuid</span>) <span class="op">=</span> <span class="ident">recipient</span>.<span class="ident">uuid</span> {
-                <span class="self">self</span>.<span class="ident">session_store</span>
-                    .<span class="ident">delete_all_sessions</span>(<span class="kw-2">&amp;</span><span class="ident">uuid</span>.<span class="ident">to_string</span>())
+        <span class="kw">if </span>end_session {
+            <span class="macro">log::debug!</span>(<span class="string">&quot;ending session with {}&quot;</span>, recipient);
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>uuid) = recipient.uuid {
+                <span class="self">self</span>.session_store
+                    .delete_all_sessions(<span class="kw-2">&amp;</span>uuid.to_string())
                     .<span class="kw">await</span><span class="question-mark">?</span>;
             }
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">e164</span>) <span class="op">=</span> <span class="ident">recipient</span>.<span class="ident">e164</span>() {
-                <span class="self">self</span>.<span class="ident">session_store</span>.<span class="ident">delete_all_sessions</span>(<span class="kw-2">&amp;</span><span class="ident">e164</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(e164) = recipient.e164() {
+                <span class="self">self</span>.session_store.delete_all_sessions(<span class="kw-2">&amp;</span>e164).<span class="kw">await</span><span class="question-mark">?</span>;
             }
         }
 
-        <span class="ident">results</span>.<span class="ident">remove</span>(<span class="number">0</span>)
+        results.remove(<span class="number">0</span>)
     }
 
-    <span class="doccomment">/// Send a message to the recipients in a group.</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_message_to_group</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipients</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">ServiceAddress</span>]<span class="op">&gt;</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="ident">message</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ContentBody</span><span class="op">&gt;</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-        <span class="ident">online</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">SendMessageResult</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">content_body</span>: <span class="ident">ContentBody</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">results</span> <span class="op">=</span> <span class="macro">vec!</span>[];
+    <span class="doccomment">/// Send a message to the recipients in a group.
+    </span><span class="kw">pub async fn </span>send_message_to_group(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipients: <span class="kw">impl </span>AsRef&lt;[ServiceAddress]&gt;,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
+        timestamp: u64,
+        online: bool,
+    ) -&gt; Vec&lt;SendMessageResult&gt; {
+        <span class="kw">let </span>content_body: ContentBody = message.into();
+        <span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[];
 
-        <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="ident">content_body</span> {
-            <span class="ident">ContentBody::DataMessage</span>(<span class="ident">m</span>) =&gt; <span class="prelude-val">Some</span>(<span class="ident">m</span>.<span class="ident">clone</span>()),
-            <span class="kw">_</span> =&gt; <span class="prelude-val">None</span>,
+        <span class="kw">let </span>message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
+            ContentBody::DataMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
         };
 
-        <span class="kw">let</span> <span class="ident">recipients</span> <span class="op">=</span> <span class="ident">recipients</span>.<span class="ident">as_ref</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">needs_sync_in_results</span> <span class="op">=</span> <span class="bool-val">false</span>;
-        <span class="kw">for</span> <span class="ident">recipient</span> <span class="kw">in</span> <span class="ident">recipients</span>.<span class="ident">iter</span>() {
-            <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="self">self</span>
-                .<span class="ident">try_send_message</span>(
-                    <span class="ident">recipient</span>.<span class="ident">clone</span>(),
-                    <span class="ident">unidentified_access</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">content_body</span>,
-                    <span class="ident">timestamp</span>,
-                    <span class="ident">online</span>,
+        <span class="kw">let </span>recipients = recipients.as_ref();
+        <span class="kw">let </span><span class="kw-2">mut </span>needs_sync_in_results = <span class="bool-val">false</span>;
+        <span class="kw">for </span>recipient <span class="kw">in </span>recipients.iter() {
+            <span class="kw">let </span>result = <span class="self">self
+                </span>.try_send_message(
+                    recipient.clone(),
+                    unidentified_access,
+                    <span class="kw-2">&amp;</span>content_body,
+                    timestamp,
+                    online,
                 )
                 .<span class="kw">await</span>;
 
-            <span class="kw">match</span> <span class="ident">result</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">SentMessage</span> { <span class="ident">needs_sync</span>, .. }) <span class="kw">if</span> <span class="ident">needs_sync</span> =&gt; {
-                    <span class="ident">needs_sync_in_results</span> <span class="op">=</span> <span class="bool-val">true</span>;
+            <span class="kw">match </span>result {
+                <span class="prelude-val">Ok</span>(SentMessage { needs_sync, .. }) <span class="kw">if </span>needs_sync =&gt; {
+                    needs_sync_in_results = <span class="bool-val">true</span>;
                 },
-                <span class="kw">_</span> =&gt; (),
+                <span class="kw">_ </span>=&gt; (),
             };
 
-            <span class="ident">results</span>.<span class="ident">push</span>(<span class="ident">result</span>);
+            results.push(result);
         }
 
-        <span class="kw">if</span> <span class="ident">needs_sync_in_results</span> <span class="op">!</span><span class="op">=</span> <span class="ident">message</span>.<span class="ident">is_some</span>() {
-            <span class="comment">// XXX: does this happen?</span>
-            <span class="macro">log::warn!</span>(<span class="string">&quot;Server claims need sync, but not sending datamessage.&quot;</span>);
+        <span class="kw">if </span>needs_sync_in_results != message.is_some() {
+            <span class="comment">// XXX: does this happen?
+            </span><span class="macro">log::warn!</span>(<span class="string">&quot;Server claims need sync, but not sending datamessage.&quot;</span>);
         }
 
-        <span class="comment">// we only need to send a synchronization message once</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">message</span>) <span class="op">=</span> <span class="ident">message</span> {
-            <span class="kw">if</span> <span class="ident">needs_sync_in_results</span> {
-                <span class="kw">let</span> <span class="ident">sync_message</span> <span class="op">=</span> <span class="self">self</span>
-                    .<span class="ident">create_multi_device_sent_transcript_content</span>(
+        <span class="comment">// we only need to send a synchronization message once
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(message) = message {
+            <span class="kw">if </span>needs_sync_in_results {
+                <span class="kw">let </span>sync_message = <span class="self">self
+                    </span>.create_multi_device_sent_transcript_content(
                         <span class="prelude-val">None</span>,
-                        <span class="prelude-val">Some</span>(<span class="ident">message</span>),
-                        <span class="ident">timestamp</span>,
-                        <span class="kw-2">&amp;</span><span class="ident">results</span>,
+                        <span class="prelude-val">Some</span>(message),
+                        timestamp,
+                        <span class="kw-2">&amp;</span>results,
                     );
 
-                <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="self">self</span>
-                    .<span class="ident">try_send_message</span>(
-                        <span class="self">self</span>.<span class="ident">local_address</span>.<span class="ident">clone</span>(),
-                        <span class="ident">unidentified_access</span>,
-                        <span class="kw-2">&amp;</span><span class="ident">sync_message</span>,
-                        <span class="ident">timestamp</span>,
+                <span class="kw">let </span>result = <span class="self">self
+                    </span>.try_send_message(
+                        <span class="self">self</span>.local_address.clone(),
+                        unidentified_access,
+                        <span class="kw-2">&amp;</span>sync_message,
+                        timestamp,
                         <span class="bool-val">false</span>,
                     )
                     .<span class="kw">await</span>;
 
-                <span class="ident">results</span>.<span class="ident">push</span>(<span class="ident">result</span>);
+                results.push(result);
             }
         }
 
-        <span class="ident">results</span>
+        results
     }
 
-    <span class="doccomment">/// Send a message (`content`) to an address (`recipient`).</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">try_send_message</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="ident">ServiceAddress</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="ident">content_body</span>: <span class="kw-2">&amp;</span><span class="ident">ContentBody</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-        <span class="ident">online</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="ident">SendMessageResult</span> {
-        <span class="kw">use</span> <span class="ident">prost::Message</span>;
-        <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">content_body</span>.<span class="ident">clone</span>().<span class="ident">into_proto</span>();
-        <span class="kw">let</span> <span class="ident">content_bytes</span> <span class="op">=</span> <span class="ident">content</span>.<span class="ident">encode_to_vec</span>();
+    <span class="doccomment">/// Send a message (`content`) to an address (`recipient`).
+    </span><span class="kw">async fn </span>try_send_message(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: ServiceAddress,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        content_body: <span class="kw-2">&amp;</span>ContentBody,
+        timestamp: u64,
+        online: bool,
+    ) -&gt; SendMessageResult {
+        <span class="kw">use </span>prost::Message;
+        <span class="kw">let </span>content = content_body.clone().into_proto();
+        <span class="kw">let </span>content_bytes = content.encode_to_vec();
 
-        <span class="kw">for</span> <span class="kw">_</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">4u8</span> {
-            <span class="kw">let</span> <span class="ident">messages</span> <span class="op">=</span> <span class="self">self</span>
-                .<span class="ident">create_encrypted_messages</span>(<span class="kw-2">&amp;</span><span class="ident">recipient</span>, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span><span class="ident">content_bytes</span>)
+        <span class="kw">for _ in </span><span class="number">0</span>..<span class="number">4u8 </span>{
+            <span class="kw">let </span>messages = <span class="self">self
+                </span>.create_encrypted_messages(<span class="kw-2">&amp;</span>recipient, <span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>content_bytes)
                 .<span class="kw">await</span><span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">destination</span> <span class="op">=</span> <span class="ident">recipient</span>.<span class="ident">identifier</span>();
-            <span class="kw">let</span> <span class="ident">messages</span> <span class="op">=</span> <span class="ident">OutgoingPushMessages</span> {
-                <span class="ident">destination</span>: <span class="kw-2">&amp;</span><span class="ident">destination</span>,
-                <span class="ident">timestamp</span>,
-                <span class="ident">messages</span>,
-                <span class="ident">online</span>,
+            <span class="kw">let </span>destination = recipient.identifier();
+            <span class="kw">let </span>messages = OutgoingPushMessages {
+                destination: <span class="kw-2">&amp;</span>destination,
+                timestamp,
+                messages,
+                online,
             };
 
-            <span class="kw">match</span> <span class="self">self</span>.<span class="ident">service</span>.<span class="ident">send_messages</span>(<span class="ident">messages</span>).<span class="kw">await</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">SendMessageResponse</span> { <span class="ident">needs_sync</span> }) =&gt; {
+            <span class="kw">match </span><span class="self">self</span>.service.send_messages(messages).<span class="kw">await </span>{
+                <span class="prelude-val">Ok</span>(SendMessageResponse { needs_sync }) =&gt; {
                     <span class="macro">log::debug!</span>(<span class="string">&quot;message sent!&quot;</span>);
-                    <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">SentMessage</span> {
-                        <span class="ident">recipient</span>,
-                        <span class="ident">unidentified</span>: <span class="ident">unidentified_access</span>.<span class="ident">is_some</span>(),
-                        <span class="ident">needs_sync</span>,
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(SentMessage {
+                        recipient,
+                        unidentified: unidentified_access.is_some(),
+                        needs_sync,
                     });
                 },
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::MismatchedDevicesException</span>(<span class="kw-2">ref</span> <span class="ident">m</span>)) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">m</span>);
-                    <span class="kw">for</span> <span class="ident">extra_device_id</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">m</span>.<span class="ident">extra_devices</span> {
+                <span class="prelude-val">Err</span>(ServiceError::MismatchedDevicesException(<span class="kw-2">ref </span>m)) =&gt; {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, m);
+                    <span class="kw">for </span>extra_device_id <span class="kw">in </span><span class="kw-2">&amp;</span>m.extra_devices {
                         <span class="macro">log::debug!</span>(
                             <span class="string">&quot;dropping session with device {}&quot;</span>,
-                            <span class="ident">extra_device_id</span>
+                            extra_device_id
                         );
-                        <span class="self">self</span>.<span class="ident">session_store</span>
-                            .<span class="ident">delete_service_addr_device_session</span>(
-                                <span class="kw-2">&amp;</span><span class="ident">recipient</span>,
-                                <span class="kw-2">*</span><span class="ident">extra_device_id</span>,
+                        <span class="self">self</span>.session_store
+                            .delete_service_addr_device_session(
+                                <span class="kw-2">&amp;</span>recipient,
+                                <span class="kw-2">*</span>extra_device_id,
                             )
                             .<span class="kw">await</span><span class="question-mark">?</span>;
                     }
 
-                    <span class="kw">for</span> <span class="ident">missing_device_id</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">m</span>.<span class="ident">missing_devices</span> {
+                    <span class="kw">for </span>missing_device_id <span class="kw">in </span><span class="kw-2">&amp;</span>m.missing_devices {
                         <span class="macro">log::debug!</span>(
                             <span class="string">&quot;creating session with missing device {}&quot;</span>,
-                            <span class="ident">missing_device_id</span>
+                            missing_device_id
                         );
-                        <span class="kw">let</span> <span class="ident">remote_address</span> <span class="op">=</span> <span class="ident">ProtocolAddress::new</span>(
-                            <span class="ident">recipient</span>.<span class="ident">identifier</span>(),
-                            (<span class="kw-2">*</span><span class="ident">missing_device_id</span>).<span class="ident">into</span>(),
+                        <span class="kw">let </span>remote_address = ProtocolAddress::new(
+                            recipient.identifier(),
+                            (<span class="kw-2">*</span>missing_device_id).into(),
                         );
-                        <span class="kw">let</span> <span class="ident">pre_key</span> <span class="op">=</span> <span class="self">self</span>
-                            .<span class="ident">service</span>
-                            .<span class="ident">get_pre_key</span>(<span class="kw-2">&amp;</span><span class="ident">recipient</span>, <span class="kw-2">*</span><span class="ident">missing_device_id</span>)
+                        <span class="kw">let </span>pre_key = <span class="self">self
+                            </span>.service
+                            .get_pre_key(<span class="kw-2">&amp;</span>recipient, <span class="kw-2">*</span>missing_device_id)
                             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-                        <span class="ident">process_prekey_bundle</span>(
-                            <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
-                            <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                            <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
-                            <span class="kw-2">&amp;</span><span class="ident">pre_key</span>,
-                            <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">csprng</span>,
+                        process_prekey_bundle(
+                            <span class="kw-2">&amp;</span>remote_address,
+                            <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                            <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
+                            <span class="kw-2">&amp;</span>pre_key,
+                            <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
                             <span class="prelude-val">None</span>,
                         )
-                        .<span class="kw">await</span>
-                        .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-                            <span class="macro">log::error!</span>(<span class="string">&quot;failed to create session: {}&quot;</span>, <span class="ident">e</span>);
-                            <span class="ident">MessageSenderError::UntrustedIdentity</span> {
-                                <span class="ident">identifier</span>: <span class="ident">recipient</span>.<span class="ident">identifier</span>(),
+                        .<span class="kw">await
+                        </span>.map_err(|e| {
+                            <span class="macro">log::error!</span>(<span class="string">&quot;failed to create session: {}&quot;</span>, e);
+                            MessageSenderError::UntrustedIdentity {
+                                identifier: recipient.identifier(),
                             }
                         })<span class="question-mark">?</span>;
                     }
                 },
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::StaleDevices</span>(<span class="kw-2">ref</span> <span class="ident">m</span>)) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, <span class="ident">m</span>);
-                    <span class="kw">for</span> <span class="ident">extra_device_id</span> <span class="kw">in</span> <span class="kw-2">&amp;</span><span class="ident">m</span>.<span class="ident">stale_devices</span> {
+                <span class="prelude-val">Err</span>(ServiceError::StaleDevices(<span class="kw-2">ref </span>m)) =&gt; {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, m);
+                    <span class="kw">for </span>extra_device_id <span class="kw">in </span><span class="kw-2">&amp;</span>m.stale_devices {
                         <span class="macro">log::debug!</span>(
                             <span class="string">&quot;dropping session with device {}&quot;</span>,
-                            <span class="ident">extra_device_id</span>
+                            extra_device_id
                         );
-                        <span class="self">self</span>.<span class="ident">session_store</span>
-                            .<span class="ident">delete_service_addr_device_session</span>(
-                                <span class="kw-2">&amp;</span><span class="ident">recipient</span>,
-                                <span class="kw-2">*</span><span class="ident">extra_device_id</span>,
+                        <span class="self">self</span>.session_store
+                            .delete_service_addr_device_session(
+                                <span class="kw-2">&amp;</span>recipient,
+                                <span class="kw-2">*</span>extra_device_id,
                             )
                             .<span class="kw">await</span><span class="question-mark">?</span>;
                     }
                 },
-                <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">MessageSenderError::ServiceError</span>(<span class="ident">e</span>)),
+                <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::ServiceError(e)),
             }
         }
 
-        <span class="prelude-val">Err</span>(<span class="ident">MessageSenderError::MaximumRetriesLimitExceeded</span>)
+        <span class="prelude-val">Err</span>(MessageSenderError::MaximumRetriesLimitExceeded)
     }
 
-    <span class="doccomment">/// Upload group details to the CDN and send a sync message</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_groups_details</span><span class="op">&lt;</span><span class="ident">Groups</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="comment">// XXX It may be interesting to use an intermediary type,</span>
-        <span class="comment">//     instead of GroupDetails directly,</span>
-        <span class="comment">//     because it allows us to add the avatar content.</span>
-        <span class="ident">groups</span>: <span class="ident">Groups</span>,
-        <span class="ident">online</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">MessageSenderError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">Groups</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">GroupDetails</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Upload group details to the CDN and send a sync message
+    </span><span class="kw">pub async fn </span>send_groups_details&lt;Groups&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        <span class="comment">// XXX It may be interesting to use an intermediary type,
+        //     instead of GroupDetails directly,
+        //     because it allows us to add the avatar content.
+        </span>groups: Groups,
+        online: bool,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt;
+    <span class="kw">where
+        </span>Groups: IntoIterator&lt;Item = GroupDetails&gt;,
     {
-        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">upload_group_details</span>(<span class="ident">groups</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>ptr = <span class="self">self</span>.upload_group_details(groups).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">SyncMessage</span> {
-            <span class="ident">groups</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::Groups</span> { <span class="ident">blob</span>: <span class="prelude-val">Some</span>(<span class="ident">ptr</span>) }),
-            ..<span class="ident">Default::default</span>()
+        <span class="kw">let </span>msg = SyncMessage {
+            groups: <span class="prelude-val">Some</span>(sync_message::Groups { blob: <span class="prelude-val">Some</span>(ptr) }),
+            ..Default::default()
         };
 
-        <span class="self">self</span>.<span class="ident">send_message</span>(
-            <span class="ident">recipient</span>,
-            <span class="ident">unidentified_access</span>,
-            <span class="ident">msg</span>,
-            <span class="ident">Utc::now</span>().<span class="ident">timestamp_millis</span>() <span class="kw">as</span> <span class="ident">u64</span>,
-            <span class="ident">online</span>,
+        <span class="self">self</span>.send_message(
+            recipient,
+            unidentified_access,
+            msg,
+            Utc::now().timestamp_millis() <span class="kw">as </span>u64,
+            online,
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Upload contact details to the CDN and send a sync message</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_contact_details</span><span class="op">&lt;</span><span class="ident">Contacts</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="comment">// XXX It may be interesting to use an intermediary type,</span>
-        <span class="comment">//     instead of ContactDetails directly,</span>
-        <span class="comment">//     because it allows us to add the avatar content.</span>
-        <span class="ident">contacts</span>: <span class="ident">Contacts</span>,
-        <span class="ident">online</span>: <span class="ident">bool</span>,
-        <span class="ident">complete</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">MessageSenderError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">Contacts</span>: <span class="ident">IntoIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">ContactDetails</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Upload contact details to the CDN and send a sync message
+    </span><span class="kw">pub async fn </span>send_contact_details&lt;Contacts&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        <span class="comment">// XXX It may be interesting to use an intermediary type,
+        //     instead of ContactDetails directly,
+        //     because it allows us to add the avatar content.
+        </span>contacts: Contacts,
+        online: bool,
+        complete: bool,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt;
+    <span class="kw">where
+        </span>Contacts: IntoIterator&lt;Item = ContactDetails&gt;,
     {
-        <span class="kw">let</span> <span class="ident">ptr</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">upload_contact_details</span>(<span class="ident">contacts</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>ptr = <span class="self">self</span>.upload_contact_details(contacts).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">SyncMessage</span> {
-            <span class="ident">contacts</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::Contacts</span> {
-                <span class="ident">blob</span>: <span class="prelude-val">Some</span>(<span class="ident">ptr</span>),
-                <span class="ident">complete</span>: <span class="prelude-val">Some</span>(<span class="ident">complete</span>),
+        <span class="kw">let </span>msg = SyncMessage {
+            contacts: <span class="prelude-val">Some</span>(sync_message::Contacts {
+                blob: <span class="prelude-val">Some</span>(ptr),
+                complete: <span class="prelude-val">Some</span>(complete),
             }),
-            ..<span class="ident">Default::default</span>()
+            ..Default::default()
         };
 
-        <span class="self">self</span>.<span class="ident">send_message</span>(
-            <span class="ident">recipient</span>,
-            <span class="ident">unidentified_access</span>,
-            <span class="ident">msg</span>,
-            <span class="ident">Utc::now</span>().<span class="ident">timestamp_millis</span>() <span class="kw">as</span> <span class="ident">u64</span>,
-            <span class="ident">online</span>,
+        <span class="self">self</span>.send_message(
+            recipient,
+            unidentified_access,
+            msg,
+            Utc::now().timestamp_millis() <span class="kw">as </span>u64,
+            online,
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="comment">// Equivalent with `getEncryptedMessages`</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">create_encrypted_messages</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="ident">content</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">OutgoingPushMessage</span><span class="op">&gt;</span>, <span class="ident">MessageSenderError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">messages</span> <span class="op">=</span> <span class="macro">vec!</span>[];
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">devices</span> <span class="op">=</span> <span class="macro">vec!</span>[];
+    <span class="comment">// Equivalent with `getEncryptedMessages`
+    </span><span class="kw">async fn </span>create_encrypted_messages(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;SenderCertificate&gt;,
+        content: <span class="kw-2">&amp;</span>[u8],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;OutgoingPushMessage&gt;, MessageSenderError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>messages = <span class="macro">vec!</span>[];
+        <span class="kw">let </span><span class="kw-2">mut </span>devices = <span class="macro">vec!</span>[];
 
-        <span class="kw">let</span> <span class="ident">myself</span> <span class="op">=</span> <span class="ident">recipient</span>.<span class="ident">matches</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">local_address</span>);
-        <span class="kw">if</span> <span class="op">!</span><span class="ident">myself</span> <span class="op">|</span><span class="op">|</span> <span class="ident">unidentified_access</span>.<span class="ident">is_some</span>() {
+        <span class="kw">let </span>myself = recipient.matches(<span class="kw-2">&amp;</span><span class="self">self</span>.local_address);
+        <span class="kw">if </span>!myself || unidentified_access.is_some() {
             <span class="macro">trace!</span>(<span class="string">&quot;sending message to default device&quot;</span>);
-            <span class="ident">messages</span>.<span class="ident">push</span>(
-                <span class="self">self</span>.<span class="ident">create_encrypted_message</span>(
-                    <span class="ident">recipient</span>,
-                    <span class="ident">unidentified_access</span>.<span class="ident">as_ref</span>(),
-                    <span class="ident">DEFAULT_DEVICE_ID</span>.<span class="ident">into</span>(),
-                    <span class="ident">content</span>,
+            messages.push(
+                <span class="self">self</span>.create_encrypted_message(
+                    recipient,
+                    unidentified_access.as_ref(),
+                    DEFAULT_DEVICE_ID.into(),
+                    content,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>,
             );
-        } <span class="kw">else</span> {
-            <span class="ident">devices</span>.<span class="ident">push</span>(<span class="ident">DEFAULT_DEVICE_ID</span>);
+        } <span class="kw">else </span>{
+            devices.push(DEFAULT_DEVICE_ID);
         }
 
-        <span class="ident">devices</span>
-            .<span class="ident">extend</span>(<span class="ident">recipient</span>.<span class="ident">sub_device_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session_store</span>).<span class="kw">await</span><span class="question-mark">?</span>);
-        <span class="ident">devices</span>.<span class="ident">sort_unstable</span>();
+        devices
+            .extend(recipient.sub_device_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>.session_store).<span class="kw">await</span><span class="question-mark">?</span>);
+        devices.sort_unstable();
 
-        <span class="kw">let</span> <span class="ident">original_device_count</span> <span class="op">=</span> <span class="ident">devices</span>.<span class="ident">len</span>();
-        <span class="ident">devices</span>.<span class="ident">dedup</span>();
-        <span class="kw">if</span> <span class="ident">devices</span>.<span class="ident">len</span>() <span class="op">!</span><span class="op">=</span> <span class="ident">original_device_count</span> {
+        <span class="kw">let </span>original_device_count = devices.len();
+        devices.dedup();
+        <span class="kw">if </span>devices.len() != original_device_count {
             <span class="macro">log::warn!</span>(<span class="string">&quot;SessionStoreExt::get_sub_device_sessions should return unique device id&#39;s, and should not include DEFAULT_DEVICE_ID.&quot;</span>);
         }
 
-        <span class="comment">// When sending to ourselves, don&#39;t include the local device</span>
-        <span class="kw">if</span> <span class="ident">myself</span> {
-            <span class="ident">devices</span>.<span class="ident">retain</span>(<span class="op">|</span><span class="ident">id</span><span class="op">|</span> <span class="ident">DeviceId::from</span>(<span class="kw-2">*</span><span class="ident">id</span>) <span class="op">!</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">device_id</span>);
+        <span class="comment">// When sending to ourselves, don&#39;t include the local device
+        </span><span class="kw">if </span>myself {
+            devices.retain(|id| DeviceId::from(<span class="kw-2">*</span>id) != <span class="self">self</span>.device_id);
         }
 
-        <span class="kw">for</span> <span class="ident">device_id</span> <span class="kw">in</span> <span class="ident">devices</span> {
-            <span class="macro">trace!</span>(<span class="string">&quot;sending message to device {}&quot;</span>, <span class="ident">device_id</span>);
-            <span class="kw">let</span> <span class="ident">ppa</span> <span class="op">=</span> <span class="ident">get_preferred_protocol_address</span>(
-                <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session_store</span>,
-                <span class="ident">recipient</span>,
-                <span class="ident">device_id</span>.<span class="ident">into</span>(),
+        <span class="kw">for </span>device_id <span class="kw">in </span>devices {
+            <span class="macro">trace!</span>(<span class="string">&quot;sending message to device {}&quot;</span>, device_id);
+            <span class="kw">let </span>ppa = get_preferred_protocol_address(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.session_store,
+                recipient,
+                device_id.into(),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">session_store</span>.<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">ppa</span>, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">is_some</span>() {
-                <span class="ident">messages</span>.<span class="ident">push</span>(
-                    <span class="self">self</span>.<span class="ident">create_encrypted_message</span>(
-                        <span class="ident">recipient</span>,
-                        <span class="ident">unidentified_access</span>.<span class="ident">as_ref</span>(),
-                        <span class="ident">device_id</span>.<span class="ident">into</span>(),
-                        <span class="ident">content</span>,
+            <span class="kw">if </span><span class="self">self</span>.session_store.load_session(<span class="kw-2">&amp;</span>ppa, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.is_some() {
+                messages.push(
+                    <span class="self">self</span>.create_encrypted_message(
+                        recipient,
+                        unidentified_access.as_ref(),
+                        device_id.into(),
+                        content,
                     )
                     .<span class="kw">await</span><span class="question-mark">?</span>,
                 )
             }
         }
 
-        <span class="prelude-val">Ok</span>(<span class="ident">messages</span>)
+        <span class="prelude-val">Ok</span>(messages)
     }
 
-    <span class="doccomment">/// Equivalent to `getEncryptedMessage`</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// When no session with the recipient exists, we need to create one.</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">create_encrypted_message</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="ident">device_id</span>: <span class="ident">DeviceId</span>,
-        <span class="ident">content</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">OutgoingPushMessage</span>, <span class="ident">MessageSenderError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">recipient_address</span> <span class="op">=</span> <span class="ident">get_preferred_protocol_address</span>(
-            <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session_store</span>,
-            <span class="ident">recipient</span>,
-            <span class="ident">device_id</span>,
+    <span class="doccomment">/// Equivalent to `getEncryptedMessage`
+    ///
+    /// When no session with the recipient exists, we need to create one.
+    </span><span class="kw">async fn </span>create_encrypted_message(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        device_id: DeviceId,
+        content: <span class="kw-2">&amp;</span>[u8],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;OutgoingPushMessage, MessageSenderError&gt; {
+        <span class="kw">let </span>recipient_address = get_preferred_protocol_address(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.session_store,
+            recipient,
+            device_id,
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="macro">log::trace!</span>(<span class="string">&quot;encrypting message for {:?}&quot;</span>, <span class="ident">recipient_address</span>);
+        <span class="macro">log::trace!</span>(<span class="string">&quot;encrypting message for {:?}&quot;</span>, recipient_address);
 
-        <span class="kw">if</span> <span class="self">self</span>
-            .<span class="ident">session_store</span>
-            .<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">recipient_address</span>, <span class="prelude-val">None</span>)
-            .<span class="kw">await</span><span class="question-mark">?</span>
-            .<span class="ident">is_none</span>()
+        <span class="kw">if </span><span class="self">self
+            </span>.session_store
+            .load_session(<span class="kw-2">&amp;</span>recipient_address, <span class="prelude-val">None</span>)
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.is_none()
         {
-            <span class="macro">info!</span>(<span class="string">&quot;establishing new session with {:?}&quot;</span>, <span class="ident">recipient_address</span>);
-            <span class="kw">let</span> <span class="ident">pre_keys</span> <span class="op">=</span> <span class="self">self</span>
-                .<span class="ident">service</span>
-                .<span class="ident">get_pre_keys</span>(<span class="ident">recipient</span>, <span class="ident">device_id</span>.<span class="ident">into</span>())
+            <span class="macro">info!</span>(<span class="string">&quot;establishing new session with {:?}&quot;</span>, recipient_address);
+            <span class="kw">let </span>pre_keys = <span class="self">self
+                </span>.service
+                .get_pre_keys(recipient, device_id.into())
                 .<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">for</span> <span class="ident">pre_key_bundle</span> <span class="kw">in</span> <span class="ident">pre_keys</span> {
-                <span class="kw">if</span> <span class="ident">recipient</span>.<span class="ident">matches</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">local_address</span>)
-                    <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">device_id</span> <span class="op">==</span> <span class="ident">pre_key_bundle</span>.<span class="ident">device_id</span>()<span class="question-mark">?</span>
-                {
+            <span class="kw">for </span>pre_key_bundle <span class="kw">in </span>pre_keys {
+                <span class="kw">if </span>recipient.matches(<span class="kw-2">&amp;</span><span class="self">self</span>.local_address)
+                    &amp;&amp; <span class="self">self</span>.device_id == pre_key_bundle.device_id()<span class="question-mark">?
+                </span>{
                     <span class="macro">trace!</span>(<span class="string">&quot;not establishing a session with myself!&quot;</span>);
                     <span class="kw">continue</span>;
                 }
 
-                <span class="kw">let</span> <span class="ident">pre_key_address</span> <span class="op">=</span> <span class="ident">get_preferred_protocol_address</span>(
-                    <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="ident">recipient</span>,
-                    <span class="ident">pre_key_bundle</span>.<span class="ident">device_id</span>()<span class="question-mark">?</span>,
+                <span class="kw">let </span>pre_key_address = get_preferred_protocol_address(
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.session_store,
+                    recipient,
+                    pre_key_bundle.device_id()<span class="question-mark">?</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="ident">process_prekey_bundle</span>(
-                    <span class="kw-2">&amp;</span><span class="ident">pre_key_address</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">pre_key_bundle</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">csprng</span>,
+                process_prekey_bundle(
+                    <span class="kw-2">&amp;</span>pre_key_address,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
+                    <span class="kw-2">&amp;</span>pre_key_bundle,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
                     <span class="prelude-val">None</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
             }
         }
 
-        <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">cipher</span>
-            .<span class="ident">encrypt</span>(<span class="kw-2">&amp;</span><span class="ident">recipient_address</span>, <span class="ident">unidentified_access</span>, <span class="ident">content</span>)
+        <span class="kw">let </span>message = <span class="self">self
+            </span>.cipher
+            .encrypt(<span class="kw-2">&amp;</span>recipient_address, unidentified_access, content)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">message</span>)
+        <span class="prelude-val">Ok</span>(message)
     }
 
-    <span class="kw">fn</span> <span class="ident">create_multi_device_sent_transcript_content</span>(
+    <span class="kw">fn </span>create_multi_device_sent_transcript_content(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">recipient</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span><span class="op">&gt;</span>,
-        <span class="ident">data_message</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="kw">crate</span>::proto::DataMessage</span><span class="op">&gt;</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-        <span class="ident">send_message_results</span>: <span class="kw-2">&amp;</span>[<span class="ident">SendMessageResult</span>],
-    ) -&gt; <span class="ident">ContentBody</span> {
-        <span class="kw">use</span> <span class="ident">sync_message::sent::UnidentifiedDeliveryStatus</span>;
-        <span class="kw">let</span> <span class="ident">unidentified_status</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">UnidentifiedDeliveryStatus</span><span class="op">&gt;</span> <span class="op">=</span>
-            <span class="ident">send_message_results</span>
-                .<span class="ident">iter</span>()
-                .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">result</span><span class="op">|</span> <span class="ident">result</span>.<span class="ident">as_ref</span>().<span class="ident">ok</span>())
-                .<span class="ident">map</span>(<span class="op">|</span><span class="ident">sent</span><span class="op">|</span> {
-                    <span class="kw">let</span> <span class="ident">SentMessage</span> {
-                        <span class="ident">recipient</span>,
-                        <span class="ident">unidentified</span>,
+        recipient: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>ServiceAddress&gt;,
+        data_message: <span class="prelude-ty">Option</span>&lt;<span class="kw">crate</span>::proto::DataMessage&gt;,
+        timestamp: u64,
+        send_message_results: <span class="kw-2">&amp;</span>[SendMessageResult],
+    ) -&gt; ContentBody {
+        <span class="kw">use </span>sync_message::sent::UnidentifiedDeliveryStatus;
+        <span class="kw">let </span>unidentified_status: Vec&lt;UnidentifiedDeliveryStatus&gt; =
+            send_message_results
+                .iter()
+                .filter_map(|result| result.as_ref().ok())
+                .map(|sent| {
+                    <span class="kw">let </span>SentMessage {
+                        recipient,
+                        unidentified,
                         ..
-                    } <span class="op">=</span> <span class="ident">sent</span>;
-                    <span class="ident">UnidentifiedDeliveryStatus</span> {
-                        <span class="ident">destination_e164</span>: <span class="ident">recipient</span>.<span class="ident">e164</span>(),
-                        <span class="ident">destination_uuid</span>: <span class="ident">recipient</span>.<span class="ident">uuid</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>()),
-                        <span class="ident">unidentified</span>: <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="ident">unidentified</span>),
+                    } = sent;
+                    UnidentifiedDeliveryStatus {
+                        destination_e164: recipient.e164(),
+                        destination_uuid: recipient.uuid.map(|s| s.to_string()),
+                        unidentified: <span class="prelude-val">Some</span>(<span class="kw-2">*</span>unidentified),
                     }
                 })
-                .<span class="ident">collect</span>();
-        <span class="ident">ContentBody::SynchronizeMessage</span>(<span class="ident">SyncMessage</span> {
-            <span class="ident">sent</span>: <span class="prelude-val">Some</span>(<span class="ident">sync_message::Sent</span> {
-                <span class="ident">destination_uuid</span>: <span class="ident">recipient</span>
-                    .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> <span class="ident">r</span>.<span class="ident">uuid</span>)
-                    .<span class="ident">map</span>(<span class="op">|</span><span class="ident">u</span><span class="op">|</span> <span class="ident">u</span>.<span class="ident">to_string</span>()),
-                <span class="ident">destination_e164</span>: <span class="ident">recipient</span>.<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> <span class="ident">r</span>.<span class="ident">e164</span>()),
-                <span class="ident">message</span>: <span class="ident">data_message</span>,
-                <span class="ident">timestamp</span>: <span class="prelude-val">Some</span>(<span class="ident">timestamp</span>),
-                <span class="ident">unidentified_status</span>,
-                ..<span class="ident">Default::default</span>()
+                .collect();
+        ContentBody::SynchronizeMessage(SyncMessage {
+            sent: <span class="prelude-val">Some</span>(sync_message::Sent {
+                destination_uuid: recipient
+                    .and_then(|r| r.uuid)
+                    .map(|u| u.to_string()),
+                destination_e164: recipient.and_then(|r| r.e164()),
+                message: data_message,
+                timestamp: <span class="prelude-val">Some</span>(timestamp),
+                unidentified_status,
+                ..Default::default()
             }),
-            ..<span class="ident">Default::default</span>()
+            ..Default::default()
         })
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

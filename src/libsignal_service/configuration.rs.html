@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/configuration.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>configuration.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/configuration.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>configuration.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -164,171 +164,171 @@
 <span id="164">164</span>
 <span id="165">165</span>
 <span id="166">166</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">collections::HashMap</span>, <span class="ident">str::FromStr</span>};
+</pre><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, str::FromStr};
 
-<span class="kw">use</span> <span class="ident">libsignal_protocol::PublicKey</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">url::Url</span>;
-<span class="kw">use</span> <span class="ident">zkgroup::ServerPublicParams</span>;
+<span class="kw">use </span>libsignal_protocol::PublicKey;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>url::Url;
+<span class="kw">use </span>zkgroup::ServerPublicParams;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">envelope</span>::{<span class="ident">CIPHER_KEY_SIZE</span>, <span class="ident">MAC_KEY_SIZE</span>},
-    <span class="ident">push_service</span>::{<span class="ident">HttpAuth</span>, <span class="ident">DEFAULT_DEVICE_ID</span>},
+<span class="kw">use crate</span>::{
+    envelope::{CIPHER_KEY_SIZE, MAC_KEY_SIZE},
+    push_service::{HttpAuth, DEFAULT_DEVICE_ID},
 };
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceConfiguration</span> {
-    <span class="ident">service_url</span>: <span class="ident">Url</span>,
-    <span class="ident">storage_url</span>: <span class="ident">Url</span>,
-    <span class="ident">cdn_urls</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Url</span><span class="op">&gt;</span>,
-    <span class="ident">contact_discovery_url</span>: <span class="ident">Url</span>,
-    <span class="kw">pub</span> <span class="ident">certificate_authority</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">unidentified_sender_trust_root</span>: <span class="ident">PublicKey</span>,
-    <span class="kw">pub</span> <span class="ident">zkgroup_server_public_params</span>: <span class="ident">ServerPublicParams</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>ServiceConfiguration {
+    service_url: Url,
+    storage_url: Url,
+    cdn_urls: HashMap&lt;u32, Url&gt;,
+    contact_discovery_url: Url,
+    <span class="kw">pub </span>certificate_authority: String,
+    <span class="kw">pub </span>unidentified_sender_trust_root: PublicKey,
+    <span class="kw">pub </span>zkgroup_server_public_params: ServerPublicParams,
 }
 
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">SignalingKey</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">CIPHER_KEY_SIZE</span> <span class="op">+</span> <span class="ident">MAC_KEY_SIZE</span>];
+<span class="kw">pub type </span>SignalingKey = [u8; CIPHER_KEY_SIZE + MAC_KEY_SIZE];
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceCredentials</span> {
-    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">uuid::Uuid</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">phonenumber</span>: <span class="ident">phonenumber::PhoneNumber</span>,
-    <span class="kw">pub</span> <span class="ident">password</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">signaling_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SignalingKey</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">device_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>ServiceCredentials {
+    <span class="kw">pub </span>uuid: <span class="prelude-ty">Option</span>&lt;uuid::Uuid&gt;,
+    <span class="kw">pub </span>phonenumber: phonenumber::PhoneNumber,
+    <span class="kw">pub </span>password: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>signaling_key: <span class="prelude-ty">Option</span>&lt;SignalingKey&gt;,
+    <span class="kw">pub </span>device_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">ServiceCredentials</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">authorization</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">HttpAuth</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">password</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">password</span><span class="op">|</span> <span class="ident">HttpAuth</span> {
-            <span class="ident">username</span>: <span class="self">self</span>.<span class="ident">login</span>(),
-            <span class="ident">password</span>: <span class="ident">password</span>.<span class="ident">clone</span>(),
+<span class="kw">impl </span>ServiceCredentials {
+    <span class="kw">pub fn </span>authorization(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;HttpAuth&gt; {
+        <span class="self">self</span>.password.as_ref().map(|password| HttpAuth {
+            username: <span class="self">self</span>.login(),
+            password: password.clone(),
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">e164</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="self">self</span>.<span class="ident">phonenumber</span>
-            .<span class="ident">format</span>()
-            .<span class="ident">mode</span>(<span class="ident">phonenumber::Mode::E164</span>)
-            .<span class="ident">to_string</span>()
+    <span class="kw">pub fn </span>e164(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">self</span>.phonenumber
+            .format()
+            .mode(phonenumber::Mode::E164)
+            .to_string()
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">login</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="ident">identifier</span> <span class="op">=</span> {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">uuid</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">uuid</span>.<span class="ident">as_ref</span>() {
-                <span class="ident">uuid</span>.<span class="ident">to_string</span>()
-            } <span class="kw">else</span> {
-                <span class="self">self</span>.<span class="ident">e164</span>()
+    <span class="kw">pub fn </span>login(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">let </span>identifier = {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(uuid) = <span class="self">self</span>.uuid.as_ref() {
+                uuid.to_string()
+            } <span class="kw">else </span>{
+                <span class="self">self</span>.e164()
             }
         };
 
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">device_id</span> {
-            <span class="prelude-val">None</span> <span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">DEFAULT_DEVICE_ID</span>) =&gt; <span class="ident">identifier</span>,
-            <span class="prelude-val">Some</span>(<span class="ident">id</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}.{}&quot;</span>, <span class="ident">identifier</span>, <span class="ident">id</span>),
+        <span class="kw">match </span><span class="self">self</span>.device_id {
+            <span class="prelude-val">None </span>| <span class="prelude-val">Some</span>(DEFAULT_DEVICE_ID) =&gt; identifier,
+            <span class="prelude-val">Some</span>(id) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{}.{}&quot;</span>, identifier, id),
         }
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Copy</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SignalServers</span> {
-    <span class="ident">Staging</span>,
-    <span class="ident">Production</span>,
+<span class="attribute">#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+</span><span class="kw">pub enum </span>SignalServers {
+    Staging,
+    Production,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Endpoint</span> {
-    <span class="ident">Service</span>,
-    <span class="ident">Storage</span>,
-    <span class="ident">Cdn</span>(<span class="ident">u32</span>),
-    <span class="ident">ContactDiscovery</span>,
+<span class="attribute">#[derive(Debug)]
+</span><span class="kw">pub enum </span>Endpoint {
+    Service,
+    Storage,
+    Cdn(u32),
+    ContactDiscovery,
 }
 
-<span class="kw">impl</span> <span class="ident">FromStr</span> <span class="kw">for</span> <span class="ident">SignalServers</span> {
-    <span class="kw">type</span> <span class="prelude-val">Err</span> <span class="op">=</span> <span class="ident">std::io::Error</span>;
+<span class="kw">impl </span>FromStr <span class="kw">for </span>SignalServers {
+    <span class="kw">type </span><span class="prelude-val">Err </span>= std::io::Error;
 
-    <span class="kw">fn</span> <span class="ident">from_str</span>(<span class="ident">s</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident"><span class="self">Self</span>::Err</span><span class="op">&gt;</span> {
-        <span class="kw">use</span> <span class="ident">std::io::ErrorKind</span>;
-        <span class="kw">match</span> <span class="ident">s</span> {
-            <span class="string">&quot;staging&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::Staging</span>),
-            <span class="string">&quot;production&quot;</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::Production</span>),
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident"><span class="self">Self</span>::Err::new</span>(
-                <span class="ident">ErrorKind::InvalidInput</span>,
+    <span class="kw">fn </span>from_str(s: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Err&gt; {
+        <span class="kw">use </span>std::io::ErrorKind;
+        <span class="kw">match </span>s {
+            <span class="string">&quot;staging&quot; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Staging),
+            <span class="string">&quot;production&quot; </span>=&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Production),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(<span class="self">Self</span>::Err::new(
+                ErrorKind::InvalidInput,
                 <span class="string">&quot;invalid signal servers, can be either: staging or production&quot;</span>,
             )),
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ToString</span> <span class="kw">for</span> <span class="ident">SignalServers</span> {
-    <span class="kw">fn</span> <span class="ident">to_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident"><span class="self">Self</span>::Staging</span> =&gt; <span class="string">&quot;staging&quot;</span>,
-            <span class="ident"><span class="self">Self</span>::Production</span> =&gt; <span class="string">&quot;production&quot;</span>,
+<span class="kw">impl </span>ToString <span class="kw">for </span>SignalServers {
+    <span class="kw">fn </span>to_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::Staging =&gt; <span class="string">&quot;staging&quot;</span>,
+            <span class="self">Self</span>::Production =&gt; <span class="string">&quot;production&quot;</span>,
         }
-        .<span class="ident">to_string</span>()
+        .to_string()
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">SignalServers</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ServiceConfiguration</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">val</span>: <span class="ident">SignalServers</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident">ServiceConfiguration::from</span>(<span class="kw-2">&amp;</span><span class="ident">val</span>)
+<span class="kw">impl </span>From&lt;SignalServers&gt; <span class="kw">for </span>ServiceConfiguration {
+    <span class="kw">fn </span>from(val: SignalServers) -&gt; <span class="self">Self </span>{
+        ServiceConfiguration::from(<span class="kw-2">&amp;</span>val)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SignalServers</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ServiceConfiguration</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">val</span>: <span class="kw-2">&amp;</span><span class="ident">SignalServers</span>) -&gt; <span class="self">Self</span> {
-        <span class="comment">// base configuration from https://github.com/signalapp/Signal-Desktop/blob/development/config/default.json</span>
-        <span class="kw">match</span> <span class="ident">val</span> {
-            <span class="comment">// configuration with the Signal API staging endpoints</span>
-            <span class="comment">// see: https://github.com/signalapp/Signal-Desktop/blob/master/config/default.json</span>
-            <span class="ident">SignalServers::Staging</span> =&gt; <span class="ident">ServiceConfiguration</span> {
-                <span class="ident">service_url</span>: <span class="string">&quot;https://chat.staging.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>(),
-                <span class="ident">storage_url</span>:<span class="string">&quot;https://storage-staging.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>(),
-                <span class="ident">cdn_urls</span>: {
-                    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">HashMap::new</span>();
-                    <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">0</span>, <span class="string">&quot;https://cdn-staging.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>());
-                    <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">2</span>, <span class="string">&quot;https://cdn2-staging.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>());
-                    <span class="ident">map</span>
+<span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>SignalServers&gt; <span class="kw">for </span>ServiceConfiguration {
+    <span class="kw">fn </span>from(val: <span class="kw-2">&amp;</span>SignalServers) -&gt; <span class="self">Self </span>{
+        <span class="comment">// base configuration from https://github.com/signalapp/Signal-Desktop/blob/development/config/default.json
+        </span><span class="kw">match </span>val {
+            <span class="comment">// configuration with the Signal API staging endpoints
+            // see: https://github.com/signalapp/Signal-Desktop/blob/master/config/default.json
+            </span>SignalServers::Staging =&gt; ServiceConfiguration {
+                service_url: <span class="string">&quot;https://chat.staging.signal.org&quot;</span>.parse().unwrap(),
+                storage_url:<span class="string">&quot;https://storage-staging.signal.org&quot;</span>.parse().unwrap(),
+                cdn_urls: {
+                    <span class="kw">let </span><span class="kw-2">mut </span>map = HashMap::new();
+                    map.insert(<span class="number">0</span>, <span class="string">&quot;https://cdn-staging.signal.org&quot;</span>.parse().unwrap());
+                    map.insert(<span class="number">2</span>, <span class="string">&quot;https://cdn2-staging.signal.org&quot;</span>.parse().unwrap());
+                    map
                 },
-                <span class="ident">contact_discovery_url</span>:
-                    <span class="string">&quot;https://api-staging.directory.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>(),
-                <span class="ident">certificate_authority</span>: <span class="macro">include_str!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>), <span class="string">&quot;/certs/staging-root-ca.pem&quot;</span>)).<span class="ident">to_string</span>(),
-                <span class="ident">unidentified_sender_trust_root</span>:
-                    <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">base64::decode</span>(<span class="string">&quot;BbqY1DzohE4NUZoVF+L18oUPrK3kILllLEJh2UnPSsEx&quot;</span>).<span class="ident">unwrap</span>()).<span class="ident">unwrap</span>(),
-                <span class="ident">zkgroup_server_public_params</span>: <span class="ident">bincode::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">base64::decode</span>(<span class="string">&quot;ABSY21VckQcbSXVNCGRYJcfWHiAMZmpTtTELcDmxgdFbtp/bWsSxZdMKzfCp8rvIs8ocCU3B37fT3r4Mi5qAemeGeR2X+/YmOGR5ofui7tD5mDQfstAI9i+4WpMtIe8KC3wU5w3Inq3uNWVmoGtpKndsNfwJrCg0Hd9zmObhypUnSkfYn2ooMOOnBpfdanRtrvetZUayDMSC5iSRcXKpdlukrpzzsCIvEwjwQlJYVPOQPj4V0F4UXXBdHSLK05uoPBCQG8G9rYIGedYsClJXnbrgGYG3eMTG5hnx4X4ntARBgELuMWWUEEfSK0mjXg+/2lPmWcTZWR9nkqgQQP0tbzuiPm74H2wMO4u1Wafe+UwyIlIT9L7KLS19Aw8r4sPrXZSSsOZ6s7M1+rTJN0bI5CKY2PX29y5Ok3jSWufIKcgKOnWoP67d5b2du2ZVJjpjfibNIHbT/cegy/sBLoFwtHogVYUewANUAXIaMPyCLRArsKhfJ5wBtTminG/PAvuBdJ70Z/bXVPf8TVsR292zQ65xwvWTejROW6AZX6aqucUj&quot;</span>).<span class="ident">unwrap</span>()).<span class="ident">unwrap</span>(),
+                contact_discovery_url:
+                    <span class="string">&quot;https://api-staging.directory.signal.org&quot;</span>.parse().unwrap(),
+                certificate_authority: <span class="macro">include_str!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>), <span class="string">&quot;/certs/staging-root-ca.pem&quot;</span>)).to_string(),
+                unidentified_sender_trust_root:
+                    PublicKey::deserialize(<span class="kw-2">&amp;</span>base64::decode(<span class="string">&quot;BbqY1DzohE4NUZoVF+L18oUPrK3kILllLEJh2UnPSsEx&quot;</span>).unwrap()).unwrap(),
+                zkgroup_server_public_params: bincode::deserialize(<span class="kw-2">&amp;</span>base64::decode(<span class="string">&quot;ABSY21VckQcbSXVNCGRYJcfWHiAMZmpTtTELcDmxgdFbtp/bWsSxZdMKzfCp8rvIs8ocCU3B37fT3r4Mi5qAemeGeR2X+/YmOGR5ofui7tD5mDQfstAI9i+4WpMtIe8KC3wU5w3Inq3uNWVmoGtpKndsNfwJrCg0Hd9zmObhypUnSkfYn2ooMOOnBpfdanRtrvetZUayDMSC5iSRcXKpdlukrpzzsCIvEwjwQlJYVPOQPj4V0F4UXXBdHSLK05uoPBCQG8G9rYIGedYsClJXnbrgGYG3eMTG5hnx4X4ntARBgELuMWWUEEfSK0mjXg+/2lPmWcTZWR9nkqgQQP0tbzuiPm74H2wMO4u1Wafe+UwyIlIT9L7KLS19Aw8r4sPrXZSSsOZ6s7M1+rTJN0bI5CKY2PX29y5Ok3jSWufIKcgKOnWoP67d5b2du2ZVJjpjfibNIHbT/cegy/sBLoFwtHogVYUewANUAXIaMPyCLRArsKhfJ5wBtTminG/PAvuBdJ70Z/bXVPf8TVsR292zQ65xwvWTejROW6AZX6aqucUj&quot;</span>).unwrap()).unwrap(),
             },
-            <span class="comment">// configuration with the Signal API production endpoints</span>
-            <span class="comment">// https://github.com/signalapp/Signal-Desktop/blob/master/config/production.json</span>
-            <span class="ident">SignalServers::Production</span> =&gt; <span class="ident">ServiceConfiguration</span> {
-                <span class="ident">service_url</span>:
-                    <span class="string">&quot;https://chat.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>(),
-                <span class="ident">storage_url</span>: <span class="string">&quot;https://storage.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>(),
-                <span class="ident">cdn_urls</span>: {
-                    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">map</span> <span class="op">=</span> <span class="ident">HashMap::new</span>();
-                    <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">0</span>, <span class="string">&quot;https://cdn.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>());
-                    <span class="ident">map</span>.<span class="ident">insert</span>(<span class="number">2</span>, <span class="string">&quot;https://cdn2.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>());
-                    <span class="ident">map</span>
+            <span class="comment">// configuration with the Signal API production endpoints
+            // https://github.com/signalapp/Signal-Desktop/blob/master/config/production.json
+            </span>SignalServers::Production =&gt; ServiceConfiguration {
+                service_url:
+                    <span class="string">&quot;https://chat.signal.org&quot;</span>.parse().unwrap(),
+                storage_url: <span class="string">&quot;https://storage.signal.org&quot;</span>.parse().unwrap(),
+                cdn_urls: {
+                    <span class="kw">let </span><span class="kw-2">mut </span>map = HashMap::new();
+                    map.insert(<span class="number">0</span>, <span class="string">&quot;https://cdn.signal.org&quot;</span>.parse().unwrap());
+                    map.insert(<span class="number">2</span>, <span class="string">&quot;https://cdn2.signal.org&quot;</span>.parse().unwrap());
+                    map
                 },
-                <span class="ident">contact_discovery_url</span>: <span class="string">&quot;https://api.directory.signal.org&quot;</span>.<span class="ident">parse</span>().<span class="ident">unwrap</span>(),
-                <span class="ident">certificate_authority</span>: <span class="macro">include_str!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>), <span class="string">&quot;/certs/production-root-ca.pem&quot;</span>)).<span class="ident">to_string</span>(),
-                <span class="ident">unidentified_sender_trust_root</span>:
-                    <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">base64::decode</span>(<span class="string">&quot;BXu6QIKVz5MA8gstzfOgRQGqyLqOwNKHL6INkv3IHWMF&quot;</span>).<span class="ident">unwrap</span>()).<span class="ident">unwrap</span>(),
-                <span class="ident">zkgroup_server_public_params</span>: <span class="ident">bincode::deserialize</span>(
-                    <span class="kw-2">&amp;</span><span class="ident">base64::decode</span>(<span class="string">&quot;AMhf5ywVwITZMsff/eCyudZx9JDmkkkbV6PInzG4p8x3VqVJSFiMvnvlEKWuRob/1eaIetR31IYeAbm0NdOuHH8Qi+Rexi1wLlpzIo1gstHWBfZzy1+qHRV5A4TqPp15YzBPm0WSggW6PbSn+F4lf57VCnHF7p8SvzAA2ZZJPYJURt8X7bbg+H3i+PEjH9DXItNEqs2sNcug37xZQDLm7X36nOoGPs54XsEGzPdEV+itQNGUFEjY6X9Uv+Acuks7NpyGvCoKxGwgKgE5XyJ+nNKlyHHOLb6N1NuHyBrZrgtY/JYJHRooo5CEqYKBqdFnmbTVGEkCvJKxLnjwKWf+fEPoWeQFj5ObDjcKMZf2Jm2Ae69x+ikU5gBXsRmoF94GXTLfN0/vLt98KDPnxwAQL9j5V1jGOY8jQl6MLxEs56cwXN0dqCnImzVH3TZT1cJ8SW1BRX6qIVxEzjsSGx3yxF3suAilPMqGRp4ffyopjMD1JXiKR2RwLKzizUe5e8XyGOy9fplzhw3jVzTRyUZTRSZKkMLWcQ/gv0E4aONNqs4P&quot;</span>).<span class="ident">unwrap</span>()).<span class="ident">unwrap</span>(),
+                contact_discovery_url: <span class="string">&quot;https://api.directory.signal.org&quot;</span>.parse().unwrap(),
+                certificate_authority: <span class="macro">include_str!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;CARGO_MANIFEST_DIR&quot;</span>), <span class="string">&quot;/certs/production-root-ca.pem&quot;</span>)).to_string(),
+                unidentified_sender_trust_root:
+                    PublicKey::deserialize(<span class="kw-2">&amp;</span>base64::decode(<span class="string">&quot;BXu6QIKVz5MA8gstzfOgRQGqyLqOwNKHL6INkv3IHWMF&quot;</span>).unwrap()).unwrap(),
+                zkgroup_server_public_params: bincode::deserialize(
+                    <span class="kw-2">&amp;</span>base64::decode(<span class="string">&quot;AMhf5ywVwITZMsff/eCyudZx9JDmkkkbV6PInzG4p8x3VqVJSFiMvnvlEKWuRob/1eaIetR31IYeAbm0NdOuHH8Qi+Rexi1wLlpzIo1gstHWBfZzy1+qHRV5A4TqPp15YzBPm0WSggW6PbSn+F4lf57VCnHF7p8SvzAA2ZZJPYJURt8X7bbg+H3i+PEjH9DXItNEqs2sNcug37xZQDLm7X36nOoGPs54XsEGzPdEV+itQNGUFEjY6X9Uv+Acuks7NpyGvCoKxGwgKgE5XyJ+nNKlyHHOLb6N1NuHyBrZrgtY/JYJHRooo5CEqYKBqdFnmbTVGEkCvJKxLnjwKWf+fEPoWeQFj5ObDjcKMZf2Jm2Ae69x+ikU5gBXsRmoF94GXTLfN0/vLt98KDPnxwAQL9j5V1jGOY8jQl6MLxEs56cwXN0dqCnImzVH3TZT1cJ8SW1BRX6qIVxEzjsSGx3yxF3suAilPMqGRp4ffyopjMD1JXiKR2RwLKzizUe5e8XyGOy9fplzhw3jVzTRyUZTRSZKkMLWcQ/gv0E4aONNqs4P&quot;</span>).unwrap()).unwrap(),
             },
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ServiceConfiguration</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">base_url</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">endpoint</span>: <span class="ident">Endpoint</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident">Url</span> {
-        <span class="kw">match</span> <span class="ident">endpoint</span> {
-            <span class="ident">Endpoint::Service</span> =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">service_url</span>,
-            <span class="ident">Endpoint::Storage</span> =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">storage_url</span>,
-            <span class="ident">Endpoint::Cdn</span>(<span class="kw-2">ref</span> <span class="ident">n</span>) =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">cdn_urls</span>[<span class="ident">n</span>],
-            <span class="ident">Endpoint::ContactDiscovery</span> =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">contact_discovery_url</span>,
+<span class="kw">impl </span>ServiceConfiguration {
+    <span class="kw">pub fn </span>base_url(<span class="kw-2">&amp;</span><span class="self">self</span>, endpoint: Endpoint) -&gt; <span class="kw-2">&amp;</span>Url {
+        <span class="kw">match </span>endpoint {
+            Endpoint::Service =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.service_url,
+            Endpoint::Storage =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.storage_url,
+            Endpoint::Cdn(<span class="kw-2">ref </span>n) =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.cdn_urls[n],
+            Endpoint::ContactDiscovery =&gt; <span class="kw-2">&amp;</span><span class="self">self</span>.contact_discovery_url,
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

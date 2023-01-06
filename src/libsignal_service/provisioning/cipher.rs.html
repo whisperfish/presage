@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/provisioning/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/provisioning/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -219,226 +219,226 @@
 <span id="219">219</span>
 <span id="220">220</span>
 <span id="221">221</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::fmt</span>::{<span class="self">self</span>, <span class="ident">Debug</span>};
+</pre><pre class="rust"><code><span class="kw">use </span>std::fmt::{<span class="self">self</span>, Debug};
 
-<span class="kw">use</span> <span class="ident">aes::Aes256</span>;
-<span class="kw">use</span> <span class="ident">block_modes</span>::{<span class="ident">block_padding::Pkcs7</span>, <span class="ident">BlockMode</span>, <span class="ident">Cbc</span>};
-<span class="kw">use</span> <span class="ident">bytes::Bytes</span>;
-<span class="kw">use</span> <span class="ident">hmac</span>::{<span class="ident">Hmac</span>, <span class="ident">Mac</span>};
-<span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{<span class="ident">KeyPair</span>, <span class="ident">PublicKey</span>};
-<span class="kw">use</span> <span class="ident">prost::Message</span>;
-<span class="kw">use</span> <span class="ident">rand::Rng</span>;
-<span class="kw">use</span> <span class="ident">sha2::Sha256</span>;
+<span class="kw">use </span>aes::Aes256;
+<span class="kw">use </span>block_modes::{block_padding::Pkcs7, BlockMode, Cbc};
+<span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>hmac::{Hmac, Mac};
+<span class="kw">use </span>libsignal_protocol::{KeyPair, PublicKey};
+<span class="kw">use </span>prost::Message;
+<span class="kw">use </span>rand::Rng;
+<span class="kw">use </span>sha2::Sha256;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto</span>::{
-    <span class="ident">ProvisionEnvelope</span>, <span class="ident">ProvisionMessage</span>, <span class="ident">ProvisioningVersion</span>,
+<span class="kw">pub use </span><span class="kw">crate</span>::proto::{
+    ProvisionEnvelope, ProvisionMessage, ProvisioningVersion,
 };
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">envelope</span>::{<span class="ident">CIPHER_KEY_SIZE</span>, <span class="ident">IV_LENGTH</span>, <span class="ident">IV_OFFSET</span>},
-    <span class="ident">provisioning::ProvisioningError</span>,
+<span class="kw">use crate</span>::{
+    envelope::{CIPHER_KEY_SIZE, IV_LENGTH, IV_OFFSET},
+    provisioning::ProvisioningError,
 };
 
-<span class="kw">enum</span> <span class="ident">CipherMode</span> {
-    <span class="ident">DecryptAndEncrypt</span>(<span class="ident">KeyPair</span>),
-    <span class="ident">EncryptOnly</span>(<span class="ident">PublicKey</span>),
+<span class="kw">enum </span>CipherMode {
+    DecryptAndEncrypt(KeyPair),
+    EncryptOnly(PublicKey),
 }
 
-<span class="kw">impl</span> <span class="ident">Debug</span> <span class="kw">for</span> <span class="ident">CipherMode</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">fmt::Error</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">CipherMode::DecryptAndEncrypt</span>(<span class="ident">key_pair</span>) =&gt; <span class="ident">f</span>
-                .<span class="ident">debug_tuple</span>(<span class="string">&quot;CipherMode::DecryptAndEncrypt&quot;</span>)
-                .<span class="ident">field</span>(<span class="kw-2">&amp;</span><span class="ident">key_pair</span>.<span class="ident">public_key</span>)
-                .<span class="ident">finish</span>(),
-            <span class="ident">CipherMode::EncryptOnly</span>(<span class="ident">public</span>) =&gt; <span class="ident">f</span>
-                .<span class="ident">debug_tuple</span>(<span class="string">&quot;CipherMode::EncryptOnly&quot;</span>)
-                .<span class="ident">field</span>(<span class="kw-2">&amp;</span><span class="ident">public</span>)
-                .<span class="ident">finish</span>(),
+<span class="kw">impl </span>Debug <span class="kw">for </span>CipherMode {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), fmt::Error&gt; {
+        <span class="kw">match </span><span class="self">self </span>{
+            CipherMode::DecryptAndEncrypt(key_pair) =&gt; f
+                .debug_tuple(<span class="string">&quot;CipherMode::DecryptAndEncrypt&quot;</span>)
+                .field(<span class="kw-2">&amp;</span>key_pair.public_key)
+                .finish(),
+            CipherMode::EncryptOnly(public) =&gt; f
+                .debug_tuple(<span class="string">&quot;CipherMode::EncryptOnly&quot;</span>)
+                .field(<span class="kw-2">&amp;</span>public)
+                .finish(),
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">CipherMode</span> {
-    <span class="kw">fn</span> <span class="ident">public</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident">PublicKey</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident">CipherMode::DecryptAndEncrypt</span>(<span class="ident">pair</span>) =&gt; <span class="kw-2">&amp;</span><span class="ident">pair</span>.<span class="ident">public_key</span>,
-            <span class="ident">CipherMode::EncryptOnly</span>(<span class="ident">pub_key</span>) =&gt; <span class="ident">pub_key</span>,
+<span class="kw">impl </span>CipherMode {
+    <span class="kw">fn </span>public(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>PublicKey {
+        <span class="kw">match </span><span class="self">self </span>{
+            CipherMode::DecryptAndEncrypt(pair) =&gt; <span class="kw-2">&amp;</span>pair.public_key,
+            CipherMode::EncryptOnly(pub_key) =&gt; pub_key,
         }
     }
 }
 
-<span class="kw">const</span> <span class="ident">VERSION</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">1</span>;
+<span class="kw">const </span>VERSION: u8 = <span class="number">1</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ProvisioningCipher</span> {
-    <span class="ident">key_material</span>: <span class="ident">CipherMode</span>,
+<span class="attribute">#[derive(Debug)]
+</span><span class="kw">pub struct </span>ProvisioningCipher {
+    key_material: CipherMode,
 }
 
-<span class="kw">impl</span> <span class="ident">ProvisioningCipher</span> {
-    <span class="doccomment">/// Generate a random key pair</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span>(<span class="ident">rng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">ProvisioningError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">R</span>: <span class="ident">rand::Rng</span> <span class="op">+</span> <span class="ident">rand::CryptoRng</span>,
+<span class="kw">impl </span>ProvisioningCipher {
+    <span class="doccomment">/// Generate a random key pair
+    </span><span class="kw">pub fn </span>generate&lt;R&gt;(rng: <span class="kw-2">&amp;mut </span>R) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ProvisioningError&gt;
+    <span class="kw">where
+        </span>R: rand::Rng + rand::CryptoRng,
     {
-        <span class="kw">let</span> <span class="ident">key_pair</span> <span class="op">=</span> <span class="ident">libsignal_protocol::KeyPair::generate</span>(<span class="ident">rng</span>);
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">key_material</span>: <span class="ident">CipherMode::DecryptAndEncrypt</span>(<span class="ident">key_pair</span>),
+        <span class="kw">let </span>key_pair = libsignal_protocol::KeyPair::generate(rng);
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            key_material: CipherMode::DecryptAndEncrypt(key_pair),
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_public</span>(<span class="ident">key</span>: <span class="ident">PublicKey</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">key_material</span>: <span class="ident">CipherMode::EncryptOnly</span>(<span class="ident">key</span>),
+    <span class="kw">pub fn </span>from_public(key: PublicKey) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            key_material: CipherMode::EncryptOnly(key),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_key_pair</span>(<span class="ident">key_pair</span>: <span class="ident">KeyPair</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">key_material</span>: <span class="ident">CipherMode::DecryptAndEncrypt</span>(<span class="ident">key_pair</span>),
+    <span class="kw">pub fn </span>from_key_pair(key_pair: KeyPair) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            key_material: CipherMode::DecryptAndEncrypt(key_pair),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">public_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident">PublicKey</span> {
-        <span class="self">self</span>.<span class="ident">key_material</span>.<span class="ident">public</span>()
+    <span class="kw">pub fn </span>public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>PublicKey {
+        <span class="self">self</span>.key_material.public()
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encrypt</span>(
+    <span class="kw">pub fn </span>encrypt(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">msg</span>: <span class="ident">ProvisionMessage</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ProvisionEnvelope</span>, <span class="ident">ProvisioningError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">msg</span>.<span class="ident">encode_to_vec</span>();
+        msg: ProvisionMessage,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProvisionEnvelope, ProvisioningError&gt; {
+        <span class="kw">let </span>msg = msg.encode_to_vec();
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
-        <span class="kw">let</span> <span class="ident">our_key_pair</span> <span class="op">=</span> <span class="ident">libsignal_protocol::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rng</span>);
-        <span class="kw">let</span> <span class="ident">agreement</span> <span class="op">=</span> <span class="ident">our_key_pair</span>.<span class="ident">calculate_agreement</span>(<span class="self">self</span>.<span class="ident">public_key</span>())<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
+        <span class="kw">let </span>our_key_pair = libsignal_protocol::KeyPair::generate(<span class="kw-2">&amp;mut </span>rng);
+        <span class="kw">let </span>agreement = our_key_pair.calculate_agreement(<span class="self">self</span>.public_key())<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">shared_secrets</span> <span class="op">=</span> [<span class="number">0</span>; <span class="number">64</span>];
-        <span class="ident">hkdf::Hkdf</span>::<span class="op">&lt;</span><span class="ident">sha2::Sha256</span><span class="op">&gt;</span><span class="ident">::new</span>(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span><span class="ident">agreement</span>)
-            .<span class="ident">expand</span>(<span class="string">b&quot;TextSecure Provisioning Message&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">shared_secrets</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;valid output length&quot;</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>shared_secrets = [<span class="number">0</span>; <span class="number">64</span>];
+        hkdf::Hkdf::&lt;sha2::Sha256&gt;::new(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>agreement)
+            .expand(<span class="string">b&quot;TextSecure Provisioning Message&quot;</span>, <span class="kw-2">&amp;mut </span>shared_secrets)
+            .expect(<span class="string">&quot;valid output length&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">aes_key</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">shared_secrets</span>[<span class="number">0</span>..<span class="number">32</span>];
-        <span class="kw">let</span> <span class="ident">mac_key</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">shared_secrets</span>[<span class="number">32</span>..];
-        <span class="kw">let</span> <span class="ident">iv</span>: [<span class="ident">u8</span>; <span class="ident">IV_LENGTH</span>] <span class="op">=</span> <span class="ident">rng</span>.<span class="ident">gen</span>();
+        <span class="kw">let </span>aes_key = <span class="kw-2">&amp;</span>shared_secrets[<span class="number">0</span>..<span class="number">32</span>];
+        <span class="kw">let </span>mac_key = <span class="kw-2">&amp;</span>shared_secrets[<span class="number">32</span>..];
+        <span class="kw">let </span>iv: [u8; IV_LENGTH] = rng.gen();
 
-        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">Cbc</span>::<span class="op">&lt;</span><span class="ident">Aes256</span>, <span class="ident">Pkcs7</span><span class="op">&gt;</span><span class="ident">::new_from_slices</span>(<span class="ident">aes_key</span>, <span class="kw-2">&amp;</span><span class="ident">iv</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;initalization of CBC/AES/PKCS7&quot;</span>);
-        <span class="kw">let</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">encrypt_vec</span>(<span class="kw-2">&amp;</span><span class="ident">msg</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mac</span> <span class="op">=</span> <span class="ident">Hmac</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span><span class="ident">::new_from_slice</span>(<span class="ident">mac_key</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;HMAC can take any size key&quot;</span>);
-        <span class="ident">mac</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span>[<span class="ident">VERSION</span>]);
-        <span class="ident">mac</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">iv</span>);
-        <span class="ident">mac</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">ciphertext</span>);
-        <span class="kw">let</span> <span class="ident">mac</span> <span class="op">=</span> <span class="ident">mac</span>.<span class="ident">finalize</span>().<span class="ident">into_bytes</span>();
+        <span class="kw">let </span>cipher = Cbc::&lt;Aes256, Pkcs7&gt;::new_from_slices(aes_key, <span class="kw-2">&amp;</span>iv)
+            .expect(<span class="string">&quot;initalization of CBC/AES/PKCS7&quot;</span>);
+        <span class="kw">let </span>ciphertext = cipher.encrypt_vec(<span class="kw-2">&amp;</span>msg);
+        <span class="kw">let </span><span class="kw-2">mut </span>mac = Hmac::&lt;Sha256&gt;::new_from_slice(mac_key)
+            .expect(<span class="string">&quot;HMAC can take any size key&quot;</span>);
+        mac.update(<span class="kw-2">&amp;</span>[VERSION]);
+        mac.update(<span class="kw-2">&amp;</span>iv);
+        mac.update(<span class="kw-2">&amp;</span>ciphertext);
+        <span class="kw">let </span>mac = mac.finalize().into_bytes();
 
-        <span class="kw">let</span> <span class="ident">body</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="ident">std::iter::once</span>(<span class="ident">VERSION</span>)
-            .<span class="ident">chain</span>(<span class="ident">iv</span>.<span class="ident">iter</span>().<span class="ident">cloned</span>())
-            .<span class="ident">chain</span>(<span class="ident">ciphertext</span>)
-            .<span class="ident">chain</span>(<span class="ident">mac</span>)
-            .<span class="ident">collect</span>();
+        <span class="kw">let </span>body: Vec&lt;u8&gt; = std::iter::once(VERSION)
+            .chain(iv.iter().cloned())
+            .chain(ciphertext)
+            .chain(mac)
+            .collect();
 
-        <span class="prelude-val">Ok</span>(<span class="ident">ProvisionEnvelope</span> {
-            <span class="ident">public_key</span>: <span class="prelude-val">Some</span>(<span class="ident">our_key_pair</span>.<span class="ident">public_key</span>.<span class="ident">serialize</span>().<span class="ident">into</span>()),
-            <span class="ident">body</span>: <span class="prelude-val">Some</span>(<span class="ident">body</span>),
+        <span class="prelude-val">Ok</span>(ProvisionEnvelope {
+            public_key: <span class="prelude-val">Some</span>(our_key_pair.public_key.serialize().into()),
+            body: <span class="prelude-val">Some</span>(body),
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decrypt</span>(
+    <span class="kw">pub fn </span>decrypt(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">provision_envelope</span>: <span class="ident">ProvisionEnvelope</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ProvisionMessage</span>, <span class="ident">ProvisioningError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key_pair</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">key_material</span> {
-            <span class="ident">CipherMode::DecryptAndEncrypt</span>(<span class="kw-2">ref</span> <span class="ident">key_pair</span>) =&gt; <span class="ident">key_pair</span>,
-            <span class="ident">CipherMode::EncryptOnly</span>(<span class="kw">_</span>) =&gt; {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ProvisioningError::EncryptOnlyProvisioningCipher</span>);
+        provision_envelope: ProvisionEnvelope,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProvisionMessage, ProvisioningError&gt; {
+        <span class="kw">let </span>key_pair = <span class="kw">match </span><span class="self">self</span>.key_material {
+            CipherMode::DecryptAndEncrypt(<span class="kw-2">ref </span>key_pair) =&gt; key_pair,
+            CipherMode::EncryptOnly(<span class="kw">_</span>) =&gt; {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::EncryptOnlyProvisioningCipher);
             },
         };
-        <span class="kw">let</span> <span class="ident">master_ephemeral</span> <span class="op">=</span> <span class="ident">PublicKey::deserialize</span>(
-            <span class="kw-2">&amp;</span><span class="ident">provision_envelope</span>.<span class="ident">public_key</span>.<span class="ident">expect</span>(<span class="string">&quot;no public key&quot;</span>),
+        <span class="kw">let </span>master_ephemeral = PublicKey::deserialize(
+            <span class="kw-2">&amp;</span>provision_envelope.public_key.expect(<span class="string">&quot;no public key&quot;</span>),
         )<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">body</span> <span class="op">=</span> <span class="ident">provision_envelope</span>
-            .<span class="ident">body</span>
-            .<span class="ident">expect</span>(<span class="string">&quot;no body in ProvisionMessage&quot;</span>);
-        <span class="kw">if</span> <span class="ident">body</span>[<span class="number">0</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">VERSION</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ProvisioningError::InvalidData</span> {
-                <span class="ident">reason</span>: <span class="string">&quot;Bad version number&quot;</span>.<span class="ident">into</span>(),
+        <span class="kw">let </span>body = provision_envelope
+            .body
+            .expect(<span class="string">&quot;no body in ProvisionMessage&quot;</span>);
+        <span class="kw">if </span>body[<span class="number">0</span>] != VERSION {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidData {
+                reason: <span class="string">&quot;Bad version number&quot;</span>.into(),
             });
         }
 
-        <span class="kw">let</span> <span class="ident">iv</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">body</span>[<span class="ident">IV_OFFSET</span>..(<span class="ident">IV_LENGTH</span> <span class="op">+</span> <span class="ident">IV_OFFSET</span>)];
-        <span class="kw">let</span> <span class="ident">mac</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">body</span>[(<span class="ident">body</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">32</span>)..];
-        <span class="kw">let</span> <span class="ident">cipher_text</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">body</span>[<span class="number">16</span> <span class="op">+</span> <span class="number">1</span>..(<span class="ident">body</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">CIPHER_KEY_SIZE</span>)];
-        <span class="kw">let</span> <span class="ident">iv_and_cipher_text</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">body</span>[<span class="number">0</span>..(<span class="ident">body</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="ident">CIPHER_KEY_SIZE</span>)];
-        <span class="macro">debug_assert_eq!</span>(<span class="ident">iv</span>.<span class="ident">len</span>(), <span class="ident">IV_LENGTH</span>);
-        <span class="macro">debug_assert_eq!</span>(<span class="ident">mac</span>.<span class="ident">len</span>(), <span class="number">32</span>);
+        <span class="kw">let </span>iv = <span class="kw-2">&amp;</span>body[IV_OFFSET..(IV_LENGTH + IV_OFFSET)];
+        <span class="kw">let </span>mac = <span class="kw-2">&amp;</span>body[(body.len() - <span class="number">32</span>)..];
+        <span class="kw">let </span>cipher_text = <span class="kw-2">&amp;</span>body[<span class="number">16 </span>+ <span class="number">1</span>..(body.len() - CIPHER_KEY_SIZE)];
+        <span class="kw">let </span>iv_and_cipher_text = <span class="kw-2">&amp;</span>body[<span class="number">0</span>..(body.len() - CIPHER_KEY_SIZE)];
+        <span class="macro">debug_assert_eq!</span>(iv.len(), IV_LENGTH);
+        <span class="macro">debug_assert_eq!</span>(mac.len(), <span class="number">32</span>);
 
-        <span class="kw">let</span> <span class="ident">agreement</span> <span class="op">=</span> <span class="ident">key_pair</span>.<span class="ident">calculate_agreement</span>(<span class="kw-2">&amp;</span><span class="ident">master_ephemeral</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>agreement = key_pair.calculate_agreement(<span class="kw-2">&amp;</span>master_ephemeral)<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">shared_secrets</span> <span class="op">=</span> [<span class="number">0</span>; <span class="number">64</span>];
-        <span class="ident">hkdf::Hkdf</span>::<span class="op">&lt;</span><span class="ident">sha2::Sha256</span><span class="op">&gt;</span><span class="ident">::new</span>(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span><span class="ident">agreement</span>)
-            .<span class="ident">expand</span>(<span class="string">b&quot;TextSecure Provisioning Message&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">shared_secrets</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;valid output length&quot;</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>shared_secrets = [<span class="number">0</span>; <span class="number">64</span>];
+        hkdf::Hkdf::&lt;sha2::Sha256&gt;::new(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>agreement)
+            .expand(<span class="string">b&quot;TextSecure Provisioning Message&quot;</span>, <span class="kw-2">&amp;mut </span>shared_secrets)
+            .expect(<span class="string">&quot;valid output length&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">parts1</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">shared_secrets</span>[<span class="number">0</span>..<span class="number">32</span>];
-        <span class="kw">let</span> <span class="ident">parts2</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">shared_secrets</span>[<span class="number">32</span>..];
+        <span class="kw">let </span>parts1 = <span class="kw-2">&amp;</span>shared_secrets[<span class="number">0</span>..<span class="number">32</span>];
+        <span class="kw">let </span>parts2 = <span class="kw-2">&amp;</span>shared_secrets[<span class="number">32</span>..];
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">verifier</span> <span class="op">=</span> <span class="ident">Hmac</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span><span class="ident">::new_from_slice</span>(<span class="ident">parts2</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;HMAC can take any size key&quot;</span>);
-        <span class="ident">verifier</span>.<span class="ident">update</span>(<span class="ident">iv_and_cipher_text</span>);
-        <span class="kw">let</span> <span class="ident">our_mac</span> <span class="op">=</span> <span class="ident">verifier</span>.<span class="ident">finalize</span>().<span class="ident">into_bytes</span>();
-        <span class="macro">debug_assert_eq!</span>(<span class="ident">our_mac</span>.<span class="ident">len</span>(), <span class="ident">mac</span>.<span class="ident">len</span>());
-        <span class="kw">if</span> <span class="kw-2">&amp;</span><span class="ident">our_mac</span>[..<span class="number">32</span>] <span class="op">!</span><span class="op">=</span> <span class="ident">mac</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ProvisioningError::InvalidData</span> {
-                <span class="ident">reason</span>: <span class="string">&quot;wrong MAC&quot;</span>.<span class="ident">into</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>verifier = Hmac::&lt;Sha256&gt;::new_from_slice(parts2)
+            .expect(<span class="string">&quot;HMAC can take any size key&quot;</span>);
+        verifier.update(iv_and_cipher_text);
+        <span class="kw">let </span>our_mac = verifier.finalize().into_bytes();
+        <span class="macro">debug_assert_eq!</span>(our_mac.len(), mac.len());
+        <span class="kw">if </span><span class="kw-2">&amp;</span>our_mac[..<span class="number">32</span>] != mac {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidData {
+                reason: <span class="string">&quot;wrong MAC&quot;</span>.into(),
             });
         }
 
-        <span class="comment">// libsignal-service-java uses Pkcs5,</span>
-        <span class="comment">// but that should not matter.</span>
-        <span class="comment">// https://crypto.stackexchange.com/questions/9043/what-is-the-difference-between-pkcs5-padding-and-pkcs7-padding</span>
-        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">Cbc</span>::<span class="op">&lt;</span><span class="ident">Aes256</span>, <span class="ident">Pkcs7</span><span class="op">&gt;</span><span class="ident">::new_from_slices</span>(<span class="ident">parts1</span>, <span class="ident">iv</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;initalization of CBC/AES/PKCS7&quot;</span>);
-        <span class="kw">let</span> <span class="ident">input</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">decrypt_vec</span>(<span class="ident">cipher_text</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ProvisioningError::InvalidData</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;CBC/Padding error: {:?}&quot;</span>, <span class="ident">e</span>),
+        <span class="comment">// libsignal-service-java uses Pkcs5,
+        // but that should not matter.
+        // https://crypto.stackexchange.com/questions/9043/what-is-the-difference-between-pkcs5-padding-and-pkcs7-padding
+        </span><span class="kw">let </span>cipher = Cbc::&lt;Aes256, Pkcs7&gt;::new_from_slices(parts1, iv)
+            .expect(<span class="string">&quot;initalization of CBC/AES/PKCS7&quot;</span>);
+        <span class="kw">let </span>input = cipher.decrypt_vec(cipher_text).map_err(|e| {
+            ProvisioningError::InvalidData {
+                reason: <span class="macro">format!</span>(<span class="string">&quot;CBC/Padding error: {:?}&quot;</span>, e),
             }
         })<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">prost::Message::decode</span>(<span class="ident">Bytes::from</span>(<span class="ident">input</span>))<span class="question-mark">?</span>)
+        <span class="prelude-val">Ok</span>(prost::Message::decode(Bytes::from(input))<span class="question-mark">?</span>)
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">encrypt_provisioning_roundtrip</span>() -&gt; <span class="ident">anyhow::Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::thread_rng</span>();
-        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">ProvisioningCipher::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rng</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">encrypt_cipher</span> <span class="op">=</span>
-            <span class="ident">ProvisioningCipher::from_public</span>(<span class="kw-2">*</span><span class="ident">cipher</span>.<span class="ident">public_key</span>());
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>encrypt_provisioning_roundtrip() -&gt; anyhow::Result&lt;()&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
+        <span class="kw">let </span>cipher = ProvisioningCipher::generate(<span class="kw-2">&amp;mut </span>rng)<span class="question-mark">?</span>;
+        <span class="kw">let </span>encrypt_cipher =
+            ProvisioningCipher::from_public(<span class="kw-2">*</span>cipher.public_key());
 
         <span class="macro">assert_eq!</span>(
-            <span class="ident">cipher</span>.<span class="ident">public_key</span>(),
-            <span class="ident">encrypt_cipher</span>.<span class="ident">public_key</span>(),
-            <span class="string">&quot;copy public key&quot;</span>
-        );
+            cipher.public_key(),
+            encrypt_cipher.public_key(),
+            <span class="string">&quot;copy public key&quot;
+        </span>);
 
-        <span class="kw">let</span> <span class="ident">msg</span> <span class="op">=</span> <span class="ident">ProvisionMessage::default</span>();
-        <span class="kw">let</span> <span class="ident">encrypted</span> <span class="op">=</span> <span class="ident">encrypt_cipher</span>.<span class="ident">encrypt</span>(<span class="ident">msg</span>.<span class="ident">clone</span>())<span class="question-mark">?</span>;
+        <span class="kw">let </span>msg = ProvisionMessage::default();
+        <span class="kw">let </span>encrypted = encrypt_cipher.encrypt(msg.clone())<span class="question-mark">?</span>;
 
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(
-            <span class="ident">encrypt_cipher</span>.<span class="ident">decrypt</span>(<span class="ident">encrypted</span>.<span class="ident">clone</span>()),
-            <span class="prelude-val">Err</span>(<span class="ident">ProvisioningError::EncryptOnlyProvisioningCipher</span>)
+            encrypt_cipher.decrypt(encrypted.clone()),
+            <span class="prelude-val">Err</span>(ProvisioningError::EncryptOnlyProvisioningCipher)
         ));
 
-        <span class="kw">let</span> <span class="ident">decrypted</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">decrypt</span>(<span class="ident">encrypted</span>)<span class="question-mark">?</span>;
-        <span class="macro">assert_eq!</span>(<span class="ident">msg</span>, <span class="ident">decrypted</span>);
+        <span class="kw">let </span>decrypted = cipher.decrypt(encrypted)<span class="question-mark">?</span>;
+        <span class="macro">assert_eq!</span>(msg, decrypted);
 
         <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

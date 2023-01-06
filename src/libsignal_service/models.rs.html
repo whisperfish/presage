@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/models.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>models.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/models.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>models.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -76,83 +76,83 @@
 <span id="76">76</span>
 <span id="77">77</span>
 <span id="78">78</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">proto::Verified</span>, <span class="ident">ParseServiceAddressError</span>, <span class="ident">ServiceAddress</span>};
+</pre><pre class="rust"><code><span class="kw">use crate</span>::{proto::Verified, ParseServiceAddressError, ServiceAddress};
 
-<span class="kw">use</span> <span class="ident">bytes::Bytes</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">thiserror::Error</span>;
+<span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>thiserror::Error;
 
-<span class="doccomment">/// Attachment represents an attachment received from a peer</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Attachment</span><span class="op">&lt;</span><span class="ident">R</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="ident">content_type</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">reader</span>: <span class="ident">R</span>,
+<span class="doccomment">/// Attachment represents an attachment received from a peer
+</span><span class="attribute">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>Attachment&lt;R&gt; {
+    <span class="kw">pub </span>content_type: String,
+    <span class="kw">pub </span>reader: R,
 }
 
-<span class="doccomment">/// Mirror of the protobuf ContactDetails message</span>
-<span class="doccomment">/// but with stronger types (e.g. `ServiceAddress` instead of optional uuid and string phone numbers)</span>
-<span class="doccomment">/// and some helper functions</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Contact</span> {
-    <span class="kw">pub</span> <span class="ident">address</span>: <span class="ident">ServiceAddress</span>,
-    <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">color</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">verified</span>: <span class="ident">Verified</span>,
-    <span class="kw">pub</span> <span class="ident">profile_key</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">blocked</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">expire_timer</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">inbox_position</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">archived</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">skip</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">avatar</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Attachment</span><span class="op">&lt;</span><span class="ident">Bytes</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+<span class="doccomment">/// Mirror of the protobuf ContactDetails message
+/// but with stronger types (e.g. `ServiceAddress` instead of optional uuid and string phone numbers)
+/// and some helper functions
+</span><span class="attribute">#[derive(Debug, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>Contact {
+    <span class="kw">pub </span>address: ServiceAddress,
+    <span class="kw">pub </span>name: String,
+    <span class="kw">pub </span>color: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attribute">#[serde(skip)]
+    </span><span class="kw">pub </span>verified: Verified,
+    <span class="kw">pub </span>profile_key: Vec&lt;u8&gt;,
+    <span class="kw">pub </span>blocked: bool,
+    <span class="kw">pub </span>expire_timer: u32,
+    <span class="kw">pub </span>inbox_position: u32,
+    <span class="kw">pub </span>archived: bool,
+    <span class="attribute">#[serde(skip)]
+    </span><span class="kw">pub </span>avatar: <span class="prelude-ty">Option</span>&lt;Attachment&lt;Bytes&gt;&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Error</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ParseContactError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="ident">transparent</span>)]</span>
-    <span class="ident">ProtobufError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">prost::DecodeError</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="ident">transparent</span>)]</span>
-    <span class="ident">ServiceAddress</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">ParseServiceAddressError</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;missing profile key&quot;</span>)]</span>
-    <span class="ident">MissingProfileKey</span>,
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;missing avatar content-type&quot;</span>)]</span>
-    <span class="ident">MissingAvatarContentType</span>,
+<span class="attribute">#[derive(Error, Debug)]
+</span><span class="kw">pub enum </span>ParseContactError {
+    <span class="attribute">#[error(transparent)]
+    </span>ProtobufError(<span class="attribute">#[from] </span>prost::DecodeError),
+    <span class="attribute">#[error(transparent)]
+    </span>ServiceAddress(<span class="attribute">#[from] </span>ParseServiceAddressError),
+    <span class="attribute">#[error(<span class="string">&quot;missing profile key&quot;</span>)]
+    </span>MissingProfileKey,
+    <span class="attribute">#[error(<span class="string">&quot;missing avatar content-type&quot;</span>)]
+    </span>MissingAvatarContentType,
 }
 
-<span class="kw">impl</span> <span class="ident">Contact</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_proto</span>(
-        <span class="ident">contact_details</span>: <span class="ident"><span class="kw">crate</span>::proto::ContactDetails</span>,
-        <span class="ident">avatar_data</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Bytes</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">ParseContactError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">address</span>: <span class="ident">ServiceAddress::parse</span>(
-                <span class="ident">contact_details</span>.<span class="ident">number</span>.<span class="ident">as_deref</span>(),
-                <span class="ident">contact_details</span>.<span class="ident">uuid</span>.<span class="ident">as_deref</span>(),
+<span class="kw">impl </span>Contact {
+    <span class="kw">pub fn </span>from_proto(
+        contact_details: <span class="kw">crate</span>::proto::ContactDetails,
+        avatar_data: <span class="prelude-ty">Option</span>&lt;Bytes&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ParseContactError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            address: ServiceAddress::parse(
+                contact_details.number.as_deref(),
+                contact_details.uuid.as_deref(),
             )<span class="question-mark">?</span>,
-            <span class="ident">name</span>: <span class="ident">contact_details</span>.<span class="ident">name</span>().<span class="ident">into</span>(),
-            <span class="ident">color</span>: <span class="ident">contact_details</span>.<span class="ident">color</span>.<span class="ident">clone</span>(),
-            <span class="ident">verified</span>: <span class="ident">contact_details</span>.<span class="ident">verified</span>.<span class="ident">clone</span>().<span class="ident">unwrap_or_default</span>(),
-            <span class="ident">profile_key</span>: <span class="ident">contact_details</span>.<span class="ident">profile_key</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">blocked</span>: <span class="ident">contact_details</span>.<span class="ident">blocked</span>(),
-            <span class="ident">expire_timer</span>: <span class="ident">contact_details</span>.<span class="ident">expire_timer</span>(),
-            <span class="ident">inbox_position</span>: <span class="ident">contact_details</span>.<span class="ident">inbox_position</span>(),
-            <span class="ident">archived</span>: <span class="ident">contact_details</span>.<span class="ident">archived</span>(),
-            <span class="ident">avatar</span>: <span class="ident">contact_details</span>.<span class="ident">avatar</span>.<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">avatar</span><span class="op">|</span> {
-                <span class="kw">if</span> <span class="kw">let</span> (<span class="prelude-val">Some</span>(<span class="ident">content_type</span>), <span class="prelude-val">Some</span>(<span class="ident">avatar_data</span>)) <span class="op">=</span>
-                    (<span class="ident">avatar</span>.<span class="ident">content_type</span>, <span class="ident">avatar_data</span>)
+            name: contact_details.name().into(),
+            color: contact_details.color.clone(),
+            verified: contact_details.verified.clone().unwrap_or_default(),
+            profile_key: contact_details.profile_key().to_vec(),
+            blocked: contact_details.blocked(),
+            expire_timer: contact_details.expire_timer(),
+            inbox_position: contact_details.inbox_position(),
+            archived: contact_details.archived(),
+            avatar: contact_details.avatar.and_then(|avatar| {
+                <span class="kw">if let </span>(<span class="prelude-val">Some</span>(content_type), <span class="prelude-val">Some</span>(avatar_data)) =
+                    (avatar.content_type, avatar_data)
                 {
-                    <span class="prelude-val">Some</span>(<span class="ident">Attachment</span> {
-                        <span class="ident">content_type</span>,
-                        <span class="ident">reader</span>: <span class="ident">avatar_data</span>,
+                    <span class="prelude-val">Some</span>(Attachment {
+                        content_type,
+                        reader: avatar_data,
                     })
-                } <span class="kw">else</span> {
+                } <span class="kw">else </span>{
                     <span class="macro">log::warn!</span>(<span class="string">&quot;missing avatar content-type, skipping.&quot;</span>);
-                    <span class="prelude-val">None</span>
-                }
+                    <span class="prelude-val">None
+                </span>}
             }),
         })
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

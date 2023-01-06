@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/receiver.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>receiver.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/receiver.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>receiver.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -155,162 +155,162 @@
 <span id="155">155</span>
 <span id="156">156</span>
 <span id="157">157</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">Buf</span>, <span class="ident">Bytes</span>};
+</pre><pre class="rust"><code><span class="kw">use </span>bytes::{Buf, Bytes};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">attachment_cipher::decrypt_in_place</span>,
-    <span class="ident">configuration::ServiceCredentials</span>,
-    <span class="ident">envelope::Envelope</span>,
-    <span class="ident">messagepipe::MessagePipe</span>,
-    <span class="ident">models</span>::{<span class="ident">Contact</span>, <span class="ident">ParseContactError</span>},
-    <span class="ident">push_service</span>::<span class="kw-2">*</span>,
+<span class="kw">use crate</span>::{
+    attachment_cipher::decrypt_in_place,
+    configuration::ServiceCredentials,
+    envelope::Envelope,
+    messagepipe::MessagePipe,
+    models::{Contact, ParseContactError},
+    push_service::<span class="kw-2">*</span>,
 };
 
-<span class="doccomment">/// Equivalent of Java&#39;s `SignalServiceMessageReceiver`.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MessageReceiver</span><span class="op">&lt;</span><span class="ident">Service</span><span class="op">&gt;</span> {
-    <span class="ident">service</span>: <span class="ident">Service</span>,
+<span class="doccomment">/// Equivalent of Java&#39;s `SignalServiceMessageReceiver`.
+</span><span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>MessageReceiver&lt;Service&gt; {
+    service: Service,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">thiserror::Error</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MessageReceiverError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;ServiceError&quot;</span>)]</span>
-    <span class="ident">ServiceError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">ServiceError</span>),
+<span class="attribute">#[derive(thiserror::Error, Debug)]
+</span><span class="kw">pub enum </span>MessageReceiverError {
+    <span class="attribute">#[error(<span class="string">&quot;ServiceError&quot;</span>)]
+    </span>ServiceError(<span class="attribute">#[from] </span>ServiceError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Envelope parsing error&quot;</span>)]</span>
-    <span class="ident">EnvelopeParseError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident"><span class="kw">crate</span>::envelope::EnvelopeParseError</span>),
+    <span class="attribute">#[error(<span class="string">&quot;Envelope parsing error&quot;</span>)]
+    </span>EnvelopeParseError(<span class="attribute">#[from] </span><span class="kw">crate</span>::envelope::EnvelopeParseError),
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">Service</span>: <span class="ident">PushService</span><span class="op">&gt;</span> <span class="ident">MessageReceiver</span><span class="op">&lt;</span><span class="ident">Service</span><span class="op">&gt;</span> {
-    <span class="comment">// TODO: to avoid providing the wrong service/wrong credentials</span>
-    <span class="comment">// change it like LinkingManager or ProvisioningManager</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">service</span>: <span class="ident">Service</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident">MessageReceiver</span> { <span class="ident">service</span> }
+<span class="kw">impl</span>&lt;Service: PushService&gt; MessageReceiver&lt;Service&gt; {
+    <span class="comment">// TODO: to avoid providing the wrong service/wrong credentials
+    // change it like LinkingManager or ProvisioningManager
+    </span><span class="kw">pub fn </span>new(service: Service) -&gt; <span class="self">Self </span>{
+        MessageReceiver { service }
     }
 
-    <span class="doccomment">/// One-off method to receive all pending messages.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Equivalent with Java&#39;s `SignalServiceMessageReceiver::retrieveMessages`.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// For streaming messages, use a `MessagePipe` through</span>
-    <span class="doccomment">/// [`MessageReceiver::create_message_pipe()`].</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_messages</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Envelope</span><span class="op">&gt;</span>, <span class="ident">MessageReceiverError</span><span class="op">&gt;</span> {
-        <span class="kw">use</span> <span class="ident">std::convert::TryFrom</span>;
+    <span class="doccomment">/// One-off method to receive all pending messages.
+    ///
+    /// Equivalent with Java&#39;s `SignalServiceMessageReceiver::retrieveMessages`.
+    ///
+    /// For streaming messages, use a `MessagePipe` through
+    /// [`MessageReceiver::create_message_pipe()`].
+    </span><span class="kw">pub async fn </span>retrieve_messages(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Envelope&gt;, MessageReceiverError&gt; {
+        <span class="kw">use </span>std::convert::TryFrom;
 
-        <span class="kw">let</span> <span class="ident">entities</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">service</span>.<span class="ident">get_messages</span>().<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">entities</span> <span class="op">=</span> <span class="ident">entities</span>
-            .<span class="ident">into_iter</span>()
-            .<span class="ident">map</span>(<span class="ident">Envelope::try_from</span>)
-            .<span class="ident">collect</span>::<span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">_</span>, <span class="kw">_</span><span class="op">&gt;</span><span class="op">&gt;</span>()<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">entities</span>)
+        <span class="kw">let </span>entities = <span class="self">self</span>.service.get_messages().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>entities = entities
+            .into_iter()
+            .map(Envelope::try_from)
+            .collect::&lt;<span class="prelude-ty">Result</span>&lt;<span class="kw">_</span>, <span class="kw">_</span>&gt;&gt;()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(entities)
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">create_message_pipe</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">credentials</span>: <span class="ident">ServiceCredentials</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">MessagePipe</span>, <span class="ident">MessageReceiverError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ws</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">service</span>
-            .<span class="ident">ws</span>(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="prelude-val">Some</span>(<span class="ident">credentials</span>.<span class="ident">clone</span>()), <span class="bool-val">true</span>)
+    <span class="kw">pub async fn </span>create_message_pipe(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        credentials: ServiceCredentials,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;MessagePipe, MessageReceiverError&gt; {
+        <span class="kw">let </span>ws = <span class="self">self
+            </span>.service
+            .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="prelude-val">Some</span>(credentials.clone()), <span class="bool-val">true</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">MessagePipe::from_socket</span>(<span class="ident">ws</span>, <span class="ident">credentials</span>))
+        <span class="prelude-val">Ok</span>(MessagePipe::from_socket(ws, credentials))
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_contacts</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">contacts</span>: <span class="kw-2">&amp;</span><span class="ident"><span class="kw">crate</span>::proto::sync_message::Contacts</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>
-        <span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Contact</span>, <span class="ident">ParseContactError</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-        <span class="ident">ServiceError</span>,
-    <span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">blob</span>) <span class="op">=</span> <span class="ident">contacts</span>.<span class="ident">blob</span> {
-            <span class="kw">use</span> <span class="ident">futures::io::AsyncReadExt</span>;
+    <span class="kw">pub async fn </span>retrieve_contacts(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        contacts: <span class="kw-2">&amp;</span><span class="kw">crate</span>::proto::sync_message::Contacts,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;
+        <span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, ParseContactError&gt;&gt;,
+        ServiceError,
+    &gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>blob) = contacts.blob {
+            <span class="kw">use </span>futures::io::AsyncReadExt;
 
-            <span class="kw">const</span> <span class="ident">MAX_DOWNLOAD_RETRIES</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">3</span>;
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">retries</span> <span class="op">=</span> <span class="number">0</span>;
+            <span class="kw">const </span>MAX_DOWNLOAD_RETRIES: u8 = <span class="number">3</span>;
+            <span class="kw">let </span><span class="kw-2">mut </span>retries = <span class="number">0</span>;
 
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">stream</span> <span class="op">=</span> <span class="kw">loop</span> {
-                <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">service</span>.<span class="ident">get_attachment</span>(<span class="ident">blob</span>).<span class="kw">await</span>;
-                <span class="kw">match</span> <span class="ident">r</span> {
-                    <span class="prelude-val">Ok</span>(<span class="ident">stream</span>) =&gt; <span class="kw">break</span> <span class="ident">stream</span>,
-                    <span class="prelude-val">Err</span>(<span class="ident">ServiceError::Timeout</span> { .. }) =&gt; {
+            <span class="kw">let </span><span class="kw-2">mut </span>stream = <span class="kw">loop </span>{
+                <span class="kw">let </span>r = <span class="self">self</span>.service.get_attachment(blob).<span class="kw">await</span>;
+                <span class="kw">match </span>r {
+                    <span class="prelude-val">Ok</span>(stream) =&gt; <span class="kw">break </span>stream,
+                    <span class="prelude-val">Err</span>(ServiceError::Timeout { .. }) =&gt; {
                         <span class="macro">log::warn!</span>(<span class="string">&quot;get_attachment timed out, retrying&quot;</span>);
-                        <span class="ident">retries</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
-                        <span class="kw">if</span> <span class="ident">retries</span> <span class="op">&gt;</span><span class="op">=</span> <span class="ident">MAX_DOWNLOAD_RETRIES</span> {
-                            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::Timeout</span> {
-                                <span class="ident">reason</span>: <span class="string">&quot;too many retries&quot;</span>.<span class="ident">into</span>(),
+                        retries += <span class="number">1</span>;
+                        <span class="kw">if </span>retries &gt;= MAX_DOWNLOAD_RETRIES {
+                            <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::Timeout {
+                                reason: <span class="string">&quot;too many retries&quot;</span>.into(),
                             });
                         }
                     },
-                    <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>),
+                    <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e),
                 }
             };
 
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-            <span class="ident">stream</span>
-                .<span class="ident">read_to_end</span>(<span class="kw-2">&amp;mut</span> <span class="ident">ciphertext</span>)
-                .<span class="kw">await</span>
-                .<span class="ident">expect</span>(<span class="string">&quot;streamed attachment&quot;</span>);
+            <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = Vec::new();
+            stream
+                .read_to_end(<span class="kw-2">&amp;mut </span>ciphertext)
+                .<span class="kw">await
+                </span>.expect(<span class="string">&quot;streamed attachment&quot;</span>);
 
-            <span class="kw">let</span> <span class="ident">key_material</span> <span class="op">=</span> <span class="ident">blob</span>.<span class="ident">key</span>();
+            <span class="kw">let </span>key_material = blob.key();
             <span class="macro">assert_eq!</span>(
-                <span class="ident">key_material</span>.<span class="ident">len</span>(),
+                key_material.len(),
                 <span class="number">64</span>,
-                <span class="string">&quot;key material for attachments is ought to be 64 bytes&quot;</span>
-            );
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">64</span>];
-            <span class="ident">key</span>.<span class="ident">copy_from_slice</span>(<span class="ident">key_material</span>);
+                <span class="string">&quot;key material for attachments is ought to be 64 bytes&quot;
+            </span>);
+            <span class="kw">let </span><span class="kw-2">mut </span>key = [<span class="number">0u8</span>; <span class="number">64</span>];
+            key.copy_from_slice(key_material);
 
-            <span class="ident">decrypt_in_place</span>(<span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">ciphertext</span>)
-                .<span class="ident">expect</span>(<span class="string">&quot;attachment decryption&quot;</span>);
+            decrypt_in_place(key, <span class="kw-2">&amp;mut </span>ciphertext)
+                .expect(<span class="string">&quot;attachment decryption&quot;</span>);
 
-            <span class="prelude-val">Ok</span>(<span class="ident">DeviceContactsIterator::new</span>(<span class="ident">Bytes::from</span>(<span class="ident">ciphertext</span>)))
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">DeviceContactsIterator::default</span>())
+            <span class="prelude-val">Ok</span>(DeviceContactsIterator::new(Bytes::from(ciphertext)))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(DeviceContactsIterator::default())
         }
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>)]</span>
-<span class="kw">struct</span> <span class="ident">DeviceContactsIterator</span> {
-    <span class="ident">decrypted_buffer</span>: <span class="ident">Bytes</span>,
+<span class="attribute">#[derive(Default)]
+</span><span class="kw">struct </span>DeviceContactsIterator {
+    decrypted_buffer: Bytes,
 }
 
-<span class="kw">impl</span> <span class="ident">DeviceContactsIterator</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">decrypted_buffer</span>: <span class="ident">Bytes</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> { <span class="ident">decrypted_buffer</span> }
+<span class="kw">impl </span>DeviceContactsIterator {
+    <span class="kw">fn </span>new(decrypted_buffer: Bytes) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ decrypted_buffer }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">DeviceContactsIterator</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Contact</span>, <span class="ident">ParseContactError</span><span class="op">&gt;</span>;
+<span class="kw">impl </span>Iterator <span class="kw">for </span>DeviceContactsIterator {
+    <span class="kw">type </span>Item = <span class="prelude-ty">Result</span>&lt;Contact, ParseContactError&gt;;
 
-    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::Item</span><span class="op">&gt;</span> {
-        <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto</span>::{<span class="ident">contact_details::Avatar</span>, <span class="ident">ContactDetails</span>};
+    <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
+        <span class="kw">use </span><span class="kw">crate</span>::proto::{contact_details::Avatar, ContactDetails};
 
-        <span class="kw">if</span> <span class="op">!</span><span class="self">self</span>.<span class="ident">decrypted_buffer</span>.<span class="ident">has_remaining</span>() {
-            <span class="kw">return</span> <span class="prelude-val">None</span>;
+        <span class="kw">if </span>!<span class="self">self</span>.decrypted_buffer.has_remaining() {
+            <span class="kw">return </span><span class="prelude-val">None</span>;
         }
 
-        <span class="kw">let</span> <span class="ident">contact_details</span>: <span class="ident">ContactDetails</span> <span class="op">=</span>
-            <span class="ident">prost::Message::decode_length_delimited</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">decrypted_buffer</span>)
-                .<span class="ident">map_err</span>(<span class="ident">ParseContactError::ProtobufError</span>)
-                .<span class="ident">ok</span>()<span class="question-mark">?</span>;
+        <span class="kw">let </span>contact_details: ContactDetails =
+            prost::Message::decode_length_delimited(<span class="kw-2">&amp;mut </span><span class="self">self</span>.decrypted_buffer)
+                .map_err(ParseContactError::ProtobufError)
+                .ok()<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">avatar_data</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">Avatar</span> {
-            <span class="ident">length</span>: <span class="prelude-val">Some</span>(<span class="ident">length</span>),
+        <span class="kw">let </span>avatar_data = <span class="kw">if let </span><span class="prelude-val">Some</span>(Avatar {
+            length: <span class="prelude-val">Some</span>(length),
             ..
-        }) <span class="op">=</span> <span class="ident">contact_details</span>.<span class="ident">avatar</span>
+        }) = contact_details.avatar
         {
-            <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">decrypted_buffer</span>.<span class="ident">copy_to_bytes</span>(<span class="ident">length</span> <span class="kw">as</span> <span class="ident">usize</span>))
-        } <span class="kw">else</span> {
-            <span class="prelude-val">None</span>
-        };
+            <span class="prelude-val">Some</span>(<span class="self">self</span>.decrypted_buffer.copy_to_bytes(length <span class="kw">as </span>usize))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>};
 
-        <span class="prelude-val">Some</span>(<span class="ident">Contact::from_proto</span>(<span class="ident">contact_details</span>, <span class="ident">avatar_data</span>))
+        <span class="prelude-val">Some</span>(Contact::from_proto(contact_details, avatar_data))
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

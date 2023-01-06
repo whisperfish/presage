@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/crypto/uid_struct.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>uid_struct.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/crypto/uid_struct.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>uid_struct.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -43,50 +43,50 @@
 <span id="43">43</span>
 <span id="44">44</span>
 <span id="45">45</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="attribute">#![<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
+</span><span class="attribute">#![allow(non_snake_case)]
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::sho</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::simple_types</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">curve25519_dalek::ristretto::RistrettoPoint</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">sha2::Sha256</span>;
+</span><span class="kw">use </span><span class="kw">crate</span>::common::sho::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::common::simple_types::<span class="kw-2">*</span>;
+<span class="kw">use </span>curve25519_dalek::ristretto::RistrettoPoint;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>sha2::Sha256;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">UidStruct</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">bytes</span>: <span class="ident">UidBytes</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">M1</span>: <span class="ident">RistrettoPoint</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">M2</span>: <span class="ident">RistrettoPoint</span>,
+<span class="attribute">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>UidStruct {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) bytes: UidBytes,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) M1: RistrettoPoint,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) M2: RistrettoPoint,
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PointDecodeFailure</span>;
+<span class="kw">pub struct </span>PointDecodeFailure;
 
-<span class="kw">impl</span> <span class="ident">UidStruct</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(<span class="string">b&quot;Signal_ZKGroup_20200424_UID_CalcM1&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">M1</span> <span class="op">=</span> <span class="ident">sho</span>.<span class="ident">get_point</span>();
-        <span class="kw">let</span> <span class="ident">M2</span> <span class="op">=</span> <span class="ident">RistrettoPoint::lizard_encode</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">uid_bytes</span>);
-        <span class="ident">UidStruct</span> {
-            <span class="ident">bytes</span>: <span class="ident">uid_bytes</span>,
-            <span class="ident">M1</span>,
-            <span class="ident">M2</span>,
+<span class="kw">impl </span>UidStruct {
+    <span class="kw">pub fn </span>new(uid_bytes: UidBytes) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b&quot;Signal_ZKGroup_20200424_UID_CalcM1&quot;</span>, <span class="kw-2">&amp;</span>uid_bytes);
+        <span class="kw">let </span>M1 = sho.get_point();
+        <span class="kw">let </span>M2 = RistrettoPoint::lizard_encode::&lt;Sha256&gt;(<span class="kw-2">&amp;</span>uid_bytes);
+        UidStruct {
+            bytes: uid_bytes,
+            M1,
+            M2,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_M2</span>(<span class="ident">M2</span>: <span class="ident">RistrettoPoint</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">PointDecodeFailure</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">M2</span>.<span class="ident">lizard_decode</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span>() {
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">PointDecodeFailure</span>),
-            <span class="prelude-val">Some</span>(<span class="ident">bytes</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::new</span>(<span class="ident">bytes</span>)),
+    <span class="kw">pub fn </span>from_M2(M2: RistrettoPoint) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, PointDecodeFailure&gt; {
+        <span class="kw">match </span>M2.lizard_decode::&lt;Sha256&gt;() {
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(PointDecodeFailure),
+            <span class="prelude-val">Some</span>(bytes) =&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::new(bytes)),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">to_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">UidBytes</span> {
-        <span class="self">self</span>.<span class="ident">bytes</span>
+    <span class="kw">pub fn </span>to_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; UidBytes {
+        <span class="self">self</span>.bytes
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -80,87 +80,87 @@
 <span id="80">80</span>
 <span id="81">81</span>
 <span id="82">82</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020-2021 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020-2021 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="doccomment">//! Rust implementation of the **[Signal Protocol]** for asynchronous</span>
-<span class="doccomment">//! forward-secret public-key cryptography.</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! In particular, this library implements operations conforming to the following specifications:</span>
-<span class="doccomment">//! - the **[X3DH]** key agreement protocol,</span>
-<span class="doccomment">//! - the **[Double Ratchet]** *(Axolotl)* messaging protocol,</span>
-<span class="doccomment">//!</span>
-<span class="doccomment">//! [Signal Protocol]: https://signal.org/</span>
-<span class="doccomment">//! [X3DH]: https://signal.org/docs/specifications/x3dh/</span>
-<span class="doccomment">//! [Double Ratchet]: https://signal.org/docs/specifications/doubleratchet/</span>
+</span><span class="doccomment">//! Rust implementation of the **[Signal Protocol]** for asynchronous
+//! forward-secret public-key cryptography.
+//!
+//! In particular, this library implements operations conforming to the following specifications:
+//! - the **[X3DH]** key agreement protocol,
+//! - the **[Double Ratchet]** *(Axolotl)* messaging protocol,
+//!
+//! [Signal Protocol]: https://signal.org/
+//! [X3DH]: https://signal.org/docs/specifications/x3dh/
+//! [Double Ratchet]: https://signal.org/docs/specifications/doubleratchet/
 
-<span class="attribute">#![<span class="ident">warn</span>(<span class="ident">clippy::unwrap_used</span>)]</span>
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">unsafe_code</span>)]</span>
+</span><span class="attribute">#![warn(clippy::unwrap_used)]
+#![deny(unsafe_code)]
 
-<span class="comment">// TODO(https://github.com/signalapp/libsignal/issues/285): it should be an aspiration to</span>
-<span class="comment">// eventually warn and then error for public members without docstrings. Also see</span>
-<span class="comment">// https://doc.rust-lang.org/rustdoc/what-to-include.html for background.</span>
-<span class="comment">// #![warn(missing_docs)]</span>
+</span><span class="comment">// TODO(https://github.com/signalapp/libsignal/issues/285): it should be an aspiration to
+// eventually warn and then error for public members without docstrings. Also see
+// https://doc.rust-lang.org/rustdoc/what-to-include.html for background.
+// #![warn(missing_docs)]
 
-<span class="kw">mod</span> <span class="ident">address</span>;
-<span class="kw">mod</span> <span class="ident">consts</span>;
-<span class="kw">mod</span> <span class="ident">crypto</span>;
-<span class="kw">mod</span> <span class="ident">curve</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">error</span>;
-<span class="kw">mod</span> <span class="ident">fingerprint</span>;
-<span class="kw">mod</span> <span class="ident">group_cipher</span>;
-<span class="kw">mod</span> <span class="ident">identity_key</span>;
-<span class="kw">mod</span> <span class="ident">proto</span>;
-<span class="kw">mod</span> <span class="ident">protocol</span>;
-<span class="kw">mod</span> <span class="ident">ratchet</span>;
-<span class="kw">mod</span> <span class="ident">sealed_sender</span>;
-<span class="kw">mod</span> <span class="ident">sender_keys</span>;
-<span class="kw">mod</span> <span class="ident">session</span>;
-<span class="kw">mod</span> <span class="ident">session_cipher</span>;
-<span class="kw">mod</span> <span class="ident">state</span>;
-<span class="kw">mod</span> <span class="ident">storage</span>;
-<span class="kw">mod</span> <span class="ident">utils</span>;
+</span><span class="kw">mod </span>address;
+<span class="kw">mod </span>consts;
+<span class="kw">mod </span>crypto;
+<span class="kw">mod </span>curve;
+<span class="kw">pub mod </span>error;
+<span class="kw">mod </span>fingerprint;
+<span class="kw">mod </span>group_cipher;
+<span class="kw">mod </span>identity_key;
+<span class="kw">mod </span>proto;
+<span class="kw">mod </span>protocol;
+<span class="kw">mod </span>ratchet;
+<span class="kw">mod </span>sealed_sender;
+<span class="kw">mod </span>sender_keys;
+<span class="kw">mod </span>session;
+<span class="kw">mod </span>session_cipher;
+<span class="kw">mod </span>state;
+<span class="kw">mod </span>storage;
+<span class="kw">mod </span>utils;
 
-<span class="kw">use</span> <span class="ident">error::Result</span>;
+<span class="kw">use </span>error::Result;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">address</span>::{<span class="ident">DeviceId</span>, <span class="ident">ProtocolAddress</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">curve</span>::{<span class="ident">KeyPair</span>, <span class="ident">PrivateKey</span>, <span class="ident">PublicKey</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">error::SignalProtocolError</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">fingerprint</span>::{<span class="ident">DisplayableFingerprint</span>, <span class="ident">Fingerprint</span>, <span class="ident">ScannableFingerprint</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">group_cipher</span>::{
-    <span class="ident">create_sender_key_distribution_message</span>, <span class="ident">group_decrypt</span>, <span class="ident">group_encrypt</span>,
-    <span class="ident">process_sender_key_distribution_message</span>,
+<span class="kw">pub use </span>address::{DeviceId, ProtocolAddress};
+<span class="kw">pub use </span>curve::{KeyPair, PrivateKey, PublicKey};
+<span class="kw">pub use </span>error::SignalProtocolError;
+<span class="kw">pub use </span>fingerprint::{DisplayableFingerprint, Fingerprint, ScannableFingerprint};
+<span class="kw">pub use </span>group_cipher::{
+    create_sender_key_distribution_message, group_decrypt, group_encrypt,
+    process_sender_key_distribution_message,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">identity_key</span>::{<span class="ident">IdentityKey</span>, <span class="ident">IdentityKeyPair</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">protocol</span>::{
-    <span class="ident">extract_decryption_error_message_from_serialized_content</span>, <span class="ident">CiphertextMessage</span>,
-    <span class="ident">CiphertextMessageType</span>, <span class="ident">DecryptionErrorMessage</span>, <span class="ident">PlaintextContent</span>, <span class="ident">PreKeySignalMessage</span>,
-    <span class="ident">SenderKeyDistributionMessage</span>, <span class="ident">SenderKeyMessage</span>, <span class="ident">SignalMessage</span>,
+<span class="kw">pub use </span>identity_key::{IdentityKey, IdentityKeyPair};
+<span class="kw">pub use </span>protocol::{
+    extract_decryption_error_message_from_serialized_content, CiphertextMessage,
+    CiphertextMessageType, DecryptionErrorMessage, PlaintextContent, PreKeySignalMessage,
+    SenderKeyDistributionMessage, SenderKeyMessage, SignalMessage,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">ratchet</span>::{
-    <span class="ident">initialize_alice_session_record</span>, <span class="ident">initialize_bob_session_record</span>, <span class="ident">AliceSignalProtocolParameters</span>,
-    <span class="ident">BobSignalProtocolParameters</span>,
+<span class="kw">pub use </span>ratchet::{
+    initialize_alice_session_record, initialize_bob_session_record, AliceSignalProtocolParameters,
+    BobSignalProtocolParameters,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">sealed_sender</span>::{
-    <span class="ident">sealed_sender_decrypt</span>, <span class="ident">sealed_sender_decrypt_to_usmc</span>, <span class="ident">sealed_sender_encrypt</span>,
-    <span class="ident">sealed_sender_encrypt_from_usmc</span>, <span class="ident">sealed_sender_multi_recipient_encrypt</span>,
-    <span class="ident">sealed_sender_multi_recipient_fan_out</span>, <span class="ident">ContentHint</span>, <span class="ident">SealedSenderDecryptionResult</span>,
-    <span class="ident">SenderCertificate</span>, <span class="ident">ServerCertificate</span>, <span class="ident">UnidentifiedSenderMessageContent</span>,
+<span class="kw">pub use </span>sealed_sender::{
+    sealed_sender_decrypt, sealed_sender_decrypt_to_usmc, sealed_sender_encrypt,
+    sealed_sender_encrypt_from_usmc, sealed_sender_multi_recipient_encrypt,
+    sealed_sender_multi_recipient_fan_out, ContentHint, SealedSenderDecryptionResult,
+    SenderCertificate, ServerCertificate, UnidentifiedSenderMessageContent,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">sender_keys::SenderKeyRecord</span>;
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">session</span>::{<span class="ident">process_prekey</span>, <span class="ident">process_prekey_bundle</span>};
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">session_cipher</span>::{
-    <span class="ident">message_decrypt</span>, <span class="ident">message_decrypt_prekey</span>, <span class="ident">message_decrypt_signal</span>, <span class="ident">message_encrypt</span>,
+<span class="kw">pub use </span>sender_keys::SenderKeyRecord;
+<span class="kw">pub use </span>session::{process_prekey, process_prekey_bundle};
+<span class="kw">pub use </span>session_cipher::{
+    message_decrypt, message_decrypt_prekey, message_decrypt_signal, message_encrypt,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">state</span>::{
-    <span class="ident">PreKeyBundle</span>, <span class="ident">PreKeyId</span>, <span class="ident">PreKeyRecord</span>, <span class="ident">SessionRecord</span>, <span class="ident">SignedPreKeyId</span>, <span class="ident">SignedPreKeyRecord</span>,
+<span class="kw">pub use </span>state::{
+    PreKeyBundle, PreKeyId, PreKeyRecord, SessionRecord, SignedPreKeyId, SignedPreKeyRecord,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident">storage</span>::{
-    <span class="ident">Context</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">InMemIdentityKeyStore</span>, <span class="ident">InMemPreKeyStore</span>,
-    <span class="ident">InMemSenderKeyStore</span>, <span class="ident">InMemSessionStore</span>, <span class="ident">InMemSignalProtocolStore</span>, <span class="ident">InMemSignedPreKeyStore</span>,
-    <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolStore</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SessionStore</span>, <span class="ident">SignedPreKeyStore</span>,
+<span class="kw">pub use </span>storage::{
+    Context, Direction, IdentityKeyStore, InMemIdentityKeyStore, InMemPreKeyStore,
+    InMemSenderKeyStore, InMemSessionStore, InMemSignalProtocolStore, InMemSignedPreKeyStore,
+    PreKeyStore, ProtocolStore, SenderKeyStore, SessionStore, SignedPreKeyStore,
 };
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/provisioning/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/provisioning/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -377,379 +377,379 @@
 <span id="377">377</span>
 <span id="378">378</span>
 <span id="379">379</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">core::fmt</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>core::fmt;
 
-<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">channel::mpsc::Sender</span>, <span class="ident">pin_mut</span>, <span class="ident">SinkExt</span>, <span class="ident">StreamExt</span>};
-<span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{<span class="ident">PrivateKey</span>, <span class="ident">PublicKey</span>};
-<span class="kw">use</span> <span class="ident">phonenumber::PhoneNumber</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">url::Url</span>;
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
+<span class="kw">use </span>futures::{channel::mpsc::Sender, pin_mut, SinkExt, StreamExt};
+<span class="kw">use </span>libsignal_protocol::{PrivateKey, PublicKey};
+<span class="kw">use </span>phonenumber::PhoneNumber;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>url::Url;
+<span class="kw">use </span>uuid::Uuid;
 
-<span class="kw">use</span> <span class="kw">super</span>::{
-    <span class="ident">pipe</span>::{<span class="ident">ProvisioningPipe</span>, <span class="ident">ProvisioningStep</span>},
-    <span class="ident">ProvisioningError</span>,
+<span class="kw">use super</span>::{
+    pipe::{ProvisioningPipe, ProvisioningStep},
+    ProvisioningError,
 };
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">configuration</span>::{<span class="ident">Endpoint</span>, <span class="ident">ServiceCredentials</span>, <span class="ident">SignalingKey</span>},
-    <span class="ident">push_service</span>::{
-        <span class="ident">AccountAttributes</span>, <span class="ident">DeviceId</span>, <span class="ident">HttpAuthOverride</span>, <span class="ident">PushService</span>,
-        <span class="ident">ServiceError</span>,
+<span class="kw">use crate</span>::{
+    configuration::{Endpoint, ServiceCredentials, SignalingKey},
+    push_service::{
+        AccountAttributes, DeviceId, HttpAuthOverride, PushService,
+        ServiceError,
     },
-    <span class="ident">utils::serde_base64</span>,
+    utils::serde_base64,
 };
 
-<span class="doccomment">/// Message received when linking a new secondary device.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">ConfirmDeviceMessage</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">signaling_key</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">supports_sms</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">fetches_messages</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">registration_id</span>: <span class="ident">u32</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>, <span class="ident">skip_serializing_if</span> <span class="op">=</span> <span class="string">&quot;Vec::is_empty&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
+<span class="doccomment">/// Message received when linking a new secondary device.
+</span><span class="attribute">#[derive(Debug, Serialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ConfirmDeviceMessage {
+    <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+    </span><span class="kw">pub </span>signaling_key: Vec&lt;u8&gt;,
+    <span class="kw">pub </span>supports_sms: bool,
+    <span class="kw">pub </span>fetches_messages: bool,
+    <span class="kw">pub </span>registration_id: u32,
+    <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>, skip_serializing_if = <span class="string">&quot;Vec::is_empty&quot;</span>)]
+    </span><span class="kw">pub </span>name: Vec&lt;u8&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ConfirmCodeResponse</span> {
-    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-    <span class="kw">pub</span> <span class="ident">storage_capable</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>ConfirmCodeResponse {
+    <span class="kw">pub </span>uuid: Uuid,
+    <span class="kw">pub </span>storage_capable: bool,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">VerificationCodeResponse</span> {
-    <span class="ident">CaptchaRequired</span>,
-    <span class="ident">Issued</span>,
+<span class="attribute">#[derive(Debug, Eq, PartialEq)]
+</span><span class="kw">pub enum </span>VerificationCodeResponse {
+    CaptchaRequired,
+    Issued,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">VerifyAccountResponse</span> {
-    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-    <span class="kw">pub</span> <span class="ident">pni</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">storage_capable</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>VerifyAccountResponse {
+    <span class="kw">pub </span>uuid: Uuid,
+    <span class="kw">pub </span>pni: String,
+    <span class="kw">pub </span>storage_capable: bool,
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ProvisioningManager</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">P</span>: <span class="ident">PushService</span> <span class="op">+</span> <span class="lifetime">&#39;a</span><span class="op">&gt;</span> {
-    <span class="ident">push_service</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">P</span>,
-    <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-    <span class="ident">password</span>: <span class="ident">String</span>,
+<span class="kw">pub struct </span>ProvisioningManager&lt;<span class="lifetime">&#39;a</span>, P: PushService + <span class="lifetime">&#39;a</span>&gt; {
+    push_service: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>P,
+    phone_number: PhoneNumber,
+    password: String,
 }
 
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SecondaryDeviceProvisioning</span> {
-    <span class="ident">Url</span>(<span class="ident">Url</span>),
-    <span class="ident">NewDeviceRegistration</span> {
-        <span class="ident">phone_number</span>: <span class="ident">phonenumber::PhoneNumber</span>,
-        <span class="ident">device_id</span>: <span class="ident">DeviceId</span>,
-        <span class="ident">registration_id</span>: <span class="ident">u32</span>,
-        <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-        <span class="ident">private_key</span>: <span class="ident">PrivateKey</span>,
-        <span class="ident">public_key</span>: <span class="ident">PublicKey</span>,
-        <span class="ident">profile_key</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
+<span class="kw">pub enum </span>SecondaryDeviceProvisioning {
+    Url(Url),
+    NewDeviceRegistration {
+        phone_number: phonenumber::PhoneNumber,
+        device_id: DeviceId,
+        registration_id: u32,
+        uuid: Uuid,
+        private_key: PrivateKey,
+        public_key: PublicKey,
+        profile_key: Vec&lt;u8&gt;,
     },
 }
 
-<span class="kw">impl</span> <span class="ident">fmt::Debug</span> <span class="kw">for</span> <span class="ident">SecondaryDeviceProvisioning</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">fmt::Result</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident"><span class="self">Self</span>::Url</span>(<span class="ident">url</span>) =&gt; <span class="ident">f</span>.<span class="ident">debug_tuple</span>(<span class="string">&quot;Url&quot;</span>).<span class="ident">field</span>(<span class="ident">url</span>).<span class="ident">finish</span>(),
-            <span class="ident"><span class="self">Self</span>::NewDeviceRegistration</span> {
-                <span class="ident">phone_number</span>,
-                <span class="ident">device_id</span>,
-                <span class="ident">registration_id</span>,
-                <span class="ident">uuid</span>,
-                <span class="ident">public_key</span>,
-                <span class="ident">profile_key</span>,
+<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>SecondaryDeviceProvisioning {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+        <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::Url(url) =&gt; f.debug_tuple(<span class="string">&quot;Url&quot;</span>).field(url).finish(),
+            <span class="self">Self</span>::NewDeviceRegistration {
+                phone_number,
+                device_id,
+                registration_id,
+                uuid,
+                public_key,
+                profile_key,
                 ..
-            } =&gt; <span class="ident">f</span>
-                .<span class="ident">debug_struct</span>(<span class="string">&quot;NewDeviceRegistration&quot;</span>)
-                .<span class="ident">field</span>(<span class="string">&quot;phone_number&quot;</span>, <span class="ident">phone_number</span>)
-                .<span class="ident">field</span>(<span class="string">&quot;device_id&quot;</span>, <span class="ident">device_id</span>)
-                .<span class="ident">field</span>(<span class="string">&quot;registration_id&quot;</span>, <span class="ident">registration_id</span>)
-                .<span class="ident">field</span>(<span class="string">&quot;uuid&quot;</span>, <span class="ident">uuid</span>)
-                .<span class="ident">field</span>(<span class="string">&quot;public_key&quot;</span>, <span class="ident">public_key</span>)
-                .<span class="ident">field</span>(<span class="string">&quot;profile_key&quot;</span>, <span class="ident">profile_key</span>)
-                .<span class="ident">finish</span>(),
+            } =&gt; f
+                .debug_struct(<span class="string">&quot;NewDeviceRegistration&quot;</span>)
+                .field(<span class="string">&quot;phone_number&quot;</span>, phone_number)
+                .field(<span class="string">&quot;device_id&quot;</span>, device_id)
+                .field(<span class="string">&quot;registration_id&quot;</span>, registration_id)
+                .field(<span class="string">&quot;uuid&quot;</span>, uuid)
+                .field(<span class="string">&quot;public_key&quot;</span>, public_key)
+                .field(<span class="string">&quot;profile_key&quot;</span>, profile_key)
+                .finish(),
         }
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">P</span>: <span class="ident">PushService</span> <span class="op">+</span> <span class="lifetime">&#39;a</span><span class="op">&gt;</span> <span class="ident">ProvisioningManager</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">P</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">push_service</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">P</span>,
-        <span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>,
-        <span class="ident">password</span>: <span class="ident">String</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">push_service</span>,
-            <span class="ident">phone_number</span>,
-            <span class="ident">password</span>,
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, P: PushService + <span class="lifetime">&#39;a</span>&gt; ProvisioningManager&lt;<span class="lifetime">&#39;a</span>, P&gt; {
+    <span class="kw">pub fn </span>new(
+        push_service: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>P,
+        phone_number: PhoneNumber,
+        password: String,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            push_service,
+            phone_number,
+            password,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">request_sms_verification_code</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">captcha</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">challenge</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">VerificationCodeResponse</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>
-            .<span class="ident">push_service</span>
-            .<span class="ident">get_json</span>(
-                <span class="ident">Endpoint::Service</span>,
-                <span class="self">self</span>.<span class="ident">build_verification_code_request_url</span>(
-                    <span class="string">&quot;sms&quot;</span>, <span class="ident">captcha</span>, <span class="ident">challenge</span>,
+    <span class="kw">pub async fn </span>request_sms_verification_code(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+        challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VerificationCodeResponse, ServiceError&gt; {
+        <span class="kw">let </span>res = <span class="kw">match </span><span class="self">self
+            </span>.push_service
+            .get_json(
+                Endpoint::Service,
+                <span class="self">self</span>.build_verification_code_request_url(
+                    <span class="string">&quot;sms&quot;</span>, captcha, challenge,
                 )
-                .<span class="ident">as_ref</span>(),
-                <span class="self">self</span>.<span class="ident">auth_override</span>(),
+                .as_ref(),
+                <span class="self">self</span>.auth_override(),
             )
-            .<span class="kw">await</span>
-        {
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::JsonDecodeError</span> { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
-            <span class="ident">r</span> =&gt; <span class="ident">r</span>,
+            .<span class="kw">await
+        </span>{
+            <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
+            r =&gt; r,
         };
-        <span class="kw">match</span> <span class="ident">res</span> {
-            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">VerificationCodeResponse::Issued</span>),
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::UnhandledResponseCode</span> { <span class="ident">http_code</span>: <span class="number">402</span> }) =&gt; {
-                <span class="prelude-val">Ok</span>(<span class="ident">VerificationCodeResponse::CaptchaRequired</span>)
+        <span class="kw">match </span>res {
+            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(VerificationCodeResponse::Issued),
+            <span class="prelude-val">Err</span>(ServiceError::UnhandledResponseCode { http_code: <span class="number">402 </span>}) =&gt; {
+                <span class="prelude-val">Ok</span>(VerificationCodeResponse::CaptchaRequired)
             },
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">e</span>),
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">request_voice_verification_code</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">captcha</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">challenge</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">VerificationCodeResponse</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">res</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>
-            .<span class="ident">push_service</span>
-            .<span class="ident">get_json</span>(
-                <span class="ident">Endpoint::Service</span>,
-                <span class="self">self</span>.<span class="ident">build_verification_code_request_url</span>(
-                    <span class="string">&quot;voice&quot;</span>, <span class="ident">captcha</span>, <span class="ident">challenge</span>,
+    <span class="kw">pub async fn </span>request_voice_verification_code(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+        challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VerificationCodeResponse, ServiceError&gt; {
+        <span class="kw">let </span>res = <span class="kw">match </span><span class="self">self
+            </span>.push_service
+            .get_json(
+                Endpoint::Service,
+                <span class="self">self</span>.build_verification_code_request_url(
+                    <span class="string">&quot;voice&quot;</span>, captcha, challenge,
                 )
-                .<span class="ident">as_ref</span>(),
-                <span class="self">self</span>.<span class="ident">auth_override</span>(),
+                .as_ref(),
+                <span class="self">self</span>.auth_override(),
             )
-            .<span class="kw">await</span>
-        {
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::JsonDecodeError</span> { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
-            <span class="ident">r</span> =&gt; <span class="ident">r</span>,
+            .<span class="kw">await
+        </span>{
+            <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
+            r =&gt; r,
         };
-        <span class="kw">match</span> <span class="ident">res</span> {
-            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">VerificationCodeResponse::Issued</span>),
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::UnhandledResponseCode</span> { <span class="ident">http_code</span>: <span class="number">402</span> }) =&gt; {
-                <span class="prelude-val">Ok</span>(<span class="ident">VerificationCodeResponse::CaptchaRequired</span>)
+        <span class="kw">match </span>res {
+            <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(VerificationCodeResponse::Issued),
+            <span class="prelude-val">Err</span>(ServiceError::UnhandledResponseCode { http_code: <span class="number">402 </span>}) =&gt; {
+                <span class="prelude-val">Ok</span>(VerificationCodeResponse::CaptchaRequired)
             },
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">e</span>),
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">confirm_verification_code</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">confirm_code</span>: <span class="ident">u32</span>,
-        <span class="ident">account_attributes</span>: <span class="ident">AccountAttributes</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">VerifyAccountResponse</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">push_service</span>
-            .<span class="ident">put_json</span>(
-                <span class="ident">Endpoint::Service</span>,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/accounts/code/{}&quot;</span>, <span class="ident">confirm_code</span>),
-                <span class="self">self</span>.<span class="ident">auth_override</span>(),
-                <span class="ident">account_attributes</span>,
+    <span class="kw">pub async fn </span>confirm_verification_code(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        confirm_code: u32,
+        account_attributes: AccountAttributes,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;VerifyAccountResponse, ServiceError&gt; {
+        <span class="self">self</span>.push_service
+            .put_json(
+                Endpoint::Service,
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/accounts/code/{}&quot;</span>, confirm_code),
+                <span class="self">self</span>.auth_override(),
+                account_attributes,
             )
-            .<span class="kw">await</span>
-    }
+            .<span class="kw">await
+    </span>}
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">confirm_device</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">confirm_code</span>: <span class="ident">u32</span>,
-        <span class="ident">confirm_code_message</span>: <span class="ident">ConfirmDeviceMessage</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">DeviceId</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">push_service</span>
-            .<span class="ident">put_json</span>(
-                <span class="ident">Endpoint::Service</span>,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/devices/{}&quot;</span>, <span class="ident">confirm_code</span>),
-                <span class="self">self</span>.<span class="ident">auth_override</span>(),
-                <span class="ident">confirm_code_message</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>confirm_device(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        confirm_code: u32,
+        confirm_code_message: ConfirmDeviceMessage,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;DeviceId, ServiceError&gt; {
+        <span class="self">self</span>.push_service
+            .put_json(
+                Endpoint::Service,
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/devices/{}&quot;</span>, confirm_code),
+                <span class="self">self</span>.auth_override(),
+                confirm_code_message,
             )
-            .<span class="kw">await</span>
-    }
+            .<span class="kw">await
+    </span>}
 
-    <span class="kw">fn</span> <span class="ident">build_verification_code_request_url</span>(
+    <span class="kw">fn </span>build_verification_code_request_url(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">msg_type</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">captcha</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">challenge</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="ident">phone_number</span> <span class="op">=</span>
-            <span class="self">self</span>.<span class="ident">phone_number</span>.<span class="ident">format</span>().<span class="ident">mode</span>(<span class="ident">phonenumber::Mode::E164</span>);
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">cl</span>) <span class="op">=</span> <span class="ident">challenge</span> {
+        msg_type: <span class="kw-2">&amp;</span>str,
+        captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+        challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+    ) -&gt; String {
+        <span class="kw">let </span>phone_number =
+            <span class="self">self</span>.phone_number.format().mode(phonenumber::Mode::E164);
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(cl) = challenge {
             <span class="macro">format!</span>(
                 <span class="string">&quot;/v1/accounts/{}/code/{}?challenge={}&quot;</span>,
-                <span class="ident">msg_type</span>, <span class="ident">phone_number</span>, <span class="ident">cl</span>
+                msg_type, phone_number, cl
             )
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">cc</span>) <span class="op">=</span> <span class="ident">captcha</span> {
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(cc) = captcha {
             <span class="macro">format!</span>(
                 <span class="string">&quot;/v1/accounts/{}/code/{}?captcha={}&quot;</span>,
-                <span class="ident">msg_type</span>, <span class="ident">phone_number</span>, <span class="ident">cc</span>
+                msg_type, phone_number, cc
             )
-        } <span class="kw">else</span> {
-            <span class="macro">format!</span>(<span class="string">&quot;/v1/accounts/{}/code/{}&quot;</span>, <span class="ident">msg_type</span>, <span class="ident">phone_number</span>)
+        } <span class="kw">else </span>{
+            <span class="macro">format!</span>(<span class="string">&quot;/v1/accounts/{}/code/{}&quot;</span>, msg_type, phone_number)
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">auth_override</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">HttpAuthOverride</span> {
-        <span class="kw">let</span> <span class="ident">credentials</span> <span class="op">=</span> <span class="ident">ServiceCredentials</span> {
-            <span class="ident">uuid</span>: <span class="prelude-val">None</span>,
-            <span class="ident">phonenumber</span>: <span class="self">self</span>.<span class="ident">phone_number</span>.<span class="ident">clone</span>(),
-            <span class="ident">password</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">password</span>.<span class="ident">clone</span>()),
-            <span class="ident">signaling_key</span>: <span class="prelude-val">None</span>,
-            <span class="ident">device_id</span>: <span class="prelude-val">None</span>,
+    <span class="kw">fn </span>auth_override(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HttpAuthOverride {
+        <span class="kw">let </span>credentials = ServiceCredentials {
+            uuid: <span class="prelude-val">None</span>,
+            phonenumber: <span class="self">self</span>.phone_number.clone(),
+            password: <span class="prelude-val">Some</span>(<span class="self">self</span>.password.clone()),
+            signaling_key: <span class="prelude-val">None</span>,
+            device_id: <span class="prelude-val">None</span>,
         };
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">auth</span>) <span class="op">=</span> <span class="ident">credentials</span>.<span class="ident">authorization</span>() {
-            <span class="ident">HttpAuthOverride::Identified</span>(<span class="ident">auth</span>)
-        } <span class="kw">else</span> {
-            <span class="ident">HttpAuthOverride::NoOverride</span>
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(auth) = credentials.authorization() {
+            HttpAuthOverride::Identified(auth)
+        } <span class="kw">else </span>{
+            HttpAuthOverride::NoOverride
         }
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">LinkingManager</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">PushService</span><span class="op">&gt;</span> {
-    <span class="ident">push_service</span>: <span class="ident">P</span>,
-    <span class="comment">// forwarded to the `ProvisioningManager`</span>
-    <span class="ident">password</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>LinkingManager&lt;P: PushService&gt; {
+    push_service: P,
+    <span class="comment">// forwarded to the `ProvisioningManager`
+    </span>password: String,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">P</span>: <span class="ident">PushService</span><span class="op">&gt;</span> <span class="ident">LinkingManager</span><span class="op">&lt;</span><span class="ident">P</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">push_service</span>: <span class="ident">P</span>, <span class="ident">password</span>: <span class="ident">String</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">push_service</span>,
-            <span class="ident">password</span>,
+<span class="kw">impl</span>&lt;P: PushService&gt; LinkingManager&lt;P&gt; {
+    <span class="kw">pub fn </span>new(push_service: P, password: String) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            push_service,
+            password,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">provision_secondary_device</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">rand::Rng</span> <span class="op">+</span> <span class="ident">rand::CryptoRng</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-        <span class="ident">signaling_key</span>: <span class="ident">SignalingKey</span>,
-        <span class="kw-2">mut</span> <span class="ident">tx</span>: <span class="ident">Sender</span><span class="op">&lt;</span><span class="ident">SecondaryDeviceProvisioning</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ProvisioningError</span><span class="op">&gt;</span> {
-        <span class="comment">// open a websocket without authentication, to receive a tsurl://</span>
-        <span class="kw">let</span> <span class="ident">ws</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">push_service</span>
-            .<span class="ident">ws</span>(<span class="string">&quot;/v1/websocket/provisioning/&quot;</span>, <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
+    <span class="kw">pub async fn </span>provision_secondary_device&lt;R: rand::Rng + rand::CryptoRng&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        csprng: <span class="kw-2">&amp;mut </span>R,
+        signaling_key: SignalingKey,
+        <span class="kw-2">mut </span>tx: Sender&lt;SecondaryDeviceProvisioning&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ProvisioningError&gt; {
+        <span class="comment">// open a websocket without authentication, to receive a tsurl://
+        </span><span class="kw">let </span>ws = <span class="self">self
+            </span>.push_service
+            .ws(<span class="string">&quot;/v1/websocket/provisioning/&quot;</span>, <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="comment">// see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id</span>
-        <span class="kw">let</span> <span class="ident">registration_id</span> <span class="op">=</span> <span class="ident">csprng</span>.<span class="ident">gen_range</span>(<span class="number">1</span>, <span class="number">256</span>);
+        <span class="comment">// see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
+        </span><span class="kw">let </span>registration_id = csprng.gen_range(<span class="number">1</span>, <span class="number">256</span>);
 
-        <span class="kw">let</span> <span class="ident">provisioning_pipe</span> <span class="op">=</span> <span class="ident">ProvisioningPipe::from_socket</span>(<span class="ident">ws</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">provision_stream</span> <span class="op">=</span> <span class="ident">provisioning_pipe</span>.<span class="ident">stream</span>();
-        <span class="macro">pin_mut!</span>(<span class="ident">provision_stream</span>);
-        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">step</span>) <span class="op">=</span> <span class="ident">provision_stream</span>.<span class="ident">next</span>().<span class="kw">await</span> {
-            <span class="kw">match</span> <span class="ident">step</span> {
-                <span class="prelude-val">Ok</span>(<span class="ident">ProvisioningStep::Url</span>(<span class="ident">url</span>)) =&gt; {
-                    <span class="ident">tx</span>.<span class="ident">send</span>(<span class="ident">SecondaryDeviceProvisioning::Url</span>(<span class="ident">url</span>))
-                        .<span class="kw">await</span>
-                        .<span class="ident">expect</span>(<span class="string">&quot;failed to send provisioning Url in channel&quot;</span>);
+        <span class="kw">let </span>provisioning_pipe = ProvisioningPipe::from_socket(ws)<span class="question-mark">?</span>;
+        <span class="kw">let </span>provision_stream = provisioning_pipe.stream();
+        <span class="macro">pin_mut!</span>(provision_stream);
+        <span class="kw">while let </span><span class="prelude-val">Some</span>(step) = provision_stream.next().<span class="kw">await </span>{
+            <span class="kw">match </span>step {
+                <span class="prelude-val">Ok</span>(ProvisioningStep::Url(url)) =&gt; {
+                    tx.send(SecondaryDeviceProvisioning::Url(url))
+                        .<span class="kw">await
+                        </span>.expect(<span class="string">&quot;failed to send provisioning Url in channel&quot;</span>);
                 },
-                <span class="prelude-val">Ok</span>(<span class="ident">ProvisioningStep::Message</span>(<span class="ident">message</span>)) =&gt; {
-                    <span class="kw">let</span> <span class="ident">uuid</span> <span class="op">=</span> <span class="ident">message</span>
-                        .<span class="ident">uuid</span>
-                        .<span class="ident">ok_or</span>(<span class="ident">ProvisioningError::InvalidData</span> {
-                            <span class="ident">reason</span>: <span class="string">&quot;missing client UUID&quot;</span>.<span class="ident">into</span>(),
+                <span class="prelude-val">Ok</span>(ProvisioningStep::Message(message)) =&gt; {
+                    <span class="kw">let </span>uuid = message
+                        .uuid
+                        .ok_or(ProvisioningError::InvalidData {
+                            reason: <span class="string">&quot;missing client UUID&quot;</span>.into(),
                         })
-                        .<span class="ident">and_then</span>(<span class="op">|</span><span class="kw-2">ref</span> <span class="ident">s</span><span class="op">|</span> {
-                            <span class="ident">Uuid::parse_str</span>(<span class="ident">s</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-                                <span class="ident">ProvisioningError::InvalidData</span> {
-                                    <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;invalid UUID: {}&quot;</span>, <span class="ident">e</span>),
+                        .and_then(|<span class="kw-2">ref </span>s| {
+                            Uuid::parse_str(s).map_err(|e| {
+                                ProvisioningError::InvalidData {
+                                    reason: <span class="macro">format!</span>(<span class="string">&quot;invalid UUID: {}&quot;</span>, e),
                                 }
                             })
                         })<span class="question-mark">?</span>;
 
-                    <span class="kw">let</span> <span class="ident">public_key</span> <span class="op">=</span> <span class="ident">PublicKey::deserialize</span>(
-                        <span class="kw-2">&amp;</span><span class="ident">message</span>.<span class="ident">identity_key_public</span>.<span class="ident">ok_or</span>(
-                            <span class="ident">ProvisioningError::InvalidData</span> {
-                                <span class="ident">reason</span>: <span class="string">&quot;missing public key&quot;</span>.<span class="ident">into</span>(),
+                    <span class="kw">let </span>public_key = PublicKey::deserialize(
+                        <span class="kw-2">&amp;</span>message.identity_key_public.ok_or(
+                            ProvisioningError::InvalidData {
+                                reason: <span class="string">&quot;missing public key&quot;</span>.into(),
                             },
                         )<span class="question-mark">?</span>,
                     )<span class="question-mark">?</span>;
 
-                    <span class="kw">let</span> <span class="ident">private_key</span> <span class="op">=</span> <span class="ident">PrivateKey::deserialize</span>(
-                        <span class="kw-2">&amp;</span><span class="ident">message</span>.<span class="ident">identity_key_private</span>.<span class="ident">ok_or</span>(
-                            <span class="ident">ProvisioningError::InvalidData</span> {
-                                <span class="ident">reason</span>: <span class="string">&quot;missing public key&quot;</span>.<span class="ident">into</span>(),
+                    <span class="kw">let </span>private_key = PrivateKey::deserialize(
+                        <span class="kw-2">&amp;</span>message.identity_key_private.ok_or(
+                            ProvisioningError::InvalidData {
+                                reason: <span class="string">&quot;missing public key&quot;</span>.into(),
                             },
                         )<span class="question-mark">?</span>,
                     )<span class="question-mark">?</span>;
 
-                    <span class="kw">let</span> <span class="ident">profile_key</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">profile_key</span>.<span class="ident">ok_or</span>(
-                        <span class="ident">ProvisioningError::InvalidData</span> {
-                            <span class="ident">reason</span>: <span class="string">&quot;missing profile key&quot;</span>.<span class="ident">into</span>(),
+                    <span class="kw">let </span>profile_key = message.profile_key.ok_or(
+                        ProvisioningError::InvalidData {
+                            reason: <span class="string">&quot;missing profile key&quot;</span>.into(),
                         },
                     )<span class="question-mark">?</span>;
 
-                    <span class="kw">let</span> <span class="ident">phone_number</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">number</span>.<span class="ident">ok_or</span>(
-                        <span class="ident">ProvisioningError::InvalidData</span> {
-                            <span class="ident">reason</span>: <span class="string">&quot;missing phone number&quot;</span>.<span class="ident">into</span>(),
+                    <span class="kw">let </span>phone_number = message.number.ok_or(
+                        ProvisioningError::InvalidData {
+                            reason: <span class="string">&quot;missing phone number&quot;</span>.into(),
                         },
                     )<span class="question-mark">?</span>;
 
-                    <span class="kw">let</span> <span class="ident">phone_number</span> <span class="op">=</span> <span class="ident">phonenumber::parse</span>(<span class="prelude-val">None</span>, <span class="ident">phone_number</span>)
-                        .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-                        <span class="ident">ProvisioningError::InvalidData</span> {
-                            <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;invalid phone number ({})&quot;</span>, <span class="ident">e</span>),
+                    <span class="kw">let </span>phone_number = phonenumber::parse(<span class="prelude-val">None</span>, phone_number)
+                        .map_err(|e| {
+                        ProvisioningError::InvalidData {
+                            reason: <span class="macro">format!</span>(<span class="string">&quot;invalid phone number ({})&quot;</span>, e),
                         }
                     })<span class="question-mark">?</span>;
 
-                    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">provisioning_manager</span> <span class="op">=</span> <span class="ident">ProvisioningManager::new</span>(
-                        <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">push_service</span>,
-                        <span class="ident">phone_number</span>.<span class="ident">clone</span>(),
-                        <span class="self">self</span>.<span class="ident">password</span>.<span class="ident">clone</span>(),
+                    <span class="kw">let </span><span class="kw-2">mut </span>provisioning_manager = ProvisioningManager::new(
+                        <span class="kw-2">&amp;mut </span><span class="self">self</span>.push_service,
+                        phone_number.clone(),
+                        <span class="self">self</span>.password.clone(),
                     );
 
-                    <span class="kw">let</span> <span class="ident">device_id</span> <span class="op">=</span> <span class="ident">provisioning_manager</span>
-                        .<span class="ident">confirm_device</span>(
-                            <span class="ident">message</span>
-                                .<span class="ident">provisioning_code</span>
-                                .<span class="ident">ok_or</span>(<span class="ident">ProvisioningError::InvalidData</span> {
-                                    <span class="ident">reason</span>: <span class="string">&quot;no provisioning confirmation code&quot;</span>
-                                        .<span class="ident">into</span>(),
-                                })<span class="question-mark">?</span>
-                                .<span class="ident">parse</span>()
-                                .<span class="ident">unwrap</span>(),
-                            <span class="ident">ConfirmDeviceMessage</span> {
-                                <span class="ident">signaling_key</span>: <span class="ident">signaling_key</span>.<span class="ident">to_vec</span>(),
-                                <span class="ident">supports_sms</span>: <span class="bool-val">false</span>,
-                                <span class="ident">fetches_messages</span>: <span class="bool-val">true</span>,
-                                <span class="ident">registration_id</span>,
-                                <span class="ident">name</span>: <span class="macro">vec!</span>[],
+                    <span class="kw">let </span>device_id = provisioning_manager
+                        .confirm_device(
+                            message
+                                .provisioning_code
+                                .ok_or(ProvisioningError::InvalidData {
+                                    reason: <span class="string">&quot;no provisioning confirmation code&quot;
+                                        </span>.into(),
+                                })<span class="question-mark">?
+                                </span>.parse()
+                                .unwrap(),
+                            ConfirmDeviceMessage {
+                                signaling_key: signaling_key.to_vec(),
+                                supports_sms: <span class="bool-val">false</span>,
+                                fetches_messages: <span class="bool-val">true</span>,
+                                registration_id,
+                                name: <span class="macro">vec!</span>[],
                             },
                         )
                         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-                    <span class="ident">tx</span>.<span class="ident">send</span>(
-                        <span class="ident">SecondaryDeviceProvisioning::NewDeviceRegistration</span> {
-                            <span class="ident">phone_number</span>,
-                            <span class="ident">device_id</span>,
-                            <span class="ident">registration_id</span>,
-                            <span class="ident">uuid</span>,
-                            <span class="ident">private_key</span>,
-                            <span class="ident">public_key</span>,
-                            <span class="ident">profile_key</span>,
+                    tx.send(
+                        SecondaryDeviceProvisioning::NewDeviceRegistration {
+                            phone_number,
+                            device_id,
+                            registration_id,
+                            uuid,
+                            private_key,
+                            public_key,
+                            profile_key,
                         },
                     )
-                    .<span class="kw">await</span>
-                    .<span class="ident">expect</span>(
+                    .<span class="kw">await
+                    </span>.expect(
                         <span class="string">&quot;failed to send provisioning message in rx channel&quot;</span>,
                     );
                 },
-                <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>),
+                <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e),
             }
         }
 
@@ -757,4 +757,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

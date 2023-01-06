@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/utils.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>utils.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/utils.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>utils.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -139,37 +139,37 @@
 <span id="139">139</span>
 <span id="140">140</span>
 <span id="141">141</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="ident">std::cmp::Ordering</span>;
+</span><span class="kw">use </span>std::cmp::Ordering;
 
-<span class="kw">fn</span> <span class="ident">expand_top_bit</span>(<span class="ident">a</span>: <span class="ident">u8</span>) -&gt; <span class="ident">u8</span> {
-    <span class="comment">//if (a &gt;&gt; 7) == 1 { 0xFF } else { 0 }</span>
-    <span class="number">0u8</span>.<span class="ident">wrapping_sub</span>(<span class="ident">a</span> <span class="op">&gt;</span><span class="op">&gt;</span> <span class="number">7</span>)
+<span class="kw">fn </span>expand_top_bit(a: u8) -&gt; u8 {
+    <span class="comment">//if (a &gt;&gt; 7) == 1 { 0xFF } else { 0 }
+    </span><span class="number">0u8</span>.wrapping_sub(a &gt;&gt; <span class="number">7</span>)
 }
 
-<span class="kw">fn</span> <span class="ident">ct_is_zero</span>(<span class="ident">a</span>: <span class="ident">u8</span>) -&gt; <span class="ident">u8</span> {
-    <span class="comment">//if a == 0 { 0xFF } else { 0 }</span>
-    <span class="ident">expand_top_bit</span>(<span class="op">!</span><span class="ident">a</span> <span class="op">&amp;</span> <span class="ident">a</span>.<span class="ident">wrapping_sub</span>(<span class="number">1</span>))
+<span class="kw">fn </span>ct_is_zero(a: u8) -&gt; u8 {
+    <span class="comment">//if a == 0 { 0xFF } else { 0 }
+    </span>expand_top_bit(!a &amp; a.wrapping_sub(<span class="number">1</span>))
 }
 
-<span class="kw">fn</span> <span class="ident">ct_is_eq</span>(<span class="ident">a</span>: <span class="ident">u8</span>, <span class="ident">b</span>: <span class="ident">u8</span>) -&gt; <span class="ident">u8</span> {
-    <span class="comment">//if a == b { 0xFF } else { 0 }</span>
-    <span class="ident">ct_is_zero</span>(<span class="ident">a</span> <span class="op">^</span> <span class="ident">b</span>)
+<span class="kw">fn </span>ct_is_eq(a: u8, b: u8) -&gt; u8 {
+    <span class="comment">//if a == b { 0xFF } else { 0 }
+    </span>ct_is_zero(a ^ b)
 }
 
-<span class="kw">fn</span> <span class="ident">ct_is_lt</span>(<span class="ident">a</span>: <span class="ident">u8</span>, <span class="ident">b</span>: <span class="ident">u8</span>) -&gt; <span class="ident">u8</span> {
-    <span class="comment">//if a &lt; b { 0xFF } else { 0 }</span>
-    <span class="ident">expand_top_bit</span>(<span class="ident">a</span> <span class="op">^</span> ((<span class="ident">a</span> <span class="op">^</span> <span class="ident">b</span>) <span class="op">|</span> ((<span class="ident">a</span>.<span class="ident">wrapping_sub</span>(<span class="ident">b</span>)) <span class="op">^</span> <span class="ident">a</span>)))
+<span class="kw">fn </span>ct_is_lt(a: u8, b: u8) -&gt; u8 {
+    <span class="comment">//if a &lt; b { 0xFF } else { 0 }
+    </span>expand_top_bit(a ^ ((a ^ b) | ((a.wrapping_sub(b)) ^ a)))
 }
 
-<span class="kw">fn</span> <span class="ident">ct_select</span>(<span class="ident">mask</span>: <span class="ident">u8</span>, <span class="ident">a</span>: <span class="ident">u8</span>, <span class="ident">b</span>: <span class="ident">u8</span>) -&gt; <span class="ident">u8</span> {
-    <span class="macro">debug_assert!</span>(<span class="ident">mask</span> <span class="op">==</span> <span class="number">0</span> <span class="op">|</span><span class="op">|</span> <span class="ident">mask</span> <span class="op">==</span> <span class="number">0xFF</span>);
-    <span class="comment">//if mask == 0xFF { a } else if mask == 0x00 { b } else { unreachable!(); }</span>
-    <span class="ident">b</span> <span class="op">^</span> (<span class="ident">mask</span> <span class="op">&amp;</span> (<span class="ident">a</span> <span class="op">^</span> <span class="ident">b</span>))
+<span class="kw">fn </span>ct_select(mask: u8, a: u8, b: u8) -&gt; u8 {
+    <span class="macro">debug_assert!</span>(mask == <span class="number">0 </span>|| mask == <span class="number">0xFF</span>);
+    <span class="comment">//if mask == 0xFF { a } else if mask == 0x00 { b } else { unreachable!(); }
+    </span>b ^ (mask &amp; (a ^ b))
 }
 
 <span class="comment">/*
@@ -189,96 +189,96 @@
 * time way. We avoid this approach at the moment since it is not clear
 * if applications will rely on public key ordering being defined in
 * some particular way or not.
- */</span>
+ */
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">constant_time_cmp</span>(<span class="ident">x</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">y</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">Ordering</span> {
-    <span class="kw">if</span> <span class="ident">x</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="ident">y</span>.<span class="ident">len</span>() {
-        <span class="kw">return</span> <span class="ident">Ordering::Less</span>;
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>constant_time_cmp(x: <span class="kw-2">&amp;</span>[u8], y: <span class="kw-2">&amp;</span>[u8]) -&gt; Ordering {
+    <span class="kw">if </span>x.len() &lt; y.len() {
+        <span class="kw">return </span>Ordering::Less;
     }
-    <span class="kw">if</span> <span class="ident">x</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="ident">y</span>.<span class="ident">len</span>() {
-        <span class="kw">return</span> <span class="ident">Ordering::Greater</span>;
-    }
-
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span>: <span class="ident">u8</span> <span class="op">=</span> <span class="number">0</span>;
-
-    <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">0</span>..<span class="ident">x</span>.<span class="ident">len</span>() {
-        <span class="kw">let</span> <span class="ident">a</span> <span class="op">=</span> <span class="ident">x</span>[<span class="ident">x</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span> <span class="op">-</span> <span class="ident">i</span>];
-        <span class="kw">let</span> <span class="ident">b</span> <span class="op">=</span> <span class="ident">y</span>[<span class="ident">x</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span> <span class="op">-</span> <span class="ident">i</span>];
-
-        <span class="kw">let</span> <span class="ident">is_eq</span> <span class="op">=</span> <span class="ident">ct_is_eq</span>(<span class="ident">a</span>, <span class="ident">b</span>);
-        <span class="kw">let</span> <span class="ident">is_lt</span> <span class="op">=</span> <span class="ident">ct_is_lt</span>(<span class="ident">a</span>, <span class="ident">b</span>);
-
-        <span class="ident">result</span> <span class="op">=</span> <span class="ident">ct_select</span>(<span class="ident">is_eq</span>, <span class="ident">result</span>, <span class="ident">ct_select</span>(<span class="ident">is_lt</span>, <span class="number">1</span>, <span class="number">255</span>));
+    <span class="kw">if </span>x.len() &gt; y.len() {
+        <span class="kw">return </span>Ordering::Greater;
     }
 
-    <span class="macro">debug_assert!</span>(<span class="ident">result</span> <span class="op">==</span> <span class="number">0</span> <span class="op">|</span><span class="op">|</span> <span class="ident">result</span> <span class="op">==</span> <span class="number">1</span> <span class="op">|</span><span class="op">|</span> <span class="ident">result</span> <span class="op">==</span> <span class="number">255</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>result: u8 = <span class="number">0</span>;
 
-    <span class="kw">if</span> <span class="ident">result</span> <span class="op">==</span> <span class="number">0</span> {
-        <span class="ident">Ordering::Equal</span>
-    } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">result</span> <span class="op">==</span> <span class="number">1</span> {
-        <span class="ident">Ordering::Less</span>
-    } <span class="kw">else</span> {
-        <span class="ident">Ordering::Greater</span>
+    <span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..x.len() {
+        <span class="kw">let </span>a = x[x.len() - <span class="number">1 </span>- i];
+        <span class="kw">let </span>b = y[x.len() - <span class="number">1 </span>- i];
+
+        <span class="kw">let </span>is_eq = ct_is_eq(a, b);
+        <span class="kw">let </span>is_lt = ct_is_lt(a, b);
+
+        result = ct_select(is_eq, result, ct_select(is_lt, <span class="number">1</span>, <span class="number">255</span>));
+    }
+
+    <span class="macro">debug_assert!</span>(result == <span class="number">0 </span>|| result == <span class="number">1 </span>|| result == <span class="number">255</span>);
+
+    <span class="kw">if </span>result == <span class="number">0 </span>{
+        Ordering::Equal
+    } <span class="kw">else if </span>result == <span class="number">1 </span>{
+        Ordering::Less
+    } <span class="kw">else </span>{
+        Ordering::Greater
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_constant_time_cmp</span>() {
-        <span class="kw">use</span> <span class="ident">rand::Rng</span>;
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>test_constant_time_cmp() {
+        <span class="kw">use </span>rand::Rng;
 
-        <span class="macro">assert_eq!</span>(<span class="ident">constant_time_cmp</span>(<span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>]), <span class="ident">Ordering::Equal</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">constant_time_cmp</span>(<span class="kw-2">&amp;</span>[<span class="number">0</span>, <span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>]), <span class="ident">Ordering::Greater</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">constant_time_cmp</span>(<span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">0</span>, <span class="number">1</span>]), <span class="ident">Ordering::Less</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">constant_time_cmp</span>(<span class="kw-2">&amp;</span>[<span class="number">2</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>]), <span class="ident">Ordering::Less</span>);
+        <span class="macro">assert_eq!</span>(constant_time_cmp(<span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>]), Ordering::Equal);
+        <span class="macro">assert_eq!</span>(constant_time_cmp(<span class="kw-2">&amp;</span>[<span class="number">0</span>, <span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>]), Ordering::Greater);
+        <span class="macro">assert_eq!</span>(constant_time_cmp(<span class="kw-2">&amp;</span>[<span class="number">1</span>], <span class="kw-2">&amp;</span>[<span class="number">0</span>, <span class="number">1</span>]), Ordering::Less);
+        <span class="macro">assert_eq!</span>(constant_time_cmp(<span class="kw-2">&amp;</span>[<span class="number">2</span>], <span class="kw-2">&amp;</span>[<span class="number">1</span>, <span class="number">0</span>, <span class="number">1</span>]), Ordering::Less);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::rngs::OsRng</span>;
-        <span class="kw">for</span> <span class="ident">len</span> <span class="kw">in</span> <span class="number">1</span>..<span class="number">320</span> {
-            <span class="kw">let</span> <span class="ident">x</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> (<span class="number">0</span>..<span class="ident">len</span>).<span class="ident">map</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">rng</span>.<span class="ident">gen</span>()).<span class="ident">collect</span>();
-            <span class="kw">let</span> <span class="ident">y</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> (<span class="number">0</span>..<span class="ident">len</span>).<span class="ident">map</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">rng</span>.<span class="ident">gen</span>()).<span class="ident">collect</span>();
-            <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="ident">x</span>.<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">y</span>);
-            <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">constant_time_cmp</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>, <span class="kw-2">&amp;</span><span class="ident">y</span>);
-            <span class="macro">assert_eq!</span>(<span class="ident">result</span>, <span class="ident">expected</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::rngs::OsRng;
+        <span class="kw">for </span>len <span class="kw">in </span><span class="number">1</span>..<span class="number">320 </span>{
+            <span class="kw">let </span>x: Vec&lt;u8&gt; = (<span class="number">0</span>..len).map(|<span class="kw">_</span>| rng.gen()).collect();
+            <span class="kw">let </span>y: Vec&lt;u8&gt; = (<span class="number">0</span>..len).map(|<span class="kw">_</span>| rng.gen()).collect();
+            <span class="kw">let </span>expected = x.cmp(<span class="kw-2">&amp;</span>y);
+            <span class="kw">let </span>result = constant_time_cmp(<span class="kw-2">&amp;</span>x, <span class="kw-2">&amp;</span>y);
+            <span class="macro">assert_eq!</span>(result, expected);
 
-            <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="ident">y</span>.<span class="ident">cmp</span>(<span class="kw-2">&amp;</span><span class="ident">x</span>);
-            <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">constant_time_cmp</span>(<span class="kw-2">&amp;</span><span class="ident">y</span>, <span class="kw-2">&amp;</span><span class="ident">x</span>);
-            <span class="macro">assert_eq!</span>(<span class="ident">result</span>, <span class="ident">expected</span>);
+            <span class="kw">let </span>expected = y.cmp(<span class="kw-2">&amp;</span>x);
+            <span class="kw">let </span>result = constant_time_cmp(<span class="kw-2">&amp;</span>y, <span class="kw-2">&amp;</span>x);
+            <span class="macro">assert_eq!</span>(result, expected);
         }
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_ct_is_zero</span>() {
-        <span class="macro">assert_eq!</span>(<span class="ident">ct_is_zero</span>(<span class="number">0</span>), <span class="number">0xFF</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>test_ct_is_zero() {
+        <span class="macro">assert_eq!</span>(ct_is_zero(<span class="number">0</span>), <span class="number">0xFF</span>);
 
-        <span class="kw">for</span> <span class="ident">i</span> <span class="kw">in</span> <span class="number">1</span>..<span class="number">255</span> {
-            <span class="macro">assert_eq!</span>(<span class="ident">ct_is_zero</span>(<span class="ident">i</span>), <span class="number">0x00</span>);
+        <span class="kw">for </span>i <span class="kw">in </span><span class="number">1</span>..<span class="number">255 </span>{
+            <span class="macro">assert_eq!</span>(ct_is_zero(i), <span class="number">0x00</span>);
         }
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_ct_is_lt</span>() {
-        <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">255</span> {
-            <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">255</span> {
-                <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">x</span> <span class="op">&lt;</span> <span class="ident">y</span> { <span class="number">0xFF</span> } <span class="kw">else</span> { <span class="number">0</span> };
-                <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">ct_is_lt</span>(<span class="ident">x</span>, <span class="ident">y</span>);
-                <span class="macro">assert_eq!</span>(<span class="ident">result</span>, <span class="ident">expected</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>test_ct_is_lt() {
+        <span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..<span class="number">255 </span>{
+            <span class="kw">for </span>y <span class="kw">in </span><span class="number">0</span>..<span class="number">255 </span>{
+                <span class="kw">let </span>expected = <span class="kw">if </span>x &lt; y { <span class="number">0xFF </span>} <span class="kw">else </span>{ <span class="number">0 </span>};
+                <span class="kw">let </span>result = ct_is_lt(x, y);
+                <span class="macro">assert_eq!</span>(result, expected);
             }
         }
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_ct_is_eq</span>() {
-        <span class="kw">for</span> <span class="ident">x</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">255</span> {
-            <span class="kw">for</span> <span class="ident">y</span> <span class="kw">in</span> <span class="number">0</span>..<span class="number">255</span> {
-                <span class="kw">let</span> <span class="ident">expected</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">x</span> <span class="op">==</span> <span class="ident">y</span> { <span class="number">0xFF</span> } <span class="kw">else</span> { <span class="number">0</span> };
-                <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">ct_is_eq</span>(<span class="ident">x</span>, <span class="ident">y</span>);
-                <span class="macro">assert_eq!</span>(<span class="ident">result</span>, <span class="ident">expected</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>test_ct_is_eq() {
+        <span class="kw">for </span>x <span class="kw">in </span><span class="number">0</span>..<span class="number">255 </span>{
+            <span class="kw">for </span>y <span class="kw">in </span><span class="number">0</span>..<span class="number">255 </span>{
+                <span class="kw">let </span>expected = <span class="kw">if </span>x == y { <span class="number">0xFF </span>} <span class="kw">else </span>{ <span class="number">0 </span>};
+                <span class="kw">let </span>result = ct_is_eq(x, y);
+                <span class="macro">assert_eq!</span>(result, expected);
             }
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

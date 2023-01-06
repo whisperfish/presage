@@ -1,3 +1,3 @@
-(function() {var implementors = {};
-implementors["presage"] = [{"text":"impl <a class=\"trait\" href=\"libsignal_service/session_store/trait.SessionStoreExt.html\" title=\"trait libsignal_service::session_store::SessionStoreExt\">SessionStoreExt</a> for <a class=\"struct\" href=\"presage/struct.SledStore.html\" title=\"struct presage::SledStore\">SledStore</a>","synthetic":false,"types":["presage::store::sled::SledStore"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"presage":[["impl <a class=\"trait\" href=\"libsignal_service/session_store/trait.SessionStoreExt.html\" title=\"trait libsignal_service::session_store::SessionStoreExt\">SessionStoreExt</a> for <a class=\"struct\" href=\"presage/struct.SledStore.html\" title=\"struct presage::SledStore\">SledStore</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

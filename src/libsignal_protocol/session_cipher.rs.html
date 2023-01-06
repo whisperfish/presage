@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/session_cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>session_cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/session_cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>session_cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -724,731 +724,731 @@
 <span id="724">724</span>
 <span id="725">725</span>
 <span id="726">726</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020-2022 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020-2022 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">CiphertextMessage</span>, <span class="ident">CiphertextMessageType</span>, <span class="ident">Context</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">KeyPair</span>,
-    <span class="ident">PreKeySignalMessage</span>, <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">PublicKey</span>, <span class="prelude-ty">Result</span>, <span class="ident">SessionRecord</span>,
-    <span class="ident">SessionStore</span>, <span class="ident">SignalMessage</span>, <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyStore</span>,
+</span><span class="kw">use crate</span>::{
+    CiphertextMessage, CiphertextMessageType, Context, Direction, IdentityKeyStore, KeyPair,
+    PreKeySignalMessage, PreKeyStore, ProtocolAddress, PublicKey, <span class="prelude-ty">Result</span>, SessionRecord,
+    SessionStore, SignalMessage, SignalProtocolError, SignedPreKeyStore,
 };
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::consts::MAX_FORWARD_JUMPS</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::ratchet</span>::{<span class="ident">ChainKey</span>, <span class="ident">MessageKeys</span>};
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::state</span>::{<span class="ident">InvalidSessionError</span>, <span class="ident">SessionState</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">crypto</span>, <span class="ident">session</span>};
+<span class="kw">use </span><span class="kw">crate</span>::consts::MAX_FORWARD_JUMPS;
+<span class="kw">use </span><span class="kw">crate</span>::ratchet::{ChainKey, MessageKeys};
+<span class="kw">use </span><span class="kw">crate</span>::state::{InvalidSessionError, SessionState};
+<span class="kw">use crate</span>::{crypto, session};
 
-<span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">CryptoRng</span>, <span class="ident">Rng</span>};
+<span class="kw">use </span>rand::{CryptoRng, Rng};
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">message_encrypt</span>(
-    <span class="ident">ptext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">CiphertextMessage</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="ident">session_store</span>
-        .<span class="ident">load_session</span>(<span class="ident">remote_address</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">remote_address</span>.<span class="ident">clone</span>()))<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">session_state</span> <span class="op">=</span> <span class="ident">session_record</span>
-        .<span class="ident">session_state_mut</span>()
-        .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">remote_address</span>.<span class="ident">clone</span>()))<span class="question-mark">?</span>;
+<span class="kw">pub async fn </span>message_encrypt(
+    ptext: <span class="kw-2">&amp;</span>[u8],
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SessionStore,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;CiphertextMessage&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>session_record = session_store
+        .load_session(remote_address, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.ok_or_else(|| SignalProtocolError::SessionNotFound(remote_address.clone()))<span class="question-mark">?</span>;
+    <span class="kw">let </span>session_state = session_record
+        .session_state_mut()
+        .ok_or_else(|| SignalProtocolError::SessionNotFound(remote_address.clone()))<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">get_sender_chain_key</span>()<span class="question-mark">?</span>;
+    <span class="kw">let </span>chain_key = session_state.get_sender_chain_key()<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">message_keys</span> <span class="op">=</span> <span class="ident">chain_key</span>.<span class="ident">message_keys</span>();
+    <span class="kw">let </span>message_keys = chain_key.message_keys();
 
-    <span class="kw">let</span> <span class="ident">sender_ephemeral</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">sender_ratchet_key</span>()<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">previous_counter</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">previous_counter</span>();
-    <span class="kw">let</span> <span class="ident">session_version</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span> <span class="kw">as</span> <span class="ident">u8</span>;
+    <span class="kw">let </span>sender_ephemeral = session_state.sender_ratchet_key()<span class="question-mark">?</span>;
+    <span class="kw">let </span>previous_counter = session_state.previous_counter();
+    <span class="kw">let </span>session_version = session_state.session_version()<span class="question-mark">? </span><span class="kw">as </span>u8;
 
-    <span class="kw">let</span> <span class="ident">local_identity_key</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">local_identity_key</span>()<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">their_identity_key</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">remote_identity_key</span>()<span class="question-mark">?</span>.<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-        <span class="ident">SignalProtocolError::InvalidState</span>(
+    <span class="kw">let </span>local_identity_key = session_state.local_identity_key()<span class="question-mark">?</span>;
+    <span class="kw">let </span>their_identity_key = session_state.remote_identity_key()<span class="question-mark">?</span>.ok_or_else(|| {
+        SignalProtocolError::InvalidState(
             <span class="string">&quot;message_encrypt&quot;</span>,
-            <span class="macro">format!</span>(<span class="string">&quot;no remote identity key for {}&quot;</span>, <span class="ident">remote_address</span>),
+            <span class="macro">format!</span>(<span class="string">&quot;no remote identity key for {}&quot;</span>, remote_address),
         )
     })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">crypto::aes_256_cbc_encrypt</span>(<span class="ident">ptext</span>, <span class="ident">message_keys</span>.<span class="ident">cipher_key</span>(), <span class="ident">message_keys</span>.<span class="ident">iv</span>())
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-            <span class="macro">log::error!</span>(<span class="string">&quot;session state corrupt for {}&quot;</span>, <span class="ident">remote_address</span>);
-            <span class="ident">SignalProtocolError::InvalidSessionStructure</span>(<span class="string">&quot;invalid sender chain message keys&quot;</span>)
+    <span class="kw">let </span>ctext = crypto::aes_256_cbc_encrypt(ptext, message_keys.cipher_key(), message_keys.iv())
+        .map_err(|<span class="kw">_</span>| {
+            <span class="macro">log::error!</span>(<span class="string">&quot;session state corrupt for {}&quot;</span>, remote_address);
+            SignalProtocolError::InvalidSessionStructure(<span class="string">&quot;invalid sender chain message keys&quot;</span>)
         })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">items</span>) <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">unacknowledged_pre_key_message_items</span>()<span class="question-mark">?</span> {
-        <span class="kw">let</span> <span class="ident">local_registration_id</span> <span class="op">=</span> <span class="ident">session_state</span>.<span class="ident">local_registration_id</span>();
+    <span class="kw">let </span>message = <span class="kw">if let </span><span class="prelude-val">Some</span>(items) = session_state.unacknowledged_pre_key_message_items()<span class="question-mark">? </span>{
+        <span class="kw">let </span>local_registration_id = session_state.local_registration_id();
 
         <span class="macro">log::info!</span>(
             <span class="string">&quot;Building PreKeyWhisperMessage for: {} with preKeyId: {}&quot;</span>,
-            <span class="ident">remote_address</span>,
-            <span class="ident">items</span>
-                .<span class="ident">pre_key_id</span>()
-                .<span class="ident">map_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;&lt;none&gt;&quot;</span>.<span class="ident">to_string</span>(), <span class="op">|</span><span class="ident">id</span><span class="op">|</span> <span class="ident">id</span>.<span class="ident">to_string</span>())
+            remote_address,
+            items
+                .pre_key_id()
+                .map_or_else(|| <span class="string">&quot;&lt;none&gt;&quot;</span>.to_string(), |id| id.to_string())
         );
 
-        <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="ident">SignalMessage::new</span>(
-            <span class="ident">session_version</span>,
-            <span class="ident">message_keys</span>.<span class="ident">mac_key</span>(),
-            <span class="ident">sender_ephemeral</span>,
-            <span class="ident">chain_key</span>.<span class="ident">index</span>(),
-            <span class="ident">previous_counter</span>,
-            <span class="kw-2">&amp;</span><span class="ident">ctext</span>,
-            <span class="kw-2">&amp;</span><span class="ident">local_identity_key</span>,
-            <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>,
+        <span class="kw">let </span>message = SignalMessage::new(
+            session_version,
+            message_keys.mac_key(),
+            sender_ephemeral,
+            chain_key.index(),
+            previous_counter,
+            <span class="kw-2">&amp;</span>ctext,
+            <span class="kw-2">&amp;</span>local_identity_key,
+            <span class="kw-2">&amp;</span>their_identity_key,
         )<span class="question-mark">?</span>;
 
-        <span class="ident">CiphertextMessage::PreKeySignalMessage</span>(<span class="ident">PreKeySignalMessage::new</span>(
-            <span class="ident">session_version</span>,
-            <span class="ident">local_registration_id</span>,
-            <span class="ident">items</span>.<span class="ident">pre_key_id</span>(),
-            <span class="ident">items</span>.<span class="ident">signed_pre_key_id</span>(),
-            <span class="kw-2">*</span><span class="ident">items</span>.<span class="ident">base_key</span>(),
-            <span class="ident">local_identity_key</span>,
-            <span class="ident">message</span>,
+        CiphertextMessage::PreKeySignalMessage(PreKeySignalMessage::new(
+            session_version,
+            local_registration_id,
+            items.pre_key_id(),
+            items.signed_pre_key_id(),
+            <span class="kw-2">*</span>items.base_key(),
+            local_identity_key,
+            message,
         )<span class="question-mark">?</span>)
-    } <span class="kw">else</span> {
-        <span class="ident">CiphertextMessage::SignalMessage</span>(<span class="ident">SignalMessage::new</span>(
-            <span class="ident">session_version</span>,
-            <span class="ident">message_keys</span>.<span class="ident">mac_key</span>(),
-            <span class="ident">sender_ephemeral</span>,
-            <span class="ident">chain_key</span>.<span class="ident">index</span>(),
-            <span class="ident">previous_counter</span>,
-            <span class="kw-2">&amp;</span><span class="ident">ctext</span>,
-            <span class="kw-2">&amp;</span><span class="ident">local_identity_key</span>,
-            <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>,
+    } <span class="kw">else </span>{
+        CiphertextMessage::SignalMessage(SignalMessage::new(
+            session_version,
+            message_keys.mac_key(),
+            sender_ephemeral,
+            chain_key.index(),
+            previous_counter,
+            <span class="kw-2">&amp;</span>ctext,
+            <span class="kw-2">&amp;</span>local_identity_key,
+            <span class="kw-2">&amp;</span>their_identity_key,
         )<span class="question-mark">?</span>)
     };
 
-    <span class="ident">session_state</span>.<span class="ident">set_sender_chain_key</span>(<span class="kw-2">&amp;</span><span class="ident">chain_key</span>.<span class="ident">next_chain_key</span>());
+    session_state.set_sender_chain_key(<span class="kw-2">&amp;</span>chain_key.next_chain_key());
 
-    <span class="comment">// XXX why is this check after everything else?!!</span>
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">identity_store</span>
-        .<span class="ident">is_trusted_identity</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>, <span class="ident">Direction::Sending</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-    {
+    <span class="comment">// XXX why is this check after everything else?!!
+    </span><span class="kw">if </span>!identity_store
+        .is_trusted_identity(remote_address, <span class="kw-2">&amp;</span>their_identity_key, Direction::Sending, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+    </span>{
         <span class="macro">log::warn!</span>(
             <span class="string">&quot;Identity key {} is not trusted for remote address {}&quot;</span>,
-            <span class="ident">their_identity_key</span>
-                .<span class="ident">public_key</span>()
-                .<span class="ident">public_key_bytes</span>()
-                .<span class="ident">map_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, <span class="ident">e</span>), <span class="ident">hex::encode</span>),
-            <span class="ident">remote_address</span>,
+            their_identity_key
+                .public_key()
+                .public_key_bytes()
+                .map_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e), hex::encode),
+            remote_address,
         );
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::UntrustedIdentity</span>(
-            <span class="ident">remote_address</span>.<span class="ident">clone</span>(),
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::UntrustedIdentity(
+            remote_address.clone(),
         ));
     }
 
-    <span class="comment">// XXX this could be combined with the above call to the identity store (in a new API)</span>
-    <span class="ident">identity_store</span>
-        .<span class="ident">save_identity</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>, <span class="ident">ctx</span>)
+    <span class="comment">// XXX this could be combined with the above call to the identity store (in a new API)
+    </span>identity_store
+        .save_identity(remote_address, <span class="kw-2">&amp;</span>their_identity_key, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="ident">session_store</span>
-        .<span class="ident">store_session</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">session_record</span>, <span class="ident">ctx</span>)
+    session_store
+        .store_session(remote_address, <span class="kw-2">&amp;</span>session_record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(<span class="ident">message</span>)
+    <span class="prelude-val">Ok</span>(message)
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">message_decrypt</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span><span class="ident">CiphertextMessage</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">PreKeyStore</span>,
-    <span class="ident">signed_pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SignedPreKeyStore</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">match</span> <span class="ident">ciphertext</span> {
-        <span class="ident">CiphertextMessage::SignalMessage</span>(<span class="ident">m</span>) =&gt; {
-            <span class="ident">message_decrypt_signal</span>(
-                <span class="ident">m</span>,
-                <span class="ident">remote_address</span>,
-                <span class="ident">session_store</span>,
-                <span class="ident">identity_store</span>,
-                <span class="ident">csprng</span>,
-                <span class="ident">ctx</span>,
+<span class="kw">pub async fn </span>message_decrypt&lt;R: Rng + CryptoRng&gt;(
+    ciphertext: <span class="kw-2">&amp;</span>CiphertextMessage,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SessionStore,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>PreKeyStore,
+    signed_pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SignedPreKeyStore,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+    <span class="kw">match </span>ciphertext {
+        CiphertextMessage::SignalMessage(m) =&gt; {
+            message_decrypt_signal(
+                m,
+                remote_address,
+                session_store,
+                identity_store,
+                csprng,
+                ctx,
             )
-            .<span class="kw">await</span>
-        }
-        <span class="ident">CiphertextMessage::PreKeySignalMessage</span>(<span class="ident">m</span>) =&gt; {
-            <span class="ident">message_decrypt_prekey</span>(
-                <span class="ident">m</span>,
-                <span class="ident">remote_address</span>,
-                <span class="ident">session_store</span>,
-                <span class="ident">identity_store</span>,
-                <span class="ident">pre_key_store</span>,
-                <span class="ident">signed_pre_key_store</span>,
-                <span class="ident">csprng</span>,
-                <span class="ident">ctx</span>,
+            .<span class="kw">await
+        </span>}
+        CiphertextMessage::PreKeySignalMessage(m) =&gt; {
+            message_decrypt_prekey(
+                m,
+                remote_address,
+                session_store,
+                identity_store,
+                pre_key_store,
+                signed_pre_key_store,
+                csprng,
+                ctx,
             )
-            .<span class="kw">await</span>
-        }
-        <span class="kw">_</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidArgument</span>(<span class="macro">format!</span>(
+            .<span class="kw">await
+        </span>}
+        <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(SignalProtocolError::InvalidArgument(<span class="macro">format!</span>(
             <span class="string">&quot;message_decrypt cannot be used to decrypt {:?} messages&quot;</span>,
-            <span class="ident">ciphertext</span>.<span class="ident">message_type</span>()
+            ciphertext.message_type()
         ))),
     }
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">message_decrypt_prekey</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeySignalMessage</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">PreKeyStore</span>,
-    <span class="ident">signed_pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SignedPreKeyStore</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="ident">session_store</span>
-        .<span class="ident">load_session</span>(<span class="ident">remote_address</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">unwrap_or_else</span>(<span class="ident">SessionRecord::new_fresh</span>);
+<span class="kw">pub async fn </span>message_decrypt_prekey&lt;R: Rng + CryptoRng&gt;(
+    ciphertext: <span class="kw-2">&amp;</span>PreKeySignalMessage,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SessionStore,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>PreKeyStore,
+    signed_pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SignedPreKeyStore,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>session_record = session_store
+        .load_session(remote_address, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.unwrap_or_else(SessionRecord::new_fresh);
 
-    <span class="comment">// Make sure we log the session state if we fail to process the pre-key.</span>
-    <span class="kw">let</span> <span class="ident">pre_key_id_or_err</span> <span class="op">=</span> <span class="ident">session::process_prekey</span>(
-        <span class="ident">ciphertext</span>,
-        <span class="ident">remote_address</span>,
-        <span class="kw-2">&amp;mut</span> <span class="ident">session_record</span>,
-        <span class="ident">identity_store</span>,
-        <span class="ident">pre_key_store</span>,
-        <span class="ident">signed_pre_key_store</span>,
-        <span class="ident">ctx</span>,
+    <span class="comment">// Make sure we log the session state if we fail to process the pre-key.
+    </span><span class="kw">let </span>pre_key_id_or_err = session::process_prekey(
+        ciphertext,
+        remote_address,
+        <span class="kw-2">&amp;mut </span>session_record,
+        identity_store,
+        pre_key_store,
+        signed_pre_key_store,
+        ctx,
     )
     .<span class="kw">await</span>;
 
-    <span class="kw">let</span> <span class="ident">pre_key_id</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">pre_key_id_or_err</span> {
-        <span class="prelude-val">Ok</span>(<span class="ident">id</span>) =&gt; <span class="ident">id</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-            <span class="kw">let</span> <span class="ident">errs</span> <span class="op">=</span> [<span class="ident">e</span>];
+    <span class="kw">let </span>pre_key_id = <span class="kw">match </span>pre_key_id_or_err {
+        <span class="prelude-val">Ok</span>(id) =&gt; id,
+        <span class="prelude-val">Err</span>(e) =&gt; {
+            <span class="kw">let </span>errs = [e];
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;{}&quot;</span>,
-                <span class="ident">create_decryption_failure_log</span>(
-                    <span class="ident">remote_address</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">errs</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">session_record</span>,
-                    <span class="ident">ciphertext</span>.<span class="ident">message</span>()
-                )<span class="question-mark">?</span>
-            );
-            <span class="kw">let</span> [<span class="ident">e</span>] <span class="op">=</span> <span class="ident">errs</span>;
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">e</span>);
+                create_decryption_failure_log(
+                    remote_address,
+                    <span class="kw-2">&amp;</span>errs,
+                    <span class="kw-2">&amp;</span>session_record,
+                    ciphertext.message()
+                )<span class="question-mark">?
+            </span>);
+            <span class="kw">let </span>[e] = errs;
+            <span class="kw">return </span><span class="prelude-val">Err</span>(e);
         }
     };
 
-    <span class="kw">let</span> <span class="ident">ptext</span> <span class="op">=</span> <span class="ident">decrypt_message_with_record</span>(
-        <span class="ident">remote_address</span>,
-        <span class="kw-2">&amp;mut</span> <span class="ident">session_record</span>,
-        <span class="ident">ciphertext</span>.<span class="ident">message</span>(),
-        <span class="ident">CiphertextMessageType::PreKey</span>,
-        <span class="ident">csprng</span>,
+    <span class="kw">let </span>ptext = decrypt_message_with_record(
+        remote_address,
+        <span class="kw-2">&amp;mut </span>session_record,
+        ciphertext.message(),
+        CiphertextMessageType::PreKey,
+        csprng,
     )<span class="question-mark">?</span>;
 
-    <span class="ident">session_store</span>
-        .<span class="ident">store_session</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">session_record</span>, <span class="ident">ctx</span>)
+    session_store
+        .store_session(remote_address, <span class="kw-2">&amp;</span>session_record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">pre_key_id</span>) <span class="op">=</span> <span class="ident">pre_key_id</span> {
-        <span class="ident">pre_key_store</span>.<span class="ident">remove_pre_key</span>(<span class="ident">pre_key_id</span>, <span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(pre_key_id) = pre_key_id {
+        pre_key_store.remove_pre_key(pre_key_id, ctx).<span class="kw">await</span><span class="question-mark">?</span>;
     }
 
-    <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>)
+    <span class="prelude-val">Ok</span>(ptext)
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">message_decrypt_signal</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span><span class="ident">SignalMessage</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="ident">session_store</span>
-        .<span class="ident">load_session</span>(<span class="ident">remote_address</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">remote_address</span>.<span class="ident">clone</span>()))<span class="question-mark">?</span>;
+<span class="kw">pub async fn </span>message_decrypt_signal&lt;R: Rng + CryptoRng&gt;(
+    ciphertext: <span class="kw-2">&amp;</span>SignalMessage,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SessionStore,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>session_record = session_store
+        .load_session(remote_address, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.ok_or_else(|| SignalProtocolError::SessionNotFound(remote_address.clone()))<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">ptext</span> <span class="op">=</span> <span class="ident">decrypt_message_with_record</span>(
-        <span class="ident">remote_address</span>,
-        <span class="kw-2">&amp;mut</span> <span class="ident">session_record</span>,
-        <span class="ident">ciphertext</span>,
-        <span class="ident">CiphertextMessageType::Whisper</span>,
-        <span class="ident">csprng</span>,
+    <span class="kw">let </span>ptext = decrypt_message_with_record(
+        remote_address,
+        <span class="kw-2">&amp;mut </span>session_record,
+        ciphertext,
+        CiphertextMessageType::Whisper,
+        csprng,
     )<span class="question-mark">?</span>;
 
-    <span class="comment">// Why are we performing this check after decryption instead of before?</span>
-    <span class="kw">let</span> <span class="ident">their_identity_key</span> <span class="op">=</span> <span class="ident">session_record</span>
-        .<span class="ident">session_state</span>()
-        .<span class="ident">expect</span>(<span class="string">&quot;successfully decrypted; must have a current state&quot;</span>)
-        .<span class="ident">remote_identity_key</span>()
-        .<span class="ident">expect</span>(<span class="string">&quot;successfully decrypted; must have a remote identity key&quot;</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;successfully decrypted; must have a remote identity key&quot;</span>);
+    <span class="comment">// Why are we performing this check after decryption instead of before?
+    </span><span class="kw">let </span>their_identity_key = session_record
+        .session_state()
+        .expect(<span class="string">&quot;successfully decrypted; must have a current state&quot;</span>)
+        .remote_identity_key()
+        .expect(<span class="string">&quot;successfully decrypted; must have a remote identity key&quot;</span>)
+        .expect(<span class="string">&quot;successfully decrypted; must have a remote identity key&quot;</span>);
 
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">identity_store</span>
-        .<span class="ident">is_trusted_identity</span>(
-            <span class="ident">remote_address</span>,
-            <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>,
-            <span class="ident">Direction::Receiving</span>,
-            <span class="ident">ctx</span>,
+    <span class="kw">if </span>!identity_store
+        .is_trusted_identity(
+            remote_address,
+            <span class="kw-2">&amp;</span>their_identity_key,
+            Direction::Receiving,
+            ctx,
         )
-        .<span class="kw">await</span><span class="question-mark">?</span>
-    {
+        .<span class="kw">await</span><span class="question-mark">?
+    </span>{
         <span class="macro">log::warn!</span>(
             <span class="string">&quot;Identity key {} is not trusted for remote address {}&quot;</span>,
-            <span class="ident">their_identity_key</span>
-                .<span class="ident">public_key</span>()
-                .<span class="ident">public_key_bytes</span>()
-                .<span class="ident">map_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, <span class="ident">e</span>), <span class="ident">hex::encode</span>),
-            <span class="ident">remote_address</span>,
+            their_identity_key
+                .public_key()
+                .public_key_bytes()
+                .map_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e), hex::encode),
+            remote_address,
         );
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::UntrustedIdentity</span>(
-            <span class="ident">remote_address</span>.<span class="ident">clone</span>(),
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::UntrustedIdentity(
+            remote_address.clone(),
         ));
     }
 
-    <span class="ident">identity_store</span>
-        .<span class="ident">save_identity</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>, <span class="ident">ctx</span>)
+    identity_store
+        .save_identity(remote_address, <span class="kw-2">&amp;</span>their_identity_key, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="ident">session_store</span>
-        .<span class="ident">store_session</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">session_record</span>, <span class="ident">ctx</span>)
+    session_store
+        .store_session(remote_address, <span class="kw-2">&amp;</span>session_record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>)
+    <span class="prelude-val">Ok</span>(ptext)
 }
 
-<span class="kw">fn</span> <span class="ident">create_decryption_failure_log</span>(
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="kw-2">mut</span> <span class="ident">errs</span>: <span class="kw-2">&amp;</span>[<span class="ident">SignalProtocolError</span>],
-    <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SessionRecord</span>,
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span><span class="ident">SignalMessage</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="kw">fn</span> <span class="ident">append_session_summary</span>(
-        <span class="ident">lines</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-        <span class="ident">idx</span>: <span class="ident">usize</span>,
-        <span class="ident">state</span>: <span class="ident">std::result::Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SessionState</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span>,
-        <span class="ident">err</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SignalProtocolError</span><span class="op">&gt;</span>,
+<span class="kw">fn </span>create_decryption_failure_log(
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    <span class="kw-2">mut </span>errs: <span class="kw-2">&amp;</span>[SignalProtocolError],
+    record: <span class="kw-2">&amp;</span>SessionRecord,
+    ciphertext: <span class="kw-2">&amp;</span>SignalMessage,
+) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+    <span class="kw">fn </span>append_session_summary(
+        lines: <span class="kw-2">&amp;mut </span>Vec&lt;String&gt;,
+        idx: usize,
+        state: std::result::Result&lt;<span class="kw-2">&amp;</span>SessionState, InvalidSessionError&gt;,
+        err: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SignalProtocolError&gt;,
     ) {
-        <span class="kw">let</span> <span class="ident">chains</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">state</span><span class="op">|</span> <span class="ident">state</span>.<span class="ident">all_receiver_chain_logging_info</span>());
-        <span class="kw">match</span> (<span class="ident">err</span>, <span class="kw-2">&amp;</span><span class="ident">chains</span>) {
-            (<span class="prelude-val">Some</span>(<span class="ident">err</span>), <span class="prelude-val">Ok</span>(<span class="ident">chains</span>)) =&gt; {
-                <span class="ident">lines</span>.<span class="ident">push</span>(<span class="macro">format!</span>(
+        <span class="kw">let </span>chains = state.map(|state| state.all_receiver_chain_logging_info());
+        <span class="kw">match </span>(err, <span class="kw-2">&amp;</span>chains) {
+            (<span class="prelude-val">Some</span>(err), <span class="prelude-val">Ok</span>(chains)) =&gt; {
+                lines.push(<span class="macro">format!</span>(
                     <span class="string">&quot;Candidate session {} failed with &#39;{}&#39;, had {} receiver chains&quot;</span>,
-                    <span class="ident">idx</span>,
-                    <span class="ident">err</span>,
-                    <span class="ident">chains</span>.<span class="ident">len</span>()
+                    idx,
+                    err,
+                    chains.len()
                 ));
             }
-            (<span class="prelude-val">Some</span>(<span class="ident">err</span>), <span class="prelude-val">Err</span>(<span class="ident">state_err</span>)) =&gt; {
-                <span class="ident">lines</span>.<span class="ident">push</span>(<span class="macro">format!</span>(
+            (<span class="prelude-val">Some</span>(err), <span class="prelude-val">Err</span>(state_err)) =&gt; {
+                lines.push(<span class="macro">format!</span>(
                     <span class="string">&quot;Candidate session {} failed with &#39;{}&#39;; cannot get receiver chain info ({})&quot;</span>,
-                    <span class="ident">idx</span>, <span class="ident">err</span>, <span class="ident">state_err</span>,
+                    idx, err, state_err,
                 ));
             }
-            (<span class="prelude-val">None</span>, <span class="prelude-val">Ok</span>(<span class="ident">chains</span>)) =&gt; {
-                <span class="ident">lines</span>.<span class="ident">push</span>(<span class="macro">format!</span>(
+            (<span class="prelude-val">None</span>, <span class="prelude-val">Ok</span>(chains)) =&gt; {
+                lines.push(<span class="macro">format!</span>(
                     <span class="string">&quot;Candidate session {} had {} receiver chains&quot;</span>,
-                    <span class="ident">idx</span>,
-                    <span class="ident">chains</span>.<span class="ident">len</span>()
+                    idx,
+                    chains.len()
                 ));
             }
-            (<span class="prelude-val">None</span>, <span class="prelude-val">Err</span>(<span class="ident">state_err</span>)) =&gt; {
-                <span class="ident">lines</span>.<span class="ident">push</span>(<span class="macro">format!</span>(
+            (<span class="prelude-val">None</span>, <span class="prelude-val">Err</span>(state_err)) =&gt; {
+                lines.push(<span class="macro">format!</span>(
                     <span class="string">&quot;Candidate session {}: cannot get receiver chain info ({})&quot;</span>,
-                    <span class="ident">idx</span>, <span class="ident">state_err</span>,
+                    idx, state_err,
                 ));
             }
         }
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Ok</span>(<span class="ident">chains</span>) <span class="op">=</span> <span class="ident">chains</span> {
-            <span class="kw">for</span> <span class="ident">chain</span> <span class="kw">in</span> <span class="ident">chains</span> {
-                <span class="kw">let</span> <span class="ident">chain_idx</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">chain</span>.<span class="number">1</span> {
-                    <span class="prelude-val">Some</span>(<span class="ident">i</span>) =&gt; <span class="ident">i</span>.<span class="ident">to_string</span>(),
-                    <span class="prelude-val">None</span> =&gt; <span class="string">&quot;missing in protobuf&quot;</span>.<span class="ident">to_string</span>(),
+        <span class="kw">if let </span><span class="prelude-val">Ok</span>(chains) = chains {
+            <span class="kw">for </span>chain <span class="kw">in </span>chains {
+                <span class="kw">let </span>chain_idx = <span class="kw">match </span>chain.<span class="number">1 </span>{
+                    <span class="prelude-val">Some</span>(i) =&gt; i.to_string(),
+                    <span class="prelude-val">None </span>=&gt; <span class="string">&quot;missing in protobuf&quot;</span>.to_string(),
                 };
 
-                <span class="ident">lines</span>.<span class="ident">push</span>(<span class="macro">format!</span>(
+                lines.push(<span class="macro">format!</span>(
                     <span class="string">&quot;Receiver chain with sender ratchet public key {} chain key index {}&quot;</span>,
-                    <span class="ident">hex::encode</span>(<span class="ident">chain</span>.<span class="number">0</span>),
-                    <span class="ident">chain_idx</span>
+                    hex::encode(chain.<span class="number">0</span>),
+                    chain_idx
                 ));
             }
         }
     }
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">lines</span> <span class="op">=</span> <span class="macro">vec!</span>[];
+    <span class="kw">let </span><span class="kw-2">mut </span>lines = <span class="macro">vec!</span>[];
 
-    <span class="ident">lines</span>.<span class="ident">push</span>(<span class="macro">format!</span>(
+    lines.push(<span class="macro">format!</span>(
         <span class="string">&quot;Message from {} failed to decrypt; sender ratchet public key {} message counter {}&quot;</span>,
-        <span class="ident">remote_address</span>,
-        <span class="ident">hex::encode</span>(<span class="ident">ciphertext</span>.<span class="ident">sender_ratchet_key</span>().<span class="ident">public_key_bytes</span>()<span class="question-mark">?</span>),
-        <span class="ident">ciphertext</span>.<span class="ident">counter</span>()
+        remote_address,
+        hex::encode(ciphertext.sender_ratchet_key().public_key_bytes()<span class="question-mark">?</span>),
+        ciphertext.counter()
     ));
 
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">current_session</span>) <span class="op">=</span> <span class="ident">record</span>.<span class="ident">session_state</span>() {
-        <span class="kw">let</span> <span class="ident">err</span> <span class="op">=</span> <span class="ident">errs</span>.<span class="ident">first</span>();
-        <span class="kw">if</span> <span class="ident">err</span>.<span class="ident">is_some</span>() {
-            <span class="ident">errs</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">errs</span>[<span class="number">1</span>..];
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(current_session) = record.session_state() {
+        <span class="kw">let </span>err = errs.first();
+        <span class="kw">if </span>err.is_some() {
+            errs = <span class="kw-2">&amp;</span>errs[<span class="number">1</span>..];
         }
-        <span class="ident">append_session_summary</span>(<span class="kw-2">&amp;mut</span> <span class="ident">lines</span>, <span class="number">0</span>, <span class="prelude-val">Ok</span>(<span class="ident">current_session</span>), <span class="ident">err</span>);
-    } <span class="kw">else</span> {
-        <span class="ident">lines</span>.<span class="ident">push</span>(<span class="string">&quot;No current session&quot;</span>.<span class="ident">to_string</span>());
+        append_session_summary(<span class="kw-2">&amp;mut </span>lines, <span class="number">0</span>, <span class="prelude-val">Ok</span>(current_session), err);
+    } <span class="kw">else </span>{
+        lines.push(<span class="string">&quot;No current session&quot;</span>.to_string());
     }
 
-    <span class="kw">for</span> (<span class="ident">idx</span>, (<span class="ident">state</span>, <span class="ident">err</span>)) <span class="kw">in</span> <span class="ident">record</span>
-        .<span class="ident">previous_session_states</span>()
-        .<span class="ident">zip</span>(<span class="ident">errs</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="prelude-val">Some</span>).<span class="ident">chain</span>(<span class="ident">std::iter::repeat</span>(<span class="prelude-val">None</span>)))
-        .<span class="ident">enumerate</span>()
+    <span class="kw">for </span>(idx, (state, err)) <span class="kw">in </span>record
+        .previous_session_states()
+        .zip(errs.iter().map(<span class="prelude-val">Some</span>).chain(std::iter::repeat(<span class="prelude-val">None</span>)))
+        .enumerate()
     {
-        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">state</span> {
-            <span class="prelude-val">Ok</span>(<span class="kw-2">ref</span> <span class="ident">state</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">state</span>),
-            <span class="prelude-val">Err</span>(<span class="ident">err</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">err</span>),
+        <span class="kw">let </span>state = <span class="kw">match </span>state {
+            <span class="prelude-val">Ok</span>(<span class="kw-2">ref </span>state) =&gt; <span class="prelude-val">Ok</span>(state),
+            <span class="prelude-val">Err</span>(err) =&gt; <span class="prelude-val">Err</span>(err),
         };
-        <span class="ident">append_session_summary</span>(<span class="kw-2">&amp;mut</span> <span class="ident">lines</span>, <span class="ident">idx</span> <span class="op">+</span> <span class="number">1</span>, <span class="ident">state</span>, <span class="ident">err</span>);
+        append_session_summary(<span class="kw-2">&amp;mut </span>lines, idx + <span class="number">1</span>, state, err);
     }
 
-    <span class="prelude-val">Ok</span>(<span class="ident">lines</span>.<span class="ident">join</span>(<span class="string">&quot;\n&quot;</span>))
+    <span class="prelude-val">Ok</span>(lines.join(<span class="string">&quot;\n&quot;</span>))
 }
 
-<span class="kw">fn</span> <span class="ident">decrypt_message_with_record</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">record</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SessionRecord</span>,
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span><span class="ident">SignalMessage</span>,
-    <span class="ident">original_message_type</span>: <span class="ident">CiphertextMessageType</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
+<span class="kw">fn </span>decrypt_message_with_record&lt;R: Rng + CryptoRng&gt;(
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    record: <span class="kw-2">&amp;mut </span>SessionRecord,
+    ciphertext: <span class="kw-2">&amp;</span>SignalMessage,
+    original_message_type: CiphertextMessageType,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
     <span class="macro">debug_assert!</span>(<span class="macro">matches!</span>(
-        <span class="ident">original_message_type</span>,
-        <span class="ident">CiphertextMessageType::Whisper</span> <span class="op">|</span> <span class="ident">CiphertextMessageType::PreKey</span>
+        original_message_type,
+        CiphertextMessageType::Whisper | CiphertextMessageType::PreKey
     ));
-    <span class="kw">let</span> <span class="ident">log_decryption_failure</span> <span class="op">=</span> <span class="op">|</span><span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">SessionState</span>, <span class="ident">error</span>: <span class="kw-2">&amp;</span><span class="ident">SignalProtocolError</span><span class="op">|</span> {
-        <span class="comment">// A warning rather than an error because we try multiple sessions.</span>
-        <span class="macro">log::warn!</span>(
+    <span class="kw">let </span>log_decryption_failure = |state: <span class="kw-2">&amp;</span>SessionState, error: <span class="kw-2">&amp;</span>SignalProtocolError| {
+        <span class="comment">// A warning rather than an error because we try multiple sessions.
+        </span><span class="macro">log::warn!</span>(
             <span class="string">&quot;Failed to decrypt {:?} message with ratchet key: {} and counter: {}. \
              Session loaded for {}. Local session has base key: {} and counter: {}. {}&quot;</span>,
-            <span class="ident">original_message_type</span>,
-            <span class="ident">ciphertext</span>
-                .<span class="ident">sender_ratchet_key</span>()
-                .<span class="ident">public_key_bytes</span>()
-                .<span class="ident">map_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, <span class="ident">e</span>), <span class="ident">hex::encode</span>),
-            <span class="ident">ciphertext</span>.<span class="ident">counter</span>(),
-            <span class="ident">remote_address</span>,
-            <span class="ident">state</span>
-                .<span class="ident">sender_ratchet_key_for_logging</span>()
-                .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, <span class="ident">e</span>)),
-            <span class="ident">state</span>.<span class="ident">previous_counter</span>(),
-            <span class="ident">error</span>
+            original_message_type,
+            ciphertext
+                .sender_ratchet_key()
+                .public_key_bytes()
+                .map_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e), hex::encode),
+            ciphertext.counter(),
+            remote_address,
+            state
+                .sender_ratchet_key_for_logging()
+                .unwrap_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e)),
+            state.previous_counter(),
+            error
         );
     };
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">errs</span> <span class="op">=</span> <span class="macro">vec!</span>[];
+    <span class="kw">let </span><span class="kw-2">mut </span>errs = <span class="macro">vec!</span>[];
 
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">current_state</span>) <span class="op">=</span> <span class="ident">record</span>.<span class="ident">session_state</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">current_state</span> <span class="op">=</span> <span class="ident">current_state</span>.<span class="ident">clone</span>();
-        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">decrypt_message_with_state</span>(
-            <span class="ident">CurrentOrPrevious::Current</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">current_state</span>,
-            <span class="ident">ciphertext</span>,
-            <span class="ident">original_message_type</span>,
-            <span class="ident">remote_address</span>,
-            <span class="ident">csprng</span>,
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(current_state) = record.session_state() {
+        <span class="kw">let </span><span class="kw-2">mut </span>current_state = current_state.clone();
+        <span class="kw">let </span>result = decrypt_message_with_state(
+            CurrentOrPrevious::Current,
+            <span class="kw-2">&amp;mut </span>current_state,
+            ciphertext,
+            original_message_type,
+            remote_address,
+            csprng,
         );
 
-        <span class="kw">match</span> <span class="ident">result</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>) =&gt; {
+        <span class="kw">match </span>result {
+            <span class="prelude-val">Ok</span>(ptext) =&gt; {
                 <span class="macro">log::info!</span>(
                     <span class="string">&quot;decrypted {:?} message from {} with current session state (base key {})&quot;</span>,
-                    <span class="ident">original_message_type</span>,
-                    <span class="ident">remote_address</span>,
-                    <span class="ident">current_state</span>
-                        .<span class="ident">sender_ratchet_key_for_logging</span>()
-                        .<span class="ident">expect</span>(<span class="string">&quot;successful decrypt always has a valid base key&quot;</span>),
+                    original_message_type,
+                    remote_address,
+                    current_state
+                        .sender_ratchet_key_for_logging()
+                        .expect(<span class="string">&quot;successful decrypt always has a valid base key&quot;</span>),
                 );
-                <span class="ident">record</span>.<span class="ident">set_session_state</span>(<span class="ident">current_state</span>); <span class="comment">// update the state</span>
-                <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>);
+                record.set_session_state(current_state); <span class="comment">// update the state
+                </span><span class="kw">return </span><span class="prelude-val">Ok</span>(ptext);
             }
-            <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::DuplicatedMessage</span>(<span class="kw">_</span>, <span class="kw">_</span>)) =&gt; {
-                <span class="kw">return</span> <span class="ident">result</span>;
+            <span class="prelude-val">Err</span>(SignalProtocolError::DuplicatedMessage(<span class="kw">_</span>, <span class="kw">_</span>)) =&gt; {
+                <span class="kw">return </span>result;
             }
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-                <span class="ident">log_decryption_failure</span>(<span class="kw-2">&amp;</span><span class="ident">current_state</span>, <span class="kw-2">&amp;</span><span class="ident">e</span>);
-                <span class="ident">errs</span>.<span class="ident">push</span>(<span class="ident">e</span>);
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                log_decryption_failure(<span class="kw-2">&amp;</span>current_state, <span class="kw-2">&amp;</span>e);
+                errs.push(e);
             }
         }
     }
 
-    <span class="comment">// Try some old sessions:</span>
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">updated_session</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+    <span class="comment">// Try some old sessions:
+    </span><span class="kw">let </span><span class="kw-2">mut </span>updated_session = <span class="prelude-val">None</span>;
 
-    <span class="kw">for</span> (<span class="ident">idx</span>, <span class="ident">previous</span>) <span class="kw">in</span> <span class="ident">record</span>.<span class="ident">previous_session_states</span>().<span class="ident">enumerate</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">previous</span> <span class="op">=</span> <span class="ident">previous</span><span class="question-mark">?</span>;
+    <span class="kw">for </span>(idx, previous) <span class="kw">in </span>record.previous_session_states().enumerate() {
+        <span class="kw">let </span><span class="kw-2">mut </span>previous = previous<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">decrypt_message_with_state</span>(
-            <span class="ident">CurrentOrPrevious::Previous</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">previous</span>,
-            <span class="ident">ciphertext</span>,
-            <span class="ident">original_message_type</span>,
-            <span class="ident">remote_address</span>,
-            <span class="ident">csprng</span>,
+        <span class="kw">let </span>result = decrypt_message_with_state(
+            CurrentOrPrevious::Previous,
+            <span class="kw-2">&amp;mut </span>previous,
+            ciphertext,
+            original_message_type,
+            remote_address,
+            csprng,
         );
 
-        <span class="kw">match</span> <span class="ident">result</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>) =&gt; {
+        <span class="kw">match </span>result {
+            <span class="prelude-val">Ok</span>(ptext) =&gt; {
                 <span class="macro">log::info!</span>(
                     <span class="string">&quot;decrypted {:?} message from {} with PREVIOUS session state (base key {})&quot;</span>,
-                    <span class="ident">original_message_type</span>,
-                    <span class="ident">remote_address</span>,
-                    <span class="ident">previous</span>
-                        .<span class="ident">sender_ratchet_key_for_logging</span>()
-                        .<span class="ident">expect</span>(<span class="string">&quot;successful decrypt always has a valid base key&quot;</span>),
+                    original_message_type,
+                    remote_address,
+                    previous
+                        .sender_ratchet_key_for_logging()
+                        .expect(<span class="string">&quot;successful decrypt always has a valid base key&quot;</span>),
                 );
-                <span class="ident">updated_session</span> <span class="op">=</span> <span class="prelude-val">Some</span>((<span class="ident">ptext</span>, <span class="ident">idx</span>, <span class="ident">previous</span>));
+                updated_session = <span class="prelude-val">Some</span>((ptext, idx, previous));
                 <span class="kw">break</span>;
             }
-            <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::DuplicatedMessage</span>(<span class="kw">_</span>, <span class="kw">_</span>)) =&gt; {
-                <span class="kw">return</span> <span class="ident">result</span>;
+            <span class="prelude-val">Err</span>(SignalProtocolError::DuplicatedMessage(<span class="kw">_</span>, <span class="kw">_</span>)) =&gt; {
+                <span class="kw">return </span>result;
             }
-            <span class="prelude-val">Err</span>(<span class="ident">e</span>) =&gt; {
-                <span class="ident">log_decryption_failure</span>(<span class="kw-2">&amp;</span><span class="ident">previous</span>, <span class="kw-2">&amp;</span><span class="ident">e</span>);
-                <span class="ident">errs</span>.<span class="ident">push</span>(<span class="ident">e</span>);
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                log_decryption_failure(<span class="kw-2">&amp;</span>previous, <span class="kw-2">&amp;</span>e);
+                errs.push(e);
             }
         }
     }
 
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">ptext</span>, <span class="ident">idx</span>, <span class="ident">updated_session</span>)) <span class="op">=</span> <span class="ident">updated_session</span> {
-        <span class="ident">record</span>.<span class="ident">promote_old_session</span>(<span class="ident">idx</span>, <span class="ident">updated_session</span>);
-        <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>)
-    } <span class="kw">else</span> {
-        <span class="kw">let</span> <span class="ident">previous_state_count</span> <span class="op">=</span> <span class="op">|</span><span class="op">|</span> <span class="ident">record</span>.<span class="ident">previous_session_states</span>().<span class="ident">len</span>();
+    <span class="kw">if let </span><span class="prelude-val">Some</span>((ptext, idx, updated_session)) = updated_session {
+        record.promote_old_session(idx, updated_session);
+        <span class="prelude-val">Ok</span>(ptext)
+    } <span class="kw">else </span>{
+        <span class="kw">let </span>previous_state_count = || record.previous_session_states().len();
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">current_state</span>) <span class="op">=</span> <span class="ident">record</span>.<span class="ident">session_state</span>() {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(current_state) = record.session_state() {
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;No valid session for recipient: {}, current session base key {}, number of previous states: {}&quot;</span>,
-                <span class="ident">remote_address</span>,
-                <span class="ident">current_state</span>.<span class="ident">sender_ratchet_key_for_logging</span>()
-                .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, <span class="ident">e</span>)),
-                <span class="ident">previous_state_count</span>(),
+                remote_address,
+                current_state.sender_ratchet_key_for_logging()
+                .unwrap_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e)),
+                previous_state_count(),
             );
-        } <span class="kw">else</span> {
+        } <span class="kw">else </span>{
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;No valid session for recipient: {}, (no current session state), number of previous states: {}&quot;</span>,
-                <span class="ident">remote_address</span>,
-                <span class="ident">previous_state_count</span>(),
+                remote_address,
+                previous_state_count(),
             );
         }
         <span class="macro">log::error!</span>(
             <span class="string">&quot;{}&quot;</span>,
-            <span class="ident">create_decryption_failure_log</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">errs</span>, <span class="ident">record</span>, <span class="ident">ciphertext</span>)<span class="question-mark">?</span>
-        );
-        <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-            <span class="ident">original_message_type</span>,
+            create_decryption_failure_log(remote_address, <span class="kw-2">&amp;</span>errs, record, ciphertext)<span class="question-mark">?
+        </span>);
+        <span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+            original_message_type,
             <span class="string">&quot;decryption failed&quot;</span>,
         ))
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Copy</span>)]</span>
-<span class="kw">enum</span> <span class="ident">CurrentOrPrevious</span> {
-    <span class="ident">Current</span>,
-    <span class="ident">Previous</span>,
+<span class="attribute">#[derive(Clone, Copy)]
+</span><span class="kw">enum </span>CurrentOrPrevious {
+    Current,
+    Previous,
 }
 
-<span class="kw">impl</span> <span class="ident">std::fmt::Display</span> <span class="kw">for</span> <span class="ident">CurrentOrPrevious</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">std::fmt::Result</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident"><span class="self">Self</span>::Current</span> =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;current&quot;</span>),
-            <span class="ident"><span class="self">Self</span>::Previous</span> =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;previous&quot;</span>),
+<span class="kw">impl </span>std::fmt::Display <span class="kw">for </span>CurrentOrPrevious {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::Current =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;current&quot;</span>),
+            <span class="self">Self</span>::Previous =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;previous&quot;</span>),
         }
     }
 }
 
-<span class="kw">fn</span> <span class="ident">decrypt_message_with_state</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">current_or_previous</span>: <span class="ident">CurrentOrPrevious</span>,
-    <span class="ident">state</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SessionState</span>,
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span><span class="ident">SignalMessage</span>,
-    <span class="ident">original_message_type</span>: <span class="ident">CiphertextMessageType</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">state</span>.<span class="ident">has_sender_chain</span>()<span class="question-mark">?</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-            <span class="ident">original_message_type</span>,
+<span class="kw">fn </span>decrypt_message_with_state&lt;R: Rng + CryptoRng&gt;(
+    current_or_previous: CurrentOrPrevious,
+    state: <span class="kw-2">&amp;mut </span>SessionState,
+    ciphertext: <span class="kw-2">&amp;</span>SignalMessage,
+    original_message_type: CiphertextMessageType,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+    <span class="kw">if </span>!state.has_sender_chain()<span class="question-mark">? </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+            original_message_type,
             <span class="string">&quot;No session available to decrypt&quot;</span>,
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">ciphertext_version</span> <span class="op">=</span> <span class="ident">ciphertext</span>.<span class="ident">message_version</span>() <span class="kw">as</span> <span class="ident">u32</span>;
-    <span class="kw">if</span> <span class="ident">ciphertext_version</span> <span class="op">!</span><span class="op">=</span> <span class="ident">state</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::UnrecognizedMessageVersion</span>(
-            <span class="ident">ciphertext_version</span>,
+    <span class="kw">let </span>ciphertext_version = ciphertext.message_version() <span class="kw">as </span>u32;
+    <span class="kw">if </span>ciphertext_version != state.session_version()<span class="question-mark">? </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::UnrecognizedMessageVersion(
+            ciphertext_version,
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">their_ephemeral</span> <span class="op">=</span> <span class="ident">ciphertext</span>.<span class="ident">sender_ratchet_key</span>();
-    <span class="kw">let</span> <span class="ident">counter</span> <span class="op">=</span> <span class="ident">ciphertext</span>.<span class="ident">counter</span>();
-    <span class="kw">let</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">get_or_create_chain_key</span>(<span class="ident">state</span>, <span class="ident">their_ephemeral</span>, <span class="ident">remote_address</span>, <span class="ident">csprng</span>)<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">message_keys</span> <span class="op">=</span> <span class="ident">get_or_create_message_key</span>(
-        <span class="ident">state</span>,
-        <span class="ident">their_ephemeral</span>,
-        <span class="ident">remote_address</span>,
-        <span class="ident">original_message_type</span>,
-        <span class="kw-2">&amp;</span><span class="ident">chain_key</span>,
-        <span class="ident">counter</span>,
+    <span class="kw">let </span>their_ephemeral = ciphertext.sender_ratchet_key();
+    <span class="kw">let </span>counter = ciphertext.counter();
+    <span class="kw">let </span>chain_key = get_or_create_chain_key(state, their_ephemeral, remote_address, csprng)<span class="question-mark">?</span>;
+    <span class="kw">let </span>message_keys = get_or_create_message_key(
+        state,
+        their_ephemeral,
+        remote_address,
+        original_message_type,
+        <span class="kw-2">&amp;</span>chain_key,
+        counter,
     )<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">their_identity_key</span> <span class="op">=</span>
-        <span class="ident">state</span>
-            .<span class="ident">remote_identity_key</span>()<span class="question-mark">?</span>
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidSessionStructure</span>(
+    <span class="kw">let </span>their_identity_key =
+        state
+            .remote_identity_key()<span class="question-mark">?
+            </span>.ok_or(SignalProtocolError::InvalidSessionStructure(
                 <span class="string">&quot;cannot decrypt without remote identity key&quot;</span>,
             ))<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">mac_valid</span> <span class="op">=</span> <span class="ident">ciphertext</span>.<span class="ident">verify_mac</span>(
-        <span class="kw-2">&amp;</span><span class="ident">their_identity_key</span>,
-        <span class="kw-2">&amp;</span><span class="ident">state</span>.<span class="ident">local_identity_key</span>()<span class="question-mark">?</span>,
-        <span class="ident">message_keys</span>.<span class="ident">mac_key</span>(),
+    <span class="kw">let </span>mac_valid = ciphertext.verify_mac(
+        <span class="kw-2">&amp;</span>their_identity_key,
+        <span class="kw-2">&amp;</span>state.local_identity_key()<span class="question-mark">?</span>,
+        message_keys.mac_key(),
     )<span class="question-mark">?</span>;
 
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">mac_valid</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-            <span class="ident">original_message_type</span>,
+    <span class="kw">if </span>!mac_valid {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+            original_message_type,
             <span class="string">&quot;MAC verification failed&quot;</span>,
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">ptext</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">crypto::aes_256_cbc_decrypt</span>(
-        <span class="ident">ciphertext</span>.<span class="ident">body</span>(),
-        <span class="ident">message_keys</span>.<span class="ident">cipher_key</span>(),
-        <span class="ident">message_keys</span>.<span class="ident">iv</span>(),
+    <span class="kw">let </span>ptext = <span class="kw">match </span>crypto::aes_256_cbc_decrypt(
+        ciphertext.body(),
+        message_keys.cipher_key(),
+        message_keys.iv(),
     ) {
-        <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>) =&gt; <span class="ident">ptext</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">crypto::DecryptionError::BadKeyOrIv</span>) =&gt; {
+        <span class="prelude-val">Ok</span>(ptext) =&gt; ptext,
+        <span class="prelude-val">Err</span>(crypto::DecryptionError::BadKeyOrIv) =&gt; {
             <span class="macro">log::warn!</span>(
                 <span class="string">&quot;{} session state corrupt for {}&quot;</span>,
-                <span class="ident">current_or_previous</span>,
-                <span class="ident">remote_address</span>,
+                current_or_previous,
+                remote_address,
             );
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidSessionStructure</span>(
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidSessionStructure(
                 <span class="string">&quot;invalid receiver chain message keys&quot;</span>,
             ));
         }
-        <span class="prelude-val">Err</span>(<span class="ident">crypto::DecryptionError::BadCiphertext</span>(<span class="ident">msg</span>)) =&gt; {
-            <span class="macro">log::warn!</span>(<span class="string">&quot;failed to decrypt 1:1 message: {}&quot;</span>, <span class="ident">msg</span>);
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-                <span class="ident">original_message_type</span>,
+        <span class="prelude-val">Err</span>(crypto::DecryptionError::BadCiphertext(msg)) =&gt; {
+            <span class="macro">log::warn!</span>(<span class="string">&quot;failed to decrypt 1:1 message: {}&quot;</span>, msg);
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+                original_message_type,
                 <span class="string">&quot;failed to decrypt&quot;</span>,
             ));
         }
     };
 
-    <span class="ident">state</span>.<span class="ident">clear_unacknowledged_pre_key_message</span>();
+    state.clear_unacknowledged_pre_key_message();
 
-    <span class="prelude-val">Ok</span>(<span class="ident">ptext</span>)
+    <span class="prelude-val">Ok</span>(ptext)
 }
 
-<span class="kw">fn</span> <span class="ident">get_or_create_chain_key</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">state</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SessionState</span>,
-    <span class="ident">their_ephemeral</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ChainKey</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">chain</span>) <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_receiver_chain_key</span>(<span class="ident">their_ephemeral</span>)<span class="question-mark">?</span> {
-        <span class="macro">log::debug!</span>(<span class="string">&quot;{} has existing receiver chain.&quot;</span>, <span class="ident">remote_address</span>);
-        <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">chain</span>);
+<span class="kw">fn </span>get_or_create_chain_key&lt;R: Rng + CryptoRng&gt;(
+    state: <span class="kw-2">&amp;mut </span>SessionState,
+    their_ephemeral: <span class="kw-2">&amp;</span>PublicKey,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+) -&gt; <span class="prelude-ty">Result</span>&lt;ChainKey&gt; {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(chain) = state.get_receiver_chain_key(their_ephemeral)<span class="question-mark">? </span>{
+        <span class="macro">log::debug!</span>(<span class="string">&quot;{} has existing receiver chain.&quot;</span>, remote_address);
+        <span class="kw">return </span><span class="prelude-val">Ok</span>(chain);
     }
 
-    <span class="macro">log::info!</span>(<span class="string">&quot;{} creating new chains.&quot;</span>, <span class="ident">remote_address</span>);
+    <span class="macro">log::info!</span>(<span class="string">&quot;{} creating new chains.&quot;</span>, remote_address);
 
-    <span class="kw">let</span> <span class="ident">root_key</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">root_key</span>()<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">our_ephemeral</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">sender_ratchet_private_key</span>()<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">receiver_chain</span> <span class="op">=</span> <span class="ident">root_key</span>.<span class="ident">create_chain</span>(<span class="ident">their_ephemeral</span>, <span class="kw-2">&amp;</span><span class="ident">our_ephemeral</span>)<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">our_new_ephemeral</span> <span class="op">=</span> <span class="ident">KeyPair::generate</span>(<span class="ident">csprng</span>);
-    <span class="kw">let</span> <span class="ident">sender_chain</span> <span class="op">=</span> <span class="ident">receiver_chain</span>
-        .<span class="number">0</span>
-        .<span class="ident">create_chain</span>(<span class="ident">their_ephemeral</span>, <span class="kw-2">&amp;</span><span class="ident">our_new_ephemeral</span>.<span class="ident">private_key</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>root_key = state.root_key()<span class="question-mark">?</span>;
+    <span class="kw">let </span>our_ephemeral = state.sender_ratchet_private_key()<span class="question-mark">?</span>;
+    <span class="kw">let </span>receiver_chain = root_key.create_chain(their_ephemeral, <span class="kw-2">&amp;</span>our_ephemeral)<span class="question-mark">?</span>;
+    <span class="kw">let </span>our_new_ephemeral = KeyPair::generate(csprng);
+    <span class="kw">let </span>sender_chain = receiver_chain
+        .<span class="number">0
+        </span>.create_chain(their_ephemeral, <span class="kw-2">&amp;</span>our_new_ephemeral.private_key)<span class="question-mark">?</span>;
 
-    <span class="ident">state</span>.<span class="ident">set_root_key</span>(<span class="kw-2">&amp;</span><span class="ident">sender_chain</span>.<span class="number">0</span>);
-    <span class="ident">state</span>.<span class="ident">add_receiver_chain</span>(<span class="ident">their_ephemeral</span>, <span class="kw-2">&amp;</span><span class="ident">receiver_chain</span>.<span class="number">1</span>);
+    state.set_root_key(<span class="kw-2">&amp;</span>sender_chain.<span class="number">0</span>);
+    state.add_receiver_chain(their_ephemeral, <span class="kw-2">&amp;</span>receiver_chain.<span class="number">1</span>);
 
-    <span class="kw">let</span> <span class="ident">current_index</span> <span class="op">=</span> <span class="ident">state</span>.<span class="ident">get_sender_chain_key</span>()<span class="question-mark">?</span>.<span class="ident">index</span>();
-    <span class="kw">let</span> <span class="ident">previous_index</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">current_index</span> <span class="op">&gt;</span> <span class="number">0</span> {
-        <span class="ident">current_index</span> <span class="op">-</span> <span class="number">1</span>
-    } <span class="kw">else</span> {
-        <span class="number">0</span>
-    };
-    <span class="ident">state</span>.<span class="ident">set_previous_counter</span>(<span class="ident">previous_index</span>);
-    <span class="ident">state</span>.<span class="ident">set_sender_chain</span>(<span class="kw-2">&amp;</span><span class="ident">our_new_ephemeral</span>, <span class="kw-2">&amp;</span><span class="ident">sender_chain</span>.<span class="number">1</span>);
+    <span class="kw">let </span>current_index = state.get_sender_chain_key()<span class="question-mark">?</span>.index();
+    <span class="kw">let </span>previous_index = <span class="kw">if </span>current_index &gt; <span class="number">0 </span>{
+        current_index - <span class="number">1
+    </span>} <span class="kw">else </span>{
+        <span class="number">0
+    </span>};
+    state.set_previous_counter(previous_index);
+    state.set_sender_chain(<span class="kw-2">&amp;</span>our_new_ephemeral, <span class="kw-2">&amp;</span>sender_chain.<span class="number">1</span>);
 
-    <span class="prelude-val">Ok</span>(<span class="ident">receiver_chain</span>.<span class="number">1</span>)
+    <span class="prelude-val">Ok</span>(receiver_chain.<span class="number">1</span>)
 }
 
-<span class="kw">fn</span> <span class="ident">get_or_create_message_key</span>(
-    <span class="ident">state</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SessionState</span>,
-    <span class="ident">their_ephemeral</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">original_message_type</span>: <span class="ident">CiphertextMessageType</span>,
-    <span class="ident">chain_key</span>: <span class="kw-2">&amp;</span><span class="ident">ChainKey</span>,
-    <span class="ident">counter</span>: <span class="ident">u32</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">MessageKeys</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">chain_index</span> <span class="op">=</span> <span class="ident">chain_key</span>.<span class="ident">index</span>();
+<span class="kw">fn </span>get_or_create_message_key(
+    state: <span class="kw-2">&amp;mut </span>SessionState,
+    their_ephemeral: <span class="kw-2">&amp;</span>PublicKey,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    original_message_type: CiphertextMessageType,
+    chain_key: <span class="kw-2">&amp;</span>ChainKey,
+    counter: u32,
+) -&gt; <span class="prelude-ty">Result</span>&lt;MessageKeys&gt; {
+    <span class="kw">let </span>chain_index = chain_key.index();
 
-    <span class="kw">if</span> <span class="ident">chain_index</span> <span class="op">&gt;</span> <span class="ident">counter</span> {
-        <span class="kw">return</span> <span class="kw">match</span> <span class="ident">state</span>.<span class="ident">get_message_keys</span>(<span class="ident">their_ephemeral</span>, <span class="ident">counter</span>)<span class="question-mark">?</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">keys</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">keys</span>),
-            <span class="prelude-val">None</span> =&gt; {
+    <span class="kw">if </span>chain_index &gt; counter {
+        <span class="kw">return match </span>state.get_message_keys(their_ephemeral, counter)<span class="question-mark">? </span>{
+            <span class="prelude-val">Some</span>(keys) =&gt; <span class="prelude-val">Ok</span>(keys),
+            <span class="prelude-val">None </span>=&gt; {
                 <span class="macro">log::info!</span>(
                     <span class="string">&quot;{} Duplicate message for counter: {}&quot;</span>,
-                    <span class="ident">remote_address</span>,
-                    <span class="ident">counter</span>
+                    remote_address,
+                    counter
                 );
-                <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::DuplicatedMessage</span>(<span class="ident">chain_index</span>, <span class="ident">counter</span>))
+                <span class="prelude-val">Err</span>(SignalProtocolError::DuplicatedMessage(chain_index, counter))
             }
         };
     }
 
-    <span class="macro">assert!</span>(<span class="ident">chain_index</span> <span class="op">&lt;</span><span class="op">=</span> <span class="ident">counter</span>);
+    <span class="macro">assert!</span>(chain_index &lt;= counter);
 
-    <span class="kw">let</span> <span class="ident">jump</span> <span class="op">=</span> (<span class="ident">counter</span> <span class="op">-</span> <span class="ident">chain_index</span>) <span class="kw">as</span> <span class="ident">usize</span>;
+    <span class="kw">let </span>jump = (counter - chain_index) <span class="kw">as </span>usize;
 
-    <span class="kw">if</span> <span class="ident">jump</span> <span class="op">&gt;</span> <span class="ident">MAX_FORWARD_JUMPS</span> {
-        <span class="kw">if</span> <span class="ident">state</span>.<span class="ident">session_with_self</span>()<span class="question-mark">?</span> {
+    <span class="kw">if </span>jump &gt; MAX_FORWARD_JUMPS {
+        <span class="kw">if </span>state.session_with_self()<span class="question-mark">? </span>{
             <span class="macro">log::info!</span>(
                 <span class="string">&quot;{} Jumping ahead {} messages (index: {}, counter: {})&quot;</span>,
-                <span class="ident">remote_address</span>,
-                <span class="ident">jump</span>,
-                <span class="ident">chain_index</span>,
-                <span class="ident">counter</span>
+                remote_address,
+                jump,
+                chain_index,
+                counter
             );
-        } <span class="kw">else</span> {
+        } <span class="kw">else </span>{
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;{} Exceeded future message limit: {}, index: {}, counter: {})&quot;</span>,
-                <span class="ident">remote_address</span>,
-                <span class="ident">MAX_FORWARD_JUMPS</span>,
-                <span class="ident">chain_index</span>,
-                <span class="ident">counter</span>
+                remote_address,
+                MAX_FORWARD_JUMPS,
+                chain_index,
+                counter
             );
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-                <span class="ident">original_message_type</span>,
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+                original_message_type,
                 <span class="string">&quot;message from too far into the future&quot;</span>,
             ));
         }
     }
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">chain_key</span>.<span class="ident">clone</span>();
+    <span class="kw">let </span><span class="kw-2">mut </span>chain_key = chain_key.clone();
 
-    <span class="kw">while</span> <span class="ident">chain_key</span>.<span class="ident">index</span>() <span class="op">&lt;</span> <span class="ident">counter</span> {
-        <span class="kw">let</span> <span class="ident">message_keys</span> <span class="op">=</span> <span class="ident">chain_key</span>.<span class="ident">message_keys</span>();
-        <span class="ident">state</span>.<span class="ident">set_message_keys</span>(<span class="ident">their_ephemeral</span>, <span class="kw-2">&amp;</span><span class="ident">message_keys</span>)<span class="question-mark">?</span>;
-        <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">chain_key</span>.<span class="ident">next_chain_key</span>();
+    <span class="kw">while </span>chain_key.index() &lt; counter {
+        <span class="kw">let </span>message_keys = chain_key.message_keys();
+        state.set_message_keys(their_ephemeral, <span class="kw-2">&amp;</span>message_keys)<span class="question-mark">?</span>;
+        chain_key = chain_key.next_chain_key();
     }
 
-    <span class="ident">state</span>.<span class="ident">set_receiver_chain_key</span>(<span class="ident">their_ephemeral</span>, <span class="kw-2">&amp;</span><span class="ident">chain_key</span>.<span class="ident">next_chain_key</span>())<span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>(<span class="ident">chain_key</span>.<span class="ident">message_keys</span>())
+    state.set_receiver_chain_key(their_ephemeral, <span class="kw-2">&amp;</span>chain_key.next_chain_key())<span class="question-mark">?</span>;
+    <span class="prelude-val">Ok</span>(chain_key.message_keys())
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

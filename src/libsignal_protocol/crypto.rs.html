@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/crypto.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>crypto.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/crypto.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>crypto.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -154,161 +154,161 @@
 <span id="154">154</span>
 <span id="155">155</span>
 <span id="156">156</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="ident">std::convert::TryInto</span>;
-<span class="kw">use</span> <span class="ident">std::result::Result</span>;
+</span><span class="kw">use </span>std::convert::TryInto;
+<span class="kw">use </span>std::result::Result;
 
-<span class="kw">use</span> <span class="ident">aes::cipher</span>::{<span class="ident">NewCipher</span>, <span class="ident">StreamCipher</span>};
-<span class="kw">use</span> <span class="ident">aes</span>::{<span class="ident">Aes256</span>, <span class="ident">Aes256Ctr</span>};
-<span class="kw">use</span> <span class="ident">block_modes::block_padding::Pkcs7</span>;
-<span class="kw">use</span> <span class="ident">block_modes</span>::{<span class="ident">BlockMode</span>, <span class="ident">Cbc</span>};
-<span class="kw">use</span> <span class="ident">hmac</span>::{<span class="ident">Hmac</span>, <span class="ident">Mac</span>, <span class="ident">NewMac</span>};
-<span class="kw">use</span> <span class="ident">sha2::Sha256</span>;
-<span class="kw">use</span> <span class="ident">subtle::ConstantTimeEq</span>;
+<span class="kw">use </span>aes::cipher::{NewCipher, StreamCipher};
+<span class="kw">use </span>aes::{Aes256, Aes256Ctr};
+<span class="kw">use </span>block_modes::block_padding::Pkcs7;
+<span class="kw">use </span>block_modes::{BlockMode, Cbc};
+<span class="kw">use </span>hmac::{Hmac, Mac, NewMac};
+<span class="kw">use </span>sha2::Sha256;
+<span class="kw">use </span>subtle::ConstantTimeEq;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum</span> <span class="ident">EncryptionError</span> {
-    <span class="doccomment">/// The key or IV is the wrong length.</span>
-    <span class="ident">BadKeyOrIv</span>,
+<span class="attribute">#[derive(Debug)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>EncryptionError {
+    <span class="doccomment">/// The key or IV is the wrong length.
+    </span>BadKeyOrIv,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum</span> <span class="ident">DecryptionError</span> {
-    <span class="doccomment">/// The key or IV is the wrong length.</span>
-    <span class="ident">BadKeyOrIv</span>,
-    <span class="doccomment">/// Either the input is malformed, or the MAC doesn&#39;t match on decryption.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// These cases should not be distinguished; message corruption can cause either problem.</span>
-    <span class="ident">BadCiphertext</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>),
+<span class="attribute">#[derive(Debug)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">enum </span>DecryptionError {
+    <span class="doccomment">/// The key or IV is the wrong length.
+    </span>BadKeyOrIv,
+    <span class="doccomment">/// Either the input is malformed, or the MAC doesn&#39;t match on decryption.
+    ///
+    /// These cases should not be distinguished; message corruption can cause either problem.
+    </span>BadCiphertext(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str),
 }
 
-<span class="kw">fn</span> <span class="ident">aes_256_ctr_encrypt</span>(<span class="ident">ptext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">EncryptionError</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">key</span>: [<span class="ident">u8</span>; <span class="number">32</span>] <span class="op">=</span> <span class="ident">key</span>.<span class="ident">try_into</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">EncryptionError::BadKeyOrIv</span>)<span class="question-mark">?</span>;
+<span class="kw">fn </span>aes_256_ctr_encrypt(ptext: <span class="kw-2">&amp;</span>[u8], key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, EncryptionError&gt; {
+    <span class="kw">let </span>key: [u8; <span class="number">32</span>] = key.try_into().map_err(|<span class="kw">_</span>| EncryptionError::BadKeyOrIv)<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">zero_nonce</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">Aes256Ctr::new</span>(<span class="ident">key</span>[..].<span class="ident">into</span>(), <span class="ident">zero_nonce</span>[..].<span class="ident">into</span>());
+    <span class="kw">let </span>zero_nonce = [<span class="number">0u8</span>; <span class="number">16</span>];
+    <span class="kw">let </span><span class="kw-2">mut </span>cipher = Aes256Ctr::new(key[..].into(), zero_nonce[..].into());
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">ptext</span>.<span class="ident">to_vec</span>();
-    <span class="ident">cipher</span>.<span class="ident">apply_keystream</span>(<span class="kw-2">&amp;mut</span> <span class="ident">ctext</span>);
-    <span class="prelude-val">Ok</span>(<span class="ident">ctext</span>)
+    <span class="kw">let </span><span class="kw-2">mut </span>ctext = ptext.to_vec();
+    cipher.apply_keystream(<span class="kw-2">&amp;mut </span>ctext);
+    <span class="prelude-val">Ok</span>(ctext)
 }
 
-<span class="kw">fn</span> <span class="ident">aes_256_ctr_decrypt</span>(<span class="ident">ctext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">DecryptionError</span><span class="op">&gt;</span> {
-    <span class="ident">aes_256_ctr_encrypt</span>(<span class="ident">ctext</span>, <span class="ident">key</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">e</span> {
-        <span class="ident">EncryptionError::BadKeyOrIv</span> =&gt; <span class="ident">DecryptionError::BadKeyOrIv</span>,
+<span class="kw">fn </span>aes_256_ctr_decrypt(ctext: <span class="kw-2">&amp;</span>[u8], key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, DecryptionError&gt; {
+    aes_256_ctr_encrypt(ctext, key).map_err(|e| <span class="kw">match </span>e {
+        EncryptionError::BadKeyOrIv =&gt; DecryptionError::BadKeyOrIv,
     })
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">aes_256_cbc_encrypt</span>(
-    <span class="ident">ptext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">iv</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">EncryptionError</span><span class="op">&gt;</span> {
-    <span class="kw">match</span> <span class="ident">Cbc</span>::<span class="op">&lt;</span><span class="ident">Aes256</span>, <span class="ident">Pkcs7</span><span class="op">&gt;</span><span class="ident">::new_from_slices</span>(<span class="ident">key</span>, <span class="ident">iv</span>) {
-        <span class="prelude-val">Ok</span>(<span class="ident">mode</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">mode</span>.<span class="ident">encrypt_vec</span>(<span class="ident">ptext</span>)),
-        <span class="prelude-val">Err</span>(<span class="ident">block_modes::InvalidKeyIvLength</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">EncryptionError::BadKeyOrIv</span>),
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>aes_256_cbc_encrypt(
+    ptext: <span class="kw-2">&amp;</span>[u8],
+    key: <span class="kw-2">&amp;</span>[u8],
+    iv: <span class="kw-2">&amp;</span>[u8],
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, EncryptionError&gt; {
+    <span class="kw">match </span>Cbc::&lt;Aes256, Pkcs7&gt;::new_from_slices(key, iv) {
+        <span class="prelude-val">Ok</span>(mode) =&gt; <span class="prelude-val">Ok</span>(mode.encrypt_vec(ptext)),
+        <span class="prelude-val">Err</span>(block_modes::InvalidKeyIvLength) =&gt; <span class="prelude-val">Err</span>(EncryptionError::BadKeyOrIv),
     }
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">aes_256_cbc_decrypt</span>(
-    <span class="ident">ctext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">iv</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">DecryptionError</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">ctext</span>.<span class="ident">is_empty</span>() <span class="op">|</span><span class="op">|</span> <span class="ident">ctext</span>.<span class="ident">len</span>() <span class="op">%</span> <span class="number">16</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">DecryptionError::BadCiphertext</span>(
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>aes_256_cbc_decrypt(
+    ctext: <span class="kw-2">&amp;</span>[u8],
+    key: <span class="kw-2">&amp;</span>[u8],
+    iv: <span class="kw-2">&amp;</span>[u8],
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, DecryptionError&gt; {
+    <span class="kw">if </span>ctext.is_empty() || ctext.len() % <span class="number">16 </span>!= <span class="number">0 </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(DecryptionError::BadCiphertext(
             <span class="string">&quot;ciphertext length must be a non-zero multiple of 16&quot;</span>,
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">mode</span> <span class="op">=</span>
-        <span class="ident">Cbc</span>::<span class="op">&lt;</span><span class="ident">Aes256</span>, <span class="ident">Pkcs7</span><span class="op">&gt;</span><span class="ident">::new_from_slices</span>(<span class="ident">key</span>, <span class="ident">iv</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">DecryptionError::BadKeyOrIv</span>)<span class="question-mark">?</span>;
-    <span class="ident">mode</span>.<span class="ident">decrypt_vec</span>(<span class="ident">ctext</span>)
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">DecryptionError::BadCiphertext</span>(<span class="string">&quot;failed to decrypt&quot;</span>))
+    <span class="kw">let </span>mode =
+        Cbc::&lt;Aes256, Pkcs7&gt;::new_from_slices(key, iv).map_err(|<span class="kw">_</span>| DecryptionError::BadKeyOrIv)<span class="question-mark">?</span>;
+    mode.decrypt_vec(ctext)
+        .map_err(|<span class="kw">_</span>| DecryptionError::BadCiphertext(<span class="string">&quot;failed to decrypt&quot;</span>))
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">hmac_sha256</span>(<span class="ident">key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">input</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; [<span class="ident">u8</span>; <span class="number">32</span>] {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hmac</span> <span class="op">=</span>
-        <span class="ident">Hmac</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span><span class="ident">::new_from_slice</span>(<span class="ident">key</span>).<span class="ident">expect</span>(<span class="string">&quot;HMAC-SHA256 should accept any size key&quot;</span>);
-    <span class="ident">hmac</span>.<span class="ident">update</span>(<span class="ident">input</span>);
-    <span class="ident">hmac</span>.<span class="ident">finalize</span>().<span class="ident">into_bytes</span>().<span class="ident">into</span>()
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>hmac_sha256(key: <span class="kw-2">&amp;</span>[u8], input: <span class="kw-2">&amp;</span>[u8]) -&gt; [u8; <span class="number">32</span>] {
+    <span class="kw">let </span><span class="kw-2">mut </span>hmac =
+        Hmac::&lt;Sha256&gt;::new_from_slice(key).expect(<span class="string">&quot;HMAC-SHA256 should accept any size key&quot;</span>);
+    hmac.update(input);
+    hmac.finalize().into_bytes().into()
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">aes256_ctr_hmacsha256_encrypt</span>(
-    <span class="ident">msg</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">cipher_key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">mac_key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">EncryptionError</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">aes_256_ctr_encrypt</span>(<span class="ident">msg</span>, <span class="ident">cipher_key</span>)<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">mac</span> <span class="op">=</span> <span class="ident">hmac_sha256</span>(<span class="ident">mac_key</span>, <span class="kw-2">&amp;</span><span class="ident">ctext</span>);
-    <span class="ident">ctext</span>.<span class="ident">extend_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">mac</span>[..<span class="number">10</span>]);
-    <span class="prelude-val">Ok</span>(<span class="ident">ctext</span>)
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>aes256_ctr_hmacsha256_encrypt(
+    msg: <span class="kw-2">&amp;</span>[u8],
+    cipher_key: <span class="kw-2">&amp;</span>[u8],
+    mac_key: <span class="kw-2">&amp;</span>[u8],
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, EncryptionError&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>ctext = aes_256_ctr_encrypt(msg, cipher_key)<span class="question-mark">?</span>;
+    <span class="kw">let </span>mac = hmac_sha256(mac_key, <span class="kw-2">&amp;</span>ctext);
+    ctext.extend_from_slice(<span class="kw-2">&amp;</span>mac[..<span class="number">10</span>]);
+    <span class="prelude-val">Ok</span>(ctext)
 }
 
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">aes256_ctr_hmacsha256_decrypt</span>(
-    <span class="ident">ctext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">cipher_key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">mac_key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">DecryptionError</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">ctext</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="number">10</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">DecryptionError::BadCiphertext</span>(<span class="string">&quot;truncated ciphertext&quot;</span>));
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>aes256_ctr_hmacsha256_decrypt(
+    ctext: <span class="kw-2">&amp;</span>[u8],
+    cipher_key: <span class="kw-2">&amp;</span>[u8],
+    mac_key: <span class="kw-2">&amp;</span>[u8],
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, DecryptionError&gt; {
+    <span class="kw">if </span>ctext.len() &lt; <span class="number">10 </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(DecryptionError::BadCiphertext(<span class="string">&quot;truncated ciphertext&quot;</span>));
     }
-    <span class="kw">let</span> <span class="ident">ptext_len</span> <span class="op">=</span> <span class="ident">ctext</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">10</span>;
-    <span class="kw">let</span> <span class="ident">our_mac</span> <span class="op">=</span> <span class="ident">hmac_sha256</span>(<span class="ident">mac_key</span>, <span class="kw-2">&amp;</span><span class="ident">ctext</span>[..<span class="ident">ptext_len</span>]);
-    <span class="kw">let</span> <span class="ident">same</span>: <span class="ident">bool</span> <span class="op">=</span> <span class="ident">our_mac</span>[..<span class="number">10</span>].<span class="ident">ct_eq</span>(<span class="kw-2">&amp;</span><span class="ident">ctext</span>[<span class="ident">ptext_len</span>..]).<span class="ident">into</span>();
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">same</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">DecryptionError::BadCiphertext</span>(<span class="string">&quot;MAC verification failed&quot;</span>));
+    <span class="kw">let </span>ptext_len = ctext.len() - <span class="number">10</span>;
+    <span class="kw">let </span>our_mac = hmac_sha256(mac_key, <span class="kw-2">&amp;</span>ctext[..ptext_len]);
+    <span class="kw">let </span>same: bool = our_mac[..<span class="number">10</span>].ct_eq(<span class="kw-2">&amp;</span>ctext[ptext_len..]).into();
+    <span class="kw">if </span>!same {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(DecryptionError::BadCiphertext(<span class="string">&quot;MAC verification failed&quot;</span>));
     }
-    <span class="ident">aes_256_ctr_decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">ctext</span>[..<span class="ident">ptext_len</span>], <span class="ident">cipher_key</span>)
+    aes_256_ctr_decrypt(<span class="kw-2">&amp;</span>ctext[..ptext_len], cipher_key)
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>test {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">aes_cbc_test</span>() {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">hex::decode</span>(<span class="string">&quot;4e22eb16d964779994222e82192ce9f747da72dc4abe49dfdeeb71d0ffe3796e&quot;</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>);
-        <span class="kw">let</span> <span class="ident">iv</span> <span class="op">=</span> <span class="ident">hex::decode</span>(<span class="string">&quot;6f8a557ddc0a140c878063a6d5f31d3d&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>aes_cbc_test() {
+        <span class="kw">let </span>key = hex::decode(<span class="string">&quot;4e22eb16d964779994222e82192ce9f747da72dc4abe49dfdeeb71d0ffe3796e&quot;</span>)
+            .expect(<span class="string">&quot;valid hex&quot;</span>);
+        <span class="kw">let </span>iv = hex::decode(<span class="string">&quot;6f8a557ddc0a140c878063a6d5f31d3d&quot;</span>).expect(<span class="string">&quot;valid hex&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">ptext</span> <span class="op">=</span> <span class="ident">hex::decode</span>(<span class="string">&quot;30736294a124482a4159&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>);
+        <span class="kw">let </span>ptext = hex::decode(<span class="string">&quot;30736294a124482a4159&quot;</span>).expect(<span class="string">&quot;valid hex&quot;</span>);
 
-        <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">aes_256_cbc_encrypt</span>(<span class="kw-2">&amp;</span><span class="ident">ptext</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">iv</span>).<span class="ident">expect</span>(<span class="string">&quot;valid key and IV&quot;</span>);
+        <span class="kw">let </span>ctext = aes_256_cbc_encrypt(<span class="kw-2">&amp;</span>ptext, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>iv).expect(<span class="string">&quot;valid key and IV&quot;</span>);
         <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">ctext</span>.<span class="ident">clone</span>()),
-            <span class="string">&quot;dd3f573ab4508b9ed0e45e0baf5608f3&quot;</span>
-        );
+            hex::encode(ctext.clone()),
+            <span class="string">&quot;dd3f573ab4508b9ed0e45e0baf5608f3&quot;
+        </span>);
 
-        <span class="kw">let</span> <span class="ident">recovered</span> <span class="op">=</span> <span class="ident">aes_256_cbc_decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">ctext</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">iv</span>).<span class="ident">expect</span>(<span class="string">&quot;valid&quot;</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">hex::encode</span>(<span class="ident">ptext</span>), <span class="ident">hex::encode</span>(<span class="ident">recovered</span>.<span class="ident">clone</span>()));
+        <span class="kw">let </span>recovered = aes_256_cbc_decrypt(<span class="kw-2">&amp;</span>ctext, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>iv).expect(<span class="string">&quot;valid&quot;</span>);
+        <span class="macro">assert_eq!</span>(hex::encode(ptext), hex::encode(recovered.clone()));
 
-        <span class="comment">// padding is invalid:</span>
-        <span class="macro">assert!</span>(<span class="ident">aes_256_cbc_decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">recovered</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">iv</span>).<span class="ident">is_err</span>());
-        <span class="macro">assert!</span>(<span class="ident">aes_256_cbc_decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">ctext</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">ctext</span>).<span class="ident">is_err</span>());
+        <span class="comment">// padding is invalid:
+        </span><span class="macro">assert!</span>(aes_256_cbc_decrypt(<span class="kw-2">&amp;</span>recovered, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>iv).is_err());
+        <span class="macro">assert!</span>(aes_256_cbc_decrypt(<span class="kw-2">&amp;</span>ctext, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>ctext).is_err());
 
-        <span class="comment">// bitflip the IV to cause a change in the recovered text</span>
-        <span class="kw">let</span> <span class="ident">bad_iv</span> <span class="op">=</span> <span class="ident">hex::decode</span>(<span class="string">&quot;ef8a557ddc0a140c878063a6d5f31d3d&quot;</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>);
-        <span class="kw">let</span> <span class="ident">recovered</span> <span class="op">=</span> <span class="ident">aes_256_cbc_decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">ctext</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="kw-2">&amp;</span><span class="ident">bad_iv</span>).<span class="ident">expect</span>(<span class="string">&quot;still valid&quot;</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">hex::encode</span>(<span class="ident">recovered</span>), <span class="string">&quot;b0736294a124482a4159&quot;</span>);
+        <span class="comment">// bitflip the IV to cause a change in the recovered text
+        </span><span class="kw">let </span>bad_iv = hex::decode(<span class="string">&quot;ef8a557ddc0a140c878063a6d5f31d3d&quot;</span>).expect(<span class="string">&quot;valid hex&quot;</span>);
+        <span class="kw">let </span>recovered = aes_256_cbc_decrypt(<span class="kw-2">&amp;</span>ctext, <span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>bad_iv).expect(<span class="string">&quot;still valid&quot;</span>);
+        <span class="macro">assert_eq!</span>(hex::encode(recovered), <span class="string">&quot;b0736294a124482a4159&quot;</span>);
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">aes_ctr_test</span>() {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">hex::decode</span>(<span class="string">&quot;603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4&quot;</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>);
-        <span class="kw">let</span> <span class="ident">ptext</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">35</span>];
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>aes_ctr_test() {
+        <span class="kw">let </span>key = hex::decode(<span class="string">&quot;603DEB1015CA71BE2B73AEF0857D77811F352C073B6108D72D9810A30914DFF4&quot;</span>)
+            .expect(<span class="string">&quot;valid hex&quot;</span>);
+        <span class="kw">let </span>ptext = [<span class="number">0u8</span>; <span class="number">35</span>];
 
-        <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">aes_256_ctr_encrypt</span>(<span class="kw-2">&amp;</span><span class="ident">ptext</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>).<span class="ident">expect</span>(<span class="string">&quot;valid key&quot;</span>);
+        <span class="kw">let </span>ctext = aes_256_ctr_encrypt(<span class="kw-2">&amp;</span>ptext, <span class="kw-2">&amp;</span>key).expect(<span class="string">&quot;valid key&quot;</span>);
         <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">ctext</span>),
-            <span class="string">&quot;e568f68194cf76d6174d4cc04310a85491151e5d0b7a1f1bc0d7acd0ae3e51e4170e23&quot;</span>
-        );
+            hex::encode(ctext),
+            <span class="string">&quot;e568f68194cf76d6174d4cc04310a85491151e5d0b7a1f1bc0d7acd0ae3e51e4170e23&quot;
+        </span>);
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

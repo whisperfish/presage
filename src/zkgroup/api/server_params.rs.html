@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/api/server_params.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>server_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/api/server_params.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>server_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -1265,1272 +1265,1272 @@
 <span id="1265">1265</span>
 <span id="1266">1266</span>
 <span id="1267">1267</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020-2022 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020-2022 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
+</span><span class="kw">use </span>serde::{Deserialize, Serialize};
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::constants</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::errors</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::sho</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::simple_types</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">api</span>, <span class="ident">crypto</span>};
+<span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::common::errors::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::common::sho::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::common::simple_types::<span class="kw-2">*</span>;
+<span class="kw">use crate</span>::{api, crypto};
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServerSecretParams</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">reserved</span>: <span class="ident">ReservedBytes</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">auth_credentials_key_pair</span>:
-        <span class="ident">crypto::credentials::KeyPair</span><span class="op">&lt;</span><span class="ident">crypto::credentials::AuthCredential</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">profile_key_credentials_key_pair</span>:
-        <span class="ident">crypto::credentials::KeyPair</span><span class="op">&lt;</span><span class="ident">crypto::credentials::ProfileKeyCredential</span><span class="op">&gt;</span>,
-    <span class="ident">sig_key_pair</span>: <span class="ident">crypto::signature::KeyPair</span>,
-    <span class="ident">receipt_credentials_key_pair</span>:
-        <span class="ident">crypto::credentials::KeyPair</span><span class="op">&lt;</span><span class="ident">crypto::credentials::ReceiptCredential</span><span class="op">&gt;</span>,
-    <span class="ident">pni_credentials_key_pair</span>: <span class="ident">crypto::credentials::KeyPair</span><span class="op">&lt;</span><span class="ident">crypto::credentials::PniCredential</span><span class="op">&gt;</span>,
-    <span class="ident">expiring_profile_key_credentials_key_pair</span>:
-        <span class="ident">crypto::credentials::KeyPair</span><span class="op">&lt;</span><span class="ident">crypto::credentials::ExpiringProfileKeyCredential</span><span class="op">&gt;</span>,
-    <span class="ident">auth_credentials_with_pni_key_pair</span>:
-        <span class="ident">crypto::credentials::KeyPair</span><span class="op">&lt;</span><span class="ident">crypto::credentials::AuthCredentialWithPni</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Copy, Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>ServerSecretParams {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) reserved: ReservedBytes,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) auth_credentials_key_pair:
+        crypto::credentials::KeyPair&lt;crypto::credentials::AuthCredential&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) profile_key_credentials_key_pair:
+        crypto::credentials::KeyPair&lt;crypto::credentials::ProfileKeyCredential&gt;,
+    sig_key_pair: crypto::signature::KeyPair,
+    receipt_credentials_key_pair:
+        crypto::credentials::KeyPair&lt;crypto::credentials::ReceiptCredential&gt;,
+    pni_credentials_key_pair: crypto::credentials::KeyPair&lt;crypto::credentials::PniCredential&gt;,
+    expiring_profile_key_credentials_key_pair:
+        crypto::credentials::KeyPair&lt;crypto::credentials::ExpiringProfileKeyCredential&gt;,
+    auth_credentials_with_pni_key_pair:
+        crypto::credentials::KeyPair&lt;crypto::credentials::AuthCredentialWithPni&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServerPublicParams</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">reserved</span>: <span class="ident">ReservedBytes</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">auth_credentials_public_key</span>: <span class="ident">crypto::credentials::PublicKey</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">profile_key_credentials_public_key</span>: <span class="ident">crypto::credentials::PublicKey</span>,
-    <span class="ident">sig_public_key</span>: <span class="ident">crypto::signature::PublicKey</span>,
-    <span class="ident">receipt_credentials_public_key</span>: <span class="ident">crypto::credentials::PublicKey</span>,
-    <span class="ident">pni_credentials_public_key</span>: <span class="ident">crypto::credentials::PublicKey</span>,
-    <span class="ident">expiring_profile_key_credentials_public_key</span>: <span class="ident">crypto::credentials::PublicKey</span>,
-    <span class="ident">auth_credentials_with_pni_public_key</span>: <span class="ident">crypto::credentials::PublicKey</span>,
+<span class="attribute">#[derive(Copy, Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>ServerPublicParams {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) reserved: ReservedBytes,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) auth_credentials_public_key: crypto::credentials::PublicKey,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) profile_key_credentials_public_key: crypto::credentials::PublicKey,
+    sig_public_key: crypto::signature::PublicKey,
+    receipt_credentials_public_key: crypto::credentials::PublicKey,
+    pni_credentials_public_key: crypto::credentials::PublicKey,
+    expiring_profile_key_credentials_public_key: crypto::credentials::PublicKey,
+    auth_credentials_with_pni_public_key: crypto::credentials::PublicKey,
 }
 
-<span class="kw">impl</span> <span class="ident">ServerSecretParams</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate</span>(<span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+<span class="kw">impl </span>ServerSecretParams {
+    <span class="kw">pub fn </span>generate(randomness: RandomnessBytes) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_Generate&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">auth_credentials_key_pair</span> <span class="op">=</span> <span class="ident">crypto::credentials::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">profile_key_credentials_key_pair</span> <span class="op">=</span> <span class="ident">crypto::credentials::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">sig_key_pair</span> <span class="op">=</span> <span class="ident">crypto::signature::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">receipt_credentials_key_pair</span> <span class="op">=</span> <span class="ident">crypto::credentials::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">pni_credentials_key_pair</span> <span class="op">=</span> <span class="ident">crypto::credentials::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">expiring_profile_key_credentials_key_pair</span> <span class="op">=</span>
-            <span class="ident">crypto::credentials::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">auth_credentials_with_pni_key_pair</span> <span class="op">=</span> <span class="ident">crypto::credentials::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
+        <span class="kw">let </span>auth_credentials_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>profile_key_credentials_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>sig_key_pair = crypto::signature::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>receipt_credentials_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>pni_credentials_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>expiring_profile_key_credentials_key_pair =
+            crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>auth_credentials_with_pni_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
 
-        <span class="self">Self</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">auth_credentials_key_pair</span>,
-            <span class="ident">profile_key_credentials_key_pair</span>,
-            <span class="ident">sig_key_pair</span>,
-            <span class="ident">receipt_credentials_key_pair</span>,
-            <span class="ident">pni_credentials_key_pair</span>,
-            <span class="ident">expiring_profile_key_credentials_key_pair</span>,
-            <span class="ident">auth_credentials_with_pni_key_pair</span>,
+        <span class="self">Self </span>{
+            reserved: Default::default(),
+            auth_credentials_key_pair,
+            profile_key_credentials_key_pair,
+            sig_key_pair,
+            receipt_credentials_key_pair,
+            pni_credentials_key_pair,
+            expiring_profile_key_credentials_key_pair,
+            auth_credentials_with_pni_key_pair,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_public_params</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">ServerPublicParams</span> {
-        <span class="ident">ServerPublicParams</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">auth_credentials_public_key</span>: <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">profile_key_credentials_public_key</span>: <span class="self">self</span>
-                .<span class="ident">profile_key_credentials_key_pair</span>
-                .<span class="ident">get_public_key</span>(),
-            <span class="ident">sig_public_key</span>: <span class="self">self</span>.<span class="ident">sig_key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">receipt_credentials_public_key</span>: <span class="self">self</span>.<span class="ident">receipt_credentials_key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">pni_credentials_public_key</span>: <span class="self">self</span>.<span class="ident">pni_credentials_key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">expiring_profile_key_credentials_public_key</span>: <span class="self">self</span>
-                .<span class="ident">expiring_profile_key_credentials_key_pair</span>
-                .<span class="ident">get_public_key</span>(),
-            <span class="ident">auth_credentials_with_pni_public_key</span>: <span class="self">self</span>
-                .<span class="ident">auth_credentials_with_pni_key_pair</span>
-                .<span class="ident">get_public_key</span>(),
+    <span class="kw">pub fn </span>get_public_params(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ServerPublicParams {
+        ServerPublicParams {
+            reserved: Default::default(),
+            auth_credentials_public_key: <span class="self">self</span>.auth_credentials_key_pair.get_public_key(),
+            profile_key_credentials_public_key: <span class="self">self
+                </span>.profile_key_credentials_key_pair
+                .get_public_key(),
+            sig_public_key: <span class="self">self</span>.sig_key_pair.get_public_key(),
+            receipt_credentials_public_key: <span class="self">self</span>.receipt_credentials_key_pair.get_public_key(),
+            pni_credentials_public_key: <span class="self">self</span>.pni_credentials_key_pair.get_public_key(),
+            expiring_profile_key_credentials_public_key: <span class="self">self
+                </span>.expiring_profile_key_credentials_key_pair
+                .get_public_key(),
+            auth_credentials_with_pni_public_key: <span class="self">self
+                </span>.auth_credentials_with_pni_key_pair
+                .get_public_key(),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">sign</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>, <span class="ident">message</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">NotarySignatureBytes</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+    <span class="kw">pub fn </span>sign(<span class="kw-2">&amp;</span><span class="self">self</span>, randomness: RandomnessBytes, message: <span class="kw-2">&amp;</span>[u8]) -&gt; NotarySignatureBytes {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_Sign&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
-        <span class="self">self</span>.<span class="ident">sig_key_pair</span>.<span class="ident">sign</span>(<span class="ident">message</span>, <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>)
+        <span class="self">self</span>.sig_key_pair.sign(message, <span class="kw-2">&amp;mut </span>sho)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_auth_credential</span>(
+    <span class="kw">pub fn </span>issue_auth_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">redemption_time</span>: <span class="ident">CoarseRedemptionTime</span>,
-    ) -&gt; <span class="ident">api::auth::AuthCredentialResponse</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        uid_bytes: UidBytes,
+        redemption_time: CoarseRedemptionTime,
+    ) -&gt; api::auth::AuthCredentialResponse {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_IssueAuthCredential&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">credential</span> <span class="op">=</span>
-            <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>
-                .<span class="ident">create_auth_credential</span>(<span class="ident">uid</span>, <span class="ident">redemption_time</span>, <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::AuthCredentialIssuanceProof::new</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>,
-            <span class="ident">credential</span>,
-            <span class="ident">uid</span>,
-            <span class="ident">redemption_time</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::new(uid_bytes);
+        <span class="kw">let </span>credential =
+            <span class="self">self</span>.auth_credentials_key_pair
+                .create_auth_credential(uid, redemption_time, <span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialIssuanceProof::new(
+            <span class="self">self</span>.auth_credentials_key_pair,
+            credential,
+            uid,
+            redemption_time,
+            <span class="kw-2">&amp;mut </span>sho,
         );
-        <span class="ident">api::auth::AuthCredentialResponse</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>,
-            <span class="ident">proof</span>,
+        api::auth::AuthCredentialResponse {
+            reserved: Default::default(),
+            credential,
+            proof,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_auth_credential_with_pni</span>(
+    <span class="kw">pub fn </span>issue_auth_credential_with_pni(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">aci_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">pni_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">redemption_time</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="ident">api::auth::AuthCredentialWithPniResponse</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        aci_bytes: UidBytes,
+        pni_bytes: UidBytes,
+        redemption_time: Timestamp,
+    ) -&gt; api::auth::AuthCredentialWithPniResponse {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220617_Random_ServerSecretParams_IssueAuthCredentialWithPni&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">aci</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">aci_bytes</span>);
-        <span class="kw">let</span> <span class="ident">pni</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">pni_bytes</span>);
-        <span class="kw">let</span> <span class="ident">credential</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">auth_credentials_with_pni_key_pair</span>
-            .<span class="ident">create_auth_credential_with_pni</span>(<span class="ident">aci</span>, <span class="ident">pni</span>, <span class="ident">redemption_time</span>, <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::AuthCredentialWithPniIssuanceProof::new</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_with_pni_key_pair</span>,
-            <span class="ident">credential</span>,
-            <span class="ident">aci</span>,
-            <span class="ident">pni</span>,
-            <span class="ident">redemption_time</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>aci = crypto::uid_struct::UidStruct::new(aci_bytes);
+        <span class="kw">let </span>pni = crypto::uid_struct::UidStruct::new(pni_bytes);
+        <span class="kw">let </span>credential = <span class="self">self
+            </span>.auth_credentials_with_pni_key_pair
+            .create_auth_credential_with_pni(aci, pni, redemption_time, <span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialWithPniIssuanceProof::new(
+            <span class="self">self</span>.auth_credentials_with_pni_key_pair,
+            credential,
+            aci,
+            pni,
+            redemption_time,
+            <span class="kw-2">&amp;mut </span>sho,
         );
-        <span class="ident">api::auth::AuthCredentialWithPniResponse</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>,
-            <span class="ident">proof</span>,
+        api::auth::AuthCredentialWithPniResponse {
+            reserved: Default::default(),
+            credential,
+            proof,
         }
     }
 
-    <span class="doccomment">/// Checks that `current_time_in_seconds` is within the validity window defined by</span>
-    <span class="doccomment">/// `redemption_time_in_seconds`.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// All times are relative to SystemTime::UNIX_EPOCH,</span>
-    <span class="doccomment">/// but we don&#39;t actually use SystemTime because it&#39;s too small on 32-bit Linux.</span>
-    <span class="kw">fn</span> <span class="ident">check_auth_credential_redemption_time</span>(
-        <span class="ident">redemption_time_in_seconds</span>: <span class="ident">Timestamp</span>,
-        <span class="ident">current_time_in_seconds</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">acceptable_start_time</span> <span class="op">=</span> <span class="ident">redemption_time_in_seconds</span> <span class="op">-</span> <span class="ident">SECONDS_PER_DAY</span>;
-        <span class="kw">let</span> <span class="ident">acceptable_end_time</span> <span class="op">=</span> <span class="ident">redemption_time_in_seconds</span> <span class="op">+</span> <span class="number">2</span> <span class="op">*</span> <span class="ident">SECONDS_PER_DAY</span>;
+    <span class="doccomment">/// Checks that `current_time_in_seconds` is within the validity window defined by
+    /// `redemption_time_in_seconds`.
+    ///
+    /// All times are relative to SystemTime::UNIX_EPOCH,
+    /// but we don&#39;t actually use SystemTime because it&#39;s too small on 32-bit Linux.
+    </span><span class="kw">fn </span>check_auth_credential_redemption_time(
+        redemption_time_in_seconds: Timestamp,
+        current_time_in_seconds: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>acceptable_start_time = redemption_time_in_seconds - SECONDS_PER_DAY;
+        <span class="kw">let </span>acceptable_end_time = redemption_time_in_seconds + <span class="number">2 </span>* SECONDS_PER_DAY;
 
-        <span class="kw">if</span> <span class="op">!</span>(<span class="ident">acceptable_start_time</span>..<span class="op">=</span><span class="ident">acceptable_end_time</span>).<span class="ident">contains</span>(<span class="kw-2">&amp;</span><span class="ident">current_time_in_seconds</span>) {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>);
+        <span class="kw">if </span>!(acceptable_start_time..=acceptable_end_time).contains(<span class="kw-2">&amp;</span>current_time_in_seconds) {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_auth_credential_presentation</span>(
+    <span class="kw">pub fn </span>verify_auth_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::auth::AnyAuthCredentialPresentation</span>,
-        <span class="ident">current_time_in_seconds</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident"><span class="self">Self</span>::check_auth_credential_redemption_time</span>(
-            <span class="ident">presentation</span>.<span class="ident">get_redemption_time</span>(),
-            <span class="ident">current_time_in_seconds</span>,
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::auth::AnyAuthCredentialPresentation,
+        current_time_in_seconds: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="self">Self</span>::check_auth_credential_redemption_time(
+            presentation.get_redemption_time(),
+            current_time_in_seconds,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">match</span> <span class="ident">presentation</span> {
-            <span class="ident">api::auth::AnyAuthCredentialPresentation::V1</span>(<span class="ident">presentation</span>) =&gt; {
-                <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-                    <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>,
-                    <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>,
-                    <span class="ident">presentation</span>.<span class="ident">ciphertext</span>,
-                    <span class="ident">presentation</span>.<span class="ident">redemption_time</span>,
+        <span class="kw">match </span>presentation {
+            api::auth::AnyAuthCredentialPresentation::V1(presentation) =&gt; {
+                presentation.proof.verify(
+                    <span class="self">self</span>.auth_credentials_key_pair,
+                    group_public_params.uid_enc_public_key,
+                    presentation.ciphertext,
+                    presentation.redemption_time,
                 )
             }
 
-            <span class="ident">api::auth::AnyAuthCredentialPresentation::V2</span>(<span class="ident">presentation</span>) =&gt; {
-                <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-                    <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>,
-                    <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>,
-                    <span class="ident">presentation</span>.<span class="ident">ciphertext</span>,
-                    <span class="ident">presentation</span>.<span class="ident">redemption_time</span>,
+            api::auth::AnyAuthCredentialPresentation::V2(presentation) =&gt; {
+                presentation.proof.verify(
+                    <span class="self">self</span>.auth_credentials_key_pair,
+                    group_public_params.uid_enc_public_key,
+                    presentation.ciphertext,
+                    presentation.redemption_time,
                 )
             }
 
-            <span class="ident">api::auth::AnyAuthCredentialPresentation::V3</span>(<span class="ident">presentation</span>) =&gt; {
-                <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-                    <span class="self">self</span>.<span class="ident">auth_credentials_with_pni_key_pair</span>,
-                    <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>,
-                    <span class="ident">presentation</span>.<span class="ident">aci_ciphertext</span>,
-                    <span class="ident">presentation</span>.<span class="ident">pni_ciphertext</span>,
-                    <span class="ident">presentation</span>.<span class="ident">redemption_time</span>,
+            api::auth::AnyAuthCredentialPresentation::V3(presentation) =&gt; {
+                presentation.proof.verify(
+                    <span class="self">self</span>.auth_credentials_with_pni_key_pair,
+                    group_public_params.uid_enc_public_key,
+                    presentation.aci_ciphertext,
+                    presentation.pni_ciphertext,
+                    presentation.redemption_time,
                 )
             }
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_auth_credential_presentation_v1</span>(
+    <span class="kw">pub fn </span>verify_auth_credential_presentation_v1(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::auth::AuthCredentialPresentationV1</span>,
-        <span class="ident">current_time_in_days</span>: <span class="ident">CoarseRedemptionTime</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident"><span class="self">Self</span>::check_auth_credential_redemption_time</span>(
-            <span class="ident">u64::from</span>(<span class="ident">presentation</span>.<span class="ident">get_redemption_time</span>()) <span class="op">*</span> <span class="ident">SECONDS_PER_DAY</span>,
-            <span class="ident">u64::from</span>(<span class="ident">current_time_in_days</span>) <span class="op">*</span> <span class="ident">SECONDS_PER_DAY</span>,
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::auth::AuthCredentialPresentationV1,
+        current_time_in_days: CoarseRedemptionTime,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="self">Self</span>::check_auth_credential_redemption_time(
+            u64::from(presentation.get_redemption_time()) * SECONDS_PER_DAY,
+            u64::from(current_time_in_days) * SECONDS_PER_DAY,
         )<span class="question-mark">?</span>;
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>,
-            <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">presentation</span>.<span class="ident">redemption_time</span>,
+        presentation.proof.verify(
+            <span class="self">self</span>.auth_credentials_key_pair,
+            group_public_params.uid_enc_public_key,
+            presentation.ciphertext,
+            presentation.redemption_time,
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_auth_credential_presentation_v2</span>(
+    <span class="kw">pub fn </span>verify_auth_credential_presentation_v2(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::auth::AuthCredentialPresentationV2</span>,
-        <span class="ident">current_time_in_days</span>: <span class="ident">CoarseRedemptionTime</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident"><span class="self">Self</span>::check_auth_credential_redemption_time</span>(
-            <span class="ident">u64::from</span>(<span class="ident">presentation</span>.<span class="ident">get_redemption_time</span>()) <span class="op">*</span> <span class="ident">SECONDS_PER_DAY</span>,
-            <span class="ident">u64::from</span>(<span class="ident">current_time_in_days</span>) <span class="op">*</span> <span class="ident">SECONDS_PER_DAY</span>,
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::auth::AuthCredentialPresentationV2,
+        current_time_in_days: CoarseRedemptionTime,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="self">Self</span>::check_auth_credential_redemption_time(
+            u64::from(presentation.get_redemption_time()) * SECONDS_PER_DAY,
+            u64::from(current_time_in_days) * SECONDS_PER_DAY,
         )<span class="question-mark">?</span>;
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_key_pair</span>,
-            <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">presentation</span>.<span class="ident">redemption_time</span>,
+        presentation.proof.verify(
+            <span class="self">self</span>.auth_credentials_key_pair,
+            group_public_params.uid_enc_public_key,
+            presentation.ciphertext,
+            presentation.redemption_time,
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_auth_credential_with_pni_presentation</span>(
+    <span class="kw">pub fn </span>verify_auth_credential_with_pni_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::auth::AuthCredentialWithPniPresentation</span>,
-        <span class="ident">current_time_in_seconds</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident"><span class="self">Self</span>::check_auth_credential_redemption_time</span>(
-            <span class="ident">presentation</span>.<span class="ident">get_redemption_time</span>(),
-            <span class="ident">current_time_in_seconds</span>,
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniPresentation,
+        current_time_in_seconds: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="self">Self</span>::check_auth_credential_redemption_time(
+            presentation.get_redemption_time(),
+            current_time_in_seconds,
         )<span class="question-mark">?</span>;
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_with_pni_key_pair</span>,
-            <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">aci_ciphertext</span>,
-            <span class="ident">presentation</span>.<span class="ident">pni_ciphertext</span>,
-            <span class="ident">presentation</span>.<span class="ident">redemption_time</span>,
+        presentation.proof.verify(
+            <span class="self">self</span>.auth_credentials_with_pni_key_pair,
+            group_public_params.uid_enc_public_key,
+            presentation.aci_ciphertext,
+            presentation.pni_ciphertext,
+            presentation.redemption_time,
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_profile_key_credential_presentation</span>(
+    <span class="kw">pub fn </span>verify_profile_key_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::AnyProfileKeyCredentialPresentation</span>,
-        <span class="ident">current_time</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">presentation</span> {
-            <span class="ident">api::profiles::AnyProfileKeyCredentialPresentation::V1</span>(<span class="ident">presentation</span>) =&gt; <span class="self">self</span>
-                .<span class="ident">verify_profile_key_credential_presentation_v1</span>(<span class="ident">group_public_params</span>, <span class="ident">presentation</span>),
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::AnyProfileKeyCredentialPresentation,
+        current_time: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">match </span>presentation {
+            api::profiles::AnyProfileKeyCredentialPresentation::V1(presentation) =&gt; <span class="self">self
+                </span>.verify_profile_key_credential_presentation_v1(group_public_params, presentation),
 
-            <span class="ident">api::profiles::AnyProfileKeyCredentialPresentation::V2</span>(<span class="ident">presentation</span>) =&gt; <span class="self">self</span>
-                .<span class="ident">verify_profile_key_credential_presentation_v2</span>(<span class="ident">group_public_params</span>, <span class="ident">presentation</span>),
+            api::profiles::AnyProfileKeyCredentialPresentation::V2(presentation) =&gt; <span class="self">self
+                </span>.verify_profile_key_credential_presentation_v2(group_public_params, presentation),
 
-            <span class="ident">api::profiles::AnyProfileKeyCredentialPresentation::V3</span>(<span class="ident">presentation</span>) =&gt; <span class="self">self</span>
-                .<span class="ident">verify_expiring_profile_key_credential_presentation</span>(
-                    <span class="ident">group_public_params</span>,
-                    <span class="ident">presentation</span>,
-                    <span class="ident">current_time</span>,
+            api::profiles::AnyProfileKeyCredentialPresentation::V3(presentation) =&gt; <span class="self">self
+                </span>.verify_expiring_profile_key_credential_presentation(
+                    group_public_params,
+                    presentation,
+                    current_time,
                 ),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_profile_key_credential_presentation_v1</span>(
+    <span class="kw">pub fn </span>verify_profile_key_credential_presentation_v1(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialPresentationV1</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials_key_pair</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">profile_key_credentials_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">uid_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">profile_key_enc_public_key</span>;
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialPresentationV1,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>credentials_key_pair = <span class="self">self</span>.profile_key_credentials_key_pair;
+        <span class="kw">let </span>uid_enc_public_key = group_public_params.uid_enc_public_key;
+        <span class="kw">let </span>profile_key_enc_public_key = group_public_params.profile_key_enc_public_key;
 
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">credentials_key_pair</span>,
-            <span class="ident">presentation</span>.<span class="ident">uid_enc_ciphertext</span>,
-            <span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-            <span class="ident">profile_key_enc_public_key</span>,
+        presentation.proof.verify(
+            credentials_key_pair,
+            presentation.uid_enc_ciphertext,
+            uid_enc_public_key,
+            presentation.profile_key_enc_ciphertext,
+            profile_key_enc_public_key,
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_profile_key_credential_presentation_v2</span>(
+    <span class="kw">pub fn </span>verify_profile_key_credential_presentation_v2(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialPresentationV2</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials_key_pair</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">profile_key_credentials_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">uid_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">profile_key_enc_public_key</span>;
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialPresentationV2,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>credentials_key_pair = <span class="self">self</span>.profile_key_credentials_key_pair;
+        <span class="kw">let </span>uid_enc_public_key = group_public_params.uid_enc_public_key;
+        <span class="kw">let </span>profile_key_enc_public_key = group_public_params.profile_key_enc_public_key;
 
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">credentials_key_pair</span>,
-            <span class="ident">presentation</span>.<span class="ident">uid_enc_ciphertext</span>,
-            <span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-            <span class="ident">profile_key_enc_public_key</span>,
+        presentation.proof.verify(
+            credentials_key_pair,
+            presentation.uid_enc_ciphertext,
+            uid_enc_public_key,
+            presentation.profile_key_enc_ciphertext,
+            profile_key_enc_public_key,
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_expiring_profile_key_credential_presentation</span>(
+    <span class="kw">pub fn </span>verify_expiring_profile_key_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ExpiringProfileKeyCredentialPresentation</span>,
-        <span class="ident">current_time</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials_key_pair</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">expiring_profile_key_credentials_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">uid_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">profile_key_enc_public_key</span>;
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::ExpiringProfileKeyCredentialPresentation,
+        current_time: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>credentials_key_pair = <span class="self">self</span>.expiring_profile_key_credentials_key_pair;
+        <span class="kw">let </span>uid_enc_public_key = group_public_params.uid_enc_public_key;
+        <span class="kw">let </span>profile_key_enc_public_key = group_public_params.profile_key_enc_public_key;
 
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">credentials_key_pair</span>,
-            <span class="ident">presentation</span>.<span class="ident">uid_enc_ciphertext</span>,
-            <span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-            <span class="ident">profile_key_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">credential_expiration_time</span>,
+        presentation.proof.verify(
+            credentials_key_pair,
+            presentation.uid_enc_ciphertext,
+            uid_enc_public_key,
+            presentation.profile_key_enc_ciphertext,
+            profile_key_enc_public_key,
+            presentation.credential_expiration_time,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">if</span> <span class="ident">presentation</span>.<span class="ident">credential_expiration_time</span> <span class="op">&lt;</span><span class="op">=</span> <span class="ident">current_time</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>);
+        <span class="kw">if </span>presentation.credential_expiration_time &lt;= current_time {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_pni_credential_presentation</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>verify_pni_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::AnyPniCredentialPresentation</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials_key_pair</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pni_credentials_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">uid_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">profile_key_enc_public_key</span>;
-        <span class="kw">match</span> <span class="ident">presentation</span> {
-            <span class="ident">api::profiles::AnyPniCredentialPresentation::V1</span>(<span class="ident">presentation_v1</span>) =&gt; {
-                <span class="ident">presentation_v1</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-                    <span class="ident">credentials_key_pair</span>,
-                    <span class="ident">presentation_v1</span>.<span class="ident">aci_enc_ciphertext</span>,
-                    <span class="ident">uid_enc_public_key</span>,
-                    <span class="ident">presentation_v1</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-                    <span class="ident">profile_key_enc_public_key</span>,
-                    <span class="ident">presentation_v1</span>.<span class="ident">pni_enc_ciphertext</span>,
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::AnyPniCredentialPresentation,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>credentials_key_pair = <span class="self">self</span>.pni_credentials_key_pair;
+        <span class="kw">let </span>uid_enc_public_key = group_public_params.uid_enc_public_key;
+        <span class="kw">let </span>profile_key_enc_public_key = group_public_params.profile_key_enc_public_key;
+        <span class="kw">match </span>presentation {
+            api::profiles::AnyPniCredentialPresentation::V1(presentation_v1) =&gt; {
+                presentation_v1.proof.verify(
+                    credentials_key_pair,
+                    presentation_v1.aci_enc_ciphertext,
+                    uid_enc_public_key,
+                    presentation_v1.profile_key_enc_ciphertext,
+                    profile_key_enc_public_key,
+                    presentation_v1.pni_enc_ciphertext,
                 )
             }
 
-            <span class="ident">api::profiles::AnyPniCredentialPresentation::V2</span>(<span class="ident">presentation_v2</span>) =&gt; {
-                <span class="ident">presentation_v2</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-                    <span class="ident">credentials_key_pair</span>,
-                    <span class="ident">presentation_v2</span>.<span class="ident">aci_enc_ciphertext</span>,
-                    <span class="ident">uid_enc_public_key</span>,
-                    <span class="ident">presentation_v2</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-                    <span class="ident">profile_key_enc_public_key</span>,
-                    <span class="ident">presentation_v2</span>.<span class="ident">pni_enc_ciphertext</span>,
+            api::profiles::AnyPniCredentialPresentation::V2(presentation_v2) =&gt; {
+                presentation_v2.proof.verify(
+                    credentials_key_pair,
+                    presentation_v2.aci_enc_ciphertext,
+                    uid_enc_public_key,
+                    presentation_v2.profile_key_enc_ciphertext,
+                    profile_key_enc_public_key,
+                    presentation_v2.pni_enc_ciphertext,
                 )
             }
         }
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_pni_credential_presentation_v1</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>verify_pni_credential_presentation_v1(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::PniCredentialPresentationV1</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials_key_pair</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pni_credentials_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">uid_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">profile_key_enc_public_key</span>;
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::PniCredentialPresentationV1,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>credentials_key_pair = <span class="self">self</span>.pni_credentials_key_pair;
+        <span class="kw">let </span>uid_enc_public_key = group_public_params.uid_enc_public_key;
+        <span class="kw">let </span>profile_key_enc_public_key = group_public_params.profile_key_enc_public_key;
 
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">credentials_key_pair</span>,
-            <span class="ident">presentation</span>.<span class="ident">aci_enc_ciphertext</span>,
-            <span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-            <span class="ident">profile_key_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">pni_enc_ciphertext</span>,
+        presentation.proof.verify(
+            credentials_key_pair,
+            presentation.aci_enc_ciphertext,
+            uid_enc_public_key,
+            presentation.profile_key_enc_ciphertext,
+            profile_key_enc_public_key,
+            presentation.pni_enc_ciphertext,
         )
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_pni_credential_presentation_v2</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>verify_pni_credential_presentation_v2(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_public_params</span>: <span class="ident">api::groups::GroupPublicParams</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::PniCredentialPresentationV2</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">credentials_key_pair</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pni_credentials_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">uid_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">uid_enc_public_key</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_public_key</span> <span class="op">=</span> <span class="ident">group_public_params</span>.<span class="ident">profile_key_enc_public_key</span>;
+        group_public_params: api::groups::GroupPublicParams,
+        presentation: <span class="kw-2">&amp;</span>api::profiles::PniCredentialPresentationV2,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>credentials_key_pair = <span class="self">self</span>.pni_credentials_key_pair;
+        <span class="kw">let </span>uid_enc_public_key = group_public_params.uid_enc_public_key;
+        <span class="kw">let </span>profile_key_enc_public_key = group_public_params.profile_key_enc_public_key;
 
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">credentials_key_pair</span>,
-            <span class="ident">presentation</span>.<span class="ident">aci_enc_ciphertext</span>,
-            <span class="ident">uid_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">profile_key_enc_ciphertext</span>,
-            <span class="ident">profile_key_enc_public_key</span>,
-            <span class="ident">presentation</span>.<span class="ident">pni_enc_ciphertext</span>,
+        presentation.proof.verify(
+            credentials_key_pair,
+            presentation.aci_enc_ciphertext,
+            uid_enc_public_key,
+            presentation.profile_key_enc_ciphertext,
+            profile_key_enc_public_key,
+            presentation.pni_enc_ciphertext,
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_profile_key_credential</span>(
+    <span class="kw">pub fn </span>issue_profile_key_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">request</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialRequest</span>,
-        <span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">commitment</span>: <span class="ident">api::profiles::ProfileKeyCommitment</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::profiles::ProfileKeyCredentialResponse</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        request: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialRequest,
+        uid_bytes: UidBytes,
+        commitment: api::profiles::ProfileKeyCommitment,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ProfileKeyCredentialResponse, ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_IssueProfileKeyCredential&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="ident">request</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">commitment</span>.<span class="ident">commitment</span>,
+        request.proof.verify(
+            request.public_key,
+            request.ciphertext,
+            commitment.commitment,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">blinded_credential_with_secret_nonce</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">profile_key_credentials_key_pair</span>
-            .<span class="ident">create_blinded_profile_key_credential</span>(
-                <span class="ident">uid</span>,
-                <span class="ident">request</span>.<span class="ident">public_key</span>,
-                <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-                <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::new(uid_bytes);
+        <span class="kw">let </span>blinded_credential_with_secret_nonce = <span class="self">self
+            </span>.profile_key_credentials_key_pair
+            .create_blinded_profile_key_credential(
+                uid,
+                request.public_key,
+                request.ciphertext,
+                <span class="kw-2">&amp;mut </span>sho,
             );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ProfileKeyCredentialIssuanceProof::new</span>(
-            <span class="self">self</span>.<span class="ident">profile_key_credentials_key_pair</span>,
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">blinded_credential_with_secret_nonce</span>,
-            <span class="ident">uid</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ProfileKeyCredentialIssuanceProof::new(
+            <span class="self">self</span>.profile_key_credentials_key_pair,
+            request.public_key,
+            request.ciphertext,
+            blinded_credential_with_secret_nonce,
+            uid,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::profiles::ProfileKeyCredentialResponse</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">blinded_credential</span>: <span class="ident">blinded_credential_with_secret_nonce</span>
-                .<span class="ident">get_blinded_profile_key_credential</span>(),
-            <span class="ident">proof</span>,
+        <span class="prelude-val">Ok</span>(api::profiles::ProfileKeyCredentialResponse {
+            reserved: Default::default(),
+            blinded_credential: blinded_credential_with_secret_nonce
+                .get_blinded_profile_key_credential(),
+            proof,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_expiring_profile_key_credential</span>(
+    <span class="kw">pub fn </span>issue_expiring_profile_key_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">request</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialRequest</span>,
-        <span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">commitment</span>: <span class="ident">api::profiles::ProfileKeyCommitment</span>,
-        <span class="ident">credential_expiration_time</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::profiles::ExpiringProfileKeyCredentialResponse</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span>
+        randomness: RandomnessBytes,
+        request: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialRequest,
+        uid_bytes: UidBytes,
+        commitment: api::profiles::ProfileKeyCommitment,
+        credential_expiration_time: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ExpiringProfileKeyCredentialResponse, ZkGroupVerificationFailure&gt;
     {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220508_Random_ServerSecretParams_IssueExpiringProfileKeyCredential&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="ident">request</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">commitment</span>.<span class="ident">commitment</span>,
+        request.proof.verify(
+            request.public_key,
+            request.ciphertext,
+            commitment.commitment,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">blinded_credential_with_secret_nonce</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">expiring_profile_key_credentials_key_pair</span>
-            .<span class="ident">create_blinded_expiring_profile_key_credential</span>(
-                <span class="ident">uid</span>,
-                <span class="ident">request</span>.<span class="ident">public_key</span>,
-                <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-                <span class="ident">credential_expiration_time</span>,
-                <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::new(uid_bytes);
+        <span class="kw">let </span>blinded_credential_with_secret_nonce = <span class="self">self
+            </span>.expiring_profile_key_credentials_key_pair
+            .create_blinded_expiring_profile_key_credential(
+                uid,
+                request.public_key,
+                request.ciphertext,
+                credential_expiration_time,
+                <span class="kw-2">&amp;mut </span>sho,
             );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ExpiringProfileKeyCredentialIssuanceProof::new</span>(
-            <span class="self">self</span>.<span class="ident">expiring_profile_key_credentials_key_pair</span>,
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">blinded_credential_with_secret_nonce</span>,
-            <span class="ident">uid</span>,
-            <span class="ident">credential_expiration_time</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ExpiringProfileKeyCredentialIssuanceProof::new(
+            <span class="self">self</span>.expiring_profile_key_credentials_key_pair,
+            request.public_key,
+            request.ciphertext,
+            blinded_credential_with_secret_nonce,
+            uid,
+            credential_expiration_time,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::profiles::ExpiringProfileKeyCredentialResponse</span> {
-            <span class="ident">version</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">blinded_credential</span>: <span class="ident">blinded_credential_with_secret_nonce</span>
-                .<span class="ident">get_blinded_expiring_profile_key_credential</span>(),
-            <span class="ident">credential_expiration_time</span>,
-            <span class="ident">proof</span>,
+        <span class="prelude-val">Ok</span>(api::profiles::ExpiringProfileKeyCredentialResponse {
+            version: Default::default(),
+            blinded_credential: blinded_credential_with_secret_nonce
+                .get_blinded_expiring_profile_key_credential(),
+            credential_expiration_time,
+            proof,
         })
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_pni_credential</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>issue_pni_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">request</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialRequest</span>,
-        <span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">pni_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">commitment</span>: <span class="ident">api::profiles::ProfileKeyCommitment</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::profiles::PniCredentialResponse</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        request: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialRequest,
+        uid_bytes: UidBytes,
+        pni_bytes: UidBytes,
+        commitment: api::profiles::ProfileKeyCommitment,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::PniCredentialResponse, ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20211111_Random_ServerSecretParams_IssuePniCredential&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="ident">request</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">commitment</span>.<span class="ident">commitment</span>,
+        request.proof.verify(
+            request.public_key,
+            request.ciphertext,
+            commitment.commitment,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">pni</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">pni_bytes</span>);
-        <span class="kw">let</span> <span class="ident">blinded_credential_with_secret_nonce</span> <span class="op">=</span>
-            <span class="self">self</span>.<span class="ident">pni_credentials_key_pair</span>.<span class="ident">create_blinded_pni_credential</span>(
-                <span class="ident">uid</span>,
-                <span class="ident">pni</span>,
-                <span class="ident">request</span>.<span class="ident">public_key</span>,
-                <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-                <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::new(uid_bytes);
+        <span class="kw">let </span>pni = crypto::uid_struct::UidStruct::new(pni_bytes);
+        <span class="kw">let </span>blinded_credential_with_secret_nonce =
+            <span class="self">self</span>.pni_credentials_key_pair.create_blinded_pni_credential(
+                uid,
+                pni,
+                request.public_key,
+                request.ciphertext,
+                <span class="kw-2">&amp;mut </span>sho,
             );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::PniCredentialIssuanceProof::new</span>(
-            <span class="self">self</span>.<span class="ident">pni_credentials_key_pair</span>,
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">blinded_credential_with_secret_nonce</span>,
-            <span class="ident">uid</span>,
-            <span class="ident">pni</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::PniCredentialIssuanceProof::new(
+            <span class="self">self</span>.pni_credentials_key_pair,
+            request.public_key,
+            request.ciphertext,
+            blinded_credential_with_secret_nonce,
+            uid,
+            pni,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::profiles::PniCredentialResponse</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">blinded_credential</span>: <span class="ident">blinded_credential_with_secret_nonce</span>.<span class="ident">get_blinded_pni_credential</span>(),
-            <span class="ident">proof</span>,
+        <span class="prelude-val">Ok</span>(api::profiles::PniCredentialResponse {
+            reserved: Default::default(),
+            blinded_credential: blinded_credential_with_secret_nonce.get_blinded_pni_credential(),
+            proof,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">issue_receipt_credential</span>(
+    <span class="kw">pub fn </span>issue_receipt_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">request</span>: <span class="kw-2">&amp;</span><span class="ident">api::receipts::ReceiptCredentialRequest</span>,
-        <span class="ident">receipt_expiration_time</span>: <span class="ident">Timestamp</span>,
-        <span class="ident">receipt_level</span>: <span class="ident">ReceiptLevel</span>,
-    ) -&gt; <span class="ident">api::receipts::ReceiptCredentialResponse</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        request: <span class="kw-2">&amp;</span>api::receipts::ReceiptCredentialRequest,
+        receipt_expiration_time: Timestamp,
+        receipt_level: ReceiptLevel,
+    ) -&gt; api::receipts::ReceiptCredentialResponse {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20210919_Random_ServerSecretParams_IssueReceiptCredential&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">blinded_credential_with_secret_nonce</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">receipt_credentials_key_pair</span>
-            .<span class="ident">create_blinded_receipt_credential</span>(
-                <span class="ident">request</span>.<span class="ident">public_key</span>,
-                <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-                <span class="ident">receipt_expiration_time</span>,
-                <span class="ident">receipt_level</span>,
-                <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>blinded_credential_with_secret_nonce = <span class="self">self
+            </span>.receipt_credentials_key_pair
+            .create_blinded_receipt_credential(
+                request.public_key,
+                request.ciphertext,
+                receipt_expiration_time,
+                receipt_level,
+                <span class="kw-2">&amp;mut </span>sho,
             );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ReceiptCredentialIssuanceProof::new</span>(
-            <span class="self">self</span>.<span class="ident">receipt_credentials_key_pair</span>,
-            <span class="ident">request</span>.<span class="ident">public_key</span>,
-            <span class="ident">request</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">blinded_credential_with_secret_nonce</span>,
-            <span class="ident">receipt_expiration_time</span>,
-            <span class="ident">receipt_level</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ReceiptCredentialIssuanceProof::new(
+            <span class="self">self</span>.receipt_credentials_key_pair,
+            request.public_key,
+            request.ciphertext,
+            blinded_credential_with_secret_nonce,
+            receipt_expiration_time,
+            receipt_level,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::receipts::ReceiptCredentialResponse</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">receipt_expiration_time</span>,
-            <span class="ident">receipt_level</span>,
-            <span class="ident">blinded_credential</span>: <span class="ident">blinded_credential_with_secret_nonce</span>
-                .<span class="ident">get_blinded_receipt_credential</span>(),
-            <span class="ident">proof</span>,
+        api::receipts::ReceiptCredentialResponse {
+            reserved: Default::default(),
+            receipt_expiration_time,
+            receipt_level,
+            blinded_credential: blinded_credential_with_secret_nonce
+                .get_blinded_receipt_credential(),
+            proof,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_receipt_credential_presentation</span>(
+    <span class="kw">pub fn </span>verify_receipt_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">presentation</span>: <span class="kw-2">&amp;</span><span class="ident">api::receipts::ReceiptCredentialPresentation</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident">presentation</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">receipt_credentials_key_pair</span>,
-            <span class="ident">presentation</span>.<span class="ident">get_receipt_struct</span>(),
+        presentation: <span class="kw-2">&amp;</span>api::receipts::ReceiptCredentialPresentation,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        presentation.proof.verify(
+            <span class="self">self</span>.receipt_credentials_key_pair,
+            presentation.get_receipt_struct(),
         )
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ServerPublicParams</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">verify_signature</span>(
+<span class="kw">impl </span>ServerPublicParams {
+    <span class="kw">pub fn </span>verify_signature(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">message</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">signature</span>: <span class="ident">NotarySignatureBytes</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">sig_public_key</span>.<span class="ident">verify</span>(<span class="ident">message</span>, <span class="ident">signature</span>)
+        message: <span class="kw-2">&amp;</span>[u8],
+        signature: NotarySignatureBytes,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
+        <span class="self">self</span>.sig_public_key.verify(message, signature)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">receive_auth_credential</span>(
+    <span class="kw">pub fn </span>receive_auth_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">redemption_time</span>: <span class="ident">CoarseRedemptionTime</span>,
-        <span class="ident">response</span>: <span class="kw-2">&amp;</span><span class="ident">api::auth::AuthCredentialResponse</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::auth::AuthCredential</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">uid_bytes</span>);
-        <span class="ident">response</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_public_key</span>,
-            <span class="ident">response</span>.<span class="ident">credential</span>,
-            <span class="ident">uid</span>,
-            <span class="ident">redemption_time</span>,
+        uid_bytes: UidBytes,
+        redemption_time: CoarseRedemptionTime,
+        response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialResponse,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredential, ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::new(uid_bytes);
+        response.proof.verify(
+            <span class="self">self</span>.auth_credentials_public_key,
+            response.credential,
+            uid,
+            redemption_time,
         )<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::auth::AuthCredential</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>: <span class="ident">response</span>.<span class="ident">credential</span>,
-            <span class="ident">uid</span>,
-            <span class="ident">redemption_time</span>,
+        <span class="prelude-val">Ok</span>(api::auth::AuthCredential {
+            reserved: Default::default(),
+            credential: response.credential,
+            uid,
+            redemption_time,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">receive_auth_credential_with_pni</span>(
+    <span class="kw">pub fn </span>receive_auth_credential_with_pni(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">aci_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">pni_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">redemption_time</span>: <span class="ident">Timestamp</span>,
-        <span class="ident">response</span>: <span class="kw-2">&amp;</span><span class="ident">api::auth::AuthCredentialWithPniResponse</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::auth::AuthCredentialWithPni</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">aci</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">aci_bytes</span>);
-        <span class="kw">let</span> <span class="ident">pni</span> <span class="op">=</span> <span class="ident">crypto::uid_struct::UidStruct::new</span>(<span class="ident">pni_bytes</span>);
-        <span class="ident">response</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_with_pni_public_key</span>,
-            <span class="ident">response</span>.<span class="ident">credential</span>,
-            <span class="ident">aci</span>,
-            <span class="ident">pni</span>,
-            <span class="ident">redemption_time</span>,
+        aci_bytes: UidBytes,
+        pni_bytes: UidBytes,
+        redemption_time: Timestamp,
+        response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredentialWithPni, ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>aci = crypto::uid_struct::UidStruct::new(aci_bytes);
+        <span class="kw">let </span>pni = crypto::uid_struct::UidStruct::new(pni_bytes);
+        response.proof.verify(
+            <span class="self">self</span>.auth_credentials_with_pni_public_key,
+            response.credential,
+            aci,
+            pni,
+            redemption_time,
         )<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::auth::AuthCredentialWithPni</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>: <span class="ident">response</span>.<span class="ident">credential</span>,
-            <span class="ident">aci</span>,
-            <span class="ident">pni</span>,
-            <span class="ident">redemption_time</span>,
+        <span class="prelude-val">Ok</span>(api::auth::AuthCredentialWithPni {
+            reserved: Default::default(),
+            credential: response.credential,
+            aci,
+            pni,
+            redemption_time,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_auth_credential_presentation</span>(
+    <span class="kw">pub fn </span>create_auth_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">auth_credential</span>: <span class="ident">api::auth::AuthCredential</span>,
-    ) -&gt; <span class="ident">api::auth::AnyAuthCredentialPresentation</span> {
-        <span class="kw">let</span> <span class="ident">presentation_v2</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_auth_credential_presentation_v2</span>(
-            <span class="ident">randomness</span>,
-            <span class="ident">group_secret_params</span>,
-            <span class="ident">auth_credential</span>,
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        auth_credential: api::auth::AuthCredential,
+    ) -&gt; api::auth::AnyAuthCredentialPresentation {
+        <span class="kw">let </span>presentation_v2 = <span class="self">self</span>.create_auth_credential_presentation_v2(
+            randomness,
+            group_secret_params,
+            auth_credential,
         );
-        <span class="ident">api::auth::AnyAuthCredentialPresentation::V2</span>(<span class="ident">presentation_v2</span>)
+        api::auth::AnyAuthCredentialPresentation::V2(presentation_v2)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_auth_credential_presentation_v1</span>(
+    <span class="kw">pub fn </span>create_auth_credential_presentation_v1(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">auth_credential</span>: <span class="ident">api::auth::AuthCredential</span>,
-    ) -&gt; <span class="ident">api::auth::AuthCredentialPresentationV1</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        auth_credential: api::auth::AuthCredential,
+    ) -&gt; api::auth::AuthCredentialPresentationV1 {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerPublicParams_CreateAuthCredentialPresentation&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uuid_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uid_struct</span>(<span class="ident">auth_credential</span>.<span class="ident">uid</span>);
+        <span class="kw">let </span>uuid_ciphertext = group_secret_params.encrypt_uid_struct(auth_credential.uid);
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::AuthCredentialPresentationProofV1::new</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_public_key</span>,
-            <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">uid</span>,
-            <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">redemption_time</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialPresentationProofV1::new(
+            <span class="self">self</span>.auth_credentials_public_key,
+            group_secret_params.uid_enc_key_pair,
+            auth_credential.credential,
+            auth_credential.uid,
+            uuid_ciphertext.ciphertext,
+            auth_credential.redemption_time,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::auth::AuthCredentialPresentationV1</span> {
-            <span class="ident">reserved</span>: [<span class="ident">PRESENTATION_VERSION_1</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">ciphertext</span>: <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">redemption_time</span>: <span class="ident">auth_credential</span>.<span class="ident">redemption_time</span>,
+        api::auth::AuthCredentialPresentationV1 {
+            reserved: [PRESENTATION_VERSION_1],
+            proof,
+            ciphertext: uuid_ciphertext.ciphertext,
+            redemption_time: auth_credential.redemption_time,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_auth_credential_presentation_v2</span>(
+    <span class="kw">pub fn </span>create_auth_credential_presentation_v2(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">auth_credential</span>: <span class="ident">api::auth::AuthCredential</span>,
-    ) -&gt; <span class="ident">api::auth::AuthCredentialPresentationV2</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        auth_credential: api::auth::AuthCredential,
+    ) -&gt; api::auth::AuthCredentialPresentationV2 {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220120_Random_ServerPublicParams_CreateAuthCredentialPresentationV2&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uuid_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uid_struct</span>(<span class="ident">auth_credential</span>.<span class="ident">uid</span>);
+        <span class="kw">let </span>uuid_ciphertext = group_secret_params.encrypt_uid_struct(auth_credential.uid);
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::AuthCredentialPresentationProofV2::new</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_public_key</span>,
-            <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">uid</span>,
-            <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">redemption_time</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialPresentationProofV2::new(
+            <span class="self">self</span>.auth_credentials_public_key,
+            group_secret_params.uid_enc_key_pair,
+            auth_credential.credential,
+            auth_credential.uid,
+            uuid_ciphertext.ciphertext,
+            auth_credential.redemption_time,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::auth::AuthCredentialPresentationV2</span> {
-            <span class="ident">version</span>: [<span class="ident">PRESENTATION_VERSION_2</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">ciphertext</span>: <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">redemption_time</span>: <span class="ident">auth_credential</span>.<span class="ident">redemption_time</span>,
+        api::auth::AuthCredentialPresentationV2 {
+            version: [PRESENTATION_VERSION_2],
+            proof,
+            ciphertext: uuid_ciphertext.ciphertext,
+            redemption_time: auth_credential.redemption_time,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_auth_credential_with_pni_presentation</span>(
+    <span class="kw">pub fn </span>create_auth_credential_with_pni_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">auth_credential</span>: <span class="ident">api::auth::AuthCredentialWithPni</span>,
-    ) -&gt; <span class="ident">api::auth::AuthCredentialWithPniPresentation</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        auth_credential: api::auth::AuthCredentialWithPni,
+    ) -&gt; api::auth::AuthCredentialWithPniPresentation {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220617_Random_ServerPublicParams_CreateAuthCredentialWithPniPresentation&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">aci_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uid_struct</span>(<span class="ident">auth_credential</span>.<span class="ident">aci</span>);
-        <span class="kw">let</span> <span class="ident">pni_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uid_struct</span>(<span class="ident">auth_credential</span>.<span class="ident">pni</span>);
+        <span class="kw">let </span>aci_ciphertext = group_secret_params.encrypt_uid_struct(auth_credential.aci);
+        <span class="kw">let </span>pni_ciphertext = group_secret_params.encrypt_uid_struct(auth_credential.pni);
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::AuthCredentialWithPniPresentationProof::new</span>(
-            <span class="self">self</span>.<span class="ident">auth_credentials_with_pni_public_key</span>,
-            <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">aci</span>,
-            <span class="ident">aci_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">pni</span>,
-            <span class="ident">pni_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">auth_credential</span>.<span class="ident">redemption_time</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialWithPniPresentationProof::new(
+            <span class="self">self</span>.auth_credentials_with_pni_public_key,
+            group_secret_params.uid_enc_key_pair,
+            auth_credential.credential,
+            auth_credential.aci,
+            aci_ciphertext.ciphertext,
+            auth_credential.pni,
+            pni_ciphertext.ciphertext,
+            auth_credential.redemption_time,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::auth::AuthCredentialWithPniPresentation</span> {
-            <span class="ident">version</span>: [<span class="ident">PRESENTATION_VERSION_3</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">aci_ciphertext</span>: <span class="ident">aci_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_ciphertext</span>: <span class="ident">pni_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">redemption_time</span>: <span class="ident">auth_credential</span>.<span class="ident">redemption_time</span>,
+        api::auth::AuthCredentialWithPniPresentation {
+            version: [PRESENTATION_VERSION_3],
+            proof,
+            aci_ciphertext: aci_ciphertext.ciphertext,
+            pni_ciphertext: pni_ciphertext.ciphertext,
+            redemption_time: auth_credential.redemption_time,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_profile_key_credential_request_context</span>(
+    <span class="kw">pub fn </span>create_profile_key_credential_request_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">uid_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">profile_key</span>: <span class="ident">api::profiles::ProfileKey</span>,
-    ) -&gt; <span class="ident">api::profiles::ProfileKeyCredentialRequestContext</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        uid_bytes: UidBytes,
+        profile_key: api::profiles::ProfileKey,
+    ) -&gt; api::profiles::ProfileKeyCredentialRequestContext {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerPublicParams_CreateProfileKeyCredentialRequestContext&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
-        <span class="kw">let</span> <span class="ident">profile_key_struct</span> <span class="op">=</span>
-            <span class="ident">crypto::profile_key_struct::ProfileKeyStruct::new</span>(<span class="ident">profile_key</span>.<span class="ident">bytes</span>, <span class="ident">uid_bytes</span>);
+        <span class="kw">let </span>profile_key_struct =
+            crypto::profile_key_struct::ProfileKeyStruct::new(profile_key.bytes, uid_bytes);
 
-        <span class="kw">let</span> <span class="ident">commitment_with_secret_nonce</span> <span class="op">=</span>
-            <span class="ident">crypto::profile_key_commitment::CommitmentWithSecretNonce::new</span>(
-                <span class="ident">profile_key_struct</span>,
-                <span class="ident">uid_bytes</span>,
+        <span class="kw">let </span>commitment_with_secret_nonce =
+            crypto::profile_key_commitment::CommitmentWithSecretNonce::new(
+                profile_key_struct,
+                uid_bytes,
             );
 
-        <span class="kw">let</span> <span class="ident">key_pair</span> <span class="op">=</span> <span class="ident">crypto::profile_key_credential_request::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">ciphertext_with_secret_nonce</span> <span class="op">=</span> <span class="ident">key_pair</span>.<span class="ident">encrypt</span>(<span class="ident">profile_key_struct</span>, <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
+        <span class="kw">let </span>key_pair = crypto::profile_key_credential_request::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>ciphertext_with_secret_nonce = key_pair.encrypt(profile_key_struct, <span class="kw-2">&amp;mut </span>sho);
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ProfileKeyCredentialRequestProof::new</span>(
-            <span class="ident">key_pair</span>,
-            <span class="ident">ciphertext_with_secret_nonce</span>,
-            <span class="ident">commitment_with_secret_nonce</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ProfileKeyCredentialRequestProof::new(
+            key_pair,
+            ciphertext_with_secret_nonce,
+            commitment_with_secret_nonce,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::profiles::ProfileKeyCredentialRequestContext</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">uid_bytes</span>,
-            <span class="ident">profile_key_bytes</span>: <span class="ident">profile_key_struct</span>.<span class="ident">bytes</span>,
-            <span class="ident">key_pair</span>,
-            <span class="ident">ciphertext_with_secret_nonce</span>,
-            <span class="ident">proof</span>,
+        api::profiles::ProfileKeyCredentialRequestContext {
+            reserved: Default::default(),
+            uid_bytes,
+            profile_key_bytes: profile_key_struct.bytes,
+            key_pair,
+            ciphertext_with_secret_nonce,
+            proof,
         }
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_pni_credential_request_context</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>create_pni_credential_request_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">aci_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">pni_bytes</span>: <span class="ident">UidBytes</span>,
-        <span class="ident">profile_key</span>: <span class="ident">api::profiles::ProfileKey</span>,
-    ) -&gt; <span class="ident">api::profiles::PniCredentialRequestContext</span> {
-        <span class="comment">// We want to provide an encryption of the profile key and prove that it matches the</span>
-        <span class="comment">// ProfileKeyCommitment in *exactly* the same way as a non-PNI request, so just invoke that</span>
-        <span class="comment">// and then add the PNI to the result.</span>
-        <span class="kw">let</span> <span class="ident">profile_key_request_context</span> <span class="op">=</span>
-            <span class="self">self</span>.<span class="ident">create_profile_key_credential_request_context</span>(<span class="ident">randomness</span>, <span class="ident">aci_bytes</span>, <span class="ident">profile_key</span>);
-        <span class="ident">api::profiles::PniCredentialRequestContext</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">aci_bytes</span>,
-            <span class="ident">pni_bytes</span>,
-            <span class="ident">profile_key_bytes</span>: <span class="ident">profile_key_request_context</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="ident">key_pair</span>: <span class="ident">profile_key_request_context</span>.<span class="ident">key_pair</span>,
-            <span class="ident">ciphertext_with_secret_nonce</span>: <span class="ident">profile_key_request_context</span>.<span class="ident">ciphertext_with_secret_nonce</span>,
-            <span class="ident">proof</span>: <span class="ident">profile_key_request_context</span>.<span class="ident">proof</span>,
+        randomness: RandomnessBytes,
+        aci_bytes: UidBytes,
+        pni_bytes: UidBytes,
+        profile_key: api::profiles::ProfileKey,
+    ) -&gt; api::profiles::PniCredentialRequestContext {
+        <span class="comment">// We want to provide an encryption of the profile key and prove that it matches the
+        // ProfileKeyCommitment in *exactly* the same way as a non-PNI request, so just invoke that
+        // and then add the PNI to the result.
+        </span><span class="kw">let </span>profile_key_request_context =
+            <span class="self">self</span>.create_profile_key_credential_request_context(randomness, aci_bytes, profile_key);
+        api::profiles::PniCredentialRequestContext {
+            reserved: Default::default(),
+            aci_bytes,
+            pni_bytes,
+            profile_key_bytes: profile_key_request_context.profile_key_bytes,
+            key_pair: profile_key_request_context.key_pair,
+            ciphertext_with_secret_nonce: profile_key_request_context.ciphertext_with_secret_nonce,
+            proof: profile_key_request_context.proof,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">receive_profile_key_credential</span>(
+    <span class="kw">pub fn </span>receive_profile_key_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialRequestContext</span>,
-        <span class="ident">response</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialResponse</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::profiles::ProfileKeyCredential</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident">response</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">profile_key_credentials_public_key</span>,
-            <span class="ident">context</span>.<span class="ident">key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">context</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">context</span>.<span class="ident">ciphertext_with_secret_nonce</span>.<span class="ident">get_ciphertext</span>(),
-            <span class="ident">response</span>.<span class="ident">blinded_credential</span>,
+        context: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialRequestContext,
+        response: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialResponse,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ProfileKeyCredential, ZkGroupVerificationFailure&gt; {
+        response.proof.verify(
+            <span class="self">self</span>.profile_key_credentials_public_key,
+            context.key_pair.get_public_key(),
+            context.uid_bytes,
+            context.ciphertext_with_secret_nonce.get_ciphertext(),
+            response.blinded_credential,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">credential</span> <span class="op">=</span> <span class="ident">context</span>
-            .<span class="ident">key_pair</span>
-            .<span class="ident">decrypt_blinded_profile_key_credential</span>(<span class="ident">response</span>.<span class="ident">blinded_credential</span>);
+        <span class="kw">let </span>credential = context
+            .key_pair
+            .decrypt_blinded_profile_key_credential(response.blinded_credential);
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::profiles::ProfileKeyCredential</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>,
-            <span class="ident">uid_bytes</span>: <span class="ident">context</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">profile_key_bytes</span>: <span class="ident">context</span>.<span class="ident">profile_key_bytes</span>,
+        <span class="prelude-val">Ok</span>(api::profiles::ProfileKeyCredential {
+            reserved: Default::default(),
+            credential,
+            uid_bytes: context.uid_bytes,
+            profile_key_bytes: context.profile_key_bytes,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">receive_expiring_profile_key_credential</span>(
+    <span class="kw">pub fn </span>receive_expiring_profile_key_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ProfileKeyCredentialRequestContext</span>,
-        <span class="ident">response</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::ExpiringProfileKeyCredentialResponse</span>,
-        <span class="ident">current_time</span>: <span class="ident">Timestamp</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::profiles::ExpiringProfileKeyCredential</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident">response</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">expiring_profile_key_credentials_public_key</span>,
-            <span class="ident">context</span>.<span class="ident">key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">context</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">context</span>.<span class="ident">ciphertext_with_secret_nonce</span>.<span class="ident">get_ciphertext</span>(),
-            <span class="ident">response</span>.<span class="ident">blinded_credential</span>,
-            <span class="ident">response</span>.<span class="ident">credential_expiration_time</span>,
+        context: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialRequestContext,
+        response: <span class="kw-2">&amp;</span>api::profiles::ExpiringProfileKeyCredentialResponse,
+        current_time: Timestamp,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ExpiringProfileKeyCredential, ZkGroupVerificationFailure&gt; {
+        response.proof.verify(
+            <span class="self">self</span>.expiring_profile_key_credentials_public_key,
+            context.key_pair.get_public_key(),
+            context.uid_bytes,
+            context.ciphertext_with_secret_nonce.get_ciphertext(),
+            response.blinded_credential,
+            response.credential_expiration_time,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">if</span> <span class="ident">response</span>.<span class="ident">credential_expiration_time</span> <span class="op">%</span> <span class="ident">SECONDS_PER_DAY</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>);
+        <span class="kw">if </span>response.credential_expiration_time % SECONDS_PER_DAY != <span class="number">0 </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
-        <span class="kw">let</span> <span class="ident">days_remaining</span> <span class="op">=</span> <span class="ident">response</span>
-            .<span class="ident">credential_expiration_time</span>
-            .<span class="ident">saturating_sub</span>(<span class="ident">current_time</span>)
-            <span class="op">/</span> <span class="ident">SECONDS_PER_DAY</span>;
-        <span class="kw">if</span> <span class="ident">days_remaining</span> <span class="op">==</span> <span class="number">0</span> <span class="op">|</span><span class="op">|</span> <span class="ident">days_remaining</span> <span class="op">&gt;</span> <span class="number">7</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>);
+        <span class="kw">let </span>days_remaining = response
+            .credential_expiration_time
+            .saturating_sub(current_time)
+            / SECONDS_PER_DAY;
+        <span class="kw">if </span>days_remaining == <span class="number">0 </span>|| days_remaining &gt; <span class="number">7 </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
 
-        <span class="kw">let</span> <span class="ident">credential</span> <span class="op">=</span> <span class="ident">context</span>
-            .<span class="ident">key_pair</span>
-            .<span class="ident">decrypt_blinded_expiring_profile_key_credential</span>(<span class="ident">response</span>.<span class="ident">blinded_credential</span>);
+        <span class="kw">let </span>credential = context
+            .key_pair
+            .decrypt_blinded_expiring_profile_key_credential(response.blinded_credential);
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::profiles::ExpiringProfileKeyCredential</span> {
-            <span class="ident">version</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>,
-            <span class="ident">uid_bytes</span>: <span class="ident">context</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">profile_key_bytes</span>: <span class="ident">context</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="ident">credential_expiration_time</span>: <span class="ident">response</span>.<span class="ident">credential_expiration_time</span>,
+        <span class="prelude-val">Ok</span>(api::profiles::ExpiringProfileKeyCredential {
+            version: Default::default(),
+            credential,
+            uid_bytes: context.uid_bytes,
+            profile_key_bytes: context.profile_key_bytes,
+            credential_expiration_time: response.credential_expiration_time,
         })
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">receive_pni_credential</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>receive_pni_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::PniCredentialRequestContext</span>,
-        <span class="ident">response</span>: <span class="kw-2">&amp;</span><span class="ident">api::profiles::PniCredentialResponse</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::profiles::PniCredential</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="ident">response</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">pni_credentials_public_key</span>,
-            <span class="ident">context</span>.<span class="ident">key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">context</span>.<span class="ident">aci_bytes</span>,
-            <span class="ident">context</span>.<span class="ident">pni_bytes</span>,
-            <span class="ident">context</span>.<span class="ident">ciphertext_with_secret_nonce</span>.<span class="ident">get_ciphertext</span>(),
-            <span class="ident">response</span>.<span class="ident">blinded_credential</span>,
+        context: <span class="kw-2">&amp;</span>api::profiles::PniCredentialRequestContext,
+        response: <span class="kw-2">&amp;</span>api::profiles::PniCredentialResponse,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::PniCredential, ZkGroupVerificationFailure&gt; {
+        response.proof.verify(
+            <span class="self">self</span>.pni_credentials_public_key,
+            context.key_pair.get_public_key(),
+            context.aci_bytes,
+            context.pni_bytes,
+            context.ciphertext_with_secret_nonce.get_ciphertext(),
+            response.blinded_credential,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">credential</span> <span class="op">=</span> <span class="ident">context</span>
-            .<span class="ident">key_pair</span>
-            .<span class="ident">decrypt_blinded_pni_credential</span>(<span class="ident">response</span>.<span class="ident">blinded_credential</span>);
+        <span class="kw">let </span>credential = context
+            .key_pair
+            .decrypt_blinded_pni_credential(response.blinded_credential);
 
-        <span class="prelude-val">Ok</span>(<span class="ident">api::profiles::PniCredential</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>,
-            <span class="ident">aci_bytes</span>: <span class="ident">context</span>.<span class="ident">aci_bytes</span>,
-            <span class="ident">pni_bytes</span>: <span class="ident">context</span>.<span class="ident">pni_bytes</span>,
-            <span class="ident">profile_key_bytes</span>: <span class="ident">context</span>.<span class="ident">profile_key_bytes</span>,
+        <span class="prelude-val">Ok</span>(api::profiles::PniCredential {
+            reserved: Default::default(),
+            credential,
+            aci_bytes: context.aci_bytes,
+            pni_bytes: context.pni_bytes,
+            profile_key_bytes: context.profile_key_bytes,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_profile_key_credential_presentation</span>(
+    <span class="kw">pub fn </span>create_profile_key_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">profile_key_credential</span>: <span class="ident">api::profiles::ProfileKeyCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::AnyProfileKeyCredentialPresentation</span> {
-        <span class="kw">let</span> <span class="ident">presentation_v2</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_profile_key_credential_presentation_v2</span>(
-            <span class="ident">randomness</span>,
-            <span class="ident">group_secret_params</span>,
-            <span class="ident">profile_key_credential</span>,
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        profile_key_credential: api::profiles::ProfileKeyCredential,
+    ) -&gt; api::profiles::AnyProfileKeyCredentialPresentation {
+        <span class="kw">let </span>presentation_v2 = <span class="self">self</span>.create_profile_key_credential_presentation_v2(
+            randomness,
+            group_secret_params,
+            profile_key_credential,
         );
-        <span class="ident">api::profiles::AnyProfileKeyCredentialPresentation::V2</span>(<span class="ident">presentation_v2</span>)
+        api::profiles::AnyProfileKeyCredentialPresentation::V2(presentation_v2)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_profile_key_credential_presentation_v1</span>(
+    <span class="kw">pub fn </span>create_profile_key_credential_presentation_v1(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">profile_key_credential</span>: <span class="ident">api::profiles::ProfileKeyCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::ProfileKeyCredentialPresentationV1</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        profile_key_credential: api::profiles::ProfileKeyCredential,
+    ) -&gt; api::profiles::ProfileKeyCredentialPresentationV1 {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerPublicParams_CreateProfileKeyCredentialPresentation&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uid_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">profile_key_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">credentials_public_key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">profile_key_credentials_public_key</span>;
+        <span class="kw">let </span>uid_enc_key_pair = group_secret_params.uid_enc_key_pair;
+        <span class="kw">let </span>profile_key_enc_key_pair = group_secret_params.profile_key_enc_key_pair;
+        <span class="kw">let </span>credentials_public_key = <span class="self">self</span>.profile_key_credentials_public_key;
 
-        <span class="kw">let</span> <span class="ident">uuid_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">profile_key_credential</span>.<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">profile_key_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_profile_key_bytes</span>(
-            <span class="ident">profile_key_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">uid_bytes</span>,
+        <span class="kw">let </span>uuid_ciphertext = group_secret_params.encrypt_uuid(profile_key_credential.uid_bytes);
+        <span class="kw">let </span>profile_key_ciphertext = group_secret_params.encrypt_profile_key_bytes(
+            profile_key_credential.profile_key_bytes,
+            profile_key_credential.uid_bytes,
         );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ProfileKeyCredentialPresentationProofV1::new</span>(
-            <span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">profile_key_enc_key_pair</span>,
-            <span class="ident">credentials_public_key</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ProfileKeyCredentialPresentationProofV1::new(
+            uid_enc_key_pair,
+            profile_key_enc_key_pair,
+            credentials_public_key,
+            profile_key_credential.credential,
+            uuid_ciphertext.ciphertext,
+            profile_key_ciphertext.ciphertext,
+            profile_key_credential.uid_bytes,
+            profile_key_credential.profile_key_bytes,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::profiles::ProfileKeyCredentialPresentationV1</span> {
-            <span class="ident">reserved</span>: [<span class="ident">PRESENTATION_VERSION_1</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">uid_enc_ciphertext</span>: <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_enc_ciphertext</span>: <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
+        api::profiles::ProfileKeyCredentialPresentationV1 {
+            reserved: [PRESENTATION_VERSION_1],
+            proof,
+            uid_enc_ciphertext: uuid_ciphertext.ciphertext,
+            profile_key_enc_ciphertext: profile_key_ciphertext.ciphertext,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_profile_key_credential_presentation_v2</span>(
+    <span class="kw">pub fn </span>create_profile_key_credential_presentation_v2(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">profile_key_credential</span>: <span class="ident">api::profiles::ProfileKeyCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::ProfileKeyCredentialPresentationV2</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        profile_key_credential: api::profiles::ProfileKeyCredential,
+    ) -&gt; api::profiles::ProfileKeyCredentialPresentationV2 {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220120_Random_ServerPublicParams_CreateProfileKeyCredentialPresentationV2&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uid_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">profile_key_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">credentials_public_key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">profile_key_credentials_public_key</span>;
+        <span class="kw">let </span>uid_enc_key_pair = group_secret_params.uid_enc_key_pair;
+        <span class="kw">let </span>profile_key_enc_key_pair = group_secret_params.profile_key_enc_key_pair;
+        <span class="kw">let </span>credentials_public_key = <span class="self">self</span>.profile_key_credentials_public_key;
 
-        <span class="kw">let</span> <span class="ident">uuid_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">profile_key_credential</span>.<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">profile_key_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_profile_key_bytes</span>(
-            <span class="ident">profile_key_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">uid_bytes</span>,
+        <span class="kw">let </span>uuid_ciphertext = group_secret_params.encrypt_uuid(profile_key_credential.uid_bytes);
+        <span class="kw">let </span>profile_key_ciphertext = group_secret_params.encrypt_profile_key_bytes(
+            profile_key_credential.profile_key_bytes,
+            profile_key_credential.uid_bytes,
         );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ProfileKeyCredentialPresentationProofV2::new</span>(
-            <span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">profile_key_enc_key_pair</span>,
-            <span class="ident">credentials_public_key</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">profile_key_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ProfileKeyCredentialPresentationProofV2::new(
+            uid_enc_key_pair,
+            profile_key_enc_key_pair,
+            credentials_public_key,
+            profile_key_credential.credential,
+            uuid_ciphertext.ciphertext,
+            profile_key_ciphertext.ciphertext,
+            profile_key_credential.uid_bytes,
+            profile_key_credential.profile_key_bytes,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::profiles::ProfileKeyCredentialPresentationV2</span> {
-            <span class="ident">version</span>: [<span class="ident">PRESENTATION_VERSION_2</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">uid_enc_ciphertext</span>: <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_enc_ciphertext</span>: <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
+        api::profiles::ProfileKeyCredentialPresentationV2 {
+            version: [PRESENTATION_VERSION_2],
+            proof,
+            uid_enc_ciphertext: uuid_ciphertext.ciphertext,
+            profile_key_enc_ciphertext: profile_key_ciphertext.ciphertext,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_expiring_profile_key_credential_presentation</span>(
+    <span class="kw">pub fn </span>create_expiring_profile_key_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">expiring_profile_key_credential</span>: <span class="ident">api::profiles::ExpiringProfileKeyCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::ExpiringProfileKeyCredentialPresentation</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        expiring_profile_key_credential: api::profiles::ExpiringProfileKeyCredential,
+    ) -&gt; api::profiles::ExpiringProfileKeyCredentialPresentation {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220508_Random_ServerPublicParams_CreateExpiringProfileKeyCredentialPresentation&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uid_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">profile_key_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">credentials_public_key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">expiring_profile_key_credentials_public_key</span>;
+        <span class="kw">let </span>uid_enc_key_pair = group_secret_params.uid_enc_key_pair;
+        <span class="kw">let </span>profile_key_enc_key_pair = group_secret_params.profile_key_enc_key_pair;
+        <span class="kw">let </span>credentials_public_key = <span class="self">self</span>.expiring_profile_key_credentials_public_key;
 
-        <span class="kw">let</span> <span class="ident">uuid_ciphertext</span> <span class="op">=</span>
-            <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">expiring_profile_key_credential</span>.<span class="ident">uid_bytes</span>);
-        <span class="kw">let</span> <span class="ident">profile_key_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_profile_key_bytes</span>(
-            <span class="ident">expiring_profile_key_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="ident">expiring_profile_key_credential</span>.<span class="ident">uid_bytes</span>,
+        <span class="kw">let </span>uuid_ciphertext =
+            group_secret_params.encrypt_uuid(expiring_profile_key_credential.uid_bytes);
+        <span class="kw">let </span>profile_key_ciphertext = group_secret_params.encrypt_profile_key_bytes(
+            expiring_profile_key_credential.profile_key_bytes,
+            expiring_profile_key_credential.uid_bytes,
         );
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ExpiringProfileKeyCredentialPresentationProof::new</span>(
-            <span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">profile_key_enc_key_pair</span>,
-            <span class="ident">credentials_public_key</span>,
-            <span class="ident">expiring_profile_key_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">expiring_profile_key_credential</span>.<span class="ident">uid_bytes</span>,
-            <span class="ident">expiring_profile_key_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ExpiringProfileKeyCredentialPresentationProof::new(
+            uid_enc_key_pair,
+            profile_key_enc_key_pair,
+            credentials_public_key,
+            expiring_profile_key_credential.credential,
+            uuid_ciphertext.ciphertext,
+            profile_key_ciphertext.ciphertext,
+            expiring_profile_key_credential.uid_bytes,
+            expiring_profile_key_credential.profile_key_bytes,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::profiles::ExpiringProfileKeyCredentialPresentation</span> {
-            <span class="ident">version</span>: [<span class="ident">PRESENTATION_VERSION_3</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">uid_enc_ciphertext</span>: <span class="ident">uuid_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_enc_ciphertext</span>: <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">credential_expiration_time</span>: <span class="ident">expiring_profile_key_credential</span>.<span class="ident">credential_expiration_time</span>,
+        api::profiles::ExpiringProfileKeyCredentialPresentation {
+            version: [PRESENTATION_VERSION_3],
+            proof,
+            uid_enc_ciphertext: uuid_ciphertext.ciphertext,
+            profile_key_enc_ciphertext: profile_key_ciphertext.ciphertext,
+            credential_expiration_time: expiring_profile_key_credential.credential_expiration_time,
         }
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_pni_credential_presentation</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>create_pni_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">pni_credential</span>: <span class="ident">api::profiles::PniCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::AnyPniCredentialPresentation</span> {
-        <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">deprecated</span>)]</span>
-        <span class="kw">let</span> <span class="ident">presentation_v2</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">create_pni_credential_presentation_v2</span>(
-            <span class="ident">randomness</span>,
-            <span class="ident">group_secret_params</span>,
-            <span class="ident">pni_credential</span>,
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        pni_credential: api::profiles::PniCredential,
+    ) -&gt; api::profiles::AnyPniCredentialPresentation {
+        <span class="attribute">#[allow(deprecated)]
+        </span><span class="kw">let </span>presentation_v2 = <span class="self">self</span>.create_pni_credential_presentation_v2(
+            randomness,
+            group_secret_params,
+            pni_credential,
         );
-        <span class="ident">api::profiles::AnyPniCredentialPresentation::V2</span>(<span class="ident">presentation_v2</span>)
+        api::profiles::AnyPniCredentialPresentation::V2(presentation_v2)
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_pni_credential_presentation_v1</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>create_pni_credential_presentation_v1(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">pni_credential</span>: <span class="ident">api::profiles::PniCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::PniCredentialPresentationV1</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        pni_credential: api::profiles::PniCredential,
+    ) -&gt; api::profiles::PniCredentialPresentationV1 {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20211111_Random_ServerPublicParams_CreatePniCredentialPresentation&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uid_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">profile_key_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">credentials_public_key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pni_credentials_public_key</span>;
+        <span class="kw">let </span>uid_enc_key_pair = group_secret_params.uid_enc_key_pair;
+        <span class="kw">let </span>profile_key_enc_key_pair = group_secret_params.profile_key_enc_key_pair;
+        <span class="kw">let </span>credentials_public_key = <span class="self">self</span>.pni_credentials_public_key;
 
-        <span class="kw">let</span> <span class="ident">aci_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">pni_credential</span>.<span class="ident">aci_bytes</span>);
-        <span class="kw">let</span> <span class="ident">pni_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">pni_credential</span>.<span class="ident">pni_bytes</span>);
-        <span class="kw">let</span> <span class="ident">profile_key_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>
-            .<span class="ident">encrypt_profile_key_bytes</span>(<span class="ident">pni_credential</span>.<span class="ident">profile_key_bytes</span>, <span class="ident">pni_credential</span>.<span class="ident">aci_bytes</span>);
+        <span class="kw">let </span>aci_ciphertext = group_secret_params.encrypt_uuid(pni_credential.aci_bytes);
+        <span class="kw">let </span>pni_ciphertext = group_secret_params.encrypt_uuid(pni_credential.pni_bytes);
+        <span class="kw">let </span>profile_key_ciphertext = group_secret_params
+            .encrypt_profile_key_bytes(pni_credential.profile_key_bytes, pni_credential.aci_bytes);
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::PniCredentialPresentationProofV1::new</span>(
-            <span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">profile_key_enc_key_pair</span>,
-            <span class="ident">credentials_public_key</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">aci_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">aci_bytes</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">pni_bytes</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::PniCredentialPresentationProofV1::new(
+            uid_enc_key_pair,
+            profile_key_enc_key_pair,
+            credentials_public_key,
+            pni_credential.credential,
+            aci_ciphertext.ciphertext,
+            pni_ciphertext.ciphertext,
+            profile_key_ciphertext.ciphertext,
+            pni_credential.aci_bytes,
+            pni_credential.pni_bytes,
+            pni_credential.profile_key_bytes,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::profiles::PniCredentialPresentationV1</span> {
-            <span class="ident">reserved</span>: [<span class="ident">PRESENTATION_VERSION_1</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">aci_enc_ciphertext</span>: <span class="ident">aci_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_enc_ciphertext</span>: <span class="ident">pni_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_enc_ciphertext</span>: <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
+        api::profiles::PniCredentialPresentationV1 {
+            reserved: [PRESENTATION_VERSION_1],
+            proof,
+            aci_enc_ciphertext: aci_ciphertext.ciphertext,
+            pni_enc_ciphertext: pni_ciphertext.ciphertext,
+            profile_key_enc_ciphertext: profile_key_ciphertext.ciphertext,
         }
     }
 
-    <span class="attribute">#[<span class="ident">deprecated</span> <span class="op">=</span> <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_pni_credential_presentation_v2</span>(
+    <span class="attribute">#[deprecated = <span class="string">&quot;superseded by AuthCredentialWithPni + ProfileKeyCredential&quot;</span>]
+    </span><span class="kw">pub fn </span>create_pni_credential_presentation_v2(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">api::groups::GroupSecretParams</span>,
-        <span class="ident">pni_credential</span>: <span class="ident">api::profiles::PniCredential</span>,
-    ) -&gt; <span class="ident">api::profiles::PniCredentialPresentationV2</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        group_secret_params: api::groups::GroupSecretParams,
+        pni_credential: api::profiles::PniCredential,
+    ) -&gt; api::profiles::PniCredentialPresentationV2 {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20220120_Random_ServerPublicParams_CreatePniCredentialPresentationV2&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">uid_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">uid_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">profile_key_enc_key_pair</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">profile_key_enc_key_pair</span>;
-        <span class="kw">let</span> <span class="ident">credentials_public_key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">pni_credentials_public_key</span>;
+        <span class="kw">let </span>uid_enc_key_pair = group_secret_params.uid_enc_key_pair;
+        <span class="kw">let </span>profile_key_enc_key_pair = group_secret_params.profile_key_enc_key_pair;
+        <span class="kw">let </span>credentials_public_key = <span class="self">self</span>.pni_credentials_public_key;
 
-        <span class="kw">let</span> <span class="ident">aci_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">pni_credential</span>.<span class="ident">aci_bytes</span>);
-        <span class="kw">let</span> <span class="ident">pni_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>.<span class="ident">encrypt_uuid</span>(<span class="ident">pni_credential</span>.<span class="ident">pni_bytes</span>);
-        <span class="kw">let</span> <span class="ident">profile_key_ciphertext</span> <span class="op">=</span> <span class="ident">group_secret_params</span>
-            .<span class="ident">encrypt_profile_key_bytes</span>(<span class="ident">pni_credential</span>.<span class="ident">profile_key_bytes</span>, <span class="ident">pni_credential</span>.<span class="ident">aci_bytes</span>);
+        <span class="kw">let </span>aci_ciphertext = group_secret_params.encrypt_uuid(pni_credential.aci_bytes);
+        <span class="kw">let </span>pni_ciphertext = group_secret_params.encrypt_uuid(pni_credential.pni_bytes);
+        <span class="kw">let </span>profile_key_ciphertext = group_secret_params
+            .encrypt_profile_key_bytes(pni_credential.profile_key_bytes, pni_credential.aci_bytes);
 
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::PniCredentialPresentationProofV2::new</span>(
-            <span class="ident">uid_enc_key_pair</span>,
-            <span class="ident">profile_key_enc_key_pair</span>,
-            <span class="ident">credentials_public_key</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">credential</span>,
-            <span class="ident">aci_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">aci_bytes</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">pni_bytes</span>,
-            <span class="ident">pni_credential</span>.<span class="ident">profile_key_bytes</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::PniCredentialPresentationProofV2::new(
+            uid_enc_key_pair,
+            profile_key_enc_key_pair,
+            credentials_public_key,
+            pni_credential.credential,
+            aci_ciphertext.ciphertext,
+            pni_ciphertext.ciphertext,
+            profile_key_ciphertext.ciphertext,
+            pni_credential.aci_bytes,
+            pni_credential.pni_bytes,
+            pni_credential.profile_key_bytes,
+            <span class="kw-2">&amp;mut </span>sho,
         );
 
-        <span class="ident">api::profiles::PniCredentialPresentationV2</span> {
-            <span class="ident">version</span>: [<span class="ident">PRESENTATION_VERSION_2</span>],
-            <span class="ident">proof</span>,
-            <span class="ident">aci_enc_ciphertext</span>: <span class="ident">aci_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">pni_enc_ciphertext</span>: <span class="ident">pni_ciphertext</span>.<span class="ident">ciphertext</span>,
-            <span class="ident">profile_key_enc_ciphertext</span>: <span class="ident">profile_key_ciphertext</span>.<span class="ident">ciphertext</span>,
+        api::profiles::PniCredentialPresentationV2 {
+            version: [PRESENTATION_VERSION_2],
+            proof,
+            aci_enc_ciphertext: aci_ciphertext.ciphertext,
+            pni_enc_ciphertext: pni_ciphertext.ciphertext,
+            profile_key_enc_ciphertext: profile_key_ciphertext.ciphertext,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_receipt_credential_request_context</span>(
+    <span class="kw">pub fn </span>create_receipt_credential_request_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">receipt_serial_bytes</span>: <span class="ident">ReceiptSerialBytes</span>,
-    ) -&gt; <span class="ident">api::receipts::ReceiptCredentialRequestContext</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        receipt_serial_bytes: ReceiptSerialBytes,
+    ) -&gt; api::receipts::ReceiptCredentialRequestContext {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20210919_Random_ServerPublicParams_CreateReceiptCredentialRequestContext&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
 
-        <span class="kw">let</span> <span class="ident">key_pair</span> <span class="op">=</span> <span class="ident">crypto::receipt_credential_request::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
-        <span class="kw">let</span> <span class="ident">ciphertext_with_secret_nonce</span> <span class="op">=</span> <span class="ident">key_pair</span>.<span class="ident">encrypt</span>(<span class="ident">receipt_serial_bytes</span>, <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
+        <span class="kw">let </span>key_pair = crypto::receipt_credential_request::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>ciphertext_with_secret_nonce = key_pair.encrypt(receipt_serial_bytes, <span class="kw-2">&amp;mut </span>sho);
 
-        <span class="ident">api::receipts::ReceiptCredentialRequestContext</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">receipt_serial_bytes</span>,
-            <span class="ident">key_pair</span>,
-            <span class="ident">ciphertext_with_secret_nonce</span>,
+        api::receipts::ReceiptCredentialRequestContext {
+            reserved: Default::default(),
+            receipt_serial_bytes,
+            key_pair,
+            ciphertext_with_secret_nonce,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">receive_receipt_credential</span>(
+    <span class="kw">pub fn </span>receive_receipt_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">context</span>: <span class="kw-2">&amp;</span><span class="ident">api::receipts::ReceiptCredentialRequestContext</span>,
-        <span class="ident">response</span>: <span class="kw-2">&amp;</span><span class="ident">api::receipts::ReceiptCredentialResponse</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">api::receipts::ReceiptCredential</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">receipt_struct</span> <span class="op">=</span> <span class="ident">crypto::receipt_struct::ReceiptStruct::new</span>(
-            <span class="ident">context</span>.<span class="ident">receipt_serial_bytes</span>,
-            <span class="ident">response</span>.<span class="ident">receipt_expiration_time</span>,
-            <span class="ident">response</span>.<span class="ident">receipt_level</span>,
+        context: <span class="kw-2">&amp;</span>api::receipts::ReceiptCredentialRequestContext,
+        response: <span class="kw-2">&amp;</span>api::receipts::ReceiptCredentialResponse,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::receipts::ReceiptCredential, ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>receipt_struct = crypto::receipt_struct::ReceiptStruct::new(
+            context.receipt_serial_bytes,
+            response.receipt_expiration_time,
+            response.receipt_level,
         );
-        <span class="ident">response</span>.<span class="ident">proof</span>.<span class="ident">verify</span>(
-            <span class="self">self</span>.<span class="ident">receipt_credentials_public_key</span>,
-            <span class="ident">context</span>.<span class="ident">key_pair</span>.<span class="ident">get_public_key</span>(),
-            <span class="ident">context</span>.<span class="ident">ciphertext_with_secret_nonce</span>.<span class="ident">get_ciphertext</span>(),
-            <span class="ident">response</span>.<span class="ident">blinded_credential</span>,
-            <span class="ident">receipt_struct</span>,
+        response.proof.verify(
+            <span class="self">self</span>.receipt_credentials_public_key,
+            context.key_pair.get_public_key(),
+            context.ciphertext_with_secret_nonce.get_ciphertext(),
+            response.blinded_credential,
+            receipt_struct,
         )<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">credential</span> <span class="op">=</span> <span class="ident">context</span>
-            .<span class="ident">key_pair</span>
-            .<span class="ident">decrypt_blinded_receipt_credential</span>(<span class="ident">response</span>.<span class="ident">blinded_credential</span>);
-        <span class="prelude-val">Ok</span>(<span class="ident">api::receipts::ReceiptCredential</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">credential</span>,
-            <span class="ident">receipt_expiration_time</span>: <span class="ident">response</span>.<span class="ident">receipt_expiration_time</span>,
-            <span class="ident">receipt_level</span>: <span class="ident">response</span>.<span class="ident">receipt_level</span>,
-            <span class="ident">receipt_serial_bytes</span>: <span class="ident">context</span>.<span class="ident">receipt_serial_bytes</span>,
+        <span class="kw">let </span>credential = context
+            .key_pair
+            .decrypt_blinded_receipt_credential(response.blinded_credential);
+        <span class="prelude-val">Ok</span>(api::receipts::ReceiptCredential {
+            reserved: Default::default(),
+            credential,
+            receipt_expiration_time: response.receipt_expiration_time,
+            receipt_level: response.receipt_level,
+            receipt_serial_bytes: context.receipt_serial_bytes,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">create_receipt_credential_presentation</span>(
+    <span class="kw">pub fn </span>create_receipt_credential_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">randomness</span>: <span class="ident">RandomnessBytes</span>,
-        <span class="ident">receipt_credential</span>: <span class="kw-2">&amp;</span><span class="ident">api::receipts::ReceiptCredential</span>,
-    ) -&gt; <span class="ident">api::receipts::ReceiptCredentialPresentation</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+        randomness: RandomnessBytes,
+        receipt_credential: <span class="kw-2">&amp;</span>api::receipts::ReceiptCredential,
+    ) -&gt; api::receipts::ReceiptCredentialPresentation {
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20210919_Random_ServerPublicParams_CreateReceiptCredentialPresentation&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">randomness</span>,
+            <span class="kw-2">&amp;</span>randomness,
         );
-        <span class="kw">let</span> <span class="ident">proof</span> <span class="op">=</span> <span class="ident">crypto::proofs::ReceiptCredentialPresentationProof::new</span>(
-            <span class="self">self</span>.<span class="ident">receipt_credentials_public_key</span>,
-            <span class="ident">receipt_credential</span>.<span class="ident">credential</span>,
-            <span class="kw-2">&amp;mut</span> <span class="ident">sho</span>,
+        <span class="kw">let </span>proof = crypto::proofs::ReceiptCredentialPresentationProof::new(
+            <span class="self">self</span>.receipt_credentials_public_key,
+            receipt_credential.credential,
+            <span class="kw-2">&amp;mut </span>sho,
         );
-        <span class="ident">api::receipts::ReceiptCredentialPresentation</span> {
-            <span class="ident">reserved</span>: <span class="ident">Default::default</span>(),
-            <span class="ident">proof</span>,
-            <span class="ident">receipt_expiration_time</span>: <span class="ident">receipt_credential</span>.<span class="ident">receipt_expiration_time</span>,
-            <span class="ident">receipt_level</span>: <span class="ident">receipt_credential</span>.<span class="ident">receipt_level</span>,
-            <span class="ident">receipt_serial_bytes</span>: <span class="ident">receipt_credential</span>.<span class="ident">receipt_serial_bytes</span>,
+        api::receipts::ReceiptCredentialPresentation {
+            reserved: Default::default(),
+            proof,
+            receipt_expiration_time: receipt_credential.receipt_expiration_time,
+            receipt_level: receipt_credential.receipt_level,
+            receipt_serial_bytes: receipt_credential.receipt_serial_bytes,
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

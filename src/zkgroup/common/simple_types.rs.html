@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/common/simple_types.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>simple_types.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/common/simple_types.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>simple_types.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -63,70 +63,70 @@
 <span id="63">63</span>
 <span id="64">64</span>
 <span id="65">65</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::constants</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">curve25519_dalek::scalar::Scalar</span>;
+</span><span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
+<span class="kw">use </span>curve25519_dalek::scalar::Scalar;
 
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">AesKeyBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">AES_KEY_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">GroupMasterKeyBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">GROUP_MASTER_KEY_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">UidBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">UUID_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ProfileKeyBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">PROFILE_KEY_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">RandomnessBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">RANDOMNESS_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ReservedBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">RESERVED_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">SignatureBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">SIGNATURE_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">NotarySignatureBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">SIGNATURE_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">GroupIdentifierBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">GROUP_IDENTIFIER_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ProfileKeyVersionBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">PROFILE_KEY_VERSION_LEN</span>];
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ProfileKeyVersionEncodedBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">PROFILE_KEY_VERSION_ENCODED_LEN</span>];
+<span class="kw">pub type </span>AesKeyBytes = [u8; AES_KEY_LEN];
+<span class="kw">pub type </span>GroupMasterKeyBytes = [u8; GROUP_MASTER_KEY_LEN];
+<span class="kw">pub type </span>UidBytes = [u8; UUID_LEN];
+<span class="kw">pub type </span>ProfileKeyBytes = [u8; PROFILE_KEY_LEN];
+<span class="kw">pub type </span>RandomnessBytes = [u8; RANDOMNESS_LEN];
+<span class="kw">pub type </span>ReservedBytes = [u8; RESERVED_LEN];
+<span class="kw">pub type </span>SignatureBytes = [u8; SIGNATURE_LEN];
+<span class="kw">pub type </span>NotarySignatureBytes = [u8; SIGNATURE_LEN];
+<span class="kw">pub type </span>GroupIdentifierBytes = [u8; GROUP_IDENTIFIER_LEN];
+<span class="kw">pub type </span>ProfileKeyVersionBytes = [u8; PROFILE_KEY_VERSION_LEN];
+<span class="kw">pub type </span>ProfileKeyVersionEncodedBytes = [u8; PROFILE_KEY_VERSION_ENCODED_LEN];
 
-<span class="doccomment">/// Measured in days past the epoch.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Clients should check that this is within a day of the current date.</span>
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">CoarseRedemptionTime</span> <span class="op">=</span> <span class="ident">u32</span>;
+<span class="doccomment">/// Measured in days past the epoch.
+///
+/// Clients should check that this is within a day of the current date.
+</span><span class="kw">pub type </span>CoarseRedemptionTime = u32;
 
-<span class="comment">// A random UUID that the receipt issuing server will blind authorize to redeem a given receipt</span>
-<span class="comment">// level within a certain time frame.</span>
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ReceiptSerialBytes</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="ident">RECEIPT_SERIAL_LEN</span>];
+<span class="comment">// A random UUID that the receipt issuing server will blind authorize to redeem a given receipt
+// level within a certain time frame.
+</span><span class="kw">pub type </span>ReceiptSerialBytes = [u8; RECEIPT_SERIAL_LEN];
 
-<span class="doccomment">/// Measured in seconds past the epoch.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Clients should only accept round multiples of 86400 to avoid fingerprinting by the server.</span>
-<span class="doccomment">/// For expirations, the timestamp should be within a couple of days into the future;</span>
-<span class="doccomment">/// for redemption times, it should be within a day of the current date.</span>
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">Timestamp</span> <span class="op">=</span> <span class="ident">u64</span>;
+<span class="doccomment">/// Measured in seconds past the epoch.
+///
+/// Clients should only accept round multiples of 86400 to avoid fingerprinting by the server.
+/// For expirations, the timestamp should be within a couple of days into the future;
+/// for redemption times, it should be within a day of the current date.
+</span><span class="kw">pub type </span>Timestamp = u64;
 
-<span class="comment">// Used to tell the server handling receipt redemptions what to redeem the receipt for. Clients</span>
-<span class="comment">// should validate this matches their expectations.</span>
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">ReceiptLevel</span> <span class="op">=</span> <span class="ident">u64</span>;
+<span class="comment">// Used to tell the server handling receipt redemptions what to redeem the receipt for. Clients
+// should validate this matches their expectations.
+</span><span class="kw">pub type </span>ReceiptLevel = u64;
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encode_redemption_time</span>(<span class="ident">redemption_time</span>: <span class="ident">u32</span>) -&gt; <span class="ident">Scalar</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">scalar_bytes</span>: [<span class="ident">u8</span>; <span class="number">32</span>] <span class="op">=</span> <span class="ident">Default::default</span>();
-    <span class="ident">scalar_bytes</span>[<span class="number">0</span>..<span class="number">4</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">redemption_time</span>.<span class="ident">to_be_bytes</span>());
-    <span class="ident">Scalar::from_bytes_mod_order</span>(<span class="ident">scalar_bytes</span>)
+<span class="kw">pub fn </span>encode_redemption_time(redemption_time: u32) -&gt; Scalar {
+    <span class="kw">let </span><span class="kw-2">mut </span>scalar_bytes: [u8; <span class="number">32</span>] = Default::default();
+    scalar_bytes[<span class="number">0</span>..<span class="number">4</span>].copy_from_slice(<span class="kw-2">&amp;</span>redemption_time.to_be_bytes());
+    Scalar::from_bytes_mod_order(scalar_bytes)
 }
 
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encode_receipt_serial_bytes</span>(<span class="ident">receipt_serial_bytes</span>: <span class="ident">ReceiptSerialBytes</span>) -&gt; <span class="ident">Scalar</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">scalar_bytes</span>: [<span class="ident">u8</span>; <span class="number">32</span>] <span class="op">=</span> <span class="ident">Default::default</span>();
-    <span class="ident">scalar_bytes</span>[<span class="number">0</span>..<span class="number">16</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">receipt_serial_bytes</span>[..]);
-    <span class="ident">Scalar::from_bytes_mod_order</span>(<span class="ident">scalar_bytes</span>)
+<span class="kw">pub fn </span>encode_receipt_serial_bytes(receipt_serial_bytes: ReceiptSerialBytes) -&gt; Scalar {
+    <span class="kw">let </span><span class="kw-2">mut </span>scalar_bytes: [u8; <span class="number">32</span>] = Default::default();
+    scalar_bytes[<span class="number">0</span>..<span class="number">16</span>].copy_from_slice(<span class="kw-2">&amp;</span>receipt_serial_bytes[..]);
+    Scalar::from_bytes_mod_order(scalar_bytes)
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_encode_scalar</span>() {
-        <span class="kw">let</span> <span class="ident">s_bytes</span> <span class="op">=</span> [<span class="number">0xFF</span>; <span class="number">32</span>];
-        <span class="kw">match</span> <span class="ident">bincode::deserialize</span>::<span class="op">&lt;</span><span class="ident">Scalar</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">s_bytes</span>) {
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>test_encode_scalar() {
+        <span class="kw">let </span>s_bytes = [<span class="number">0xFF</span>; <span class="number">32</span>];
+        <span class="kw">match </span>bincode::deserialize::&lt;Scalar&gt;(<span class="kw-2">&amp;</span>s_bytes) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; (),
             <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="macro">unreachable!</span>(),
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

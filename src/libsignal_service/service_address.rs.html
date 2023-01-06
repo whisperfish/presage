@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/service_address.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>service_address.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/service_address.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>service_address.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -129,136 +129,136 @@
 <span id="129">129</span>
 <span id="130">130</span>
 <span id="131">131</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">phonenumber</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>phonenumber::<span class="kw-2">*</span>;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>uuid::Uuid;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">push_service::ServiceError</span>, <span class="ident">session_store::SessionStoreExt</span>};
+<span class="kw">use crate</span>::{push_service::ServiceError, session_store::SessionStoreExt};
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">thiserror::Error</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ParseServiceAddressError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Supplied phone number could not be parsed in E164 format&quot;</span>)]</span>
-    <span class="ident">InvalidPhoneNumber</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">phonenumber::ParseError</span>),
+<span class="attribute">#[derive(thiserror::Error, Debug)]
+</span><span class="kw">pub enum </span>ParseServiceAddressError {
+    <span class="attribute">#[error(<span class="string">&quot;Supplied phone number could not be parsed in E164 format&quot;</span>)]
+    </span>InvalidPhoneNumber(<span class="attribute">#[from] </span>phonenumber::ParseError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Supplied uuid could not be parsed&quot;</span>)]</span>
-    <span class="ident">InvalidUuidError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">uuid::Error</span>),
+    <span class="attribute">#[error(<span class="string">&quot;Supplied uuid could not be parsed&quot;</span>)]
+    </span>InvalidUuidError(<span class="attribute">#[from] </span>uuid::Error),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Envelope with neither Uuid or E164&quot;</span>)]</span>
-    <span class="ident">NoSenderError</span>,
+    <span class="attribute">#[error(<span class="string">&quot;Envelope with neither Uuid or E164&quot;</span>)]
+    </span>NoSenderError,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceAddress</span> {
-    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Uuid</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">phonenumber</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PhoneNumber</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">relay</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>ServiceAddress {
+    <span class="kw">pub </span>uuid: <span class="prelude-ty">Option</span>&lt;Uuid&gt;,
+    <span class="kw">pub </span>phonenumber: <span class="prelude-ty">Option</span>&lt;PhoneNumber&gt;,
+    <span class="kw">pub </span>relay: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">ServiceAddress</span> {
-    <span class="doccomment">/// Formats the phone number, if present, as E164</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">e164</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">phonenumber</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">pn</span><span class="op">|</span> <span class="ident">pn</span>.<span class="ident">format</span>().<span class="ident">mode</span>(<span class="ident">phonenumber::Mode::E164</span>).<span class="ident">to_string</span>())
+<span class="kw">impl </span>ServiceAddress {
+    <span class="doccomment">/// Formats the phone number, if present, as E164
+    </span><span class="kw">pub fn </span>e164(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
+        <span class="self">self</span>.phonenumber
+            .as_ref()
+            .map(|pn| pn.format().mode(phonenumber::Mode::E164).to_string())
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">sub_device_sessions</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">SessionStoreExt</span><span class="op">&gt;</span>(
+    <span class="kw">pub async fn </span>sub_device_sessions&lt;S: SessionStoreExt&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">session_store</span>: <span class="kw-2">&amp;</span><span class="ident">S</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sub_device_sessions</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">uuid</span>) <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">uuid</span> {
-            <span class="ident">sub_device_sessions</span>.<span class="ident">extend</span>(
-                <span class="ident">session_store</span>
-                    .<span class="ident">get_sub_device_sessions</span>(<span class="kw-2">&amp;</span><span class="ident">uuid</span>.<span class="ident">to_string</span>())
+        session_store: <span class="kw-2">&amp;</span>S,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u32&gt;, ServiceError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>sub_device_sessions = Vec::new();
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(uuid) = <span class="kw-2">&amp;</span><span class="self">self</span>.uuid {
+            sub_device_sessions.extend(
+                session_store
+                    .get_sub_device_sessions(<span class="kw-2">&amp;</span>uuid.to_string())
                     .<span class="kw">await</span><span class="question-mark">?</span>,
             );
         }
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">e164</span>) <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">e164</span>() {
-            <span class="ident">sub_device_sessions</span>
-                .<span class="ident">extend</span>(<span class="ident">session_store</span>.<span class="ident">get_sub_device_sessions</span>(<span class="ident">e164</span>).<span class="kw">await</span><span class="question-mark">?</span>);
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(e164) = <span class="kw-2">&amp;</span><span class="self">self</span>.e164() {
+            sub_device_sessions
+                .extend(session_store.get_sub_device_sessions(e164).<span class="kw">await</span><span class="question-mark">?</span>);
         }
-        <span class="prelude-val">Ok</span>(<span class="ident">sub_device_sessions</span>)
+        <span class="prelude-val">Ok</span>(sub_device_sessions)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">std::fmt::Display</span> <span class="kw">for</span> <span class="ident">ServiceAddress</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(
+<span class="kw">impl </span>std::fmt::Display <span class="kw">for </span>ServiceAddress {
+    <span class="kw">fn </span>fmt(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">std::fmt::Error</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> (<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">uuid</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">phonenumber</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">relay</span>) {
-            (<span class="kw">_</span>, <span class="prelude-val">Some</span>(<span class="ident">e164</span>), <span class="kw">_</span>) =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;ServiceAddress({})&quot;</span>, <span class="ident">e164</span>),
-            (<span class="prelude-val">Some</span>(<span class="ident">uuid</span>), <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;ServiceAddress({})&quot;</span>, <span class="ident">uuid</span>),
-            <span class="kw">_</span> =&gt; <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;ServiceAddress(INVALID)&quot;</span>),
+        f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), std::fmt::Error&gt; {
+        <span class="kw">match </span>(<span class="kw-2">&amp;</span><span class="self">self</span>.uuid, <span class="kw-2">&amp;</span><span class="self">self</span>.phonenumber, <span class="kw-2">&amp;</span><span class="self">self</span>.relay) {
+            (<span class="kw">_</span>, <span class="prelude-val">Some</span>(e164), <span class="kw">_</span>) =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;ServiceAddress({})&quot;</span>, e164),
+            (<span class="prelude-val">Some</span>(uuid), <span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="macro">write!</span>(f, <span class="string">&quot;ServiceAddress({})&quot;</span>, uuid),
+            <span class="kw">_ </span>=&gt; <span class="macro">write!</span>(f, <span class="string">&quot;ServiceAddress(INVALID)&quot;</span>),
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ServiceAddress</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse</span>(
-        <span class="ident">e164</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">uuid</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ServiceAddress</span>, <span class="ident">ParseServiceAddressError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">phonenumber</span> <span class="op">=</span>
-            <span class="ident">e164</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">phonenumber::parse</span>(<span class="prelude-val">None</span>, <span class="ident">s</span>)).<span class="ident">transpose</span>()<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">uuid</span> <span class="op">=</span> <span class="ident">uuid</span>.<span class="ident">map</span>(<span class="ident">Uuid::parse_str</span>).<span class="ident">transpose</span>()<span class="question-mark">?</span>;
+<span class="kw">impl </span>ServiceAddress {
+    <span class="kw">pub fn </span>parse(
+        e164: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+        uuid: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceAddress, ParseServiceAddressError&gt; {
+        <span class="kw">let </span>phonenumber =
+            e164.map(|s| phonenumber::parse(<span class="prelude-val">None</span>, s)).transpose()<span class="question-mark">?</span>;
+        <span class="kw">let </span>uuid = uuid.map(Uuid::parse_str).transpose()<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">ServiceAddress</span> {
-            <span class="ident">phonenumber</span>,
-            <span class="ident">uuid</span>,
-            <span class="ident">relay</span>: <span class="prelude-val">None</span>,
+        <span class="prelude-val">Ok</span>(ServiceAddress {
+            phonenumber,
+            uuid,
+            relay: <span class="prelude-val">None</span>,
         })
     }
 
-    <span class="doccomment">/// Returns uuid if present, e164 otherwise.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">identifier</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">uuid</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">uuid</span> {
-            <span class="kw">return</span> <span class="ident">uuid</span>.<span class="ident">to_string</span>();
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">e164</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">e164</span>() {
-            <span class="kw">return</span> <span class="ident">e164</span>;
+    <span class="doccomment">/// Returns uuid if present, e164 otherwise.
+    </span><span class="kw">pub fn </span>identifier(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>uuid) = <span class="self">self</span>.uuid {
+            <span class="kw">return </span>uuid.to_string();
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(e164) = <span class="self">self</span>.e164() {
+            <span class="kw">return </span>e164;
         }
         <span class="macro">unreachable!</span>(
-            <span class="string">&quot;an address requires either a UUID or a E164 phone number&quot;</span>
-        );
+            <span class="string">&quot;an address requires either a UUID or a E164 phone number&quot;
+        </span>);
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">matches</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">other</span>: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="ident">bool</span> {
-        (<span class="self">self</span>.<span class="ident">phonenumber</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">phonenumber</span> <span class="op">==</span> <span class="ident">other</span>.<span class="ident">phonenumber</span>)
-            <span class="op">|</span><span class="op">|</span> (<span class="self">self</span>.<span class="ident">uuid</span>.<span class="ident">is_some</span>() <span class="op">&amp;&amp;</span> <span class="self">self</span>.<span class="ident">uuid</span> <span class="op">==</span> <span class="ident">other</span>.<span class="ident">uuid</span>)
+    <span class="kw">pub fn </span>matches(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
+        (<span class="self">self</span>.phonenumber.is_some() &amp;&amp; <span class="self">self</span>.phonenumber == other.phonenumber)
+            || (<span class="self">self</span>.uuid.is_some() &amp;&amp; <span class="self">self</span>.uuid == other.uuid)
     }
 
-    <span class="doccomment">/// Returns e164 if present, uuid otherwise.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">e164_or_uuid</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">e164</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">e164</span>() {
-            <span class="kw">return</span> <span class="ident">e164</span>;
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">uuid</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">uuid</span> {
-            <span class="kw">return</span> <span class="ident">uuid</span>.<span class="ident">to_string</span>();
+    <span class="doccomment">/// Returns e164 if present, uuid otherwise.
+    </span><span class="kw">pub fn </span>e164_or_uuid(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(e164) = <span class="self">self</span>.e164() {
+            <span class="kw">return </span>e164;
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>uuid) = <span class="self">self</span>.uuid {
+            <span class="kw">return </span>uuid.to_string();
         }
         <span class="macro">unreachable!</span>(
-            <span class="string">&quot;an address requires either a UUID or a E164 phone number&quot;</span>
-        );
+            <span class="string">&quot;an address requires either a UUID or a E164 phone number&quot;
+        </span>);
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">Uuid</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ServiceAddress</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">uuid</span>: <span class="ident">Uuid</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident">ServiceAddress</span> {
-            <span class="ident">uuid</span>: <span class="prelude-val">Some</span>(<span class="ident">uuid</span>),
-            <span class="ident">phonenumber</span>: <span class="prelude-val">None</span>,
-            <span class="ident">relay</span>: <span class="prelude-val">None</span>,
+<span class="kw">impl </span>From&lt;Uuid&gt; <span class="kw">for </span>ServiceAddress {
+    <span class="kw">fn </span>from(uuid: Uuid) -&gt; <span class="self">Self </span>{
+        ServiceAddress {
+            uuid: <span class="prelude-val">Some</span>(uuid),
+            phonenumber: <span class="prelude-val">None</span>,
+            relay: <span class="prelude-val">None</span>,
         }
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">PhoneNumber</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ServiceAddress</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">phone_number</span>: <span class="ident">PhoneNumber</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident">ServiceAddress</span> {
-            <span class="ident">uuid</span>: <span class="prelude-val">None</span>,
-            <span class="ident">phonenumber</span>: <span class="prelude-val">Some</span>(<span class="ident">phone_number</span>),
-            <span class="ident">relay</span>: <span class="prelude-val">None</span>,
+<span class="kw">impl </span>From&lt;PhoneNumber&gt; <span class="kw">for </span>ServiceAddress {
+    <span class="kw">fn </span>from(phone_number: PhoneNumber) -&gt; <span class="self">Self </span>{
+        ServiceAddress {
+            uuid: <span class="prelude-val">None</span>,
+            phonenumber: <span class="prelude-val">Some</span>(phone_number),
+            relay: <span class="prelude-val">None</span>,
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

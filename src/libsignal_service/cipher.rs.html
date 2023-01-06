@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -554,561 +554,561 @@
 <span id="554">554</span>
 <span id="555">555</span>
 <span id="556">556</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std::convert::TryFrom</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>std::convert::TryFrom;
 
-<span class="kw">use</span> <span class="ident">block_modes::block_padding</span>::{<span class="ident">Iso7816</span>, <span class="ident">Padding</span>};
-<span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{
-    <span class="ident">group_decrypt</span>, <span class="ident">message_decrypt_prekey</span>, <span class="ident">message_decrypt_signal</span>,
-    <span class="ident">message_encrypt</span>, <span class="ident">process_sender_key_distribution_message</span>,
-    <span class="ident">sealed_sender_decrypt_to_usmc</span>, <span class="ident">sealed_sender_encrypt</span>,
-    <span class="ident">CiphertextMessageType</span>, <span class="ident">Context</span>, <span class="ident">DeviceId</span>, <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">PreKeySignalMessage</span>, <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">PublicKey</span>,
-    <span class="ident">SealedSenderDecryptionResult</span>, <span class="ident">SenderCertificate</span>,
-    <span class="ident">SenderKeyDistributionMessage</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SessionStore</span>, <span class="ident">SignalMessage</span>,
-    <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyStore</span>,
+<span class="kw">use </span>block_modes::block_padding::{Iso7816, Padding};
+<span class="kw">use </span>libsignal_protocol::{
+    group_decrypt, message_decrypt_prekey, message_decrypt_signal,
+    message_encrypt, process_sender_key_distribution_message,
+    sealed_sender_decrypt_to_usmc, sealed_sender_encrypt,
+    CiphertextMessageType, Context, DeviceId, IdentityKeyStore,
+    PreKeySignalMessage, PreKeyStore, ProtocolAddress, PublicKey,
+    SealedSenderDecryptionResult, SenderCertificate,
+    SenderKeyDistributionMessage, SenderKeyStore, SessionStore, SignalMessage,
+    SignalProtocolError, SignedPreKeyStore,
 };
-<span class="kw">use</span> <span class="ident">prost::Message</span>;
-<span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">CryptoRng</span>, <span class="ident">Rng</span>};
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
+<span class="kw">use </span>prost::Message;
+<span class="kw">use </span>rand::{CryptoRng, Rng};
+<span class="kw">use </span>uuid::Uuid;
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">content</span>::{<span class="ident">Content</span>, <span class="ident">Metadata</span>},
-    <span class="ident">envelope::Envelope</span>,
-    <span class="ident">push_service::ServiceError</span>,
-    <span class="ident">sender::OutgoingPushMessage</span>,
-    <span class="ident">ServiceAddress</span>,
+<span class="kw">use crate</span>::{
+    content::{Content, Metadata},
+    envelope::Envelope,
+    push_service::ServiceError,
+    sender::OutgoingPushMessage,
+    ServiceAddress,
 };
-<span class="doccomment">/// Decrypts incoming messages and encrypts outgoing messages.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Equivalent of SignalServiceCipher in Java.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span> {
-    <span class="ident">session_store</span>: <span class="ident">S</span>,
-    <span class="ident">identity_key_store</span>: <span class="ident">I</span>,
-    <span class="ident">signed_pre_key_store</span>: <span class="ident">SP</span>,
-    <span class="ident">pre_key_store</span>: <span class="ident">P</span>,
-    <span class="ident">sender_key_store</span>: <span class="ident">SK</span>,
-    <span class="ident">csprng</span>: <span class="ident">R</span>,
-    <span class="ident">trust_root</span>: <span class="ident">PublicKey</span>,
-    <span class="ident">local_uuid</span>: <span class="ident">Uuid</span>,
-    <span class="ident">local_device_id</span>: <span class="ident">u32</span>,
+<span class="doccomment">/// Decrypts incoming messages and encrypts outgoing messages.
+///
+/// Equivalent of SignalServiceCipher in Java.
+</span><span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>ServiceCipher&lt;S, I, SP, P, SK, R&gt; {
+    session_store: S,
+    identity_key_store: I,
+    signed_pre_key_store: SP,
+    pre_key_store: P,
+    sender_key_store: SK,
+    csprng: R,
+    trust_root: PublicKey,
+    local_uuid: Uuid,
+    local_device_id: u32,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span> <span class="ident">ServiceCipher</span><span class="op">&lt;</span><span class="ident">S</span>, <span class="ident">I</span>, <span class="ident">SP</span>, <span class="ident">P</span>, <span class="ident">SK</span>, <span class="ident">R</span><span class="op">&gt;</span>
-<span class="kw">where</span>
-    <span class="ident">S</span>: <span class="ident">SessionStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">I</span>: <span class="ident">IdentityKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">SP</span>: <span class="ident">SignedPreKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">SK</span>: <span class="ident">SenderKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">P</span>: <span class="ident">PreKeyStore</span> <span class="op">+</span> <span class="ident">Clone</span>,
-    <span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span> <span class="op">+</span> <span class="ident">Clone</span>,
+<span class="kw">impl</span>&lt;S, I, SP, P, SK, R&gt; ServiceCipher&lt;S, I, SP, P, SK, R&gt;
+<span class="kw">where
+    </span>S: SessionStore + Clone,
+    I: IdentityKeyStore + Clone,
+    SP: SignedPreKeyStore + Clone,
+    SK: SenderKeyStore + Clone,
+    P: PreKeyStore + Clone,
+    R: Rng + CryptoRng + Clone,
 {
-    <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::too_many_arguments</span>)]</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">session_store</span>: <span class="ident">S</span>,
-        <span class="ident">identity_key_store</span>: <span class="ident">I</span>,
-        <span class="ident">signed_pre_key_store</span>: <span class="ident">SP</span>,
-        <span class="ident">pre_key_store</span>: <span class="ident">P</span>,
-        <span class="ident">sender_key_store</span>: <span class="ident">SK</span>,
-        <span class="ident">csprng</span>: <span class="ident">R</span>,
-        <span class="ident">trust_root</span>: <span class="ident">PublicKey</span>,
-        <span class="ident">local_uuid</span>: <span class="ident">Uuid</span>,
-        <span class="ident">local_device_id</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">session_store</span>,
-            <span class="ident">identity_key_store</span>,
-            <span class="ident">signed_pre_key_store</span>,
-            <span class="ident">pre_key_store</span>,
-            <span class="ident">sender_key_store</span>,
-            <span class="ident">csprng</span>,
-            <span class="ident">trust_root</span>,
-            <span class="ident">local_uuid</span>,
-            <span class="ident">local_device_id</span>,
+    <span class="attribute">#[allow(clippy::too_many_arguments)]
+    </span><span class="kw">pub fn </span>new(
+        session_store: S,
+        identity_key_store: I,
+        signed_pre_key_store: SP,
+        pre_key_store: P,
+        sender_key_store: SK,
+        csprng: R,
+        trust_root: PublicKey,
+        local_uuid: Uuid,
+        local_device_id: u32,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            session_store,
+            identity_key_store,
+            signed_pre_key_store,
+            pre_key_store,
+            sender_key_store,
+            csprng,
+            trust_root,
+            local_uuid,
+            local_device_id,
         }
     }
 
-    <span class="doccomment">/// Opens (&quot;decrypts&quot;) an envelope.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Envelopes may be empty, in which case this method returns `Ok(None)`</span>
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">open_envelope</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">envelope</span>: <span class="ident">Envelope</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Content</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">envelope</span>.<span class="ident">legacy_message</span>.<span class="ident">is_some</span>() {
-            <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">envelope</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span>
-                <span class="ident"><span class="kw">crate</span>::proto::DataMessage::decode</span>(<span class="ident">plaintext</span>.<span class="ident">data</span>.<span class="ident">as_slice</span>())<span class="question-mark">?</span>;
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">Content::from_body</span>(<span class="ident">message</span>, <span class="ident">plaintext</span>.<span class="ident">metadata</span>)))
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">envelope</span>.<span class="ident">content</span>.<span class="ident">is_some</span>() {
-            <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">decrypt</span>(<span class="kw-2">&amp;</span><span class="ident">envelope</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span>
-                <span class="ident"><span class="kw">crate</span>::proto::Content::decode</span>(<span class="ident">plaintext</span>.<span class="ident">data</span>.<span class="ident">as_slice</span>())<span class="question-mark">?</span>;
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">bytes</span>) <span class="op">=</span> <span class="ident">message</span>.<span class="ident">sender_key_distribution_message</span> {
-                <span class="kw">let</span> <span class="ident">skdm</span> <span class="op">=</span> <span class="ident">SenderKeyDistributionMessage::try_from</span>(<span class="kw-2">&amp;</span><span class="ident">bytes</span>[..])<span class="question-mark">?</span>;
-                <span class="ident">process_sender_key_distribution_message</span>(
-                    <span class="kw-2">&amp;</span><span class="ident">plaintext</span>.<span class="ident">metadata</span>.<span class="ident">protocol_address</span>(),
-                    <span class="kw-2">&amp;</span><span class="ident">skdm</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">sender_key_store</span>,
+    <span class="doccomment">/// Opens (&quot;decrypts&quot;) an envelope.
+    ///
+    /// Envelopes may be empty, in which case this method returns `Ok(None)`
+    </span><span class="kw">pub async fn </span>open_envelope(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        envelope: Envelope,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, ServiceError&gt; {
+        <span class="kw">if </span>envelope.legacy_message.is_some() {
+            <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>message =
+                <span class="kw">crate</span>::proto::DataMessage::decode(plaintext.data.as_slice())<span class="question-mark">?</span>;
+            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Content::from_body(message, plaintext.metadata)))
+        } <span class="kw">else if </span>envelope.content.is_some() {
+            <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>message =
+                <span class="kw">crate</span>::proto::Content::decode(plaintext.data.as_slice())<span class="question-mark">?</span>;
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(bytes) = message.sender_key_distribution_message {
+                <span class="kw">let </span>skdm = SenderKeyDistributionMessage::try_from(<span class="kw-2">&amp;</span>bytes[..])<span class="question-mark">?</span>;
+                process_sender_key_distribution_message(
+                    <span class="kw-2">&amp;</span>plaintext.metadata.protocol_address(),
+                    <span class="kw-2">&amp;</span>skdm,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.sender_key_store,
                     <span class="prelude-val">None</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
-            } <span class="kw">else</span> {
-                <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">Content::from_proto</span>(<span class="ident">message</span>, <span class="ident">plaintext</span>.<span class="ident">metadata</span>)<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">content</span>))
+            } <span class="kw">else </span>{
+                <span class="kw">let </span>content = Content::from_proto(message, plaintext.metadata)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(content))
             }
-        } <span class="kw">else</span> {
+        } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
         }
     }
 
-    <span class="doccomment">/// Equivalent of decrypt(Envelope, ciphertext)</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Triage of legacy messages happens inside this method, as opposed to the</span>
-    <span class="doccomment">/// Java implementation, because it makes the borrow checker and the</span>
-    <span class="doccomment">/// author happier.</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">decrypt</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">envelope</span>: <span class="kw-2">&amp;</span><span class="ident">Envelope</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Plaintext</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">envelope</span>.<span class="ident">legacy_message</span>.<span class="ident">as_ref</span>() {
-            <span class="ident">msg</span>
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">envelope</span>.<span class="ident">content</span>.<span class="ident">as_ref</span>() {
-            <span class="ident">msg</span>
-        } <span class="kw">else</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-                <span class="ident">reason</span>:
-                    <span class="string">&quot;Envelope should have either a legacy message or content.&quot;</span>
-                        .<span class="ident">into</span>(),
+    <span class="doccomment">/// Equivalent of decrypt(Envelope, ciphertext)
+    ///
+    /// Triage of legacy messages happens inside this method, as opposed to the
+    /// Java implementation, because it makes the borrow checker and the
+    /// author happier.
+    </span><span class="kw">async fn </span>decrypt(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        envelope: <span class="kw-2">&amp;</span>Envelope,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Plaintext, ServiceError&gt; {
+        <span class="kw">let </span>ciphertext = <span class="kw">if let </span><span class="prelude-val">Some</span>(msg) = envelope.legacy_message.as_ref() {
+            msg
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(msg) = envelope.content.as_ref() {
+            msg
+        } <span class="kw">else </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+                reason:
+                    <span class="string">&quot;Envelope should have either a legacy message or content.&quot;
+                        </span>.into(),
             });
         };
 
-        <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto::envelope::Type</span>;
-        <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">envelope</span>.<span class="ident">r#type</span>() {
-            <span class="ident">Type::PrekeyBundle</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">get_preferred_protocol_address</span>(
-                    <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">envelope</span>.<span class="ident">source_address</span>(),
-                    <span class="ident">envelope</span>.<span class="ident">source_device</span>().<span class="ident">into</span>(),
+        <span class="kw">use </span><span class="kw">crate</span>::proto::envelope::Type;
+        <span class="kw">let </span>plaintext = <span class="kw">match </span>envelope.r#type() {
+            Type::PrekeyBundle =&gt; {
+                <span class="kw">let </span>sender = get_preferred_protocol_address(
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.session_store,
+                    <span class="kw-2">&amp;</span>envelope.source_address(),
+                    envelope.source_device().into(),
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">metadata</span> <span class="op">=</span> <span class="ident">Metadata</span> {
-                    <span class="ident">sender</span>: <span class="ident">envelope</span>.<span class="ident">source_address</span>(),
-                    <span class="ident">sender_device</span>: <span class="ident">envelope</span>.<span class="ident">source_device</span>(),
-                    <span class="ident">timestamp</span>: <span class="ident">envelope</span>.<span class="ident">server_timestamp</span>(),
-                    <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>,
-                    <span class="ident">unidentified_sender</span>: <span class="bool-val">false</span>,
+                <span class="kw">let </span>metadata = Metadata {
+                    sender: envelope.source_address(),
+                    sender_device: envelope.source_device(),
+                    timestamp: envelope.server_timestamp(),
+                    needs_receipt: <span class="bool-val">false</span>,
+                    unidentified_sender: <span class="bool-val">false</span>,
                 };
 
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">message_decrypt_prekey</span>(
-                    <span class="kw-2">&amp;</span><span class="ident">PreKeySignalMessage::try_from</span>(<span class="kw-2">&amp;</span><span class="ident">ciphertext</span>[..]).<span class="ident">unwrap</span>(),
-                    <span class="kw-2">&amp;</span><span class="ident">sender</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">pre_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">signed_pre_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">csprng</span>,
+                <span class="kw">let </span><span class="kw-2">mut </span>data = message_decrypt_prekey(
+                    <span class="kw-2">&amp;</span>PreKeySignalMessage::try_from(<span class="kw-2">&amp;</span>ciphertext[..]).unwrap(),
+                    <span class="kw-2">&amp;</span>sender,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.pre_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.signed_pre_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
                     <span class="prelude-val">None</span>,
                 )
-                .<span class="kw">await</span><span class="question-mark">?</span>
-                .<span class="ident">as_slice</span>()
-                .<span class="ident">to_vec</span>();
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.as_slice()
+                .to_vec();
 
-                <span class="kw">let</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="self">self</span>
-                    .<span class="ident">session_store</span>
-                    .<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">sender</span>, <span class="prelude-val">None</span>)
-                    .<span class="kw">await</span><span class="question-mark">?</span>
-                    .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">sender</span>))<span class="question-mark">?</span>;
+                <span class="kw">let </span>session_record = <span class="self">self
+                    </span>.session_store
+                    .load_session(<span class="kw-2">&amp;</span>sender, <span class="prelude-val">None</span>)
+                    .<span class="kw">await</span><span class="question-mark">?
+                    </span>.ok_or(SignalProtocolError::SessionNotFound(sender))<span class="question-mark">?</span>;
 
-                <span class="ident">strip_padding_version</span>(
-                    <span class="ident">session_record</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="ident">data</span>,
+                strip_padding_version(
+                    session_record.session_version()<span class="question-mark">?</span>,
+                    <span class="kw-2">&amp;mut </span>data,
                 )<span class="question-mark">?</span>;
-                <span class="ident">Plaintext</span> { <span class="ident">metadata</span>, <span class="ident">data</span> }
+                Plaintext { metadata, data }
             },
-            <span class="ident">Type::Ciphertext</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">get_preferred_protocol_address</span>(
-                    <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">envelope</span>.<span class="ident">source_address</span>(),
-                    <span class="ident">envelope</span>.<span class="ident">source_device</span>().<span class="ident">into</span>(),
+            Type::Ciphertext =&gt; {
+                <span class="kw">let </span>sender = get_preferred_protocol_address(
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.session_store,
+                    <span class="kw-2">&amp;</span>envelope.source_address(),
+                    envelope.source_device().into(),
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">metadata</span> <span class="op">=</span> <span class="ident">Metadata</span> {
-                    <span class="ident">sender</span>: <span class="ident">envelope</span>.<span class="ident">source_address</span>(),
-                    <span class="ident">sender_device</span>: <span class="ident">envelope</span>.<span class="ident">source_device</span>(),
-                    <span class="ident">timestamp</span>: <span class="ident">envelope</span>.<span class="ident">timestamp</span>(),
-                    <span class="ident">needs_receipt</span>: <span class="bool-val">false</span>,
-                    <span class="ident">unidentified_sender</span>: <span class="bool-val">false</span>,
+                <span class="kw">let </span>metadata = Metadata {
+                    sender: envelope.source_address(),
+                    sender_device: envelope.source_device(),
+                    timestamp: envelope.timestamp(),
+                    needs_receipt: <span class="bool-val">false</span>,
+                    unidentified_sender: <span class="bool-val">false</span>,
                 };
 
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">message_decrypt_signal</span>(
-                    <span class="kw-2">&amp;</span><span class="ident">SignalMessage::try_from</span>(<span class="kw-2">&amp;</span><span class="ident">ciphertext</span>[..])<span class="question-mark">?</span>,
-                    <span class="kw-2">&amp;</span><span class="ident">sender</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">csprng</span>,
+                <span class="kw">let </span><span class="kw-2">mut </span>data = message_decrypt_signal(
+                    <span class="kw-2">&amp;</span>SignalMessage::try_from(<span class="kw-2">&amp;</span>ciphertext[..])<span class="question-mark">?</span>,
+                    <span class="kw-2">&amp;</span>sender,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
                     <span class="prelude-val">None</span>,
                 )
-                .<span class="kw">await</span><span class="question-mark">?</span>
-                .<span class="ident">as_slice</span>()
-                .<span class="ident">to_vec</span>();
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.as_slice()
+                .to_vec();
 
-                <span class="kw">let</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="self">self</span>
-                    .<span class="ident">session_store</span>
-                    .<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">sender</span>, <span class="prelude-val">None</span>)
-                    .<span class="kw">await</span><span class="question-mark">?</span>
-                    .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">sender</span>))<span class="question-mark">?</span>;
+                <span class="kw">let </span>session_record = <span class="self">self
+                    </span>.session_store
+                    .load_session(<span class="kw-2">&amp;</span>sender, <span class="prelude-val">None</span>)
+                    .<span class="kw">await</span><span class="question-mark">?
+                    </span>.ok_or(SignalProtocolError::SessionNotFound(sender))<span class="question-mark">?</span>;
 
-                <span class="ident">strip_padding_version</span>(
-                    <span class="ident">session_record</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="ident">data</span>,
+                strip_padding_version(
+                    session_record.session_version()<span class="question-mark">?</span>,
+                    <span class="kw-2">&amp;mut </span>data,
                 )<span class="question-mark">?</span>;
-                <span class="ident">Plaintext</span> { <span class="ident">metadata</span>, <span class="ident">data</span> }
+                Plaintext { metadata, data }
             },
-            <span class="ident">Type::UnidentifiedSender</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">SealedSenderDecryptionResult</span> {
-                    <span class="ident">sender_uuid</span>,
-                    <span class="ident">sender_e164</span>,
-                    <span class="ident">device_id</span>,
-                    <span class="kw-2">mut</span> <span class="ident">message</span>,
-                } <span class="op">=</span> <span class="ident">sealed_sender_decrypt</span>(
-                    <span class="ident">ciphertext</span>,
-                    <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">trust_root</span>,
-                    <span class="ident">envelope</span>.<span class="ident">timestamp</span>(),
+            Type::UnidentifiedSender =&gt; {
+                <span class="kw">let </span>SealedSenderDecryptionResult {
+                    sender_uuid,
+                    sender_e164,
+                    device_id,
+                    <span class="kw-2">mut </span>message,
+                } = sealed_sender_decrypt(
+                    ciphertext,
+                    <span class="kw-2">&amp;</span><span class="self">self</span>.trust_root,
+                    envelope.timestamp(),
                     <span class="prelude-val">None</span>,
-                    <span class="self">self</span>.<span class="ident">local_uuid</span>.<span class="ident">to_string</span>(),
-                    <span class="self">self</span>.<span class="ident">local_device_id</span>.<span class="ident">into</span>(),
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">pre_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">signed_pre_key_store</span>,
-                    <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">sender_key_store</span>,
+                    <span class="self">self</span>.local_uuid.to_string(),
+                    <span class="self">self</span>.local_device_id.into(),
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.pre_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.signed_pre_key_store,
+                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.sender_key_store,
                     <span class="prelude-val">None</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="kw">let</span> <span class="ident">sender</span> <span class="op">=</span> <span class="ident">ServiceAddress</span> {
-                    <span class="ident">phonenumber</span>: <span class="ident">sender_e164</span>
-                        .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">n</span><span class="op">|</span> <span class="ident">phonenumber::parse</span>(<span class="prelude-val">None</span>, <span class="ident">n</span>).<span class="ident">ok</span>()),
-                    <span class="ident">uuid</span>: <span class="prelude-val">Some</span>(<span class="ident">Uuid::parse_str</span>(<span class="kw-2">&amp;</span><span class="ident">sender_uuid</span>).<span class="ident">map_err</span>(
-                        <span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
-                            <span class="ident">SignalProtocolError::InvalidSealedSenderMessage</span>(
-                                <span class="string">&quot;invalid sender UUID&quot;</span>.<span class="ident">to_string</span>(),
+                <span class="kw">let </span>sender = ServiceAddress {
+                    phonenumber: sender_e164
+                        .and_then(|n| phonenumber::parse(<span class="prelude-val">None</span>, n).ok()),
+                    uuid: <span class="prelude-val">Some</span>(Uuid::parse_str(<span class="kw-2">&amp;</span>sender_uuid).map_err(
+                        |<span class="kw">_</span>| {
+                            SignalProtocolError::InvalidSealedSenderMessage(
+                                <span class="string">&quot;invalid sender UUID&quot;</span>.to_string(),
                             )
                         },
                     )<span class="question-mark">?</span>),
-                    <span class="ident">relay</span>: <span class="prelude-val">None</span>,
+                    relay: <span class="prelude-val">None</span>,
                 };
 
-                <span class="kw">let</span> <span class="ident">needs_receipt</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">envelope</span>.<span class="ident">source_uuid</span>.<span class="ident">is_some</span>() {
+                <span class="kw">let </span>needs_receipt = <span class="kw">if </span>envelope.source_uuid.is_some() {
                     <span class="macro">log::warn!</span>(<span class="string">&quot;Received an unidentified delivery over an identified channel.  Marking needs_receipt=false&quot;</span>);
-                    <span class="bool-val">false</span>
-                } <span class="kw">else</span> {
-                    <span class="bool-val">true</span>
+                    <span class="bool-val">false
+                </span>} <span class="kw">else </span>{
+                    <span class="bool-val">true
+                </span>};
+
+                <span class="kw">let </span>metadata = Metadata {
+                    sender,
+                    sender_device: device_id.into(),
+                    timestamp: envelope.timestamp(),
+                    unidentified_sender: <span class="bool-val">true</span>,
+                    needs_receipt,
                 };
 
-                <span class="kw">let</span> <span class="ident">metadata</span> <span class="op">=</span> <span class="ident">Metadata</span> {
-                    <span class="ident">sender</span>,
-                    <span class="ident">sender_device</span>: <span class="ident">device_id</span>.<span class="ident">into</span>(),
-                    <span class="ident">timestamp</span>: <span class="ident">envelope</span>.<span class="ident">timestamp</span>(),
-                    <span class="ident">unidentified_sender</span>: <span class="bool-val">true</span>,
-                    <span class="ident">needs_receipt</span>,
-                };
+                strip_padding(<span class="kw-2">&amp;mut </span>message)<span class="question-mark">?</span>;
 
-                <span class="ident">strip_padding</span>(<span class="kw-2">&amp;mut</span> <span class="ident">message</span>)<span class="question-mark">?</span>;
-
-                <span class="ident">Plaintext</span> {
-                    <span class="ident">metadata</span>,
-                    <span class="ident">data</span>: <span class="ident">message</span>,
+                Plaintext {
+                    metadata,
+                    data: message,
                 }
             },
-            <span class="kw">_</span> =&gt; {
-                <span class="comment">// else</span>
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-                    <span class="ident">reason</span>: <span class="macro">format!</span>(
+            <span class="kw">_ </span>=&gt; {
+                <span class="comment">// else
+                </span><span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+                    reason: <span class="macro">format!</span>(
                         <span class="string">&quot;Envelope has unknown type {:?}.&quot;</span>,
-                        <span class="ident">envelope</span>.<span class="ident">r#type</span>()
+                        envelope.r#type()
                     ),
                 });
             },
         };
-        <span class="prelude-val">Ok</span>(<span class="ident">plaintext</span>)
+        <span class="prelude-val">Ok</span>(plaintext)
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">encrypt</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">unindentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SenderCertificate</span><span class="op">&gt;</span>,
-        <span class="ident">content</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">OutgoingPushMessage</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">unindentified_access</span>) <span class="op">=</span> <span class="ident">unindentified_access</span> {
-            <span class="kw">let</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="self">self</span>
-                .<span class="ident">session_store</span>
-                .<span class="ident">load_session</span>(<span class="ident">address</span>, <span class="prelude-val">None</span>)
-                .<span class="kw">await</span><span class="question-mark">?</span>
-                .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                    <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">address</span>.<span class="ident">clone</span>())
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>encrypt(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        unindentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+        content: <span class="kw-2">&amp;</span>[u8],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;OutgoingPushMessage, ServiceError&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(unindentified_access) = unindentified_access {
+            <span class="kw">let </span>session_record = <span class="self">self
+                </span>.session_store
+                .load_session(address, <span class="prelude-val">None</span>)
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.ok_or_else(|| {
+                    SignalProtocolError::SessionNotFound(address.clone())
                 })<span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">destination_registration_id</span> <span class="op">=</span>
-                <span class="ident">session_record</span>.<span class="ident">remote_registration_id</span>()<span class="question-mark">?</span>;
+            <span class="kw">let </span>destination_registration_id =
+                session_record.remote_registration_id()<span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="ident">sealed_sender_encrypt</span>(
-                <span class="ident">address</span>,
-                <span class="ident">unindentified_access</span>,
-                <span class="ident">content</span>,
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
+            <span class="kw">let </span>message = sealed_sender_encrypt(
+                address,
+                unindentified_access,
+                content,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
                 <span class="prelude-val">None</span>,
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">csprng</span>,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-            <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto::envelope::Type</span>;
-            <span class="prelude-val">Ok</span>(<span class="ident">OutgoingPushMessage</span> {
-                <span class="ident">r#type</span>: <span class="ident">Type::UnidentifiedSender</span> <span class="kw">as</span> <span class="ident">u32</span>,
-                <span class="ident">destination_device_id</span>: <span class="ident">address</span>.<span class="ident">device_id</span>().<span class="ident">into</span>(),
-                <span class="ident">destination_registration_id</span>,
-                <span class="ident">content</span>: <span class="ident">base64::encode</span>(<span class="ident">message</span>),
+            <span class="kw">use </span><span class="kw">crate</span>::proto::envelope::Type;
+            <span class="prelude-val">Ok</span>(OutgoingPushMessage {
+                r#type: Type::UnidentifiedSender <span class="kw">as </span>u32,
+                destination_device_id: address.device_id().into(),
+                destination_registration_id,
+                content: base64::encode(message),
             })
-        } <span class="kw">else</span> {
-            <span class="kw">let</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="self">self</span>
-                .<span class="ident">session_store</span>
-                .<span class="ident">load_session</span>(<span class="ident">address</span>, <span class="prelude-val">None</span>)
-                .<span class="kw">await</span><span class="question-mark">?</span>
-                .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                    <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">address</span>.<span class="ident">clone</span>())
+        } <span class="kw">else </span>{
+            <span class="kw">let </span>session_record = <span class="self">self
+                </span>.session_store
+                .load_session(address, <span class="prelude-val">None</span>)
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.ok_or_else(|| {
+                    SignalProtocolError::SessionNotFound(address.clone())
                 })<span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">padded_content</span> <span class="op">=</span>
-                <span class="ident">add_padding</span>(<span class="ident">session_record</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span>, <span class="ident">content</span>)<span class="question-mark">?</span>;
+            <span class="kw">let </span>padded_content =
+                add_padding(session_record.session_version()<span class="question-mark">?</span>, content)<span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="ident">message_encrypt</span>(
-                <span class="kw-2">&amp;</span><span class="ident">padded_content</span>,
-                <span class="ident">address</span>,
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">session_store</span>,
-                <span class="kw-2">&amp;mut</span> <span class="self">self</span>.<span class="ident">identity_key_store</span>,
+            <span class="kw">let </span>message = message_encrypt(
+                <span class="kw-2">&amp;</span>padded_content,
+                address,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.session_store,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.identity_key_store,
                 <span class="prelude-val">None</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">destination_registration_id</span> <span class="op">=</span>
-                <span class="ident">session_record</span>.<span class="ident">remote_registration_id</span>()<span class="question-mark">?</span>;
+            <span class="kw">let </span>destination_registration_id =
+                session_record.remote_registration_id()<span class="question-mark">?</span>;
 
-            <span class="kw">let</span> <span class="ident">body</span> <span class="op">=</span> <span class="ident">base64::encode</span>(<span class="ident">message</span>.<span class="ident">serialize</span>());
+            <span class="kw">let </span>body = base64::encode(message.serialize());
 
-            <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto::envelope::Type</span>;
-            <span class="kw">let</span> <span class="ident">message_type</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">message</span>.<span class="ident">message_type</span>() {
-                <span class="ident">CiphertextMessageType::PreKey</span> =&gt; <span class="ident">Type::PrekeyBundle</span>,
-                <span class="ident">CiphertextMessageType::Whisper</span> =&gt; <span class="ident">Type::Ciphertext</span>,
-                <span class="ident">t</span> =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Bad type: {:?}&quot;</span>, <span class="ident">t</span>),
-            } <span class="kw">as</span> <span class="ident">u32</span>;
-            <span class="prelude-val">Ok</span>(<span class="ident">OutgoingPushMessage</span> {
-                <span class="ident">r#type</span>: <span class="ident">message_type</span>,
-                <span class="ident">destination_device_id</span>: <span class="ident">address</span>.<span class="ident">device_id</span>().<span class="ident">into</span>(),
-                <span class="ident">destination_registration_id</span>,
-                <span class="ident">content</span>: <span class="ident">body</span>,
+            <span class="kw">use </span><span class="kw">crate</span>::proto::envelope::Type;
+            <span class="kw">let </span>message_type = <span class="kw">match </span>message.message_type() {
+                CiphertextMessageType::PreKey =&gt; Type::PrekeyBundle,
+                CiphertextMessageType::Whisper =&gt; Type::Ciphertext,
+                t =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Bad type: {:?}&quot;</span>, t),
+            } <span class="kw">as </span>u32;
+            <span class="prelude-val">Ok</span>(OutgoingPushMessage {
+                r#type: message_type,
+                destination_device_id: address.device_id().into(),
+                destination_registration_id,
+                content: body,
             })
         }
     }
 }
 
-<span class="kw">struct</span> <span class="ident">Plaintext</span> {
-    <span class="ident">metadata</span>: <span class="ident">Metadata</span>,
-    <span class="ident">data</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
+<span class="kw">struct </span>Plaintext {
+    metadata: Metadata,
+    data: Vec&lt;u8&gt;,
 }
 
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::comparison_chain</span>)]</span>
-<span class="kw">fn</span> <span class="ident">add_padding</span>(<span class="ident">version</span>: <span class="ident">u32</span>, <span class="ident">contents</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">version</span> <span class="op">&lt;</span> <span class="number">2</span> {
-        <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-            <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;Unknown version {}&quot;</span>, <span class="ident">version</span>),
+<span class="attribute">#[allow(clippy::comparison_chain)]
+</span><span class="kw">fn </span>add_padding(version: u32, contents: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, ServiceError&gt; {
+    <span class="kw">if </span>version &lt; <span class="number">2 </span>{
+        <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+            reason: <span class="macro">format!</span>(<span class="string">&quot;Unknown version {}&quot;</span>, version),
         })
-    } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">version</span> <span class="op">==</span> <span class="number">2</span> {
-        <span class="prelude-val">Ok</span>(<span class="ident">contents</span>.<span class="ident">to_vec</span>())
-    } <span class="kw">else</span> {
-        <span class="kw">let</span> <span class="ident">message_length</span> <span class="op">=</span> <span class="ident">contents</span>.<span class="ident">len</span>();
-        <span class="kw">let</span> <span class="ident">message_length_with_terminator</span> <span class="op">=</span> <span class="ident">contents</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="number">1</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">message_part_count</span> <span class="op">=</span> <span class="ident">message_length_with_terminator</span> <span class="op">/</span> <span class="number">160</span>;
-        <span class="kw">if</span> <span class="ident">message_length_with_terminator</span> <span class="op">%</span> <span class="number">160</span> <span class="op">!</span><span class="op">=</span> <span class="number">0</span> {
-            <span class="ident">message_part_count</span> <span class="op">+</span><span class="op">=</span> <span class="number">1</span>;
+    } <span class="kw">else if </span>version == <span class="number">2 </span>{
+        <span class="prelude-val">Ok</span>(contents.to_vec())
+    } <span class="kw">else </span>{
+        <span class="kw">let </span>message_length = contents.len();
+        <span class="kw">let </span>message_length_with_terminator = contents.len() + <span class="number">1</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>message_part_count = message_length_with_terminator / <span class="number">160</span>;
+        <span class="kw">if </span>message_length_with_terminator % <span class="number">160 </span>!= <span class="number">0 </span>{
+            message_part_count += <span class="number">1</span>;
         }
 
-        <span class="kw">let</span> <span class="ident">message_length_with_padding</span> <span class="op">=</span> <span class="ident">message_part_count</span> <span class="op">*</span> <span class="number">160</span>;
+        <span class="kw">let </span>message_length_with_padding = message_part_count * <span class="number">160</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0u8</span>; <span class="ident">message_length_with_padding</span>];
-        <span class="ident">buffer</span>[..<span class="ident">message_length</span>].<span class="ident">copy_from_slice</span>(<span class="ident">contents</span>);
-        <span class="ident">Iso7816::pad_block</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buffer</span>, <span class="ident">message_length</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::InvalidFrameError</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;Invalid message padding: {:?}&quot;</span>, <span class="ident">e</span>),
+        <span class="kw">let </span><span class="kw-2">mut </span>buffer = <span class="macro">vec!</span>[<span class="number">0u8</span>; message_length_with_padding];
+        buffer[..message_length].copy_from_slice(contents);
+        Iso7816::pad_block(<span class="kw-2">&amp;mut </span>buffer, message_length).map_err(|e| {
+            ServiceError::InvalidFrameError {
+                reason: <span class="macro">format!</span>(<span class="string">&quot;Invalid message padding: {:?}&quot;</span>, e),
             }
         })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">buffer</span>)
+        <span class="prelude-val">Ok</span>(buffer)
     }
 }
 
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::comparison_chain</span>)]</span>
-<span class="kw">fn</span> <span class="ident">strip_padding_version</span>(
-    <span class="ident">version</span>: <span class="ident">u32</span>,
-    <span class="ident">contents</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">version</span> <span class="op">&lt;</span> <span class="number">2</span> {
-        <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-            <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;Unknown version {}&quot;</span>, <span class="ident">version</span>),
+<span class="attribute">#[allow(clippy::comparison_chain)]
+</span><span class="kw">fn </span>strip_padding_version(
+    version: u32,
+    contents: <span class="kw-2">&amp;mut </span>Vec&lt;u8&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+    <span class="kw">if </span>version &lt; <span class="number">2 </span>{
+        <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+            reason: <span class="macro">format!</span>(<span class="string">&quot;Unknown version {}&quot;</span>, version),
         })
-    } <span class="kw">else</span> <span class="kw">if</span> <span class="ident">version</span> <span class="op">==</span> <span class="number">2</span> {
+    } <span class="kw">else if </span>version == <span class="number">2 </span>{
         <span class="prelude-val">Ok</span>(())
-    } <span class="kw">else</span> {
-        <span class="ident">strip_padding</span>(<span class="ident">contents</span>)<span class="question-mark">?</span>;
+    } <span class="kw">else </span>{
+        strip_padding(contents)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
 
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::comparison_chain</span>)]</span>
-<span class="kw">fn</span> <span class="ident">strip_padding</span>(<span class="ident">contents</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">new_length</span> <span class="op">=</span> <span class="ident">Iso7816::unpad</span>(<span class="ident">contents</span>)
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">ServiceError::InvalidFrameError</span> {
-            <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;Invalid message padding: {:?}&quot;</span>, <span class="ident">e</span>),
-        })<span class="question-mark">?</span>
-        .<span class="ident">len</span>();
-    <span class="ident">contents</span>.<span class="ident">resize</span>(<span class="ident">new_length</span>, <span class="number">0</span>);
+<span class="attribute">#[allow(clippy::comparison_chain)]
+</span><span class="kw">fn </span>strip_padding(contents: <span class="kw-2">&amp;mut </span>Vec&lt;u8&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+    <span class="kw">let </span>new_length = Iso7816::unpad(contents)
+        .map_err(|e| ServiceError::InvalidFrameError {
+            reason: <span class="macro">format!</span>(<span class="string">&quot;Invalid message padding: {:?}&quot;</span>, e),
+        })<span class="question-mark">?
+        </span>.len();
+    contents.resize(new_length, <span class="number">0</span>);
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="doccomment">/// Equivalent of `SignalServiceCipher::getPreferredProtocolAddress`</span>
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_preferred_protocol_address</span><span class="op">&lt;</span><span class="ident">S</span>: <span class="ident">SessionStore</span><span class="op">&gt;</span>(
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;</span><span class="ident">S</span>,
-    <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-    <span class="ident">device_id</span>: <span class="ident">DeviceId</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ProtocolAddress</span>, <span class="ident">libsignal_protocol::error::SignalProtocolError</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">uuid</span>) <span class="op">=</span> <span class="ident">address</span>.<span class="ident">uuid</span> {
-        <span class="kw">let</span> <span class="ident">address</span> <span class="op">=</span> <span class="ident">ProtocolAddress::new</span>(<span class="ident">uuid</span>.<span class="ident">to_string</span>(), <span class="ident">device_id</span>);
-        <span class="kw">if</span> <span class="ident">session_store</span>.<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">address</span>, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">is_some</span>() {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">address</span>);
+<span class="doccomment">/// Equivalent of `SignalServiceCipher::getPreferredProtocolAddress`
+</span><span class="kw">pub async fn </span>get_preferred_protocol_address&lt;S: SessionStore&gt;(
+    session_store: <span class="kw-2">&amp;</span>S,
+    address: <span class="kw-2">&amp;</span>ServiceAddress,
+    device_id: DeviceId,
+) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolAddress, libsignal_protocol::error::SignalProtocolError&gt; {
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>uuid) = address.uuid {
+        <span class="kw">let </span>address = ProtocolAddress::new(uuid.to_string(), device_id);
+        <span class="kw">if </span>session_store.load_session(<span class="kw-2">&amp;</span>address, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.is_some() {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
         }
     }
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">e164</span>) <span class="op">=</span> <span class="ident">address</span>.<span class="ident">e164</span>() {
-        <span class="kw">let</span> <span class="ident">address</span> <span class="op">=</span> <span class="ident">ProtocolAddress::new</span>(<span class="ident">e164</span>, <span class="ident">device_id</span>);
-        <span class="kw">if</span> <span class="ident">session_store</span>.<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">address</span>, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">is_some</span>() {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">address</span>);
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(e164) = address.e164() {
+        <span class="kw">let </span>address = ProtocolAddress::new(e164, device_id);
+        <span class="kw">if </span>session_store.load_session(<span class="kw-2">&amp;</span>address, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.is_some() {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
         }
-        <span class="kw">if</span> <span class="macro">cfg!</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;prefer-e164&quot;</span>) {
+        <span class="kw">if </span><span class="macro">cfg!</span>(feature = <span class="string">&quot;prefer-e164&quot;</span>) {
             <span class="macro">log::warn!</span>(<span class="string">&quot;prefer-e164 triggered.  This is a legacy feature and shouldn&#39;t be used for new applications.&quot;</span>);
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">address</span>);
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
         }
     }
-    <span class="kw">if</span> <span class="macro">cfg!</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;prefer-e164&quot;</span>) {
+    <span class="kw">if </span><span class="macro">cfg!</span>(feature = <span class="string">&quot;prefer-e164&quot;</span>) {
         <span class="macro">panic!</span>(
             <span class="string">&quot;{:?}:{} does not have a e164 associated, falling back to UUID.&quot;</span>,
-            <span class="ident">address</span>, <span class="ident">device_id</span>
+            address, device_id
         );
     }
 
-    <span class="prelude-val">Ok</span>(<span class="ident">ProtocolAddress::new</span>(<span class="ident">address</span>.<span class="ident">identifier</span>(), <span class="ident">device_id</span>))
+    <span class="prelude-val">Ok</span>(ProtocolAddress::new(address.identifier(), device_id))
 }
 
-<span class="doccomment">/// Decrypt a Sealed Sender message `ciphertext` in either the v1 or v2 format, validate its sender</span>
-<span class="doccomment">/// certificate, and then decrypt the inner message payload.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// This method calls [`sealed_sender_decrypt_to_usmc`] to extract the sender information, including</span>
-<span class="doccomment">/// the embedded [`SenderCertificate`]. The sender certificate (signed by the [`ServerCertificate`])</span>
-<span class="doccomment">/// is then validated against the `trust_root` baked into the client to ensure that the sender&#39;s</span>
-<span class="doccomment">/// identity was not forged.</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::too_many_arguments</span>)]</span>
-<span class="kw">async</span> <span class="kw">fn</span> <span class="ident">sealed_sender_decrypt</span>(
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">trust_root</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-    <span class="ident">local_e164</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="ident">local_uuid</span>: <span class="ident">String</span>,
-    <span class="ident">local_device_id</span>: <span class="ident">DeviceId</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
-    <span class="ident">pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">PreKeyStore</span>,
-    <span class="ident">signed_pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SignedPreKeyStore</span>,
-    <span class="ident">sender_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SenderKeyStore</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SealedSenderDecryptionResult</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">usmc</span> <span class="op">=</span>
-        <span class="ident">sealed_sender_decrypt_to_usmc</span>(<span class="ident">ciphertext</span>, <span class="ident">identity_store</span>, <span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+<span class="doccomment">/// Decrypt a Sealed Sender message `ciphertext` in either the v1 or v2 format, validate its sender
+/// certificate, and then decrypt the inner message payload.
+///
+/// This method calls [`sealed_sender_decrypt_to_usmc`] to extract the sender information, including
+/// the embedded [`SenderCertificate`]. The sender certificate (signed by the [`ServerCertificate`])
+/// is then validated against the `trust_root` baked into the client to ensure that the sender&#39;s
+/// identity was not forged.
+</span><span class="attribute">#[allow(clippy::too_many_arguments)]
+</span><span class="kw">async fn </span>sealed_sender_decrypt(
+    ciphertext: <span class="kw-2">&amp;</span>[u8],
+    trust_root: <span class="kw-2">&amp;</span>PublicKey,
+    timestamp: u64,
+    local_e164: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    local_uuid: String,
+    local_device_id: DeviceId,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    session_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SessionStore,
+    pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>PreKeyStore,
+    signed_pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SignedPreKeyStore,
+    sender_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SenderKeyStore,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;SealedSenderDecryptionResult, SignalProtocolError&gt; {
+    <span class="kw">let </span>usmc =
+        sealed_sender_decrypt_to_usmc(ciphertext, identity_store, ctx).<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">validate</span>(<span class="ident">trust_root</span>, <span class="ident">timestamp</span>)<span class="question-mark">?</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidSealedSenderMessage</span>(
-            <span class="string">&quot;trust root validation failed&quot;</span>.<span class="ident">to_string</span>(),
+    <span class="kw">if </span>!usmc.sender()<span class="question-mark">?</span>.validate(trust_root, timestamp)<span class="question-mark">? </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidSealedSenderMessage(
+            <span class="string">&quot;trust root validation failed&quot;</span>.to_string(),
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">is_local_uuid</span> <span class="op">=</span> <span class="ident">local_uuid</span> <span class="op">==</span> <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_uuid</span>()<span class="question-mark">?</span>;
+    <span class="kw">let </span>is_local_uuid = local_uuid == usmc.sender()<span class="question-mark">?</span>.sender_uuid()<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">is_local_e164</span> <span class="op">=</span> <span class="kw">match</span> (<span class="ident">local_e164</span>, <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_e164</span>()<span class="question-mark">?</span>) {
-        (<span class="prelude-val">Some</span>(<span class="ident">l</span>), <span class="prelude-val">Some</span>(<span class="ident">s</span>)) =&gt; <span class="ident">l</span> <span class="op">==</span> <span class="ident">s</span>,
+    <span class="kw">let </span>is_local_e164 = <span class="kw">match </span>(local_e164, usmc.sender()<span class="question-mark">?</span>.sender_e164()<span class="question-mark">?</span>) {
+        (<span class="prelude-val">Some</span>(l), <span class="prelude-val">Some</span>(s)) =&gt; l == s,
         (<span class="kw">_</span>, <span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
     };
 
-    <span class="kw">if</span> (<span class="ident">is_local_e164</span> <span class="op">|</span><span class="op">|</span> <span class="ident">is_local_uuid</span>)
-        <span class="op">&amp;&amp;</span> <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_device_id</span>()<span class="question-mark">?</span> <span class="op">==</span> <span class="ident">local_device_id</span>
+    <span class="kw">if </span>(is_local_e164 || is_local_uuid)
+        &amp;&amp; usmc.sender()<span class="question-mark">?</span>.sender_device_id()<span class="question-mark">? </span>== local_device_id
     {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::SealedSenderSelfSend</span>);
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::SealedSenderSelfSend);
     }
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">rng</span> <span class="op">=</span> <span class="ident">rand::rngs::OsRng</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::rngs::OsRng;
 
-    <span class="kw">let</span> <span class="ident">remote_address</span> <span class="op">=</span> <span class="ident">ProtocolAddress::new</span>(
-        <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_uuid</span>()<span class="question-mark">?</span>.<span class="ident">to_string</span>(),
-        <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_device_id</span>()<span class="question-mark">?</span>,
+    <span class="kw">let </span>remote_address = ProtocolAddress::new(
+        usmc.sender()<span class="question-mark">?</span>.sender_uuid()<span class="question-mark">?</span>.to_string(),
+        usmc.sender()<span class="question-mark">?</span>.sender_device_id()<span class="question-mark">?</span>,
     );
 
-    <span class="kw">let</span> <span class="ident">message</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">usmc</span>.<span class="ident">msg_type</span>()<span class="question-mark">?</span> {
-        <span class="ident">CiphertextMessageType::Whisper</span> =&gt; {
-            <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">SignalMessage::try_from</span>(<span class="ident">usmc</span>.<span class="ident">contents</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-            <span class="ident">message_decrypt_signal</span>(
-                <span class="kw-2">&amp;</span><span class="ident">ctext</span>,
-                <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
-                <span class="ident">session_store</span>,
-                <span class="ident">identity_store</span>,
-                <span class="kw-2">&amp;mut</span> <span class="ident">rng</span>,
-                <span class="ident">ctx</span>,
+    <span class="kw">let </span>message = <span class="kw">match </span>usmc.msg_type()<span class="question-mark">? </span>{
+        CiphertextMessageType::Whisper =&gt; {
+            <span class="kw">let </span>ctext = SignalMessage::try_from(usmc.contents()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+            message_decrypt_signal(
+                <span class="kw-2">&amp;</span>ctext,
+                <span class="kw-2">&amp;</span>remote_address,
+                session_store,
+                identity_store,
+                <span class="kw-2">&amp;mut </span>rng,
+                ctx,
             )
-            .<span class="kw">await</span><span class="question-mark">?</span>
-        },
-        <span class="ident">CiphertextMessageType::PreKey</span> =&gt; {
-            <span class="kw">let</span> <span class="ident">ctext</span> <span class="op">=</span> <span class="ident">PreKeySignalMessage::try_from</span>(<span class="ident">usmc</span>.<span class="ident">contents</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-            <span class="ident">message_decrypt_prekey</span>(
-                <span class="kw-2">&amp;</span><span class="ident">ctext</span>,
-                <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
-                <span class="ident">session_store</span>,
-                <span class="ident">identity_store</span>,
-                <span class="ident">pre_key_store</span>,
-                <span class="ident">signed_pre_key_store</span>,
-                <span class="kw-2">&amp;mut</span> <span class="ident">rng</span>,
-                <span class="ident">ctx</span>,
+            .<span class="kw">await</span><span class="question-mark">?
+        </span>},
+        CiphertextMessageType::PreKey =&gt; {
+            <span class="kw">let </span>ctext = PreKeySignalMessage::try_from(usmc.contents()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+            message_decrypt_prekey(
+                <span class="kw-2">&amp;</span>ctext,
+                <span class="kw-2">&amp;</span>remote_address,
+                session_store,
+                identity_store,
+                pre_key_store,
+                signed_pre_key_store,
+                <span class="kw-2">&amp;mut </span>rng,
+                ctx,
             )
-            .<span class="kw">await</span><span class="question-mark">?</span>
-        },
-        <span class="ident">CiphertextMessageType::SenderKey</span> =&gt; {
-            <span class="ident">group_decrypt</span>(
-                <span class="ident">usmc</span>.<span class="ident">contents</span>()<span class="question-mark">?</span>,
-                <span class="ident">sender_key_store</span>,
-                <span class="kw-2">&amp;</span><span class="ident">remote_address</span>,
-                <span class="ident">ctx</span>,
+            .<span class="kw">await</span><span class="question-mark">?
+        </span>},
+        CiphertextMessageType::SenderKey =&gt; {
+            group_decrypt(
+                usmc.contents()<span class="question-mark">?</span>,
+                sender_key_store,
+                <span class="kw-2">&amp;</span>remote_address,
+                ctx,
             )
-            .<span class="kw">await</span><span class="question-mark">?</span>
-        },
-        <span class="ident">msg_type</span> =&gt; {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-                <span class="ident">msg_type</span>,
+            .<span class="kw">await</span><span class="question-mark">?
+        </span>},
+        msg_type =&gt; {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+                msg_type,
                 <span class="string">&quot;unexpected message type for sealed_sender_decrypt&quot;</span>,
             ));
         },
     };
 
-    <span class="prelude-val">Ok</span>(<span class="ident">SealedSenderDecryptionResult</span> {
-        <span class="ident">sender_uuid</span>: <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_uuid</span>()<span class="question-mark">?</span>.<span class="ident">to_string</span>(),
-        <span class="ident">sender_e164</span>: <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_e164</span>()<span class="question-mark">?</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">to_string</span>()),
-        <span class="ident">device_id</span>: <span class="ident">usmc</span>.<span class="ident">sender</span>()<span class="question-mark">?</span>.<span class="ident">sender_device_id</span>()<span class="question-mark">?</span>,
-        <span class="ident">message</span>,
+    <span class="prelude-val">Ok</span>(SealedSenderDecryptionResult {
+        sender_uuid: usmc.sender()<span class="question-mark">?</span>.sender_uuid()<span class="question-mark">?</span>.to_string(),
+        sender_e164: usmc.sender()<span class="question-mark">?</span>.sender_e164()<span class="question-mark">?</span>.map(|s| s.to_string()),
+        device_id: usmc.sender()<span class="question-mark">?</span>.sender_device_id()<span class="question-mark">?</span>,
+        message,
     })
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

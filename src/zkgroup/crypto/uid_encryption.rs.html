@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/crypto/uid_encryption.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>uid_encryption.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/zkgroup/src/crypto/uid_encryption.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>uid_encryption.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../zkgroup/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../zkgroup/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -164,68 +164,68 @@
 <span id="164">164</span>
 <span id="165">165</span>
 <span id="166">166</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="attribute">#![<span class="ident">allow</span>(<span class="ident">non_snake_case</span>)]</span>
+</span><span class="attribute">#![allow(non_snake_case)]
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::errors</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::sho</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::crypto::uid_struct</span>;
-<span class="kw">use</span> <span class="ident">curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT</span>;
-<span class="kw">use</span> <span class="ident">curve25519_dalek::ristretto::RistrettoPoint</span>;
-<span class="kw">use</span> <span class="ident">curve25519_dalek::scalar::Scalar</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
+</span><span class="kw">use </span><span class="kw">crate</span>::common::errors::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::common::sho::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::crypto::uid_struct;
+<span class="kw">use </span>curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
+<span class="kw">use </span>curve25519_dalek::ristretto::RistrettoPoint;
+<span class="kw">use </span>curve25519_dalek::scalar::Scalar;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
 
-<span class="kw">use</span> <span class="ident">lazy_static::lazy_static</span>;
+<span class="kw">use </span>lazy_static::lazy_static;
 
-<span class="macro">lazy_static!</span> {
-    <span class="kw">static</span> <span class="kw-2">ref</span> <span class="ident">SYSTEM_PARAMS</span>: <span class="ident">SystemParams</span> <span class="op">=</span>
-        <span class="ident">bincode::deserialize</span>::<span class="op">&lt;</span><span class="ident">SystemParams</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">SystemParams::SYSTEM_HARDCODED</span>).<span class="ident">unwrap</span>();
+<span class="macro">lazy_static! </span>{
+    <span class="kw">static </span><span class="kw-2">ref </span>SYSTEM_PARAMS: SystemParams =
+        bincode::deserialize::&lt;SystemParams&gt;(<span class="kw-2">&amp;</span>SystemParams::SYSTEM_HARDCODED).unwrap();
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SystemParams</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">G_a1</span>: <span class="ident">RistrettoPoint</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">G_a2</span>: <span class="ident">RistrettoPoint</span>,
+<span class="attribute">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>SystemParams {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) G_a1: RistrettoPoint,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) G_a2: RistrettoPoint,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">KeyPair</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">a1</span>: <span class="ident">Scalar</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">a2</span>: <span class="ident">Scalar</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">A</span>: <span class="ident">RistrettoPoint</span>,
+<span class="attribute">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>KeyPair {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) a1: Scalar,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) a2: Scalar,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) A: RistrettoPoint,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PublicKey</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">A</span>: <span class="ident">RistrettoPoint</span>,
+<span class="attribute">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>PublicKey {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) A: RistrettoPoint,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Copy</span>, <span class="ident">Clone</span>, <span class="ident">Default</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Ciphertext</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">E_A1</span>: <span class="ident">RistrettoPoint</span>,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="ident">E_A2</span>: <span class="ident">RistrettoPoint</span>,
+<span class="attribute">#[derive(Copy, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>Ciphertext {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) E_A1: RistrettoPoint,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) E_A2: RistrettoPoint,
 }
 
-<span class="kw">impl</span> <span class="ident">SystemParams</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">generate</span>() -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(
+<span class="kw">impl </span>SystemParams {
+    <span class="kw">pub fn </span>generate() -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b&quot;Signal_ZKGroup_20200424_Constant_UidEncryption_SystemParams_Generate&quot;</span>,
             <span class="string">b&quot;&quot;</span>,
         );
-        <span class="kw">let</span> <span class="ident">G_a1</span> <span class="op">=</span> <span class="ident">sho</span>.<span class="ident">get_point</span>();
-        <span class="kw">let</span> <span class="ident">G_a2</span> <span class="op">=</span> <span class="ident">sho</span>.<span class="ident">get_point</span>();
-        <span class="ident">SystemParams</span> { <span class="ident">G_a1</span>, <span class="ident">G_a2</span> }
+        <span class="kw">let </span>G_a1 = sho.get_point();
+        <span class="kw">let </span>G_a2 = sho.get_point();
+        SystemParams { G_a1, G_a2 }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_hardcoded</span>() -&gt; <span class="ident">SystemParams</span> {
-        <span class="kw-2">*</span><span class="ident">SYSTEM_PARAMS</span>
+    <span class="kw">pub fn </span>get_hardcoded() -&gt; SystemParams {
+        <span class="kw-2">*</span>SYSTEM_PARAMS
     }
 
-    <span class="kw">const</span> <span class="ident">SYSTEM_HARDCODED</span>: [<span class="ident">u8</span>; <span class="number">64</span>] <span class="op">=</span> [
+    <span class="kw">const </span>SYSTEM_HARDCODED: [u8; <span class="number">64</span>] = [
         <span class="number">0xa6</span>, <span class="number">0x32</span>, <span class="number">0x4c</span>, <span class="number">0x36</span>, <span class="number">0x8d</span>, <span class="number">0xf7</span>, <span class="number">0x34</span>, <span class="number">0x69</span>, <span class="number">0x11</span>, <span class="number">0x47</span>, <span class="number">0x98</span>, <span class="number">0x13</span>, <span class="number">0x48</span>, <span class="number">0xb6</span>, <span class="number">0xe7</span>,
         <span class="number">0xeb</span>, <span class="number">0x42</span>, <span class="number">0xc3</span>, <span class="number">0x30</span>, <span class="number">0x7e</span>, <span class="number">0x71</span>, <span class="number">0x1b</span>, <span class="number">0x6c</span>, <span class="number">0x7e</span>, <span class="number">0xcc</span>, <span class="number">0xd3</span>, <span class="number">0x3</span>, <span class="number">0x2d</span>, <span class="number">0x45</span>, <span class="number">0x69</span>,
         <span class="number">0x3f</span>, <span class="number">0x5a</span>, <span class="number">0x4</span>, <span class="number">0x80</span>, <span class="number">0x13</span>, <span class="number">0x52</span>, <span class="number">0x5b</span>, <span class="number">0x76</span>, <span class="number">0x12</span>, <span class="number">0x4b</span>, <span class="number">0xf2</span>, <span class="number">0x64</span>, <span class="number">0xc</span>, <span class="number">0x5e</span>, <span class="number">0x93</span>,
@@ -234,89 +234,89 @@
     ];
 }
 
-<span class="kw">impl</span> <span class="ident">KeyPair</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">derive_from</span>(<span class="ident">sho</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Sho</span>) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="ident">system</span> <span class="op">=</span> <span class="ident">SystemParams::get_hardcoded</span>();
+<span class="kw">impl </span>KeyPair {
+    <span class="kw">pub fn </span>derive_from(sho: <span class="kw-2">&amp;mut </span>Sho) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>system = SystemParams::get_hardcoded();
 
-        <span class="kw">let</span> <span class="ident">a1</span> <span class="op">=</span> <span class="ident">sho</span>.<span class="ident">get_scalar</span>();
-        <span class="kw">let</span> <span class="ident">a2</span> <span class="op">=</span> <span class="ident">sho</span>.<span class="ident">get_scalar</span>();
+        <span class="kw">let </span>a1 = sho.get_scalar();
+        <span class="kw">let </span>a2 = sho.get_scalar();
 
-        <span class="kw">let</span> <span class="ident">A</span> <span class="op">=</span> <span class="ident">a1</span> <span class="op">*</span> <span class="ident">system</span>.<span class="ident">G_a1</span> <span class="op">+</span> <span class="ident">a2</span> <span class="op">*</span> <span class="ident">system</span>.<span class="ident">G_a2</span>;
-        <span class="ident">KeyPair</span> { <span class="ident">a1</span>, <span class="ident">a2</span>, <span class="ident">A</span> }
+        <span class="kw">let </span>A = a1 * system.G_a1 + a2 * system.G_a2;
+        KeyPair { a1, a2, A }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encrypt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">uid</span>: <span class="ident">uid_struct::UidStruct</span>) -&gt; <span class="ident">Ciphertext</span> {
-        <span class="kw">let</span> <span class="ident">E_A1</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">calc_E_A1</span>(<span class="ident">uid</span>);
-        <span class="kw">let</span> <span class="ident">E_A2</span> <span class="op">=</span> (<span class="self">self</span>.<span class="ident">a2</span> <span class="op">*</span> <span class="ident">E_A1</span>) <span class="op">+</span> <span class="ident">uid</span>.<span class="ident">M2</span>;
-        <span class="ident">Ciphertext</span> { <span class="ident">E_A1</span>, <span class="ident">E_A2</span> }
+    <span class="kw">pub fn </span>encrypt(<span class="kw-2">&amp;</span><span class="self">self</span>, uid: uid_struct::UidStruct) -&gt; Ciphertext {
+        <span class="kw">let </span>E_A1 = <span class="self">self</span>.calc_E_A1(uid);
+        <span class="kw">let </span>E_A2 = (<span class="self">self</span>.a2 * E_A1) + uid.M2;
+        Ciphertext { E_A1, E_A2 }
     }
 
-    <span class="comment">// Might return VerificationFailure</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decrypt</span>(
+    <span class="comment">// Might return VerificationFailure
+    </span><span class="kw">pub fn </span>decrypt(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">ciphertext</span>: <span class="ident">Ciphertext</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">uid_struct::UidStruct</span>, <span class="ident">ZkGroupVerificationFailure</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">ciphertext</span>.<span class="ident">E_A1</span> <span class="op">==</span> <span class="ident">RISTRETTO_BASEPOINT_POINT</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>);
+        ciphertext: Ciphertext,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;uid_struct::UidStruct, ZkGroupVerificationFailure&gt; {
+        <span class="kw">if </span>ciphertext.E_A1 == RISTRETTO_BASEPOINT_POINT {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
-        <span class="kw">match</span> <span class="ident">uid_struct::UidStruct::from_M2</span>(<span class="ident">ciphertext</span>.<span class="ident">E_A2</span> <span class="op">-</span> (<span class="self">self</span>.<span class="ident">a2</span> <span class="op">*</span> <span class="ident">ciphertext</span>.<span class="ident">E_A1</span>)) {
-            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>),
-            <span class="prelude-val">Ok</span>(<span class="ident">decrypted_uid</span>) =&gt; {
-                <span class="kw">if</span> <span class="ident">ciphertext</span>.<span class="ident">E_A1</span> <span class="op">==</span> <span class="self">self</span>.<span class="ident">calc_E_A1</span>(<span class="ident">decrypted_uid</span>) {
-                    <span class="prelude-val">Ok</span>(<span class="ident">decrypted_uid</span>)
-                } <span class="kw">else</span> {
-                    <span class="prelude-val">Err</span>(<span class="ident">ZkGroupVerificationFailure</span>)
+        <span class="kw">match </span>uid_struct::UidStruct::from_M2(ciphertext.E_A2 - (<span class="self">self</span>.a2 * ciphertext.E_A1)) {
+            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
+            <span class="prelude-val">Ok</span>(decrypted_uid) =&gt; {
+                <span class="kw">if </span>ciphertext.E_A1 == <span class="self">self</span>.calc_E_A1(decrypted_uid) {
+                    <span class="prelude-val">Ok</span>(decrypted_uid)
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Err</span>(ZkGroupVerificationFailure)
                 }
             }
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">calc_E_A1</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">uid</span>: <span class="ident">uid_struct::UidStruct</span>) -&gt; <span class="ident">RistrettoPoint</span> {
-        <span class="self">self</span>.<span class="ident">a1</span> <span class="op">*</span> <span class="ident">uid</span>.<span class="ident">M1</span>
+    <span class="kw">fn </span>calc_E_A1(<span class="kw-2">&amp;</span><span class="self">self</span>, uid: uid_struct::UidStruct) -&gt; RistrettoPoint {
+        <span class="self">self</span>.a1 * uid.M1
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_public_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">PublicKey</span> {
-        <span class="ident">PublicKey</span> { <span class="ident">A</span>: <span class="self">self</span>.<span class="ident">A</span> }
+    <span class="kw">pub fn </span>get_public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PublicKey {
+        PublicKey { A: <span class="self">self</span>.A }
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
-    <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::common::constants</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
+    <span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">test_uid_encryption</span>() {
-        <span class="kw">let</span> <span class="ident">master_key</span> <span class="op">=</span> <span class="ident">TEST_ARRAY_32</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sho</span> <span class="op">=</span> <span class="ident">Sho::new</span>(<span class="string">b&quot;Test_Uid_Encryption&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">master_key</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>test_uid_encryption() {
+        <span class="kw">let </span>master_key = TEST_ARRAY_32;
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b&quot;Test_Uid_Encryption&quot;</span>, <span class="kw-2">&amp;</span>master_key);
 
-        <span class="comment">//let system = SystemParams::generate();</span>
-        <span class="comment">//println!(&quot;PARAMS = {:#x?}&quot;, bincode::serialize(&amp;system));</span>
-        <span class="macro">assert!</span>(<span class="ident">SystemParams::generate</span>() <span class="op">==</span> <span class="ident">SystemParams::get_hardcoded</span>());
+        <span class="comment">//let system = SystemParams::generate();
+        //println!(&quot;PARAMS = {:#x?}&quot;, bincode::serialize(&amp;system));
+        </span><span class="macro">assert!</span>(SystemParams::generate() == SystemParams::get_hardcoded());
 
-        <span class="kw">let</span> <span class="ident">key_pair</span> <span class="op">=</span> <span class="ident">KeyPair::derive_from</span>(<span class="kw-2">&amp;mut</span> <span class="ident">sho</span>);
+        <span class="kw">let </span>key_pair = KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
 
-        <span class="comment">// Test serialize of key_pair</span>
-        <span class="kw">let</span> <span class="ident">key_pair_bytes</span> <span class="op">=</span> <span class="ident">bincode::serialize</span>(<span class="kw-2">&amp;</span><span class="ident">key_pair</span>).<span class="ident">unwrap</span>();
-        <span class="kw">match</span> <span class="ident">bincode::deserialize</span>::<span class="op">&lt;</span><span class="ident">KeyPair</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="ident">key_pair_bytes</span>[<span class="number">0</span>..<span class="ident">key_pair_bytes</span>.<span class="ident">len</span>() <span class="op">-</span> <span class="number">1</span>]) {
+        <span class="comment">// Test serialize of key_pair
+        </span><span class="kw">let </span>key_pair_bytes = bincode::serialize(<span class="kw-2">&amp;</span>key_pair).unwrap();
+        <span class="kw">match </span>bincode::deserialize::&lt;KeyPair&gt;(<span class="kw-2">&amp;</span>key_pair_bytes[<span class="number">0</span>..key_pair_bytes.len() - <span class="number">1</span>]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; (),
-            <span class="kw">_</span> =&gt; <span class="macro">unreachable!</span>(),
+            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(),
         };
-        <span class="kw">let</span> <span class="ident">key_pair2</span>: <span class="ident">KeyPair</span> <span class="op">=</span> <span class="ident">bincode::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">key_pair_bytes</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert!</span>(<span class="ident">key_pair</span> <span class="op">==</span> <span class="ident">key_pair2</span>);
+        <span class="kw">let </span>key_pair2: KeyPair = bincode::deserialize(<span class="kw-2">&amp;</span>key_pair_bytes).unwrap();
+        <span class="macro">assert!</span>(key_pair == key_pair2);
 
-        <span class="kw">let</span> <span class="ident">uid</span> <span class="op">=</span> <span class="ident">uid_struct::UidStruct::new</span>(<span class="ident">TEST_ARRAY_16</span>);
-        <span class="kw">let</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="ident">key_pair</span>.<span class="ident">encrypt</span>(<span class="ident">uid</span>);
+        <span class="kw">let </span>uid = uid_struct::UidStruct::new(TEST_ARRAY_16);
+        <span class="kw">let </span>ciphertext = key_pair.encrypt(uid);
 
-        <span class="comment">// Test serialize / deserialize of Ciphertext</span>
-        <span class="kw">let</span> <span class="ident">ciphertext_bytes</span> <span class="op">=</span> <span class="ident">bincode::serialize</span>(<span class="kw-2">&amp;</span><span class="ident">ciphertext</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert!</span>(<span class="ident">ciphertext_bytes</span>.<span class="ident">len</span>() <span class="op">==</span> <span class="number">64</span>);
-        <span class="kw">let</span> <span class="ident">ciphertext2</span>: <span class="ident">Ciphertext</span> <span class="op">=</span> <span class="ident">bincode::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">ciphertext_bytes</span>).<span class="ident">unwrap</span>();
-        <span class="macro">assert!</span>(<span class="ident">ciphertext</span> <span class="op">==</span> <span class="ident">ciphertext2</span>);
-        <span class="comment">//println!(&quot;ciphertext_bytes = {:#x?}&quot;, ciphertext_bytes);</span>
-        <span class="macro">assert!</span>(
-            <span class="ident">ciphertext_bytes</span>
-                <span class="op">==</span> <span class="macro">vec!</span>[
+        <span class="comment">// Test serialize / deserialize of Ciphertext
+        </span><span class="kw">let </span>ciphertext_bytes = bincode::serialize(<span class="kw-2">&amp;</span>ciphertext).unwrap();
+        <span class="macro">assert!</span>(ciphertext_bytes.len() == <span class="number">64</span>);
+        <span class="kw">let </span>ciphertext2: Ciphertext = bincode::deserialize(<span class="kw-2">&amp;</span>ciphertext_bytes).unwrap();
+        <span class="macro">assert!</span>(ciphertext == ciphertext2);
+        <span class="comment">//println!(&quot;ciphertext_bytes = {:#x?}&quot;, ciphertext_bytes);
+        </span><span class="macro">assert!</span>(
+            ciphertext_bytes
+                == <span class="macro">vec!</span>[
                     <span class="number">0xf8</span>, <span class="number">0x9e</span>, <span class="number">0xe7</span>, <span class="number">0x70</span>, <span class="number">0x5a</span>, <span class="number">0x66</span>, <span class="number">0x3</span>, <span class="number">0x6b</span>, <span class="number">0x90</span>, <span class="number">0x8d</span>, <span class="number">0xb8</span>, <span class="number">0x84</span>, <span class="number">0x21</span>,
                     <span class="number">0x1b</span>, <span class="number">0x77</span>, <span class="number">0x3a</span>, <span class="number">0xc5</span>, <span class="number">0x43</span>, <span class="number">0xee</span>, <span class="number">0x35</span>, <span class="number">0xc4</span>, <span class="number">0xa3</span>, <span class="number">0x8</span>, <span class="number">0x62</span>, <span class="number">0x20</span>, <span class="number">0xfc</span>,
                     <span class="number">0x3e</span>, <span class="number">0x1e</span>, <span class="number">0x35</span>, <span class="number">0xb4</span>, <span class="number">0x23</span>, <span class="number">0x4c</span>, <span class="number">0xfa</span>, <span class="number">0x1d</span>, <span class="number">0x2e</span>, <span class="number">0xea</span>, <span class="number">0x2c</span>, <span class="number">0xc2</span>, <span class="number">0xf4</span>,
@@ -325,10 +325,10 @@
                 ]
         );
 
-        <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="ident">key_pair</span>.<span class="ident">decrypt</span>(<span class="ident">ciphertext2</span>).<span class="ident">unwrap</span>();
+        <span class="kw">let </span>plaintext = key_pair.decrypt(ciphertext2).unwrap();
 
-        <span class="macro">assert!</span>(<span class="ident">plaintext</span> <span class="op">==</span> <span class="ident">uid</span>);
+        <span class="macro">assert!</span>(plaintext == uid);
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="zkgroup" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

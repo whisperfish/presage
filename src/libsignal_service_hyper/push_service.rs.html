@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service-hyper/src/push_service.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service_hyper/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service_hyper/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service_hyper/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service-hyper/src/push_service.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service_hyper/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service_hyper/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service_hyper/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -495,502 +495,502 @@
 <span id="495">495</span>
 <span id="496">496</span>
 <span id="497">497</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">io::Read</span>, <span class="ident">time::Duration</span>};
+</pre><pre class="rust"><code><span class="kw">use </span>std::{io::Read, time::Duration};
 
-<span class="kw">use</span> <span class="ident">bytes</span>::{<span class="ident">Buf</span>, <span class="ident">Bytes</span>};
-<span class="kw">use</span> <span class="ident">futures</span>::{<span class="ident">FutureExt</span>, <span class="ident">StreamExt</span>, <span class="ident">TryStreamExt</span>};
-<span class="kw">use</span> <span class="ident">headers</span>::{<span class="ident">Authorization</span>, <span class="ident">HeaderMapExt</span>};
-<span class="kw">use</span> <span class="ident">hyper</span>::{
-    <span class="ident">client::HttpConnector</span>,
-    <span class="ident">header</span>::{<span class="ident">CONTENT_LENGTH</span>, <span class="ident">CONTENT_TYPE</span>, <span class="ident">USER_AGENT</span>},
-    <span class="ident">Body</span>, <span class="ident">Client</span>, <span class="ident">Method</span>, <span class="ident">Request</span>, <span class="ident">Response</span>, <span class="ident">StatusCode</span>,
+<span class="kw">use </span>bytes::{Buf, Bytes};
+<span class="kw">use </span>futures::{FutureExt, StreamExt, TryStreamExt};
+<span class="kw">use </span>headers::{Authorization, HeaderMapExt};
+<span class="kw">use </span>hyper::{
+    client::HttpConnector,
+    header::{CONTENT_LENGTH, CONTENT_TYPE, USER_AGENT},
+    Body, Client, Method, Request, Response, StatusCode,
 };
-<span class="kw">use</span> <span class="ident">hyper_rustls::HttpsConnector</span>;
-<span class="kw">use</span> <span class="ident">hyper_timeout::TimeoutConnector</span>;
-<span class="kw">use</span> <span class="ident">libsignal_service</span>::{
-    <span class="ident">configuration</span>::<span class="kw-2">*</span>, <span class="ident">prelude::ProtobufMessage</span>, <span class="ident">push_service</span>::<span class="kw-2">*</span>,
-    <span class="ident">websocket::SignalWebSocket</span>, <span class="ident">MaybeSend</span>,
+<span class="kw">use </span>hyper_rustls::HttpsConnector;
+<span class="kw">use </span>hyper_timeout::TimeoutConnector;
+<span class="kw">use </span>libsignal_service::{
+    configuration::<span class="kw-2">*</span>, prelude::ProtobufMessage, push_service::<span class="kw-2">*</span>,
+    websocket::SignalWebSocket, MaybeSend,
 };
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">tokio_rustls::rustls</span>;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>tokio_rustls::rustls;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::websocket::TungsteniteWebSocket</span>;
+<span class="kw">use </span><span class="kw">crate</span>::websocket::TungsteniteWebSocket;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HyperPushService</span> {
-    <span class="ident">cfg</span>: <span class="ident">ServiceConfiguration</span>,
-    <span class="ident">user_agent</span>: <span class="ident">String</span>,
-    <span class="ident">credentials</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">HttpAuth</span><span class="op">&gt;</span>,
-    <span class="ident">client</span>: <span class="ident">Client</span><span class="op">&lt;</span><span class="ident">TimeoutConnector</span><span class="op">&lt;</span><span class="ident">HttpsConnector</span><span class="op">&lt;</span><span class="ident">HttpConnector</span><span class="op">&gt;</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>HyperPushService {
+    cfg: ServiceConfiguration,
+    user_agent: String,
+    credentials: <span class="prelude-ty">Option</span>&lt;HttpAuth&gt;,
+    client: Client&lt;TimeoutConnector&lt;HttpsConnector&lt;HttpConnector&gt;&gt;&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">struct</span> <span class="ident">RequestBody</span> {
-    <span class="ident">contents</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    <span class="ident">content_type</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(Debug)]
+</span><span class="kw">struct </span>RequestBody {
+    contents: Vec&lt;u8&gt;,
+    content_type: String,
 }
 
-<span class="kw">impl</span> <span class="ident">HyperPushService</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">cfg</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ServiceConfiguration</span><span class="op">&gt;</span>,
-        <span class="ident">credentials</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ServiceCredentials</span><span class="op">&gt;</span>,
-        <span class="ident">user_agent</span>: <span class="ident">String</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="kw">let</span> <span class="ident">cfg</span> <span class="op">=</span> <span class="ident">cfg</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">tls_config</span> <span class="op">=</span> <span class="ident"><span class="self">Self</span>::tls_config</span>(<span class="kw-2">&amp;</span><span class="ident">cfg</span>);
+<span class="kw">impl </span>HyperPushService {
+    <span class="kw">pub fn </span>new(
+        cfg: <span class="kw">impl </span>Into&lt;ServiceConfiguration&gt;,
+        credentials: <span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;,
+        user_agent: String,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="kw">let </span>cfg = cfg.into();
+        <span class="kw">let </span>tls_config = <span class="self">Self</span>::tls_config(<span class="kw-2">&amp;</span>cfg);
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">http</span> <span class="op">=</span> <span class="ident">HttpConnector::new</span>();
-        <span class="ident">http</span>.<span class="ident">enforce_http</span>(<span class="bool-val">false</span>);
-        <span class="kw">let</span> <span class="ident">https</span> <span class="op">=</span> <span class="ident">HttpsConnector::from</span>((<span class="ident">http</span>, <span class="ident">tls_config</span>));
+        <span class="kw">let </span><span class="kw-2">mut </span>http = HttpConnector::new();
+        http.enforce_http(<span class="bool-val">false</span>);
+        <span class="kw">let </span>https = HttpsConnector::from((http, tls_config));
 
-        <span class="comment">// as in Signal-Android</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">timeout_connector</span> <span class="op">=</span> <span class="ident">TimeoutConnector::new</span>(<span class="ident">https</span>);
-        <span class="ident">timeout_connector</span>.<span class="ident">set_connect_timeout</span>(<span class="prelude-val">Some</span>(<span class="ident">Duration::from_secs</span>(<span class="number">10</span>)));
-        <span class="ident">timeout_connector</span>.<span class="ident">set_read_timeout</span>(<span class="prelude-val">Some</span>(<span class="ident">Duration::from_secs</span>(<span class="number">65</span>)));
-        <span class="ident">timeout_connector</span>.<span class="ident">set_write_timeout</span>(<span class="prelude-val">Some</span>(<span class="ident">Duration::from_secs</span>(<span class="number">65</span>)));
+        <span class="comment">// as in Signal-Android
+        </span><span class="kw">let </span><span class="kw-2">mut </span>timeout_connector = TimeoutConnector::new(https);
+        timeout_connector.set_connect_timeout(<span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">10</span>)));
+        timeout_connector.set_read_timeout(<span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">65</span>)));
+        timeout_connector.set_write_timeout(<span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">65</span>)));
 
-        <span class="kw">let</span> <span class="ident">client</span>: <span class="ident">Client</span><span class="op">&lt;</span><span class="kw">_</span>, <span class="ident">hyper::Body</span><span class="op">&gt;</span> <span class="op">=</span>
-            <span class="ident">Client::builder</span>().<span class="ident">build</span>(<span class="ident">timeout_connector</span>);
+        <span class="kw">let </span>client: Client&lt;<span class="kw">_</span>, hyper::Body&gt; =
+            Client::builder().build(timeout_connector);
 
-        <span class="self">Self</span> {
-            <span class="ident">cfg</span>,
-            <span class="ident">credentials</span>: <span class="ident">credentials</span>.<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">authorization</span>()),
-            <span class="ident">client</span>,
-            <span class="ident">user_agent</span>,
+        <span class="self">Self </span>{
+            cfg,
+            credentials: credentials.and_then(|c| c.authorization()),
+            client,
+            user_agent,
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">tls_config</span>(<span class="ident">cfg</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceConfiguration</span>) -&gt; <span class="ident">rustls::ClientConfig</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">cert_bytes</span> <span class="op">=</span> <span class="ident">std::io::Cursor::new</span>(<span class="kw-2">&amp;</span><span class="ident">cfg</span>.<span class="ident">certificate_authority</span>);
-        <span class="kw">let</span> <span class="ident">roots</span> <span class="op">=</span> <span class="ident">rustls_pemfile::certs</span>(<span class="kw-2">&amp;mut</span> <span class="ident">cert_bytes</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;parseable PEM files&quot;</span>);
-        <span class="kw">let</span> <span class="ident">roots</span> <span class="op">=</span> <span class="ident">roots</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">v</span><span class="op">|</span> <span class="ident">rustls::Certificate</span>(<span class="ident">v</span>.<span class="ident">clone</span>()));
+    <span class="kw">fn </span>tls_config(cfg: <span class="kw-2">&amp;</span>ServiceConfiguration) -&gt; rustls::ClientConfig {
+        <span class="kw">let </span><span class="kw-2">mut </span>cert_bytes = std::io::Cursor::new(<span class="kw-2">&amp;</span>cfg.certificate_authority);
+        <span class="kw">let </span>roots = rustls_pemfile::certs(<span class="kw-2">&amp;mut </span>cert_bytes)
+            .expect(<span class="string">&quot;parseable PEM files&quot;</span>);
+        <span class="kw">let </span>roots = roots.iter().map(|v| rustls::Certificate(v.clone()));
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">root_certs</span> <span class="op">=</span> <span class="ident">rustls::RootCertStore::empty</span>();
-        <span class="kw">for</span> <span class="ident">root</span> <span class="kw">in</span> <span class="ident">roots</span> {
-            <span class="ident">root_certs</span>.<span class="ident">add</span>(<span class="kw-2">&amp;</span><span class="ident">root</span>).<span class="ident">unwrap</span>();
+        <span class="kw">let </span><span class="kw-2">mut </span>root_certs = rustls::RootCertStore::empty();
+        <span class="kw">for </span>root <span class="kw">in </span>roots {
+            root_certs.add(<span class="kw-2">&amp;</span>root).unwrap();
         }
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">tls_config</span> <span class="op">=</span> <span class="ident">rustls::ClientConfig::builder</span>()
-            .<span class="ident">with_safe_defaults</span>()
-            .<span class="ident">with_root_certificates</span>(<span class="ident">root_certs</span>)
-            .<span class="ident">with_no_client_auth</span>();
-        <span class="ident">tls_config</span>.<span class="ident">alpn_protocols</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="string">b&quot;http/1.1&quot;</span>.<span class="ident">to_vec</span>()];
-        <span class="ident">tls_config</span>
+        <span class="kw">let </span><span class="kw-2">mut </span>tls_config = rustls::ClientConfig::builder()
+            .with_safe_defaults()
+            .with_root_certificates(root_certs)
+            .with_no_client_auth();
+        tls_config.alpn_protocols = <span class="macro">vec!</span>[<span class="string">b&quot;http/1.1&quot;</span>.to_vec()];
+        tls_config
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">request</span>(
+    <span class="kw">async fn </span>request(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">method</span>: <span class="ident">Method</span>,
-        <span class="ident">endpoint</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-        <span class="ident">body</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">RequestBody</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Response</span><span class="op">&lt;</span><span class="ident">Body</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">url</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cfg</span>.<span class="ident">base_url</span>(<span class="ident">endpoint</span>).<span class="ident">join</span>(<span class="ident">path</span>.<span class="ident">as_ref</span>())<span class="question-mark">?</span>;
-        <span class="macro">log::debug!</span>(<span class="string">&quot;HTTP request {} {}&quot;</span>, <span class="ident">method</span>, <span class="ident">url</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">builder</span> <span class="op">=</span> <span class="ident">Request::builder</span>()
-            .<span class="ident">method</span>(<span class="ident">method</span>)
-            .<span class="ident">uri</span>(<span class="ident">url</span>.<span class="ident">as_str</span>())
-            .<span class="ident">header</span>(<span class="ident">USER_AGENT</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">user_agent</span>);
+        method: Method,
+        endpoint: Endpoint,
+        path: <span class="kw">impl </span>AsRef&lt;str&gt;,
+        credentials_override: HttpAuthOverride,
+        body: <span class="prelude-ty">Option</span>&lt;RequestBody&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Response&lt;Body&gt;, ServiceError&gt; {
+        <span class="kw">let </span>url = <span class="self">self</span>.cfg.base_url(endpoint).join(path.as_ref())<span class="question-mark">?</span>;
+        <span class="macro">log::debug!</span>(<span class="string">&quot;HTTP request {} {}&quot;</span>, method, url);
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Request::builder()
+            .method(method)
+            .uri(url.as_str())
+            .header(USER_AGENT, <span class="kw-2">&amp;</span><span class="self">self</span>.user_agent);
 
-        <span class="kw">match</span> <span class="ident">credentials_override</span> {
-            <span class="ident">HttpAuthOverride::NoOverride</span> =&gt; {
-                <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">HttpAuth</span> { <span class="ident">username</span>, <span class="ident">password</span> }) <span class="op">=</span>
-                    <span class="self">self</span>.<span class="ident">credentials</span>.<span class="ident">as_ref</span>()
+        <span class="kw">match </span>credentials_override {
+            HttpAuthOverride::NoOverride =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(HttpAuth { username, password }) =
+                    <span class="self">self</span>.credentials.as_ref()
                 {
-                    <span class="ident">builder</span>
-                        .<span class="ident">headers_mut</span>()
-                        .<span class="ident">unwrap</span>()
-                        .<span class="ident">typed_insert</span>(<span class="ident">Authorization::basic</span>(<span class="ident">username</span>, <span class="ident">password</span>));
+                    builder
+                        .headers_mut()
+                        .unwrap()
+                        .typed_insert(Authorization::basic(username, password));
                 }
             },
-            <span class="ident">HttpAuthOverride::Identified</span>(<span class="ident">HttpAuth</span> { <span class="ident">username</span>, <span class="ident">password</span> }) =&gt; {
-                <span class="ident">builder</span>
-                    .<span class="ident">headers_mut</span>()
-                    .<span class="ident">unwrap</span>()
-                    .<span class="ident">typed_insert</span>(<span class="ident">Authorization::basic</span>(<span class="kw-2">&amp;</span><span class="ident">username</span>, <span class="kw-2">&amp;</span><span class="ident">password</span>));
+            HttpAuthOverride::Identified(HttpAuth { username, password }) =&gt; {
+                builder
+                    .headers_mut()
+                    .unwrap()
+                    .typed_insert(Authorization::basic(<span class="kw-2">&amp;</span>username, <span class="kw-2">&amp;</span>password));
             },
-            <span class="ident">HttpAuthOverride::Unidentified</span> =&gt; (),
+            HttpAuthOverride::Unidentified =&gt; (),
         };
 
-        <span class="kw">let</span> <span class="ident">request</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">RequestBody</span> {
-            <span class="ident">contents</span>,
-            <span class="ident">content_type</span>,
-        }) <span class="op">=</span> <span class="ident">body</span>
+        <span class="kw">let </span>request = <span class="kw">if let </span><span class="prelude-val">Some</span>(RequestBody {
+            contents,
+            content_type,
+        }) = body
         {
-            <span class="ident">builder</span>
-                .<span class="ident">header</span>(<span class="ident">CONTENT_LENGTH</span>, <span class="ident">contents</span>.<span class="ident">len</span>() <span class="kw">as</span> <span class="ident">u64</span>)
-                .<span class="ident">header</span>(<span class="ident">CONTENT_TYPE</span>, <span class="ident">content_type</span>)
-                .<span class="ident">body</span>(<span class="ident">Body::from</span>(<span class="ident">contents</span>))
-                .<span class="ident">unwrap</span>()
-        } <span class="kw">else</span> {
-            <span class="ident">builder</span>.<span class="ident">body</span>(<span class="ident">Body::empty</span>()).<span class="ident">unwrap</span>()
+            builder
+                .header(CONTENT_LENGTH, contents.len() <span class="kw">as </span>u64)
+                .header(CONTENT_TYPE, content_type)
+                .body(Body::from(contents))
+                .unwrap()
+        } <span class="kw">else </span>{
+            builder.body(Body::empty()).unwrap()
         };
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">client</span>.<span class="ident">request</span>(<span class="ident">request</span>).<span class="kw">await</span>.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::SendError</span> {
-                <span class="ident">reason</span>: <span class="ident">e</span>.<span class="ident">to_string</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self</span>.client.request(request).<span class="kw">await</span>.map_err(|e| {
+            ServiceError::SendError {
+                reason: e.to_string(),
             }
         })<span class="question-mark">?</span>;
 
-        <span class="kw">match</span> <span class="ident">response</span>.<span class="ident">status</span>() {
-            <span class="ident">StatusCode::OK</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">response</span>),
-            <span class="ident">StatusCode::NO_CONTENT</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">response</span>),
-            <span class="ident">StatusCode::UNAUTHORIZED</span> <span class="op">|</span> <span class="ident">StatusCode::FORBIDDEN</span> =&gt; {
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::Unauthorized</span>)
+        <span class="kw">match </span>response.status() {
+            StatusCode::OK =&gt; <span class="prelude-val">Ok</span>(response),
+            StatusCode::NO_CONTENT =&gt; <span class="prelude-val">Ok</span>(response),
+            StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN =&gt; {
+                <span class="prelude-val">Err</span>(ServiceError::Unauthorized)
             },
-            <span class="ident">StatusCode::PAYLOAD_TOO_LARGE</span> =&gt; {
-                <span class="comment">// This is 413 and means rate limit exceeded for Signal.</span>
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::RateLimitExceeded</span>)
+            StatusCode::PAYLOAD_TOO_LARGE =&gt; {
+                <span class="comment">// This is 413 and means rate limit exceeded for Signal.
+                </span><span class="prelude-val">Err</span>(ServiceError::RateLimitExceeded)
             },
-            <span class="ident">StatusCode::CONFLICT</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">mismatched_devices</span> <span class="op">=</span>
-                    <span class="ident"><span class="self">Self</span>::json</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
+            StatusCode::CONFLICT =&gt; {
+                <span class="kw">let </span>mismatched_devices =
+                    <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span>.map_err(|e| {
                         <span class="macro">log::error!</span>(
                             <span class="string">&quot;Failed to decode HTTP 409 response: {}&quot;</span>,
-                            <span class="ident">e</span>
+                            e
                         );
-                        <span class="ident">ServiceError::UnhandledResponseCode</span> {
-                            <span class="ident">http_code</span>: <span class="ident">StatusCode::CONFLICT</span>.<span class="ident">as_u16</span>(),
+                        ServiceError::UnhandledResponseCode {
+                            http_code: StatusCode::CONFLICT.as_u16(),
                         }
                     })<span class="question-mark">?</span>;
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::MismatchedDevicesException</span>(
-                    <span class="ident">mismatched_devices</span>,
+                <span class="prelude-val">Err</span>(ServiceError::MismatchedDevicesException(
+                    mismatched_devices,
                 ))
             },
-            <span class="ident">StatusCode::GONE</span> =&gt; {
-                <span class="kw">let</span> <span class="ident">stale_devices</span> <span class="op">=</span>
-                    <span class="ident"><span class="self">Self</span>::json</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
+            StatusCode::GONE =&gt; {
+                <span class="kw">let </span>stale_devices =
+                    <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span>.map_err(|e| {
                         <span class="macro">log::error!</span>(
                             <span class="string">&quot;Failed to decode HTTP 410 response: {}&quot;</span>,
-                            <span class="ident">e</span>
+                            e
                         );
-                        <span class="ident">ServiceError::UnhandledResponseCode</span> {
-                            <span class="ident">http_code</span>: <span class="ident">StatusCode::GONE</span>.<span class="ident">as_u16</span>(),
+                        ServiceError::UnhandledResponseCode {
+                            http_code: StatusCode::GONE.as_u16(),
                         }
                     })<span class="question-mark">?</span>;
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::StaleDevices</span>(<span class="ident">stale_devices</span>))
+                <span class="prelude-val">Err</span>(ServiceError::StaleDevices(stale_devices))
             },
-            <span class="comment">// XXX: fill in rest from PushServiceSocket</span>
-            <span class="ident">code</span> =&gt; {
+            <span class="comment">// XXX: fill in rest from PushServiceSocket
+            </span>code =&gt; {
                 <span class="macro">log::trace!</span>(
                     <span class="string">&quot;Unhandled response with body: {}&quot;</span>,
-                    <span class="ident"><span class="self">Self</span>::text</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span><span class="question-mark">?</span>
-                );
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::UnhandledResponseCode</span> {
-                    <span class="ident">http_code</span>: <span class="ident">code</span>.<span class="ident">as_u16</span>(),
+                    <span class="self">Self</span>::text(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span><span class="question-mark">?
+                </span>);
+                <span class="prelude-val">Err</span>(ServiceError::UnhandledResponseCode {
+                    http_code: code.as_u16(),
                 })
             },
         }
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">json</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="ident">response</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Response</span><span class="op">&lt;</span><span class="ident">Body</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">T</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
+    <span class="kw">async fn </span>json&lt;T&gt;(response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
     {
-        <span class="kw">let</span> <span class="ident">body</span> <span class="op">=</span> <span class="ident">hyper::body::aggregate</span>(<span class="ident">response</span>).<span class="kw">await</span>.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::ResponseError</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(
+        <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
+            ServiceError::ResponseError {
+                reason: <span class="macro">format!</span>(
                     <span class="string">&quot;failed to aggregate HTTP response body: {}&quot;</span>,
-                    <span class="ident">e</span>
+                    e
                 ),
             }
         })<span class="question-mark">?</span>;
 
-        <span class="ident">serde_json::from_reader</span>(<span class="ident">body</span>.<span class="ident">reader</span>()).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::JsonDecodeError</span> {
-                <span class="ident">reason</span>: <span class="ident">e</span>.<span class="ident">to_string</span>(),
+        serde_json::from_reader(body.reader()).map_err(|e| {
+            ServiceError::JsonDecodeError {
+                reason: e.to_string(),
             }
         })
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">protobuf</span><span class="op">&lt;</span><span class="ident">M</span><span class="op">&gt;</span>(
-        <span class="ident">response</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Response</span><span class="op">&lt;</span><span class="ident">Body</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">M</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">M</span>: <span class="ident">ProtobufMessage</span> <span class="op">+</span> <span class="ident">Default</span>,
+    <span class="kw">async fn </span>protobuf&lt;M&gt;(
+        response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;M, ServiceError&gt;
+    <span class="kw">where
+        </span>M: ProtobufMessage + Default,
     {
-        <span class="kw">let</span> <span class="ident">body</span> <span class="op">=</span> <span class="ident">hyper::body::aggregate</span>(<span class="ident">response</span>).<span class="kw">await</span>.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::ResponseError</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(
+        <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
+            ServiceError::ResponseError {
+                reason: <span class="macro">format!</span>(
                     <span class="string">&quot;failed to aggregate HTTP response body: {}&quot;</span>,
-                    <span class="ident">e</span>
+                    e
                 ),
             }
         })<span class="question-mark">?</span>;
 
-        <span class="ident">M::decode</span>(<span class="ident">body</span>).<span class="ident">map_err</span>(<span class="ident">ServiceError::ProtobufDecodeError</span>)
+        M::decode(body).map_err(ServiceError::ProtobufDecodeError)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">text</span>(
-        <span class="ident">response</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Response</span><span class="op">&lt;</span><span class="ident">Body</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">body</span> <span class="op">=</span> <span class="ident">hyper::body::aggregate</span>(<span class="ident">response</span>).<span class="kw">await</span>.<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::ResponseError</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(
+    <span class="kw">async fn </span>text(
+        response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ServiceError&gt; {
+        <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
+            ServiceError::ResponseError {
+                reason: <span class="macro">format!</span>(
                     <span class="string">&quot;failed to aggregate HTTP response body: {}&quot;</span>,
-                    <span class="ident">e</span>
+                    e
                 ),
             }
         })<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">text</span> <span class="op">=</span> <span class="ident">String::new</span>();
-        <span class="ident">body</span>.<span class="ident">reader</span>().<span class="ident">read_to_string</span>(<span class="kw-2">&amp;mut</span> <span class="ident">text</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::ResponseError</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;failed to read HTTP response body: {}&quot;</span>, <span class="ident">e</span>),
+        <span class="kw">let </span><span class="kw-2">mut </span>text = String::new();
+        body.reader().read_to_string(<span class="kw-2">&amp;mut </span>text).map_err(|e| {
+            ServiceError::ResponseError {
+                reason: <span class="macro">format!</span>(<span class="string">&quot;failed to read HTTP response body: {}&quot;</span>, e),
             }
         })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">text</span>)
+        <span class="prelude-val">Ok</span>(text)
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>, <span class="ident">async_trait::async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>))]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>), <span class="ident">async_trait::async_trait</span>)]</span>
-<span class="kw">impl</span> <span class="ident">PushService</span> <span class="kw">for</span> <span class="ident">HyperPushService</span> {
-    <span class="comment">// This is in principle known at compile time, but long to write out.</span>
-    <span class="kw">type</span> <span class="ident">ByteStream</span> <span class="op">=</span> <span class="ident">Box</span><span class="op">&lt;</span><span class="kw">dyn</span> <span class="ident">futures::io::AsyncRead</span> <span class="op">+</span> <span class="ident">Unpin</span><span class="op">&gt;</span>;
-    <span class="kw">type</span> <span class="ident">WebSocket</span> <span class="op">=</span> <span class="ident">TungsteniteWebSocket</span>;
+<span class="attribute">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
+#[cfg_attr(not(feature = <span class="string">&quot;unsend-futures&quot;</span>), async_trait::async_trait)]
+</span><span class="kw">impl </span>PushService <span class="kw">for </span>HyperPushService {
+    <span class="comment">// This is in principle known at compile time, but long to write out.
+    </span><span class="kw">type </span>ByteStream = Box&lt;<span class="kw">dyn </span>futures::io::AsyncRead + Unpin&gt;;
+    <span class="kw">type </span>WebSocket = TungsteniteWebSocket;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_json</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">T</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
+    <span class="kw">async fn </span>get_json&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials_override: HttpAuthOverride,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
     {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(<span class="ident">Method::GET</span>, <span class="ident">service</span>, <span class="ident">path</span>, <span class="ident">credentials_override</span>, <span class="prelude-val">None</span>)
+        <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
+            </span>.request(Method::GET, service, path, credentials_override, <span class="prelude-val">None</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="ident"><span class="self">Self</span>::json</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>
-    }
+        <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_json</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">T</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
+    <span class="kw">async fn </span>delete_json&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
     {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(
-                <span class="ident">Method::DELETE</span>,
-                <span class="ident">service</span>,
-                <span class="ident">path</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
+        <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
+            </span>.request(
+                Method::DELETE,
+                service,
+                path,
+                HttpAuthOverride::NoOverride,
                 <span class="prelude-val">None</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="ident"><span class="self">Self</span>::json</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>
-    }
+        <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">put_json</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-        <span class="ident">value</span>: <span class="ident">S</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">D</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
-        <span class="ident">S</span>: <span class="ident">MaybeSend</span> <span class="op">+</span> <span class="ident">Serialize</span>,
+    <span class="kw">async fn </span>put_json&lt;D, S&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials_override: HttpAuthOverride,
+        value: S,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        S: MaybeSend + Serialize,
     {
-        <span class="kw">let</span> <span class="ident">json</span> <span class="op">=</span> <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">ServiceError::JsonDecodeError</span> {
-                <span class="ident">reason</span>: <span class="ident">e</span>.<span class="ident">to_string</span>(),
+        <span class="kw">let </span>json = serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(|e| {
+            ServiceError::JsonDecodeError {
+                reason: e.to_string(),
             }
         })<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(
-                <span class="ident">Method::PUT</span>,
-                <span class="ident">service</span>,
-                <span class="ident">path</span>,
-                <span class="ident">credentials_override</span>,
-                <span class="prelude-val">Some</span>(<span class="ident">RequestBody</span> {
-                    <span class="ident">contents</span>: <span class="ident">json</span>,
-                    <span class="ident">content_type</span>: <span class="string">&quot;application/json&quot;</span>.<span class="ident">into</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
+            </span>.request(
+                Method::PUT,
+                service,
+                path,
+                credentials_override,
+                <span class="prelude-val">Some</span>(RequestBody {
+                    contents: json,
+                    content_type: <span class="string">&quot;application/json&quot;</span>.into(),
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="ident"><span class="self">Self</span>::json</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>
-    }
+        <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_protobuf</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">T</span>: <span class="ident">Default</span> <span class="op">+</span> <span class="ident">libsignal_service::prelude::ProtobufMessage</span>,
+    <span class="kw">async fn </span>get_protobuf&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials_override: HttpAuthOverride,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        </span>T: Default + libsignal_service::prelude::ProtobufMessage,
     {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(<span class="ident">Method::GET</span>, <span class="ident">service</span>, <span class="ident">path</span>, <span class="ident">credentials_override</span>, <span class="prelude-val">None</span>)
+        <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
+            </span>.request(Method::GET, service, path, credentials_override, <span class="prelude-val">None</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="ident"><span class="self">Self</span>::protobuf</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>
-    }
+        <span class="self">Self</span>::protobuf(<span class="kw-2">&amp;mut </span>response).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">put_protobuf</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">value</span>: <span class="ident">S</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">D</span>: <span class="ident">Default</span> <span class="op">+</span> <span class="ident">libsignal_service::prelude::ProtobufMessage</span>,
-        <span class="ident">S</span>: <span class="ident">Sized</span> <span class="op">+</span> <span class="ident">libsignal_service::prelude::ProtobufMessage</span>,
+    <span class="kw">async fn </span>put_protobuf&lt;D, S&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        value: S,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
+    <span class="kw">where
+        </span>D: Default + libsignal_service::prelude::ProtobufMessage,
+        S: Sized + libsignal_service::prelude::ProtobufMessage,
     {
-        <span class="kw">let</span> <span class="ident">protobuf</span> <span class="op">=</span> <span class="ident">value</span>.<span class="ident">encode_to_vec</span>();
+        <span class="kw">let </span>protobuf = value.encode_to_vec();
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(
-                <span class="ident">Method::PUT</span>,
-                <span class="ident">service</span>,
-                <span class="ident">path</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
-                <span class="prelude-val">Some</span>(<span class="ident">RequestBody</span> {
-                    <span class="ident">contents</span>: <span class="ident">protobuf</span>,
-                    <span class="ident">content_type</span>: <span class="string">&quot;application/x-protobuf&quot;</span>.<span class="ident">into</span>(),
+        <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
+            </span>.request(
+                Method::PUT,
+                service,
+                path,
+                HttpAuthOverride::NoOverride,
+                <span class="prelude-val">Some</span>(RequestBody {
+                    contents: protobuf,
+                    content_type: <span class="string">&quot;application/x-protobuf&quot;</span>.into(),
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="ident"><span class="self">Self</span>::protobuf</span>(<span class="kw-2">&amp;mut</span> <span class="ident">response</span>).<span class="kw">await</span>
-    }
+        <span class="self">Self</span>::protobuf(<span class="kw-2">&amp;mut </span>response).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_from_cdn</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">cdn_id</span>: <span class="ident">u32</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ByteStream</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(
-                <span class="ident">Method::GET</span>,
-                <span class="ident">Endpoint::Cdn</span>(<span class="ident">cdn_id</span>),
-                <span class="ident">path</span>,
-                <span class="ident">HttpAuthOverride::Unidentified</span>, <span class="comment">// CDN requests are always without authentication</span>
-                <span class="prelude-val">None</span>,
+    <span class="kw">async fn </span>get_from_cdn(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        cdn_id: u32,
+        path: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="kw">let </span>response = <span class="self">self
+            </span>.request(
+                Method::GET,
+                Endpoint::Cdn(cdn_id),
+                path,
+                HttpAuthOverride::Unidentified, <span class="comment">// CDN requests are always without authentication
+                </span><span class="prelude-val">None</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">Box::new</span>(
-            <span class="ident">response</span>
-                .<span class="ident">into_body</span>()
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">std::io::Error::new</span>(<span class="ident">std::io::ErrorKind::Other</span>, <span class="ident">e</span>))
-                .<span class="ident">into_async_read</span>(),
+        <span class="prelude-val">Ok</span>(Box::new(
+            response
+                .into_body()
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+                .into_async_read(),
         ))
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">post_to_cdn0</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span>, <span class="ident">C</span>: <span class="ident">std::io::Read</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;s</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">value</span>: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>)],
-        <span class="ident">file</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> <span class="kw-2">mut</span> <span class="ident">C</span>)<span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">form</span> <span class="op">=</span> <span class="ident">mpart_async::client::MultipartRequest::default</span>();
+    <span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+        value: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
+        file: <span class="prelude-ty">Option</span>&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span><span class="kw-2">mut </span>C)&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>form = mpart_async::client::MultipartRequest::default();
 
-        <span class="comment">// mpart-async has a peculiar ordering of the form items,</span>
-        <span class="comment">// and Amazon S3 expects them in a very specific order (i.e., the file contents should</span>
-        <span class="comment">// go last.</span>
-        <span class="comment">//</span>
-        <span class="comment">// mpart-async uses a VecDeque internally for ordering the fields in the order given.</span>
-        <span class="comment">//</span>
-        <span class="comment">// https://github.com/cetra3/mpart-async/issues/16</span>
+        <span class="comment">// mpart-async has a peculiar ordering of the form items,
+        // and Amazon S3 expects them in a very specific order (i.e., the file contents should
+        // go last.
+        //
+        // mpart-async uses a VecDeque internally for ordering the fields in the order given.
+        //
+        // https://github.com/cetra3/mpart-async/issues/16
 
-        <span class="kw">for</span> <span class="kw-2">&amp;</span>(<span class="ident">k</span>, <span class="ident">v</span>) <span class="kw">in</span> <span class="ident">value</span> {
-            <span class="ident">form</span>.<span class="ident">add_field</span>(<span class="ident">k</span>, <span class="ident">v</span>);
+        </span><span class="kw">for </span><span class="kw-2">&amp;</span>(k, v) <span class="kw">in </span>value {
+            form.add_field(k, v);
         }
 
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">filename</span>, <span class="ident">file</span>)) <span class="op">=</span> <span class="ident">file</span> {
-            <span class="comment">// XXX Actix doesn&#39;t cope with none-&#39;static lifetimes</span>
-            <span class="comment">// https://docs.rs/actix-web/3.2.0/actix_web/body/enum.Body.html</span>
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="ident">Vec::new</span>();
-            <span class="ident">file</span>.<span class="ident">read_to_end</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buf</span>)
-                .<span class="ident">expect</span>(<span class="string">&quot;infallible Read instance&quot;</span>);
-            <span class="ident">form</span>.<span class="ident">add_stream</span>(
+        <span class="kw">if let </span><span class="prelude-val">Some</span>((filename, file)) = file {
+            <span class="comment">// XXX Actix doesn&#39;t cope with none-&#39;static lifetimes
+            // https://docs.rs/actix-web/3.2.0/actix_web/body/enum.Body.html
+            </span><span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::new();
+            file.read_to_end(<span class="kw-2">&amp;mut </span>buf)
+                .expect(<span class="string">&quot;infallible Read instance&quot;</span>);
+            form.add_stream(
                 <span class="string">&quot;file&quot;</span>,
-                <span class="ident">filename</span>,
+                filename,
                 <span class="string">&quot;application/octet-stream&quot;</span>,
-                <span class="ident">futures::future::ok</span>::<span class="op">&lt;</span><span class="kw">_</span>, ()<span class="op">&gt;</span>(<span class="ident">Bytes::from</span>(<span class="ident">buf</span>)).<span class="ident">into_stream</span>(),
+                futures::future::ok::&lt;<span class="kw">_</span>, ()&gt;(Bytes::from(buf)).into_stream(),
             );
         }
 
-        <span class="kw">let</span> <span class="ident">content_type</span> <span class="op">=</span>
-            <span class="macro">format!</span>(<span class="string">&quot;multipart/form-data; boundary={}&quot;</span>, <span class="ident">form</span>.<span class="ident">get_boundary</span>());
+        <span class="kw">let </span>content_type =
+            <span class="macro">format!</span>(<span class="string">&quot;multipart/form-data; boundary={}&quot;</span>, form.get_boundary());
 
-        <span class="comment">// XXX Amazon S3 needs the Content-Length, but we don&#39;t know it without depleting the whole</span>
-        <span class="comment">// stream. Sadly, Content-Length != contents.len(), but should include the whole form.</span>
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">body_contents</span> <span class="op">=</span> <span class="macro">vec!</span>[];
-        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">b</span>) <span class="op">=</span> <span class="ident">form</span>.<span class="ident">next</span>().<span class="kw">await</span> {
-            <span class="comment">// Unwrap, because no error type was used above</span>
-            <span class="ident">body_contents</span>.<span class="ident">extend</span>(<span class="ident">b</span>.<span class="ident">unwrap</span>());
+        <span class="comment">// XXX Amazon S3 needs the Content-Length, but we don&#39;t know it without depleting the whole
+        // stream. Sadly, Content-Length != contents.len(), but should include the whole form.
+        </span><span class="kw">let </span><span class="kw-2">mut </span>body_contents = <span class="macro">vec!</span>[];
+        <span class="kw">while let </span><span class="prelude-val">Some</span>(b) = form.next().<span class="kw">await </span>{
+            <span class="comment">// Unwrap, because no error type was used above
+            </span>body_contents.extend(b.unwrap());
         }
         <span class="macro">log::trace!</span>(
             <span class="string">&quot;Sending PUT with Content-Type={} and length {}&quot;</span>,
-            <span class="ident">content_type</span>,
-            <span class="ident">body_contents</span>.<span class="ident">len</span>()
+            content_type,
+            body_contents.len()
         );
 
-        <span class="kw">let</span> <span class="ident">response</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">request</span>(
-                <span class="ident">Method::POST</span>,
-                <span class="ident">Endpoint::Cdn</span>(<span class="number">0</span>),
-                <span class="ident">path</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
-                <span class="prelude-val">Some</span>(<span class="ident">RequestBody</span> {
-                    <span class="ident">contents</span>: <span class="ident">body_contents</span>,
-                    <span class="ident">content_type</span>,
+        <span class="kw">let </span>response = <span class="self">self
+            </span>.request(
+                Method::POST,
+                Endpoint::Cdn(<span class="number">0</span>),
+                path,
+                HttpAuthOverride::NoOverride,
+                <span class="prelude-val">Some</span>(RequestBody {
+                    contents: body_contents,
+                    content_type,
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="macro">log::debug!</span>(<span class="string">&quot;HyperPushService::PUT response: {:?}&quot;</span>, <span class="ident">response</span>);
+        <span class="macro">log::debug!</span>(<span class="string">&quot;HyperPushService::PUT response: {:?}&quot;</span>, response);
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">ws</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ServiceCredentials</span><span class="op">&gt;</span>,
-        <span class="ident">keep_alive</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SignalWebSocket</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">ws</span>, <span class="ident">stream</span>) <span class="op">=</span> <span class="ident">TungsteniteWebSocket::with_tls_config</span>(
-            <span class="ident"><span class="self">Self</span>::tls_config</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">cfg</span>),
-            <span class="self">self</span>.<span class="ident">cfg</span>.<span class="ident">base_url</span>(<span class="ident">Endpoint::Service</span>),
-            <span class="ident">path</span>,
-            <span class="ident">credentials</span>.<span class="ident">as_ref</span>(),
+    <span class="kw">async fn </span>ws(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials: <span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;,
+        keep_alive: bool,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, ServiceError&gt; {
+        <span class="kw">let </span>(ws, stream) = TungsteniteWebSocket::with_tls_config(
+            <span class="self">Self</span>::tls_config(<span class="kw-2">&amp;</span><span class="self">self</span>.cfg),
+            <span class="self">self</span>.cfg.base_url(Endpoint::Service),
+            path,
+            credentials.as_ref(),
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> (<span class="ident">ws</span>, <span class="ident">task</span>) <span class="op">=</span> <span class="ident">SignalWebSocket::from_socket</span>(<span class="ident">ws</span>, <span class="ident">stream</span>, <span class="ident">keep_alive</span>);
-        <span class="ident">tokio::task::spawn</span>(<span class="ident">task</span>);
-        <span class="prelude-val">Ok</span>(<span class="ident">ws</span>)
+        <span class="kw">let </span>(ws, task) = SignalWebSocket::from_socket(ws, stream, keep_alive);
+        tokio::task::spawn(task);
+        <span class="prelude-val">Ok</span>(ws)
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="ident">libsignal_service::configuration::SignalServers</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use </span>libsignal_service::configuration::SignalServers;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">create_clients</span>() {
-        <span class="kw">let</span> <span class="ident">configs</span> <span class="op">=</span> <span class="kw-2">&amp;</span>[<span class="ident">SignalServers::Staging</span>, <span class="ident">SignalServers::Production</span>];
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>create_clients() {
+        <span class="kw">let </span>configs = <span class="kw-2">&amp;</span>[SignalServers::Staging, SignalServers::Production];
 
-        <span class="kw">for</span> <span class="ident">cfg</span> <span class="kw">in</span> <span class="ident">configs</span> {
-            <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="ident"><span class="kw">super</span>::HyperPushService::new</span>(
-                <span class="ident">cfg</span>,
+        <span class="kw">for </span>cfg <span class="kw">in </span>configs {
+            <span class="kw">let _ </span>= <span class="kw">super</span>::HyperPushService::new(
+                cfg,
                 <span class="prelude-val">None</span>,
-                <span class="string">&quot;libsignal-service test&quot;</span>.<span class="ident">to_string</span>(),
+                <span class="string">&quot;libsignal-service test&quot;</span>.to_string(),
             );
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service_hyper" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service_hyper" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

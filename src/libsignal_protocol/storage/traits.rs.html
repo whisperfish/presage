@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/storage/traits.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>traits.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_protocol/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/storage/traits.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>traits.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_protocol/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -113,120 +113,120 @@
 <span id="113">113</span>
 <span id="114">114</span>
 <span id="115">115</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="ident">async_trait::async_trait</span>;
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
+</span><span class="kw">use </span>async_trait::async_trait;
+<span class="kw">use </span>uuid::Uuid;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::state</span>::{<span class="ident">PreKeyId</span>, <span class="ident">SignedPreKeyId</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">IdentityKey</span>, <span class="ident">IdentityKeyPair</span>, <span class="ident">PreKeyRecord</span>, <span class="ident">ProtocolAddress</span>, <span class="prelude-ty">Result</span>, <span class="ident">SenderKeyRecord</span>,
-    <span class="ident">SessionRecord</span>, <span class="ident">SignedPreKeyRecord</span>,
+<span class="kw">use </span><span class="kw">crate</span>::state::{PreKeyId, SignedPreKeyId};
+<span class="kw">use crate</span>::{
+    IdentityKey, IdentityKeyPair, PreKeyRecord, ProtocolAddress, <span class="prelude-ty">Result</span>, SenderKeyRecord,
+    SessionRecord, SignedPreKeyRecord,
 };
 
-<span class="kw">pub</span> <span class="kw">type</span> <span class="ident">Context</span> <span class="op">=</span> <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">*mut</span> <span class="ident">std::ffi::c_void</span><span class="op">&gt;</span>;
+<span class="kw">pub type </span>Context = <span class="prelude-ty">Option</span>&lt;<span class="kw-2">*mut </span>std::ffi::c_void&gt;;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">Direction</span> {
-    <span class="ident">Sending</span>,
-    <span class="ident">Receiving</span>,
+<span class="attribute">#[derive(Debug, Clone, Eq, PartialEq)]
+</span><span class="kw">pub enum </span>Direction {
+    Sending,
+    Receiving,
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">IdentityKeyStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_identity_key_pair</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ctx</span>: <span class="ident">Context</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">IdentityKeyPair</span><span class="op">&gt;</span>;
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">pub trait </span>IdentityKeyStore {
+    <span class="kw">async fn </span>get_identity_key_pair(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: Context) -&gt; <span class="prelude-ty">Result</span>&lt;IdentityKeyPair&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_local_registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">ctx</span>: <span class="ident">Context</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>get_local_registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>, ctx: Context) -&gt; <span class="prelude-ty">Result</span>&lt;u32&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">save_identity</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">identity</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>save_identity(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        identity: <span class="kw-2">&amp;</span>IdentityKey,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">is_trusted_identity</span>(
+    <span class="kw">async fn </span>is_trusted_identity(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">identity</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-        <span class="ident">direction</span>: <span class="ident">Direction</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span>;
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        identity: <span class="kw-2">&amp;</span>IdentityKey,
+        direction: Direction,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_identity</span>(
+    <span class="kw">async fn </span>get_identity(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IdentityKey</span><span class="op">&gt;</span><span class="op">&gt;</span>;
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;IdentityKey&gt;&gt;;
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">PreKeyStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_pre_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>, <span class="ident">ctx</span>: <span class="ident">Context</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PreKeyRecord</span><span class="op">&gt;</span>;
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">pub trait </span>PreKeyStore {
+    <span class="kw">async fn </span>get_pre_key(<span class="kw-2">&amp;</span><span class="self">self</span>, prekey_id: PreKeyId, ctx: Context) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyRecord&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">save_pre_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeyRecord</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>;
+    <span class="kw">async fn </span>save_pre_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        prekey_id: PreKeyId,
+        record: <span class="kw-2">&amp;</span>PreKeyRecord,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">remove_pre_key</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>, <span class="ident">ctx</span>: <span class="ident">Context</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>;
+    <span class="kw">async fn </span>remove_pre_key(<span class="kw-2">&amp;mut </span><span class="self">self</span>, prekey_id: PreKeyId, ctx: Context) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">SignedPreKeyStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_signed_pre_key</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">pub trait </span>SignedPreKeyStore {
+    <span class="kw">async fn </span>get_signed_pre_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">signed_prekey_id</span>: <span class="ident">SignedPreKeyId</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SignedPreKeyRecord</span><span class="op">&gt;</span>;
+        signed_prekey_id: SignedPreKeyId,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SignedPreKeyRecord&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">save_signed_pre_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">signed_prekey_id</span>: <span class="ident">SignedPreKeyId</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SignedPreKeyRecord</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>;
+    <span class="kw">async fn </span>save_signed_pre_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        signed_prekey_id: SignedPreKeyId,
+        record: <span class="kw-2">&amp;</span>SignedPreKeyRecord,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">SessionStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">load_session</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">pub trait </span>SessionStore {
+    <span class="kw">async fn </span>load_session(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SessionRecord</span><span class="op">&gt;</span><span class="op">&gt;</span>;
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SessionRecord&gt;&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">store_session</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SessionRecord</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>;
+    <span class="kw">async fn </span>store_session(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        record: <span class="kw-2">&amp;</span>SessionRecord,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">SenderKeyStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">store_sender_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SenderKeyRecord</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span>;
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">pub trait </span>SenderKeyStore {
+    <span class="kw">async fn </span>store_sender_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+        distribution_id: Uuid,
+        record: <span class="kw-2">&amp;</span>SenderKeyRecord,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">load_sender_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-        <span class="ident">ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SenderKeyRecord</span><span class="op">&gt;</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>load_sender_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+        distribution_id: Uuid,
+        ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SenderKeyRecord&gt;&gt;;
 }
 
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">ProtocolStore</span>: <span class="ident">SessionStore</span> <span class="op">+</span> <span class="ident">PreKeyStore</span> <span class="op">+</span> <span class="ident">SignedPreKeyStore</span> <span class="op">+</span> <span class="ident">IdentityKeyStore</span> {}
+<span class="kw">pub trait </span>ProtocolStore: SessionStore + PreKeyStore + SignedPreKeyStore + IdentityKeyStore {}
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

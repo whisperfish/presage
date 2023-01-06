@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/lib.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>lib.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -95,102 +95,102 @@
 <span id="95">95</span>
 <span id="96">96</span>
 <span id="97">97</span>
-</pre><pre class="rust"><code><span class="attribute">#![<span class="ident">recursion_limit</span> <span class="op">=</span> <span class="string">&quot;256&quot;</span>]</span>
-<span class="attribute">#![<span class="ident">deny</span>(<span class="ident">clippy::dbg_macro</span>)]</span>
+</pre><pre class="rust"><code><span class="attribute">#![recursion_limit = <span class="string">&quot;256&quot;</span>]
+#![deny(clippy::dbg_macro)]
 
-<span class="kw">mod</span> <span class="ident">account_manager</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">attachment_cipher</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">cipher</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">profile_cipher</span>;
+</span><span class="kw">mod </span>account_manager;
+<span class="kw">pub mod </span>attachment_cipher;
+<span class="kw">pub mod </span>cipher;
+<span class="kw">pub mod </span>profile_cipher;
 
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">configuration</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">content</span>;
-<span class="kw">mod</span> <span class="ident">digeststream</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">envelope</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">groups_v2</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">messagepipe</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">models</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">pre_keys</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">profile_name</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">profile_service</span>;
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::derive_partial_eq_without_eq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">proto</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">provisioning</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">push_service</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">receiver</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">sender</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">service_address</span>;
-<span class="kw">mod</span> <span class="ident">session_store</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">utils</span>;
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">websocket</span>;
+<span class="kw">pub mod </span>configuration;
+<span class="kw">pub mod </span>content;
+<span class="kw">mod </span>digeststream;
+<span class="kw">pub mod </span>envelope;
+<span class="kw">pub mod </span>groups_v2;
+<span class="kw">pub mod </span>messagepipe;
+<span class="kw">pub mod </span>models;
+<span class="kw">pub mod </span>pre_keys;
+<span class="kw">pub mod </span>profile_name;
+<span class="kw">pub mod </span>profile_service;
+<span class="attribute">#[allow(clippy::derive_partial_eq_without_eq)]
+</span><span class="kw">pub mod </span>proto;
+<span class="kw">pub mod </span>provisioning;
+<span class="kw">pub mod </span>push_service;
+<span class="kw">pub mod </span>receiver;
+<span class="kw">pub mod </span>sender;
+<span class="kw">pub mod </span>service_address;
+<span class="kw">mod </span>session_store;
+<span class="kw">pub mod </span>utils;
+<span class="kw">pub mod </span>websocket;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::account_manager</span>::{
-    <span class="ident">decrypt_device_name</span>, <span class="ident">AccountManager</span>, <span class="ident">Profile</span>, <span class="ident">ProfileManagerError</span>,
+<span class="kw">pub use </span><span class="kw">crate</span>::account_manager::{
+    decrypt_device_name, AccountManager, Profile, ProfileManagerError,
 };
-<span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::service_address</span>::<span class="kw-2">*</span>;
+<span class="kw">pub use </span><span class="kw">crate</span>::service_address::<span class="kw-2">*</span>;
 
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">USER_AGENT</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span>
+<span class="kw">pub const </span>USER_AGENT: <span class="kw-2">&amp;</span>str =
     <span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_NAME&quot;</span>), <span class="string">&quot;-rs-&quot;</span>, <span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>));
 
-<span class="doccomment">/// GROUP_UPDATE_FLAG signals that this message updates the group membership or</span>
-<span class="doccomment">/// name.</span>
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">GROUP_UPDATE_FLAG</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="number">1</span>;
+<span class="doccomment">/// GROUP_UPDATE_FLAG signals that this message updates the group membership or
+/// name.
+</span><span class="kw">pub const </span>GROUP_UPDATE_FLAG: u32 = <span class="number">1</span>;
 
-<span class="doccomment">/// GROUP_LEAVE_FLAG signals that this message is a group leave message.</span>
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">GROUP_LEAVE_FLAG</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="number">2</span>;
+<span class="doccomment">/// GROUP_LEAVE_FLAG signals that this message is a group leave message.
+</span><span class="kw">pub const </span>GROUP_LEAVE_FLAG: u32 = <span class="number">2</span>;
 
-<span class="doccomment">/// This trait allows for the conditional support of Send compatible futures</span>
-<span class="doccomment">/// depending on whether or not the `unsend-futures` feature flag is enabled.</span>
-<span class="doccomment">/// As this feature is disabled by default, Send is supported by default.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// This is necessary as actix does not support Send, which means unconditionally</span>
-<span class="doccomment">/// imposing this requirement would break libsignal-service-actix.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// Conversely, hyper does support Send, which is why libsignal-service-hyper</span>
-<span class="doccomment">/// does not enable the `unsend-futures` feature flag.</span>
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>))]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">MaybeSend</span>: <span class="ident">Send</span> {}
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>))]</span>
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">MaybeSend</span> <span class="kw">for</span> <span class="ident">T</span> <span class="kw">where</span> <span class="ident">T</span>: <span class="ident">Send</span> {}
+<span class="doccomment">/// This trait allows for the conditional support of Send compatible futures
+/// depending on whether or not the `unsend-futures` feature flag is enabled.
+/// As this feature is disabled by default, Send is supported by default.
+///
+/// This is necessary as actix does not support Send, which means unconditionally
+/// imposing this requirement would break libsignal-service-actix.
+///
+/// Conversely, hyper does support Send, which is why libsignal-service-hyper
+/// does not enable the `unsend-futures` feature flag.
+</span><span class="attribute">#[cfg(not(feature = <span class="string">&quot;unsend-futures&quot;</span>))]
+</span><span class="kw">pub trait </span>MaybeSend: Send {}
+<span class="attribute">#[cfg(not(feature = <span class="string">&quot;unsend-futures&quot;</span>))]
+</span><span class="kw">impl</span>&lt;T&gt; MaybeSend <span class="kw">for </span>T <span class="kw">where </span>T: Send {}
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">MaybeSend</span> {}
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>)]</span>
-<span class="kw">impl</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span> <span class="ident">MaybeSend</span> <span class="kw">for</span> <span class="ident">T</span> {}
+<span class="attribute">#[cfg(feature = <span class="string">&quot;unsend-futures&quot;</span>)]
+</span><span class="kw">pub trait </span>MaybeSend {}
+<span class="attribute">#[cfg(feature = <span class="string">&quot;unsend-futures&quot;</span>)]
+</span><span class="kw">impl</span>&lt;T&gt; MaybeSend <span class="kw">for </span>T {}
 
-<span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">prelude</span> {
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="kw">super</span>::ServiceAddress</span>;
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span>::{
-        <span class="ident">cipher::ServiceCipher</span>,
-        <span class="ident">configuration</span>::{
-            <span class="ident">ServiceConfiguration</span>, <span class="ident">ServiceCredentials</span>, <span class="ident">SignalingKey</span>,
+<span class="kw">pub mod </span>prelude {
+    <span class="kw">pub use </span><span class="kw">super</span>::ServiceAddress;
+    <span class="kw">pub use crate</span>::{
+        cipher::ServiceCipher,
+        configuration::{
+            ServiceConfiguration, ServiceCredentials, SignalingKey,
         },
-        <span class="ident">content::Content</span>,
-        <span class="ident">envelope::Envelope</span>,
-        <span class="ident">proto</span>::{
-            <span class="ident">attachment_pointer::AttachmentIdentifier</span>, <span class="ident">sync_message::Contacts</span>,
-            <span class="ident">AttachmentPointer</span>,
+        content::Content,
+        envelope::Envelope,
+        proto::{
+            attachment_pointer::AttachmentIdentifier, sync_message::Contacts,
+            AttachmentPointer,
         },
-        <span class="ident">push_service</span>::{<span class="ident">PushService</span>, <span class="ident">ServiceError</span>},
-        <span class="ident">receiver::MessageReceiver</span>,
-        <span class="ident">sender</span>::{<span class="ident">MessageSender</span>, <span class="ident">MessageSenderError</span>},
+        push_service::{PushService, ServiceError},
+        receiver::MessageReceiver,
+        sender::{MessageSender, MessageSenderError},
     };
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">phonenumber</span>;
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">prost::Message</span> <span class="kw">as</span> <span class="ident">ProtobufMessage</span>;
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">uuid</span>::{<span class="ident">Error</span> <span class="kw">as</span> <span class="ident">UuidError</span>, <span class="ident">Uuid</span>};
-    <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">zkgroup::groups</span>::{<span class="ident">GroupMasterKey</span>, <span class="ident">GroupSecretParams</span>};
+    <span class="kw">pub use </span>phonenumber;
+    <span class="kw">pub use </span>prost::Message <span class="kw">as </span>ProtobufMessage;
+    <span class="kw">pub use </span>uuid::{Error <span class="kw">as </span>UuidError, Uuid};
+    <span class="kw">pub use </span>zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 
-    <span class="kw">pub</span> <span class="kw">mod</span> <span class="ident">protocol</span> {
-        <span class="kw">pub</span> <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::session_store::SessionStoreExt</span>;
-        <span class="kw">pub</span> <span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{
-            <span class="ident">Context</span>, <span class="ident">DeviceId</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKey</span>, <span class="ident">IdentityKeyPair</span>,
-            <span class="ident">IdentityKeyStore</span>, <span class="ident">KeyPair</span>, <span class="ident">PreKeyId</span>, <span class="ident">PreKeyRecord</span>, <span class="ident">PreKeyStore</span>,
-            <span class="ident">PrivateKey</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">PublicKey</span>, <span class="ident">SenderCertificate</span>,
-            <span class="ident">SenderKeyRecord</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SessionRecord</span>, <span class="ident">SessionStore</span>,
-            <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyId</span>, <span class="ident">SignedPreKeyRecord</span>,
-            <span class="ident">SignedPreKeyStore</span>,
+    <span class="kw">pub mod </span>protocol {
+        <span class="kw">pub use </span><span class="kw">crate</span>::session_store::SessionStoreExt;
+        <span class="kw">pub use </span>libsignal_protocol::{
+            Context, DeviceId, Direction, IdentityKey, IdentityKeyPair,
+            IdentityKeyStore, KeyPair, PreKeyId, PreKeyRecord, PreKeyStore,
+            PrivateKey, ProtocolAddress, PublicKey, SenderCertificate,
+            SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
+            SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
         };
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

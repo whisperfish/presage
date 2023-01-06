@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/store/sled.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sled.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../presage/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/store/sled.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sled.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../presage/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -851,858 +851,858 @@
 <span id="851">851</span>
 <span id="852">852</span>
 <span id="853">853</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{
-    <span class="ident">ops::Range</span>,
-    <span class="ident">path::Path</span>,
-    <span class="ident">sync::Arc</span>,
-    <span class="ident">time</span>::{<span class="ident">SystemTime</span>, <span class="ident">UNIX_EPOCH</span>},
+</pre><pre class="rust"><code><span class="kw">use </span>std::{
+    ops::Range,
+    path::Path,
+    sync::Arc,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
-<span class="kw">use</span> <span class="ident">async_trait::async_trait</span>;
-<span class="kw">use</span> <span class="ident">libsignal_service</span>::{
-    <span class="ident">models::Contact</span>,
-    <span class="ident">prelude</span>::{
-        <span class="ident">protocol</span>::{
-            <span class="ident">Context</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKey</span>, <span class="ident">IdentityKeyPair</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeyId</span>,
-            <span class="ident">PreKeyRecord</span>, <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="ident">SenderKeyRecord</span>, <span class="ident">SenderKeyStore</span>,
-            <span class="ident">SessionRecord</span>, <span class="ident">SessionStore</span>, <span class="ident">SessionStoreExt</span>, <span class="ident">SignalProtocolError</span>, <span class="ident">SignedPreKeyId</span>,
-            <span class="ident">SignedPreKeyRecord</span>, <span class="ident">SignedPreKeyStore</span>,
+<span class="kw">use </span>async_trait::async_trait;
+<span class="kw">use </span>libsignal_service::{
+    models::Contact,
+    prelude::{
+        protocol::{
+            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, SenderKeyRecord, SenderKeyStore,
+            SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
+            SignedPreKeyRecord, SignedPreKeyStore,
         },
-        <span class="ident">Content</span>, <span class="ident">Uuid</span>,
+        Content, Uuid,
     },
-    <span class="ident">push_service::DEFAULT_DEVICE_ID</span>,
+    push_service::DEFAULT_DEVICE_ID,
 };
-<span class="kw">use</span> <span class="ident">log</span>::{<span class="ident">debug</span>, <span class="ident">trace</span>, <span class="ident">warn</span>};
-<span class="kw">use</span> <span class="ident">matrix_sdk_store_encryption::StoreCipher</span>;
-<span class="kw">use</span> <span class="ident">prost::Message</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">de::DeserializeOwned</span>, <span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">sha2</span>::{<span class="ident">Digest</span>, <span class="ident">Sha256</span>};
-<span class="kw">use</span> <span class="ident">sled::Batch</span>;
+<span class="kw">use </span>log::{debug, trace, warn};
+<span class="kw">use </span>matrix_sdk_store_encryption::StoreCipher;
+<span class="kw">use </span>prost::Message;
+<span class="kw">use </span>serde::{de::DeserializeOwned, Deserialize, Serialize};
+<span class="kw">use </span>sha2::{Digest, Sha256};
+<span class="kw">use </span>sled::Batch;
 
-<span class="kw">use</span> <span class="kw">super</span>::{<span class="ident">ContactsStore</span>, <span class="ident">MessageStore</span>, <span class="ident">StateStore</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">manager::Registered</span>, <span class="ident">proto::ContentProto</span>, <span class="ident">store::Thread</span>, <span class="ident">Error</span>, <span class="ident">Store</span>};
+<span class="kw">use super</span>::{ContactsStore, MessageStore, StateStore};
+<span class="kw">use crate</span>::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
 
-<span class="kw">const</span> <span class="ident">SLED_KEY_SCHEMA_VERSION</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;schema_version&quot;</span>;
+<span class="kw">const </span>SLED_KEY_SCHEMA_VERSION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;schema_version&quot;</span>;
 
-<span class="kw">const</span> <span class="ident">SLED_KEY_CONTACTS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;contacts&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_KEY_PRE_KEYS_OFFSET_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;pre_keys_offset_id&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_KEY_NEXT_SIGNED_PRE_KEY_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_KEY_REGISTRATION</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;registration&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_KEY_STORE_CIPHER</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;store_cipher&quot;</span>;
+<span class="kw">const </span>SLED_KEY_CONTACTS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;contacts&quot;</span>;
+<span class="kw">const </span>SLED_KEY_PRE_KEYS_OFFSET_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys_offset_id&quot;</span>;
+<span class="kw">const </span>SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
+<span class="kw">const </span>SLED_KEY_REGISTRATION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;registration&quot;</span>;
+<span class="kw">const </span>SLED_KEY_STORE_CIPHER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;store_cipher&quot;</span>;
 
-<span class="kw">const</span> <span class="ident">SLED_TREE_DEFAULT</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;state&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_PRE_KEYS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;pre_keys&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;signed_pre_keys&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_IDENTITIES</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;identities&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_SESSIONS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;sessions&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_THREAD_PREFIX</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;threads&quot;</span>;
-<span class="kw">const</span> <span class="ident">SLED_TREE_SENDER_KEYS</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;sender_keys&quot;</span>;
+<span class="kw">const </span>SLED_TREE_DEFAULT: <span class="kw-2">&amp;</span>str = <span class="string">&quot;state&quot;</span>;
+<span class="kw">const </span>SLED_TREE_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys&quot;</span>;
+<span class="kw">const </span>SLED_TREE_SIGNED_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;signed_pre_keys&quot;</span>;
+<span class="kw">const </span>SLED_TREE_IDENTITIES: <span class="kw-2">&amp;</span>str = <span class="string">&quot;identities&quot;</span>;
+<span class="kw">const </span>SLED_TREE_SESSIONS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;sessions&quot;</span>;
+<span class="kw">const </span>SLED_TREE_THREAD_PREFIX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;threads&quot;</span>;
+<span class="kw">const </span>SLED_TREE_SENDER_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;sender_keys&quot;</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledStore</span> {
-    <span class="ident">db</span>: <span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">sled::Db</span><span class="op">&gt;</span>,
-    <span class="ident">cipher</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">StoreCipher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>SledStore {
+    db: Arc&lt;sled::Db&gt;,
+    cipher: <span class="prelude-ty">Option</span>&lt;Arc&lt;StoreCipher&gt;&gt;,
 }
 
-<span class="doccomment">/// Sometimes Migrations can&#39;t proceed without having to drop existing</span>
-<span class="doccomment">/// data. This allows you to configure, how these cases should be handled.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">MigrationConflictStrategy</span> {
-    <span class="doccomment">/// Just drop the data, we don&#39;t care that we have to register or link again</span>
-    <span class="ident">Drop</span>,
-    <span class="doccomment">/// Raise a `Error::MigrationConflict` error with the path to the</span>
-    <span class="doccomment">/// DB in question. The caller then has to take care about what they want</span>
-    <span class="doccomment">/// to do and try again after.</span>
-    <span class="ident">Raise</span>,
-    <span class="doccomment">/// _Default_: The _entire_ database is backed up under, before the databases are dropped.</span>
-    <span class="ident">BackupAndDrop</span>,
+<span class="doccomment">/// Sometimes Migrations can&#39;t proceed without having to drop existing
+/// data. This allows you to configure, how these cases should be handled.
+</span><span class="attribute">#[derive(PartialEq, Eq, Clone, Debug)]
+</span><span class="kw">pub enum </span>MigrationConflictStrategy {
+    <span class="doccomment">/// Just drop the data, we don&#39;t care that we have to register or link again
+    </span>Drop,
+    <span class="doccomment">/// Raise a `Error::MigrationConflict` error with the path to the
+    /// DB in question. The caller then has to take care about what they want
+    /// to do and try again after.
+    </span>Raise,
+    <span class="doccomment">/// _Default_: The _entire_ database is backed up under, before the databases are dropped.
+    </span>BackupAndDrop,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">PartialEq</span>, <span class="ident">Eq</span>, <span class="ident">Clone</span>, <span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">SchemaVersion</span> {
-    <span class="doccomment">/// prior to any versioning of the schema</span>
-    <span class="ident">V0</span> <span class="op">=</span> <span class="number">0</span>,
-    <span class="doccomment">/// the current version</span>
-    <span class="ident">V1</span> <span class="op">=</span> <span class="number">1</span>,
+<span class="attribute">#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
+</span><span class="kw">pub enum </span>SchemaVersion {
+    <span class="doccomment">/// prior to any versioning of the schema
+    </span>V0 = <span class="number">0</span>,
+    <span class="doccomment">/// the current version
+    </span>V1 = <span class="number">1</span>,
 }
 
-<span class="kw">impl</span> <span class="ident">SchemaVersion</span> {
-    <span class="kw">fn</span> <span class="ident">current</span>() -&gt; <span class="ident">SchemaVersion</span> {
-        <span class="ident"><span class="self">Self</span>::V1</span>
+<span class="kw">impl </span>SchemaVersion {
+    <span class="kw">fn </span>current() -&gt; SchemaVersion {
+        <span class="self">Self</span>::V1
     }
 
-    <span class="doccomment">/// return an iterator on all the necessary migration steps from another version</span>
-    <span class="kw">fn</span> <span class="ident">steps</span>(<span class="self">self</span>) -&gt; <span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">SchemaVersion</span><span class="op">&gt;</span> {
-        <span class="ident">Range</span> {
-            <span class="ident">start</span>: <span class="self">self</span> <span class="kw">as</span> <span class="ident">u8</span> <span class="op">+</span> <span class="number">1</span>,
-            <span class="ident">end</span>: <span class="ident"><span class="self">Self</span>::current</span>() <span class="kw">as</span> <span class="ident">u8</span>,
+    <span class="doccomment">/// return an iterator on all the necessary migration steps from another version
+    </span><span class="kw">fn </span>steps(<span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = SchemaVersion&gt; {
+        Range {
+            start: <span class="self">self </span><span class="kw">as </span>u8 + <span class="number">1</span>,
+            end: <span class="self">Self</span>::current() <span class="kw">as </span>u8,
         }
-        .<span class="ident">map</span>(<span class="op">|</span><span class="ident">i</span><span class="op">|</span> <span class="kw">match</span> <span class="ident">i</span> {
-            <span class="number">1</span> =&gt; <span class="ident">SchemaVersion::V1</span>,
-            <span class="kw">_</span> =&gt; <span class="macro">unreachable!</span>(<span class="string">&quot;oops, this not supposed to happen!&quot;</span>),
+        .map(|i| <span class="kw">match </span>i {
+            <span class="number">1 </span>=&gt; SchemaVersion::V1,
+            <span class="kw">_ </span>=&gt; <span class="macro">unreachable!</span>(<span class="string">&quot;oops, this not supposed to happen!&quot;</span>),
         })
     }
 }
 
-<span class="kw">impl</span> <span class="ident">SledStore</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">open</span>(
-        <span class="ident">db_path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">Path</span><span class="op">&gt;</span>,
-        <span class="ident">migration_conflict_strategy</span>: <span class="ident">MigrationConflictStrategy</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="ident"><span class="self">Self</span>::open_with_passphrase</span>(<span class="ident">db_path</span>, <span class="prelude-val">None</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">str</span><span class="op">&gt;</span>, <span class="ident">migration_conflict_strategy</span>)
+<span class="kw">impl </span>SledStore {
+    <span class="kw">pub fn </span>open(
+        db_path: <span class="kw">impl </span>AsRef&lt;Path&gt;,
+        migration_conflict_strategy: MigrationConflictStrategy,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+        <span class="self">Self</span>::open_with_passphrase(db_path, <span class="prelude-val">None</span>::&lt;<span class="kw-2">&amp;</span>str&gt;, migration_conflict_strategy)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">open_with_passphrase</span>(
-        <span class="ident">db_path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">Path</span><span class="op">&gt;</span>,
-        <span class="ident">passphrase</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-        <span class="ident">migration_conflict_strategy</span>: <span class="ident">MigrationConflictStrategy</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="ident">migrate</span>(<span class="kw-2">&amp;</span><span class="ident">db_path</span>, <span class="ident">migration_conflict_strategy</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub fn </span>open_with_passphrase(
+        db_path: <span class="kw">impl </span>AsRef&lt;Path&gt;,
+        passphrase: <span class="prelude-ty">Option</span>&lt;<span class="kw">impl </span>AsRef&lt;str&gt;&gt;,
+        migration_conflict_strategy: MigrationConflictStrategy,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+        migrate(<span class="kw-2">&amp;</span>db_path, migration_conflict_strategy)<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">database</span> <span class="op">=</span> <span class="ident">sled::open</span>(<span class="ident">db_path</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">passphrase</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="ident"><span class="self">Self</span>::get_or_create_store_cipher</span>(<span class="kw-2">&amp;</span><span class="ident">database</span>, <span class="ident">p</span>.<span class="ident">as_ref</span>()))
-            .<span class="ident">transpose</span>()<span class="question-mark">?</span>;
+        <span class="kw">let </span>database = sled::open(db_path)<span class="question-mark">?</span>;
+        <span class="kw">let </span>cipher = passphrase
+            .map(|p| <span class="self">Self</span>::get_or_create_store_cipher(<span class="kw-2">&amp;</span>database, p.as_ref()))
+            .transpose()<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">SledStore</span> {
-            <span class="ident">db</span>: <span class="ident">Arc::new</span>(<span class="ident">database</span>),
-            <span class="ident">cipher</span>: <span class="ident">cipher</span>.<span class="ident">map</span>(<span class="ident">Arc::new</span>),
+        <span class="prelude-val">Ok</span>(SledStore {
+            db: Arc::new(database),
+            cipher: cipher.map(Arc::new),
         })
     }
 
-    <span class="kw">fn</span> <span class="ident">get_or_create_store_cipher</span>(
-        <span class="ident">database</span>: <span class="kw-2">&amp;</span><span class="ident">sled::Db</span>,
-        <span class="ident">passphrase</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">StoreCipher</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">key</span>) <span class="op">=</span> <span class="ident">database</span>.<span class="ident">get</span>(<span class="ident">SLED_KEY_STORE_CIPHER</span>)<span class="question-mark">?</span> {
-            <span class="ident">StoreCipher::import</span>(<span class="ident">passphrase</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>)<span class="question-mark">?</span>
-        } <span class="kw">else</span> {
-            <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">StoreCipher::new</span>()<span class="question-mark">?</span>;
-            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">not</span>(<span class="ident">test</span>))]</span>
-            <span class="kw">let</span> <span class="ident">export</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">export</span>(<span class="ident">passphrase</span>);
-            <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-            <span class="kw">let</span> <span class="ident">export</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">_insecure_export_fast_for_testing</span>(<span class="ident">passphrase</span>);
-            <span class="ident">database</span>.<span class="ident">insert</span>(<span class="ident">SLED_KEY_STORE_CIPHER</span>, <span class="ident">export</span><span class="question-mark">?</span>)<span class="question-mark">?</span>;
-            <span class="ident">cipher</span>
+    <span class="kw">fn </span>get_or_create_store_cipher(
+        database: <span class="kw-2">&amp;</span>sled::Db,
+        passphrase: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;StoreCipher, Error&gt; {
+        <span class="kw">let </span>cipher = <span class="kw">if let </span><span class="prelude-val">Some</span>(key) = database.get(SLED_KEY_STORE_CIPHER)<span class="question-mark">? </span>{
+            StoreCipher::import(passphrase, <span class="kw-2">&amp;</span>key)<span class="question-mark">?
+        </span>} <span class="kw">else </span>{
+            <span class="kw">let </span>cipher = StoreCipher::new()<span class="question-mark">?</span>;
+            <span class="attribute">#[cfg(not(test))]
+            </span><span class="kw">let </span>export = cipher.export(passphrase);
+            <span class="attribute">#[cfg(test)]
+            </span><span class="kw">let </span>export = cipher._insecure_export_fast_for_testing(passphrase);
+            database.insert(SLED_KEY_STORE_CIPHER, export<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+            cipher
         };
 
-        <span class="prelude-val">Ok</span>(<span class="ident">cipher</span>)
+        <span class="prelude-val">Ok</span>(cipher)
     }
 
-    <span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-    <span class="kw">fn</span> <span class="ident">temporary</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">sled::Config::new</span>().<span class="ident">temporary</span>(<span class="bool-val">true</span>).<span class="ident">open</span>()<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">db</span>: <span class="ident">Arc::new</span>(<span class="ident">db</span>),
-            <span class="ident">cipher</span>: <span class="prelude-val">None</span>,
+    <span class="attribute">#[cfg(test)]
+    </span><span class="kw">fn </span>temporary() -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+        <span class="kw">let </span>db = sled::Config::new().temporary(<span class="bool-val">true</span>).open()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            db: Arc::new(db),
+            cipher: <span class="prelude-val">None</span>,
         })
     }
 
-    <span class="kw">fn</span> <span class="ident">tree</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="ident">T</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">sled::Tree</span>, <span class="ident">Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">T</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
+    <span class="kw">fn </span>tree&lt;T&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tree: T) -&gt; <span class="prelude-ty">Result</span>&lt;sled::Tree, Error&gt;
+    <span class="kw">where
+        </span>T: AsRef&lt;[u8]&gt;,
     {
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">tree</span>).<span class="ident">map_err</span>(<span class="ident">Error::DbError</span>)
+        <span class="self">self</span>.db.open_tree(tree).map_err(Error::DbError)
     }
 
-    <span class="kw">fn</span> <span class="ident">key</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
+    <span class="kw">fn </span>key&lt;K&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tree: <span class="kw-2">&amp;</span>str, key: K) -&gt; Vec&lt;u8&gt;
+    <span class="kw">where
+        </span>K: AsRef&lt;[u8]&gt;,
     {
-        <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
-            <span class="op">|</span><span class="op">|</span> <span class="ident">key</span>.<span class="ident">as_ref</span>().<span class="ident">to_vec</span>(),
-            <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">hash_key</span>(<span class="ident">tree</span>, <span class="ident">key</span>.<span class="ident">as_ref</span>()).<span class="ident">to_vec</span>(),
+        <span class="self">self</span>.cipher.as_ref().map_or_else(
+            || key.as_ref().to_vec(),
+            |c| c.hash_key(tree, key.as_ref()).to_vec(),
         )
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">V</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
-        <span class="ident">V</span>: <span class="ident">DeserializeOwned</span>,
+    <span class="kw">pub fn </span>get&lt;K, V&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tree: <span class="kw-2">&amp;</span>str, key: K) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;V&gt;, Error&gt;
+    <span class="kw">where
+        </span>K: AsRef&lt;[u8]&gt;,
+        V: DeserializeOwned,
     {
-        <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>
-            .<span class="ident">get</span>(<span class="ident">key</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">p</span><span class="op">|</span> {
-                <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
-                    <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
-                    <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">decrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">p</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+        <span class="self">self</span>.tree(tree)<span class="question-mark">?
+            </span>.get(key)<span class="question-mark">?
+            </span>.map(|p| {
+                <span class="self">self</span>.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(<span class="kw-2">&amp;</span>p).map_err(Error::from),
+                    |c| c.decrypt_value(<span class="kw-2">&amp;</span>p).map_err(Error::from),
                 )
             })
-            .<span class="ident">transpose</span>()
-            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+            .transpose()
+            .map_err(Error::from)
     }
 
-    <span class="kw">fn</span> <span class="ident">insert</span><span class="op">&lt;</span><span class="ident">K</span>, <span class="ident">V</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>, <span class="ident">value</span>: <span class="ident">V</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
-        <span class="ident">V</span>: <span class="ident">Serialize</span>,
+    <span class="kw">fn </span>insert&lt;K, V&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tree: <span class="kw-2">&amp;</span>str, key: K, value: V) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;
+    <span class="kw">where
+        </span>K: AsRef&lt;[u8]&gt;,
+        V: Serialize,
     {
-        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
-            <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
-            <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">encrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+        <span class="kw">let </span>value = <span class="self">self</span>.cipher.as_ref().map_or_else(
+            || serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(Error::from),
+            |c| c.encrypt_value(<span class="kw-2">&amp;</span>value).map_err(Error::from),
         )<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>)<span class="question-mark">?</span>;
+        <span class="kw">let _ </span>= <span class="self">self</span>.tree(tree)<span class="question-mark">?</span>.insert(key, value)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">remove</span><span class="op">&lt;</span><span class="ident">K</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">tree</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="ident">key</span>: <span class="ident">K</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">K</span>: <span class="ident">AsRef</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span>,
+    <span class="kw">fn </span>remove&lt;K&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, tree: <span class="kw-2">&amp;</span>str, key: K) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt;
+    <span class="kw">where
+        </span>K: AsRef&lt;[u8]&gt;,
     {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>.<span class="ident">remove</span>(<span class="ident">key</span>)<span class="question-mark">?</span>.<span class="ident">is_some</span>())
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.tree(tree)<span class="question-mark">?</span>.remove(key)<span class="question-mark">?</span>.is_some())
     }
 
-    <span class="doccomment">/// build a hashed messages thread key</span>
-    <span class="kw">fn</span> <span class="ident">messages_thread_tree_name</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">t</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>) -&gt; <span class="ident">String</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">t</span> {
-            <span class="ident">Thread::Contact</span>(<span class="ident">uuid</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:contact:{uuid}&quot;</span>),
-            <span class="ident">Thread::Group</span>(<span class="ident">group_id</span>) =&gt; <span class="macro">format!</span>(
+    <span class="doccomment">/// build a hashed messages thread key
+    </span><span class="kw">fn </span>messages_thread_tree_name(<span class="kw-2">&amp;</span><span class="self">self</span>, t: <span class="kw-2">&amp;</span>Thread) -&gt; String {
+        <span class="kw">let </span>key = <span class="kw">match </span>t {
+            Thread::Contact(uuid) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:contact:{uuid}&quot;</span>),
+            Thread::Group(group_id) =&gt; <span class="macro">format!</span>(
                 <span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:group:{}&quot;</span>,
-                <span class="ident">base64::encode</span>(<span class="ident">group_id</span>)
+                base64::encode(group_id)
             ),
         };
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">hasher</span> <span class="op">=</span> <span class="ident">Sha256::new</span>();
-        <span class="ident">hasher</span>.<span class="ident">update</span>(<span class="ident">key</span>.<span class="ident">as_bytes</span>());
-        <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:{:x}&quot;</span>, <span class="ident">hasher</span>.<span class="ident">finalize</span>())
+        <span class="kw">let </span><span class="kw-2">mut </span>hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:{:x}&quot;</span>, hasher.finalize())
     }
 }
 
-<span class="kw">fn</span> <span class="ident">migrate</span>(
-    <span class="ident">db_path</span>: <span class="kw">impl</span> <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">Path</span><span class="op">&gt;</span>,
-    <span class="ident">migration_conflict_strategy</span>: <span class="ident">MigrationConflictStrategy</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-    <span class="comment">// first, open the database and get the list of versions</span>
-    <span class="kw">let</span> <span class="ident">database</span> <span class="op">=</span> <span class="ident">sled::open</span>(<span class="kw-2">&amp;</span><span class="ident">db_path</span>)<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">stored_version</span> <span class="op">=</span> <span class="ident">database</span>.<span class="ident">get</span>(<span class="ident">SLED_KEY_SCHEMA_VERSION</span>)<span class="question-mark">?</span>.<span class="ident">map_or_else</span>(
-        <span class="op">|</span><span class="op">|</span> <span class="prelude-val">Ok</span>(<span class="ident">SchemaVersion::V0</span>),
-        <span class="op">|</span><span class="ident">value</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>[..]),
+<span class="kw">fn </span>migrate(
+    db_path: <span class="kw">impl </span>AsRef&lt;Path&gt;,
+    migration_conflict_strategy: MigrationConflictStrategy,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="comment">// first, open the database and get the list of versions
+    </span><span class="kw">let </span>database = sled::open(<span class="kw-2">&amp;</span>db_path)<span class="question-mark">?</span>;
+    <span class="kw">let </span>stored_version = database.get(SLED_KEY_SCHEMA_VERSION)<span class="question-mark">?</span>.map_or_else(
+        || <span class="prelude-val">Ok</span>(SchemaVersion::V0),
+        |value| serde_json::from_slice(<span class="kw-2">&amp;</span>value[..]),
     )<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">database</span>.<span class="ident">clone</span>();
-    <span class="kw">let</span> <span class="ident">run_migrations</span> <span class="op">=</span> <span class="kw">move</span> <span class="op">|</span><span class="op">|</span> {
-        <span class="comment">// open the DB again</span>
-        <span class="kw">for</span> <span class="ident">step</span> <span class="kw">in</span> <span class="ident">stored_version</span>.<span class="ident">steps</span>() {
-            <span class="kw">match</span> <span class="ident">step</span> {
-                <span class="ident">SchemaVersion::V1</span> =&gt; {
+    <span class="kw">let </span>db = database.clone();
+    <span class="kw">let </span>run_migrations = <span class="kw">move </span>|| {
+        <span class="comment">// open the DB again
+        </span><span class="kw">for </span>step <span class="kw">in </span>stored_version.steps() {
+            <span class="kw">match </span>step {
+                SchemaVersion::V1 =&gt; {
                     <span class="macro">warn!</span>(<span class="string">&quot;migrating from v0, nothing to do&quot;</span>)
                 }
-                <span class="kw">_</span> =&gt; <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MigrationConflict</span>),
+                <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(Error::MigrationConflict),
             }
 
-            <span class="ident">db</span>.<span class="ident">insert</span>(
-                <span class="ident">SLED_KEY_SCHEMA_VERSION</span>,
-                <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">step</span>)<span class="question-mark">?</span>.<span class="ident">as_slice</span>(),
+            db.insert(
+                SLED_KEY_SCHEMA_VERSION,
+                serde_json::to_vec(<span class="kw-2">&amp;</span>step)<span class="question-mark">?</span>.as_slice(),
             )<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
     };
 
-    <span class="kw">let</span> <span class="ident">migration_res</span> <span class="op">=</span> <span class="ident">run_migrations</span>();
-    <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Err</span>(<span class="ident">Error::MigrationConflict</span>) <span class="op">=</span> <span class="ident">migration_res</span> {
-        <span class="kw">match</span> <span class="ident">migration_conflict_strategy</span> {
-            <span class="ident">MigrationConflictStrategy::BackupAndDrop</span> =&gt; {
-                <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">new_db_path</span> <span class="op">=</span> <span class="ident">db_path</span>.<span class="ident">as_ref</span>().<span class="ident">to_path_buf</span>();
-                <span class="ident">new_db_path</span>.<span class="ident">set_extension</span>(<span class="macro">format!</span>(
+    <span class="kw">let </span>migration_res = run_migrations();
+    <span class="kw">if let </span><span class="prelude-val">Err</span>(Error::MigrationConflict) = migration_res {
+        <span class="kw">match </span>migration_conflict_strategy {
+            MigrationConflictStrategy::BackupAndDrop =&gt; {
+                <span class="kw">let </span><span class="kw-2">mut </span>new_db_path = db_path.as_ref().to_path_buf();
+                new_db_path.set_extension(<span class="macro">format!</span>(
                     <span class="string">&quot;{}.backup&quot;</span>,
-                    <span class="ident">SystemTime::now</span>()
-                        .<span class="ident">duration_since</span>(<span class="ident">UNIX_EPOCH</span>)
-                        .<span class="ident">expect</span>(<span class="string">&quot;time doesn&#39;t go backwards&quot;</span>)
-                        .<span class="ident">as_secs</span>()
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .expect(<span class="string">&quot;time doesn&#39;t go backwards&quot;</span>)
+                        .as_secs()
                 ));
-                <span class="ident">fs_extra::dir::create_all</span>(<span class="kw-2">&amp;</span><span class="ident">new_db_path</span>, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
-                <span class="ident">fs_extra::dir::copy</span>(<span class="ident">db_path</span>, <span class="ident">new_db_path</span>, <span class="kw-2">&amp;</span><span class="ident">fs_extra::dir::CopyOptions::new</span>())<span class="question-mark">?</span>;
+                fs_extra::dir::create_all(<span class="kw-2">&amp;</span>new_db_path, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
+                fs_extra::dir::copy(db_path, new_db_path, <span class="kw-2">&amp;</span>fs_extra::dir::CopyOptions::new())<span class="question-mark">?</span>;
 
-                <span class="kw">for</span> <span class="ident">tree</span> <span class="kw">in</span> <span class="ident">database</span>.<span class="ident">tree_names</span>() {
-                    <span class="ident">database</span>.<span class="ident">drop_tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>;
+                <span class="kw">for </span>tree <span class="kw">in </span>database.tree_names() {
+                    database.drop_tree(tree)<span class="question-mark">?</span>;
                 }
             }
-            <span class="ident">MigrationConflictStrategy::Drop</span> =&gt; {
-                <span class="kw">for</span> <span class="ident">tree</span> <span class="kw">in</span> <span class="ident">database</span>.<span class="ident">tree_names</span>() {
-                    <span class="ident">database</span>.<span class="ident">drop_tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>;
+            MigrationConflictStrategy::Drop =&gt; {
+                <span class="kw">for </span>tree <span class="kw">in </span>database.tree_names() {
+                    database.drop_tree(tree)<span class="question-mark">?</span>;
                 }
             }
-            <span class="ident">MigrationConflictStrategy::Raise</span> =&gt; <span class="ident">migration_res</span><span class="question-mark">?</span>,
+            MigrationConflictStrategy::Raise =&gt; migration_res<span class="question-mark">?</span>,
         }
     }
 
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">impl</span> <span class="ident">StateStore</span><span class="op">&lt;</span><span class="ident">Registered</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">fn</span> <span class="ident">load_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Registered</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">db</span>
-            .<span class="ident">get</span>(<span class="ident">SLED_KEY_REGISTRATION</span>)<span class="question-mark">?</span>
-            .<span class="ident">ok_or</span>(<span class="ident">Error::NotYetRegisteredError</span>)<span class="question-mark">?</span>;
-        <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+<span class="kw">impl </span>StateStore&lt;Registered&gt; <span class="kw">for </span>SledStore {
+    <span class="kw">fn </span>load_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Registered, Error&gt; {
+        <span class="kw">let </span>data = <span class="self">self
+            </span>.db
+            .get(SLED_KEY_REGISTRATION)<span class="question-mark">?
+            </span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
+        serde_json::from_slice(<span class="kw-2">&amp;</span>data).map_err(Error::from)
     }
 
-    <span class="kw">fn</span> <span class="ident">save_state</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">state</span>: <span class="kw-2">&amp;</span><span class="ident">Registered</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">db</span>
-            .<span class="ident">insert</span>(<span class="ident">SLED_KEY_REGISTRATION</span>, <span class="ident">serde_json::to_vec</span>(<span class="ident">state</span>)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+    <span class="kw">fn </span>save_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>, state: <span class="kw-2">&amp;</span>Registered) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.db
+            .insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Store</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_DEFAULT</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_IDENTITIES</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>)<span class="question-mark">?</span>;
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">drop_tree</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>)<span class="question-mark">?</span>;
+<span class="kw">impl </span>Store <span class="kw">for </span>SledStore {
+    <span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_DEFAULT)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_IDENTITIES)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_PRE_KEYS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_SESSIONS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_PRE_KEYS)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">pre_keys_offset_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">get</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_PRE_KEYS_OFFSET_ID</span>)<span class="question-mark">?</span>
-            .<span class="ident">unwrap_or</span>(<span class="number">0</span>))
+    <span class="kw">fn </span>pre_keys_offset_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.get(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID)<span class="question-mark">?
+            </span>.unwrap_or(<span class="number">0</span>))
     }
 
-    <span class="kw">fn</span> <span class="ident">set_pre_keys_offset_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_PRE_KEYS_OFFSET_ID</span>, <span class="ident">id</span>)
+    <span class="kw">fn </span>set_pre_keys_offset_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.insert(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
     }
 
-    <span class="kw">fn</span> <span class="ident">next_signed_pre_key_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">get</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_NEXT_SIGNED_PRE_KEY_ID</span>)<span class="question-mark">?</span>
-            .<span class="ident">unwrap_or</span>(<span class="number">0</span>))
+    <span class="kw">fn </span>next_signed_pre_key_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.get(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)<span class="question-mark">?
+            </span>.unwrap_or(<span class="number">0</span>))
     }
 
-    <span class="kw">fn</span> <span class="ident">set_next_signed_pre_key_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">u32</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_DEFAULT</span>, <span class="ident">SLED_KEY_NEXT_SIGNED_PRE_KEY_ID</span>, <span class="ident">id</span>)
+    <span class="kw">fn </span>set_next_signed_pre_key_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.insert(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ContactsStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">type</span> <span class="ident">ContactsIter</span> <span class="op">=</span> <span class="ident">SledContactsIter</span>;
+<span class="kw">impl </span>ContactsStore <span class="kw">for </span>SledStore {
+    <span class="kw">type </span>ContactsIter = SledContactsIter;
 
-    <span class="kw">fn</span> <span class="ident">clear_contacts</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>.<span class="ident">clear</span>()<span class="question-mark">?</span>;
+    <span class="kw">fn </span>clear_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.db.open_tree(SLED_KEY_CONTACTS)<span class="question-mark">?</span>.clear()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">save_contacts</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">contacts</span>: <span class="kw">impl</span> <span class="ident">Iterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">Contact</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">for</span> <span class="ident">contact</span> <span class="kw">in</span> <span class="ident">contacts</span> {
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">uuid</span>) <span class="op">=</span> <span class="ident">contact</span>.<span class="ident">address</span>.<span class="ident">uuid</span> {
-                <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_KEY_CONTACTS</span>, <span class="ident">uuid</span>, <span class="ident">contact</span>)<span class="question-mark">?</span>;
-            } <span class="kw">else</span> {
-                <span class="macro">warn!</span>(<span class="string">&quot;skipping contact {:?} without uuid&quot;</span>, <span class="ident">contact</span>);
+    <span class="kw">fn </span>save_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>, contacts: <span class="kw">impl </span>Iterator&lt;Item = Contact&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">for </span>contact <span class="kw">in </span>contacts {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(uuid) = contact.address.uuid {
+                <span class="self">self</span>.insert(SLED_KEY_CONTACTS, uuid, contact)<span class="question-mark">?</span>;
+            } <span class="kw">else </span>{
+                <span class="macro">warn!</span>(<span class="string">&quot;skipping contact {:?} without uuid&quot;</span>, contact);
             }
         }
         <span class="macro">debug!</span>(<span class="string">&quot;saved contacts&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="comment">// TODO: iterator on decrypted data</span>
-    <span class="kw">fn</span> <span class="ident">contacts</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ContactsIter</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="ident">SledContactsIter</span> {
-            <span class="ident">iter</span>: <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="ident">SLED_KEY_CONTACTS</span>)<span class="question-mark">?</span>.<span class="ident">iter</span>(),
-            <span class="ident">cipher</span>: <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">clone</span>(),
+    <span class="comment">// TODO: iterator on decrypted data
+    </span><span class="kw">fn </span>contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ContactsIter, Error&gt; {
+        <span class="prelude-val">Ok</span>(SledContactsIter {
+            iter: <span class="self">self</span>.db.open_tree(SLED_KEY_CONTACTS)<span class="question-mark">?</span>.iter(),
+            cipher: <span class="self">self</span>.cipher.clone(),
         })
     }
 
-    <span class="kw">fn</span> <span class="ident">contact_by_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">id</span>: <span class="ident">Uuid</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Contact</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_KEY_CONTACTS</span>, <span class="ident">id</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
-            .<span class="ident">transpose</span>()
-            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
+    <span class="kw">fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
+        <span class="self">self</span>.get(SLED_KEY_CONTACTS, id)<span class="question-mark">?
+            </span>.map(|b: Vec&lt;u8&gt;| serde_json::from_slice(<span class="kw-2">&amp;</span>b))
+            .transpose()
+            .map_err(Error::from)
     }
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledContactsIter</span> {
-    <span class="ident">cipher</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">StoreCipher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="ident">iter</span>: <span class="ident">sled::Iter</span>,
+<span class="kw">pub struct </span>SledContactsIter {
+    cipher: <span class="prelude-ty">Option</span>&lt;Arc&lt;StoreCipher&gt;&gt;,
+    iter: sled::Iter,
 }
 
-<span class="kw">impl</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">SledContactsIter</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Contact</span>, <span class="ident">Error</span><span class="op">&gt;</span>;
+<span class="kw">impl </span>Iterator <span class="kw">for </span>SledContactsIter {
+    <span class="kw">type </span>Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&gt;;
 
-    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::Item</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">iter</span>
-            .<span class="ident">next</span>()<span class="question-mark">?</span>
-            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
-            .<span class="ident">and_then</span>(<span class="op">|</span>(<span class="ident">_key</span>, <span class="ident">value</span>)<span class="op">|</span> {
-                <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
-                    <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
-                    <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">decrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+    <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
+        <span class="self">self</span>.iter
+            .next()<span class="question-mark">?
+            </span>.map_err(Error::from)
+            .and_then(|(_key, value)| {
+                <span class="self">self</span>.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(<span class="kw-2">&amp;</span>value).map_err(Error::from),
+                    |c| c.decrypt_value(<span class="kw-2">&amp;</span>value).map_err(Error::from),
                 )
             })
-            .<span class="ident">into</span>()
+            .into()
     }
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">impl</span> <span class="ident">PreKeyStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_pre_key</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">impl </span>PreKeyStore <span class="kw">for </span>SledStore {
+    <span class="kw">async fn </span>get_pre_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PreKeyRecord</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">buf</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>, <span class="ident">prekey_id</span>.<span class="ident">to_string</span>())
-            .<span class="ident">ok</span>()
-            .<span class="ident">flatten</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidPreKeyId</span>)<span class="question-mark">?</span>;
+        prekey_id: PreKeyId,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyRecord, SignalProtocolError&gt; {
+        <span class="kw">let </span>buf: Vec&lt;u8&gt; = <span class="self">self
+            </span>.get(SLED_TREE_PRE_KEYS, prekey_id.to_string())
+            .ok()
+            .flatten()
+            .ok_or(SignalProtocolError::InvalidPreKeyId)<span class="question-mark">?</span>;
 
-        <span class="ident">PreKeyRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>)
+        PreKeyRecord::deserialize(<span class="kw-2">&amp;</span>buf)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">save_pre_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeyRecord</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert</span>(
-            <span class="ident">SLED_TREE_PRE_KEYS</span>,
-            <span class="ident">prekey_id</span>.<span class="ident">to_string</span>(),
-            <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>,
+    <span class="kw">async fn </span>save_pre_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        prekey_id: PreKeyId,
+        record: <span class="kw-2">&amp;</span>PreKeyRecord,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="self">self</span>.insert(
+            SLED_TREE_PRE_KEYS,
+            prekey_id.to_string(),
+            record.serialize()<span class="question-mark">?</span>,
         )
-        .<span class="ident">expect</span>(<span class="string">&quot;failed to store pre-key&quot;</span>);
+        .expect(<span class="string">&quot;failed to store pre-key&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">remove_pre_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">prekey_id</span>: <span class="ident">PreKeyId</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">remove</span>(<span class="ident">SLED_TREE_PRE_KEYS</span>, <span class="ident">prekey_id</span>.<span class="ident">to_string</span>())
-            .<span class="ident">expect</span>(<span class="string">&quot;failed to remove pre-key&quot;</span>);
+    <span class="kw">async fn </span>remove_pre_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        prekey_id: PreKeyId,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="self">self</span>.remove(SLED_TREE_PRE_KEYS, prekey_id.to_string())
+            .expect(<span class="string">&quot;failed to remove pre-key&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">impl</span> <span class="ident">SignedPreKeyStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_signed_pre_key</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">impl </span>SignedPreKeyStore <span class="kw">for </span>SledStore {
+    <span class="kw">async fn </span>get_signed_pre_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">signed_prekey_id</span>: <span class="ident">SignedPreKeyId</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SignedPreKeyRecord</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">buf</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get</span>(<span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>, <span class="ident">signed_prekey_id</span>.<span class="ident">to_string</span>())
-            .<span class="ident">ok</span>()
-            .<span class="ident">flatten</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidSignedPreKeyId</span>)<span class="question-mark">?</span>;
-        <span class="ident">SignedPreKeyRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>)
+        signed_prekey_id: SignedPreKeyId,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SignedPreKeyRecord, SignalProtocolError&gt; {
+        <span class="kw">let </span>buf: Vec&lt;u8&gt; = <span class="self">self
+            </span>.get(SLED_TREE_SIGNED_PRE_KEYS, signed_prekey_id.to_string())
+            .ok()
+            .flatten()
+            .ok_or(SignalProtocolError::InvalidSignedPreKeyId)<span class="question-mark">?</span>;
+        SignedPreKeyRecord::deserialize(<span class="kw-2">&amp;</span>buf)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">save_signed_pre_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">signed_prekey_id</span>: <span class="ident">SignedPreKeyId</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SignedPreKeyRecord</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">insert</span>(
-            <span class="ident">SLED_TREE_SIGNED_PRE_KEYS</span>,
-            <span class="ident">signed_prekey_id</span>.<span class="ident">to_string</span>(),
-            <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>,
+    <span class="kw">async fn </span>save_signed_pre_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        signed_prekey_id: SignedPreKeyId,
+        record: <span class="kw-2">&amp;</span>SignedPreKeyRecord,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="self">self</span>.insert(
+            SLED_TREE_SIGNED_PRE_KEYS,
+            signed_prekey_id.to_string(),
+            record.serialize()<span class="question-mark">?</span>,
         )
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="macro">log::error!</span>(<span class="string">&quot;sled error: {}&quot;</span>, <span class="ident">e</span>);
-            <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;save_signed_pre_key&quot;</span>, <span class="string">&quot;sled error&quot;</span>.<span class="ident">into</span>())
+        .map_err(|e| {
+            <span class="macro">log::error!</span>(<span class="string">&quot;sled error: {}&quot;</span>, e);
+            SignalProtocolError::InvalidState(<span class="string">&quot;save_signed_pre_key&quot;</span>, <span class="string">&quot;sled error&quot;</span>.into())
         })
     }
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">impl</span> <span class="ident">SessionStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">load_session</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">impl </span>SessionStore <span class="kw">for </span>SledStore {
+    <span class="kw">async fn </span>load_session(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SessionRecord</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="macro">trace!</span>(<span class="string">&quot;loading session {}&quot;</span>, <span class="ident">address</span>);
-        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_SESSIONS</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">SessionRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
-            .<span class="ident">transpose</span>()
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SessionRecord&gt;, SignalProtocolError&gt; {
+        <span class="macro">trace!</span>(<span class="string">&quot;loading session {}&quot;</span>, address);
+        <span class="self">self</span>.get(SLED_TREE_SESSIONS, address.to_string())
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.map(|b: Vec&lt;u8&gt;| SessionRecord::deserialize(<span class="kw-2">&amp;</span>b))
+            .transpose()
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">store_session</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SessionRecord</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="macro">trace!</span>(<span class="string">&quot;storing session {}&quot;</span>, <span class="ident">address</span>);
-        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_SESSIONS</span>, <span class="ident">address</span>.<span class="ident">to_string</span>(), <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)
+    <span class="kw">async fn </span>store_session(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        record: <span class="kw-2">&amp;</span>SessionRecord,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="macro">trace!</span>(<span class="string">&quot;storing session {}&quot;</span>, address);
+        <span class="self">self</span>.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()<span class="question-mark">?</span>)
+            .map_err(Error::into_signal_error)
     }
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>]</span>
-<span class="kw">impl</span> <span class="ident">SessionStoreExt</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_sub_device_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">session_prefix</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;{name}.&quot;</span>);
-        <span class="macro">log::info!</span>(<span class="string">&quot;get_sub_device_sessions {}&quot;</span>, <span class="ident">session_prefix</span>);
-        <span class="kw">let</span> <span class="ident">session_ids</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">scan_prefix</span>(<span class="kw-2">&amp;</span><span class="ident">session_prefix</span>)
-            .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> {
-                <span class="kw">let</span> (<span class="ident">key</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">r</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">key_str</span> <span class="op">=</span> <span class="ident">String::from_utf8_lossy</span>(<span class="kw-2">&amp;</span><span class="ident">key</span>);
-                <span class="kw">let</span> <span class="ident">device_id</span> <span class="op">=</span> <span class="ident">key_str</span>.<span class="ident">strip_prefix</span>(<span class="kw-2">&amp;</span><span class="ident">session_prefix</span>)<span class="question-mark">?</span>;
-                <span class="ident">device_id</span>.<span class="ident">parse</span>().<span class="ident">ok</span>()
+<span class="attribute">#[async_trait]
+</span><span class="kw">impl </span>SessionStoreExt <span class="kw">for </span>SledStore {
+    <span class="kw">async fn </span>get_sub_device_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u32&gt;, SignalProtocolError&gt; {
+        <span class="kw">let </span>session_prefix = <span class="macro">format!</span>(<span class="string">&quot;{name}.&quot;</span>);
+        <span class="macro">log::info!</span>(<span class="string">&quot;get_sub_device_sessions {}&quot;</span>, session_prefix);
+        <span class="kw">let </span>session_ids: Vec&lt;u32&gt; = <span class="self">self
+            </span>.tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.scan_prefix(<span class="kw-2">&amp;</span>session_prefix)
+            .filter_map(|r| {
+                <span class="kw">let </span>(key, <span class="kw">_</span>) = r.ok()<span class="question-mark">?</span>;
+                <span class="kw">let </span>key_str = String::from_utf8_lossy(<span class="kw-2">&amp;</span>key);
+                <span class="kw">let </span>device_id = key_str.strip_prefix(<span class="kw-2">&amp;</span>session_prefix)<span class="question-mark">?</span>;
+                device_id.parse().ok()
             })
-            .<span class="ident">filter</span>(<span class="op">|</span><span class="ident">d</span><span class="op">|</span> <span class="kw-2">*</span><span class="ident">d</span> <span class="op">!</span><span class="op">=</span> <span class="ident">DEFAULT_DEVICE_ID</span>)
-            .<span class="ident">collect</span>();
-        <span class="prelude-val">Ok</span>(<span class="ident">session_ids</span>)
+            .filter(|d| <span class="kw-2">*</span>d != DEFAULT_DEVICE_ID)
+            .collect();
+        <span class="prelude-val">Ok</span>(session_ids)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_session</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="macro">trace!</span>(<span class="string">&quot;deleting session {}&quot;</span>, <span class="ident">address</span>);
-        <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">remove</span>(<span class="ident">address</span>.<span class="ident">to_string</span>())
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">_e</span><span class="op">|</span> <span class="ident">SignalProtocolError::SessionNotFound</span>(<span class="ident">address</span>.<span class="ident">clone</span>()))<span class="question-mark">?</span>;
+    <span class="kw">async fn </span>delete_session(<span class="kw-2">&amp;</span><span class="self">self</span>, address: <span class="kw-2">&amp;</span>ProtocolAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="macro">trace!</span>(<span class="string">&quot;deleting session {}&quot;</span>, address);
+        <span class="self">self</span>.tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.remove(address.to_string())
+            .map_err(|_e| SignalProtocolError::SessionNotFound(address.clone()))<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_all_sessions</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">usize</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>;
+    <span class="kw">async fn </span>delete_all_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;usize, SignalProtocolError&gt; {
+        <span class="kw">let </span>tree = <span class="self">self
+            </span>.tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">batch</span> <span class="op">=</span> <span class="ident">Batch::default</span>();
+        <span class="kw">let </span><span class="kw-2">mut </span>batch = Batch::default();
 
-        <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">SLED_TREE_SESSIONS</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">scan_prefix</span>(<span class="ident">name</span>)
-            .<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">r</span><span class="op">|</span> {
-                <span class="kw">let</span> (<span class="ident">key</span>, <span class="kw">_</span>) <span class="op">=</span> <span class="ident">r</span>.<span class="ident">ok</span>()<span class="question-mark">?</span>;
-                <span class="prelude-val">Some</span>(<span class="ident">key</span>)
+        <span class="self">self</span>.tree(SLED_TREE_SESSIONS)
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.scan_prefix(name)
+            .filter_map(|r| {
+                <span class="kw">let </span>(key, <span class="kw">_</span>) = r.ok()<span class="question-mark">?</span>;
+                <span class="prelude-val">Some</span>(key)
             })
-            .<span class="ident">for_each</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> <span class="ident">batch</span>.<span class="ident">remove</span>(<span class="ident">k</span>));
+            .for_each(|k| batch.remove(k));
 
-        <span class="self">self</span>.<span class="ident">db</span>
-            .<span class="ident">apply_batch</span>(<span class="ident">batch</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::DbError</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db
+            .apply_batch(batch)
+            .map_err(Error::DbError)
+            .map_err(Error::into_signal_error)<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">len</span> <span class="op">=</span> <span class="ident">tree</span>.<span class="ident">len</span>();
-        <span class="ident">tree</span>.<span class="ident">clear</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">_e</span><span class="op">|</span> {
-            <span class="ident">SignalProtocolError::InvalidSessionStructure</span>(<span class="string">&quot;failed to delete all sessions&quot;</span>)
+        <span class="kw">let </span>len = tree.len();
+        tree.clear().map_err(|_e| {
+            SignalProtocolError::InvalidSessionStructure(<span class="string">&quot;failed to delete all sessions&quot;</span>)
         })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">len</span>)
+        <span class="prelude-val">Ok</span>(len)
     }
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">impl</span> <span class="ident">IdentityKeyStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_identity_key_pair</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">impl </span>IdentityKeyStore <span class="kw">for </span>SledStore {
+    <span class="kw">async fn </span>get_identity_key_pair(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">IdentityKeyPair</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;IdentityKeyPair, SignalProtocolError&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;getting identity_key_pair&quot;</span>);
-        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">load_state</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;failed to load presage state&quot;</span>, <span class="ident">e</span>.<span class="ident">to_string</span>())
+        <span class="kw">let </span>state = <span class="self">self</span>.load_state().map_err(|e| {
+            SignalProtocolError::InvalidState(<span class="string">&quot;failed to load presage state&quot;</span>, e.to_string())
         })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">IdentityKeyPair::new</span>(
-            <span class="ident">IdentityKey::new</span>(<span class="ident">state</span>.<span class="ident">public_key</span>),
-            <span class="ident">state</span>.<span class="ident">private_key</span>,
+        <span class="prelude-val">Ok</span>(IdentityKeyPair::new(
+            IdentityKey::new(state.public_key),
+            state.private_key,
         ))
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_local_registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">_ctx</span>: <span class="ident">Context</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">load_state</span>().<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;failed to load presage state&quot;</span>, <span class="ident">e</span>.<span class="ident">to_string</span>())
+    <span class="kw">async fn </span>get_local_registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>, _ctx: Context) -&gt; <span class="prelude-ty">Result</span>&lt;u32, SignalProtocolError&gt; {
+        <span class="kw">let </span>state = <span class="self">self</span>.load_state().map_err(|e| {
+            SignalProtocolError::InvalidState(<span class="string">&quot;failed to load presage state&quot;</span>, e.to_string())
         })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">state</span>.<span class="ident">registration_id</span>)
+        <span class="prelude-val">Ok</span>(state.registration_id)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">save_identity</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">identity_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+    <span class="kw">async fn </span>save_identity(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        identity_key: <span class="kw-2">&amp;</span>IdentityKey,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, SignalProtocolError&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;saving identity&quot;</span>);
-        <span class="self">self</span>.<span class="ident">insert</span>(
-            <span class="ident">SLED_TREE_IDENTITIES</span>,
-            <span class="ident">address</span>.<span class="ident">to_string</span>(),
-            <span class="ident">identity_key</span>.<span class="ident">serialize</span>(),
+        <span class="self">self</span>.insert(
+            SLED_TREE_IDENTITIES,
+            address.to_string(),
+            identity_key.serialize(),
         )
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="macro">log::error!</span>(<span class="string">&quot;error saving identity for {:?}: {}&quot;</span>, <span class="ident">address</span>, <span class="ident">e</span>);
-            <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;save_identity&quot;</span>, <span class="string">&quot;failed to save identity&quot;</span>.<span class="ident">into</span>())
+        .map_err(|e| {
+            <span class="macro">log::error!</span>(<span class="string">&quot;error saving identity for {:?}: {}&quot;</span>, address, e);
+            SignalProtocolError::InvalidState(<span class="string">&quot;save_identity&quot;</span>, <span class="string">&quot;failed to save identity&quot;</span>.into())
         })<span class="question-mark">?</span>;
         <span class="macro">trace!</span>(<span class="string">&quot;saved identity&quot;</span>);
         <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">is_trusted_identity</span>(
+    <span class="kw">async fn </span>is_trusted_identity(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">right_identity_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-        <span class="ident">_direction</span>: <span class="ident">Direction</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>
-            .<span class="ident">get</span>(<span class="ident">SLED_TREE_IDENTITIES</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
-            .<span class="ident">transpose</span>()<span class="question-mark">?</span>
-        {
-            <span class="prelude-val">None</span> =&gt; {
-                <span class="comment">// when we encounter a new identity, we trust it by default</span>
-                <span class="macro">warn!</span>(<span class="string">&quot;trusting new identity {:?}&quot;</span>, <span class="ident">address</span>);
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        right_identity_key: <span class="kw-2">&amp;</span>IdentityKey,
+        _direction: Direction,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, SignalProtocolError&gt; {
+        <span class="kw">match </span><span class="self">self
+            </span>.get(SLED_TREE_IDENTITIES, address.to_string())
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.map(|b: Vec&lt;u8&gt;| IdentityKey::decode(<span class="kw-2">&amp;</span>b))
+            .transpose()<span class="question-mark">?
+        </span>{
+            <span class="prelude-val">None </span>=&gt; {
+                <span class="comment">// when we encounter a new identity, we trust it by default
+                </span><span class="macro">warn!</span>(<span class="string">&quot;trusting new identity {:?}&quot;</span>, address);
                 <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>)
             }
-            <span class="prelude-val">Some</span>(<span class="ident">left_identity_key</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">left_identity_key</span> <span class="op">==</span> <span class="kw-2">*</span><span class="ident">right_identity_key</span>),
+            <span class="prelude-val">Some</span>(left_identity_key) =&gt; <span class="prelude-val">Ok</span>(left_identity_key == <span class="kw-2">*</span>right_identity_key),
         }
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_identity</span>(
+    <span class="kw">async fn </span>get_identity(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IdentityKey</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_IDENTITIES</span>, <span class="ident">address</span>.<span class="ident">to_string</span>())
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
-            .<span class="ident">transpose</span>()
+        address: <span class="kw-2">&amp;</span>ProtocolAddress,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;IdentityKey&gt;, SignalProtocolError&gt; {
+        <span class="self">self</span>.get(SLED_TREE_IDENTITIES, address.to_string())
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.map(|b: Vec&lt;u8&gt;| IdentityKey::decode(<span class="kw-2">&amp;</span>b))
+            .transpose()
     }
 }
 
-<span class="attribute">#[<span class="ident">async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>)]</span>
-<span class="kw">impl</span> <span class="ident">SenderKeyStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">store_sender_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-        <span class="ident">record</span>: <span class="kw-2">&amp;</span><span class="ident">SenderKeyRecord</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="macro">format!</span>(
+<span class="attribute">#[async_trait(<span class="question-mark">?</span>Send)]
+</span><span class="kw">impl </span>SenderKeyStore <span class="kw">for </span>SledStore {
+    <span class="kw">async fn </span>store_sender_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+        distribution_id: Uuid,
+        record: <span class="kw-2">&amp;</span>SenderKeyRecord,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="kw">let </span>key = <span class="macro">format!</span>(
             <span class="string">&quot;{}.{}/{}&quot;</span>,
-            <span class="ident">sender</span>.<span class="ident">name</span>(),
-            <span class="ident">sender</span>.<span class="ident">device_id</span>(),
-            <span class="ident">distribution_id</span>
+            sender.name(),
+            sender.device_id(),
+            distribution_id
         );
-        <span class="self">self</span>.<span class="ident">insert</span>(<span class="ident">SLED_TREE_SENDER_KEYS</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>, <span class="ident">record</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)
+        <span class="self">self</span>.insert(SLED_TREE_SENDER_KEYS, <span class="kw-2">&amp;</span>key, record.serialize()<span class="question-mark">?</span>)
+            .map_err(Error::into_signal_error)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">load_sender_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-        <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-        <span class="ident">_ctx</span>: <span class="ident">Context</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SenderKeyRecord</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="macro">format!</span>(
+    <span class="kw">async fn </span>load_sender_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+        distribution_id: Uuid,
+        _ctx: Context,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SenderKeyRecord&gt;, SignalProtocolError&gt; {
+        <span class="kw">let </span>key = <span class="macro">format!</span>(
             <span class="string">&quot;{}.{}/{}&quot;</span>,
-            <span class="ident">sender</span>.<span class="ident">name</span>(),
-            <span class="ident">sender</span>.<span class="ident">device_id</span>(),
-            <span class="ident">distribution_id</span>
+            sender.name(),
+            sender.device_id(),
+            distribution_id
         );
-        <span class="self">self</span>.<span class="ident">get</span>(<span class="ident">SLED_TREE_SENDER_KEYS</span>, <span class="kw-2">&amp;</span><span class="ident">key</span>)
-            .<span class="ident">map_err</span>(<span class="ident">Error::into_signal_error</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">b</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">SenderKeyRecord::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">b</span>))
-            .<span class="ident">transpose</span>()
+        <span class="self">self</span>.get(SLED_TREE_SENDER_KEYS, <span class="kw-2">&amp;</span>key)
+            .map_err(Error::into_signal_error)<span class="question-mark">?
+            </span>.map(|b: Vec&lt;u8&gt;| SenderKeyRecord::deserialize(<span class="kw-2">&amp;</span>b))
+            .transpose()
     }
 }
 
-<span class="kw">impl</span> <span class="ident">MessageStore</span> <span class="kw">for</span> <span class="ident">SledStore</span> {
-    <span class="kw">type</span> <span class="ident">MessagesIter</span> <span class="op">=</span> <span class="ident">SledMessagesIter</span>;
+<span class="kw">impl </span>MessageStore <span class="kw">for </span>SledStore {
+    <span class="kw">type </span>MessagesIter = SledMessagesIter;
 
-    <span class="kw">fn</span> <span class="ident">save_message</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>, <span class="ident">message</span>: <span class="ident">Content</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">Error</span><span class="op">&gt;</span> {
+    <span class="kw">fn </span>save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">log::trace!</span>(
             <span class="string">&quot;Storing a message with thread: {:?}, timestamp: {}&quot;</span>,
-            <span class="ident">thread</span>,
-            <span class="ident">message</span>.<span class="ident">metadata</span>.<span class="ident">timestamp</span>,
+            thread,
+            message.metadata.timestamp,
         );
-        <span class="kw">let</span> <span class="ident">timestamp_bytes</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">metadata</span>.<span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>();
-        <span class="kw">let</span> <span class="ident">proto</span>: <span class="ident">ContentProto</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">into</span>();
+        <span class="kw">let </span>timestamp_bytes = message.metadata.timestamp.to_be_bytes();
+        <span class="kw">let </span>proto: ContentProto = message.into();
 
-        <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>);
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">key</span>(<span class="kw-2">&amp;</span><span class="ident">tree</span>, <span class="kw-2">&amp;</span><span class="ident">timestamp_bytes</span>);
+        <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(thread);
+        <span class="kw">let </span>key = <span class="self">self</span>.key(<span class="kw-2">&amp;</span>tree, <span class="kw-2">&amp;</span>timestamp_bytes);
 
-        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="ident">proto</span>.<span class="ident">encode_to_vec</span>();
-        <span class="kw">let</span> <span class="ident">value</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
-            <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::to_vec</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
-            <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">encrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+        <span class="kw">let </span>value = proto.encode_to_vec();
+        <span class="kw">let </span>value = <span class="self">self</span>.cipher.as_ref().map_or_else(
+            || serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(Error::from),
+            |c| c.encrypt_value(<span class="kw-2">&amp;</span>value).map_err(Error::from),
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw">_</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">tree</span>(<span class="ident">tree</span>)<span class="question-mark">?</span>.<span class="ident">insert</span>(<span class="ident">key</span>, <span class="ident">value</span>)<span class="question-mark">?</span>;
+        <span class="kw">let _ </span>= <span class="self">self</span>.tree(tree)<span class="question-mark">?</span>.insert(key, value)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">delete_message</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>, <span class="ident">timestamp</span>: <span class="ident">u64</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tree</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>);
-        <span class="self">self</span>.<span class="ident">remove</span>(<span class="kw-2">&amp;</span><span class="ident">tree</span>, <span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>())
+    <span class="kw">fn </span>delete_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, timestamp: u64) -&gt; <span class="prelude-ty">Result</span>&lt;bool, Error&gt; {
+        <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(thread);
+        <span class="self">self</span>.remove(<span class="kw-2">&amp;</span>tree, timestamp.to_be_bytes())
     }
 
-    <span class="kw">fn</span> <span class="ident">message</span>(
+    <span class="kw">fn </span>message(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">libsignal_service::prelude::Content</span><span class="op">&gt;</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="comment">// Big-Endian needed, otherwise wrong ordering in sled.</span>
-        <span class="kw">let</span> <span class="ident">val</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">get</span>(
-            <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>),
-            <span class="ident">timestamp</span>.<span class="ident">to_be_bytes</span>(),
+        thread: <span class="kw-2">&amp;</span>Thread,
+        timestamp: u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;libsignal_service::prelude::Content&gt;, Error&gt; {
+        <span class="comment">// Big-Endian needed, otherwise wrong ordering in sled.
+        </span><span class="kw">let </span>val: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt; = <span class="self">self</span>.get(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.messages_thread_tree_name(thread),
+            timestamp.to_be_bytes(),
         )<span class="question-mark">?</span>;
-        <span class="kw">match</span> <span class="ident">val</span> {
-            <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">v</span>) =&gt; {
-                <span class="kw">let</span> <span class="ident">proto</span> <span class="op">=</span> <span class="ident">ContentProto::decode</span>(<span class="ident">v</span>.<span class="ident">as_slice</span>())<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">content</span> <span class="op">=</span> <span class="ident">proto</span>.<span class="ident">try_into</span>()<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">content</span>))
+        <span class="kw">match </span>val {
+            <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>v) =&gt; {
+                <span class="kw">let </span>proto = ContentProto::decode(v.as_slice())<span class="question-mark">?</span>;
+                <span class="kw">let </span>content = proto.try_into()<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(content))
             }
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
     }
 
-    <span class="kw">fn</span> <span class="ident">messages</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">thread</span>: <span class="kw-2">&amp;</span><span class="ident">Thread</span>, <span class="ident">from</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u64</span><span class="op">&gt;</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::MessagesIter</span>, <span class="ident">Error</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">tree_thread</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">db</span>.<span class="ident">open_tree</span>(<span class="self">self</span>.<span class="ident">messages_thread_tree_name</span>(<span class="ident">thread</span>))<span class="question-mark">?</span>;
-        <span class="macro">debug!</span>(<span class="string">&quot;{} messages in this tree&quot;</span>, <span class="ident">tree_thread</span>.<span class="ident">len</span>());
-        <span class="kw">let</span> <span class="ident">iter</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">from</span>) <span class="op">=</span> <span class="ident">from</span> {
-            <span class="ident">tree_thread</span>.<span class="ident">range</span>(..<span class="ident">from</span>.<span class="ident">to_be_bytes</span>())
-        } <span class="kw">else</span> {
-            <span class="ident">tree_thread</span>.<span class="ident">range</span>::<span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">std::ops::RangeFull</span><span class="op">&gt;</span>(..)
+    <span class="kw">fn </span>messages(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, from: <span class="prelude-ty">Option</span>&lt;u64&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::MessagesIter, Error&gt; {
+        <span class="kw">let </span>tree_thread = <span class="self">self</span>.db.open_tree(<span class="self">self</span>.messages_thread_tree_name(thread))<span class="question-mark">?</span>;
+        <span class="macro">debug!</span>(<span class="string">&quot;{} messages in this tree&quot;</span>, tree_thread.len());
+        <span class="kw">let </span>iter = <span class="kw">if let </span><span class="prelude-val">Some</span>(from) = from {
+            tree_thread.range(..from.to_be_bytes())
+        } <span class="kw">else </span>{
+            tree_thread.range::&lt;<span class="kw-2">&amp;</span>[u8], std::ops::RangeFull&gt;(..)
         };
-        <span class="prelude-val">Ok</span>(<span class="ident">SledMessagesIter</span> {
-            <span class="ident">cipher</span>: <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">clone</span>(),
-            <span class="ident">iter</span>: <span class="ident">iter</span>.<span class="ident">rev</span>(),
+        <span class="prelude-val">Ok</span>(SledMessagesIter {
+            cipher: <span class="self">self</span>.cipher.clone(),
+            iter: iter.rev(),
         })
     }
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SledMessagesIter</span> {
-    <span class="ident">cipher</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Arc</span><span class="op">&lt;</span><span class="ident">StoreCipher</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="ident">iter</span>: <span class="ident">std::iter::Rev</span><span class="op">&lt;</span><span class="ident">sled::Iter</span><span class="op">&gt;</span>,
+<span class="kw">pub struct </span>SledMessagesIter {
+    cipher: <span class="prelude-ty">Option</span>&lt;Arc&lt;StoreCipher&gt;&gt;,
+    iter: std::iter::Rev&lt;sled::Iter&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">Iterator</span> <span class="kw">for</span> <span class="ident">SledMessagesIter</span> {
-    <span class="kw">type</span> <span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Content</span>, <span class="ident">Error</span><span class="op">&gt;</span>;
+<span class="kw">impl </span>Iterator <span class="kw">for </span>SledMessagesIter {
+    <span class="kw">type </span>Item = <span class="prelude-ty">Result</span>&lt;Content, Error&gt;;
 
-    <span class="kw">fn</span> <span class="ident">next</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::Item</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">iter</span>
-            .<span class="ident">next</span>()<span class="question-mark">?</span>
-            .<span class="ident">map_err</span>(<span class="ident">Error::from</span>)
-            .<span class="ident">and_then</span>(<span class="op">|</span>(<span class="kw">_</span>, <span class="ident">value</span>)<span class="op">|</span> {
-                <span class="self">self</span>.<span class="ident">cipher</span>.<span class="ident">as_ref</span>().<span class="ident">map_or_else</span>(
-                    <span class="op">|</span><span class="op">|</span> <span class="ident">serde_json::from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
-                    <span class="op">|</span><span class="ident">c</span><span class="op">|</span> <span class="ident">c</span>.<span class="ident">decrypt_value</span>(<span class="kw-2">&amp;</span><span class="ident">value</span>).<span class="ident">map_err</span>(<span class="ident">Error::from</span>),
+    <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
+        <span class="self">self</span>.iter
+            .next()<span class="question-mark">?
+            </span>.map_err(Error::from)
+            .and_then(|(<span class="kw">_</span>, value)| {
+                <span class="self">self</span>.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(<span class="kw-2">&amp;</span>value).map_err(Error::from),
+                    |c| c.decrypt_value(<span class="kw-2">&amp;</span>value).map_err(Error::from),
                 )
             })
-            .<span class="ident">and_then</span>(<span class="op">|</span><span class="ident">data</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> <span class="ident">ContentProto::decode</span>(<span class="kw-2">&amp;</span><span class="ident">data</span>[..]).<span class="ident">map_err</span>(<span class="ident">Error::from</span>))
-            .<span class="ident">map_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(<span class="ident">e</span>)), <span class="op">|</span><span class="ident">p</span><span class="op">|</span> <span class="prelude-val">Some</span>(<span class="ident">p</span>.<span class="ident">try_into</span>()))
+            .and_then(|data: Vec&lt;u8&gt;| ContentProto::decode(<span class="kw-2">&amp;</span>data[..]).map_err(Error::from))
+            .map_or_else(|e| <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)), |p| <span class="prelude-val">Some</span>(p.try_into()))
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="ident">core::fmt</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use </span>core::fmt;
 
-    <span class="kw">use</span> <span class="ident">libsignal_service::prelude::protocol</span>::{
-        <span class="self">self</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">PreKeyRecord</span>, <span class="ident">PreKeyStore</span>, <span class="ident">SessionRecord</span>, <span class="ident">SessionStore</span>,
-        <span class="ident">SignedPreKeyRecord</span>, <span class="ident">SignedPreKeyStore</span>,
+    <span class="kw">use </span>libsignal_service::prelude::protocol::{
+        <span class="self">self</span>, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore,
+        SignedPreKeyRecord, SignedPreKeyStore,
     };
-    <span class="kw">use</span> <span class="ident">quickcheck</span>::{<span class="ident">Arbitrary</span>, <span class="ident">Gen</span>};
+    <span class="kw">use </span>quickcheck::{Arbitrary, Gen};
 
-    <span class="kw">use</span> <span class="ident"><span class="kw">super</span>::SledStore</span>;
+    <span class="kw">use </span><span class="kw">super</span>::SledStore;
 
-    <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-    <span class="kw">struct</span> <span class="ident">ProtocolAddress</span>(<span class="ident">protocol::ProtocolAddress</span>);
+    <span class="attribute">#[derive(Debug, Clone)]
+    </span><span class="kw">struct </span>ProtocolAddress(protocol::ProtocolAddress);
 
-    <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-    <span class="kw">struct</span> <span class="ident">KeyPair</span>(<span class="ident">protocol::KeyPair</span>);
+    <span class="attribute">#[derive(Clone)]
+    </span><span class="kw">struct </span>KeyPair(protocol::KeyPair);
 
-    <span class="kw">impl</span> <span class="ident">fmt::Debug</span> <span class="kw">for</span> <span class="ident">KeyPair</span> {
-        <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">fmt::Result</span> {
-            <span class="macro">writeln!</span>(<span class="ident">f</span>, <span class="string">&quot;{}&quot;</span>, <span class="ident">base64::encode</span>(<span class="self">self</span>.<span class="number">0</span>.<span class="ident">public_key</span>.<span class="ident">serialize</span>()))
+    <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>KeyPair {
+        <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+            <span class="macro">writeln!</span>(f, <span class="string">&quot;{}&quot;</span>, base64::encode(<span class="self">self</span>.<span class="number">0</span>.public_key.serialize()))
         }
     }
 
-    <span class="kw">impl</span> <span class="ident">Arbitrary</span> <span class="kw">for</span> <span class="ident">ProtocolAddress</span> {
-        <span class="kw">fn</span> <span class="ident">arbitrary</span>(<span class="ident">g</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Gen</span>) -&gt; <span class="self">Self</span> {
-            <span class="kw">let</span> <span class="ident">name</span>: <span class="ident">String</span> <span class="op">=</span> <span class="ident">Arbitrary::arbitrary</span>(<span class="ident">g</span>);
-            <span class="kw">let</span> <span class="ident">device_id</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="ident">Arbitrary::arbitrary</span>(<span class="ident">g</span>);
-            <span class="ident">ProtocolAddress</span>(<span class="ident">protocol::ProtocolAddress::new</span>(<span class="ident">name</span>, <span class="ident">device_id</span>.<span class="ident">into</span>()))
+    <span class="kw">impl </span>Arbitrary <span class="kw">for </span>ProtocolAddress {
+        <span class="kw">fn </span>arbitrary(g: <span class="kw-2">&amp;mut </span>Gen) -&gt; <span class="self">Self </span>{
+            <span class="kw">let </span>name: String = Arbitrary::arbitrary(g);
+            <span class="kw">let </span>device_id: u32 = Arbitrary::arbitrary(g);
+            ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
         }
     }
 
-    <span class="kw">impl</span> <span class="ident">Arbitrary</span> <span class="kw">for</span> <span class="ident">KeyPair</span> {
-        <span class="kw">fn</span> <span class="ident">arbitrary</span>(<span class="ident">_g</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Gen</span>) -&gt; <span class="self">Self</span> {
-            <span class="comment">// Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241</span>
-            <span class="ident">KeyPair</span>(<span class="ident">protocol::KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">rand::thread_rng</span>()))
+    <span class="kw">impl </span>Arbitrary <span class="kw">for </span>KeyPair {
+        <span class="kw">fn </span>arbitrary(_g: <span class="kw-2">&amp;mut </span>Gen) -&gt; <span class="self">Self </span>{
+            <span class="comment">// Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241
+            </span>KeyPair(protocol::KeyPair::generate(<span class="kw-2">&amp;mut </span>rand::thread_rng()))
         }
     }
 
-    <span class="attribute">#[<span class="ident">quickcheck_async::tokio</span>]</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">test_save_get_trust_identity</span>(<span class="ident">addr</span>: <span class="ident">ProtocolAddress</span>, <span class="ident">key_pair</span>: <span class="ident">KeyPair</span>) -&gt; <span class="ident">bool</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">SledStore::temporary</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">identity_key</span> <span class="op">=</span> <span class="ident">protocol::IdentityKey::new</span>(<span class="ident">key_pair</span>.<span class="number">0</span>.<span class="ident">public_key</span>);
-        <span class="ident">db</span>.<span class="ident">save_identity</span>(<span class="kw-2">&amp;</span><span class="ident">addr</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span><span class="ident">identity_key</span>, <span class="prelude-val">None</span>)
-            .<span class="kw">await</span>
-            .<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="ident">db</span>.<span class="ident">get_identity</span>(<span class="kw-2">&amp;</span><span class="ident">addr</span>.<span class="number">0</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>().<span class="ident">unwrap</span>();
-        <span class="kw">if</span> <span class="ident">id</span> <span class="op">!</span><span class="op">=</span> <span class="ident">identity_key</span> {
-            <span class="kw">return</span> <span class="bool-val">false</span>;
+    <span class="attribute">#[quickcheck_async::tokio]
+    </span><span class="kw">async fn </span>test_save_get_trust_identity(addr: ProtocolAddress, key_pair: KeyPair) -&gt; bool {
+        <span class="kw">let </span><span class="kw-2">mut </span>db = SledStore::temporary().unwrap();
+        <span class="kw">let </span>identity_key = protocol::IdentityKey::new(key_pair.<span class="number">0</span>.public_key);
+        db.save_identity(<span class="kw-2">&amp;</span>addr.<span class="number">0</span>, <span class="kw-2">&amp;</span>identity_key, <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.unwrap();
+        <span class="kw">let </span>id = db.get_identity(<span class="kw-2">&amp;</span>addr.<span class="number">0</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap().unwrap();
+        <span class="kw">if </span>id != identity_key {
+            <span class="kw">return </span><span class="bool-val">false</span>;
         }
-        <span class="ident">db</span>.<span class="ident">is_trusted_identity</span>(<span class="kw-2">&amp;</span><span class="ident">addr</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span><span class="ident">id</span>, <span class="ident">Direction::Receiving</span>, <span class="prelude-val">None</span>)
-            .<span class="kw">await</span>
-            .<span class="ident">unwrap</span>()
+        db.is_trusted_identity(<span class="kw-2">&amp;</span>addr.<span class="number">0</span>, <span class="kw-2">&amp;</span>id, Direction::Receiving, <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.unwrap()
     }
 
-    <span class="attribute">#[<span class="ident">quickcheck_async::tokio</span>]</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">test_store_load_session</span>(<span class="ident">addr</span>: <span class="ident">ProtocolAddress</span>) -&gt; <span class="ident">bool</span> {
-        <span class="kw">let</span> <span class="ident">session</span> <span class="op">=</span> <span class="ident">SessionRecord::new_fresh</span>();
+    <span class="attribute">#[quickcheck_async::tokio]
+    </span><span class="kw">async fn </span>test_store_load_session(addr: ProtocolAddress) -&gt; bool {
+        <span class="kw">let </span>session = SessionRecord::new_fresh();
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">SledStore::temporary</span>().<span class="ident">unwrap</span>();
-        <span class="ident">db</span>.<span class="ident">store_session</span>(<span class="kw-2">&amp;</span><span class="ident">addr</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span><span class="ident">session</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>();
-        <span class="kw">if</span> <span class="ident">db</span>.<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">addr</span>.<span class="number">0</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>().<span class="ident">is_none</span>() {
-            <span class="kw">return</span> <span class="bool-val">false</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>db = SledStore::temporary().unwrap();
+        db.store_session(<span class="kw-2">&amp;</span>addr.<span class="number">0</span>, <span class="kw-2">&amp;</span>session, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap();
+        <span class="kw">if </span>db.load_session(<span class="kw-2">&amp;</span>addr.<span class="number">0</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap().is_none() {
+            <span class="kw">return </span><span class="bool-val">false</span>;
         }
-        <span class="kw">let</span> <span class="ident">loaded_session</span> <span class="op">=</span> <span class="ident">db</span>.<span class="ident">load_session</span>(<span class="kw-2">&amp;</span><span class="ident">addr</span>.<span class="number">0</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>().<span class="ident">unwrap</span>();
-        <span class="ident">session</span>.<span class="ident">serialize</span>().<span class="ident">unwrap</span>() <span class="op">==</span> <span class="ident">loaded_session</span>.<span class="ident">serialize</span>().<span class="ident">unwrap</span>()
+        <span class="kw">let </span>loaded_session = db.load_session(<span class="kw-2">&amp;</span>addr.<span class="number">0</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap().unwrap();
+        session.serialize().unwrap() == loaded_session.serialize().unwrap()
     }
 
-    <span class="attribute">#[<span class="ident">quickcheck_async::tokio</span>]</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">test_prekey_store</span>(<span class="ident">id</span>: <span class="ident">u32</span>, <span class="ident">key_pair</span>: <span class="ident">KeyPair</span>) -&gt; <span class="ident">bool</span> {
-        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="ident">id</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">SledStore::temporary</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">pre_key_record</span> <span class="op">=</span> <span class="ident">PreKeyRecord::new</span>(<span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">key_pair</span>.<span class="number">0</span>);
-        <span class="ident">db</span>.<span class="ident">save_pre_key</span>(<span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">pre_key_record</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>();
-        <span class="kw">if</span> <span class="ident">db</span>.<span class="ident">get_pre_key</span>(<span class="ident">id</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>().<span class="ident">serialize</span>().<span class="ident">unwrap</span>()
-            <span class="op">!</span><span class="op">=</span> <span class="ident">pre_key_record</span>.<span class="ident">serialize</span>().<span class="ident">unwrap</span>()
+    <span class="attribute">#[quickcheck_async::tokio]
+    </span><span class="kw">async fn </span>test_prekey_store(id: u32, key_pair: KeyPair) -&gt; bool {
+        <span class="kw">let </span>id = id.into();
+        <span class="kw">let </span><span class="kw-2">mut </span>db = SledStore::temporary().unwrap();
+        <span class="kw">let </span>pre_key_record = PreKeyRecord::new(id, <span class="kw-2">&amp;</span>key_pair.<span class="number">0</span>);
+        db.save_pre_key(id, <span class="kw-2">&amp;</span>pre_key_record, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap();
+        <span class="kw">if </span>db.get_pre_key(id, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap().serialize().unwrap()
+            != pre_key_record.serialize().unwrap()
         {
-            <span class="kw">return</span> <span class="bool-val">false</span>;
+            <span class="kw">return </span><span class="bool-val">false</span>;
         }
 
-        <span class="ident">db</span>.<span class="ident">remove_pre_key</span>(<span class="ident">id</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">unwrap</span>();
-        <span class="ident">db</span>.<span class="ident">get_pre_key</span>(<span class="ident">id</span>, <span class="prelude-val">None</span>).<span class="kw">await</span>.<span class="ident">is_err</span>()
+        db.remove_pre_key(id, <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap();
+        db.get_pre_key(id, <span class="prelude-val">None</span>).<span class="kw">await</span>.is_err()
     }
 
-    <span class="attribute">#[<span class="ident">quickcheck_async::tokio</span>]</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">test_signed_prekey_store</span>(
-        <span class="ident">id</span>: <span class="ident">u32</span>,
-        <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-        <span class="ident">key_pair</span>: <span class="ident">KeyPair</span>,
-        <span class="ident">signature</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="ident">bool</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">db</span> <span class="op">=</span> <span class="ident">SledStore::temporary</span>().<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">id</span> <span class="op">=</span> <span class="ident">id</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">signed_pre_key_record</span> <span class="op">=</span> <span class="ident">SignedPreKeyRecord::new</span>(<span class="ident">id</span>, <span class="ident">timestamp</span>, <span class="kw-2">&amp;</span><span class="ident">key_pair</span>.<span class="number">0</span>, <span class="kw-2">&amp;</span><span class="ident">signature</span>);
-        <span class="ident">db</span>.<span class="ident">save_signed_pre_key</span>(<span class="ident">id</span>, <span class="kw-2">&amp;</span><span class="ident">signed_pre_key_record</span>, <span class="prelude-val">None</span>)
-            .<span class="kw">await</span>
-            .<span class="ident">unwrap</span>();
+    <span class="attribute">#[quickcheck_async::tokio]
+    </span><span class="kw">async fn </span>test_signed_prekey_store(
+        id: u32,
+        timestamp: u64,
+        key_pair: KeyPair,
+        signature: Vec&lt;u8&gt;,
+    ) -&gt; bool {
+        <span class="kw">let </span><span class="kw-2">mut </span>db = SledStore::temporary().unwrap();
+        <span class="kw">let </span>id = id.into();
+        <span class="kw">let </span>signed_pre_key_record = SignedPreKeyRecord::new(id, timestamp, <span class="kw-2">&amp;</span>key_pair.<span class="number">0</span>, <span class="kw-2">&amp;</span>signature);
+        db.save_signed_pre_key(id, <span class="kw-2">&amp;</span>signed_pre_key_record, <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.unwrap();
 
-        <span class="ident">db</span>.<span class="ident">get_signed_pre_key</span>(<span class="ident">id</span>, <span class="prelude-val">None</span>)
-            .<span class="kw">await</span>
-            .<span class="ident">unwrap</span>()
-            .<span class="ident">serialize</span>()
-            .<span class="ident">unwrap</span>()
-            <span class="op">==</span> <span class="ident">signed_pre_key_record</span>.<span class="ident">serialize</span>().<span class="ident">unwrap</span>()
+        db.get_signed_pre_key(id, <span class="prelude-val">None</span>)
+            .<span class="kw">await
+            </span>.unwrap()
+            .serialize()
+            .unwrap()
+            == signed_pre_key_record.serialize().unwrap()
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

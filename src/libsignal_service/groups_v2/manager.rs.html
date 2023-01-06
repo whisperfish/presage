@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/groups_v2/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/groups_v2/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -273,280 +273,280 @@
 <span id="273">273</span>
 <span id="274">274</span>
 <span id="275">275</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{
-    <span class="ident">collections::HashMap</span>,
-    <span class="ident">convert::TryInto</span>,
-    <span class="ident">time</span>::{<span class="ident">SystemTime</span>, <span class="ident">UNIX_EPOCH</span>},
+</pre><pre class="rust"><code><span class="kw">use </span>std::{
+    collections::HashMap,
+    convert::TryInto,
+    time::{SystemTime, UNIX_EPOCH},
 };
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">configuration::Endpoint</span>,
-    <span class="ident">groups_v2::operations</span>::{
-        <span class="ident">Group</span>, <span class="ident">GroupChanges</span>, <span class="ident">GroupDecryptionError</span>, <span class="ident">GroupOperations</span>,
+<span class="kw">use crate</span>::{
+    configuration::Endpoint,
+    groups_v2::operations::{
+        Group, GroupChanges, GroupDecryptionError, GroupOperations,
     },
-    <span class="ident">prelude</span>::{<span class="ident">PushService</span>, <span class="ident">ServiceError</span>},
-    <span class="ident">proto::GroupContextV2</span>,
-    <span class="ident">push_service</span>::{<span class="ident">HttpAuth</span>, <span class="ident">HttpAuthOverride</span>},
+    prelude::{PushService, ServiceError},
+    proto::GroupContextV2,
+    push_service::{HttpAuth, HttpAuthOverride},
 };
 
-<span class="kw">use</span> <span class="ident">bytes::Bytes</span>;
-<span class="kw">use</span> <span class="ident">futures::AsyncReadExt</span>;
-<span class="kw">use</span> <span class="ident">rand::RngCore</span>;
-<span class="kw">use</span> <span class="ident">serde::Deserialize</span>;
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
-<span class="kw">use</span> <span class="ident">zkgroup</span>::{
-    <span class="ident">auth::AuthCredentialResponse</span>,
-    <span class="ident">groups</span>::{<span class="ident">GroupMasterKey</span>, <span class="ident">GroupSecretParams</span>},
-    <span class="ident">ServerPublicParams</span>,
+<span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>futures::AsyncReadExt;
+<span class="kw">use </span>rand::RngCore;
+<span class="kw">use </span>serde::Deserialize;
+<span class="kw">use </span>uuid::Uuid;
+<span class="kw">use </span>zkgroup::{
+    auth::AuthCredentialResponse,
+    groups::{GroupMasterKey, GroupSecretParams},
+    ServerPublicParams,
 };
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">serde::Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">TemporalCredential</span> {
-    <span class="ident">credential</span>: <span class="ident">String</span>,
-    <span class="ident">redemption_time</span>: <span class="ident">i64</span>,
+<span class="attribute">#[derive(Debug, serde::Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>TemporalCredential {
+    credential: String,
+    redemption_time: i64,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">CredentialResponse</span> {
-    <span class="ident">credentials</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">TemporalCredential</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>CredentialResponse {
+    credentials: Vec&lt;TemporalCredential&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">CredentialResponse</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">parse</span>(
+<span class="kw">impl </span>CredentialResponse {
+    <span class="kw">pub fn </span>parse(
         <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">i64</span>, <span class="ident">AuthCredentialResponse</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">credentials</span>
-            .<span class="ident">into_iter</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">c</span><span class="op">|</span> {
-                <span class="kw">let</span> <span class="ident">bytes</span> <span class="op">=</span> <span class="ident">base64::decode</span>(<span class="ident">c</span>.<span class="ident">credential</span>)<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">data</span> <span class="op">=</span> <span class="ident">bincode::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">bytes</span>)<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>((<span class="ident">c</span>.<span class="ident">redemption_time</span>, <span class="ident">data</span>))
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;HashMap&lt;i64, AuthCredentialResponse&gt;, ServiceError&gt; {
+        <span class="self">self</span>.credentials
+            .into_iter()
+            .map(|c| {
+                <span class="kw">let </span>bytes = base64::decode(c.credential)<span class="question-mark">?</span>;
+                <span class="kw">let </span>data = bincode::deserialize(<span class="kw-2">&amp;</span>bytes)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>((c.redemption_time, data))
             })
-            .<span class="ident">collect</span>::<span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">_</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>()
+            .collect::&lt;<span class="prelude-ty">Result</span>&lt;<span class="kw">_</span>, ServiceError&gt;&gt;()
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">thiserror::Error</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">CredentialsCacheError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;failed to read values from cache: {0}&quot;</span>)]</span>
-    <span class="ident">ReadError</span>(<span class="ident">String</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;failed to write values from cache: {0}&quot;</span>)]</span>
-    <span class="ident">WriteError</span>(<span class="ident">String</span>),
+<span class="attribute">#[derive(Debug, thiserror::Error)]
+</span><span class="kw">pub enum </span>CredentialsCacheError {
+    <span class="attribute">#[error(<span class="string">&quot;failed to read values from cache: {0}&quot;</span>)]
+    </span>ReadError(String),
+    <span class="attribute">#[error(<span class="string">&quot;failed to write values from cache: {0}&quot;</span>)]
+    </span>WriteError(String),
 }
 
-<span class="doccomment">/// Global cache for groups v2 credentials, as demonstrated in the libsignal-service</span>
-<span class="doccomment">/// java library of Signal-Android.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// A basic in-memory implementation is provided with `InMemoryCredentialsCache`.</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">CredentialsCache</span> {
-    <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">CredentialsCacheError</span><span class="op">&gt;</span>;
+<span class="doccomment">/// Global cache for groups v2 credentials, as demonstrated in the libsignal-service
+/// java library of Signal-Android.
+///
+/// A basic in-memory implementation is provided with `InMemoryCredentialsCache`.
+</span><span class="kw">pub trait </span>CredentialsCache {
+    <span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt;;
 
-    <span class="doccomment">/// Get an entry of the cache, key usually represents the day number since EPOCH.</span>
-    <span class="kw">fn</span> <span class="ident">get</span>(
+    <span class="doccomment">/// Get an entry of the cache, key usually represents the day number since EPOCH.
+    </span><span class="kw">fn </span>get(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">i64</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">AuthCredentialResponse</span><span class="op">&gt;</span>, <span class="ident">CredentialsCacheError</span><span class="op">&gt;</span>;
+        key: <span class="kw-2">&amp;</span>i64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialResponse&gt;, CredentialsCacheError&gt;;
 
-    <span class="doccomment">/// Overwrite the entire contents of the cache with new data.</span>
-    <span class="kw">fn</span> <span class="ident">write</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">map</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">i64</span>, <span class="ident">AuthCredentialResponse</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">CredentialsCacheError</span><span class="op">&gt;</span>;
+    <span class="doccomment">/// Overwrite the entire contents of the cache with new data.
+    </span><span class="kw">fn </span>write(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        map: HashMap&lt;i64, AuthCredentialResponse&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt;;
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Default</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">InMemoryCredentialsCache</span> {
-    <span class="ident">map</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">i64</span>, <span class="ident">AuthCredentialResponse</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Default)]
+</span><span class="kw">pub struct </span>InMemoryCredentialsCache {
+    map: HashMap&lt;i64, AuthCredentialResponse&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">CredentialsCache</span> <span class="kw">for</span> <span class="ident">InMemoryCredentialsCache</span> {
-    <span class="kw">fn</span> <span class="ident">clear</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">CredentialsCacheError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">map</span>.<span class="ident">clear</span>();
+<span class="kw">impl </span>CredentialsCache <span class="kw">for </span>InMemoryCredentialsCache {
+    <span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt; {
+        <span class="self">self</span>.map.clear();
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn</span> <span class="ident">get</span>(
+    <span class="kw">fn </span>get(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">i64</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">AuthCredentialResponse</span><span class="op">&gt;</span>, <span class="ident">CredentialsCacheError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">map</span>.<span class="ident">get</span>(<span class="ident">key</span>))
+        key: <span class="kw-2">&amp;</span>i64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialResponse&gt;, CredentialsCacheError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.map.get(key))
     }
 
-    <span class="kw">fn</span> <span class="ident">write</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">map</span>: <span class="ident">HashMap</span><span class="op">&lt;</span><span class="ident">i64</span>, <span class="ident">AuthCredentialResponse</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">CredentialsCacheError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">map</span> <span class="op">=</span> <span class="ident">map</span>;
+    <span class="kw">fn </span>write(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        map: HashMap&lt;i64, AuthCredentialResponse&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt; {
+        <span class="self">self</span>.map = map;
         <span class="prelude-val">Ok</span>(())
     }
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">GroupsManager</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">S</span>: <span class="ident">PushService</span>, <span class="ident">C</span>: <span class="ident">CredentialsCache</span><span class="op">&gt;</span> {
-    <span class="ident">push_service</span>: <span class="ident">S</span>,
-    <span class="ident">credentials_cache</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">C</span>,
-    <span class="ident">server_public_params</span>: <span class="ident">ServerPublicParams</span>,
+<span class="kw">pub struct </span>GroupsManager&lt;<span class="lifetime">&#39;a</span>, S: PushService, C: CredentialsCache&gt; {
+    push_service: S,
+    credentials_cache: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>C,
+    server_public_params: ServerPublicParams,
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">S</span>: <span class="ident">PushService</span>, <span class="ident">C</span>: <span class="ident">CredentialsCache</span><span class="op">&gt;</span> <span class="ident">GroupsManager</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span>, <span class="ident">S</span>, <span class="ident">C</span><span class="op">&gt;</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">push_service</span>: <span class="ident">S</span>,
-        <span class="ident">credentials_cache</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a</span> <span class="kw-2">mut</span> <span class="ident">C</span>,
-        <span class="ident">server_public_params</span>: <span class="ident">ServerPublicParams</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">push_service</span>,
-            <span class="ident">credentials_cache</span>,
-            <span class="ident">server_public_params</span>,
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, S: PushService, C: CredentialsCache&gt; GroupsManager&lt;<span class="lifetime">&#39;a</span>, S, C&gt; {
+    <span class="kw">pub fn </span>new(
+        push_service: S,
+        credentials_cache: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span>C,
+        server_public_params: ServerPublicParams,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            push_service,
+            credentials_cache,
+            server_public_params,
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_authorization_for_today</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">GroupSecretParams</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">HttpAuth</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">today</span> <span class="op">=</span> <span class="ident"><span class="self">Self</span>::current_time_days</span>();
-        <span class="kw">let</span> <span class="ident">auth_credential_response</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">auth_credential_response</span>) <span class="op">=</span>
-            <span class="self">self</span>.<span class="ident">credentials_cache</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">today</span>)<span class="question-mark">?</span>
-        {
-            <span class="ident">auth_credential_response</span>
-        } <span class="kw">else</span> {
-            <span class="kw">let</span> <span class="ident">credentials_map</span> <span class="op">=</span>
-                <span class="self">self</span>.<span class="ident">get_authorization</span>(<span class="ident">today</span>).<span class="kw">await</span><span class="question-mark">?</span>.<span class="ident">parse</span>()<span class="question-mark">?</span>;
-            <span class="self">self</span>.<span class="ident">credentials_cache</span>.<span class="ident">write</span>(<span class="ident">credentials_map</span>)<span class="question-mark">?</span>;
-            <span class="self">self</span>.<span class="ident">credentials_cache</span>.<span class="ident">get</span>(<span class="kw-2">&amp;</span><span class="ident">today</span>)<span class="question-mark">?</span>.<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">ServiceError::ResponseError</span> {
-                    <span class="ident">reason</span>:
-                        <span class="string">&quot;credentials received did not contain requested day&quot;</span>
-                            .<span class="ident">into</span>(),
+    <span class="kw">pub async fn </span>get_authorization_for_today(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        uuid: Uuid,
+        group_secret_params: GroupSecretParams,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;HttpAuth, ServiceError&gt; {
+        <span class="kw">let </span>today = <span class="self">Self</span>::current_time_days();
+        <span class="kw">let </span>auth_credential_response = <span class="kw">if let </span><span class="prelude-val">Some</span>(auth_credential_response) =
+            <span class="self">self</span>.credentials_cache.get(<span class="kw-2">&amp;</span>today)<span class="question-mark">?
+        </span>{
+            auth_credential_response
+        } <span class="kw">else </span>{
+            <span class="kw">let </span>credentials_map =
+                <span class="self">self</span>.get_authorization(today).<span class="kw">await</span><span class="question-mark">?</span>.parse()<span class="question-mark">?</span>;
+            <span class="self">self</span>.credentials_cache.write(credentials_map)<span class="question-mark">?</span>;
+            <span class="self">self</span>.credentials_cache.get(<span class="kw-2">&amp;</span>today)<span class="question-mark">?</span>.ok_or_else(|| {
+                ServiceError::ResponseError {
+                    reason:
+                        <span class="string">&quot;credentials received did not contain requested day&quot;
+                            </span>.into(),
                 }
-            })<span class="question-mark">?</span>
-        };
+            })<span class="question-mark">?
+        </span>};
 
-        <span class="self">self</span>.<span class="ident">get_authorization_string</span>(
-            <span class="ident">uuid</span>,
-            <span class="ident">group_secret_params</span>,
-            <span class="ident">auth_credential_response</span>,
-            <span class="ident">today</span> <span class="kw">as</span> <span class="ident">u32</span>,
+        <span class="self">self</span>.get_authorization_string(
+            uuid,
+            group_secret_params,
+            auth_credential_response,
+            today <span class="kw">as </span>u32,
         )
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_authorization</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">today</span>: <span class="ident">i64</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">CredentialResponse</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">today_plus_7_days</span> <span class="op">=</span> <span class="ident">today</span> <span class="op">+</span> <span class="number">7</span>;
+    <span class="kw">async fn </span>get_authorization(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        today: i64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;CredentialResponse, ServiceError&gt; {
+        <span class="kw">let </span>today_plus_7_days = today + <span class="number">7</span>;
 
-        <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span>
-            <span class="macro">format!</span>(<span class="string">&quot;/v1/certificate/group/{}/{}&quot;</span>, <span class="ident">today</span>, <span class="ident">today_plus_7_days</span>);
+        <span class="kw">let </span>path =
+            <span class="macro">format!</span>(<span class="string">&quot;/v1/certificate/group/{}/{}&quot;</span>, today, today_plus_7_days);
 
-        <span class="self">self</span>.<span class="ident">push_service</span>
-            .<span class="ident">get_json</span>(<span class="ident">Endpoint::Service</span>, <span class="kw-2">&amp;</span><span class="ident">path</span>, <span class="ident">HttpAuthOverride::NoOverride</span>)
-            .<span class="kw">await</span>
+        <span class="self">self</span>.push_service
+            .get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)
+            .<span class="kw">await
+    </span>}
+
+    <span class="kw">fn </span>current_time_days() -&gt; i64 {
+        <span class="kw">let </span>now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        <span class="kw">let </span>today = chrono::Duration::from_std(now).unwrap();
+        today.num_days()
     }
 
-    <span class="kw">fn</span> <span class="ident">current_time_days</span>() -&gt; <span class="ident">i64</span> {
-        <span class="kw">let</span> <span class="ident">now</span> <span class="op">=</span> <span class="ident">SystemTime::now</span>().<span class="ident">duration_since</span>(<span class="ident">UNIX_EPOCH</span>).<span class="ident">unwrap</span>();
-        <span class="kw">let</span> <span class="ident">today</span> <span class="op">=</span> <span class="ident">chrono::Duration::from_std</span>(<span class="ident">now</span>).<span class="ident">unwrap</span>();
-        <span class="ident">today</span>.<span class="ident">num_days</span>()
-    }
-
-    <span class="kw">fn</span> <span class="ident">get_authorization_string</span>(
+    <span class="kw">fn </span>get_authorization_string(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">GroupSecretParams</span>,
-        <span class="ident">credential_response</span>: <span class="kw-2">&amp;</span><span class="ident">AuthCredentialResponse</span>,
-        <span class="ident">today</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">HttpAuth</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">auth_credential</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">server_public_params</span>
-            .<span class="ident">receive_auth_credential</span>(
-                <span class="kw-2">*</span><span class="ident">uuid</span>.<span class="ident">as_bytes</span>(),
-                <span class="ident">today</span>,
-                <span class="ident">credential_response</span>,
+        uuid: Uuid,
+        group_secret_params: GroupSecretParams,
+        credential_response: <span class="kw-2">&amp;</span>AuthCredentialResponse,
+        today: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;HttpAuth, ServiceError&gt; {
+        <span class="kw">let </span>auth_credential = <span class="self">self
+            </span>.server_public_params
+            .receive_auth_credential(
+                <span class="kw-2">*</span>uuid.as_bytes(),
+                today,
+                credential_response,
             )
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-                <span class="macro">log::error!</span>(<span class="string">&quot;zero-knowledge group error: {:?}&quot;</span>, <span class="ident">e</span>);
-                <span class="ident">ServiceError::GroupsV2Error</span>
+            .map_err(|e| {
+                <span class="macro">log::error!</span>(<span class="string">&quot;zero-knowledge group error: {:?}&quot;</span>, e);
+                ServiceError::GroupsV2Error
             })<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">random_bytes</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">32</span>];
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">random_bytes</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>random_bytes = [<span class="number">0u8</span>; <span class="number">32</span>];
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>random_bytes);
 
-        <span class="kw">let</span> <span class="ident">auth_credential_presentation</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">server_public_params</span>
-            .<span class="ident">create_auth_credential_presentation</span>(
-                <span class="ident">random_bytes</span>,
-                <span class="ident">group_secret_params</span>,
-                <span class="ident">auth_credential</span>,
+        <span class="kw">let </span>auth_credential_presentation = <span class="self">self
+            </span>.server_public_params
+            .create_auth_credential_presentation(
+                random_bytes,
+                group_secret_params,
+                auth_credential,
             );
 
-        <span class="comment">// see simpleapi.rs GroupSecretParams_getPublicParams, everything is bincode encoded</span>
-        <span class="comment">// across the boundary of Rust/Java</span>
-        <span class="kw">let</span> <span class="ident">username</span> <span class="op">=</span> <span class="ident">hex::encode</span>(<span class="ident">bincode::serialize</span>(
-            <span class="kw-2">&amp;</span><span class="ident">group_secret_params</span>.<span class="ident">get_public_params</span>(),
+        <span class="comment">// see simpleapi.rs GroupSecretParams_getPublicParams, everything is bincode encoded
+        // across the boundary of Rust/Java
+        </span><span class="kw">let </span>username = hex::encode(bincode::serialize(
+            <span class="kw-2">&amp;</span>group_secret_params.get_public_params(),
         )<span class="question-mark">?</span>);
 
-        <span class="kw">let</span> <span class="ident">password</span> <span class="op">=</span>
-            <span class="ident">hex::encode</span>(<span class="ident">bincode::serialize</span>(<span class="kw-2">&amp;</span><span class="ident">auth_credential_presentation</span>)<span class="question-mark">?</span>);
+        <span class="kw">let </span>password =
+            hex::encode(bincode::serialize(<span class="kw-2">&amp;</span>auth_credential_presentation)<span class="question-mark">?</span>);
 
-        <span class="prelude-val">Ok</span>(<span class="ident">HttpAuth</span> { <span class="ident">username</span>, <span class="ident">password</span> })
+        <span class="prelude-val">Ok</span>(HttpAuth { username, password })
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_group</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">GroupSecretParams</span>,
-        <span class="ident">credentials</span>: <span class="ident">HttpAuth</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Group</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">encrypted_group</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">push_service</span>.<span class="ident">get_group</span>(<span class="ident">credentials</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">decrypted_group</span> <span class="op">=</span> <span class="ident">GroupOperations::new</span>(<span class="ident">group_secret_params</span>)
-            .<span class="ident">decrypt_group</span>(<span class="ident">encrypted_group</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub async fn </span>get_group(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        group_secret_params: GroupSecretParams,
+        credentials: HttpAuth,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Group, ServiceError&gt; {
+        <span class="kw">let </span>encrypted_group = <span class="self">self</span>.push_service.get_group(credentials).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>decrypted_group = GroupOperations::new(group_secret_params)
+            .decrypt_group(encrypted_group)<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">decrypted_group</span>)
+        <span class="prelude-val">Ok</span>(decrypted_group)
     }
 
-    <span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_avatar</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">group_secret_params</span>: <span class="ident">GroupSecretParams</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">encrypted_avatar</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">push_service</span>
-            .<span class="ident">retrieve_groups_v2_profile_avatar</span>(<span class="ident">path</span>)
+    <span class="kw">pub async fn </span>retrieve_avatar(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+        group_secret_params: GroupSecretParams,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;, ServiceError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>encrypted_avatar = <span class="self">self
+            </span>.push_service
+            .retrieve_groups_v2_profile_avatar(path)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">result</span> <span class="op">=</span> <span class="ident">Vec::with_capacity</span>(<span class="number">10</span> <span class="op">*</span> <span class="number">1024</span> <span class="op">*</span> <span class="number">1024</span>);
-        <span class="ident">encrypted_avatar</span>
-            .<span class="ident">read_to_end</span>(<span class="kw-2">&amp;mut</span> <span class="ident">result</span>)
-            .<span class="kw">await</span>
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="ident">ServiceError::ResponseError</span> {
-                <span class="ident">reason</span>: <span class="macro">format!</span>(<span class="string">&quot;reading avatar data: {}&quot;</span>, <span class="ident">e</span>),
+        <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::with_capacity(<span class="number">10 </span>* <span class="number">1024 </span>* <span class="number">1024</span>);
+        encrypted_avatar
+            .read_to_end(<span class="kw-2">&amp;mut </span>result)
+            .<span class="kw">await
+            </span>.map_err(|e| ServiceError::ResponseError {
+                reason: <span class="macro">format!</span>(<span class="string">&quot;reading avatar data: {}&quot;</span>, e),
             })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">GroupOperations::new</span>(<span class="ident">group_secret_params</span>).<span class="ident">decrypt_avatar</span>(<span class="kw-2">&amp;</span><span class="ident">result</span>))
+        <span class="prelude-val">Ok</span>(GroupOperations::new(group_secret_params).decrypt_avatar(<span class="kw-2">&amp;</span>result))
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decrypt_group_context</span>(
+    <span class="kw">pub fn </span>decrypt_group_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">group_context</span>: <span class="ident">GroupContextV2</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">GroupChanges</span><span class="op">&gt;</span>, <span class="ident">GroupDecryptionError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> (<span class="ident">group_context</span>.<span class="ident">master_key</span>, <span class="ident">group_context</span>.<span class="ident">group_change</span>) {
-            (<span class="prelude-val">Some</span>(<span class="ident">master_key</span>), <span class="prelude-val">Some</span>(<span class="ident">group_change</span>)) =&gt; {
-                <span class="kw">let</span> <span class="ident">master_key_bytes</span>: [<span class="ident">u8</span>; <span class="number">32</span>] <span class="op">=</span> <span class="ident">master_key</span>
-                    .<span class="ident">try_into</span>()
-                    .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">GroupDecryptionError::WrongBlob</span>)<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">group_master_key</span> <span class="op">=</span> <span class="ident">GroupMasterKey::new</span>(<span class="ident">master_key_bytes</span>);
-                <span class="kw">let</span> <span class="ident">group_secret_params</span> <span class="op">=</span>
-                    <span class="ident">GroupSecretParams::derive_from_master_key</span>(<span class="ident">group_master_key</span>);
-                <span class="kw">let</span> <span class="ident">encrypted_group_change</span> <span class="op">=</span>
-                    <span class="ident">prost::Message::decode</span>(<span class="ident">Bytes::from</span>(<span class="ident">group_change</span>))<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">group_change</span> <span class="op">=</span> <span class="ident">GroupOperations::new</span>(<span class="ident">group_secret_params</span>)
-                    .<span class="ident">decrypt_group_change</span>(<span class="ident">encrypted_group_change</span>)<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">group_change</span>))
+        group_context: GroupContextV2,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;GroupChanges&gt;, GroupDecryptionError&gt; {
+        <span class="kw">match </span>(group_context.master_key, group_context.group_change) {
+            (<span class="prelude-val">Some</span>(master_key), <span class="prelude-val">Some</span>(group_change)) =&gt; {
+                <span class="kw">let </span>master_key_bytes: [u8; <span class="number">32</span>] = master_key
+                    .try_into()
+                    .map_err(|<span class="kw">_</span>| GroupDecryptionError::WrongBlob)<span class="question-mark">?</span>;
+                <span class="kw">let </span>group_master_key = GroupMasterKey::new(master_key_bytes);
+                <span class="kw">let </span>group_secret_params =
+                    GroupSecretParams::derive_from_master_key(group_master_key);
+                <span class="kw">let </span>encrypted_group_change =
+                    prost::Message::decode(Bytes::from(group_change))<span class="question-mark">?</span>;
+                <span class="kw">let </span>group_change = GroupOperations::new(group_secret_params)
+                    .decrypt_group_change(encrypted_group_change)<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group_change))
             },
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

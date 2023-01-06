@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/group_cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>group_cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/group_cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>group_cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -292,299 +292,299 @@
 <span id="292">292</span>
 <span id="293">293</span>
 <span id="294">294</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020-2021 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020-2021 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">consts</span>, <span class="ident">crypto</span>};
+</span><span class="kw">use crate</span>::{consts, crypto};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">CiphertextMessageType</span>, <span class="ident">Context</span>, <span class="ident">KeyPair</span>, <span class="ident">ProtocolAddress</span>, <span class="prelude-ty">Result</span>, <span class="ident">SenderKeyDistributionMessage</span>,
-    <span class="ident">SenderKeyMessage</span>, <span class="ident">SenderKeyRecord</span>, <span class="ident">SenderKeyStore</span>, <span class="ident">SignalProtocolError</span>,
+<span class="kw">use crate</span>::{
+    CiphertextMessageType, Context, KeyPair, ProtocolAddress, <span class="prelude-ty">Result</span>, SenderKeyDistributionMessage,
+    SenderKeyMessage, SenderKeyRecord, SenderKeyStore, SignalProtocolError,
 };
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::protocol::SENDERKEY_MESSAGE_CURRENT_VERSION</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::sender_keys</span>::{<span class="ident">SenderKeyState</span>, <span class="ident">SenderMessageKey</span>};
+<span class="kw">use </span><span class="kw">crate</span>::protocol::SENDERKEY_MESSAGE_CURRENT_VERSION;
+<span class="kw">use </span><span class="kw">crate</span>::sender_keys::{SenderKeyState, SenderMessageKey};
 
-<span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">CryptoRng</span>, <span class="ident">Rng</span>};
-<span class="kw">use</span> <span class="ident">std::convert::TryFrom</span>;
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
+<span class="kw">use </span>rand::{CryptoRng, Rng};
+<span class="kw">use </span>std::convert::TryFrom;
+<span class="kw">use </span>uuid::Uuid;
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">group_encrypt</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">sender_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SenderKeyStore</span>,
-    <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-    <span class="ident">plaintext</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SenderKeyMessage</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">record</span> <span class="op">=</span> <span class="ident">sender_key_store</span>
-        .<span class="ident">load_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::NoSenderKeyState</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
+<span class="kw">pub async fn </span>group_encrypt&lt;R: Rng + CryptoRng&gt;(
+    sender_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SenderKeyStore,
+    sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+    distribution_id: Uuid,
+    plaintext: <span class="kw-2">&amp;</span>[u8],
+    csprng: <span class="kw-2">&amp;mut </span>R,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;SenderKeyMessage&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>record = sender_key_store
+        .load_sender_key(sender, distribution_id, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.ok_or(SignalProtocolError::NoSenderKeyState { distribution_id })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">sender_key_state</span> <span class="op">=</span> <span class="ident">record</span>
-        .<span class="ident">sender_key_state_mut</span>()
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
+    <span class="kw">let </span>sender_key_state = record
+        .sender_key_state_mut()
+        .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">sender_chain_key</span> <span class="op">=</span> <span class="ident">sender_key_state</span>
-        .<span class="ident">sender_chain_key</span>()
-        .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
+    <span class="kw">let </span>sender_chain_key = sender_key_state
+        .sender_chain_key()
+        .ok_or(SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">message_keys</span> <span class="op">=</span> <span class="ident">sender_chain_key</span>.<span class="ident">sender_message_key</span>();
+    <span class="kw">let </span>message_keys = sender_chain_key.sender_message_key();
 
-    <span class="kw">let</span> <span class="ident">ciphertext</span> <span class="op">=</span>
-        <span class="ident">crypto::aes_256_cbc_encrypt</span>(<span class="ident">plaintext</span>, <span class="ident">message_keys</span>.<span class="ident">cipher_key</span>(), <span class="ident">message_keys</span>.<span class="ident">iv</span>())
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> {
+    <span class="kw">let </span>ciphertext =
+        crypto::aes_256_cbc_encrypt(plaintext, message_keys.cipher_key(), message_keys.iv())
+            .map_err(|<span class="kw">_</span>| {
                 <span class="macro">log::error!</span>(
                     <span class="string">&quot;outgoing sender key state corrupt for distribution ID {}&quot;</span>,
-                    <span class="ident">distribution_id</span>,
+                    distribution_id,
                 );
-                <span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> }
+                SignalProtocolError::InvalidSenderKeySession { distribution_id }
             })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">signing_key</span> <span class="op">=</span> <span class="ident">sender_key_state</span>
-        .<span class="ident">signing_key_private</span>()
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
+    <span class="kw">let </span>signing_key = sender_key_state
+        .signing_key_private()
+        .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">skm</span> <span class="op">=</span> <span class="ident">SenderKeyMessage::new</span>(
-        <span class="ident">sender_key_state</span>.<span class="ident">message_version</span>() <span class="kw">as</span> <span class="ident">u8</span>,
-        <span class="ident">distribution_id</span>,
-        <span class="ident">sender_key_state</span>.<span class="ident">chain_id</span>(),
-        <span class="ident">message_keys</span>.<span class="ident">iteration</span>(),
-        <span class="ident">ciphertext</span>.<span class="ident">into_boxed_slice</span>(),
-        <span class="ident">csprng</span>,
-        <span class="kw-2">&amp;</span><span class="ident">signing_key</span>,
+    <span class="kw">let </span>skm = SenderKeyMessage::new(
+        sender_key_state.message_version() <span class="kw">as </span>u8,
+        distribution_id,
+        sender_key_state.chain_id(),
+        message_keys.iteration(),
+        ciphertext.into_boxed_slice(),
+        csprng,
+        <span class="kw-2">&amp;</span>signing_key,
     )<span class="question-mark">?</span>;
 
-    <span class="ident">sender_key_state</span>.<span class="ident">set_sender_chain_key</span>(<span class="ident">sender_chain_key</span>.<span class="ident">next</span>());
+    sender_key_state.set_sender_chain_key(sender_chain_key.next());
 
-    <span class="ident">sender_key_store</span>
-        .<span class="ident">store_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="kw-2">&amp;</span><span class="ident">record</span>, <span class="ident">ctx</span>)
+    sender_key_store
+        .store_sender_key(sender, distribution_id, <span class="kw-2">&amp;</span>record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="prelude-val">Ok</span>(<span class="ident">skm</span>)
+    <span class="prelude-val">Ok</span>(skm)
 }
 
-<span class="kw">fn</span> <span class="ident">get_sender_key</span>(
-    <span class="ident">state</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SenderKeyState</span>,
-    <span class="ident">iteration</span>: <span class="ident">u32</span>,
-    <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SenderMessageKey</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">sender_chain_key</span> <span class="op">=</span> <span class="ident">state</span>
-        .<span class="ident">sender_chain_key</span>()
-        .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">current_iteration</span> <span class="op">=</span> <span class="ident">sender_chain_key</span>.<span class="ident">iteration</span>();
+<span class="kw">fn </span>get_sender_key(
+    state: <span class="kw-2">&amp;mut </span>SenderKeyState,
+    iteration: u32,
+    distribution_id: Uuid,
+) -&gt; <span class="prelude-ty">Result</span>&lt;SenderMessageKey&gt; {
+    <span class="kw">let </span>sender_chain_key = state
+        .sender_chain_key()
+        .ok_or(SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
+    <span class="kw">let </span>current_iteration = sender_chain_key.iteration();
 
-    <span class="kw">if</span> <span class="ident">current_iteration</span> <span class="op">&gt;</span> <span class="ident">iteration</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">smk</span>) <span class="op">=</span> <span class="ident">state</span>.<span class="ident">remove_sender_message_key</span>(<span class="ident">iteration</span>) {
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">smk</span>);
-        } <span class="kw">else</span> {
+    <span class="kw">if </span>current_iteration &gt; iteration {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(smk) = state.remove_sender_message_key(iteration) {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(smk);
+        } <span class="kw">else </span>{
             <span class="macro">log::info!</span>(
                 <span class="string">&quot;SenderKey distribution {} Duplicate message for iteration: {}&quot;</span>,
-                <span class="ident">distribution_id</span>,
-                <span class="ident">iteration</span>
+                distribution_id,
+                iteration
             );
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::DuplicatedMessage</span>(
-                <span class="ident">current_iteration</span>,
-                <span class="ident">iteration</span>,
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::DuplicatedMessage(
+                current_iteration,
+                iteration,
             ));
         }
     }
 
-    <span class="kw">let</span> <span class="ident">jump</span> <span class="op">=</span> (<span class="ident">iteration</span> <span class="op">-</span> <span class="ident">current_iteration</span>) <span class="kw">as</span> <span class="ident">usize</span>;
-    <span class="kw">if</span> <span class="ident">jump</span> <span class="op">&gt;</span> <span class="ident">consts::MAX_FORWARD_JUMPS</span> {
+    <span class="kw">let </span>jump = (iteration - current_iteration) <span class="kw">as </span>usize;
+    <span class="kw">if </span>jump &gt; consts::MAX_FORWARD_JUMPS {
         <span class="macro">log::error!</span>(
             <span class="string">&quot;SenderKey distribution {} Exceeded future message limit: {}, current iteration: {})&quot;</span>,
-            <span class="ident">distribution_id</span>,
-            <span class="ident">consts::MAX_FORWARD_JUMPS</span>,
-            <span class="ident">current_iteration</span>
+            distribution_id,
+            consts::MAX_FORWARD_JUMPS,
+            current_iteration
         );
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-            <span class="ident">CiphertextMessageType::SenderKey</span>,
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+            CiphertextMessageType::SenderKey,
             <span class="string">&quot;message from too far into the future&quot;</span>,
         ));
     }
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sender_chain_key</span> <span class="op">=</span> <span class="ident">sender_chain_key</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>sender_chain_key = sender_chain_key;
 
-    <span class="kw">while</span> <span class="ident">sender_chain_key</span>.<span class="ident">iteration</span>() <span class="op">&lt;</span> <span class="ident">iteration</span> {
-        <span class="ident">state</span>.<span class="ident">add_sender_message_key</span>(<span class="kw-2">&amp;</span><span class="ident">sender_chain_key</span>.<span class="ident">sender_message_key</span>());
-        <span class="ident">sender_chain_key</span> <span class="op">=</span> <span class="ident">sender_chain_key</span>.<span class="ident">next</span>();
+    <span class="kw">while </span>sender_chain_key.iteration() &lt; iteration {
+        state.add_sender_message_key(<span class="kw-2">&amp;</span>sender_chain_key.sender_message_key());
+        sender_chain_key = sender_chain_key.next();
     }
 
-    <span class="ident">state</span>.<span class="ident">set_sender_chain_key</span>(<span class="ident">sender_chain_key</span>.<span class="ident">next</span>());
-    <span class="prelude-val">Ok</span>(<span class="ident">sender_chain_key</span>.<span class="ident">sender_message_key</span>())
+    state.set_sender_chain_key(sender_chain_key.next());
+    <span class="prelude-val">Ok</span>(sender_chain_key.sender_message_key())
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">group_decrypt</span>(
-    <span class="ident">skm_bytes</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    <span class="ident">sender_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SenderKeyStore</span>,
-    <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">skm</span> <span class="op">=</span> <span class="ident">SenderKeyMessage::try_from</span>(<span class="ident">skm_bytes</span>)<span class="question-mark">?</span>;
+<span class="kw">pub async fn </span>group_decrypt(
+    skm_bytes: <span class="kw-2">&amp;</span>[u8],
+    sender_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SenderKeyStore,
+    sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+    <span class="kw">let </span>skm = SenderKeyMessage::try_from(skm_bytes)<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">distribution_id</span> <span class="op">=</span> <span class="ident">skm</span>.<span class="ident">distribution_id</span>();
-    <span class="kw">let</span> <span class="ident">chain_id</span> <span class="op">=</span> <span class="ident">skm</span>.<span class="ident">chain_id</span>();
+    <span class="kw">let </span>distribution_id = skm.distribution_id();
+    <span class="kw">let </span>chain_id = skm.chain_id();
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">record</span> <span class="op">=</span> <span class="ident">sender_key_store</span>
-        .<span class="ident">load_sender_key</span>(<span class="ident">sender</span>, <span class="ident">skm</span>.<span class="ident">distribution_id</span>(), <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::NoSenderKeyState</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>record = sender_key_store
+        .load_sender_key(sender, skm.distribution_id(), ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.ok_or(SignalProtocolError::NoSenderKeyState { distribution_id })<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">sender_key_state</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">record</span>.<span class="ident">sender_key_state_for_chain_id</span>(<span class="ident">chain_id</span>) {
-        <span class="prelude-val">Some</span>(<span class="ident">state</span>) =&gt; <span class="ident">state</span>,
-        <span class="prelude-val">None</span> =&gt; {
+    <span class="kw">let </span>sender_key_state = <span class="kw">match </span>record.sender_key_state_for_chain_id(chain_id) {
+        <span class="prelude-val">Some</span>(state) =&gt; state,
+        <span class="prelude-val">None </span>=&gt; {
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;SenderKey distribution {} could not find chain ID {} (known chain IDs: {:?})&quot;</span>,
-                <span class="ident">distribution_id</span>,
-                <span class="ident">chain_id</span>,
-                <span class="ident">record</span>.<span class="ident">chain_ids_for_logging</span>().<span class="ident">collect</span>::<span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="kw">_</span><span class="op">&gt;</span><span class="op">&gt;</span>(),
+                distribution_id,
+                chain_id,
+                record.chain_ids_for_logging().collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
             );
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::NoSenderKeyState</span> { <span class="ident">distribution_id</span> });
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::NoSenderKeyState { distribution_id });
         }
     };
 
-    <span class="kw">let</span> <span class="ident">message_version</span> <span class="op">=</span> <span class="ident">skm</span>.<span class="ident">message_version</span>() <span class="kw">as</span> <span class="ident">u32</span>;
-    <span class="kw">if</span> <span class="ident">message_version</span> <span class="op">!</span><span class="op">=</span> <span class="ident">sender_key_state</span>.<span class="ident">message_version</span>() {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::UnrecognizedMessageVersion</span>(
-            <span class="ident">message_version</span>,
+    <span class="kw">let </span>message_version = skm.message_version() <span class="kw">as </span>u32;
+    <span class="kw">if </span>message_version != sender_key_state.message_version() {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::UnrecognizedMessageVersion(
+            message_version,
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">signing_key</span> <span class="op">=</span> <span class="ident">sender_key_state</span>
-        .<span class="ident">signing_key_public</span>()
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">skm</span>.<span class="ident">verify_signature</span>(<span class="kw-2">&amp;</span><span class="ident">signing_key</span>)<span class="question-mark">?</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::SignatureValidationFailed</span>);
+    <span class="kw">let </span>signing_key = sender_key_state
+        .signing_key_public()
+        .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
+    <span class="kw">if </span>!skm.verify_signature(<span class="kw-2">&amp;</span>signing_key)<span class="question-mark">? </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::SignatureValidationFailed);
     }
 
-    <span class="kw">let</span> <span class="ident">sender_key</span> <span class="op">=</span> <span class="ident">get_sender_key</span>(<span class="ident">sender_key_state</span>, <span class="ident">skm</span>.<span class="ident">iteration</span>(), <span class="ident">distribution_id</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>sender_key = get_sender_key(sender_key_state, skm.iteration(), distribution_id)<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">crypto::aes_256_cbc_decrypt</span>(
-        <span class="ident">skm</span>.<span class="ident">ciphertext</span>(),
-        <span class="ident">sender_key</span>.<span class="ident">cipher_key</span>(),
-        <span class="ident">sender_key</span>.<span class="ident">iv</span>(),
+    <span class="kw">let </span>plaintext = <span class="kw">match </span>crypto::aes_256_cbc_decrypt(
+        skm.ciphertext(),
+        sender_key.cipher_key(),
+        sender_key.iv(),
     ) {
-        <span class="prelude-val">Ok</span>(<span class="ident">plaintext</span>) =&gt; <span class="ident">plaintext</span>,
-        <span class="prelude-val">Err</span>(<span class="ident">crypto::DecryptionError::BadKeyOrIv</span>) =&gt; {
+        <span class="prelude-val">Ok</span>(plaintext) =&gt; plaintext,
+        <span class="prelude-val">Err</span>(crypto::DecryptionError::BadKeyOrIv) =&gt; {
             <span class="macro">log::error!</span>(
                 <span class="string">&quot;incoming sender key state corrupt for {}, distribution ID {}, chain ID {}&quot;</span>,
-                <span class="ident">sender</span>,
-                <span class="ident">distribution_id</span>,
-                <span class="ident">chain_id</span>,
+                sender,
+                distribution_id,
+                chain_id,
             );
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> });
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidSenderKeySession { distribution_id });
         }
-        <span class="prelude-val">Err</span>(<span class="ident">crypto::DecryptionError::BadCiphertext</span>(<span class="ident">msg</span>)) =&gt; {
-            <span class="macro">log::error!</span>(<span class="string">&quot;sender key decryption failed: {}&quot;</span>, <span class="ident">msg</span>);
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidMessage</span>(
-                <span class="ident">CiphertextMessageType::SenderKey</span>,
+        <span class="prelude-val">Err</span>(crypto::DecryptionError::BadCiphertext(msg)) =&gt; {
+            <span class="macro">log::error!</span>(<span class="string">&quot;sender key decryption failed: {}&quot;</span>, msg);
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
+                CiphertextMessageType::SenderKey,
                 <span class="string">&quot;decryption failed&quot;</span>,
             ));
         }
     };
 
-    <span class="ident">sender_key_store</span>
-        .<span class="ident">store_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="kw-2">&amp;</span><span class="ident">record</span>, <span class="ident">ctx</span>)
+    sender_key_store
+        .store_sender_key(sender, distribution_id, <span class="kw-2">&amp;</span>record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="prelude-val">Ok</span>(<span class="ident">plaintext</span>)
+    <span class="prelude-val">Ok</span>(plaintext)
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">process_sender_key_distribution_message</span>(
-    <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">skdm</span>: <span class="kw-2">&amp;</span><span class="ident">SenderKeyDistributionMessage</span>,
-    <span class="ident">sender_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SenderKeyStore</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">distribution_id</span> <span class="op">=</span> <span class="ident">skdm</span>.<span class="ident">distribution_id</span>()<span class="question-mark">?</span>;
+<span class="kw">pub async fn </span>process_sender_key_distribution_message(
+    sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+    skdm: <span class="kw-2">&amp;</span>SenderKeyDistributionMessage,
+    sender_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SenderKeyStore,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">let </span>distribution_id = skdm.distribution_id()<span class="question-mark">?</span>;
     <span class="macro">log::info!</span>(
         <span class="string">&quot;{} Processing SenderKey distribution {} with chain ID {}&quot;</span>,
-        <span class="ident">sender</span>,
-        <span class="ident">distribution_id</span>,
-        <span class="ident">skdm</span>.<span class="ident">chain_id</span>()<span class="question-mark">?</span>
-    );
+        sender,
+        distribution_id,
+        skdm.chain_id()<span class="question-mark">?
+    </span>);
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sender_key_record</span> <span class="op">=</span> <span class="ident">sender_key_store</span>
-        .<span class="ident">load_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">unwrap_or_else</span>(<span class="ident">SenderKeyRecord::new_empty</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>sender_key_record = sender_key_store
+        .load_sender_key(sender, distribution_id, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.unwrap_or_else(SenderKeyRecord::new_empty);
 
-    <span class="ident">sender_key_record</span>.<span class="ident">add_sender_key_state</span>(
-        <span class="ident">skdm</span>.<span class="ident">message_version</span>(),
-        <span class="ident">skdm</span>.<span class="ident">chain_id</span>()<span class="question-mark">?</span>,
-        <span class="ident">skdm</span>.<span class="ident">iteration</span>()<span class="question-mark">?</span>,
-        <span class="ident">skdm</span>.<span class="ident">chain_key</span>()<span class="question-mark">?</span>,
-        <span class="kw-2">*</span><span class="ident">skdm</span>.<span class="ident">signing_key</span>()<span class="question-mark">?</span>,
+    sender_key_record.add_sender_key_state(
+        skdm.message_version(),
+        skdm.chain_id()<span class="question-mark">?</span>,
+        skdm.iteration()<span class="question-mark">?</span>,
+        skdm.chain_key()<span class="question-mark">?</span>,
+        <span class="kw-2">*</span>skdm.signing_key()<span class="question-mark">?</span>,
         <span class="prelude-val">None</span>,
     );
-    <span class="ident">sender_key_store</span>
-        .<span class="ident">store_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="kw-2">&amp;</span><span class="ident">sender_key_record</span>, <span class="ident">ctx</span>)
+    sender_key_store
+        .store_sender_key(sender, distribution_id, <span class="kw-2">&amp;</span>sender_key_record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">create_sender_key_distribution_message</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">distribution_id</span>: <span class="ident">Uuid</span>,
-    <span class="ident">sender_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SenderKeyStore</span>,
-    <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SenderKeyDistributionMessage</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">sender_key_record</span> <span class="op">=</span> <span class="ident">sender_key_store</span>
-        .<span class="ident">load_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="ident">ctx</span>)
+<span class="kw">pub async fn </span>create_sender_key_distribution_message&lt;R: Rng + CryptoRng&gt;(
+    sender: <span class="kw-2">&amp;</span>ProtocolAddress,
+    distribution_id: Uuid,
+    sender_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SenderKeyStore,
+    csprng: <span class="kw-2">&amp;mut </span>R,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;SenderKeyDistributionMessage&gt; {
+    <span class="kw">let </span>sender_key_record = sender_key_store
+        .load_sender_key(sender, distribution_id, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">sender_key_record</span> <span class="op">=</span> <span class="kw">match</span> <span class="ident">sender_key_record</span> {
-        <span class="prelude-val">Some</span>(<span class="ident">record</span>) =&gt; <span class="ident">record</span>,
-        <span class="prelude-val">None</span> =&gt; {
-            <span class="comment">// libsignal-protocol-java uses 31-bit integers for sender key chain IDs</span>
-            <span class="kw">let</span> <span class="ident">chain_id</span> <span class="op">=</span> (<span class="ident">csprng</span>.<span class="ident">gen</span>::<span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>()) <span class="op">&gt;</span><span class="op">&gt;</span> <span class="number">1</span>;
+    <span class="kw">let </span>sender_key_record = <span class="kw">match </span>sender_key_record {
+        <span class="prelude-val">Some</span>(record) =&gt; record,
+        <span class="prelude-val">None </span>=&gt; {
+            <span class="comment">// libsignal-protocol-java uses 31-bit integers for sender key chain IDs
+            </span><span class="kw">let </span>chain_id = (csprng.gen::&lt;u32&gt;()) &gt;&gt; <span class="number">1</span>;
             <span class="macro">log::info!</span>(
                 <span class="string">&quot;Creating SenderKey for distribution {} with chain ID {}&quot;</span>,
-                <span class="ident">distribution_id</span>,
-                <span class="ident">chain_id</span>
+                distribution_id,
+                chain_id
             );
 
-            <span class="kw">let</span> <span class="ident">iteration</span> <span class="op">=</span> <span class="number">0</span>;
-            <span class="kw">let</span> <span class="ident">sender_key</span>: [<span class="ident">u8</span>; <span class="number">32</span>] <span class="op">=</span> <span class="ident">csprng</span>.<span class="ident">gen</span>();
-            <span class="kw">let</span> <span class="ident">signing_key</span> <span class="op">=</span> <span class="ident">KeyPair::generate</span>(<span class="ident">csprng</span>);
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">record</span> <span class="op">=</span> <span class="ident">SenderKeyRecord::new_empty</span>();
-            <span class="ident">record</span>.<span class="ident">add_sender_key_state</span>(
-                <span class="ident">SENDERKEY_MESSAGE_CURRENT_VERSION</span>,
-                <span class="ident">chain_id</span>,
-                <span class="ident">iteration</span>,
-                <span class="kw-2">&amp;</span><span class="ident">sender_key</span>,
-                <span class="ident">signing_key</span>.<span class="ident">public_key</span>,
-                <span class="prelude-val">Some</span>(<span class="ident">signing_key</span>.<span class="ident">private_key</span>),
+            <span class="kw">let </span>iteration = <span class="number">0</span>;
+            <span class="kw">let </span>sender_key: [u8; <span class="number">32</span>] = csprng.gen();
+            <span class="kw">let </span>signing_key = KeyPair::generate(csprng);
+            <span class="kw">let </span><span class="kw-2">mut </span>record = SenderKeyRecord::new_empty();
+            record.add_sender_key_state(
+                SENDERKEY_MESSAGE_CURRENT_VERSION,
+                chain_id,
+                iteration,
+                <span class="kw-2">&amp;</span>sender_key,
+                signing_key.public_key,
+                <span class="prelude-val">Some</span>(signing_key.private_key),
             );
-            <span class="ident">sender_key_store</span>
-                .<span class="ident">store_sender_key</span>(<span class="ident">sender</span>, <span class="ident">distribution_id</span>, <span class="kw-2">&amp;</span><span class="ident">record</span>, <span class="ident">ctx</span>)
+            sender_key_store
+                .store_sender_key(sender, distribution_id, <span class="kw-2">&amp;</span>record, ctx)
                 .<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="ident">record</span>
+            record
         }
     };
 
-    <span class="kw">let</span> <span class="ident">state</span> <span class="op">=</span> <span class="ident">sender_key_record</span>
-        .<span class="ident">sender_key_state</span>()
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">sender_chain_key</span> <span class="op">=</span> <span class="ident">state</span>
-        .<span class="ident">sender_chain_key</span>()
-        .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>;
+    <span class="kw">let </span>state = sender_key_record
+        .sender_key_state()
+        .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
+    <span class="kw">let </span>sender_chain_key = state
+        .sender_chain_key()
+        .ok_or(SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>;
 
-    <span class="ident">SenderKeyDistributionMessage::new</span>(
-        <span class="ident">state</span>.<span class="ident">message_version</span>() <span class="kw">as</span> <span class="ident">u8</span>,
-        <span class="ident">distribution_id</span>,
-        <span class="ident">state</span>.<span class="ident">chain_id</span>(),
-        <span class="ident">sender_chain_key</span>.<span class="ident">iteration</span>(),
-        <span class="ident">sender_chain_key</span>.<span class="ident">seed</span>().<span class="ident">to_vec</span>(),
-        <span class="ident">state</span>
-            .<span class="ident">signing_key_public</span>()
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::InvalidSenderKeySession</span> { <span class="ident">distribution_id</span> })<span class="question-mark">?</span>,
+    SenderKeyDistributionMessage::new(
+        state.message_version() <span class="kw">as </span>u8,
+        distribution_id,
+        state.chain_id(),
+        sender_chain_key.iteration(),
+        sender_chain_key.seed().to_vec(),
+        state
+            .signing_key_public()
+            .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidSenderKeySession { distribution_id })<span class="question-mark">?</span>,
     )
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

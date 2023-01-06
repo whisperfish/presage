@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/session.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>session.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/session.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>session.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -203,20 +203,20 @@
 <span id="203">203</span>
 <span id="204">204</span>
 <span id="205">205</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020-2022 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020-2022 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">Context</span>, <span class="ident">Direction</span>, <span class="ident">IdentityKeyStore</span>, <span class="ident">KeyPair</span>, <span class="ident">PreKeyBundle</span>, <span class="ident">PreKeyId</span>, <span class="ident">PreKeySignalMessage</span>,
-    <span class="ident">PreKeyStore</span>, <span class="ident">ProtocolAddress</span>, <span class="prelude-ty">Result</span>, <span class="ident">SessionRecord</span>, <span class="ident">SessionStore</span>, <span class="ident">SignalProtocolError</span>,
-    <span class="ident">SignedPreKeyStore</span>,
+</span><span class="kw">use crate</span>::{
+    Context, Direction, IdentityKeyStore, KeyPair, PreKeyBundle, PreKeyId, PreKeySignalMessage,
+    PreKeyStore, ProtocolAddress, <span class="prelude-ty">Result</span>, SessionRecord, SessionStore, SignalProtocolError,
+    SignedPreKeyStore,
 };
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::ratchet</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::ratchet</span>::{<span class="ident">AliceSignalProtocolParameters</span>, <span class="ident">BobSignalProtocolParameters</span>};
-<span class="kw">use</span> <span class="ident">rand</span>::{<span class="ident">CryptoRng</span>, <span class="ident">Rng</span>};
+<span class="kw">use </span><span class="kw">crate</span>::ratchet;
+<span class="kw">use </span><span class="kw">crate</span>::ratchet::{AliceSignalProtocolParameters, BobSignalProtocolParameters};
+<span class="kw">use </span>rand::{CryptoRng, Rng};
 
 <span class="comment">/*
 These functions are on SessionBuilder in Java
@@ -225,188 +225,188 @@ However using SessionBuilder + SessionCipher at the same time causes
 &amp;mut sharing issues. And as SessionBuilder has no actual state beyond
 its reference to the various data stores, instead the functions are
 free standing.
- */</span>
+ */
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">process_prekey</span>(
-    <span class="ident">message</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeySignalMessage</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_record</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SessionRecord</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">PreKeyStore</span>,
-    <span class="ident">signed_prekey_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SignedPreKeyStore</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyId</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">their_identity_key</span> <span class="op">=</span> <span class="ident">message</span>.<span class="ident">identity_key</span>();
+</span><span class="kw">pub async fn </span>process_prekey(
+    message: <span class="kw-2">&amp;</span>PreKeySignalMessage,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_record: <span class="kw-2">&amp;mut </span>SessionRecord,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>PreKeyStore,
+    signed_prekey_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SignedPreKeyStore,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;PreKeyId&gt;&gt; {
+    <span class="kw">let </span>their_identity_key = message.identity_key();
 
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">identity_store</span>
-        .<span class="ident">is_trusted_identity</span>(
-            <span class="ident">remote_address</span>,
-            <span class="ident">their_identity_key</span>,
-            <span class="ident">Direction::Receiving</span>,
-            <span class="ident">ctx</span>,
+    <span class="kw">if </span>!identity_store
+        .is_trusted_identity(
+            remote_address,
+            their_identity_key,
+            Direction::Receiving,
+            ctx,
         )
-        .<span class="kw">await</span><span class="question-mark">?</span>
-    {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::UntrustedIdentity</span>(
-            <span class="ident">remote_address</span>.<span class="ident">clone</span>(),
+        .<span class="kw">await</span><span class="question-mark">?
+    </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::UntrustedIdentity(
+            remote_address.clone(),
         ));
     }
 
-    <span class="kw">let</span> <span class="ident">unsigned_pre_key_id</span> <span class="op">=</span> <span class="ident">process_prekey_v3</span>(
-        <span class="ident">message</span>,
-        <span class="ident">remote_address</span>,
-        <span class="ident">session_record</span>,
-        <span class="ident">signed_prekey_store</span>,
-        <span class="ident">pre_key_store</span>,
-        <span class="ident">identity_store</span>,
-        <span class="ident">ctx</span>,
+    <span class="kw">let </span>unsigned_pre_key_id = process_prekey_v3(
+        message,
+        remote_address,
+        session_record,
+        signed_prekey_store,
+        pre_key_store,
+        identity_store,
+        ctx,
     )
     .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="ident">identity_store</span>
-        .<span class="ident">save_identity</span>(<span class="ident">remote_address</span>, <span class="ident">their_identity_key</span>, <span class="ident">ctx</span>)
+    identity_store
+        .save_identity(remote_address, their_identity_key, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="prelude-val">Ok</span>(<span class="ident">unsigned_pre_key_id</span>)
+    <span class="prelude-val">Ok</span>(unsigned_pre_key_id)
 }
 
-<span class="kw">async</span> <span class="kw">fn</span> <span class="ident">process_prekey_v3</span>(
-    <span class="ident">message</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeySignalMessage</span>,
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_record</span>: <span class="kw-2">&amp;mut</span> <span class="ident">SessionRecord</span>,
-    <span class="ident">signed_prekey_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SignedPreKeyStore</span>,
-    <span class="ident">pre_key_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">PreKeyStore</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyId</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">session_record</span>.<span class="ident">has_session_state</span>(
-        <span class="ident">message</span>.<span class="ident">message_version</span>() <span class="kw">as</span> <span class="ident">u32</span>,
-        <span class="kw-2">&amp;</span><span class="ident">message</span>.<span class="ident">base_key</span>().<span class="ident">serialize</span>(),
-    )<span class="question-mark">?</span> {
-        <span class="comment">// We&#39;ve already setup a session for this V3 message, letting bundled message fall through</span>
-        <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+<span class="kw">async fn </span>process_prekey_v3(
+    message: <span class="kw-2">&amp;</span>PreKeySignalMessage,
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_record: <span class="kw-2">&amp;mut </span>SessionRecord,
+    signed_prekey_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SignedPreKeyStore,
+    pre_key_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>PreKeyStore,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;PreKeyId&gt;&gt; {
+    <span class="kw">if </span>session_record.has_session_state(
+        message.message_version() <span class="kw">as </span>u32,
+        <span class="kw-2">&amp;</span>message.base_key().serialize(),
+    )<span class="question-mark">? </span>{
+        <span class="comment">// We&#39;ve already setup a session for this V3 message, letting bundled message fall through
+        </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
     }
 
-    <span class="kw">let</span> <span class="ident">our_signed_pre_key_pair</span> <span class="op">=</span> <span class="ident">signed_prekey_store</span>
-        .<span class="ident">get_signed_pre_key</span>(<span class="ident">message</span>.<span class="ident">signed_pre_key_id</span>(), <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">key_pair</span>()<span class="question-mark">?</span>;
+    <span class="kw">let </span>our_signed_pre_key_pair = signed_prekey_store
+        .get_signed_pre_key(message.signed_pre_key_id(), ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.key_pair()<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">our_one_time_pre_key_pair</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">pre_key_id</span>) <span class="op">=</span> <span class="ident">message</span>.<span class="ident">pre_key_id</span>() {
-        <span class="macro">log::info!</span>(<span class="string">&quot;processing PreKey message from {}&quot;</span>, <span class="ident">remote_address</span>);
+    <span class="kw">let </span>our_one_time_pre_key_pair = <span class="kw">if let </span><span class="prelude-val">Some</span>(pre_key_id) = message.pre_key_id() {
+        <span class="macro">log::info!</span>(<span class="string">&quot;processing PreKey message from {}&quot;</span>, remote_address);
         <span class="prelude-val">Some</span>(
-            <span class="ident">pre_key_store</span>
-                .<span class="ident">get_pre_key</span>(<span class="ident">pre_key_id</span>, <span class="ident">ctx</span>)
-                .<span class="kw">await</span><span class="question-mark">?</span>
-                .<span class="ident">key_pair</span>()<span class="question-mark">?</span>,
+            pre_key_store
+                .get_pre_key(pre_key_id, ctx)
+                .<span class="kw">await</span><span class="question-mark">?
+                </span>.key_pair()<span class="question-mark">?</span>,
         )
-    } <span class="kw">else</span> {
+    } <span class="kw">else </span>{
         <span class="macro">log::warn!</span>(
             <span class="string">&quot;processing PreKey message from {} which had no one-time prekey&quot;</span>,
-            <span class="ident">remote_address</span>
+            remote_address
         );
-        <span class="prelude-val">None</span>
-    };
+        <span class="prelude-val">None
+    </span>};
 
-    <span class="kw">let</span> <span class="ident">parameters</span> <span class="op">=</span> <span class="ident">BobSignalProtocolParameters::new</span>(
-        <span class="ident">identity_store</span>.<span class="ident">get_identity_key_pair</span>(<span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>,
-        <span class="ident">our_signed_pre_key_pair</span>, <span class="comment">// signed pre key</span>
-        <span class="ident">our_one_time_pre_key_pair</span>,
-        <span class="ident">our_signed_pre_key_pair</span>, <span class="comment">// ratchet key</span>
-        <span class="kw-2">*</span><span class="ident">message</span>.<span class="ident">identity_key</span>(),
-        <span class="kw-2">*</span><span class="ident">message</span>.<span class="ident">base_key</span>(),
+    <span class="kw">let </span>parameters = BobSignalProtocolParameters::new(
+        identity_store.get_identity_key_pair(ctx).<span class="kw">await</span><span class="question-mark">?</span>,
+        our_signed_pre_key_pair, <span class="comment">// signed pre key
+        </span>our_one_time_pre_key_pair,
+        our_signed_pre_key_pair, <span class="comment">// ratchet key
+        </span><span class="kw-2">*</span>message.identity_key(),
+        <span class="kw-2">*</span>message.base_key(),
     );
 
-    <span class="ident">session_record</span>.<span class="ident">archive_current_state</span>()<span class="question-mark">?</span>;
+    session_record.archive_current_state()<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">new_session</span> <span class="op">=</span> <span class="ident">ratchet::initialize_bob_session</span>(<span class="kw-2">&amp;</span><span class="ident">parameters</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>new_session = ratchet::initialize_bob_session(<span class="kw-2">&amp;</span>parameters)<span class="question-mark">?</span>;
 
-    <span class="ident">new_session</span>.<span class="ident">set_local_registration_id</span>(<span class="ident">identity_store</span>.<span class="ident">get_local_registration_id</span>(<span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>);
-    <span class="ident">new_session</span>.<span class="ident">set_remote_registration_id</span>(<span class="ident">message</span>.<span class="ident">registration_id</span>());
-    <span class="ident">new_session</span>.<span class="ident">set_alice_base_key</span>(<span class="kw-2">&amp;</span><span class="ident">message</span>.<span class="ident">base_key</span>().<span class="ident">serialize</span>());
+    new_session.set_local_registration_id(identity_store.get_local_registration_id(ctx).<span class="kw">await</span><span class="question-mark">?</span>);
+    new_session.set_remote_registration_id(message.registration_id());
+    new_session.set_alice_base_key(<span class="kw-2">&amp;</span>message.base_key().serialize());
 
-    <span class="ident">session_record</span>.<span class="ident">promote_state</span>(<span class="ident">new_session</span>);
+    session_record.promote_state(new_session);
 
-    <span class="prelude-val">Ok</span>(<span class="ident">message</span>.<span class="ident">pre_key_id</span>())
+    <span class="prelude-val">Ok</span>(message.pre_key_id())
 }
 
-<span class="kw">pub</span> <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">process_prekey_bundle</span><span class="op">&lt;</span><span class="ident">R</span>: <span class="ident">Rng</span> <span class="op">+</span> <span class="ident">CryptoRng</span><span class="op">&gt;</span>(
-    <span class="ident">remote_address</span>: <span class="kw-2">&amp;</span><span class="ident">ProtocolAddress</span>,
-    <span class="ident">session_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">SessionStore</span>,
-    <span class="ident">identity_store</span>: <span class="kw-2">&amp;mut</span> <span class="kw">dyn</span> <span class="ident">IdentityKeyStore</span>,
-    <span class="ident">bundle</span>: <span class="kw-2">&amp;</span><span class="ident">PreKeyBundle</span>,
-    <span class="kw-2">mut</span> <span class="ident">csprng</span>: <span class="kw-2">&amp;mut</span> <span class="ident">R</span>,
-    <span class="ident">ctx</span>: <span class="ident">Context</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">their_identity_key</span> <span class="op">=</span> <span class="ident">bundle</span>.<span class="ident">identity_key</span>()<span class="question-mark">?</span>;
+<span class="kw">pub async fn </span>process_prekey_bundle&lt;R: Rng + CryptoRng&gt;(
+    remote_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+    session_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>SessionStore,
+    identity_store: <span class="kw-2">&amp;mut </span><span class="kw">dyn </span>IdentityKeyStore,
+    bundle: <span class="kw-2">&amp;</span>PreKeyBundle,
+    <span class="kw-2">mut </span>csprng: <span class="kw-2">&amp;mut </span>R,
+    ctx: Context,
+) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">let </span>their_identity_key = bundle.identity_key()<span class="question-mark">?</span>;
 
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">identity_store</span>
-        .<span class="ident">is_trusted_identity</span>(<span class="ident">remote_address</span>, <span class="ident">their_identity_key</span>, <span class="ident">Direction::Sending</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-    {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::UntrustedIdentity</span>(
-            <span class="ident">remote_address</span>.<span class="ident">clone</span>(),
+    <span class="kw">if </span>!identity_store
+        .is_trusted_identity(remote_address, their_identity_key, Direction::Sending, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+    </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::UntrustedIdentity(
+            remote_address.clone(),
         ));
     }
 
-    <span class="kw">if</span> <span class="op">!</span><span class="ident">their_identity_key</span>.<span class="ident">public_key</span>().<span class="ident">verify_signature</span>(
-        <span class="kw-2">&amp;</span><span class="ident">bundle</span>.<span class="ident">signed_pre_key_public</span>()<span class="question-mark">?</span>.<span class="ident">serialize</span>(),
-        <span class="ident">bundle</span>.<span class="ident">signed_pre_key_signature</span>()<span class="question-mark">?</span>,
-    )<span class="question-mark">?</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::SignatureValidationFailed</span>);
+    <span class="kw">if </span>!their_identity_key.public_key().verify_signature(
+        <span class="kw-2">&amp;</span>bundle.signed_pre_key_public()<span class="question-mark">?</span>.serialize(),
+        bundle.signed_pre_key_signature()<span class="question-mark">?</span>,
+    )<span class="question-mark">? </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::SignatureValidationFailed);
     }
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">session_record</span> <span class="op">=</span> <span class="ident">session_store</span>
-        .<span class="ident">load_session</span>(<span class="ident">remote_address</span>, <span class="ident">ctx</span>)
-        .<span class="kw">await</span><span class="question-mark">?</span>
-        .<span class="ident">unwrap_or_else</span>(<span class="ident">SessionRecord::new_fresh</span>);
+    <span class="kw">let </span><span class="kw-2">mut </span>session_record = session_store
+        .load_session(remote_address, ctx)
+        .<span class="kw">await</span><span class="question-mark">?
+        </span>.unwrap_or_else(SessionRecord::new_fresh);
 
-    <span class="kw">let</span> <span class="ident">our_base_key_pair</span> <span class="op">=</span> <span class="ident">KeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">csprng</span>);
-    <span class="kw">let</span> <span class="ident">their_signed_prekey</span> <span class="op">=</span> <span class="ident">bundle</span>.<span class="ident">signed_pre_key_public</span>()<span class="question-mark">?</span>;
+    <span class="kw">let </span>our_base_key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>csprng);
+    <span class="kw">let </span>their_signed_prekey = bundle.signed_pre_key_public()<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">their_one_time_prekey</span> <span class="op">=</span> <span class="ident">bundle</span>.<span class="ident">pre_key_public</span>()<span class="question-mark">?</span>;
-    <span class="kw">let</span> <span class="ident">their_one_time_prekey_id</span> <span class="op">=</span> <span class="ident">bundle</span>.<span class="ident">pre_key_id</span>()<span class="question-mark">?</span>;
+    <span class="kw">let </span>their_one_time_prekey = bundle.pre_key_public()<span class="question-mark">?</span>;
+    <span class="kw">let </span>their_one_time_prekey_id = bundle.pre_key_id()<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">our_identity_key_pair</span> <span class="op">=</span> <span class="ident">identity_store</span>.<span class="ident">get_identity_key_pair</span>(<span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">let </span>our_identity_key_pair = identity_store.get_identity_key_pair(ctx).<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">parameters</span> <span class="op">=</span> <span class="ident">AliceSignalProtocolParameters::new</span>(
-        <span class="ident">our_identity_key_pair</span>,
-        <span class="ident">our_base_key_pair</span>,
-        <span class="kw-2">*</span><span class="ident">their_identity_key</span>,
-        <span class="ident">their_signed_prekey</span>,
-        <span class="ident">their_one_time_prekey</span>,
-        <span class="ident">their_signed_prekey</span>,
+    <span class="kw">let </span>parameters = AliceSignalProtocolParameters::new(
+        our_identity_key_pair,
+        our_base_key_pair,
+        <span class="kw-2">*</span>their_identity_key,
+        their_signed_prekey,
+        their_one_time_prekey,
+        their_signed_prekey,
     );
 
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">session</span> <span class="op">=</span> <span class="ident">ratchet::initialize_alice_session</span>(<span class="kw-2">&amp;</span><span class="ident">parameters</span>, <span class="ident">csprng</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>session = ratchet::initialize_alice_session(<span class="kw-2">&amp;</span>parameters, csprng)<span class="question-mark">?</span>;
 
     <span class="macro">log::info!</span>(
         <span class="string">&quot;set_unacknowledged_pre_key_message for: {} with preKeyId: {}&quot;</span>,
-        <span class="ident">remote_address</span>,
-        <span class="ident">their_one_time_prekey_id</span>.<span class="ident">map_or_else</span>(<span class="op">|</span><span class="op">|</span> <span class="string">&quot;&lt;none&gt;&quot;</span>.<span class="ident">to_string</span>(), <span class="op">|</span><span class="ident">id</span><span class="op">|</span> <span class="ident">id</span>.<span class="ident">to_string</span>())
+        remote_address,
+        their_one_time_prekey_id.map_or_else(|| <span class="string">&quot;&lt;none&gt;&quot;</span>.to_string(), |id| id.to_string())
     );
 
-    <span class="ident">session</span>.<span class="ident">set_unacknowledged_pre_key_message</span>(
-        <span class="ident">their_one_time_prekey_id</span>,
-        <span class="ident">bundle</span>.<span class="ident">signed_pre_key_id</span>()<span class="question-mark">?</span>,
-        <span class="kw-2">&amp;</span><span class="ident">our_base_key_pair</span>.<span class="ident">public_key</span>,
+    session.set_unacknowledged_pre_key_message(
+        their_one_time_prekey_id,
+        bundle.signed_pre_key_id()<span class="question-mark">?</span>,
+        <span class="kw-2">&amp;</span>our_base_key_pair.public_key,
     );
 
-    <span class="ident">session</span>.<span class="ident">set_local_registration_id</span>(<span class="ident">identity_store</span>.<span class="ident">get_local_registration_id</span>(<span class="ident">ctx</span>).<span class="kw">await</span><span class="question-mark">?</span>);
-    <span class="ident">session</span>.<span class="ident">set_remote_registration_id</span>(<span class="ident">bundle</span>.<span class="ident">registration_id</span>()<span class="question-mark">?</span>);
-    <span class="ident">session</span>.<span class="ident">set_alice_base_key</span>(<span class="kw-2">&amp;</span><span class="ident">our_base_key_pair</span>.<span class="ident">public_key</span>.<span class="ident">serialize</span>());
+    session.set_local_registration_id(identity_store.get_local_registration_id(ctx).<span class="kw">await</span><span class="question-mark">?</span>);
+    session.set_remote_registration_id(bundle.registration_id()<span class="question-mark">?</span>);
+    session.set_alice_base_key(<span class="kw-2">&amp;</span>our_base_key_pair.public_key.serialize());
 
-    <span class="ident">identity_store</span>
-        .<span class="ident">save_identity</span>(<span class="ident">remote_address</span>, <span class="ident">their_identity_key</span>, <span class="ident">ctx</span>)
+    identity_store
+        .save_identity(remote_address, their_identity_key, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="ident">session_record</span>.<span class="ident">promote_state</span>(<span class="ident">session</span>);
+    session_record.promote_state(session);
 
-    <span class="ident">session_store</span>
-        .<span class="ident">store_session</span>(<span class="ident">remote_address</span>, <span class="kw-2">&amp;</span><span class="ident">session_record</span>, <span class="ident">ctx</span>)
+    session_store
+        .store_session(remote_address, <span class="kw-2">&amp;</span>session_record, ctx)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
     <span class="prelude-val">Ok</span>(())
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

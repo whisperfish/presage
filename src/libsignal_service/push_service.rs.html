@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/push_service.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/push_service.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -863,34 +863,34 @@
 <span id="863">863</span>
 <span id="864">864</span>
 <span id="865">865</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">std</span>::{<span class="ident">convert::TryInto</span>, <span class="ident">fmt</span>, <span class="ident">ops::Deref</span>, <span class="ident">time::Duration</span>};
+</pre><pre class="rust"><code><span class="kw">use </span>std::{convert::TryInto, fmt, ops::Deref, time::Duration};
 
-<span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">configuration</span>::{<span class="ident">Endpoint</span>, <span class="ident">ServiceCredentials</span>},
-    <span class="ident">envelope</span>::<span class="kw-2">*</span>,
-    <span class="ident">groups_v2::GroupDecryptionError</span>,
-    <span class="ident">messagepipe::WebSocketService</span>,
-    <span class="ident">pre_keys</span>::{<span class="ident">PreKeyEntity</span>, <span class="ident">PreKeyState</span>, <span class="ident">SignedPreKeyEntity</span>},
-    <span class="ident">profile_cipher::ProfileCipherError</span>,
-    <span class="ident">proto</span>::{<span class="ident">attachment_pointer::AttachmentIdentifier</span>, <span class="ident">AttachmentPointer</span>},
-    <span class="ident">sender</span>::{<span class="ident">OutgoingPushMessages</span>, <span class="ident">SendMessageResponse</span>},
-    <span class="ident">utils</span>::{<span class="ident">serde_base64</span>, <span class="ident">serde_optional_base64</span>},
-    <span class="ident">websocket::SignalWebSocket</span>,
-    <span class="ident">MaybeSend</span>, <span class="ident">Profile</span>, <span class="ident">ServiceAddress</span>,
+<span class="kw">use crate</span>::{
+    configuration::{Endpoint, ServiceCredentials},
+    envelope::<span class="kw-2">*</span>,
+    groups_v2::GroupDecryptionError,
+    messagepipe::WebSocketService,
+    pre_keys::{PreKeyEntity, PreKeyState, SignedPreKeyEntity},
+    profile_cipher::ProfileCipherError,
+    proto::{attachment_pointer::AttachmentIdentifier, AttachmentPointer},
+    sender::{OutgoingPushMessages, SendMessageResponse},
+    utils::{serde_base64, serde_optional_base64},
+    websocket::SignalWebSocket,
+    MaybeSend, Profile, ServiceAddress,
 };
 
-<span class="kw">use</span> <span class="ident">aes_gcm</span>::{
-    <span class="ident">aead</span>::{<span class="ident">generic_array::GenericArray</span>, <span class="ident">Aead</span>},
-    <span class="ident">Aes256Gcm</span>, <span class="ident">NewAead</span>,
+<span class="kw">use </span>aes_gcm::{
+    aead::{generic_array::GenericArray, Aead},
+    Aes256Gcm, NewAead,
 };
-<span class="kw">use</span> <span class="ident">chrono::prelude</span>::<span class="kw-2">*</span>;
-<span class="kw">use</span> <span class="ident">libsignal_protocol</span>::{
-    <span class="ident">error::SignalProtocolError</span>, <span class="ident">IdentityKey</span>, <span class="ident">PreKeyBundle</span>, <span class="ident">PublicKey</span>,
+<span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>libsignal_protocol::{
+    error::SignalProtocolError, IdentityKey, PreKeyBundle, PublicKey,
 };
-<span class="kw">use</span> <span class="ident">prost::Message</span> <span class="kw">as</span> <span class="ident">ProtobufMessage</span>;
-<span class="kw">use</span> <span class="ident">serde</span>::{<span class="ident">Deserialize</span>, <span class="ident">Serialize</span>};
-<span class="kw">use</span> <span class="ident">uuid::Uuid</span>;
-<span class="kw">use</span> <span class="ident">zkgroup::profiles</span>::{<span class="ident">ProfileKeyCommitment</span>, <span class="ident">ProfileKeyVersion</span>};
+<span class="kw">use </span>prost::Message <span class="kw">as </span>ProtobufMessage;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>uuid::Uuid;
+<span class="kw">use </span>zkgroup::profiles::{ProfileKeyCommitment, ProfileKeyVersion};
 
 <span class="doccomment">/**
 Since we can&#39;t use format!() with constants, the URLs here are just for reference purposes
@@ -926,144 +926,144 @@ pub const ATTACHMENT_DOWNLOAD_PATH: &amp;str = &quot;attachments/%d&quot;;
 
 pub const STICKER_MANIFEST_PATH: &amp;str = &quot;stickers/%s/manifest.proto&quot;;
 pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
-**/</span>
+**/
 
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">KEEPALIVE_TIMEOUT_SECONDS</span>: <span class="ident">Duration</span> <span class="op">=</span> <span class="ident">Duration::from_secs</span>(<span class="number">55</span>);
-<span class="kw">pub</span> <span class="kw">const</span> <span class="ident">DEFAULT_DEVICE_ID</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="number">1</span>;
+</span><span class="kw">pub const </span>KEEPALIVE_TIMEOUT_SECONDS: Duration = Duration::from_secs(<span class="number">55</span>);
+<span class="kw">pub const </span>DEFAULT_DEVICE_ID: u32 = <span class="number">1</span>;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeviceId</span> {
-    <span class="kw">pub</span> <span class="ident">device_id</span>: <span class="ident">u32</span>,
+<span class="attribute">#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>DeviceId {
+    <span class="kw">pub </span>device_id: u32,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeviceInfo</span> {
-    <span class="kw">pub</span> <span class="ident">id</span>: <span class="ident">i64</span>,
-    <span class="kw">pub</span> <span class="ident">name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;chrono::serde::ts_milliseconds&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">created</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;chrono::serde::ts_milliseconds&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">last_seen</span>: <span class="ident">DateTime</span><span class="op">&lt;</span><span class="ident">Utc</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>DeviceInfo {
+    <span class="kw">pub </span>id: i64,
+    <span class="kw">pub </span>name: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attribute">#[serde(with = <span class="string">&quot;chrono::serde::ts_milliseconds&quot;</span>)]
+    </span><span class="kw">pub </span>created: DateTime&lt;Utc&gt;,
+    <span class="attribute">#[serde(with = <span class="string">&quot;chrono::serde::ts_milliseconds&quot;</span>)]
+    </span><span class="kw">pub </span>last_seen: DateTime&lt;Utc&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AccountAttributes</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_optional_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">signaling_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">registration_id</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">voice</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">video</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">fetches_messages</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">pin</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">registration_lock</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_optional_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">unidentified_access_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">unrestricted_unidentified_access</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">discoverable_by_phone_number</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">capabilities</span>: <span class="ident">DeviceCapabilities</span>,
-    <span class="kw">pub</span> <span class="ident">name</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>AccountAttributes {
+    <span class="attribute">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    </span><span class="kw">pub </span>signaling_key: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+    <span class="kw">pub </span>registration_id: u32,
+    <span class="kw">pub </span>voice: bool,
+    <span class="kw">pub </span>video: bool,
+    <span class="kw">pub </span>fetches_messages: bool,
+    <span class="kw">pub </span>pin: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>registration_lock: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attribute">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    </span><span class="kw">pub </span>unidentified_access_key: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+    <span class="kw">pub </span>unrestricted_unidentified_access: bool,
+    <span class="kw">pub </span>discoverable_by_phone_number: bool,
+    <span class="kw">pub </span>capabilities: DeviceCapabilities,
+    <span class="kw">pub </span>name: String,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>, <span class="ident">Deserialize</span>, <span class="ident">Default</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>, <span class="ident">Clone</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DeviceCapabilities</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">announcement_group</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span>(<span class="ident">serialize</span> <span class="op">=</span> <span class="string">&quot;gv2-3&quot;</span>), <span class="ident">alias</span> <span class="op">=</span> <span class="string">&quot;gv2-3&quot;</span>, <span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">gv2</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">storage</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename</span> <span class="op">=</span> <span class="string">&quot;gv1-migration&quot;</span>, <span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">gv1_migration</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">sender_key</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">change_number</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">stories</span>: <span class="ident">bool</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">gift_badges</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>DeviceCapabilities {
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>announcement_group: bool,
+    <span class="attribute">#[serde(rename(serialize = <span class="string">&quot;gv2-3&quot;</span>), alias = <span class="string">&quot;gv2-3&quot;</span>, default)]
+    </span><span class="kw">pub </span>gv2: bool,
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>storage: bool,
+    <span class="attribute">#[serde(rename = <span class="string">&quot;gv1-migration&quot;</span>, default)]
+    </span><span class="kw">pub </span>gv1_migration: bool,
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>sender_key: bool,
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>change_number: bool,
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>stories: bool,
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>gift_badges: bool,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ProfileKey</span>(<span class="kw">pub</span> [<span class="ident">u8</span>; <span class="number">32</span>]);
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>ProfileKey(<span class="kw">pub </span>[u8; <span class="number">32</span>]);
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>, <span class="ident">Default</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PreKeyStatus</span> {
-    <span class="kw">pub</span> <span class="ident">count</span>: <span class="ident">u32</span>,
+<span class="attribute">#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>PreKeyStatus {
+    <span class="kw">pub </span>count: u32,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">HttpAuth</span> {
-    <span class="kw">pub</span> <span class="ident">username</span>: <span class="ident">String</span>,
-    <span class="kw">pub</span> <span class="ident">password</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(Clone)]
+</span><span class="kw">pub struct </span>HttpAuth {
+    <span class="kw">pub </span>username: String,
+    <span class="kw">pub </span>password: String,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">HttpAuthOverride</span> {
-    <span class="ident">NoOverride</span>,
-    <span class="ident">Unidentified</span>,
-    <span class="ident">Identified</span>(<span class="ident">HttpAuth</span>),
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub enum </span>HttpAuthOverride {
+    NoOverride,
+    Unidentified,
+    Identified(HttpAuth),
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>, <span class="ident">Eq</span>, <span class="ident">PartialEq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AvatarWrite</span><span class="op">&lt;</span><span class="ident">C</span><span class="op">&gt;</span> {
-    <span class="ident">NewAvatar</span>(<span class="ident">C</span>),
-    <span class="ident">RetainAvatar</span>,
-    <span class="ident">NoAvatar</span>,
+<span class="attribute">#[derive(Debug, Clone, Eq, PartialEq)]
+</span><span class="kw">pub enum </span>AvatarWrite&lt;C&gt; {
+    NewAvatar(C),
+    RetainAvatar,
+    NoAvatar,
 }
 
-<span class="kw">impl</span> <span class="ident">fmt::Debug</span> <span class="kw">for</span> <span class="ident">HttpAuth</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">fmt::Result</span> {
-        <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;HTTP auth with username {}&quot;</span>, <span class="self">self</span>.<span class="ident">username</span>)
+<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>HttpAuth {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+        <span class="macro">write!</span>(f, <span class="string">&quot;HTTP auth with username {}&quot;</span>, <span class="self">self</span>.username)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">ProfileKey</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">derive_access_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">key</span> <span class="op">=</span> <span class="ident">GenericArray::from_slice</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>);
-        <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">Aes256Gcm::new</span>(<span class="ident">key</span>);
-        <span class="kw">let</span> <span class="ident">nonce</span> <span class="op">=</span> <span class="ident">GenericArray::from_slice</span>(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">12</span>]);
-        <span class="kw">let</span> <span class="ident">buf</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="ident">cipher</span>.<span class="ident">encrypt</span>(<span class="ident">nonce</span>, <span class="kw-2">&amp;</span><span class="ident">buf</span>[..]).<span class="ident">unwrap</span>();
-        <span class="ident">ciphertext</span>.<span class="ident">truncate</span>(<span class="number">16</span>);
-        <span class="ident">ciphertext</span>
+<span class="kw">impl </span>ProfileKey {
+    <span class="kw">pub fn </span>derive_access_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="kw">let </span>key = GenericArray::from_slice(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>);
+        <span class="kw">let </span>cipher = Aes256Gcm::new(key);
+        <span class="kw">let </span>nonce = GenericArray::from_slice(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">12</span>]);
+        <span class="kw">let </span>buf = [<span class="number">0u8</span>; <span class="number">16</span>];
+        <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = cipher.encrypt(nonce, <span class="kw-2">&amp;</span>buf[..]).unwrap();
+        ciphertext.truncate(<span class="number">16</span>);
+        ciphertext
     }
 }
 
-<span class="kw">impl</span> <span class="ident">Deref</span> <span class="kw">for</span> <span class="ident">ProfileKey</span> {
-    <span class="kw">type</span> <span class="ident">Target</span> <span class="op">=</span> [<span class="ident">u8</span>; <span class="number">32</span>];
+<span class="kw">impl </span>Deref <span class="kw">for </span>ProfileKey {
+    <span class="kw">type </span>Target = [u8; <span class="number">32</span>];
 
-    <span class="kw">fn</span> <span class="ident">deref</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident"><span class="self">Self</span>::Target</span> {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>
-    }
+    <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Target {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
+    </span>}
 }
 
-<span class="kw">impl</span> <span class="ident">Serialize</span> <span class="kw">for</span> <span class="ident">ProfileKey</span> {
-    <span class="kw">fn</span> <span class="ident">serialize</span><span class="op">&lt;</span><span class="ident">S</span><span class="op">&gt;</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">serializer</span>: <span class="ident">S</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">S::Ok</span>, <span class="ident">S::Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">S</span>: <span class="ident">serde::Serializer</span>,
+<span class="kw">impl </span>Serialize <span class="kw">for </span>ProfileKey {
+    <span class="kw">fn </span>serialize&lt;S&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, serializer: S) -&gt; <span class="prelude-ty">Result</span>&lt;S::Ok, S::Error&gt;
+    <span class="kw">where
+        </span>S: serde::Serializer,
     {
-        <span class="ident">serializer</span>.<span class="ident">serialize_str</span>(<span class="kw-2">&amp;</span><span class="ident">base64::encode</span>(<span class="self">self</span>.<span class="number">0</span>))
+        serializer.serialize_str(<span class="kw-2">&amp;</span>base64::encode(<span class="self">self</span>.<span class="number">0</span>))
     }
 }
 
-<span class="kw">impl</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ProfileKey</span> {
-    <span class="kw">fn</span> <span class="ident">deserialize</span><span class="op">&lt;</span><span class="ident">D</span><span class="op">&gt;</span>(<span class="ident">deserializer</span>: <span class="ident">D</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">D::Error</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">D</span>: <span class="ident">serde::Deserializer</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
+<span class="kw">impl</span>&lt;<span class="lifetime">&#39;de</span>&gt; Deserialize&lt;<span class="lifetime">&#39;de</span>&gt; <span class="kw">for </span>ProfileKey {
+    <span class="kw">fn </span>deserialize&lt;D&gt;(deserializer: D) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, D::Error&gt;
+    <span class="kw">where
+        </span>D: serde::Deserializer&lt;<span class="lifetime">&#39;de</span>&gt;,
     {
-        <span class="prelude-val">Ok</span>(<span class="ident">ProfileKey</span>(
-            <span class="ident">base64::decode</span>(<span class="ident">String::deserialize</span>(<span class="ident">deserializer</span>)<span class="question-mark">?</span>)
-                .<span class="ident">map_err</span>(<span class="ident">serde::de::Error::custom</span>)<span class="question-mark">?</span>
-                .<span class="ident">try_into</span>()
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="ident">buf</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">|</span> {
-                    <span class="ident">serde::de::Error::invalid_length</span>(
-                        <span class="ident">buf</span>.<span class="ident">len</span>(),
+        <span class="prelude-val">Ok</span>(ProfileKey(
+            base64::decode(String::deserialize(deserializer)<span class="question-mark">?</span>)
+                .map_err(serde::de::Error::custom)<span class="question-mark">?
+                </span>.try_into()
+                .map_err(|buf: Vec&lt;u8&gt;| {
+                    serde::de::Error::invalid_length(
+                        buf.len(),
                         <span class="kw-2">&amp;</span><span class="string">&quot;invalid profile key length&quot;</span>,
                     )
                 })<span class="question-mark">?</span>,
@@ -1071,662 +1071,662 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PreKeyResponse</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">identity_key</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">devices</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PreKeyResponseItem</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>PreKeyResponse {
+    <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+    </span><span class="kw">pub </span>identity_key: Vec&lt;u8&gt;,
+    <span class="kw">pub </span>devices: Vec&lt;PreKeyResponseItem&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>, <span class="ident">Default</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">WhoAmIResponse</span> {
-    <span class="kw">pub</span> <span class="ident">uuid</span>: <span class="ident">Uuid</span>,
+<span class="attribute">#[derive(Debug, Deserialize, Default)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>WhoAmIResponse {
+    <span class="kw">pub </span>uuid: Uuid,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PreKeyResponseItem</span> {
-    <span class="kw">pub</span> <span class="ident">device_id</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">registration_id</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">signed_pre_key</span>: <span class="ident">SignedPreKeyEntity</span>,
-    <span class="kw">pub</span> <span class="ident">pre_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyEntity</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>PreKeyResponseItem {
+    <span class="kw">pub </span>device_id: u32,
+    <span class="kw">pub </span>registration_id: u32,
+    <span class="kw">pub </span>signed_pre_key: SignedPreKeyEntity,
+    <span class="kw">pub </span>pre_key: <span class="prelude-ty">Option</span>&lt;PreKeyEntity&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">PreKeyResponseItem</span> {
-    <span class="kw">fn</span> <span class="ident">into_bundle</span>(
+<span class="kw">impl </span>PreKeyResponseItem {
+    <span class="kw">fn </span>into_bundle(
         <span class="self">self</span>,
-        <span class="ident">identity</span>: <span class="ident">IdentityKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PreKeyBundle</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="ident">PreKeyBundle::new</span>(
-            <span class="self">self</span>.<span class="ident">registration_id</span>,
-            <span class="self">self</span>.<span class="ident">device_id</span>.<span class="ident">into</span>(),
-            <span class="self">self</span>.<span class="ident">pre_key</span>
-                .<span class="ident">map</span>(<span class="op">|</span><span class="ident">pk</span><span class="op">|</span> -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw">_</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
+        identity: IdentityKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyBundle, SignalProtocolError&gt; {
+        PreKeyBundle::new(
+            <span class="self">self</span>.registration_id,
+            <span class="self">self</span>.device_id.into(),
+            <span class="self">self</span>.pre_key
+                .map(|pk| -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">_</span>, SignalProtocolError&gt; {
                     <span class="prelude-val">Ok</span>((
-                        <span class="ident">pk</span>.<span class="ident">key_id</span>.<span class="ident">into</span>(),
-                        <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">pk</span>.<span class="ident">public_key</span>)<span class="question-mark">?</span>,
+                        pk.key_id.into(),
+                        PublicKey::deserialize(<span class="kw-2">&amp;</span>pk.public_key)<span class="question-mark">?</span>,
                     ))
                 })
-                .<span class="ident">transpose</span>()<span class="question-mark">?</span>,
-            <span class="comment">// pre_key: Option&lt;(u32, PublicKey)&gt;,</span>
-            <span class="self">self</span>.<span class="ident">signed_pre_key</span>.<span class="ident">key_id</span>.<span class="ident">into</span>(),
-            <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">signed_pre_key</span>.<span class="ident">public_key</span>)<span class="question-mark">?</span>,
-            <span class="self">self</span>.<span class="ident">signed_pre_key</span>.<span class="ident">signature</span>,
-            <span class="ident">identity</span>,
+                .transpose()<span class="question-mark">?</span>,
+            <span class="comment">// pre_key: Option&lt;(u32, PublicKey)&gt;,
+            </span><span class="self">self</span>.signed_pre_key.key_id.into(),
+            PublicKey::deserialize(<span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key.public_key)<span class="question-mark">?</span>,
+            <span class="self">self</span>.signed_pre_key.signature,
+            identity,
         )
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MismatchedDevices</span> {
-    <span class="kw">pub</span> <span class="ident">missing_devices</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">extra_devices</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>MismatchedDevices {
+    <span class="kw">pub </span>missing_devices: Vec&lt;u32&gt;,
+    <span class="kw">pub </span>extra_devices: Vec&lt;u32&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">StaleDevices</span> {
-    <span class="kw">pub</span> <span class="ident">stale_devices</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>StaleDevices {
+    <span class="kw">pub </span>stale_devices: Vec&lt;u32&gt;,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Deserialize</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SignalServiceProfile</span> {
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_optional_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">identity_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_optional_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">name</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_optional_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">about</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>, <span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_optional_base64&quot;</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">about_emoji</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Deserialize)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>SignalServiceProfile {
+    <span class="attribute">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    </span><span class="kw">pub </span>identity_key: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+    <span class="attribute">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    </span><span class="kw">pub </span>name: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+    <span class="attribute">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    </span><span class="kw">pub </span>about: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+    <span class="attribute">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    </span><span class="kw">pub </span>about_emoji: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
 
-    <span class="comment">// TODO: not sure whether this is via optional_base64</span>
-    <span class="comment">// #[serde(default, with = &quot;serde_optional_base64&quot;)]</span>
-    <span class="comment">// pub payment_address: Option&lt;Vec&lt;u8&gt;&gt;,</span>
-    <span class="kw">pub</span> <span class="ident">avatar</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
-    <span class="kw">pub</span> <span class="ident">unidentified_access</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>,
+    <span class="comment">// TODO: not sure whether this is via optional_base64
+    // #[serde(default, with = &quot;serde_optional_base64&quot;)]
+    // pub payment_address: Option&lt;Vec&lt;u8&gt;&gt;,
+    </span><span class="kw">pub </span>avatar: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>unidentified_access: <span class="prelude-ty">Option</span>&lt;String&gt;,
 
-    <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">default</span>)]</span>
-    <span class="kw">pub</span> <span class="ident">unrestricted_unidentified_access</span>: <span class="ident">bool</span>,
+    <span class="attribute">#[serde(default)]
+    </span><span class="kw">pub </span>unrestricted_unidentified_access: bool,
 
-    <span class="kw">pub</span> <span class="ident">capabilities</span>: <span class="ident">DeviceCapabilities</span>,
+    <span class="kw">pub </span>capabilities: DeviceCapabilities,
 }
 
-<span class="kw">impl</span> <span class="ident">SignalServiceProfile</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decrypt</span>(
+<span class="kw">impl </span>SignalServiceProfile {
+    <span class="kw">pub fn </span>decrypt(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">profile_cipher</span>: <span class="ident"><span class="kw">crate</span>::profile_cipher::ProfileCipher</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Profile</span>, <span class="ident">ProfileCipherError</span><span class="op">&gt;</span> {
-        <span class="comment">// Profile decryption</span>
-        <span class="kw">let</span> <span class="ident">name</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">name</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">data</span><span class="op">|</span> <span class="ident">profile_cipher</span>.<span class="ident">decrypt_name</span>(<span class="ident">data</span>))
-            .<span class="ident">transpose</span>()<span class="question-mark">?</span>
-            .<span class="ident">flatten</span>();
-        <span class="kw">let</span> <span class="ident">about</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">about</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">data</span><span class="op">|</span> <span class="ident">profile_cipher</span>.<span class="ident">decrypt_about</span>(<span class="ident">data</span>))
-            .<span class="ident">transpose</span>()<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">about_emoji</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">about_emoji</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">data</span><span class="op">|</span> <span class="ident">profile_cipher</span>.<span class="ident">decrypt_emoji</span>(<span class="ident">data</span>))
-            .<span class="ident">transpose</span>()<span class="question-mark">?</span>;
+        profile_cipher: <span class="kw">crate</span>::profile_cipher::ProfileCipher,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, ProfileCipherError&gt; {
+        <span class="comment">// Profile decryption
+        </span><span class="kw">let </span>name = <span class="self">self
+            </span>.name
+            .as_ref()
+            .map(|data| profile_cipher.decrypt_name(data))
+            .transpose()<span class="question-mark">?
+            </span>.flatten();
+        <span class="kw">let </span>about = <span class="self">self
+            </span>.about
+            .as_ref()
+            .map(|data| profile_cipher.decrypt_about(data))
+            .transpose()<span class="question-mark">?</span>;
+        <span class="kw">let </span>about_emoji = <span class="self">self
+            </span>.about_emoji
+            .as_ref()
+            .map(|data| profile_cipher.decrypt_emoji(data))
+            .transpose()<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">Profile</span> {
-            <span class="ident">name</span>,
-            <span class="ident">about</span>,
-            <span class="ident">about_emoji</span>,
+        <span class="prelude-val">Ok</span>(Profile {
+            name,
+            about,
+            about_emoji,
         })
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">serde::Deserialize</span>, <span class="ident">Default</span>)]</span>
-<span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">AttachmentV2UploadAttributes</span> {
-    <span class="ident">key</span>: <span class="ident">String</span>,
-    <span class="ident">credential</span>: <span class="ident">String</span>,
-    <span class="ident">acl</span>: <span class="ident">String</span>,
-    <span class="ident">algorithm</span>: <span class="ident">String</span>,
-    <span class="ident">date</span>: <span class="ident">String</span>,
-    <span class="ident">policy</span>: <span class="ident">String</span>,
-    <span class="ident">signature</span>: <span class="ident">String</span>,
-    <span class="comment">// This is different from Java&#39;s implementation,</span>
-    <span class="comment">// and I (Ruben) am unsure why they decide to force-parse at upload-time instead of at registration</span>
-    <span class="comment">// time.</span>
-    <span class="ident">attachment_id</span>: <span class="ident">u64</span>,
+<span class="attribute">#[derive(Debug, serde::Deserialize, Default)]
+#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+</span><span class="kw">pub struct </span>AttachmentV2UploadAttributes {
+    key: String,
+    credential: String,
+    acl: String,
+    algorithm: String,
+    date: String,
+    policy: String,
+    signature: String,
+    <span class="comment">// This is different from Java&#39;s implementation,
+    // and I (Ruben) am unsure why they decide to force-parse at upload-time instead of at registration
+    // time.
+    </span>attachment_id: u64,
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">thiserror::Error</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ServiceError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Service request timed out: {reason}&quot;</span>)]</span>
-    <span class="ident">Timeout</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
+<span class="attribute">#[derive(thiserror::Error, Debug)]
+</span><span class="kw">pub enum </span>ServiceError {
+    <span class="attribute">#[error(<span class="string">&quot;Service request timed out: {reason}&quot;</span>)]
+    </span>Timeout { reason: String },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;invalid URL: {0}&quot;</span>)]</span>
-    <span class="ident">InvalidUrl</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">url::ParseError</span>),
+    <span class="attribute">#[error(<span class="string">&quot;invalid URL: {0}&quot;</span>)]
+    </span>InvalidUrl(<span class="attribute">#[from] </span>url::ParseError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Error sending request: {reason}&quot;</span>)]</span>
-    <span class="ident">SendError</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Error sending request: {reason}&quot;</span>)]
+    </span>SendError { reason: String },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Error decoding response: {reason}&quot;</span>)]</span>
-    <span class="ident">ResponseError</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Error decoding response: {reason}&quot;</span>)]
+    </span>ResponseError { reason: String },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Error decoding JSON response: {reason}&quot;</span>)]</span>
-    <span class="ident">JsonDecodeError</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Error decoding protobuf frame: {0}&quot;</span>)]</span>
-    <span class="ident">ProtobufDecodeError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">prost::DecodeError</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;error encoding or decoding bincode: {0}&quot;</span>)]</span>
-    <span class="ident">BincodeError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">bincode::Error</span>),
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;error decoding base64 string: {0}&quot;</span>)]</span>
-    <span class="ident">Base64DecodeError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">base64::DecodeError</span>),
+    <span class="attribute">#[error(<span class="string">&quot;Error decoding JSON response: {reason}&quot;</span>)]
+    </span>JsonDecodeError { reason: String },
+    <span class="attribute">#[error(<span class="string">&quot;Error decoding protobuf frame: {0}&quot;</span>)]
+    </span>ProtobufDecodeError(<span class="attribute">#[from] </span>prost::DecodeError),
+    <span class="attribute">#[error(<span class="string">&quot;error encoding or decoding bincode: {0}&quot;</span>)]
+    </span>BincodeError(<span class="attribute">#[from] </span>bincode::Error),
+    <span class="attribute">#[error(<span class="string">&quot;error decoding base64 string: {0}&quot;</span>)]
+    </span>Base64DecodeError(<span class="attribute">#[from] </span>base64::DecodeError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Rate limit exceeded&quot;</span>)]</span>
-    <span class="ident">RateLimitExceeded</span>,
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Authorization failed&quot;</span>)]</span>
-    <span class="ident">Unauthorized</span>,
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Unexpected response: HTTP {http_code}&quot;</span>)]</span>
-    <span class="ident">UnhandledResponseCode</span> { <span class="ident">http_code</span>: <span class="ident">u16</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Rate limit exceeded&quot;</span>)]
+    </span>RateLimitExceeded,
+    <span class="attribute">#[error(<span class="string">&quot;Authorization failed&quot;</span>)]
+    </span>Unauthorized,
+    <span class="attribute">#[error(<span class="string">&quot;Unexpected response: HTTP {http_code}&quot;</span>)]
+    </span>UnhandledResponseCode { http_code: u16 },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Websocket error: {reason}&quot;</span>)]</span>
-    <span class="ident">WsError</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Websocket closing: {reason}&quot;</span>)]</span>
-    <span class="ident">WsClosing</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Websocket error: {reason}&quot;</span>)]
+    </span>WsError { reason: String },
+    <span class="attribute">#[error(<span class="string">&quot;Websocket closing: {reason}&quot;</span>)]
+    </span>WsClosing { reason: String },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Invalid frame: {reason}&quot;</span>)]</span>
-    <span class="ident">InvalidFrameError</span> { <span class="ident">reason</span>: <span class="ident">String</span> },
+    <span class="attribute">#[error(<span class="string">&quot;Invalid frame: {reason}&quot;</span>)]
+    </span>InvalidFrameError { reason: String },
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;MAC error&quot;</span>)]</span>
-    <span class="ident">MacError</span>,
+    <span class="attribute">#[error(<span class="string">&quot;MAC error&quot;</span>)]
+    </span>MacError,
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Protocol error: {0}&quot;</span>)]</span>
-    <span class="ident">SignalProtocolError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">SignalProtocolError</span>),
+    <span class="attribute">#[error(<span class="string">&quot;Protocol error: {0}&quot;</span>)]
+    </span>SignalProtocolError(<span class="attribute">#[from] </span>SignalProtocolError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{0:?}&quot;</span>)]</span>
-    <span class="ident">MismatchedDevicesException</span>(<span class="ident">MismatchedDevices</span>),
+    <span class="attribute">#[error(<span class="string">&quot;{0:?}&quot;</span>)]
+    </span>MismatchedDevicesException(MismatchedDevices),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;{0:?}&quot;</span>)]</span>
-    <span class="ident">StaleDevices</span>(<span class="ident">StaleDevices</span>),
+    <span class="attribute">#[error(<span class="string">&quot;{0:?}&quot;</span>)]
+    </span>StaleDevices(StaleDevices),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="ident">transparent</span>)]</span>
-    <span class="ident">CredentialsCacheError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident"><span class="kw">crate</span>::groups_v2::CredentialsCacheError</span>),
+    <span class="attribute">#[error(transparent)]
+    </span>CredentialsCacheError(<span class="attribute">#[from] </span><span class="kw">crate</span>::groups_v2::CredentialsCacheError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;groups v2 (zero-knowledge) error&quot;</span>)]</span>
-    <span class="ident">GroupsV2Error</span>,
+    <span class="attribute">#[error(<span class="string">&quot;groups v2 (zero-knowledge) error&quot;</span>)]
+    </span>GroupsV2Error,
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="ident">transparent</span>)]</span>
-    <span class="ident">GroupsV2DecryptionError</span>(<span class="attribute">#[<span class="ident">from</span>]</span> <span class="ident">GroupDecryptionError</span>),
+    <span class="attribute">#[error(transparent)]
+    </span>GroupsV2DecryptionError(<span class="attribute">#[from] </span>GroupDecryptionError),
 
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;unsupported content&quot;</span>)]</span>
-    <span class="ident">UnsupportedContent</span>,
+    <span class="attribute">#[error(<span class="string">&quot;unsupported content&quot;</span>)]
+    </span>UnsupportedContent,
 }
 
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>, <span class="ident">async_trait::async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>))]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>), <span class="ident">async_trait::async_trait</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">PushService</span>: <span class="ident">MaybeSend</span> {
-    <span class="kw">type</span> <span class="ident">WebSocket</span>: <span class="ident">WebSocketService</span>;
-    <span class="kw">type</span> <span class="ident">ByteStream</span>: <span class="ident">futures::io::AsyncRead</span> <span class="op">+</span> <span class="ident">Unpin</span>;
+<span class="attribute">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
+#[cfg_attr(not(feature = <span class="string">&quot;unsend-futures&quot;</span>), async_trait::async_trait)]
+</span><span class="kw">pub trait </span>PushService: MaybeSend {
+    <span class="kw">type </span>WebSocket: WebSocketService;
+    <span class="kw">type </span>ByteStream: futures::io::AsyncRead + Unpin;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_json</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">T</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>get_json&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials_override: HttpAuthOverride,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">delete_json</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">T</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>delete_json&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">put_json</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-        <span class="ident">value</span>: <span class="ident">S</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="kw">for</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span> <span class="ident">D</span>: <span class="ident">Deserialize</span><span class="op">&lt;</span><span class="lifetime">&#39;de</span><span class="op">&gt;</span>,
-        <span class="ident">S</span>: <span class="ident">MaybeSend</span> <span class="op">+</span> <span class="ident">Serialize</span>;
+    <span class="kw">async fn </span>put_json&lt;D, S&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials_override: HttpAuthOverride,
+        value: S,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
+    <span class="kw">where
+        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        S: MaybeSend + Serialize;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_protobuf</span><span class="op">&lt;</span><span class="ident">T</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials_override</span>: <span class="ident">HttpAuthOverride</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">T</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">T</span>: <span class="ident">Default</span> <span class="op">+</span> <span class="ident">ProtobufMessage</span>;
+    <span class="kw">async fn </span>get_protobuf&lt;T&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials_override: HttpAuthOverride,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    <span class="kw">where
+        </span>T: Default + ProtobufMessage;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">put_protobuf</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">S</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">service</span>: <span class="ident">Endpoint</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">value</span>: <span class="ident">S</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">D</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>
-    <span class="kw">where</span>
-        <span class="ident">D</span>: <span class="ident">Default</span> <span class="op">+</span> <span class="ident">ProtobufMessage</span>,
-        <span class="ident">S</span>: <span class="ident">Sized</span> <span class="op">+</span> <span class="ident">ProtobufMessage</span>;
+    <span class="kw">async fn </span>put_protobuf&lt;D, S&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        service: Endpoint,
+        path: <span class="kw-2">&amp;</span>str,
+        value: S,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
+    <span class="kw">where
+        </span>D: Default + ProtobufMessage,
+        S: Sized + ProtobufMessage;
 
-    <span class="doccomment">/// Downloads larger files in streaming fashion, e.g. attachments.</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_from_cdn</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">cdn_id</span>: <span class="ident">u32</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ByteStream</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>;
+    <span class="doccomment">/// Downloads larger files in streaming fashion, e.g. attachments.
+    </span><span class="kw">async fn </span>get_from_cdn(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        cdn_id: u32,
+        path: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt;;
 
-    <span class="doccomment">/// Upload larger file to CDN0 in legacy fashion, e.g. for attachments.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Implementations are allowed to *panic* when the Read instance throws an IO-Error</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">post_to_cdn0</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span>, <span class="ident">C</span>: <span class="ident">std::io::Read</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;s</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">value</span>: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="kw-2">&amp;</span><span class="ident">str</span>)],
-        <span class="ident">file</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="kw-2">&amp;</span><span class="ident">str</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> <span class="kw-2">mut</span> <span class="ident">C</span>)<span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span>;
+    <span class="doccomment">/// Upload larger file to CDN0 in legacy fashion, e.g. for attachments.
+    ///
+    /// Implementations are allowed to *panic* when the Read instance throws an IO-Error
+    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+        value: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
+        file: <span class="prelude-ty">Option</span>&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span><span class="kw-2">mut </span>C)&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">ws</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">credentials</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ServiceCredentials</span><span class="op">&gt;</span>,
-        <span class="ident">keep_alive</span>: <span class="ident">bool</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SignalWebSocket</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>ws(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+        credentials: <span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;,
+        keep_alive: bool,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, ServiceError&gt;;
 
-    <span class="doccomment">/// Fetches a list of all devices tied to the authenticated account.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// This list include the device that sends the request.</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">devices</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">DeviceInfo</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">serde::Deserialize</span>)]</span>
-        <span class="kw">struct</span> <span class="ident">DeviceInfoList</span> {
-            <span class="ident">devices</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">DeviceInfo</span><span class="op">&gt;</span>,
+    <span class="doccomment">/// Fetches a list of all devices tied to the authenticated account.
+    ///
+    /// This list include the device that sends the request.
+    </span><span class="kw">async fn </span>devices(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;DeviceInfo&gt;, ServiceError&gt; {
+        <span class="attribute">#[derive(serde::Deserialize)]
+        </span><span class="kw">struct </span>DeviceInfoList {
+            devices: Vec&lt;DeviceInfo&gt;,
         }
 
-        <span class="kw">let</span> <span class="ident">devices</span>: <span class="ident">DeviceInfoList</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get_json</span>(
-                <span class="ident">Endpoint::Service</span>,
+        <span class="kw">let </span>devices: DeviceInfoList = <span class="self">self
+            </span>.get_json(
+                Endpoint::Service,
                 <span class="string">&quot;/v1/devices/&quot;</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
+                HttpAuthOverride::NoOverride,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">devices</span>.<span class="ident">devices</span>)
+        <span class="prelude-val">Ok</span>(devices.devices)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">unlink_device</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">id</span>: <span class="ident">i64</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">delete_json</span>(<span class="ident">Endpoint::Service</span>, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/devices/{}&quot;</span>, <span class="ident">id</span>))
-            .<span class="kw">await</span>
-    }
+    <span class="kw">async fn </span>unlink_device(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: i64) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+        <span class="self">self</span>.delete_json(Endpoint::Service, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/devices/{}&quot;</span>, id))
+            .<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_pre_key_status</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PreKeyStatus</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_json</span>(
-            <span class="ident">Endpoint::Service</span>,
+    <span class="kw">async fn </span>get_pre_key_status(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyStatus, ServiceError&gt; {
+        <span class="self">self</span>.get_json(
+            Endpoint::Service,
             <span class="string">&quot;/v2/keys/&quot;</span>,
-            <span class="ident">HttpAuthOverride::NoOverride</span>,
+            HttpAuthOverride::NoOverride,
         )
-        .<span class="kw">await</span>
-    }
+        .<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">register_pre_keys</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">pre_key_state</span>: <span class="ident">PreKeyState</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>
-            .<span class="ident">put_json</span>(
-                <span class="ident">Endpoint::Service</span>,
+    <span class="kw">async fn </span>register_pre_keys(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        pre_key_state: PreKeyState,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
+        <span class="kw">match </span><span class="self">self
+            </span>.put_json(
+                Endpoint::Service,
                 <span class="string">&quot;/v2/keys/&quot;</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
-                <span class="ident">pre_key_state</span>,
+                HttpAuthOverride::NoOverride,
+                pre_key_state,
             )
-            .<span class="kw">await</span>
-        {
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::JsonDecodeError</span> { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
-            <span class="ident">r</span> =&gt; <span class="ident">r</span>,
+            .<span class="kw">await
+        </span>{
+            <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
+            r =&gt; r,
         }
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_attachment_by_id</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">id</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-        <span class="ident">cdn_id</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ByteStream</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;attachments/{}&quot;</span>, <span class="ident">id</span>);
-        <span class="self">self</span>.<span class="ident">get_from_cdn</span>(<span class="ident">cdn_id</span>, <span class="kw-2">&amp;</span><span class="ident">path</span>).<span class="kw">await</span>
-    }
+    <span class="kw">async fn </span>get_attachment_by_id(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        id: <span class="kw-2">&amp;</span>str,
+        cdn_id: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;attachments/{}&quot;</span>, id);
+        <span class="self">self</span>.get_from_cdn(cdn_id, <span class="kw-2">&amp;</span>path).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_attachment</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">ptr</span>: <span class="kw-2">&amp;</span><span class="ident">AttachmentPointer</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ByteStream</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="ident">ptr</span>.<span class="ident">attachment_identifier</span>.<span class="ident">as_ref</span>().<span class="ident">unwrap</span>() {
-            <span class="ident">AttachmentIdentifier::CdnId</span>(<span class="ident">id</span>) =&gt; {
-                <span class="comment">// cdn_number did not exist for this part of the protocol.</span>
-                <span class="comment">// cdn_number(), however, returns 0 when the field does not</span>
-                <span class="comment">// exist.</span>
-                <span class="self">self</span>.<span class="ident">get_attachment_by_id</span>(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">id</span>), <span class="ident">ptr</span>.<span class="ident">cdn_number</span>())
-                    .<span class="kw">await</span>
-            },
-            <span class="ident">AttachmentIdentifier::CdnKey</span>(<span class="ident">key</span>) =&gt; {
-                <span class="self">self</span>.<span class="ident">get_attachment_by_id</span>(<span class="ident">key</span>, <span class="ident">ptr</span>.<span class="ident">cdn_number</span>()).<span class="kw">await</span>
-            },
+    <span class="kw">async fn </span>get_attachment(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        ptr: <span class="kw-2">&amp;</span>AttachmentPointer,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="kw">match </span>ptr.attachment_identifier.as_ref().unwrap() {
+            AttachmentIdentifier::CdnId(id) =&gt; {
+                <span class="comment">// cdn_number did not exist for this part of the protocol.
+                // cdn_number(), however, returns 0 when the field does not
+                // exist.
+                </span><span class="self">self</span>.get_attachment_by_id(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, id), ptr.cdn_number())
+                    .<span class="kw">await
+            </span>},
+            AttachmentIdentifier::CdnKey(key) =&gt; {
+                <span class="self">self</span>.get_attachment_by_id(key, ptr.cdn_number()).<span class="kw">await
+            </span>},
         }
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_messages</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">messages</span>: <span class="ident">OutgoingPushMessages</span><span class="op">&lt;</span><span class="lifetime">&#39;a</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SendMessageResponse</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span> <span class="macro">format!</span>(<span class="string">&quot;/v1/messages/{}&quot;</span>, <span class="ident">messages</span>.<span class="ident">destination</span>);
-        <span class="self">self</span>.<span class="ident">put_json</span>(
-            <span class="ident">Endpoint::Service</span>,
-            <span class="kw-2">&amp;</span><span class="ident">path</span>,
-            <span class="ident">HttpAuthOverride::NoOverride</span>,
-            <span class="ident">messages</span>,
+    <span class="kw">async fn </span>send_messages&lt;<span class="lifetime">&#39;a</span>&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        messages: OutgoingPushMessages&lt;<span class="lifetime">&#39;a</span>&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SendMessageResponse, ServiceError&gt; {
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/v1/messages/{}&quot;</span>, messages.destination);
+        <span class="self">self</span>.put_json(
+            Endpoint::Service,
+            <span class="kw-2">&amp;</span>path,
+            HttpAuthOverride::NoOverride,
+            messages,
         )
-        .<span class="kw">await</span>
-    }
+        .<span class="kw">await
+    </span>}
 
-    <span class="doccomment">/// Request AttachmentV2UploadAttributes</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Equivalent with getAttachmentV2UploadAttributes</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_attachment_v2_upload_attributes</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">AttachmentV2UploadAttributes</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_json</span>(
-            <span class="ident">Endpoint::Service</span>,
+    <span class="doccomment">/// Request AttachmentV2UploadAttributes
+    ///
+    /// Equivalent with getAttachmentV2UploadAttributes
+    </span><span class="kw">async fn </span>get_attachment_v2_upload_attributes(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;AttachmentV2UploadAttributes, ServiceError&gt; {
+        <span class="self">self</span>.get_json(
+            Endpoint::Service,
             <span class="string">&quot;/v2/attachments/form/upload&quot;</span>,
-            <span class="ident">HttpAuthOverride::NoOverride</span>,
+            HttpAuthOverride::NoOverride,
         )
-        .<span class="kw">await</span>
-    }
+        .<span class="kw">await
+    </span>}
 
-    <span class="doccomment">/// Upload attachment to CDN</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Returns attachment ID and the attachment digest</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">upload_attachment</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span>, <span class="ident">C</span>: <span class="ident">std::io::Read</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;s</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">attrs</span>: <span class="kw-2">&amp;</span><span class="ident">AttachmentV2UploadAttributes</span>,
-        <span class="ident">content</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> <span class="kw-2">mut</span> <span class="ident">C</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(<span class="ident">u64</span>, <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">values</span> <span class="op">=</span> [
-            (<span class="string">&quot;acl&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">acl</span> <span class="kw">as</span> <span class="kw-2">&amp;</span><span class="ident">str</span>),
-            (<span class="string">&quot;key&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">key</span>),
-            (<span class="string">&quot;policy&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">policy</span>),
+    <span class="doccomment">/// Upload attachment to CDN
+    ///
+    /// Returns attachment ID and the attachment digest
+    </span><span class="kw">async fn </span>upload_attachment&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        attrs: <span class="kw-2">&amp;</span>AttachmentV2UploadAttributes,
+        content: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span><span class="kw-2">mut </span>C,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(u64, Vec&lt;u8&gt;), ServiceError&gt; {
+        <span class="kw">let </span>values = [
+            (<span class="string">&quot;acl&quot;</span>, <span class="kw-2">&amp;</span>attrs.acl <span class="kw">as </span><span class="kw-2">&amp;</span>str),
+            (<span class="string">&quot;key&quot;</span>, <span class="kw-2">&amp;</span>attrs.key),
+            (<span class="string">&quot;policy&quot;</span>, <span class="kw-2">&amp;</span>attrs.policy),
             (<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;application/octet-stream&quot;</span>),
-            (<span class="string">&quot;x-amz-algorithm&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">algorithm</span>),
-            (<span class="string">&quot;x-amz-credential&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">credential</span>),
-            (<span class="string">&quot;x-amz-date&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">date</span>),
-            (<span class="string">&quot;x-amz-signature&quot;</span>, <span class="kw-2">&amp;</span><span class="ident">attrs</span>.<span class="ident">signature</span>),
+            (<span class="string">&quot;x-amz-algorithm&quot;</span>, <span class="kw-2">&amp;</span>attrs.algorithm),
+            (<span class="string">&quot;x-amz-credential&quot;</span>, <span class="kw-2">&amp;</span>attrs.credential),
+            (<span class="string">&quot;x-amz-date&quot;</span>, <span class="kw-2">&amp;</span>attrs.date),
+            (<span class="string">&quot;x-amz-signature&quot;</span>, <span class="kw-2">&amp;</span>attrs.signature),
         ];
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">digester</span> <span class="op">=</span> <span class="ident"><span class="kw">crate</span>::digeststream::DigestingReader::new</span>(<span class="ident">content</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>digester = <span class="kw">crate</span>::digeststream::DigestingReader::new(content);
 
-        <span class="self">self</span>.<span class="ident">post_to_cdn0</span>(
+        <span class="self">self</span>.post_to_cdn0(
             <span class="string">&quot;attachments/&quot;</span>,
-            <span class="kw-2">&amp;</span><span class="ident">values</span>,
-            <span class="prelude-val">Some</span>((<span class="string">&quot;file&quot;</span>, <span class="kw-2">&amp;mut</span> <span class="ident">digester</span>)),
+            <span class="kw-2">&amp;</span>values,
+            <span class="prelude-val">Some</span>((<span class="string">&quot;file&quot;</span>, <span class="kw-2">&amp;mut </span>digester)),
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>((<span class="ident">attrs</span>.<span class="ident">attachment_id</span>, <span class="ident">digester</span>.<span class="ident">finalize</span>()))
+        <span class="prelude-val">Ok</span>((attrs.attachment_id, digester.finalize()))
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_messages</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">EnvelopeEntity</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">entity_list</span>: <span class="ident">EnvelopeEntityList</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get_json</span>(
-                <span class="ident">Endpoint::Service</span>,
+    <span class="kw">async fn </span>get_messages(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;EnvelopeEntity&gt;, ServiceError&gt; {
+        <span class="kw">let </span>entity_list: EnvelopeEntityList = <span class="self">self
+            </span>.get_json(
+                Endpoint::Service,
                 <span class="string">&quot;/v1/messages/&quot;</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
+                HttpAuthOverride::NoOverride,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">entity_list</span>.<span class="ident">messages</span>)
+        <span class="prelude-val">Ok</span>(entity_list.messages)
     }
 
-    <span class="doccomment">/// Method used to check our own UUID</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">whoami</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">WhoAmIResponse</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_json</span>(
-            <span class="ident">Endpoint::Service</span>,
+    <span class="doccomment">/// Method used to check our own UUID
+    </span><span class="kw">async fn </span>whoami(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, ServiceError&gt; {
+        <span class="self">self</span>.get_json(
+            Endpoint::Service,
             <span class="string">&quot;/v1/accounts/whoami&quot;</span>,
-            <span class="ident">HttpAuthOverride::NoOverride</span>,
+            HttpAuthOverride::NoOverride,
         )
-        .<span class="kw">await</span>
-    }
+        .<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_profile_by_id</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">address</span>: <span class="ident">ServiceAddress</span>,
-        <span class="ident">profile_key</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">zkgroup::profiles::ProfileKey</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SignalServiceProfile</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">endpoint</span> <span class="op">=</span> <span class="kw">match</span> (<span class="ident">profile_key</span>, <span class="ident">address</span>.<span class="ident">uuid</span>) {
-            (<span class="prelude-val">Some</span>(<span class="ident">key</span>), <span class="prelude-val">Some</span>(<span class="ident">uuid</span>)) =&gt; {
-                <span class="kw">let</span> <span class="ident">uid_bytes</span> <span class="op">=</span> <span class="ident">uuid</span>.<span class="ident">as_bytes</span>();
-                <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="ident">bincode::serialize</span>(
-                    <span class="kw-2">&amp;</span><span class="ident">key</span>.<span class="ident">get_profile_key_version</span>(<span class="kw-2">*</span><span class="ident">uid_bytes</span>),
+    <span class="kw">async fn </span>retrieve_profile_by_id(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        address: ServiceAddress,
+        profile_key: <span class="prelude-ty">Option</span>&lt;zkgroup::profiles::ProfileKey&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalServiceProfile, ServiceError&gt; {
+        <span class="kw">let </span>endpoint = <span class="kw">match </span>(profile_key, address.uuid) {
+            (<span class="prelude-val">Some</span>(key), <span class="prelude-val">Some</span>(uuid)) =&gt; {
+                <span class="kw">let </span>uid_bytes = uuid.as_bytes();
+                <span class="kw">let </span>version = bincode::serialize(
+                    <span class="kw-2">&amp;</span>key.get_profile_key_version(<span class="kw-2">*</span>uid_bytes),
                 )<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="ident">std::str::from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">version</span>)
-                    .<span class="ident">expect</span>(<span class="string">&quot;hex encoded profile key version&quot;</span>);
-                <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}/{}&quot;</span>, <span class="ident">uuid</span>, <span class="ident">version</span>)
+                <span class="kw">let </span>version = std::str::from_utf8(<span class="kw-2">&amp;</span>version)
+                    .expect(<span class="string">&quot;hex encoded profile key version&quot;</span>);
+                <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}/{}&quot;</span>, uuid, version)
             },
             (<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
-                <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}&quot;</span>, <span class="ident">address</span>.<span class="ident">identifier</span>())
+                <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}&quot;</span>, address.identifier())
             },
         };
-        <span class="comment">// TODO: set locale to en_US</span>
-        <span class="self">self</span>.<span class="ident">get_json</span>(
-            <span class="ident">Endpoint::Service</span>,
-            <span class="kw-2">&amp;</span><span class="ident">endpoint</span>,
-            <span class="ident">HttpAuthOverride::NoOverride</span>,
+        <span class="comment">// TODO: set locale to en_US
+        </span><span class="self">self</span>.get_json(
+            Endpoint::Service,
+            <span class="kw-2">&amp;</span>endpoint,
+            HttpAuthOverride::NoOverride,
         )
-        .<span class="kw">await</span>
-    }
+        .<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_profile_avatar</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ByteStream</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_from_cdn</span>(<span class="number">0</span>, <span class="ident">path</span>).<span class="kw">await</span>
-    }
+    <span class="kw">async fn </span>retrieve_profile_avatar(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="self">self</span>.get_from_cdn(<span class="number">0</span>, path).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">retrieve_groups_v2_profile_avatar</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">path</span>: <span class="kw-2">&amp;</span><span class="ident">str</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="self">Self</span>::ByteStream</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_from_cdn</span>(<span class="number">0</span>, <span class="ident">path</span>).<span class="kw">await</span>
-    }
+    <span class="kw">async fn </span>retrieve_groups_v2_profile_avatar(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        path: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="self">self</span>.get_from_cdn(<span class="number">0</span>, path).<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_pre_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">destination</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">device_id</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PreKeyBundle</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">relay</span>) <span class="op">=</span> <span class="ident">destination</span>.<span class="ident">relay</span> {
+    <span class="kw">async fn </span>get_pre_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        destination: <span class="kw-2">&amp;</span>ServiceAddress,
+        device_id: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyBundle, ServiceError&gt; {
+        <span class="kw">let </span>path = <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>relay) = destination.relay {
             <span class="macro">format!</span>(
                 <span class="string">&quot;/v2/keys/{}/{}?relay={}&quot;</span>,
-                <span class="ident">destination</span>.<span class="ident">identifier</span>(),
-                <span class="ident">device_id</span>,
-                <span class="ident">relay</span>
+                destination.identifier(),
+                device_id,
+                relay
             )
-        } <span class="kw">else</span> {
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, <span class="ident">destination</span>.<span class="ident">identifier</span>(), <span class="ident">device_id</span>)
+        } <span class="kw">else </span>{
+            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.identifier(), device_id)
         };
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">pre_key_response</span>: <span class="ident">PreKeyResponse</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get_json</span>(<span class="ident">Endpoint::Service</span>, <span class="kw-2">&amp;</span><span class="ident">path</span>, <span class="ident">HttpAuthOverride::NoOverride</span>)
+        <span class="kw">let </span><span class="kw-2">mut </span>pre_key_response: PreKeyResponse = <span class="self">self
+            </span>.get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">pre_key_response</span>.<span class="ident">devices</span>.<span class="ident">is_empty</span>());
+        <span class="macro">assert!</span>(!pre_key_response.devices.is_empty());
 
-        <span class="kw">let</span> <span class="ident">identity</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">pre_key_response</span>.<span class="ident">identity_key</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">device</span> <span class="op">=</span> <span class="ident">pre_key_response</span>.<span class="ident">devices</span>.<span class="ident">remove</span>(<span class="number">0</span>);
-        <span class="prelude-val">Ok</span>(<span class="ident">device</span>.<span class="ident">into_bundle</span>(<span class="ident">identity</span>)<span class="question-mark">?</span>)
+        <span class="kw">let </span>identity = IdentityKey::decode(<span class="kw-2">&amp;</span>pre_key_response.identity_key)<span class="question-mark">?</span>;
+        <span class="kw">let </span>device = pre_key_response.devices.remove(<span class="number">0</span>);
+        <span class="prelude-val">Ok</span>(device.into_bundle(identity)<span class="question-mark">?</span>)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_pre_keys</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">destination</span>: <span class="kw-2">&amp;</span><span class="ident">ServiceAddress</span>,
-        <span class="ident">device_id</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">PreKeyBundle</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">path</span> <span class="op">=</span> <span class="kw">match</span> (<span class="ident">device_id</span>, <span class="ident">destination</span>.<span class="ident">relay</span>.<span class="ident">as_ref</span>()) {
-            (<span class="number">1</span>, <span class="prelude-val">None</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*&quot;</span>, <span class="ident">destination</span>.<span class="ident">identifier</span>()),
-            (<span class="ident">device_id</span>, <span class="prelude-val">None</span>) =&gt; {
-                <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, <span class="ident">destination</span>.<span class="ident">identifier</span>(), <span class="ident">device_id</span>)
+    <span class="kw">async fn </span>get_pre_keys(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        destination: <span class="kw-2">&amp;</span>ServiceAddress,
+        device_id: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;PreKeyBundle&gt;, ServiceError&gt; {
+        <span class="kw">let </span>path = <span class="kw">match </span>(device_id, destination.relay.as_ref()) {
+            (<span class="number">1</span>, <span class="prelude-val">None</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*&quot;</span>, destination.identifier()),
+            (device_id, <span class="prelude-val">None</span>) =&gt; {
+                <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.identifier(), device_id)
             },
-            (<span class="number">1</span>, <span class="prelude-val">Some</span>(<span class="ident">relay</span>)) =&gt; <span class="macro">format!</span>(
+            (<span class="number">1</span>, <span class="prelude-val">Some</span>(relay)) =&gt; <span class="macro">format!</span>(
                 <span class="string">&quot;/v2/keys/{}/*?relay={}&quot;</span>,
-                <span class="ident">destination</span>.<span class="ident">identifier</span>(),
-                <span class="ident">relay</span>
+                destination.identifier(),
+                relay
             ),
-            (<span class="ident">device_id</span>, <span class="prelude-val">Some</span>(<span class="ident">relay</span>)) =&gt; <span class="macro">format!</span>(
+            (device_id, <span class="prelude-val">Some</span>(relay)) =&gt; <span class="macro">format!</span>(
                 <span class="string">&quot;/v2/keys/{}/{}?relay={}&quot;</span>,
-                <span class="ident">destination</span>.<span class="ident">identifier</span>(),
-                <span class="ident">device_id</span>,
-                <span class="ident">relay</span>
+                destination.identifier(),
+                device_id,
+                relay
             ),
         };
-        <span class="kw">let</span> <span class="ident">pre_key_response</span>: <span class="ident">PreKeyResponse</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get_json</span>(<span class="ident">Endpoint::Service</span>, <span class="kw-2">&amp;</span><span class="ident">path</span>, <span class="ident">HttpAuthOverride::NoOverride</span>)
+        <span class="kw">let </span>pre_key_response: PreKeyResponse = <span class="self">self
+            </span>.get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">pre_keys</span> <span class="op">=</span> <span class="macro">vec!</span>[];
-        <span class="kw">let</span> <span class="ident">identity</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">pre_key_response</span>.<span class="ident">identity_key</span>)<span class="question-mark">?</span>;
-        <span class="kw">for</span> <span class="ident">device</span> <span class="kw">in</span> <span class="ident">pre_key_response</span>.<span class="ident">devices</span> {
-            <span class="ident">pre_keys</span>.<span class="ident">push</span>(<span class="ident">device</span>.<span class="ident">into_bundle</span>(<span class="ident">identity</span>)<span class="question-mark">?</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>pre_keys = <span class="macro">vec!</span>[];
+        <span class="kw">let </span>identity = IdentityKey::decode(<span class="kw-2">&amp;</span>pre_key_response.identity_key)<span class="question-mark">?</span>;
+        <span class="kw">for </span>device <span class="kw">in </span>pre_key_response.devices {
+            pre_keys.push(device.into_bundle(identity)<span class="question-mark">?</span>);
         }
-        <span class="prelude-val">Ok</span>(<span class="ident">pre_keys</span>)
+        <span class="prelude-val">Ok</span>(pre_keys)
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">get_group</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">credentials</span>: <span class="ident">HttpAuth</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident"><span class="kw">crate</span>::proto::Group</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">get_protobuf</span>(
-            <span class="ident">Endpoint::Storage</span>,
+    <span class="kw">async fn </span>get_group(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        credentials: HttpAuth,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::Group, ServiceError&gt; {
+        <span class="self">self</span>.get_protobuf(
+            Endpoint::Storage,
             <span class="string">&quot;/v1/groups/&quot;</span>,
-            <span class="ident">HttpAuthOverride::Identified</span>(<span class="ident">credentials</span>),
+            HttpAuthOverride::Identified(credentials),
         )
-        .<span class="kw">await</span>
-    }
+        .<span class="kw">await
+    </span>}
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">set_account_attributes</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">attributes</span>: <span class="ident">AccountAttributes</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
+    <span class="kw">async fn </span>set_account_attributes(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        attributes: AccountAttributes,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
         <span class="macro">assert!</span>(
-            <span class="ident">attributes</span>.<span class="ident">pin</span>.<span class="ident">is_none</span>() <span class="op">|</span><span class="op">|</span> <span class="ident">attributes</span>.<span class="ident">registration_lock</span>.<span class="ident">is_none</span>(),
-            <span class="string">&quot;only one of PIN and registration lock can be set.&quot;</span>
-        );
+            attributes.pin.is_none() || attributes.registration_lock.is_none(),
+            <span class="string">&quot;only one of PIN and registration lock can be set.&quot;
+        </span>);
 
-        <span class="kw">match</span> <span class="self">self</span>
-            .<span class="ident">put_json</span>(
-                <span class="ident">Endpoint::Service</span>,
+        <span class="kw">match </span><span class="self">self
+            </span>.put_json(
+                Endpoint::Service,
                 <span class="string">&quot;/v1/accounts/attributes/&quot;</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
-                <span class="ident">attributes</span>,
+                HttpAuthOverride::NoOverride,
+                attributes,
             )
-            .<span class="kw">await</span>
-        {
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::JsonDecodeError</span> { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
-            <span class="ident">r</span> =&gt; <span class="ident">r</span>,
+            .<span class="kw">await
+        </span>{
+            <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }) =&gt; <span class="prelude-val">Ok</span>(()),
+            r =&gt; r,
         }
     }
 
-    <span class="doccomment">/// Writes a profile and returns the avatar URL, if one was provided.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// The name, about and emoji fields are encrypted with an [`ProfileCipher`][struct@crate::profile_cipher::ProfileCipher].</span>
-    <span class="doccomment">/// See [`AccountManager`][struct@crate::AccountManager] for a convenience method.</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Java equivalent: `writeProfile`</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">write_profile</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span>, <span class="ident">C</span>: <span class="ident">std::io::Read</span> <span class="op">+</span> <span class="ident">Send</span> <span class="op">+</span> <span class="lifetime">&#39;s</span>, <span class="ident">S</span>: <span class="ident">AsRef</span><span class="op">&lt;</span><span class="ident">str</span><span class="op">&gt;</span><span class="op">&gt;</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">version</span>: <span class="kw-2">&amp;</span><span class="ident">ProfileKeyVersion</span>,
-        <span class="ident">name</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">about</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">emoji</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">commitment</span>: <span class="kw-2">&amp;</span><span class="ident">ProfileKeyCommitment</span>,
-        <span class="ident">avatar</span>: <span class="ident">AvatarWrite</span><span class="op">&lt;</span><span class="kw-2">&amp;mut</span> <span class="ident">C</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Serialize</span>)]</span>
-        <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">rename_all</span> <span class="op">=</span> <span class="string">&quot;camelCase&quot;</span>)]</span>
-        <span class="kw">struct</span> <span class="ident">SignalServiceProfileWrite</span><span class="op">&lt;</span><span class="lifetime">&#39;s</span><span class="op">&gt;</span> {
-            <span class="doccomment">/// Hex-encoded</span>
-            <span class="ident">version</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> <span class="ident">str</span>,
-            <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>)]</span>
-            <span class="ident">name</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> [<span class="ident">u8</span>],
-            <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>)]</span>
-            <span class="ident">about</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> [<span class="ident">u8</span>],
-            <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>)]</span>
-            <span class="ident">about_emoji</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> [<span class="ident">u8</span>],
-            <span class="ident">avatar</span>: <span class="ident">bool</span>,
-            <span class="ident">same_avatar</span>: <span class="ident">bool</span>,
-            <span class="attribute">#[<span class="ident">serde</span>(<span class="ident">with</span> <span class="op">=</span> <span class="string">&quot;serde_base64&quot;</span>)]</span>
-            <span class="ident">commitment</span>: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s</span> [<span class="ident">u8</span>],
+    <span class="doccomment">/// Writes a profile and returns the avatar URL, if one was provided.
+    ///
+    /// The name, about and emoji fields are encrypted with an [`ProfileCipher`][struct@crate::profile_cipher::ProfileCipher].
+    /// See [`AccountManager`][struct@crate::AccountManager] for a convenience method.
+    ///
+    /// Java equivalent: `writeProfile`
+    </span><span class="kw">async fn </span>write_profile&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>, S: AsRef&lt;str&gt;&gt;(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        version: <span class="kw-2">&amp;</span>ProfileKeyVersion,
+        name: <span class="kw-2">&amp;</span>[u8],
+        about: <span class="kw-2">&amp;</span>[u8],
+        emoji: <span class="kw-2">&amp;</span>[u8],
+        commitment: <span class="kw-2">&amp;</span>ProfileKeyCommitment,
+        avatar: AvatarWrite&lt;<span class="kw-2">&amp;mut </span>C&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;String&gt;, ServiceError&gt; {
+        <span class="attribute">#[derive(Debug, Serialize)]
+        #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+        </span><span class="kw">struct </span>SignalServiceProfileWrite&lt;<span class="lifetime">&#39;s</span>&gt; {
+            <span class="doccomment">/// Hex-encoded
+            </span>version: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>str,
+            <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+            </span>name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
+            <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+            </span>about: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
+            <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+            </span>about_emoji: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
+            avatar: bool,
+            same_avatar: bool,
+            <span class="attribute">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+            </span>commitment: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
         }
 
-        <span class="comment">// Bincode is transparent and will return a hex-encoded string.</span>
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="ident">bincode::serialize</span>(<span class="ident">version</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="ident">std::str::from_utf8</span>(<span class="kw-2">&amp;</span><span class="ident">version</span>)
-            .<span class="ident">expect</span>(<span class="string">&quot;profile_key_version is hex encoded string&quot;</span>);
-        <span class="kw">let</span> <span class="ident">commitment</span> <span class="op">=</span> <span class="ident">bincode::serialize</span>(<span class="ident">commitment</span>)<span class="question-mark">?</span>;
+        <span class="comment">// Bincode is transparent and will return a hex-encoded string.
+        </span><span class="kw">let </span>version = bincode::serialize(version)<span class="question-mark">?</span>;
+        <span class="kw">let </span>version = std::str::from_utf8(<span class="kw-2">&amp;</span>version)
+            .expect(<span class="string">&quot;profile_key_version is hex encoded string&quot;</span>);
+        <span class="kw">let </span>commitment = bincode::serialize(commitment)<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">command</span> <span class="op">=</span> <span class="ident">SignalServiceProfileWrite</span> {
-            <span class="ident">version</span>,
-            <span class="ident">name</span>,
-            <span class="ident">about</span>,
-            <span class="ident">about_emoji</span>: <span class="ident">emoji</span>,
-            <span class="ident">avatar</span>: <span class="macro">matches!</span>(<span class="ident">avatar</span>, <span class="ident">AvatarWrite::NewAvatar</span>(<span class="kw">_</span>)),
-            <span class="ident">same_avatar</span>: <span class="macro">matches!</span>(<span class="ident">avatar</span>, <span class="ident">AvatarWrite::RetainAvatar</span>),
-            <span class="ident">commitment</span>: <span class="kw-2">&amp;</span><span class="ident">commitment</span>,
+        <span class="kw">let </span>command = SignalServiceProfileWrite {
+            version,
+            name,
+            about,
+            about_emoji: emoji,
+            avatar: <span class="macro">matches!</span>(avatar, AvatarWrite::NewAvatar(<span class="kw">_</span>)),
+            same_avatar: <span class="macro">matches!</span>(avatar, AvatarWrite::RetainAvatar),
+            commitment: <span class="kw-2">&amp;</span>commitment,
         };
 
-        <span class="comment">// XXX this should  be a struct; cfr ProfileAvatarUploadAttributes</span>
-        <span class="kw">let</span> <span class="ident">response</span>: <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="kw">_</span><span class="op">&gt;</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">put_json</span>(
-                <span class="ident">Endpoint::Service</span>,
+        <span class="comment">// XXX this should  be a struct; cfr ProfileAvatarUploadAttributes
+        </span><span class="kw">let </span>response: <span class="prelude-ty">Result</span>&lt;String, <span class="kw">_</span>&gt; = <span class="self">self
+            </span>.put_json(
+                Endpoint::Service,
                 <span class="string">&quot;/v1/profile&quot;</span>,
-                <span class="ident">HttpAuthOverride::NoOverride</span>,
-                <span class="ident">command</span>,
+                HttpAuthOverride::NoOverride,
+                command,
             )
             .<span class="kw">await</span>;
-        <span class="kw">match</span> (<span class="ident">response</span>, <span class="ident">avatar</span>) {
-            (<span class="prelude-val">Ok</span>(<span class="ident">_url</span>), <span class="ident">AvatarWrite::NewAvatar</span>(<span class="ident">_avatar</span>)) =&gt; {
-                <span class="comment">// FIXME</span>
-                <span class="macro">unreachable!</span>(<span class="string">&quot;Uploading avatar unimplemented&quot;</span>);
+        <span class="kw">match </span>(response, avatar) {
+            (<span class="prelude-val">Ok</span>(_url), AvatarWrite::NewAvatar(_avatar)) =&gt; {
+                <span class="comment">// FIXME
+                </span><span class="macro">unreachable!</span>(<span class="string">&quot;Uploading avatar unimplemented&quot;</span>);
             },
-            <span class="comment">// FIXME cleanup when #54883 is stable and MSRV:</span>
-            <span class="comment">// or-patterns syntax is experimental</span>
-            <span class="comment">// see issue #54883 &lt;https://github.com/rust-lang/rust/issues/54883&gt; for more information</span>
-            (
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::JsonDecodeError</span> { .. }),
-                <span class="ident">AvatarWrite::RetainAvatar</span>,
+            <span class="comment">// FIXME cleanup when #54883 is stable and MSRV:
+            // or-patterns syntax is experimental
+            // see issue #54883 &lt;https://github.com/rust-lang/rust/issues/54883&gt; for more information
+            </span>(
+                <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }),
+                AvatarWrite::RetainAvatar,
             )
-            <span class="op">|</span> (
-                <span class="prelude-val">Err</span>(<span class="ident">ServiceError::JsonDecodeError</span> { .. }),
-                <span class="ident">AvatarWrite::NoAvatar</span>,
+            | (
+                <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }),
+                AvatarWrite::NoAvatar,
             ) =&gt; {
-                <span class="comment">// OWS sends an empty string when there&#39;s no attachment</span>
-                <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+                <span class="comment">// OWS sends an empty string when there&#39;s no attachment
+                </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
             },
-            (<span class="prelude-val">Err</span>(<span class="ident">e</span>), <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="ident">e</span>),
-            (<span class="prelude-val">Ok</span>(<span class="ident">_resp</span>), <span class="ident">AvatarWrite::RetainAvatar</span>)
-            <span class="op">|</span> (<span class="prelude-val">Ok</span>(<span class="ident">_resp</span>), <span class="ident">AvatarWrite::NoAvatar</span>) =&gt; {
+            (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(e),
+            (<span class="prelude-val">Ok</span>(_resp), AvatarWrite::RetainAvatar)
+            | (<span class="prelude-val">Ok</span>(_resp), AvatarWrite::NoAvatar) =&gt; {
                 <span class="macro">log::warn!</span>(
-                    <span class="string">&quot;No avatar supplied but got avatar upload URL. Ignoring&quot;</span>
-                );
+                    <span class="string">&quot;No avatar supplied but got avatar upload URL. Ignoring&quot;
+                </span>);
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
             },
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

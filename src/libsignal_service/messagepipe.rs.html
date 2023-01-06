@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/messagepipe.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>messagepipe.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/messagepipe.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>messagepipe.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -140,147 +140,147 @@
 <span id="140">140</span>
 <span id="141">141</span>
 <span id="142">142</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">bytes::Bytes</span>;
-<span class="kw">use</span> <span class="ident">futures</span>::{
-    <span class="ident">channel</span>::{
-        <span class="ident">mpsc</span>::{<span class="self">self</span>, <span class="ident">Sender</span>},
-        <span class="ident">oneshot</span>,
+</pre><pre class="rust"><code><span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>futures::{
+    channel::{
+        mpsc::{<span class="self">self</span>, Sender},
+        oneshot,
     },
-    <span class="ident">prelude</span>::<span class="kw-2">*</span>,
-    <span class="ident">stream::FusedStream</span>,
+    prelude::<span class="kw-2">*</span>,
+    stream::FusedStream,
 };
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">configuration::ServiceCredentials</span>,
-    <span class="ident">proto</span>::{
-        <span class="ident">web_socket_message</span>, <span class="ident">Envelope</span>, <span class="ident">WebSocketMessage</span>,
-        <span class="ident">WebSocketRequestMessage</span>, <span class="ident">WebSocketResponseMessage</span>,
+<span class="kw">pub use crate</span>::{
+    configuration::ServiceCredentials,
+    proto::{
+        web_socket_message, Envelope, WebSocketMessage,
+        WebSocketRequestMessage, WebSocketResponseMessage,
     },
 };
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">push_service::ServiceError</span>, <span class="ident">websocket::SignalWebSocket</span>};
+<span class="kw">use crate</span>::{push_service::ServiceError, websocket::SignalWebSocket};
 
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">WebSocketStreamItem</span> {
-    <span class="ident">Message</span>(<span class="ident">Bytes</span>),
-    <span class="ident">KeepAliveRequest</span>,
+<span class="kw">pub enum </span>WebSocketStreamItem {
+    Message(Bytes),
+    KeepAliveRequest,
 }
 
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>, <span class="ident">async_trait::async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>))]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>), <span class="ident">async_trait::async_trait</span>)]</span>
-<span class="kw">pub</span> <span class="kw">trait</span> <span class="ident">WebSocketService</span> {
-    <span class="kw">type</span> <span class="ident">Stream</span>: <span class="ident">FusedStream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="ident">WebSocketStreamItem</span><span class="op">&gt;</span> <span class="op">+</span> <span class="ident">Unpin</span>;
+<span class="attribute">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
+#[cfg_attr(not(feature = <span class="string">&quot;unsend-futures&quot;</span>), async_trait::async_trait)]
+</span><span class="kw">pub trait </span>WebSocketService {
+    <span class="kw">type </span>Stream: FusedStream&lt;Item = WebSocketStreamItem&gt; + Unpin;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_message</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">msg</span>: <span class="ident">Bytes</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span>;
+    <span class="kw">async fn </span>send_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, msg: Bytes) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt;;
 }
 
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">MessagePipe</span> {
-    <span class="ident">ws</span>: <span class="ident">SignalWebSocket</span>,
-    <span class="ident">credentials</span>: <span class="ident">ServiceCredentials</span>,
+<span class="kw">pub struct </span>MessagePipe {
+    ws: SignalWebSocket,
+    credentials: ServiceCredentials,
 }
 
-<span class="kw">impl</span> <span class="ident">MessagePipe</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_socket</span>(
-        <span class="ident">ws</span>: <span class="ident">SignalWebSocket</span>,
-        <span class="ident">credentials</span>: <span class="ident">ServiceCredentials</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="ident">MessagePipe</span> { <span class="ident">ws</span>, <span class="ident">credentials</span> }
+<span class="kw">impl </span>MessagePipe {
+    <span class="kw">pub fn </span>from_socket(
+        ws: SignalWebSocket,
+        credentials: ServiceCredentials,
+    ) -&gt; <span class="self">Self </span>{
+        MessagePipe { ws, credentials }
     }
 
-    <span class="doccomment">/// Return a SignalWebSocket for sending messages and other purposes beyond receiving messages.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">ws</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">SignalWebSocket</span> {
-        <span class="self">self</span>.<span class="ident">ws</span>.<span class="ident">clone</span>()
+    <span class="doccomment">/// Return a SignalWebSocket for sending messages and other purposes beyond receiving messages.
+    </span><span class="kw">pub fn </span>ws(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SignalWebSocket {
+        <span class="self">self</span>.ws.clone()
     }
 
-    <span class="doccomment">/// Worker task that processes the websocket into Envelopes</span>
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">run</span>(
-        <span class="kw-2">mut</span> <span class="self">self</span>,
-        <span class="kw-2">mut</span> <span class="ident">sink</span>: <span class="ident">Sender</span><span class="op">&lt;</span><span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Envelope</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">mpsc::SendError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ws</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">ws</span>.<span class="ident">clone</span>();
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">stream</span> <span class="op">=</span> <span class="ident">ws</span>
-            .<span class="ident">take_request_stream</span>()
-            .<span class="ident">expect</span>(<span class="string">&quot;web socket request handler not in use&quot;</span>);
+    <span class="doccomment">/// Worker task that processes the websocket into Envelopes
+    </span><span class="kw">async fn </span>run(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        <span class="kw-2">mut </span>sink: Sender&lt;<span class="prelude-ty">Result</span>&lt;Envelope, ServiceError&gt;&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), mpsc::SendError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>ws = <span class="self">self</span>.ws.clone();
+        <span class="kw">let </span><span class="kw-2">mut </span>stream = ws
+            .take_request_stream()
+            .expect(<span class="string">&quot;web socket request handler not in use&quot;</span>);
 
-        <span class="kw">while</span> <span class="kw">let</span> <span class="prelude-val">Some</span>((<span class="ident">request</span>, <span class="ident">responder</span>)) <span class="op">=</span> <span class="ident">stream</span>.<span class="ident">next</span>().<span class="kw">await</span> {
-            <span class="comment">// WebsocketConnection::onMessage(ByteString)</span>
-            <span class="kw">let</span> <span class="ident">env</span> <span class="op">=</span>
-                <span class="self">self</span>.<span class="ident">process_request</span>(<span class="ident">request</span>, <span class="ident">responder</span>).<span class="kw">await</span>.<span class="ident">transpose</span>();
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">env</span>) <span class="op">=</span> <span class="ident">env</span> {
-                <span class="ident">sink</span>.<span class="ident">send</span>(<span class="ident">env</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">while let </span><span class="prelude-val">Some</span>((request, responder)) = stream.next().<span class="kw">await </span>{
+            <span class="comment">// WebsocketConnection::onMessage(ByteString)
+            </span><span class="kw">let </span>env =
+                <span class="self">self</span>.process_request(request, responder).<span class="kw">await</span>.transpose();
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(env) = env {
+                sink.send(env).<span class="kw">await</span><span class="question-mark">?</span>;
             }
         }
 
-        <span class="ident">ws</span>.<span class="ident">return_request_stream</span>(<span class="ident">stream</span>);
+        ws.return_request_stream(stream);
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">process_request</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">request</span>: <span class="ident">WebSocketRequestMessage</span>,
-        <span class="ident">responder</span>: <span class="ident">oneshot::Sender</span><span class="op">&lt;</span><span class="ident">WebSocketResponseMessage</span><span class="op">&gt;</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Envelope</span><span class="op">&gt;</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="comment">// Java: MessagePipe::read</span>
-        <span class="kw">let</span> <span class="ident">response</span> <span class="op">=</span> <span class="ident">WebSocketResponseMessage::from_request</span>(<span class="kw-2">&amp;</span><span class="ident">request</span>);
+    <span class="kw">async fn </span>process_request(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        request: WebSocketRequestMessage,
+        responder: oneshot::Sender&lt;WebSocketResponseMessage&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Envelope&gt;, ServiceError&gt; {
+        <span class="comment">// Java: MessagePipe::read
+        </span><span class="kw">let </span>response = WebSocketResponseMessage::from_request(<span class="kw-2">&amp;</span>request);
 
-        <span class="comment">// XXX Change the signature of this method to yield an enum of Envelope and EndOfQueue</span>
-        <span class="kw">let</span> <span class="ident">result</span> <span class="op">=</span> <span class="kw">if</span> <span class="ident">request</span>.<span class="ident">is_signal_service_envelope</span>() {
-            <span class="kw">let</span> <span class="ident">body</span> <span class="op">=</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">body</span>) <span class="op">=</span> <span class="ident">request</span>.<span class="ident">body</span>.<span class="ident">as_ref</span>() {
-                <span class="ident">body</span>
-            } <span class="kw">else</span> {
-                <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">ServiceError::InvalidFrameError</span> {
-                    <span class="ident">reason</span>: <span class="string">&quot;Request without body.&quot;</span>.<span class="ident">into</span>(),
+        <span class="comment">// XXX Change the signature of this method to yield an enum of Envelope and EndOfQueue
+        </span><span class="kw">let </span>result = <span class="kw">if </span>request.is_signal_service_envelope() {
+            <span class="kw">let </span>body = <span class="kw">if let </span><span class="prelude-val">Some</span>(body) = request.body.as_ref() {
+                body
+            } <span class="kw">else </span>{
+                <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
+                    reason: <span class="string">&quot;Request without body.&quot;</span>.into(),
                 });
             };
-            <span class="prelude-val">Some</span>(<span class="ident">Envelope::decrypt</span>(
-                <span class="ident">body</span>,
-                <span class="self">self</span>.<span class="ident">credentials</span>
-                    .<span class="ident">signaling_key</span>
-                    .<span class="ident">as_ref</span>()
-                    .<span class="ident">expect</span>(<span class="string">&quot;signaling_key required to decrypt envelopes&quot;</span>),
-                <span class="ident">request</span>.<span class="ident">is_signal_key_encrypted</span>(),
+            <span class="prelude-val">Some</span>(Envelope::decrypt(
+                body,
+                <span class="self">self</span>.credentials
+                    .signaling_key
+                    .as_ref()
+                    .expect(<span class="string">&quot;signaling_key required to decrypt envelopes&quot;</span>),
+                request.is_signal_key_encrypted(),
             )<span class="question-mark">?</span>)
-        } <span class="kw">else</span> {
-            <span class="prelude-val">None</span>
-        };
+        } <span class="kw">else </span>{
+            <span class="prelude-val">None
+        </span>};
 
-        <span class="ident">responder</span>
-            .<span class="ident">send</span>(<span class="ident">response</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">ServiceError::WsClosing</span> {
-                <span class="ident">reason</span>: <span class="string">&quot;could not respond to message pipe request&quot;</span>.<span class="ident">into</span>(),
+        responder
+            .send(response)
+            .map_err(|<span class="kw">_</span>| ServiceError::WsClosing {
+                reason: <span class="string">&quot;could not respond to message pipe request&quot;</span>.into(),
             })<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">result</span>)
+        <span class="prelude-val">Ok</span>(result)
     }
 
-    <span class="doccomment">/// Returns the stream of `Envelope`s</span>
-    <span class="doccomment">///</span>
-    <span class="doccomment">/// Envelopes yielded are acknowledged.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">stream</span>(<span class="self">self</span>) -&gt; <span class="kw">impl</span> <span class="ident">Stream</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Envelope</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> (<span class="ident">sink</span>, <span class="ident">stream</span>) <span class="op">=</span> <span class="ident">mpsc::channel</span>(<span class="number">1</span>);
+    <span class="doccomment">/// Returns the stream of `Envelope`s
+    ///
+    /// Envelopes yielded are acknowledged.
+    </span><span class="kw">pub fn </span>stream(<span class="self">self</span>) -&gt; <span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Envelope, ServiceError&gt;&gt; {
+        <span class="kw">let </span>(sink, stream) = mpsc::channel(<span class="number">1</span>);
 
-        <span class="kw">let</span> <span class="ident">stream</span> <span class="op">=</span> <span class="ident">stream</span>.<span class="ident">map</span>(<span class="prelude-val">Some</span>);
-        <span class="kw">let</span> <span class="ident">runner</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">run</span>(<span class="ident">sink</span>).<span class="ident">map</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> {
-            <span class="macro">log::info!</span>(<span class="string">&quot;Sink was closed. Reason: {:?}&quot;</span>, <span class="ident">e</span>);
-            <span class="prelude-val">None</span>
-        });
+        <span class="kw">let </span>stream = stream.map(<span class="prelude-val">Some</span>);
+        <span class="kw">let </span>runner = <span class="self">self</span>.run(sink).map(|e| {
+            <span class="macro">log::info!</span>(<span class="string">&quot;Sink was closed. Reason: {:?}&quot;</span>, e);
+            <span class="prelude-val">None
+        </span>});
 
-        <span class="kw">let</span> <span class="ident">combined</span> <span class="op">=</span> <span class="ident">futures::stream::select</span>(<span class="ident">stream</span>, <span class="ident">runner</span>.<span class="ident">into_stream</span>());
-        <span class="ident">combined</span>.<span class="ident">filter_map</span>(<span class="op">|</span><span class="ident">x</span><span class="op">|</span> <span class="kw">async</span> { <span class="ident">x</span> })
+        <span class="kw">let </span>combined = futures::stream::select(stream, runner.into_stream());
+        combined.filter_map(|x| <span class="kw">async </span>{ x })
     }
 }
 
-<span class="doccomment">/// WebSocketService that panics on every request, mainly for example code.</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">PanicingWebSocketService</span>;
+<span class="doccomment">/// WebSocketService that panics on every request, mainly for example code.
+</span><span class="kw">pub struct </span>PanicingWebSocketService;
 
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>, <span class="ident">async_trait::async_trait</span>(<span class="question-mark">?</span><span class="ident">Send</span>))]</span>
-<span class="attribute">#[<span class="ident">cfg_attr</span>(<span class="ident">not</span>(<span class="ident">feature</span> <span class="op">=</span> <span class="string">&quot;unsend-futures&quot;</span>), <span class="ident">async_trait::async_trait</span>)]</span>
-<span class="kw">impl</span> <span class="ident">WebSocketService</span> <span class="kw">for</span> <span class="ident">PanicingWebSocketService</span> {
-    <span class="kw">type</span> <span class="ident">Stream</span> <span class="op">=</span> <span class="ident">futures::channel::mpsc::Receiver</span><span class="op">&lt;</span><span class="ident">WebSocketStreamItem</span><span class="op">&gt;</span>;
+<span class="attribute">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
+#[cfg_attr(not(feature = <span class="string">&quot;unsend-futures&quot;</span>), async_trait::async_trait)]
+</span><span class="kw">impl </span>WebSocketService <span class="kw">for </span>PanicingWebSocketService {
+    <span class="kw">type </span>Stream = futures::channel::mpsc::Receiver&lt;WebSocketStreamItem&gt;;
 
-    <span class="kw">async</span> <span class="kw">fn</span> <span class="ident">send_message</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">_msg</span>: <span class="ident">Bytes</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">ServiceError</span><span class="op">&gt;</span> {
+    <span class="kw">async fn </span>send_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, _msg: Bytes) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
         <span class="macro">unimplemented!</span>();
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

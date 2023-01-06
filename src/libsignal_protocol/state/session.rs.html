@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/state/session.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>session.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../../normalize.css"><link rel="stylesheet" type="text/css" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_protocol/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/state/session.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>session.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../../normalize.css"><link rel="stylesheet" href="../../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../../ayu.css" disabled><link rel="stylesheet" href="../../../dark.css" disabled><link rel="stylesheet" href="../../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../../storage.js"></script><script defer src="../../../source-script.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../main.js"></script><noscript><link rel="stylesheet" href="../../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../../libsignal_protocol/index.html"><img class="rust-logo" src="../../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -712,719 +712,719 @@
 <span id="712">712</span>
 <span id="713">713</span>
 <span id="714">714</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020-2022 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020-2022 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="ident">std::convert::TryInto</span>;
-<span class="kw">use</span> <span class="ident">std::result::Result</span>;
+</span><span class="kw">use </span>std::convert::TryInto;
+<span class="kw">use </span>std::result::Result;
 
-<span class="kw">use</span> <span class="ident">prost::Message</span>;
-<span class="kw">use</span> <span class="ident">subtle::ConstantTimeEq</span>;
+<span class="kw">use </span>prost::Message;
+<span class="kw">use </span>subtle::ConstantTimeEq;
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::ratchet</span>::{<span class="ident">ChainKey</span>, <span class="ident">MessageKeys</span>, <span class="ident">RootKey</span>};
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">IdentityKey</span>, <span class="ident">KeyPair</span>, <span class="ident">PrivateKey</span>, <span class="ident">PublicKey</span>, <span class="ident">SignalProtocolError</span>};
+<span class="kw">use </span><span class="kw">crate</span>::ratchet::{ChainKey, MessageKeys, RootKey};
+<span class="kw">use crate</span>::{IdentityKey, KeyPair, PrivateKey, PublicKey, SignalProtocolError};
 
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::consts</span>;
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::proto::storage</span>::{<span class="ident">session_structure</span>, <span class="ident">RecordStructure</span>, <span class="ident">SessionStructure</span>};
-<span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::state</span>::{<span class="ident">PreKeyId</span>, <span class="ident">SignedPreKeyId</span>};
+<span class="kw">use </span><span class="kw">crate</span>::consts;
+<span class="kw">use </span><span class="kw">crate</span>::proto::storage::{session_structure, RecordStructure, SessionStructure};
+<span class="kw">use </span><span class="kw">crate</span>::state::{PreKeyId, SignedPreKeyId};
 
-<span class="doccomment">/// A distinct error type to keep from accidentally propagating deserialization errors.</span>
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">InvalidSessionError</span>(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static</span> <span class="ident">str</span>);
+<span class="doccomment">/// A distinct error type to keep from accidentally propagating deserialization errors.
+</span><span class="attribute">#[derive(Debug)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>InvalidSessionError(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str);
 
-<span class="kw">impl</span> <span class="ident">std::fmt::Display</span> <span class="kw">for</span> <span class="ident">InvalidSessionError</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">std::fmt::Formatter</span><span class="op">&lt;</span><span class="lifetime">&#39;_</span><span class="op">&gt;</span>) -&gt; <span class="ident">std::fmt::Result</span> {
-        <span class="self">self</span>.<span class="number">0</span>.<span class="ident">fmt</span>(<span class="ident">f</span>)
+<span class="kw">impl </span>std::fmt::Display <span class="kw">for </span>InvalidSessionError {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        <span class="self">self</span>.<span class="number">0</span>.fmt(f)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">InvalidSessionError</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SignalProtocolError</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">e</span>: <span class="ident">InvalidSessionError</span>) -&gt; <span class="self">Self</span> {
-        <span class="ident"><span class="self">Self</span>::InvalidSessionStructure</span>(<span class="ident">e</span>.<span class="number">0</span>)
+<span class="kw">impl </span>From&lt;InvalidSessionError&gt; <span class="kw">for </span>SignalProtocolError {
+    <span class="kw">fn </span>from(e: InvalidSessionError) -&gt; <span class="self">Self </span>{
+        <span class="self">Self</span>::InvalidSessionStructure(e.<span class="number">0</span>)
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">UnacknowledgedPreKeyMessageItems</span> {
-    <span class="ident">pre_key_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyId</span><span class="op">&gt;</span>,
-    <span class="ident">signed_pre_key_id</span>: <span class="ident">SignedPreKeyId</span>,
-    <span class="ident">base_key</span>: <span class="ident">PublicKey</span>,
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>UnacknowledgedPreKeyMessageItems {
+    pre_key_id: <span class="prelude-ty">Option</span>&lt;PreKeyId&gt;,
+    signed_pre_key_id: SignedPreKeyId,
+    base_key: PublicKey,
 }
 
-<span class="kw">impl</span> <span class="ident">UnacknowledgedPreKeyMessageItems</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">pre_key_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyId</span><span class="op">&gt;</span>,
-        <span class="ident">signed_pre_key_id</span>: <span class="ident">SignedPreKeyId</span>,
-        <span class="ident">base_key</span>: <span class="ident">PublicKey</span>,
-    ) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">pre_key_id</span>,
-            <span class="ident">signed_pre_key_id</span>,
-            <span class="ident">base_key</span>,
+<span class="kw">impl </span>UnacknowledgedPreKeyMessageItems {
+    <span class="kw">fn </span>new(
+        pre_key_id: <span class="prelude-ty">Option</span>&lt;PreKeyId&gt;,
+        signed_pre_key_id: SignedPreKeyId,
+        base_key: PublicKey,
+    ) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            pre_key_id,
+            signed_pre_key_id,
+            base_key,
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">pre_key_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyId</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">pre_key_id</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>pre_key_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;PreKeyId&gt; {
+        <span class="self">self</span>.pre_key_id
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">signed_pre_key_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">SignedPreKeyId</span> {
-        <span class="self">self</span>.<span class="ident">signed_pre_key_id</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>signed_pre_key_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SignedPreKeyId {
+        <span class="self">self</span>.signed_pre_key_id
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">base_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="ident">PublicKey</span> {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">base_key</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>base_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>PublicKey {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.base_key
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct</span> <span class="ident">SessionState</span> {
-    <span class="ident">session</span>: <span class="ident">SessionStructure</span>,
+<span class="attribute">#[derive(Clone, Debug)]
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>SessionState {
+    session: SessionStructure,
 }
 
-<span class="kw">impl</span> <span class="ident">SessionState</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">session</span>: <span class="ident">SessionStructure</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> { <span class="ident">session</span> }
+<span class="kw">impl </span>SessionState {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(session: SessionStructure) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{ session }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">alice_base_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[<span class="ident">u8</span>] {
-        <span class="comment">// Check the length before returning?</span>
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session</span>.<span class="ident">alice_base_key</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>alice_base_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>[u8] {
+        <span class="comment">// Check the length before returning?
+        </span><span class="kw-2">&amp;</span><span class="self">self</span>.session.alice_base_key
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_alice_base_key</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) {
-        <span class="comment">// Should we check the length?</span>
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">alice_base_key</span> <span class="op">=</span> <span class="ident">key</span>.<span class="ident">to_vec</span>();
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_alice_base_key(<span class="kw-2">&amp;mut </span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>[u8]) {
+        <span class="comment">// Should we check the length?
+        </span><span class="self">self</span>.session.alice_base_key = key.to_vec();
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">session_version</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">session_version</span> {
-            <span class="number">0</span> =&gt; <span class="prelude-val">Ok</span>(<span class="number">2</span>),
-            <span class="ident">v</span> =&gt; <span class="prelude-val">Ok</span>(<span class="ident">v</span>),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>session_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, InvalidSessionError&gt; {
+        <span class="kw">match </span><span class="self">self</span>.session.session_version {
+            <span class="number">0 </span>=&gt; <span class="prelude-val">Ok</span>(<span class="number">2</span>),
+            v =&gt; <span class="prelude-val">Ok</span>(v),
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">remote_identity_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">IdentityKey</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">remote_identity_public</span>.<span class="ident">len</span>() {
-            <span class="number">0</span> =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
-            <span class="kw">_</span> =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(
-                <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session</span>.<span class="ident">remote_identity_public</span>)
-                    .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid remote identity key&quot;</span>))<span class="question-mark">?</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>remote_identity_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;IdentityKey&gt;, InvalidSessionError&gt; {
+        <span class="kw">match </span><span class="self">self</span>.session.remote_identity_public.len() {
+            <span class="number">0 </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(
+                IdentityKey::decode(<span class="kw-2">&amp;</span><span class="self">self</span>.session.remote_identity_public)
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid remote identity key&quot;</span>))<span class="question-mark">?</span>,
             )),
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">remote_identity_key_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">remote_identity_key</span>()<span class="question-mark">?</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">k</span><span class="op">|</span> <span class="ident">k</span>.<span class="ident">serialize</span>().<span class="ident">to_vec</span>()))
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>remote_identity_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;, InvalidSessionError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.remote_identity_key()<span class="question-mark">?</span>.map(|k| k.serialize().to_vec()))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">local_identity_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">IdentityKey</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">session</span>.<span class="ident">local_identity_public</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid local identity key&quot;</span>))
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>local_identity_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;IdentityKey, InvalidSessionError&gt; {
+        IdentityKey::decode(<span class="kw-2">&amp;</span><span class="self">self</span>.session.local_identity_public)
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid local identity key&quot;</span>))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">local_identity_key_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">local_identity_key</span>()<span class="question-mark">?</span>.<span class="ident">serialize</span>().<span class="ident">to_vec</span>())
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>local_identity_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, InvalidSessionError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.local_identity_key()<span class="question-mark">?</span>.serialize().to_vec())
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">session_with_self</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">remote_id</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">remote_identity_key_bytes</span>()<span class="question-mark">?</span> {
-            <span class="kw">let</span> <span class="ident">local_id</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">local_identity_key_bytes</span>()<span class="question-mark">?</span>;
-            <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="ident">remote_id</span> <span class="op">==</span> <span class="ident">local_id</span>);
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>session_with_self(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, InvalidSessionError&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(remote_id) = <span class="self">self</span>.remote_identity_key_bytes()<span class="question-mark">? </span>{
+            <span class="kw">let </span>local_id = <span class="self">self</span>.local_identity_key_bytes()<span class="question-mark">?</span>;
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(remote_id == local_id);
         }
 
-        <span class="comment">// If remote ID is not set then we can&#39;t be sure but treat as non-self</span>
-        <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
+        <span class="comment">// If remote ID is not set then we can&#39;t be sure but treat as non-self
+        </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">previous_counter</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">previous_counter</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>previous_counter(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="self">self</span>.session.previous_counter
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_previous_counter</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">ctr</span>: <span class="ident">u32</span>) {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">previous_counter</span> <span class="op">=</span> <span class="ident">ctr</span>;
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_previous_counter(<span class="kw-2">&amp;mut </span><span class="self">self</span>, ctr: u32) {
+        <span class="self">self</span>.session.previous_counter = ctr;
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">root_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">RootKey</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">root_key_bytes</span> <span class="op">=</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">root_key</span>[..]
-            .<span class="ident">try_into</span>()
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid root key&quot;</span>))<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(<span class="ident">RootKey::new</span>(<span class="ident">root_key_bytes</span>))
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>root_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RootKey, InvalidSessionError&gt; {
+        <span class="kw">let </span>root_key_bytes = <span class="self">self</span>.session.root_key[..]
+            .try_into()
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid root key&quot;</span>))<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(RootKey::new(root_key_bytes))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_root_key</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">root_key</span>: <span class="kw-2">&amp;</span><span class="ident">RootKey</span>) {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">root_key</span> <span class="op">=</span> <span class="ident">root_key</span>.<span class="ident">key</span>().<span class="ident">to_vec</span>();
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_root_key(<span class="kw-2">&amp;mut </span><span class="self">self</span>, root_key: <span class="kw-2">&amp;</span>RootKey) {
+        <span class="self">self</span>.session.root_key = root_key.key().to_vec();
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">sender_ratchet_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PublicKey</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">sender_chain</span> {
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">InvalidSessionError</span>(<span class="string">&quot;missing sender chain&quot;</span>)),
-            <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">c</span>) =&gt; <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">c</span>.<span class="ident">sender_ratchet_key</span>)
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid sender chain ratchet key&quot;</span>)),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sender_ratchet_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PublicKey, InvalidSessionError&gt; {
+        <span class="kw">match </span><span class="self">self</span>.session.sender_chain {
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">&quot;missing sender chain&quot;</span>)),
+            <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>c) =&gt; PublicKey::deserialize(<span class="kw-2">&amp;</span>c.sender_ratchet_key)
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid sender chain ratchet key&quot;</span>)),
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">sender_ratchet_key_for_logging</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="ident">hex::encode</span>(
-            <span class="self">self</span>.<span class="ident">sender_ratchet_key</span>()<span class="question-mark">?</span>
-                .<span class="ident">public_key_bytes</span>()
-                .<span class="ident">expect</span>(<span class="string">&quot;no invalid public keys&quot;</span>),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sender_ratchet_key_for_logging(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String, InvalidSessionError&gt; {
+        <span class="prelude-val">Ok</span>(hex::encode(
+            <span class="self">self</span>.sender_ratchet_key()<span class="question-mark">?
+                </span>.public_key_bytes()
+                .expect(<span class="string">&quot;no invalid public keys&quot;</span>),
         ))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">sender_ratchet_private_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">PrivateKey</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">sender_chain</span> {
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">InvalidSessionError</span>(<span class="string">&quot;missing sender chain&quot;</span>)),
-            <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">c</span>) =&gt; <span class="ident">PrivateKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">c</span>.<span class="ident">sender_ratchet_key_private</span>)
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid sender chain private ratchet key&quot;</span>)),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sender_ratchet_private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKey, InvalidSessionError&gt; {
+        <span class="kw">match </span><span class="self">self</span>.session.sender_chain {
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">&quot;missing sender chain&quot;</span>)),
+            <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>c) =&gt; PrivateKey::deserialize(<span class="kw-2">&amp;</span>c.sender_ratchet_key_private)
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid sender chain private ratchet key&quot;</span>)),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_sender_chain</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">session</span>.<span class="ident">sender_chain</span>.<span class="ident">is_some</span>())
+    <span class="kw">pub fn </span>has_sender_chain(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, InvalidSessionError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.session.sender_chain.is_some())
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">all_receiver_chain_logging_info</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">Vec</span><span class="op">&lt;</span>(<span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">u32</span><span class="op">&gt;</span>)<span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">results</span> <span class="op">=</span> <span class="macro">vec!</span>[];
-        <span class="kw">for</span> <span class="ident">chain</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>.<span class="ident">iter</span>() {
-            <span class="kw">let</span> <span class="ident">sender_ratchet_public</span> <span class="op">=</span> <span class="ident">chain</span>.<span class="ident">sender_ratchet_key</span>.<span class="ident">clone</span>();
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>all_receiver_chain_logging_info(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;(Vec&lt;u8&gt;, <span class="prelude-ty">Option</span>&lt;u32&gt;)&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[];
+        <span class="kw">for </span>chain <span class="kw">in </span><span class="self">self</span>.session.receiver_chains.iter() {
+            <span class="kw">let </span>sender_ratchet_public = chain.sender_ratchet_key.clone();
 
-            <span class="kw">let</span> <span class="ident">chain_key_idx</span> <span class="op">=</span> <span class="ident">chain</span>.<span class="ident">chain_key</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">chain_key</span><span class="op">|</span> <span class="ident">chain_key</span>.<span class="ident">index</span>);
+            <span class="kw">let </span>chain_key_idx = chain.chain_key.as_ref().map(|chain_key| chain_key.index);
 
-            <span class="ident">results</span>.<span class="ident">push</span>((<span class="ident">sender_ratchet_public</span>, <span class="ident">chain_key_idx</span>))
+            results.push((sender_ratchet_public, chain_key_idx))
         }
-        <span class="ident">results</span>
+        results
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">get_receiver_chain</span>(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_receiver_chain(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span>(<span class="ident">session_structure::Chain</span>, <span class="ident">usize</span>)<span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">for</span> (<span class="ident">idx</span>, <span class="ident">chain</span>) <span class="kw">in</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>.<span class="ident">iter</span>().<span class="ident">enumerate</span>() {
-            <span class="comment">// If we compared bytes directly it would be faster, but may miss non-canonical points.</span>
-            <span class="comment">// It&#39;s unclear if supporting such points is desirable.</span>
-            <span class="kw">let</span> <span class="ident">chain_ratchet_key</span> <span class="op">=</span> <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">chain</span>.<span class="ident">sender_ratchet_key</span>)
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid receiver chain ratchet key&quot;</span>))<span class="question-mark">?</span>;
+        sender: <span class="kw-2">&amp;</span>PublicKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(session_structure::Chain, usize)&gt;, InvalidSessionError&gt; {
+        <span class="kw">for </span>(idx, chain) <span class="kw">in </span><span class="self">self</span>.session.receiver_chains.iter().enumerate() {
+            <span class="comment">// If we compared bytes directly it would be faster, but may miss non-canonical points.
+            // It&#39;s unclear if supporting such points is desirable.
+            </span><span class="kw">let </span>chain_ratchet_key = PublicKey::deserialize(<span class="kw-2">&amp;</span>chain.sender_ratchet_key)
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid receiver chain ratchet key&quot;</span>))<span class="question-mark">?</span>;
 
-            <span class="kw">if</span> <span class="kw-2">&amp;</span><span class="ident">chain_ratchet_key</span> <span class="op">==</span> <span class="ident">sender</span> {
-                <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((<span class="ident">chain</span>.<span class="ident">clone</span>(), <span class="ident">idx</span>)));
+            <span class="kw">if </span><span class="kw-2">&amp;</span>chain_ratchet_key == sender {
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((chain.clone(), idx)));
             }
         }
 
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">get_receiver_chain_key</span>(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_receiver_chain_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">ChainKey</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="self">self</span>.<span class="ident">get_receiver_chain</span>(<span class="ident">sender</span>)<span class="question-mark">?</span> {
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
-            <span class="prelude-val">Some</span>((<span class="ident">chain</span>, <span class="kw">_</span>)) =&gt; <span class="kw">match</span> <span class="ident">chain</span>.<span class="ident">chain_key</span> {
-                <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Err</span>(<span class="ident">InvalidSessionError</span>(<span class="string">&quot;missing receiver chain key&quot;</span>)),
-                <span class="prelude-val">Some</span>(<span class="ident">c</span>) =&gt; {
-                    <span class="kw">let</span> <span class="ident">chain_key_bytes</span> <span class="op">=</span> <span class="ident">c</span>.<span class="ident">key</span>[..]
-                        .<span class="ident">try_into</span>()
-                        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid receiver chain key&quot;</span>))<span class="question-mark">?</span>;
-                    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">ChainKey::new</span>(<span class="ident">chain_key_bytes</span>, <span class="ident">c</span>.<span class="ident">index</span>)))
+        sender: <span class="kw-2">&amp;</span>PublicKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ChainKey&gt;, InvalidSessionError&gt; {
+        <span class="kw">match </span><span class="self">self</span>.get_receiver_chain(sender)<span class="question-mark">? </span>{
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+            <span class="prelude-val">Some</span>((chain, <span class="kw">_</span>)) =&gt; <span class="kw">match </span>chain.chain_key {
+                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">&quot;missing receiver chain key&quot;</span>)),
+                <span class="prelude-val">Some</span>(c) =&gt; {
+                    <span class="kw">let </span>chain_key_bytes = c.key[..]
+                        .try_into()
+                        .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid receiver chain key&quot;</span>))<span class="question-mark">?</span>;
+                    <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(ChainKey::new(chain_key_bytes, c.index)))
                 }
             },
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">add_receiver_chain</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>, <span class="ident">chain_key</span>: <span class="kw-2">&amp;</span><span class="ident">ChainKey</span>) {
-        <span class="kw">let</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">session_structure::chain::ChainKey</span> {
-            <span class="ident">index</span>: <span class="ident">chain_key</span>.<span class="ident">index</span>(),
-            <span class="ident">key</span>: <span class="ident">chain_key</span>.<span class="ident">key</span>().<span class="ident">to_vec</span>(),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>add_receiver_chain(<span class="kw-2">&amp;mut </span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>PublicKey, chain_key: <span class="kw-2">&amp;</span>ChainKey) {
+        <span class="kw">let </span>chain_key = session_structure::chain::ChainKey {
+            index: chain_key.index(),
+            key: chain_key.key().to_vec(),
         };
 
-        <span class="kw">let</span> <span class="ident">chain</span> <span class="op">=</span> <span class="ident">session_structure::Chain</span> {
-            <span class="ident">sender_ratchet_key</span>: <span class="ident">sender</span>.<span class="ident">serialize</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">sender_ratchet_key_private</span>: <span class="macro">vec!</span>[],
-            <span class="ident">chain_key</span>: <span class="prelude-val">Some</span>(<span class="ident">chain_key</span>),
-            <span class="ident">message_keys</span>: <span class="macro">vec!</span>[],
+        <span class="kw">let </span>chain = session_structure::Chain {
+            sender_ratchet_key: sender.serialize().to_vec(),
+            sender_ratchet_key_private: <span class="macro">vec!</span>[],
+            chain_key: <span class="prelude-val">Some</span>(chain_key),
+            message_keys: <span class="macro">vec!</span>[],
         };
 
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>.<span class="ident">push</span>(<span class="ident">chain</span>);
+        <span class="self">self</span>.session.receiver_chains.push(chain);
 
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="ident">consts::MAX_RECEIVER_CHAINS</span> {
+        <span class="kw">if </span><span class="self">self</span>.session.receiver_chains.len() &gt; consts::MAX_RECEIVER_CHAINS {
             <span class="macro">log::info!</span>(
                 <span class="string">&quot;Trimming excessive receiver_chain for session with base key {}, chain count: {}&quot;</span>,
-                <span class="self">self</span>.<span class="ident">sender_ratchet_key_for_logging</span>()
-                    .<span class="ident">unwrap_or_else</span>(<span class="op">|</span><span class="ident">e</span><span class="op">|</span> <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, <span class="ident">e</span>.<span class="number">0</span>)),
-                <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>.<span class="ident">len</span>()
+                <span class="self">self</span>.sender_ratchet_key_for_logging()
+                    .unwrap_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e.<span class="number">0</span>)),
+                <span class="self">self</span>.session.receiver_chains.len()
             );
-            <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>.<span class="ident">remove</span>(<span class="number">0</span>);
+            <span class="self">self</span>.session.receiver_chains.remove(<span class="number">0</span>);
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_sender_chain</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">KeyPair</span>, <span class="ident">next_chain_key</span>: <span class="kw-2">&amp;</span><span class="ident">ChainKey</span>) {
-        <span class="kw">let</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">session_structure::chain::ChainKey</span> {
-            <span class="ident">index</span>: <span class="ident">next_chain_key</span>.<span class="ident">index</span>(),
-            <span class="ident">key</span>: <span class="ident">next_chain_key</span>.<span class="ident">key</span>().<span class="ident">to_vec</span>(),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_sender_chain(<span class="kw-2">&amp;mut </span><span class="self">self</span>, sender: <span class="kw-2">&amp;</span>KeyPair, next_chain_key: <span class="kw-2">&amp;</span>ChainKey) {
+        <span class="kw">let </span>chain_key = session_structure::chain::ChainKey {
+            index: next_chain_key.index(),
+            key: next_chain_key.key().to_vec(),
         };
 
-        <span class="kw">let</span> <span class="ident">new_chain</span> <span class="op">=</span> <span class="ident">session_structure::Chain</span> {
-            <span class="ident">sender_ratchet_key</span>: <span class="ident">sender</span>.<span class="ident">public_key</span>.<span class="ident">serialize</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">sender_ratchet_key_private</span>: <span class="ident">sender</span>.<span class="ident">private_key</span>.<span class="ident">serialize</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">chain_key</span>: <span class="prelude-val">Some</span>(<span class="ident">chain_key</span>),
-            <span class="ident">message_keys</span>: <span class="macro">vec!</span>[],
+        <span class="kw">let </span>new_chain = session_structure::Chain {
+            sender_ratchet_key: sender.public_key.serialize().to_vec(),
+            sender_ratchet_key_private: sender.private_key.serialize().to_vec(),
+            chain_key: <span class="prelude-val">Some</span>(chain_key),
+            message_keys: <span class="macro">vec!</span>[],
         };
 
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">sender_chain</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">new_chain</span>);
+        <span class="self">self</span>.session.sender_chain = <span class="prelude-val">Some</span>(new_chain);
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">get_sender_chain_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">ChainKey</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">sender_chain</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">session</span>
-            .<span class="ident">sender_chain</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">InvalidSessionError</span>(<span class="string">&quot;missing sender chain&quot;</span>))<span class="question-mark">?</span>;
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_sender_chain_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ChainKey, InvalidSessionError&gt; {
+        <span class="kw">let </span>sender_chain = <span class="self">self
+            </span>.session
+            .sender_chain
+            .as_ref()
+            .ok_or(InvalidSessionError(<span class="string">&quot;missing sender chain&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">sender_chain</span>
-            .<span class="ident">chain_key</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">InvalidSessionError</span>(<span class="string">&quot;missing sender chain key&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>chain_key = sender_chain
+            .chain_key
+            .as_ref()
+            .ok_or(InvalidSessionError(<span class="string">&quot;missing sender chain key&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">chain_key_bytes</span> <span class="op">=</span> <span class="ident">chain_key</span>.<span class="ident">key</span>[..]
-            .<span class="ident">try_into</span>()
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid sender chain key&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>chain_key_bytes = chain_key.key[..]
+            .try_into()
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid sender chain key&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">ChainKey::new</span>(<span class="ident">chain_key_bytes</span>, <span class="ident">chain_key</span>.<span class="ident">index</span>))
+        <span class="prelude-val">Ok</span>(ChainKey::new(chain_key_bytes, chain_key.index))
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">get_sender_chain_key_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.<span class="ident">get_sender_chain_key</span>()<span class="question-mark">?</span>.<span class="ident">key</span>().<span class="ident">to_vec</span>())
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_sender_chain_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, InvalidSessionError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.get_sender_chain_key()<span class="question-mark">?</span>.key().to_vec())
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_sender_chain_key</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">next_chain_key</span>: <span class="kw-2">&amp;</span><span class="ident">ChainKey</span>) {
-        <span class="kw">let</span> <span class="ident">chain_key</span> <span class="op">=</span> <span class="ident">session_structure::chain::ChainKey</span> {
-            <span class="ident">index</span>: <span class="ident">next_chain_key</span>.<span class="ident">index</span>(),
-            <span class="ident">key</span>: <span class="ident">next_chain_key</span>.<span class="ident">key</span>().<span class="ident">to_vec</span>(),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_sender_chain_key(<span class="kw-2">&amp;mut </span><span class="self">self</span>, next_chain_key: <span class="kw-2">&amp;</span>ChainKey) {
+        <span class="kw">let </span>chain_key = session_structure::chain::ChainKey {
+            index: next_chain_key.index(),
+            key: next_chain_key.key().to_vec(),
         };
 
-        <span class="comment">// Is it actually valid to call this function with sender_chain == None?</span>
+        <span class="comment">// Is it actually valid to call this function with sender_chain == None?
 
-        <span class="kw">let</span> <span class="ident">new_chain</span> <span class="op">=</span> <span class="kw">match</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">sender_chain</span>.<span class="ident">take</span>() {
-            <span class="prelude-val">None</span> =&gt; <span class="ident">session_structure::Chain</span> {
-                <span class="ident">sender_ratchet_key</span>: <span class="macro">vec!</span>[],
-                <span class="ident">sender_ratchet_key_private</span>: <span class="macro">vec!</span>[],
-                <span class="ident">chain_key</span>: <span class="prelude-val">Some</span>(<span class="ident">chain_key</span>),
-                <span class="ident">message_keys</span>: <span class="macro">vec!</span>[],
+        </span><span class="kw">let </span>new_chain = <span class="kw">match </span><span class="self">self</span>.session.sender_chain.take() {
+            <span class="prelude-val">None </span>=&gt; session_structure::Chain {
+                sender_ratchet_key: <span class="macro">vec!</span>[],
+                sender_ratchet_key_private: <span class="macro">vec!</span>[],
+                chain_key: <span class="prelude-val">Some</span>(chain_key),
+                message_keys: <span class="macro">vec!</span>[],
             },
-            <span class="prelude-val">Some</span>(<span class="kw-2">mut</span> <span class="ident">c</span>) =&gt; {
-                <span class="ident">c</span>.<span class="ident">chain_key</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">chain_key</span>);
-                <span class="ident">c</span>
+            <span class="prelude-val">Some</span>(<span class="kw-2">mut </span>c) =&gt; {
+                c.chain_key = <span class="prelude-val">Some</span>(chain_key);
+                c
             }
         };
 
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">sender_chain</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">new_chain</span>);
+        <span class="self">self</span>.session.sender_chain = <span class="prelude-val">Some</span>(new_chain);
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">get_message_keys</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-        <span class="ident">counter</span>: <span class="ident">u32</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">MessageKeys</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">mut</span> <span class="ident">chain_and_index</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">get_receiver_chain</span>(<span class="ident">sender</span>)<span class="question-mark">?</span> {
-            <span class="kw">let</span> <span class="ident">message_key_idx</span> <span class="op">=</span> <span class="ident">chain_and_index</span>
-                .<span class="number">0</span>
-                .<span class="ident">message_keys</span>
-                .<span class="ident">iter</span>()
-                .<span class="ident">position</span>(<span class="op">|</span><span class="ident">m</span><span class="op">|</span> <span class="ident">m</span>.<span class="ident">index</span> <span class="op">==</span> <span class="ident">counter</span>);
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_message_keys(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>PublicKey,
+        counter: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;MessageKeys&gt;, InvalidSessionError&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>chain_and_index) = <span class="self">self</span>.get_receiver_chain(sender)<span class="question-mark">? </span>{
+            <span class="kw">let </span>message_key_idx = chain_and_index
+                .<span class="number">0
+                </span>.message_keys
+                .iter()
+                .position(|m| m.index == counter);
 
-            <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">position</span>) <span class="op">=</span> <span class="ident">message_key_idx</span> {
-                <span class="kw">let</span> <span class="ident">message_key</span> <span class="op">=</span> <span class="ident">chain_and_index</span>.<span class="number">0</span>.<span class="ident">message_keys</span>.<span class="ident">remove</span>(<span class="ident">position</span>);
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(position) = message_key_idx {
+                <span class="kw">let </span>message_key = chain_and_index.<span class="number">0</span>.message_keys.remove(position);
 
-                <span class="kw">let</span> <span class="ident">cipher_key_bytes</span> <span class="op">=</span> <span class="ident">message_key</span>
-                    .<span class="ident">cipher_key</span>
-                    .<span class="ident">try_into</span>()
-                    .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid message cipher key&quot;</span>))<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">mac_key_bytes</span> <span class="op">=</span> <span class="ident">message_key</span>
-                    .<span class="ident">mac_key</span>
-                    .<span class="ident">try_into</span>()
-                    .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid message MAC key&quot;</span>))<span class="question-mark">?</span>;
-                <span class="kw">let</span> <span class="ident">iv_bytes</span> <span class="op">=</span> <span class="ident">message_key</span>
-                    .<span class="ident">iv</span>
-                    .<span class="ident">try_into</span>()
-                    .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid message IV&quot;</span>))<span class="question-mark">?</span>;
+                <span class="kw">let </span>cipher_key_bytes = message_key
+                    .cipher_key
+                    .try_into()
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid message cipher key&quot;</span>))<span class="question-mark">?</span>;
+                <span class="kw">let </span>mac_key_bytes = message_key
+                    .mac_key
+                    .try_into()
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid message MAC key&quot;</span>))<span class="question-mark">?</span>;
+                <span class="kw">let </span>iv_bytes = message_key
+                    .iv
+                    .try_into()
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid message IV&quot;</span>))<span class="question-mark">?</span>;
 
-                <span class="kw">let</span> <span class="ident">keys</span> <span class="op">=</span> <span class="ident">MessageKeys::new</span>(<span class="ident">cipher_key_bytes</span>, <span class="ident">mac_key_bytes</span>, <span class="ident">iv_bytes</span>, <span class="ident">counter</span>);
+                <span class="kw">let </span>keys = MessageKeys::new(cipher_key_bytes, mac_key_bytes, iv_bytes, counter);
 
-                <span class="comment">// Update with message key removed</span>
-                <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>[<span class="ident">chain_and_index</span>.<span class="number">1</span>] <span class="op">=</span> <span class="ident">chain_and_index</span>.<span class="number">0</span>;
-                <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">keys</span>));
+                <span class="comment">// Update with message key removed
+                </span><span class="self">self</span>.session.receiver_chains[chain_and_index.<span class="number">1</span>] = chain_and_index.<span class="number">0</span>;
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(keys));
             }
         }
 
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_message_keys</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-        <span class="ident">message_keys</span>: <span class="kw-2">&amp;</span><span class="ident">MessageKeys</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">new_keys</span> <span class="op">=</span> <span class="ident">session_structure::chain::MessageKey</span> {
-            <span class="ident">cipher_key</span>: <span class="ident">message_keys</span>.<span class="ident">cipher_key</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">mac_key</span>: <span class="ident">message_keys</span>.<span class="ident">mac_key</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">iv</span>: <span class="ident">message_keys</span>.<span class="ident">iv</span>().<span class="ident">to_vec</span>(),
-            <span class="ident">index</span>: <span class="ident">message_keys</span>.<span class="ident">counter</span>(),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_message_keys(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>PublicKey,
+        message_keys: <span class="kw-2">&amp;</span>MessageKeys,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), InvalidSessionError&gt; {
+        <span class="kw">let </span>new_keys = session_structure::chain::MessageKey {
+            cipher_key: message_keys.cipher_key().to_vec(),
+            mac_key: message_keys.mac_key().to_vec(),
+            iv: message_keys.iv().to_vec(),
+            index: message_keys.counter(),
         };
 
-        <span class="kw">let</span> <span class="ident">chain_and_index</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get_receiver_chain</span>(<span class="ident">sender</span>)<span class="question-mark">?</span>
-            .<span class="ident">expect</span>(<span class="string">&quot;called set_message_keys for a non-existent chain&quot;</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">updated_chain</span> <span class="op">=</span> <span class="ident">chain_and_index</span>.<span class="number">0</span>;
-        <span class="ident">updated_chain</span>.<span class="ident">message_keys</span>.<span class="ident">insert</span>(<span class="number">0</span>, <span class="ident">new_keys</span>);
+        <span class="kw">let </span>chain_and_index = <span class="self">self
+            </span>.get_receiver_chain(sender)<span class="question-mark">?
+            </span>.expect(<span class="string">&quot;called set_message_keys for a non-existent chain&quot;</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>updated_chain = chain_and_index.<span class="number">0</span>;
+        updated_chain.message_keys.insert(<span class="number">0</span>, new_keys);
 
-        <span class="kw">if</span> <span class="ident">updated_chain</span>.<span class="ident">message_keys</span>.<span class="ident">len</span>() <span class="op">&gt;</span> <span class="ident">consts::MAX_MESSAGE_KEYS</span> {
-            <span class="ident">updated_chain</span>.<span class="ident">message_keys</span>.<span class="ident">pop</span>();
+        <span class="kw">if </span>updated_chain.message_keys.len() &gt; consts::MAX_MESSAGE_KEYS {
+            updated_chain.message_keys.pop();
         }
 
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>[<span class="ident">chain_and_index</span>.<span class="number">1</span>] <span class="op">=</span> <span class="ident">updated_chain</span>;
+        <span class="self">self</span>.session.receiver_chains[chain_and_index.<span class="number">1</span>] = updated_chain;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_receiver_chain_key</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-        <span class="ident">chain_key</span>: <span class="kw-2">&amp;</span><span class="ident">ChainKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">chain_and_index</span> <span class="op">=</span> <span class="self">self</span>
-            .<span class="ident">get_receiver_chain</span>(<span class="ident">sender</span>)<span class="question-mark">?</span>
-            .<span class="ident">expect</span>(<span class="string">&quot;called set_receiver_chain_key for a non-existent chain&quot;</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">updated_chain</span> <span class="op">=</span> <span class="ident">chain_and_index</span>.<span class="number">0</span>;
-        <span class="ident">updated_chain</span>.<span class="ident">chain_key</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">session_structure::chain::ChainKey</span> {
-            <span class="ident">index</span>: <span class="ident">chain_key</span>.<span class="ident">index</span>(),
-            <span class="ident">key</span>: <span class="ident">chain_key</span>.<span class="ident">key</span>().<span class="ident">to_vec</span>(),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_receiver_chain_key(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        sender: <span class="kw-2">&amp;</span>PublicKey,
+        chain_key: <span class="kw-2">&amp;</span>ChainKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), InvalidSessionError&gt; {
+        <span class="kw">let </span>chain_and_index = <span class="self">self
+            </span>.get_receiver_chain(sender)<span class="question-mark">?
+            </span>.expect(<span class="string">&quot;called set_receiver_chain_key for a non-existent chain&quot;</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>updated_chain = chain_and_index.<span class="number">0</span>;
+        updated_chain.chain_key = <span class="prelude-val">Some</span>(session_structure::chain::ChainKey {
+            index: chain_key.index(),
+            key: chain_key.key().to_vec(),
         });
 
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">receiver_chains</span>[<span class="ident">chain_and_index</span>.<span class="number">1</span>] <span class="op">=</span> <span class="ident">updated_chain</span>;
+        <span class="self">self</span>.session.receiver_chains[chain_and_index.<span class="number">1</span>] = updated_chain;
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_unacknowledged_pre_key_message</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">pre_key_id</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">PreKeyId</span><span class="op">&gt;</span>,
-        <span class="ident">signed_pre_key_id</span>: <span class="ident">SignedPreKeyId</span>,
-        <span class="ident">base_key</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_unacknowledged_pre_key_message(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        pre_key_id: <span class="prelude-ty">Option</span>&lt;PreKeyId&gt;,
+        signed_pre_key_id: SignedPreKeyId,
+        base_key: <span class="kw-2">&amp;</span>PublicKey,
     ) {
-        <span class="kw">let</span> <span class="ident">signed_pre_key_id</span>: <span class="ident">u32</span> <span class="op">=</span> <span class="ident">signed_pre_key_id</span>.<span class="ident">into</span>();
-        <span class="kw">let</span> <span class="ident">pending</span> <span class="op">=</span> <span class="ident">session_structure::PendingPreKey</span> {
-            <span class="ident">pre_key_id</span>: <span class="ident">pre_key_id</span>.<span class="ident">map</span>(<span class="ident">PreKeyId::into</span>).<span class="ident">unwrap_or</span>(<span class="number">0</span>),
-            <span class="ident">signed_pre_key_id</span>: <span class="ident">signed_pre_key_id</span> <span class="kw">as</span> <span class="ident">i32</span>,
-            <span class="ident">base_key</span>: <span class="ident">base_key</span>.<span class="ident">serialize</span>().<span class="ident">to_vec</span>(),
+        <span class="kw">let </span>signed_pre_key_id: u32 = signed_pre_key_id.into();
+        <span class="kw">let </span>pending = session_structure::PendingPreKey {
+            pre_key_id: pre_key_id.map(PreKeyId::into).unwrap_or(<span class="number">0</span>),
+            signed_pre_key_id: signed_pre_key_id <span class="kw">as </span>i32,
+            base_key: base_key.serialize().to_vec(),
         };
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">pending_pre_key</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">pending</span>);
+        <span class="self">self</span>.session.pending_pre_key = <span class="prelude-val">Some</span>(pending);
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">unacknowledged_pre_key_message_items</span>(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>unacknowledged_pre_key_message_items(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">UnacknowledgedPreKeyMessageItems</span><span class="op">&gt;</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="kw-2">ref</span> <span class="ident">pending_pre_key</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">pending_pre_key</span> {
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(<span class="ident">UnacknowledgedPreKeyMessageItems::new</span>(
-                <span class="kw">match</span> <span class="ident">pending_pre_key</span>.<span class="ident">pre_key_id</span> {
-                    <span class="number">0</span> =&gt; <span class="prelude-val">None</span>,
-                    <span class="ident">v</span> =&gt; <span class="prelude-val">Some</span>(<span class="ident">v</span>.<span class="ident">into</span>()),
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;UnacknowledgedPreKeyMessageItems&gt;, InvalidSessionError&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>pending_pre_key) = <span class="self">self</span>.session.pending_pre_key {
+            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(UnacknowledgedPreKeyMessageItems::new(
+                <span class="kw">match </span>pending_pre_key.pre_key_id {
+                    <span class="number">0 </span>=&gt; <span class="prelude-val">None</span>,
+                    v =&gt; <span class="prelude-val">Some</span>(v.into()),
                 },
-                (<span class="ident">pending_pre_key</span>.<span class="ident">signed_pre_key_id</span> <span class="kw">as</span> <span class="ident">u32</span>).<span class="ident">into</span>(),
-                <span class="ident">PublicKey::deserialize</span>(<span class="kw-2">&amp;</span><span class="ident">pending_pre_key</span>.<span class="ident">base_key</span>)
-                    .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;invalid pending PreKey message base key&quot;</span>))<span class="question-mark">?</span>,
+                (pending_pre_key.signed_pre_key_id <span class="kw">as </span>u32).into(),
+                PublicKey::deserialize(<span class="kw-2">&amp;</span>pending_pre_key.base_key)
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid pending PreKey message base key&quot;</span>))<span class="question-mark">?</span>,
             )))
-        } <span class="kw">else</span> {
+        } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">clear_unacknowledged_pre_key_message</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">pending_pre_key</span> <span class="op">=</span> <span class="prelude-val">None</span>;
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>clear_unacknowledged_pre_key_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="self">self</span>.session.pending_pre_key = <span class="prelude-val">None</span>;
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_remote_registration_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">registration_id</span>: <span class="ident">u32</span>) {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">remote_registration_id</span> <span class="op">=</span> <span class="ident">registration_id</span>;
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_remote_registration_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, registration_id: u32) {
+        <span class="self">self</span>.session.remote_registration_id = registration_id;
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">remote_registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">remote_registration_id</span>
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>remote_registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="self">self</span>.session.remote_registration_id
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_local_registration_id</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">registration_id</span>: <span class="ident">u32</span>) {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">local_registration_id</span> <span class="op">=</span> <span class="ident">registration_id</span>;
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_local_registration_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, registration_id: u32) {
+        <span class="self">self</span>.session.local_registration_id = registration_id;
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">local_registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">u32</span> {
-        <span class="self">self</span>.<span class="ident">session</span>.<span class="ident">local_registration_id</span>
-    }
-}
-
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">SessionStructure</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SessionState</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">value</span>: <span class="ident">SessionStructure</span>) -&gt; <span class="ident">SessionState</span> {
-        <span class="ident">SessionState::new</span>(<span class="ident">value</span>)
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>local_registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="self">self</span>.session.local_registration_id
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="ident">SessionState</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SessionStructure</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">value</span>: <span class="ident">SessionState</span>) -&gt; <span class="ident">SessionStructure</span> {
-        <span class="ident">value</span>.<span class="ident">session</span>
+<span class="kw">impl </span>From&lt;SessionStructure&gt; <span class="kw">for </span>SessionState {
+    <span class="kw">fn </span>from(value: SessionStructure) -&gt; SessionState {
+        SessionState::new(value)
     }
 }
 
-<span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SessionState</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">SessionStructure</span> {
-    <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">value</span>: <span class="kw-2">&amp;</span><span class="ident">SessionState</span>) -&gt; <span class="ident">SessionStructure</span> {
-        <span class="ident">value</span>.<span class="ident">session</span>.<span class="ident">clone</span>()
+<span class="kw">impl </span>From&lt;SessionState&gt; <span class="kw">for </span>SessionStructure {
+    <span class="kw">fn </span>from(value: SessionState) -&gt; SessionStructure {
+        value.session
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">SessionRecord</span> {
-    <span class="ident">current_session</span>: <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">SessionState</span><span class="op">&gt;</span>,
-    <span class="ident">previous_sessions</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>,
+<span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>SessionState&gt; <span class="kw">for </span>SessionStructure {
+    <span class="kw">fn </span>from(value: <span class="kw-2">&amp;</span>SessionState) -&gt; SessionStructure {
+        value.session.clone()
+    }
 }
 
-<span class="kw">impl</span> <span class="ident">SessionRecord</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new_fresh</span>() -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">current_session</span>: <span class="prelude-val">None</span>,
-            <span class="ident">previous_sessions</span>: <span class="ident">Vec::new</span>(),
+<span class="attribute">#[derive(Clone, Debug)]
+</span><span class="kw">pub struct </span>SessionRecord {
+    current_session: <span class="prelude-ty">Option</span>&lt;SessionState&gt;,
+    previous_sessions: Vec&lt;Vec&lt;u8&gt;&gt;,
+}
+
+<span class="kw">impl </span>SessionRecord {
+    <span class="kw">pub fn </span>new_fresh() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            current_session: <span class="prelude-val">None</span>,
+            previous_sessions: Vec::new(),
         }
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">state</span>: <span class="ident">SessionState</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">current_session</span>: <span class="prelude-val">Some</span>(<span class="ident">state</span>),
-            <span class="ident">previous_sessions</span>: <span class="ident">Vec::new</span>(),
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new(state: SessionState) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            current_session: <span class="prelude-val">Some</span>(state),
+            previous_sessions: Vec::new(),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">deserialize</span>(<span class="ident">bytes</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">record</span> <span class="op">=</span> <span class="ident">RecordStructure::decode</span>(<span class="ident">bytes</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;failed to decode session record protobuf&quot;</span>))<span class="question-mark">?</span>;
+    <span class="kw">pub fn </span>deserialize(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, SignalProtocolError&gt; {
+        <span class="kw">let </span>record = RecordStructure::decode(bytes)
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;failed to decode session record protobuf&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">current_session</span>: <span class="ident">record</span>.<span class="ident">current_session</span>.<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">into</span>()),
-            <span class="ident">previous_sessions</span>: <span class="ident">record</span>.<span class="ident">previous_sessions</span>,
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            current_session: record.current_session.map(|s| s.into()),
+            previous_sessions: record.previous_sessions,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_single_session_state</span>(<span class="ident">bytes</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">session</span> <span class="op">=</span> <span class="ident">SessionState::new</span>(
-            <span class="ident">SessionStructure::decode</span>(<span class="ident">bytes</span>)
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;failed to decode session state protobuf&quot;</span>))<span class="question-mark">?</span>,
+    <span class="kw">pub fn </span>from_single_session_state(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, SignalProtocolError&gt; {
+        <span class="kw">let </span>session = SessionState::new(
+            SessionStructure::decode(bytes)
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;failed to decode session state protobuf&quot;</span>))<span class="question-mark">?</span>,
         );
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">current_session</span>: <span class="prelude-val">Some</span>(<span class="ident">session</span>),
-            <span class="ident">previous_sessions</span>: <span class="ident">Vec::new</span>(),
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            current_session: <span class="prelude-val">Some</span>(session),
+            previous_sessions: Vec::new(),
         })
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">has_session_state</span>(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>has_session_state(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">version</span>: <span class="ident">u32</span>,
-        <span class="ident">alice_base_key</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">current_session</span>) <span class="op">=</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">current_session</span> {
-            <span class="kw">if</span> <span class="ident">current_session</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span> <span class="op">==</span> <span class="ident">version</span>
-                <span class="op">&amp;&amp;</span> <span class="ident">alice_base_key</span>
-                    .<span class="ident">ct_eq</span>(<span class="ident">current_session</span>.<span class="ident">alice_base_key</span>())
-                    .<span class="ident">into</span>()
+        version: u32,
+        alice_base_key: <span class="kw-2">&amp;</span>[u8],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, InvalidSessionError&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(current_session) = <span class="kw-2">&amp;</span><span class="self">self</span>.current_session {
+            <span class="kw">if </span>current_session.session_version()<span class="question-mark">? </span>== version
+                &amp;&amp; alice_base_key
+                    .ct_eq(current_session.alice_base_key())
+                    .into()
             {
-                <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
             }
         }
 
-        <span class="kw">for</span> <span class="ident">previous</span> <span class="kw">in</span> <span class="self">self</span>.<span class="ident">previous_session_states</span>() {
-            <span class="kw">let</span> <span class="ident">previous</span> <span class="op">=</span> <span class="ident">previous</span><span class="question-mark">?</span>;
-            <span class="kw">if</span> <span class="ident">previous</span>.<span class="ident">session_version</span>()<span class="question-mark">?</span> <span class="op">==</span> <span class="ident">version</span>
-                <span class="op">&amp;&amp;</span> <span class="ident">alice_base_key</span>.<span class="ident">ct_eq</span>(<span class="ident">previous</span>.<span class="ident">alice_base_key</span>()).<span class="ident">into</span>()
+        <span class="kw">for </span>previous <span class="kw">in </span><span class="self">self</span>.previous_session_states() {
+            <span class="kw">let </span>previous = previous<span class="question-mark">?</span>;
+            <span class="kw">if </span>previous.session_version()<span class="question-mark">? </span>== version
+                &amp;&amp; alice_base_key.ct_eq(previous.alice_base_key()).into()
             {
-                <span class="kw">return</span> <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="bool-val">true</span>);
             }
         }
 
         <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_current_session_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">bool</span> {
-        <span class="self">self</span>.<span class="ident">current_session</span>.<span class="ident">is_some</span>()
+    <span class="kw">pub fn </span>has_current_session_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
+        <span class="self">self</span>.current_session.is_some()
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">session_state</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;</span><span class="ident">SessionState</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">current_session</span>.<span class="ident">as_ref</span>()
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>session_state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SessionState&gt; {
+        <span class="self">self</span>.current_session.as_ref()
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">session_state_mut</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="kw-2">&amp;mut</span> <span class="ident">SessionState</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">current_session</span>.<span class="ident">as_mut</span>()
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>session_state_mut(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;mut </span>SessionState&gt; {
+        <span class="self">self</span>.current_session.as_mut()
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">set_session_state</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">session</span>: <span class="ident">SessionState</span>) {
-        <span class="self">self</span>.<span class="ident">current_session</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">session</span>);
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_session_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>, session: SessionState) {
+        <span class="self">self</span>.current_session = <span class="prelude-val">Some</span>(session);
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">previous_session_states</span>(
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>previous_session_states(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="kw">impl</span> <span class="ident">ExactSizeIterator</span><span class="op">&lt;</span><span class="ident">Item</span> <span class="op">=</span> <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">SessionState</span>, <span class="ident">InvalidSessionError</span><span class="op">&gt;</span><span class="op">&gt;</span> <span class="op">+</span> <span class="lifetime">&#39;_</span> {
-        <span class="self">self</span>.<span class="ident">previous_sessions</span>.<span class="ident">iter</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">bytes</span><span class="op">|</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident">SessionStructure::decode</span>(<span class="kw-2">&amp;</span><span class="ident">bytes</span>[..])
-                .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">InvalidSessionError</span>(<span class="string">&quot;failed to decode previous session protobuf&quot;</span>))<span class="question-mark">?</span>
-                .<span class="ident">into</span>())
+    ) -&gt; <span class="kw">impl </span>ExactSizeIterator&lt;Item = <span class="prelude-ty">Result</span>&lt;SessionState, InvalidSessionError&gt;&gt; + <span class="lifetime">&#39;_ </span>{
+        <span class="self">self</span>.previous_sessions.iter().map(|bytes| {
+            <span class="prelude-val">Ok</span>(SessionStructure::decode(<span class="kw-2">&amp;</span>bytes[..])
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;failed to decode previous session protobuf&quot;</span>))<span class="question-mark">?
+                </span>.into())
         })
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">promote_old_session</span>(
-        <span class="kw-2">&amp;mut</span> <span class="self">self</span>,
-        <span class="ident">old_session</span>: <span class="ident">usize</span>,
-        <span class="ident">updated_session</span>: <span class="ident">SessionState</span>,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>promote_old_session(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        old_session: usize,
+        updated_session: SessionState,
     ) {
-        <span class="self">self</span>.<span class="ident">previous_sessions</span>.<span class="ident">remove</span>(<span class="ident">old_session</span>);
-        <span class="self">self</span>.<span class="ident">promote_state</span>(<span class="ident">updated_session</span>)
+        <span class="self">self</span>.previous_sessions.remove(old_session);
+        <span class="self">self</span>.promote_state(updated_session)
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">promote_state</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>, <span class="ident">new_state</span>: <span class="ident">SessionState</span>) {
-        <span class="self">self</span>.<span class="ident">archive_current_state_inner</span>();
-        <span class="self">self</span>.<span class="ident">current_session</span> <span class="op">=</span> <span class="prelude-val">Some</span>(<span class="ident">new_state</span>);
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>promote_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>, new_state: SessionState) {
+        <span class="self">self</span>.archive_current_state_inner();
+        <span class="self">self</span>.current_session = <span class="prelude-val">Some</span>(new_state);
     }
 
-    <span class="comment">// A non-fallible version of archive_current_state.</span>
-    <span class="kw">fn</span> <span class="ident">archive_current_state_inner</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) {
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">current_session</span>) <span class="op">=</span> <span class="self">self</span>.<span class="ident">current_session</span>.<span class="ident">take</span>() {
-            <span class="kw">if</span> <span class="self">self</span>.<span class="ident">previous_sessions</span>.<span class="ident">len</span>() <span class="op">&gt;</span><span class="op">=</span> <span class="ident">consts::ARCHIVED_STATES_MAX_LENGTH</span> {
-                <span class="self">self</span>.<span class="ident">previous_sessions</span>.<span class="ident">pop</span>();
+    <span class="comment">// A non-fallible version of archive_current_state.
+    </span><span class="kw">fn </span>archive_current_state_inner(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(current_session) = <span class="self">self</span>.current_session.take() {
+            <span class="kw">if </span><span class="self">self</span>.previous_sessions.len() &gt;= consts::ARCHIVED_STATES_MAX_LENGTH {
+                <span class="self">self</span>.previous_sessions.pop();
             }
-            <span class="self">self</span>.<span class="ident">previous_sessions</span>
-                .<span class="ident">insert</span>(<span class="number">0</span>, <span class="ident">current_session</span>.<span class="ident">session</span>.<span class="ident">encode_to_vec</span>());
-        } <span class="kw">else</span> {
+            <span class="self">self</span>.previous_sessions
+                .insert(<span class="number">0</span>, current_session.session.encode_to_vec());
+        } <span class="kw">else </span>{
             <span class="macro">log::info!</span>(<span class="string">&quot;Skipping archive, current session state is fresh&quot;</span>,);
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">archive_current_state</span>(<span class="kw-2">&amp;mut</span> <span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="self">self</span>.<span class="ident">archive_current_state_inner</span>();
+    <span class="kw">pub fn </span>archive_current_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), SignalProtocolError&gt; {
+        <span class="self">self</span>.archive_current_state_inner();
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">serialize</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">record</span> <span class="op">=</span> <span class="ident">RecordStructure</span> {
-            <span class="ident">current_session</span>: <span class="self">self</span>.<span class="ident">current_session</span>.<span class="ident">as_ref</span>().<span class="ident">map</span>(<span class="op">|</span><span class="ident">s</span><span class="op">|</span> <span class="ident">s</span>.<span class="ident">into</span>()),
-            <span class="ident">previous_sessions</span>: <span class="self">self</span>.<span class="ident">previous_sessions</span>.<span class="ident">clone</span>(),
+    <span class="kw">pub fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, SignalProtocolError&gt; {
+        <span class="kw">let </span>record = RecordStructure {
+            current_session: <span class="self">self</span>.current_session.as_ref().map(|s| s.into()),
+            previous_sessions: <span class="self">self</span>.previous_sessions.clone(),
         };
-        <span class="prelude-val">Ok</span>(<span class="ident">record</span>.<span class="ident">encode_to_vec</span>())
+        <span class="prelude-val">Ok</span>(record.encode_to_vec())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remote_registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(
+    <span class="kw">pub fn </span>remote_registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(
                     <span class="string">&quot;remote_registration_id&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>(),
+                    <span class="string">&quot;No current session&quot;</span>.into(),
                 )
-            })<span class="question-mark">?</span>
-            .<span class="ident">remote_registration_id</span>())
+            })<span class="question-mark">?
+            </span>.remote_registration_id())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">local_registration_id</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(
+    <span class="kw">pub fn </span>local_registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(
                     <span class="string">&quot;local_registration_id&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>(),
+                    <span class="string">&quot;No current session&quot;</span>.into(),
                 )
-            })<span class="question-mark">?</span>
-            .<span class="ident">local_registration_id</span>())
+            })<span class="question-mark">?
+            </span>.local_registration_id())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">session_version</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">u32</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;session_version&quot;</span>, <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>())
-            })<span class="question-mark">?</span>
-            .<span class="ident">session_version</span>()<span class="question-mark">?</span>)
+    <span class="kw">pub fn </span>session_version(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(<span class="string">&quot;session_version&quot;</span>, <span class="string">&quot;No current session&quot;</span>.into())
+            })<span class="question-mark">?
+            </span>.session_version()<span class="question-mark">?</span>)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">local_identity_key_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(
+    <span class="kw">pub fn </span>local_identity_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(
                     <span class="string">&quot;local_identity_key_bytes&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>(),
+                    <span class="string">&quot;No current session&quot;</span>.into(),
                 )
-            })<span class="question-mark">?</span>
-            .<span class="ident">local_identity_key_bytes</span>()<span class="question-mark">?</span>)
+            })<span class="question-mark">?
+            </span>.local_identity_key_bytes()<span class="question-mark">?</span>)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">remote_identity_key_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(
+    <span class="kw">pub fn </span>remote_identity_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(
                     <span class="string">&quot;remote_identity_key_bytes&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>(),
+                    <span class="string">&quot;No current session&quot;</span>.into(),
                 )
-            })<span class="question-mark">?</span>
-            .<span class="ident">remote_identity_key_bytes</span>()<span class="question-mark">?</span>)
+            })<span class="question-mark">?
+            </span>.remote_identity_key_bytes()<span class="question-mark">?</span>)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">has_sender_chain</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">current_session</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">session</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="ident">session</span>.<span class="ident">has_sender_chain</span>()<span class="question-mark">?</span>),
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+    <span class="kw">pub fn </span>has_sender_chain(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;bool, SignalProtocolError&gt; {
+        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.current_session {
+            <span class="prelude-val">Some</span>(session) =&gt; <span class="prelude-val">Ok</span>(session.has_sender_chain()<span class="question-mark">?</span>),
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">alice_base_key</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(<span class="string">&quot;alice_base_key&quot;</span>, <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>())
-            })<span class="question-mark">?</span>
-            .<span class="ident">alice_base_key</span>())
+    <span class="kw">pub fn </span>alice_base_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw-2">&amp;</span>[u8], SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(<span class="string">&quot;alice_base_key&quot;</span>, <span class="string">&quot;No current session&quot;</span>.into())
+            })<span class="question-mark">?
+            </span>.alice_base_key())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_receiver_chain_key_bytes</span>(
+    <span class="kw">pub fn </span>get_receiver_chain_key_bytes(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">sender</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="prelude-ty">Option</span><span class="op">&lt;</span><span class="ident">Box</span><span class="op">&lt;</span>[<span class="ident">u8</span>]<span class="op">&gt;</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(
+        sender: <span class="kw-2">&amp;</span>PublicKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Box&lt;[u8]&gt;&gt;, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(
                     <span class="string">&quot;get_receiver_chain_key&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>(),
+                    <span class="string">&quot;No current session&quot;</span>.into(),
                 )
-            })<span class="question-mark">?</span>
-            .<span class="ident">get_receiver_chain_key</span>(<span class="ident">sender</span>)<span class="question-mark">?</span>
-            .<span class="ident">map</span>(<span class="op">|</span><span class="ident">chain</span><span class="op">|</span> <span class="ident">chain</span>.<span class="ident">key</span>()[..].<span class="ident">into</span>()))
+            })<span class="question-mark">?
+            </span>.get_receiver_chain_key(sender)<span class="question-mark">?
+            </span>.map(|chain| chain.key()[..].into()))
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">get_sender_chain_key_bytes</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>
-            .<span class="ident">session_state</span>()
-            .<span class="ident">ok_or_else</span>(<span class="op">|</span><span class="op">|</span> {
-                <span class="ident">SignalProtocolError::InvalidState</span>(
+    <span class="kw">pub fn </span>get_sender_chain_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, SignalProtocolError&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self
+            </span>.session_state()
+            .ok_or_else(|| {
+                SignalProtocolError::InvalidState(
                     <span class="string">&quot;get_sender_chain_key_bytes&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.<span class="ident">into</span>(),
+                    <span class="string">&quot;No current session&quot;</span>.into(),
                 )
-            })<span class="question-mark">?</span>
-            .<span class="ident">get_sender_chain_key_bytes</span>()<span class="question-mark">?</span>)
+            })<span class="question-mark">?
+            </span>.get_sender_chain_key_bytes()<span class="question-mark">?</span>)
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">current_ratchet_key_matches</span>(
+    <span class="kw">pub fn </span>current_ratchet_key_matches(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        <span class="ident">key</span>: <span class="kw-2">&amp;</span><span class="ident">PublicKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span>, <span class="ident">SignalProtocolError</span><span class="op">&gt;</span> {
-        <span class="kw">match</span> <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">current_session</span> {
-            <span class="prelude-val">Some</span>(<span class="ident">session</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span><span class="ident">session</span>.<span class="ident">sender_ratchet_key</span>()<span class="question-mark">?</span> <span class="op">==</span> <span class="ident">key</span>),
-            <span class="prelude-val">None</span> =&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
+        key: <span class="kw-2">&amp;</span>PublicKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;bool, SignalProtocolError&gt; {
+        <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.current_session {
+            <span class="prelude-val">Some</span>(session) =&gt; <span class="prelude-val">Ok</span>(<span class="kw-2">&amp;</span>session.sender_ratchet_key()<span class="question-mark">? </span>== key),
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="bool-val">false</span>),
         }
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

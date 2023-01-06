@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/fingerprint.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>fingerprint.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/ab29fed/rust/protocol/src/fingerprint.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>fingerprint.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_protocol/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_protocol/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -541,548 +541,548 @@
 <span id="541">541</span>
 <span id="542">542</span>
 <span id="543">543</span>
-</pre><pre class="rust"><code><span class="comment">//</span>
-<span class="comment">// Copyright 2020 Signal Messenger, LLC.</span>
-<span class="comment">// SPDX-License-Identifier: AGPL-3.0-only</span>
-<span class="comment">//</span>
+</pre><pre class="rust"><code><span class="comment">//
+// Copyright 2020 Signal Messenger, LLC.
+// SPDX-License-Identifier: AGPL-3.0-only
+//
 
-<span class="kw">use</span> <span class="kw">crate</span>::{<span class="ident">proto</span>, <span class="ident">IdentityKey</span>, <span class="prelude-ty">Result</span>, <span class="ident">SignalProtocolError</span>};
-<span class="kw">use</span> <span class="ident">prost::Message</span>;
-<span class="kw">use</span> <span class="ident">sha2::digest::Digest</span>;
-<span class="kw">use</span> <span class="ident">sha2::Sha512</span>;
-<span class="kw">use</span> <span class="ident">std::fmt</span>;
-<span class="kw">use</span> <span class="ident">std::fmt::Write</span>;
-<span class="kw">use</span> <span class="ident">subtle::ConstantTimeEq</span>;
+</span><span class="kw">use crate</span>::{proto, IdentityKey, <span class="prelude-ty">Result</span>, SignalProtocolError};
+<span class="kw">use </span>prost::Message;
+<span class="kw">use </span>sha2::digest::Digest;
+<span class="kw">use </span>sha2::Sha512;
+<span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::fmt::Write;
+<span class="kw">use </span>subtle::ConstantTimeEq;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">DisplayableFingerprint</span> {
-    <span class="ident">local</span>: <span class="ident">String</span>,
-    <span class="ident">remote</span>: <span class="ident">String</span>,
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>DisplayableFingerprint {
+    local: String,
+    remote: String,
 }
 
-<span class="kw">impl</span> <span class="ident">fmt::Display</span> <span class="kw">for</span> <span class="ident">DisplayableFingerprint</span> {
-    <span class="kw">fn</span> <span class="ident">fmt</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">f</span>: <span class="kw-2">&amp;mut</span> <span class="ident">fmt::Formatter</span>) -&gt; <span class="ident">fmt::Result</span> {
-        <span class="kw">if</span> <span class="self">self</span>.<span class="ident">local</span> <span class="op">&lt;</span> <span class="self">self</span>.<span class="ident">remote</span> {
-            <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">local</span>, <span class="self">self</span>.<span class="ident">remote</span>)
-        } <span class="kw">else</span> {
-            <span class="macro">write!</span>(<span class="ident">f</span>, <span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.<span class="ident">remote</span>, <span class="self">self</span>.<span class="ident">local</span>)
+<span class="kw">impl </span>fmt::Display <span class="kw">for </span>DisplayableFingerprint {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
+        <span class="kw">if </span><span class="self">self</span>.local &lt; <span class="self">self</span>.remote {
+            <span class="macro">write!</span>(f, <span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.local, <span class="self">self</span>.remote)
+        } <span class="kw">else </span>{
+            <span class="macro">write!</span>(f, <span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.remote, <span class="self">self</span>.local)
         }
     }
 }
 
-<span class="kw">fn</span> <span class="ident">get_encoded_string</span>(<span class="ident">fprint</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-    <span class="kw">if</span> <span class="ident">fprint</span>.<span class="ident">len</span>() <span class="op">&lt;</span> <span class="number">30</span> {
-        <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidArgument</span>(
-            <span class="string">&quot;DisplayableFingerprint created with short encoding&quot;</span>.<span class="ident">to_string</span>(),
+<span class="kw">fn </span>get_encoded_string(fprint: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+    <span class="kw">if </span>fprint.len() &lt; <span class="number">30 </span>{
+        <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidArgument(
+            <span class="string">&quot;DisplayableFingerprint created with short encoding&quot;</span>.to_string(),
         ));
     }
 
-    <span class="kw">fn</span> <span class="ident">read5_mod_100k</span>(<span class="ident">fprint</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="ident">u64</span> {
-        <span class="macro">assert_eq!</span>(<span class="ident">fprint</span>.<span class="ident">len</span>(), <span class="number">5</span>);
-        <span class="kw">let</span> <span class="ident">x</span> <span class="op">=</span> <span class="ident">fprint</span>.<span class="ident">iter</span>().<span class="ident">fold</span>(<span class="number">0u64</span>, <span class="op">|</span><span class="ident">acc</span>, <span class="kw-2">&amp;</span><span class="ident">x</span><span class="op">|</span> (<span class="ident">acc</span> <span class="op">&lt;</span><span class="op">&lt;</span> <span class="number">8</span>) <span class="op">|</span> (<span class="ident">x</span> <span class="kw">as</span> <span class="ident">u64</span>));
-        <span class="ident">x</span> <span class="op">%</span> <span class="number">100_000</span>
-    }
+    <span class="kw">fn </span>read5_mod_100k(fprint: <span class="kw-2">&amp;</span>[u8]) -&gt; u64 {
+        <span class="macro">assert_eq!</span>(fprint.len(), <span class="number">5</span>);
+        <span class="kw">let </span>x = fprint.iter().fold(<span class="number">0u64</span>, |acc, <span class="kw-2">&amp;</span>x| (acc &lt;&lt; <span class="number">8</span>) | (x <span class="kw">as </span>u64));
+        x % <span class="number">100_000
+    </span>}
 
-    <span class="kw">let</span> <span class="ident">s</span> <span class="op">=</span> <span class="ident">fprint</span>.<span class="ident">chunks_exact</span>(<span class="number">5</span>).<span class="ident">take</span>(<span class="number">6</span>).<span class="ident">map</span>(<span class="ident">read5_mod_100k</span>).<span class="ident">fold</span>(
-        <span class="ident">String::with_capacity</span>(<span class="number">5</span> <span class="op">*</span> <span class="number">6</span>),
-        <span class="op">|</span><span class="kw-2">mut</span> <span class="ident">s</span>, <span class="ident">n</span><span class="op">|</span> {
-            <span class="macro">write!</span>(<span class="ident">s</span>, <span class="string">&quot;{:05}&quot;</span>, <span class="ident">n</span>).<span class="ident">expect</span>(<span class="string">&quot;can always write to a String&quot;</span>);
-            <span class="ident">s</span>
+    <span class="kw">let </span>s = fprint.chunks_exact(<span class="number">5</span>).take(<span class="number">6</span>).map(read5_mod_100k).fold(
+        String::with_capacity(<span class="number">5 </span>* <span class="number">6</span>),
+        |<span class="kw-2">mut </span>s, n| {
+            <span class="macro">write!</span>(s, <span class="string">&quot;{:05}&quot;</span>, n).expect(<span class="string">&quot;can always write to a String&quot;</span>);
+            s
         },
     );
 
-    <span class="prelude-val">Ok</span>(<span class="ident">s</span>)
+    <span class="prelude-val">Ok</span>(s)
 }
 
-<span class="kw">impl</span> <span class="ident">DisplayableFingerprint</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">local</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">remote</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">local</span>: <span class="ident">get_encoded_string</span>(<span class="ident">local</span>)<span class="question-mark">?</span>,
-            <span class="ident">remote</span>: <span class="ident">get_encoded_string</span>(<span class="ident">remote</span>)<span class="question-mark">?</span>,
+<span class="kw">impl </span>DisplayableFingerprint {
+    <span class="kw">pub fn </span>new(local: <span class="kw-2">&amp;</span>[u8], remote: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            local: get_encoded_string(local)<span class="question-mark">?</span>,
+            remote: get_encoded_string(remote)<span class="question-mark">?</span>,
         })
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">ScannableFingerprint</span> {
-    <span class="ident">version</span>: <span class="ident">u32</span>,
-    <span class="ident">local_fingerprint</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-    <span class="ident">remote_fingerprint</span>: <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>ScannableFingerprint {
+    version: u32,
+    local_fingerprint: Vec&lt;u8&gt;,
+    remote_fingerprint: Vec&lt;u8&gt;,
 }
 
-<span class="kw">impl</span> <span class="ident">ScannableFingerprint</span> {
-    <span class="kw">fn</span> <span class="ident">new</span>(<span class="ident">version</span>: <span class="ident">u32</span>, <span class="ident">local_fprint</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>], <span class="ident">remote_fprint</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">version</span>,
-            <span class="ident">local_fingerprint</span>: <span class="ident">local_fprint</span>[..<span class="number">32</span>].<span class="ident">to_vec</span>(),
-            <span class="ident">remote_fingerprint</span>: <span class="ident">remote_fprint</span>[..<span class="number">32</span>].<span class="ident">to_vec</span>(),
+<span class="kw">impl </span>ScannableFingerprint {
+    <span class="kw">fn </span>new(version: u32, local_fprint: <span class="kw-2">&amp;</span>[u8], remote_fprint: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            version,
+            local_fingerprint: local_fprint[..<span class="number">32</span>].to_vec(),
+            remote_fingerprint: remote_fprint[..<span class="number">32</span>].to_vec(),
         }
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">deserialize</span>(<span class="ident">protobuf</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">fingerprint</span> <span class="op">=</span> <span class="ident">proto::fingerprint::CombinedFingerprints::decode</span>(<span class="ident">protobuf</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub fn </span>deserialize(protobuf: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>fingerprint = proto::fingerprint::CombinedFingerprints::decode(protobuf)
+            .map_err(|<span class="kw">_</span>| SignalProtocolError::FingerprintParsingError)<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="self">Self</span> {
-            <span class="ident">version</span>: <span class="ident">fingerprint</span>
-                .<span class="ident">version</span>
-                .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>,
-            <span class="ident">local_fingerprint</span>: <span class="ident">fingerprint</span>
-                .<span class="ident">local_fingerprint</span>
-                .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>
-                .<span class="ident">content</span>
-                .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>,
-            <span class="ident">remote_fingerprint</span>: <span class="ident">fingerprint</span>
-                .<span class="ident">remote_fingerprint</span>
-                .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>
-                .<span class="ident">content</span>
-                .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>,
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            version: fingerprint
+                .version
+                .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?</span>,
+            local_fingerprint: fingerprint
+                .local_fingerprint
+                .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?
+                </span>.content
+                .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?</span>,
+            remote_fingerprint: fingerprint
+                .remote_fingerprint
+                .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?
+                </span>.content
+                .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?</span>,
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">serialize</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">combined_fingerprints</span> <span class="op">=</span> <span class="ident">proto::fingerprint::CombinedFingerprints</span> {
-            <span class="ident">version</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">version</span>),
-            <span class="ident">local_fingerprint</span>: <span class="prelude-val">Some</span>(<span class="ident">proto::fingerprint::LogicalFingerprint</span> {
-                <span class="ident">content</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">local_fingerprint</span>.<span class="ident">to_owned</span>()),
+    <span class="kw">pub fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+        <span class="kw">let </span>combined_fingerprints = proto::fingerprint::CombinedFingerprints {
+            version: <span class="prelude-val">Some</span>(<span class="self">self</span>.version),
+            local_fingerprint: <span class="prelude-val">Some</span>(proto::fingerprint::LogicalFingerprint {
+                content: <span class="prelude-val">Some</span>(<span class="self">self</span>.local_fingerprint.to_owned()),
             }),
-            <span class="ident">remote_fingerprint</span>: <span class="prelude-val">Some</span>(<span class="ident">proto::fingerprint::LogicalFingerprint</span> {
-                <span class="ident">content</span>: <span class="prelude-val">Some</span>(<span class="self">self</span>.<span class="ident">remote_fingerprint</span>.<span class="ident">to_owned</span>()),
+            remote_fingerprint: <span class="prelude-val">Some</span>(proto::fingerprint::LogicalFingerprint {
+                content: <span class="prelude-val">Some</span>(<span class="self">self</span>.remote_fingerprint.to_owned()),
             }),
         };
 
-        <span class="prelude-val">Ok</span>(<span class="ident">combined_fingerprints</span>.<span class="ident">encode_to_vec</span>())
+        <span class="prelude-val">Ok</span>(combined_fingerprints.encode_to_vec())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="self">self</span>, <span class="ident">combined</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">bool</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">combined</span> <span class="op">=</span> <span class="ident">proto::fingerprint::CombinedFingerprints::decode</span>(<span class="ident">combined</span>)
-            .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub fn </span>compare(<span class="kw-2">&amp;</span><span class="self">self</span>, combined: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;bool&gt; {
+        <span class="kw">let </span>combined = proto::fingerprint::CombinedFingerprints::decode(combined)
+            .map_err(|<span class="kw">_</span>| SignalProtocolError::FingerprintParsingError)<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">their_version</span> <span class="op">=</span> <span class="ident">combined</span>.<span class="ident">version</span>.<span class="ident">unwrap_or</span>(<span class="number">0</span>);
+        <span class="kw">let </span>their_version = combined.version.unwrap_or(<span class="number">0</span>);
 
-        <span class="kw">if</span> <span class="ident">their_version</span> <span class="op">!</span><span class="op">=</span> <span class="self">self</span>.<span class="ident">version</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::FingerprintVersionMismatch</span>(
-                <span class="ident">their_version</span>,
-                <span class="self">self</span>.<span class="ident">version</span>,
+        <span class="kw">if </span>their_version != <span class="self">self</span>.version {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::FingerprintVersionMismatch(
+                their_version,
+                <span class="self">self</span>.version,
             ));
         }
 
-        <span class="kw">let</span> <span class="ident">same1</span> <span class="op">=</span> <span class="ident">combined</span>
-            .<span class="ident">local_fingerprint</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>
-            .<span class="ident">content</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>
-            .<span class="ident">ct_eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">remote_fingerprint</span>);
-        <span class="kw">let</span> <span class="ident">same2</span> <span class="op">=</span> <span class="ident">combined</span>
-            .<span class="ident">remote_fingerprint</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>
-            .<span class="ident">content</span>
-            .<span class="ident">as_ref</span>()
-            .<span class="ident">ok_or</span>(<span class="ident">SignalProtocolError::FingerprintParsingError</span>)<span class="question-mark">?</span>
-            .<span class="ident">ct_eq</span>(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="ident">local_fingerprint</span>);
+        <span class="kw">let </span>same1 = combined
+            .local_fingerprint
+            .as_ref()
+            .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?
+            </span>.content
+            .as_ref()
+            .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?
+            </span>.ct_eq(<span class="kw-2">&amp;</span><span class="self">self</span>.remote_fingerprint);
+        <span class="kw">let </span>same2 = combined
+            .remote_fingerprint
+            .as_ref()
+            .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?
+            </span>.content
+            .as_ref()
+            .ok_or(SignalProtocolError::FingerprintParsingError)<span class="question-mark">?
+            </span>.ct_eq(<span class="kw-2">&amp;</span><span class="self">self</span>.local_fingerprint);
 
-        <span class="prelude-val">Ok</span>(<span class="ident">same1</span>.<span class="ident">into</span>() <span class="op">&amp;&amp;</span> <span class="ident">same2</span>.<span class="ident">into</span>())
+        <span class="prelude-val">Ok</span>(same1.into() &amp;&amp; same2.into())
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Debug</span>, <span class="ident">Clone</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Fingerprint</span> {
-    <span class="kw">pub</span> <span class="ident">display</span>: <span class="ident">DisplayableFingerprint</span>,
-    <span class="kw">pub</span> <span class="ident">scannable</span>: <span class="ident">ScannableFingerprint</span>,
+<span class="attribute">#[derive(Debug, Clone)]
+</span><span class="kw">pub struct </span>Fingerprint {
+    <span class="kw">pub </span>display: DisplayableFingerprint,
+    <span class="kw">pub </span>scannable: ScannableFingerprint,
 }
 
-<span class="kw">impl</span> <span class="ident">Fingerprint</span> {
-    <span class="kw">fn</span> <span class="ident">get_fingerprint</span>(
-        <span class="ident">iterations</span>: <span class="ident">u32</span>,
-        <span class="ident">local_id</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">local_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span><span class="op">&gt;</span> {
-        <span class="kw">if</span> <span class="ident">iterations</span> <span class="op">&lt;</span><span class="op">=</span> <span class="number">1</span> <span class="op">|</span><span class="op">|</span> <span class="ident">iterations</span> <span class="op">&gt;</span> <span class="number">1000000</span> {
-            <span class="kw">return</span> <span class="prelude-val">Err</span>(<span class="ident">SignalProtocolError::InvalidArgument</span>(<span class="macro">format!</span>(
+<span class="kw">impl </span>Fingerprint {
+    <span class="kw">fn </span>get_fingerprint(
+        iterations: u32,
+        local_id: <span class="kw-2">&amp;</span>[u8],
+        local_key: <span class="kw-2">&amp;</span>IdentityKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+        <span class="kw">if </span>iterations &lt;= <span class="number">1 </span>|| iterations &gt; <span class="number">1000000 </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidArgument(<span class="macro">format!</span>(
                 <span class="string">&quot;Invalid fingerprint iterations {}&quot;</span>,
-                <span class="ident">iterations</span>
+                iterations
             )));
         }
 
-        <span class="kw">let</span> <span class="ident">fingerprint_version</span> <span class="op">=</span> [<span class="number">0u8</span>, <span class="number">0u8</span>]; <span class="comment">// 0x0000</span>
-        <span class="kw">let</span> <span class="ident">key_bytes</span> <span class="op">=</span> <span class="ident">local_key</span>.<span class="ident">serialize</span>();
+        <span class="kw">let </span>fingerprint_version = [<span class="number">0u8</span>, <span class="number">0u8</span>]; <span class="comment">// 0x0000
+        </span><span class="kw">let </span>key_bytes = local_key.serialize();
 
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sha512</span> <span class="op">=</span> <span class="ident">Sha512::new</span>();
+        <span class="kw">let </span><span class="kw-2">mut </span>sha512 = Sha512::new();
 
-        <span class="comment">// iteration=0</span>
-        <span class="ident">sha512</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">fingerprint_version</span>);
-        <span class="ident">sha512</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">key_bytes</span>);
-        <span class="ident">sha512</span>.<span class="ident">update</span>(<span class="ident">local_id</span>);
-        <span class="ident">sha512</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">key_bytes</span>);
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="ident">sha512</span>.<span class="ident">finalize</span>();
+        <span class="comment">// iteration=0
+        </span>sha512.update(<span class="kw-2">&amp;</span>fingerprint_version);
+        sha512.update(<span class="kw-2">&amp;</span>key_bytes);
+        sha512.update(local_id);
+        sha512.update(<span class="kw-2">&amp;</span>key_bytes);
+        <span class="kw">let </span><span class="kw-2">mut </span>buf = sha512.finalize();
 
-        <span class="kw">for</span> <span class="ident">_i</span> <span class="kw">in</span> <span class="number">1</span>..<span class="ident">iterations</span> {
-            <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">sha512</span> <span class="op">=</span> <span class="ident">Sha512::new</span>();
-            <span class="ident">sha512</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>);
-            <span class="ident">sha512</span>.<span class="ident">update</span>(<span class="kw-2">&amp;</span><span class="ident">key_bytes</span>);
-            <span class="ident">buf</span> <span class="op">=</span> <span class="ident">sha512</span>.<span class="ident">finalize</span>();
+        <span class="kw">for </span>_i <span class="kw">in </span><span class="number">1</span>..iterations {
+            <span class="kw">let </span><span class="kw-2">mut </span>sha512 = Sha512::new();
+            sha512.update(<span class="kw-2">&amp;</span>buf);
+            sha512.update(<span class="kw-2">&amp;</span>key_bytes);
+            buf = sha512.finalize();
         }
 
-        <span class="prelude-val">Ok</span>(<span class="ident">buf</span>.<span class="ident">to_vec</span>())
+        <span class="prelude-val">Ok</span>(buf.to_vec())
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">new</span>(
-        <span class="ident">version</span>: <span class="ident">u32</span>,
-        <span class="ident">iterations</span>: <span class="ident">u32</span>,
-        <span class="ident">local_id</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">local_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-        <span class="ident">remote_id</span>: <span class="kw-2">&amp;</span>[<span class="ident">u8</span>],
-        <span class="ident">remote_key</span>: <span class="kw-2">&amp;</span><span class="ident">IdentityKey</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">Fingerprint</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">local_fingerprint</span> <span class="op">=</span> <span class="ident">Fingerprint::get_fingerprint</span>(<span class="ident">iterations</span>, <span class="ident">local_id</span>, <span class="ident">local_key</span>)<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">remote_fingerprint</span> <span class="op">=</span> <span class="ident">Fingerprint::get_fingerprint</span>(<span class="ident">iterations</span>, <span class="ident">remote_id</span>, <span class="ident">remote_key</span>)<span class="question-mark">?</span>;
+    <span class="kw">pub fn </span>new(
+        version: u32,
+        iterations: u32,
+        local_id: <span class="kw-2">&amp;</span>[u8],
+        local_key: <span class="kw-2">&amp;</span>IdentityKey,
+        remote_id: <span class="kw-2">&amp;</span>[u8],
+        remote_key: <span class="kw-2">&amp;</span>IdentityKey,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Fingerprint&gt; {
+        <span class="kw">let </span>local_fingerprint = Fingerprint::get_fingerprint(iterations, local_id, local_key)<span class="question-mark">?</span>;
+        <span class="kw">let </span>remote_fingerprint = Fingerprint::get_fingerprint(iterations, remote_id, remote_key)<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="ident">Fingerprint</span> {
-            <span class="ident">display</span>: <span class="ident">DisplayableFingerprint::new</span>(<span class="kw-2">&amp;</span><span class="ident">local_fingerprint</span>, <span class="kw-2">&amp;</span><span class="ident">remote_fingerprint</span>)<span class="question-mark">?</span>,
-            <span class="ident">scannable</span>: <span class="ident">ScannableFingerprint::new</span>(<span class="ident">version</span>, <span class="kw-2">&amp;</span><span class="ident">local_fingerprint</span>, <span class="kw-2">&amp;</span><span class="ident">remote_fingerprint</span>),
+        <span class="prelude-val">Ok</span>(Fingerprint {
+            display: DisplayableFingerprint::new(<span class="kw-2">&amp;</span>local_fingerprint, <span class="kw-2">&amp;</span>remote_fingerprint)<span class="question-mark">?</span>,
+            scannable: ScannableFingerprint::new(version, <span class="kw-2">&amp;</span>local_fingerprint, <span class="kw-2">&amp;</span>remote_fingerprint),
         })
     }
 
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">display_string</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="ident">String</span><span class="op">&gt;</span> {
-        <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.<span class="ident">display</span>))
+    <span class="kw">pub fn </span>display_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
+        <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.display))
     }
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">test</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>test {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">const</span> <span class="ident">ALICE_IDENTITY</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span>
+    <span class="kw">const </span>ALICE_IDENTITY: <span class="kw-2">&amp;</span>str =
         <span class="string">&quot;0506863bc66d02b40d27b8d49ca7c09e9239236f9d7d25d6fcca5ce13c7064d868&quot;</span>;
-    <span class="kw">const</span> <span class="ident">BOB_IDENTITY</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;05f781b6fb32fed9ba1cf2de978d4d5da28dc34046ae814402b5c0dbd96fda907b&quot;</span>;
+    <span class="kw">const </span>BOB_IDENTITY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;05f781b6fb32fed9ba1cf2de978d4d5da28dc34046ae814402b5c0dbd96fda907b&quot;</span>;
 
-    <span class="kw">const</span> <span class="ident">DISPLAYABLE_FINGERPRINT_V1</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span>
+    <span class="kw">const </span>DISPLAYABLE_FINGERPRINT_V1: <span class="kw-2">&amp;</span>str =
         <span class="string">&quot;300354477692869396892869876765458257569162576843440918079131&quot;</span>;
-    <span class="kw">const</span> <span class="ident">ALICE_SCANNABLE_FINGERPRINT_V1</span> : <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;080112220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d&quot;</span>;
-    <span class="kw">const</span> <span class="ident">BOB_SCANNABLE_FINGERPRINT_V1</span>   : <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;080112220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df&quot;</span>;
+    <span class="kw">const </span>ALICE_SCANNABLE_FINGERPRINT_V1 : <span class="kw-2">&amp;</span>str = <span class="string">&quot;080112220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d&quot;</span>;
+    <span class="kw">const </span>BOB_SCANNABLE_FINGERPRINT_V1   : <span class="kw-2">&amp;</span>str = <span class="string">&quot;080112220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df&quot;</span>;
 
-    <span class="kw">const</span> <span class="ident">ALICE_SCANNABLE_FINGERPRINT_V2</span> : <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;080212220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d&quot;</span>;
-    <span class="kw">const</span> <span class="ident">BOB_SCANNABLE_FINGERPRINT_V2</span>   : <span class="op">&amp;</span> <span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;080212220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df&quot;</span>;
+    <span class="kw">const </span>ALICE_SCANNABLE_FINGERPRINT_V2 : <span class="kw-2">&amp;</span>str = <span class="string">&quot;080212220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d&quot;</span>;
+    <span class="kw">const </span>BOB_SCANNABLE_FINGERPRINT_V2   : &amp; str = <span class="string">&quot;080212220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df&quot;</span>;
 
-    <span class="kw">const</span> <span class="ident">ALICE_STABLE_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;+14152222222&quot;</span>;
-    <span class="kw">const</span> <span class="ident">BOB_STABLE_ID</span>: <span class="kw-2">&amp;</span><span class="ident">str</span> <span class="op">=</span> <span class="string">&quot;+14153333333&quot;</span>;
+    <span class="kw">const </span>ALICE_STABLE_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;+14152222222&quot;</span>;
+    <span class="kw">const </span>BOB_STABLE_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;+14153333333&quot;</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_encodings</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">l</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0x12</span>; <span class="number">32</span>];
-        <span class="kw">let</span> <span class="ident">r</span> <span class="op">=</span> <span class="macro">vec!</span>[<span class="number">0xBA</span>; <span class="number">32</span>];
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_encodings() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">let </span>l = <span class="macro">vec!</span>[<span class="number">0x12</span>; <span class="number">32</span>];
+        <span class="kw">let </span>r = <span class="macro">vec!</span>[<span class="number">0xBA</span>; <span class="number">32</span>];
 
-        <span class="kw">let</span> <span class="ident">fprint2</span> <span class="op">=</span> <span class="ident">ScannableFingerprint::new</span>(<span class="number">2</span>, <span class="kw-2">&amp;</span><span class="ident">l</span>, <span class="kw-2">&amp;</span><span class="ident">r</span>);
-        <span class="kw">let</span> <span class="ident">proto2</span> <span class="op">=</span> <span class="ident">fprint2</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>;
+        <span class="kw">let </span>fprint2 = ScannableFingerprint::new(<span class="number">2</span>, <span class="kw-2">&amp;</span>l, <span class="kw-2">&amp;</span>r);
+        <span class="kw">let </span>proto2 = fprint2.serialize()<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">expected2_encoding</span> <span class="op">=</span>
-            <span class="string">&quot;080212220a20&quot;</span>.<span class="ident">to_owned</span>() <span class="op">+</span> <span class="kw-2">&amp;</span><span class="string">&quot;12&quot;</span>.<span class="ident">repeat</span>(<span class="number">32</span>) <span class="op">+</span> <span class="string">&quot;1a220a20&quot;</span> <span class="op">+</span> <span class="kw-2">&amp;</span><span class="string">&quot;ba&quot;</span>.<span class="ident">repeat</span>(<span class="number">32</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">hex::encode</span>(<span class="ident">proto2</span>), <span class="ident">expected2_encoding</span>);
-
-        <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_test_v1</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="comment">// testVectorsVersion1 in Java</span>
-
-        <span class="kw">let</span> <span class="ident">a_key</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">hex::decode</span>(<span class="ident">ALICE_IDENTITY</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">b_key</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">hex::decode</span>(<span class="ident">BOB_IDENTITY</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="number">1</span>;
-        <span class="kw">let</span> <span class="ident">iterations</span> <span class="op">=</span> <span class="number">5200</span>;
-
-        <span class="kw">let</span> <span class="ident">a_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">a_key</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">b_key</span>,
-        )<span class="question-mark">?</span>;
-
-        <span class="kw">let</span> <span class="ident">b_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">b_key</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">a_key</span>,
-        )<span class="question-mark">?</span>;
-
-        <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">ALICE_SCANNABLE_FINGERPRINT_V1</span>
-        );
-        <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">BOB_SCANNABLE_FINGERPRINT_V1</span>
-        );
-
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint</span>.<span class="ident">display</span>), <span class="ident">DISPLAYABLE_FINGERPRINT_V1</span>);
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">b_fprint</span>.<span class="ident">display</span>), <span class="ident">DISPLAYABLE_FINGERPRINT_V1</span>);
-
-        <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">ALICE_SCANNABLE_FINGERPRINT_V1</span>
-        );
-        <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">BOB_SCANNABLE_FINGERPRINT_V1</span>
-        );
+        <span class="kw">let </span>expected2_encoding =
+            <span class="string">&quot;080212220a20&quot;</span>.to_owned() + <span class="kw-2">&amp;</span><span class="string">&quot;12&quot;</span>.repeat(<span class="number">32</span>) + <span class="string">&quot;1a220a20&quot; </span>+ <span class="kw-2">&amp;</span><span class="string">&quot;ba&quot;</span>.repeat(<span class="number">32</span>);
+        <span class="macro">assert_eq!</span>(hex::encode(proto2), expected2_encoding);
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_test_v2</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="comment">// testVectorsVersion2 in Java</span>
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_test_v1() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="comment">// testVectorsVersion1 in Java
 
-        <span class="kw">let</span> <span class="ident">a_key</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">hex::decode</span>(<span class="ident">ALICE_IDENTITY</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">b_key</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">hex::decode</span>(<span class="ident">BOB_IDENTITY</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        </span><span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="number">2</span>;
-        <span class="kw">let</span> <span class="ident">iterations</span> <span class="op">=</span> <span class="number">5200</span>;
+        <span class="kw">let </span>version = <span class="number">1</span>;
+        <span class="kw">let </span>iterations = <span class="number">5200</span>;
 
-        <span class="kw">let</span> <span class="ident">a_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">a_key</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">b_key</span>,
+        <span class="kw">let </span>a_fprint = Fingerprint::new(
+            version,
+            iterations,
+            ALICE_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>a_key,
+            BOB_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>b_key,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">b_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">b_key</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">a_key</span>,
+        <span class="kw">let </span>b_fprint = Fingerprint::new(
+            version,
+            iterations,
+            BOB_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>b_key,
+            ALICE_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>a_key,
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">ALICE_SCANNABLE_FINGERPRINT_V2</span>
+            hex::encode(a_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            ALICE_SCANNABLE_FINGERPRINT_V1
         );
         <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">BOB_SCANNABLE_FINGERPRINT_V2</span>
+            hex::encode(b_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            BOB_SCANNABLE_FINGERPRINT_V1
         );
 
-        <span class="comment">// unchanged vs v1</span>
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint</span>.<span class="ident">display</span>), <span class="ident">DISPLAYABLE_FINGERPRINT_V1</span>);
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">b_fprint</span>.<span class="ident">display</span>), <span class="ident">DISPLAYABLE_FINGERPRINT_V1</span>);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
 
         <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">ALICE_SCANNABLE_FINGERPRINT_V2</span>
+            hex::encode(a_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            ALICE_SCANNABLE_FINGERPRINT_V1
         );
         <span class="macro">assert_eq!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">BOB_SCANNABLE_FINGERPRINT_V2</span>
+            hex::encode(b_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            BOB_SCANNABLE_FINGERPRINT_V1
         );
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_matching_identifiers</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="comment">// testMatchingFingerprints</span>
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_test_v2() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="comment">// testVectorsVersion2 in Java
 
-        <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::IdentityKeyPair</span>;
-        <span class="kw">use</span> <span class="ident">rand::rngs::OsRng</span>;
+        </span><span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">a_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>);
-        <span class="kw">let</span> <span class="ident">b_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>);
+        <span class="kw">let </span>version = <span class="number">2</span>;
+        <span class="kw">let </span>iterations = <span class="number">5200</span>;
 
-        <span class="kw">let</span> <span class="ident">a_key</span> <span class="op">=</span> <span class="ident">a_key_pair</span>.<span class="ident">identity_key</span>();
-        <span class="kw">let</span> <span class="ident">b_key</span> <span class="op">=</span> <span class="ident">b_key_pair</span>.<span class="ident">identity_key</span>();
-
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="number">1</span>;
-        <span class="kw">let</span> <span class="ident">iterations</span> <span class="op">=</span> <span class="number">1024</span>;
-
-        <span class="kw">let</span> <span class="ident">a_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">a_key</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">b_key</span>,
+        <span class="kw">let </span>a_fprint = Fingerprint::new(
+            version,
+            iterations,
+            ALICE_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>a_key,
+            BOB_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>b_key,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">b_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">b_key</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">a_key</span>,
+        <span class="kw">let </span>b_fprint = Fingerprint::new(
+            version,
+            iterations,
+            BOB_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>b_key,
+            ALICE_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>a_key,
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_eq!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint</span>.<span class="ident">display</span>),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">b_fprint</span>.<span class="ident">display</span>)
+            hex::encode(a_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            ALICE_SCANNABLE_FINGERPRINT_V2
         );
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint</span>.<span class="ident">display</span>).<span class="ident">len</span>(), <span class="number">60</span>);
+        <span class="macro">assert_eq!</span>(
+            hex::encode(b_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            BOB_SCANNABLE_FINGERPRINT_V2
+        );
 
-        <span class="macro">assert!</span>(<span class="ident">a_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
-        <span class="macro">assert!</span>(<span class="ident">b_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="comment">// unchanged vs v1
+        </span><span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
 
-        <span class="comment">// Java is missing this test</span>
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">a_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">b_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert_eq!</span>(
+            hex::encode(a_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            ALICE_SCANNABLE_FINGERPRINT_V2
+        );
+        <span class="macro">assert_eq!</span>(
+            hex::encode(b_fprint.scannable.serialize()<span class="question-mark">?</span>),
+            BOB_SCANNABLE_FINGERPRINT_V2
+        );
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_mismatching_fingerprints</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::IdentityKeyPair</span>;
-        <span class="kw">use</span> <span class="ident">rand::rngs::OsRng</span>;
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_matching_identifiers() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="comment">// testMatchingFingerprints
 
-        <span class="kw">let</span> <span class="ident">a_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>);
-        <span class="kw">let</span> <span class="ident">b_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>);
-        <span class="kw">let</span> <span class="ident">m_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>); <span class="comment">// mitm</span>
+        </span><span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
+        <span class="kw">use </span>rand::rngs::OsRng;
 
-        <span class="kw">let</span> <span class="ident">a_key</span> <span class="op">=</span> <span class="ident">a_key_pair</span>.<span class="ident">identity_key</span>();
-        <span class="kw">let</span> <span class="ident">b_key</span> <span class="op">=</span> <span class="ident">b_key_pair</span>.<span class="ident">identity_key</span>();
-        <span class="kw">let</span> <span class="ident">m_key</span> <span class="op">=</span> <span class="ident">m_key_pair</span>.<span class="ident">identity_key</span>();
+        <span class="kw">let </span>a_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
+        <span class="kw">let </span>b_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
 
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="number">1</span>;
-        <span class="kw">let</span> <span class="ident">iterations</span> <span class="op">=</span> <span class="number">1024</span>;
+        <span class="kw">let </span>a_key = a_key_pair.identity_key();
+        <span class="kw">let </span>b_key = b_key_pair.identity_key();
 
-        <span class="kw">let</span> <span class="ident">a_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">a_key</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">m_key</span>,
+        <span class="kw">let </span>version = <span class="number">1</span>;
+        <span class="kw">let </span>iterations = <span class="number">1024</span>;
+
+        <span class="kw">let </span>a_fprint = Fingerprint::new(
+            version,
+            iterations,
+            ALICE_STABLE_ID.as_bytes(),
+            a_key,
+            BOB_STABLE_ID.as_bytes(),
+            b_key,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">b_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">b_key</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">a_key</span>,
+        <span class="kw">let </span>b_fprint = Fingerprint::new(
+            version,
+            iterations,
+            BOB_STABLE_ID.as_bytes(),
+            b_key,
+            ALICE_STABLE_ID.as_bytes(),
+            a_key,
+        )<span class="question-mark">?</span>;
+
+        <span class="macro">assert_eq!</span>(
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display),
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display)
+        );
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display).len(), <span class="number">60</span>);
+
+        <span class="macro">assert!</span>(a_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>b_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert!</span>(b_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>a_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+
+        <span class="comment">// Java is missing this test
+        </span><span class="macro">assert!</span>(!a_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>a_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert!</span>(!b_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>b_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_mismatching_fingerprints() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
+        <span class="kw">use </span>rand::rngs::OsRng;
+
+        <span class="kw">let </span>a_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
+        <span class="kw">let </span>b_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
+        <span class="kw">let </span>m_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng); <span class="comment">// mitm
+
+        </span><span class="kw">let </span>a_key = a_key_pair.identity_key();
+        <span class="kw">let </span>b_key = b_key_pair.identity_key();
+        <span class="kw">let </span>m_key = m_key_pair.identity_key();
+
+        <span class="kw">let </span>version = <span class="number">1</span>;
+        <span class="kw">let </span>iterations = <span class="number">1024</span>;
+
+        <span class="kw">let </span>a_fprint = Fingerprint::new(
+            version,
+            iterations,
+            ALICE_STABLE_ID.as_bytes(),
+            a_key,
+            BOB_STABLE_ID.as_bytes(),
+            m_key,
+        )<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>b_fprint = Fingerprint::new(
+            version,
+            iterations,
+            BOB_STABLE_ID.as_bytes(),
+            b_key,
+            ALICE_STABLE_ID.as_bytes(),
+            a_key,
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_ne!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint</span>.<span class="ident">display</span>),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">b_fprint</span>.<span class="ident">display</span>)
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display),
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display)
         );
 
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">a_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">b_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert!</span>(!a_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>b_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert!</span>(!b_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>a_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_mismatching_identifiers</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">use</span> <span class="ident"><span class="kw">crate</span>::IdentityKeyPair</span>;
-        <span class="kw">use</span> <span class="ident">rand::rngs::OsRng</span>;
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_mismatching_identifiers() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
+        <span class="kw">use </span>rand::rngs::OsRng;
 
-        <span class="kw">let</span> <span class="ident">a_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>);
-        <span class="kw">let</span> <span class="ident">b_key_pair</span> <span class="op">=</span> <span class="ident">IdentityKeyPair::generate</span>(<span class="kw-2">&amp;mut</span> <span class="ident">OsRng</span>);
+        <span class="kw">let </span>a_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
+        <span class="kw">let </span>b_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
 
-        <span class="kw">let</span> <span class="ident">a_key</span> <span class="op">=</span> <span class="ident">a_key_pair</span>.<span class="ident">identity_key</span>();
-        <span class="kw">let</span> <span class="ident">b_key</span> <span class="op">=</span> <span class="ident">b_key_pair</span>.<span class="ident">identity_key</span>();
+        <span class="kw">let </span>a_key = a_key_pair.identity_key();
+        <span class="kw">let </span>b_key = b_key_pair.identity_key();
 
-        <span class="kw">let</span> <span class="ident">version</span> <span class="op">=</span> <span class="number">1</span>;
-        <span class="kw">let</span> <span class="ident">iterations</span> <span class="op">=</span> <span class="number">1024</span>;
+        <span class="kw">let </span>version = <span class="number">1</span>;
+        <span class="kw">let </span>iterations = <span class="number">1024</span>;
 
-        <span class="kw">let</span> <span class="ident">a_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="string">&quot;+141512222222&quot;</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">a_key</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">b_key</span>,
+        <span class="kw">let </span>a_fprint = Fingerprint::new(
+            version,
+            iterations,
+            <span class="string">&quot;+141512222222&quot;</span>.as_bytes(),
+            a_key,
+            BOB_STABLE_ID.as_bytes(),
+            b_key,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">b_fprint</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
-            <span class="ident">version</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">b_key</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="ident">a_key</span>,
+        <span class="kw">let </span>b_fprint = Fingerprint::new(
+            version,
+            iterations,
+            BOB_STABLE_ID.as_bytes(),
+            b_key,
+            ALICE_STABLE_ID.as_bytes(),
+            a_key,
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_ne!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint</span>.<span class="ident">display</span>),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">b_fprint</span>.<span class="ident">display</span>)
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display),
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display)
         );
 
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">a_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">b_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
-        <span class="macro">assert!</span>(<span class="op">!</span><span class="ident">b_fprint</span>
-            .<span class="ident">scannable</span>
-            .<span class="ident">compare</span>(<span class="kw-2">&amp;</span><span class="ident">a_fprint</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert!</span>(!a_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>b_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
+        <span class="macro">assert!</span>(!b_fprint
+            .scannable
+            .compare(<span class="kw-2">&amp;</span>a_fprint.scannable.serialize()<span class="question-mark">?</span>)<span class="question-mark">?</span>);
 
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">fingerprint_mismatching_versions</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>()<span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="ident">a_key</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">hex::decode</span>(<span class="ident">ALICE_IDENTITY</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-        <span class="kw">let</span> <span class="ident">b_key</span> <span class="op">=</span> <span class="ident">IdentityKey::decode</span>(<span class="kw-2">&amp;</span><span class="ident">hex::decode</span>(<span class="ident">BOB_IDENTITY</span>).<span class="ident">expect</span>(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>fingerprint_mismatching_versions() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">iterations</span> <span class="op">=</span> <span class="number">5200</span>;
+        <span class="kw">let </span>iterations = <span class="number">5200</span>;
 
-        <span class="kw">let</span> <span class="ident">a_fprint_v1</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
+        <span class="kw">let </span>a_fprint_v1 = Fingerprint::new(
             <span class="number">1</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">a_key</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">b_key</span>,
+            iterations,
+            ALICE_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>a_key,
+            BOB_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>b_key,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">let</span> <span class="ident">a_fprint_v2</span> <span class="op">=</span> <span class="ident">Fingerprint::new</span>(
+        <span class="kw">let </span>a_fprint_v2 = Fingerprint::new(
             <span class="number">2</span>,
-            <span class="ident">iterations</span>,
-            <span class="ident">BOB_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">b_key</span>,
-            <span class="ident">ALICE_STABLE_ID</span>.<span class="ident">as_bytes</span>(),
-            <span class="kw-2">&amp;</span><span class="ident">a_key</span>,
+            iterations,
+            BOB_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>b_key,
+            ALICE_STABLE_ID.as_bytes(),
+            <span class="kw-2">&amp;</span>a_key,
         )<span class="question-mark">?</span>;
 
-        <span class="comment">// Display fingerprint doesn&#39;t change</span>
-        <span class="macro">assert_eq!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint_v1</span>.<span class="ident">display</span>),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="ident">a_fprint_v2</span>.<span class="ident">display</span>)
+        <span class="comment">// Display fingerprint doesn&#39;t change
+        </span><span class="macro">assert_eq!</span>(
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint_v1.display),
+            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint_v2.display)
         );
 
-        <span class="comment">// Scannable fingerprint does</span>
-        <span class="macro">assert_ne!</span>(
-            <span class="ident">hex::encode</span>(<span class="ident">a_fprint_v1</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>),
-            <span class="ident">hex::encode</span>(<span class="ident">a_fprint_v2</span>.<span class="ident">scannable</span>.<span class="ident">serialize</span>()<span class="question-mark">?</span>)
+        <span class="comment">// Scannable fingerprint does
+        </span><span class="macro">assert_ne!</span>(
+            hex::encode(a_fprint_v1.scannable.serialize()<span class="question-mark">?</span>),
+            hex::encode(a_fprint_v2.scannable.serialize()<span class="question-mark">?</span>)
         );
 
         <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_protocol" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

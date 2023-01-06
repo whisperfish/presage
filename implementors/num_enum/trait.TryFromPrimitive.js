@@ -1,3 +1,3 @@
-(function() {var implementors = {};
-implementors["libsignal_protocol"] = [{"text":"impl TryFromPrimitive for <a class=\"enum\" href=\"libsignal_protocol/enum.CiphertextMessageType.html\" title=\"enum libsignal_protocol::CiphertextMessageType\">CiphertextMessageType</a>","synthetic":false,"types":["libsignal_protocol::protocol::CiphertextMessageType"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"libsignal_protocol":[["impl TryFromPrimitive for <a class=\"enum\" href=\"libsignal_protocol/enum.CiphertextMessageType.html\" title=\"enum libsignal_protocol::CiphertextMessageType\">CiphertextMessageType</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/content.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>content.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/content.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>content.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -122,129 +122,129 @@
 <span id="122">122</span>
 <span id="123">123</span>
 <span id="124">124</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">libsignal_protocol::ProtocolAddress</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>libsignal_protocol::ProtocolAddress;
 
-<span class="kw">pub</span> <span class="kw">use</span> <span class="kw">crate</span>::{
-    <span class="ident">proto</span>::{
-        <span class="ident">attachment_pointer::Flags</span> <span class="kw">as</span> <span class="ident">AttachmentPointerFlags</span>,
-        <span class="ident">data_message::Flags</span> <span class="kw">as</span> <span class="ident">DataMessageFlags</span>, <span class="ident">data_message::Reaction</span>,
-        <span class="ident">group_context::Type</span> <span class="kw">as</span> <span class="ident">GroupType</span>, <span class="ident">sync_message</span>, <span class="ident">AttachmentPointer</span>,
-        <span class="ident">CallMessage</span>, <span class="ident">DataMessage</span>, <span class="ident">GroupContext</span>, <span class="ident">GroupContextV2</span>, <span class="ident">ReceiptMessage</span>,
-        <span class="ident">SyncMessage</span>, <span class="ident">TypingMessage</span>,
+<span class="kw">pub use crate</span>::{
+    proto::{
+        attachment_pointer::Flags <span class="kw">as </span>AttachmentPointerFlags,
+        data_message::Flags <span class="kw">as </span>DataMessageFlags, data_message::Reaction,
+        group_context::Type <span class="kw">as </span>GroupType, sync_message, AttachmentPointer,
+        CallMessage, DataMessage, GroupContext, GroupContextV2, ReceiptMessage,
+        SyncMessage, TypingMessage,
     },
-    <span class="ident">push_service::ServiceError</span>,
+    push_service::ServiceError,
 };
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Metadata</span> {
-    <span class="kw">pub</span> <span class="ident">sender</span>: <span class="ident"><span class="kw">crate</span>::ServiceAddress</span>,
-    <span class="kw">pub</span> <span class="ident">sender_device</span>: <span class="ident">u32</span>,
-    <span class="kw">pub</span> <span class="ident">timestamp</span>: <span class="ident">u64</span>,
-    <span class="kw">pub</span> <span class="ident">needs_receipt</span>: <span class="ident">bool</span>,
-    <span class="kw">pub</span> <span class="ident">unidentified_sender</span>: <span class="ident">bool</span>,
+<span class="attribute">#[derive(Clone, Debug)]
+</span><span class="kw">pub struct </span>Metadata {
+    <span class="kw">pub </span>sender: <span class="kw">crate</span>::ServiceAddress,
+    <span class="kw">pub </span>sender_device: u32,
+    <span class="kw">pub </span>timestamp: u64,
+    <span class="kw">pub </span>needs_receipt: bool,
+    <span class="kw">pub </span>unidentified_sender: bool,
 }
 
-<span class="kw">impl</span> <span class="ident">Metadata</span> {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn</span> <span class="ident">protocol_address</span>(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="ident">ProtocolAddress</span> {
-        <span class="ident">ProtocolAddress::new</span>(
-            <span class="self">self</span>.<span class="ident">sender</span>.<span class="ident">identifier</span>(),
-            <span class="self">self</span>.<span class="ident">sender_device</span>.<span class="ident">into</span>(),
+<span class="kw">impl </span>Metadata {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>protocol_address(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProtocolAddress {
+        ProtocolAddress::new(
+            <span class="self">self</span>.sender.identifier(),
+            <span class="self">self</span>.sender_device.into(),
         )
     }
 }
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="kw">pub</span> <span class="kw">struct</span> <span class="ident">Content</span> {
-    <span class="kw">pub</span> <span class="ident">metadata</span>: <span class="ident">Metadata</span>,
-    <span class="kw">pub</span> <span class="ident">body</span>: <span class="ident">ContentBody</span>,
+<span class="attribute">#[derive(Clone, Debug)]
+</span><span class="kw">pub struct </span>Content {
+    <span class="kw">pub </span>metadata: Metadata,
+    <span class="kw">pub </span>body: ContentBody,
 }
 
-<span class="kw">impl</span> <span class="ident">Content</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_body</span>(<span class="ident">body</span>: <span class="kw">impl</span> <span class="ident">Into</span><span class="op">&lt;</span><span class="ident">ContentBody</span><span class="op">&gt;</span>, <span class="ident">metadata</span>: <span class="ident">Metadata</span>) -&gt; <span class="self">Self</span> {
-        <span class="self">Self</span> {
-            <span class="ident">metadata</span>,
-            <span class="ident">body</span>: <span class="ident">body</span>.<span class="ident">into</span>(),
+<span class="kw">impl </span>Content {
+    <span class="kw">pub fn </span>from_body(body: <span class="kw">impl </span>Into&lt;ContentBody&gt;, metadata: Metadata) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            metadata,
+            body: body.into(),
         }
     }
 
-    <span class="doccomment">/// Converts a proto::Content into a public Content, including metadata.</span>
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">from_proto</span>(
-        <span class="ident">p</span>: <span class="ident"><span class="kw">crate</span>::proto::Content</span>,
-        <span class="ident">metadata</span>: <span class="ident">Metadata</span>,
-    ) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span><span class="self">Self</span>, <span class="ident">ServiceError</span><span class="op">&gt;</span> {
-        <span class="comment">// The Java version also assumes only one content type at a time.</span>
-        <span class="comment">// It&#39;s a bit sad that we cannot really match here, we&#39;ve got no</span>
-        <span class="comment">// r#type() method.</span>
-        <span class="comment">// Allow the manual map (if let Some -&gt; option.map(||)), because it</span>
-        <span class="comment">// reduces the git diff when more types would be added.</span>
-        <span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::manual_map</span>)]</span>
-        <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">p</span>.<span class="ident">data_message</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::from_body</span>(<span class="ident">msg</span>, <span class="ident">metadata</span>))
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">p</span>.<span class="ident">sync_message</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::from_body</span>(<span class="ident">msg</span>, <span class="ident">metadata</span>))
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">p</span>.<span class="ident">call_message</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::from_body</span>(<span class="ident">msg</span>, <span class="ident">metadata</span>))
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">p</span>.<span class="ident">receipt_message</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::from_body</span>(<span class="ident">msg</span>, <span class="ident">metadata</span>))
-        } <span class="kw">else</span> <span class="kw">if</span> <span class="kw">let</span> <span class="prelude-val">Some</span>(<span class="ident">msg</span>) <span class="op">=</span> <span class="ident">p</span>.<span class="ident">typing_message</span> {
-            <span class="prelude-val">Ok</span>(<span class="ident"><span class="self">Self</span>::from_body</span>(<span class="ident">msg</span>, <span class="ident">metadata</span>))
-        } <span class="kw">else</span> {
-            <span class="prelude-val">Err</span>(<span class="ident">ServiceError::UnsupportedContent</span>)
-        }
-    }
-}
-
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">Clone</span>, <span class="ident">Debug</span>)]</span>
-<span class="attribute">#[<span class="ident">allow</span>(<span class="ident">clippy::large_enum_variant</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">ContentBody</span> {
-    <span class="ident">DataMessage</span>(<span class="ident">DataMessage</span>),
-    <span class="ident">SynchronizeMessage</span>(<span class="ident">SyncMessage</span>),
-    <span class="ident">CallMessage</span>(<span class="ident">CallMessage</span>),
-    <span class="ident">ReceiptMessage</span>(<span class="ident">ReceiptMessage</span>),
-    <span class="ident">TypingMessage</span>(<span class="ident">TypingMessage</span>),
-}
-
-<span class="kw">impl</span> <span class="ident">ContentBody</span> {
-    <span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">into_proto</span>(<span class="self">self</span>) -&gt; <span class="ident"><span class="kw">crate</span>::proto::Content</span> {
-        <span class="kw">match</span> <span class="self">self</span> {
-            <span class="ident"><span class="self">Self</span>::DataMessage</span>(<span class="ident">msg</span>) =&gt; <span class="ident"><span class="kw">crate</span>::proto::Content</span> {
-                <span class="ident">data_message</span>: <span class="prelude-val">Some</span>(<span class="ident">msg</span>),
-                ..<span class="ident">Default::default</span>()
-            },
-            <span class="ident"><span class="self">Self</span>::SynchronizeMessage</span>(<span class="ident">msg</span>) =&gt; <span class="ident"><span class="kw">crate</span>::proto::Content</span> {
-                <span class="ident">sync_message</span>: <span class="prelude-val">Some</span>(<span class="ident">msg</span>),
-                ..<span class="ident">Default::default</span>()
-            },
-            <span class="ident"><span class="self">Self</span>::CallMessage</span>(<span class="ident">msg</span>) =&gt; <span class="ident"><span class="kw">crate</span>::proto::Content</span> {
-                <span class="ident">call_message</span>: <span class="prelude-val">Some</span>(<span class="ident">msg</span>),
-                ..<span class="ident">Default::default</span>()
-            },
-            <span class="ident"><span class="self">Self</span>::ReceiptMessage</span>(<span class="ident">msg</span>) =&gt; <span class="ident"><span class="kw">crate</span>::proto::Content</span> {
-                <span class="ident">receipt_message</span>: <span class="prelude-val">Some</span>(<span class="ident">msg</span>),
-                ..<span class="ident">Default::default</span>()
-            },
-            <span class="ident"><span class="self">Self</span>::TypingMessage</span>(<span class="ident">msg</span>) =&gt; <span class="ident"><span class="kw">crate</span>::proto::Content</span> {
-                <span class="ident">typing_message</span>: <span class="prelude-val">Some</span>(<span class="ident">msg</span>),
-                ..<span class="ident">Default::default</span>()
-            },
+    <span class="doccomment">/// Converts a proto::Content into a public Content, including metadata.
+    </span><span class="kw">pub fn </span>from_proto(
+        p: <span class="kw">crate</span>::proto::Content,
+        metadata: Metadata,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ServiceError&gt; {
+        <span class="comment">// The Java version also assumes only one content type at a time.
+        // It&#39;s a bit sad that we cannot really match here, we&#39;ve got no
+        // r#type() method.
+        // Allow the manual map (if let Some -&gt; option.map(||)), because it
+        // reduces the git diff when more types would be added.
+        </span><span class="attribute">#[allow(clippy::manual_map)]
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(msg) = p.data_message {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>::from_body(msg, metadata))
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(msg) = p.sync_message {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>::from_body(msg, metadata))
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(msg) = p.call_message {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>::from_body(msg, metadata))
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(msg) = p.receipt_message {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>::from_body(msg, metadata))
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(msg) = p.typing_message {
+            <span class="prelude-val">Ok</span>(<span class="self">Self</span>::from_body(msg, metadata))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Err</span>(ServiceError::UnsupportedContent)
         }
     }
 }
 
-<span class="macro">macro_rules!</span> <span class="ident">impl_from_for_content_body</span> {
-    (<span class="macro-nonterminal">$</span><span class="kw">enum</span>:<span class="macro-nonterminal">ident</span> (<span class="macro-nonterminal">$</span><span class="macro-nonterminal">t</span>:<span class="ident">ty</span>)) =&gt; {
-        <span class="kw">impl</span> <span class="ident">From</span><span class="op">&lt;</span><span class="macro-nonterminal">$</span><span class="macro-nonterminal">t</span><span class="op">&gt;</span> <span class="kw">for</span> <span class="ident">ContentBody</span> {
-            <span class="kw">fn</span> <span class="ident">from</span>(<span class="ident">inner</span>: <span class="macro-nonterminal">$</span><span class="macro-nonterminal">t</span>) -&gt; <span class="ident">ContentBody</span> {
-                <span class="ident">ContentBody</span>::<span class="macro-nonterminal">$</span><span class="kw">enum</span>(<span class="macro-nonterminal">inner</span>)
+<span class="attribute">#[derive(Clone, Debug)]
+#[allow(clippy::large_enum_variant)]
+</span><span class="kw">pub enum </span>ContentBody {
+    DataMessage(DataMessage),
+    SynchronizeMessage(SyncMessage),
+    CallMessage(CallMessage),
+    ReceiptMessage(ReceiptMessage),
+    TypingMessage(TypingMessage),
+}
+
+<span class="kw">impl </span>ContentBody {
+    <span class="kw">pub fn </span>into_proto(<span class="self">self</span>) -&gt; <span class="kw">crate</span>::proto::Content {
+        <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::DataMessage(msg) =&gt; <span class="kw">crate</span>::proto::Content {
+                data_message: <span class="prelude-val">Some</span>(msg),
+                ..Default::default()
+            },
+            <span class="self">Self</span>::SynchronizeMessage(msg) =&gt; <span class="kw">crate</span>::proto::Content {
+                sync_message: <span class="prelude-val">Some</span>(msg),
+                ..Default::default()
+            },
+            <span class="self">Self</span>::CallMessage(msg) =&gt; <span class="kw">crate</span>::proto::Content {
+                call_message: <span class="prelude-val">Some</span>(msg),
+                ..Default::default()
+            },
+            <span class="self">Self</span>::ReceiptMessage(msg) =&gt; <span class="kw">crate</span>::proto::Content {
+                receipt_message: <span class="prelude-val">Some</span>(msg),
+                ..Default::default()
+            },
+            <span class="self">Self</span>::TypingMessage(msg) =&gt; <span class="kw">crate</span>::proto::Content {
+                typing_message: <span class="prelude-val">Some</span>(msg),
+                ..Default::default()
+            },
+        }
+    }
+}
+
+<span class="macro">macro_rules! </span>impl_from_for_content_body {
+    (<span class="macro-nonterminal">$</span><span class="kw">enum</span>:<span class="macro-nonterminal">ident </span>(<span class="macro-nonterminal">$t</span>:ty)) =&gt; {
+        <span class="kw">impl </span>From&lt;<span class="macro-nonterminal">$t</span>&gt; <span class="kw">for </span>ContentBody {
+            <span class="kw">fn </span>from(inner: <span class="macro-nonterminal">$t</span>) -&gt; ContentBody {
+                ContentBody::<span class="macro-nonterminal">$</span><span class="kw">enum</span>(<span class="macro-nonterminal">inner</span>)
             }
         }
     };
 }
 
-<span class="macro">impl_from_for_content_body!</span>(<span class="ident">DataMessage</span>(<span class="ident">DataMessage</span>));
-<span class="macro">impl_from_for_content_body!</span>(<span class="ident">SynchronizeMessage</span>(<span class="ident">SyncMessage</span>));
-<span class="macro">impl_from_for_content_body!</span>(<span class="ident">CallMessage</span>(<span class="ident">CallMessage</span>));
-<span class="macro">impl_from_for_content_body!</span>(<span class="ident">ReceiptMessage</span>(<span class="ident">ReceiptMessage</span>));
-<span class="macro">impl_from_for_content_body!</span>(<span class="ident">TypingMessage</span>(<span class="ident">TypingMessage</span>));
+<span class="macro">impl_from_for_content_body!</span>(DataMessage(DataMessage));
+<span class="macro">impl_from_for_content_body!</span>(SynchronizeMessage(SyncMessage));
+<span class="macro">impl_from_for_content_body!</span>(CallMessage(CallMessage));
+<span class="macro">impl_from_for_content_body!</span>(ReceiptMessage(ReceiptMessage));
+<span class="macro">impl_from_for_content_body!</span>(TypingMessage(TypingMessage));
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

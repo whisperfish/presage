@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/attachment_cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>attachment_cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../ayu.css" disabled><link rel="stylesheet" type="text/css" href="../../dark.css" disabled><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/attachment_cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>attachment_cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -161,155 +161,155 @@
 <span id="161">161</span>
 <span id="162">162</span>
 <span id="163">163</span>
-</pre><pre class="rust"><code><span class="kw">use</span> <span class="ident">aes::Aes256</span>;
-<span class="kw">use</span> <span class="ident">block_modes</span>::{<span class="ident">block_padding::Pkcs7</span>, <span class="ident">BlockMode</span>, <span class="ident">Cbc</span>};
-<span class="kw">use</span> <span class="ident">hmac</span>::{<span class="ident">Hmac</span>, <span class="ident">Mac</span>};
-<span class="kw">use</span> <span class="ident">sha2::Sha256</span>;
+</pre><pre class="rust"><code><span class="kw">use </span>aes::Aes256;
+<span class="kw">use </span>block_modes::{block_padding::Pkcs7, BlockMode, Cbc};
+<span class="kw">use </span>hmac::{Hmac, Mac};
+<span class="kw">use </span>sha2::Sha256;
 
-<span class="attribute">#[<span class="ident">derive</span>(<span class="ident">thiserror::Error</span>, <span class="ident">Debug</span>, <span class="ident">PartialEq</span>, <span class="ident">Eq</span>)]</span>
-<span class="kw">pub</span> <span class="kw">enum</span> <span class="ident">AttachmentCipherError</span> {
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;MAC verification error&quot;</span>)]</span>
-    <span class="ident">MacError</span>,
-    <span class="attribute">#[<span class="ident">error</span>(<span class="string">&quot;Padding verification error&quot;</span>)]</span>
-    <span class="ident">PaddingError</span>,
+<span class="attribute">#[derive(thiserror::Error, Debug, PartialEq, Eq)]
+</span><span class="kw">pub enum </span>AttachmentCipherError {
+    <span class="attribute">#[error(<span class="string">&quot;MAC verification error&quot;</span>)]
+    </span>MacError,
+    <span class="attribute">#[error(<span class="string">&quot;Padding verification error&quot;</span>)]
+    </span>PaddingError,
 }
 
-<span class="doccomment">/// Encrypts an attachment in place, given the key material.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// The Vec will be reused when it has enough space to house the MAC,</span>
-<span class="doccomment">/// otherwise reallocation might happen.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">encrypt_in_place</span>(<span class="ident">iv</span>: [<span class="ident">u8</span>; <span class="number">16</span>], <span class="ident">key</span>: [<span class="ident">u8</span>; <span class="number">64</span>], <span class="ident">plaintext</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>) {
-    <span class="kw">let</span> <span class="ident">aes_half</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">key</span>[..<span class="number">32</span>];
-    <span class="kw">let</span> <span class="ident">mac_half</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">key</span>[<span class="number">32</span>..];
+<span class="doccomment">/// Encrypts an attachment in place, given the key material.
+///
+/// The Vec will be reused when it has enough space to house the MAC,
+/// otherwise reallocation might happen.
+</span><span class="kw">pub fn </span>encrypt_in_place(iv: [u8; <span class="number">16</span>], key: [u8; <span class="number">64</span>], plaintext: <span class="kw-2">&amp;mut </span>Vec&lt;u8&gt;) {
+    <span class="kw">let </span>aes_half = <span class="kw-2">&amp;</span>key[..<span class="number">32</span>];
+    <span class="kw">let </span>mac_half = <span class="kw-2">&amp;</span>key[<span class="number">32</span>..];
 
-    <span class="kw">let</span> <span class="ident">plaintext_len</span> <span class="op">=</span> <span class="ident">plaintext</span>.<span class="ident">len</span>();
-    <span class="ident">plaintext</span>.<span class="ident">reserve</span>(<span class="ident">plaintext</span>.<span class="ident">len</span>() <span class="op">+</span> <span class="number">16</span> <span class="op">+</span> <span class="number">16</span>);
+    <span class="kw">let </span>plaintext_len = plaintext.len();
+    plaintext.reserve(plaintext.len() + <span class="number">16 </span>+ <span class="number">16</span>);
 
-    <span class="comment">// Prepend IV</span>
-    <span class="ident">plaintext</span>.<span class="ident">extend</span>(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">16</span>]);
-    <span class="ident">plaintext</span>.<span class="ident">copy_within</span>(..<span class="ident">plaintext_len</span>, <span class="number">16</span>);
-    <span class="ident">plaintext</span>[<span class="number">0</span>..<span class="number">16</span>].<span class="ident">copy_from_slice</span>(<span class="kw-2">&amp;</span><span class="ident">iv</span>);
+    <span class="comment">// Prepend IV
+    </span>plaintext.extend(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">16</span>]);
+    plaintext.copy_within(..plaintext_len, <span class="number">16</span>);
+    plaintext[<span class="number">0</span>..<span class="number">16</span>].copy_from_slice(<span class="kw-2">&amp;</span>iv);
 
-    <span class="comment">// Pad with zeroes for padding</span>
-    <span class="ident">plaintext</span>.<span class="ident">extend</span>(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">16</span>]);
+    <span class="comment">// Pad with zeroes for padding
+    </span>plaintext.extend(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">16</span>]);
 
-    <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">Cbc</span>::<span class="op">&lt;</span><span class="ident">Aes256</span>, <span class="ident">Pkcs7</span><span class="op">&gt;</span><span class="ident">::new_from_slices</span>(<span class="ident">aes_half</span>, <span class="kw-2">&amp;</span><span class="ident">iv</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;fixed length key material&quot;</span>);
+    <span class="kw">let </span>cipher = Cbc::&lt;Aes256, Pkcs7&gt;::new_from_slices(aes_half, <span class="kw-2">&amp;</span>iv)
+        .expect(<span class="string">&quot;fixed length key material&quot;</span>);
 
-    <span class="kw">let</span> <span class="ident">buffer</span> <span class="op">=</span> <span class="ident">plaintext</span>;
-    <span class="kw">let</span> <span class="ident">ciphertext_slice</span> <span class="op">=</span> <span class="ident">cipher</span>
-        .<span class="ident">encrypt</span>(<span class="kw-2">&amp;mut</span> <span class="ident">buffer</span>[<span class="number">16</span>..], <span class="ident">plaintext_len</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;encrypted ciphertext&quot;</span>);
-    <span class="kw">let</span> <span class="ident">ciphertext_len</span> <span class="op">=</span> <span class="ident">ciphertext_slice</span>.<span class="ident">len</span>();
-    <span class="comment">// Correct length for padding</span>
-    <span class="ident">buffer</span>.<span class="ident">truncate</span>(<span class="number">16</span> <span class="op">+</span> <span class="ident">ciphertext_len</span>);
+    <span class="kw">let </span>buffer = plaintext;
+    <span class="kw">let </span>ciphertext_slice = cipher
+        .encrypt(<span class="kw-2">&amp;mut </span>buffer[<span class="number">16</span>..], plaintext_len)
+        .expect(<span class="string">&quot;encrypted ciphertext&quot;</span>);
+    <span class="kw">let </span>ciphertext_len = ciphertext_slice.len();
+    <span class="comment">// Correct length for padding
+    </span>buffer.truncate(<span class="number">16 </span>+ ciphertext_len);
 
-    <span class="comment">// Compute and append MAC</span>
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mac</span> <span class="op">=</span> <span class="ident">Hmac</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span><span class="ident">::new_from_slice</span>(<span class="ident">mac_half</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;fixed length key material&quot;</span>);
-    <span class="ident">mac</span>.<span class="ident">update</span>(<span class="ident">buffer</span>);
-    <span class="ident">buffer</span>.<span class="ident">extend</span>(<span class="ident">mac</span>.<span class="ident">finalize</span>().<span class="ident">into_bytes</span>());
+    <span class="comment">// Compute and append MAC
+    </span><span class="kw">let </span><span class="kw-2">mut </span>mac = Hmac::&lt;Sha256&gt;::new_from_slice(mac_half)
+        .expect(<span class="string">&quot;fixed length key material&quot;</span>);
+    mac.update(buffer);
+    buffer.extend(mac.finalize().into_bytes());
 }
 
-<span class="doccomment">/// Decrypts an attachment in place, given the key material.</span>
-<span class="doccomment">///</span>
-<span class="doccomment">/// On error, ciphertext is not changed.</span>
-<span class="kw">pub</span> <span class="kw">fn</span> <span class="ident">decrypt_in_place</span>(
-    <span class="ident">key</span>: [<span class="ident">u8</span>; <span class="number">64</span>],
-    <span class="ident">ciphertext</span>: <span class="kw-2">&amp;mut</span> <span class="ident">Vec</span><span class="op">&lt;</span><span class="ident">u8</span><span class="op">&gt;</span>,
-) -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">AttachmentCipherError</span><span class="op">&gt;</span> {
-    <span class="kw">let</span> <span class="ident">aes_half</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">key</span>[..<span class="number">32</span>];
-    <span class="kw">let</span> <span class="ident">mac_half</span> <span class="op">=</span> <span class="kw-2">&amp;</span><span class="ident">key</span>[<span class="number">32</span>..];
+<span class="doccomment">/// Decrypts an attachment in place, given the key material.
+///
+/// On error, ciphertext is not changed.
+</span><span class="kw">pub fn </span>decrypt_in_place(
+    key: [u8; <span class="number">64</span>],
+    ciphertext: <span class="kw-2">&amp;mut </span>Vec&lt;u8&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), AttachmentCipherError&gt; {
+    <span class="kw">let </span>aes_half = <span class="kw-2">&amp;</span>key[..<span class="number">32</span>];
+    <span class="kw">let </span>mac_half = <span class="kw-2">&amp;</span>key[<span class="number">32</span>..];
 
-    <span class="kw">let</span> <span class="ident">ciphertext_len</span> <span class="op">=</span> <span class="ident">ciphertext</span>.<span class="ident">len</span>();
+    <span class="kw">let </span>ciphertext_len = ciphertext.len();
 
-    <span class="kw">let</span> (<span class="ident">buffer</span>, <span class="ident">their_mac</span>) <span class="op">=</span> <span class="ident">ciphertext</span>.<span class="ident">split_at_mut</span>(<span class="ident">ciphertext_len</span> <span class="op">-</span> <span class="number">32</span>);
+    <span class="kw">let </span>(buffer, their_mac) = ciphertext.split_at_mut(ciphertext_len - <span class="number">32</span>);
 
-    <span class="comment">// Compute and append MAC</span>
-    <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">mac</span> <span class="op">=</span> <span class="ident">Hmac</span>::<span class="op">&lt;</span><span class="ident">Sha256</span><span class="op">&gt;</span><span class="ident">::new_from_slice</span>(<span class="ident">mac_half</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;fixed length key material&quot;</span>);
-    <span class="ident">mac</span>.<span class="ident">update</span>(<span class="ident">buffer</span>);
-    <span class="ident">mac</span>.<span class="ident">verify_slice</span>(<span class="ident">their_mac</span>)
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">AttachmentCipherError::MacError</span>)<span class="question-mark">?</span>;
+    <span class="comment">// Compute and append MAC
+    </span><span class="kw">let </span><span class="kw-2">mut </span>mac = Hmac::&lt;Sha256&gt;::new_from_slice(mac_half)
+        .expect(<span class="string">&quot;fixed length key material&quot;</span>);
+    mac.update(buffer);
+    mac.verify_slice(their_mac)
+        .map_err(|<span class="kw">_</span>| AttachmentCipherError::MacError)<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> (<span class="ident">iv</span>, <span class="ident">buffer</span>) <span class="op">=</span> <span class="ident">buffer</span>.<span class="ident">split_at_mut</span>(<span class="number">16</span>);
+    <span class="kw">let </span>(iv, buffer) = buffer.split_at_mut(<span class="number">16</span>);
 
-    <span class="kw">let</span> <span class="ident">cipher</span> <span class="op">=</span> <span class="ident">Cbc</span>::<span class="op">&lt;</span><span class="ident">Aes256</span>, <span class="ident">Pkcs7</span><span class="op">&gt;</span><span class="ident">::new_from_slices</span>(<span class="ident">aes_half</span>, <span class="ident">iv</span>)
-        .<span class="ident">expect</span>(<span class="string">&quot;fixed length key material&quot;</span>);
+    <span class="kw">let </span>cipher = Cbc::&lt;Aes256, Pkcs7&gt;::new_from_slices(aes_half, iv)
+        .expect(<span class="string">&quot;fixed length key material&quot;</span>);
 
-    <span class="kw">let</span> <span class="ident">plaintext_slice</span> <span class="op">=</span> <span class="ident">cipher</span>
-        .<span class="ident">decrypt</span>(<span class="ident">buffer</span>)
-        .<span class="ident">map_err</span>(<span class="op">|</span><span class="kw">_</span><span class="op">|</span> <span class="ident">AttachmentCipherError::PaddingError</span>)<span class="question-mark">?</span>;
+    <span class="kw">let </span>plaintext_slice = cipher
+        .decrypt(buffer)
+        .map_err(|<span class="kw">_</span>| AttachmentCipherError::PaddingError)<span class="question-mark">?</span>;
 
-    <span class="kw">let</span> <span class="ident">plaintext_len</span> <span class="op">=</span> <span class="ident">plaintext_slice</span>.<span class="ident">len</span>();
+    <span class="kw">let </span>plaintext_len = plaintext_slice.len();
 
-    <span class="comment">// Get rid of IV and MAC</span>
-    <span class="ident">ciphertext</span>.<span class="ident">copy_within</span>(<span class="number">16</span>..(<span class="ident">plaintext_len</span> <span class="op">+</span> <span class="number">16</span>), <span class="number">0</span>);
-    <span class="ident">ciphertext</span>.<span class="ident">truncate</span>(<span class="ident">plaintext_len</span>);
+    <span class="comment">// Get rid of IV and MAC
+    </span>ciphertext.copy_within(<span class="number">16</span>..(plaintext_len + <span class="number">16</span>), <span class="number">0</span>);
+    ciphertext.truncate(plaintext_len);
 
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="attribute">#[<span class="ident">cfg</span>(<span class="ident">test</span>)]</span>
-<span class="kw">mod</span> <span class="ident">tests</span> {
-    <span class="kw">use</span> <span class="kw">super</span>::<span class="kw-2">*</span>;
+<span class="attribute">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">use</span> <span class="ident">rand::prelude</span>::<span class="kw-2">*</span>;
+    <span class="kw">use </span>rand::prelude::<span class="kw-2">*</span>;
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">attachment_encrypt_decrypt</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">AttachmentCipherError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">64</span>];
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">iv</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key</span>);
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">iv</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>attachment_encrypt_decrypt() -&gt; <span class="prelude-ty">Result</span>&lt;(), AttachmentCipherError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>key = [<span class="number">0u8</span>; <span class="number">64</span>];
+        <span class="kw">let </span><span class="kw-2">mut </span>iv = [<span class="number">0u8</span>; <span class="number">16</span>];
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>key);
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>iv);
 
-        <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="string">b&quot;Peter Parker&quot;</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="ident">Vec::from</span>(<span class="ident">plaintext</span> <span class="kw">as</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]);
-        <span class="ident">encrypt_in_place</span>(<span class="ident">iv</span>, <span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">buf</span>);
-        <span class="macro">assert_ne!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="ident">plaintext</span>);
-        <span class="ident">decrypt_in_place</span>(<span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">buf</span>)<span class="question-mark">?</span>;
-        <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="ident">plaintext</span>);
+        <span class="kw">let </span>plaintext = <span class="string">b&quot;Peter Parker&quot;</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::from(plaintext <span class="kw">as </span><span class="kw-2">&amp;</span>[u8]);
+        encrypt_in_place(iv, key, <span class="kw-2">&amp;mut </span>buf);
+        <span class="macro">assert_ne!</span>(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>plaintext);
+        decrypt_in_place(key, <span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+        <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>plaintext);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">attachment_encrypt_decrypt_empty</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">AttachmentCipherError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">64</span>];
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">iv</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key</span>);
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">iv</span>);
-        <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="string">b&quot;&quot;</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="ident">Vec::from</span>(<span class="ident">plaintext</span> <span class="kw">as</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]);
-        <span class="ident">encrypt_in_place</span>(<span class="ident">iv</span>, <span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">buf</span>);
-        <span class="macro">assert_ne!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="ident">plaintext</span>);
-        <span class="ident">decrypt_in_place</span>(<span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">buf</span>)<span class="question-mark">?</span>;
-        <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="ident">plaintext</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>attachment_encrypt_decrypt_empty() -&gt; <span class="prelude-ty">Result</span>&lt;(), AttachmentCipherError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>key = [<span class="number">0u8</span>; <span class="number">64</span>];
+        <span class="kw">let </span><span class="kw-2">mut </span>iv = [<span class="number">0u8</span>; <span class="number">16</span>];
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>key);
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>iv);
+        <span class="kw">let </span>plaintext = <span class="string">b&quot;&quot;</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::from(plaintext <span class="kw">as </span><span class="kw-2">&amp;</span>[u8]);
+        encrypt_in_place(iv, key, <span class="kw-2">&amp;mut </span>buf);
+        <span class="macro">assert_ne!</span>(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>plaintext);
+        decrypt_in_place(key, <span class="kw-2">&amp;mut </span>buf)<span class="question-mark">?</span>;
+        <span class="macro">assert_eq!</span>(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>plaintext);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">attachment_encrypt_decrypt_bad_key</span>() {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">key</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">64</span>];
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">iv</span> <span class="op">=</span> [<span class="number">0u8</span>; <span class="number">16</span>];
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key</span>);
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">iv</span>);
-        <span class="kw">let</span> <span class="ident">plaintext</span> <span class="op">=</span> <span class="string">b&quot;Peter Parker&quot;</span>;
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">buf</span> <span class="op">=</span> <span class="ident">Vec::from</span>(<span class="ident">plaintext</span> <span class="kw">as</span> <span class="kw-2">&amp;</span>[<span class="ident">u8</span>]);
-        <span class="ident">encrypt_in_place</span>(<span class="ident">iv</span>, <span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">buf</span>);
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>attachment_encrypt_decrypt_bad_key() {
+        <span class="kw">let </span><span class="kw-2">mut </span>key = [<span class="number">0u8</span>; <span class="number">64</span>];
+        <span class="kw">let </span><span class="kw-2">mut </span>iv = [<span class="number">0u8</span>; <span class="number">16</span>];
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>key);
+        rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>iv);
+        <span class="kw">let </span>plaintext = <span class="string">b&quot;Peter Parker&quot;</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::from(plaintext <span class="kw">as </span><span class="kw-2">&amp;</span>[u8]);
+        encrypt_in_place(iv, key, <span class="kw-2">&amp;mut </span>buf);
 
-        <span class="comment">// Generate bad key</span>
-        <span class="ident">rand::thread_rng</span>().<span class="ident">fill_bytes</span>(<span class="kw-2">&amp;mut</span> <span class="ident">key</span>);
+        <span class="comment">// Generate bad key
+        </span>rand::thread_rng().fill_bytes(<span class="kw-2">&amp;mut </span>key);
         <span class="macro">assert_eq!</span>(
-            <span class="ident">decrypt_in_place</span>(<span class="ident">key</span>, <span class="kw-2">&amp;mut</span> <span class="ident">buf</span>).<span class="ident">unwrap_err</span>(),
-            <span class="ident">AttachmentCipherError::MacError</span>
+            decrypt_in_place(key, <span class="kw-2">&amp;mut </span>buf).unwrap_err(),
+            AttachmentCipherError::MacError
         );
-        <span class="macro">assert_ne!</span>(<span class="kw-2">&amp;</span><span class="ident">buf</span>, <span class="kw-2">&amp;</span><span class="ident">plaintext</span>);
+        <span class="macro">assert_ne!</span>(<span class="kw-2">&amp;</span>buf, <span class="kw-2">&amp;</span>plaintext);
     }
 
-    <span class="attribute">#[<span class="ident">test</span>]</span>
-    <span class="kw">fn</span> <span class="ident">know_answer_test_attachment</span>() -&gt; <span class="prelude-ty">Result</span><span class="op">&lt;</span>(), <span class="ident">AttachmentCipherError</span><span class="op">&gt;</span> {
-        <span class="kw">let</span> <span class="kw-2">mut</span> <span class="ident">ciphertext</span> <span class="op">=</span> <span class="macro">include!</span>(<span class="string">&quot;kat.bin.rs&quot;</span>);
-        <span class="kw">let</span> <span class="ident">key_material</span> <span class="op">=</span> [
+    <span class="attribute">#[test]
+    </span><span class="kw">fn </span>know_answer_test_attachment() -&gt; <span class="prelude-ty">Result</span>&lt;(), AttachmentCipherError&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = <span class="macro">include!</span>(<span class="string">&quot;kat.bin.rs&quot;</span>);
+        <span class="kw">let </span>key_material = [
             <span class="number">52</span>, <span class="number">102</span>, <span class="number">97</span>, <span class="number">87</span>, <span class="number">153</span>, <span class="number">192</span>, <span class="number">64</span>, <span class="number">116</span>, <span class="number">93</span>, <span class="number">96</span>, <span class="number">57</span>, <span class="number">110</span>, <span class="number">6</span>, <span class="number">197</span>, <span class="number">208</span>,
             <span class="number">85</span>, <span class="number">49</span>, <span class="number">249</span>, <span class="number">154</span>, <span class="number">137</span>, <span class="number">116</span>, <span class="number">124</span>, <span class="number">112</span>, <span class="number">107</span>, <span class="number">8</span>, <span class="number">158</span>, <span class="number">48</span>, <span class="number">4</span>, <span class="number">8</span>, <span class="number">66</span>,
             <span class="number">173</span>, <span class="number">5</span>, <span class="number">28</span>, <span class="number">16</span>, <span class="number">199</span>, <span class="number">226</span>, <span class="number">234</span>, <span class="number">38</span>, <span class="number">69</span>, <span class="number">167</span>, <span class="number">163</span>, <span class="number">34</span>, <span class="number">107</span>, <span class="number">164</span>, <span class="number">15</span>,
@@ -317,12 +317,12 @@
             <span class="number">78</span>, <span class="number">205</span>, <span class="number">62</span>, <span class="number">153</span>, <span class="number">108</span>,
         ];
 
-        <span class="ident">decrypt_in_place</span>(<span class="ident">key_material</span>, <span class="kw-2">&amp;mut</span> <span class="ident">ciphertext</span>)<span class="question-mark">?</span>;
-        <span class="comment">// This 32 is given by the AttachmentPointer</span>
-        <span class="ident">ciphertext</span>.<span class="ident">truncate</span>(<span class="number">32</span>);
-        <span class="macro">assert_eq!</span>(<span class="ident">ciphertext</span>, <span class="string">b&quot;test for libsignal-service-rust\n&quot;</span>);
+        decrypt_in_place(key_material, <span class="kw-2">&amp;mut </span>ciphertext)<span class="question-mark">?</span>;
+        <span class="comment">// This 32 is given by the AttachmentPointer
+        </span>ciphertext.truncate(<span class="number">32</span>);
+        <span class="macro">assert_eq!</span>(ciphertext, <span class="string">b&quot;test for libsignal-service-rust\n&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.64.0 (a55dd71d5 2022-09-19)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>

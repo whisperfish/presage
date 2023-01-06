@@ -1,3 +1,3 @@
-(function() {var implementors = {};
-implementors["libsignal_service_hyper"] = [{"text":"impl <a class=\"trait\" href=\"libsignal_service/push_service/trait.PushService.html\" title=\"trait libsignal_service::push_service::PushService\">PushService</a> for <a class=\"struct\" href=\"libsignal_service_hyper/push_service/struct.HyperPushService.html\" title=\"struct libsignal_service_hyper::push_service::HyperPushService\">HyperPushService</a>","synthetic":false,"types":["libsignal_service_hyper::push_service::HyperPushService"]}];
-if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
+(function() {var implementors = {
+"libsignal_service_hyper":[["impl <a class=\"trait\" href=\"libsignal_service/push_service/trait.PushService.html\" title=\"trait libsignal_service::push_service::PushService\">PushService</a> for <a class=\"struct\" href=\"libsignal_service_hyper/push_service/struct.HyperPushService.html\" title=\"struct libsignal_service_hyper::push_service::HyperPushService\">HyperPushService</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
