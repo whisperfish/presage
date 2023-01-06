@@ -12,6 +12,7 @@ use crate::prelude::{PhoneNumber, ServiceAddress};
 use crate::Error;
 use libsignal_service::content::ContentBody;
 use libsignal_service::content::Metadata;
+use libsignal_service::proto::Group;
 use libsignal_service::prelude::Content;
 use libsignal_service::prelude::Uuid;
 
@@ -108,5 +109,28 @@ impl TryInto<Content> for ContentProto {
 
     fn try_into(self) -> Result<Content, Self::Error> {
         Content::from_proto(self.content, self.metadata.into()).map_err(Error::from)
+    }
+}
+
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GroupProto{
+    #[prost(message, required, tag = "2")]
+    group: crate::prelude::proto::Group,
+}
+impl From<Group> for GroupProto {
+    fn from(g: Group) -> Self {
+        GroupProto {
+            group: g,
+        }
+    }
+}
+#[derive(thiserror::Error, Debug)]
+enum GroupProtoError {}
+
+impl TryInto<Group> for GroupProto {
+    type Error = crate::Error;
+
+    fn try_into(self) -> Result<Group, Self::Error> {
+       Ok(self.group)
     }
 }

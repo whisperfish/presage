@@ -105,7 +105,7 @@ enum Cmd {
     /// Get information about a group
     GetGroup {
         #[clap(long, short = 'k', value_parser = parse_base64_master_key)]
-        group_master_key: GroupMasterKey,
+        group_master_key: (GroupMasterKey, String),
     },
     #[clap(about = "List group memberships")]
     ListGroups,
@@ -256,6 +256,7 @@ async fn receive<C: Store + MessageStore>(
                         println!("Group v2: {:?}", group.title);
                         println!("Group change: {:?}", group_changes);
                         println!("Group master key: {:?}", hex::encode(&master_key_bytes));
+                        manager.save_group(group, master_key_bytes.to_vec())?;
                     }
                 }
 
@@ -422,7 +423,29 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::Block => unimplemented!(),
         Cmd::Unblock => unimplemented!(),
         Cmd::UpdateContact => unimplemented!(),
-        Cmd::ListGroups => unimplemented!(),
+        Cmd::ListGroups => {
+            let manager = Manager::load_registered(config_store)?;
+            let mut groups = manager.get_groups()?.peekable();
+            if groups.peek().is_some() {
+                println!("Groups: ");
+                for group in groups {
+                    match group {
+                        Ok(group) => {
+                            let title = String::from_utf8(group.title.clone())?;
+                            let key = base64::encode(group.public_key.clone());
+                            println!("{:?} {:?}",key,  title);
+                        }
+                        Err(e) => {
+                            println!("Error: {:?}", e);
+                            continue;
+                        }
+                    };
+                }
+                 
+            } else {
+                println!("No groups found");
+            }
+        },
         Cmd::ListContacts => {
             let manager = Manager::load_registered(config_store)?;
             for contact in manager.get_contacts()? {
@@ -476,23 +499,25 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             }
         }
         Cmd::GetGroup { group_master_key } => {
+            let( master_key, key ) = group_master_key;
             let manager = Manager::load_registered(config_store)?;
-            let group = manager.get_group_v2(group_master_key).await?;
+            let group = manager.get_group_v2(master_key).await?;
             println!("{:#?}", DebugGroup(&group));
             for member in &group.members {
                 let profile_key = base64::encode(&member.profile_key.bytes);
                 println!("{member:#?} => profile_key = {profile_key}",);
             }
+            manager.save_group(group, key.as_bytes().to_vec())?;
         }
     };
     Ok(())
 }
 
-fn parse_base64_master_key(s: &str) -> anyhow::Result<GroupMasterKey> {
+fn parse_base64_master_key(s: &str) -> anyhow::Result<(GroupMasterKey, String)> {
     let bytes = base64::decode(s)?
         .try_into()
         .map_err(|_| anyhow!("group master key of invalid length"))?;
-    Ok(GroupMasterKey::new(bytes))
+    Ok((GroupMasterKey::new(bytes),s.to_string()) )
 }
 
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {

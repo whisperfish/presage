@@ -2,6 +2,7 @@ use crate::{manager::Registered, Error};
 use libsignal_service::{
     content::ContentBody,
     models::Contact,
+    proto::Group,
     prelude::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
@@ -28,6 +29,7 @@ pub trait Store:
     + StateStore<Registered>
     + ContactsStore
     + MessageStore
+    + GroupsStore
     + SenderKeyStore
     + Sync
     + Clone
@@ -58,6 +60,15 @@ pub trait ContactsStore {
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
 
+pub trait GroupsStore {
+    type GroupsIter: Iterator<Item = Result<Group, Error>>;
+
+    fn clear_groups(&mut self) -> Result<(), Error>;
+    fn save_groups(&mut self, groups: impl Iterator<Item = Group>) -> Result<(), Error>;
+    fn save_group(&self, group: Group) -> Result<(), Error>;
+    fn groups(&self) -> Result<Self::GroupsIter, Error>;
+    fn group_by_id(&self, id: Uuid) -> Result<Option<Group>, Error>;
+}
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {

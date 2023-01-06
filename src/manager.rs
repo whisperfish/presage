@@ -5,6 +5,7 @@ use log::{debug, error, info, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
+use libsignal_service::proto::Group as ProtoGroup;
 
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -582,6 +583,11 @@ impl<C: Store> Manager<C, Registered> {
         self.config_store.contacts()
     }
 
+    /// Returns an iterator on groups stored in the [Store].
+    pub fn get_groups(&self) -> Result<impl Iterator<Item = Result<ProtoGroup, Error>>, Error> {
+        self.config_store.groups()
+    }
+
     pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
         self.config_store.contact_by_id(id)
     }
@@ -811,6 +817,26 @@ impl<C: Store> Manager<C, Registered> {
         Ok(group_changes)
     }
 
+    pub fn save_group(&self, group:Group, key:Vec<u8>) -> Result<(), Error> {
+        let proto_group: ProtoGroup = ProtoGroup {
+            title: group.title.as_bytes().to_vec(),
+            members: Vec::new(),
+            avatar: group.avatar,
+            public_key: key ,
+            disappearing_messages_timer: Vec::new(),
+            access_control: group.access_control,
+            version: group.version,
+            members_pending_admin_approval: Vec::new(),
+            members_pending_profile_key: Vec::new(),
+            invite_link_password: group.invite_link_password,
+            description_bytes: group.description.unwrap_or_default().as_bytes().to_vec(),
+            announcements_only: false,
+            members_banned: Vec::new(),
+               
+        };
+        self.config_store.save_group(proto_group)?;
+        Ok(())
+    }
     /// Downloads and decrypts a single attachment.
     pub async fn get_attachment(
         &self,
