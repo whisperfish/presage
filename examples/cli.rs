@@ -8,7 +8,6 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
-use libsignal_service::push_service::WhoAmIResponse;
 use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
 use log::{debug, info};
 use notify_rust::Notification;
@@ -35,7 +34,12 @@ struct Args {
     #[clap(long = "db-path", short = 'd', group = "store")]
     db_path: Option<PathBuf>,
 
-    #[clap(long = "notifications", short = 'n', group = "store", takes_value = false)]
+    #[clap(
+        long = "notifications",
+        short = 'n',
+        group = "store",
+        takes_value = false
+    )]
     notifications: bool,
 
     #[clap(
@@ -311,7 +315,7 @@ async fn receive<C: Store + MessageStore>(
                     }
                     // only show notification if the message is not from us
                     let args = Args::parse();
-                    if !self_is_sender && args.notifications{
+                    if !self_is_sender && args.notifications {
                         Notification::new()
                             .summary(&format!("{}", session_name))
                             .body(&body)

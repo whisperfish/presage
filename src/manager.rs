@@ -122,10 +122,11 @@ impl<C: Store> Manager<C, Registration> {
     ///
     ///     use presage::{
     ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy
+    ///         Manager, MigrationConflictStrategy, RegistrationOptions, SledStore,
     ///     };
     ///
-    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
+    ///     let config_store =
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let manager = Manager::register(
     ///         config_store,
@@ -204,12 +205,13 @@ impl<C: Store> Manager<C, Linking> {
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};
     /// use futures::{channel::oneshot, future, StreamExt};
+    /// use presage::{prelude::SignalServers, Manager, MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
-    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
+    ///     let config_store =
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -222,7 +224,7 @@ impl<C: Store> Manager<C, Linking> {
     ///         async move {
     ///             match rx.await {
     ///                 Ok(url) => println!("Show URL {} as QR code to user", url),
-    ///                 Err(e) => println!("Error linking device: {}", e)
+    ///                 Err(e) => println!("Error linking device: {}", e),
     ///             }
     ///         },
     ///     )
