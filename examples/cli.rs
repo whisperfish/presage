@@ -404,8 +404,30 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 .await?;
         }
         Cmd::Unregister => unimplemented!(),
-        Cmd::RetrieveProfile { uuid, profile_key } => {
+        Cmd::RetrieveProfile {
+            uuid,
+            mut profile_key,
+        } => {
             let manager = Manager::load_registered(config_store)?;
+            if profile_key.is_none() && uuid.is_some() {
+                for contact in manager
+                    .get_contacts()?
+                    .filter_map(Result::ok)
+                    .filter(|c| c.address.uuid == uuid)
+                {
+                    let profilek:[u8;32] = match(contact.profile_key).try_into() {
+                    Ok(profilek) => profilek,
+                    Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid.unwrap()),
+                };
+                    profile_key = Some(ProfileKey(profilek));
+                }
+            } else {
+                println!(
+                    "Retrieving profile for: {:?} with
+                profile_key",
+                    uuid
+                );
+            }
             let profile = match (uuid, profile_key) {
                 (None, None) => manager.retrieve_profile().await?,
                 (None, Some(_)) => bail!("profile key without provided user uuid"),
