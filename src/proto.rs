@@ -117,13 +117,12 @@ pub struct GroupProto {
     #[prost(message, required, tag = "2")]
     group: crate::prelude::proto::Group,
 }
+
 impl From<Group> for GroupProto {
     fn from(g: Group) -> Self {
         GroupProto { group: g }
     }
 }
-#[derive(thiserror::Error, Debug)]
-enum GroupProtoError {}
 
 impl TryInto<Group> for GroupProto {
     type Error = crate::Error;
