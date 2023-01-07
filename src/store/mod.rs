@@ -2,13 +2,13 @@ use crate::{manager::Registered, Error};
 use libsignal_service::{
     content::ContentBody,
     models::Contact,
-    proto::Group,
     prelude::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
         Content, Uuid,
     },
+    proto::Group,
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
 

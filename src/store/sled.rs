@@ -17,8 +17,8 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
-    push_service::DEFAULT_DEVICE_ID, 
     proto::Group,
+    push_service::DEFAULT_DEVICE_ID,
 };
 use log::{debug, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
@@ -28,7 +28,12 @@ use sha2::{Digest, Sha256};
 use sled::Batch;
 
 use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
-use crate::{manager::Registered, proto::{ContentProto, GroupProto}, store::Thread, Error, Store};
+use crate::{
+    manager::Registered,
+    proto::{ContentProto, GroupProto},
+    store::Thread,
+    Error, Store,
+};
 
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 
@@ -373,9 +378,9 @@ impl GroupsStore for SledStore {
 
     fn save_groups(&mut self, groups: impl Iterator<Item = Group>) -> Result<(), Error> {
         for group in groups {
-            let key = group.public_key.to_vec(); 
+            let key = group.public_key.to_vec();
             let proto: GroupProto = group.into();
-            let value  = proto.encode_to_vec();
+            let value = proto.encode_to_vec();
             self.insert(SLED_KEY_GROUPS, key, value)?;
         }
         debug!("saved groups");
@@ -390,22 +395,22 @@ impl GroupsStore for SledStore {
     }
 
     fn group_by_id(&self, id: Uuid) -> Result<Option<Group>, Error> {
-       let val: Option<Vec<u8>>  =  self.get(SLED_KEY_GROUPS, id)?;
-       match val{
-              Some(ref v) => {
+        let val: Option<Vec<u8>> = self.get(SLED_KEY_GROUPS, id)?;
+        match val {
+            Some(ref v) => {
                 let proto = GroupProto::decode(v.as_slice())?;
                 let group = proto.try_into()?;
                 Ok(Some(group))
-              },
-              None => Ok(None)
-       }
+            }
+            None => Ok(None),
+        }
     }
     fn save_group(&self, group: Group) -> Result<(), Error> {
-        let key = group.public_key.to_vec(); 
+        let key = group.public_key.to_vec();
         let proto: GroupProto = group.into();
-        let value  = proto.encode_to_vec();
+        let value = proto.encode_to_vec();
         self.insert(SLED_KEY_GROUPS, key, value)?;
-        Ok(())  
+        Ok(())
     }
 }
 pub struct SledContactsIter {
@@ -450,7 +455,6 @@ impl Iterator for SledGroupsIter {
             })
             .and_then(|data: Vec<u8>| GroupProto::decode(&data[..]).map_err(Error::from))
             .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
- 
     }
 }
 

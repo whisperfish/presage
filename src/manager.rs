@@ -1,11 +1,11 @@
 use std::time::UNIX_EPOCH;
 
 use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::proto::Group as ProtoGroup;
 use log::{debug, error, info, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
-use libsignal_service::proto::Group as ProtoGroup;
 
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -817,12 +817,12 @@ impl<C: Store> Manager<C, Registered> {
         Ok(group_changes)
     }
 
-    pub fn save_group(&self, group:Group, key:Vec<u8>) -> Result<(), Error> {
+    pub fn save_group(&self, group: Group, key: Vec<u8>) -> Result<(), Error> {
         let proto_group: ProtoGroup = ProtoGroup {
             title: group.title.as_bytes().to_vec(),
             members: Vec::new(),
             avatar: group.avatar,
-            public_key: key ,
+            public_key: key,
             disappearing_messages_timer: Vec::new(),
             access_control: group.access_control,
             version: group.version,
@@ -832,7 +832,6 @@ impl<C: Store> Manager<C, Registered> {
             description_bytes: group.description.unwrap_or_default().as_bytes().to_vec(),
             announcements_only: false,
             members_banned: Vec::new(),
-               
         };
         self.config_store.save_group(proto_group)?;
         Ok(())
