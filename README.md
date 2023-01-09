@@ -6,8 +6,6 @@
 
 A Rust library that helps building clients for the [Signal Messenger](https://signal.org/en/), using [libsignal-service-rs](https://github.com/whisperfish/libsignal-service-rs). It is designed to provide everything you need to get started.
 
-> :warning: **The API is considered unstable** - I am still experimenting here.
-
 Features:
 
 - [x] Local storage (using [sled](https://github.com/spacejam/sled))
