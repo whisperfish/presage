@@ -1,4 +1,4 @@
-name: cargo
+name: Build
 on:
   push:
     branches:
@@ -12,33 +12,41 @@ env:
 
 jobs:
   build_and_test:
-    name: build
+    name: cargo build
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -D warnings
     steps:
       - uses: actions/checkout@v2
+      
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      
+      - uses: Swatinem/rust-cache@v2
+
       - uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets
+      
       - uses: actions-rs/cargo@v1
         with:
           command: test
+          args: --all-targets
 
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: rustfmt
+      
       - uses: actions-rs/cargo@v1
         with:
           command: fmt
@@ -49,11 +57,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: clippy
+      
+      - uses: Swatinem/rust-cache@v2
+
       - uses: actions-rs/cargo@v1
         with:
           command: clippy
