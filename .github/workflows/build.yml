@@ -17,20 +17,25 @@ jobs:
     env:
       RUSTFLAGS: -D warnings
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
       
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
       
-      - uses: Swatinem/rust-cache@v2
+      - name: Configure CI cache
+        uses: Swatinem/rust-cache@v2
 
-      - uses: actions-rs/cargo@v1
+      - name: Build
+        uses: actions-rs/cargo@v1
         with:
           command: build
           args: --all-targets
       
-      - uses: actions-rs/cargo@v1
+      - name: Run tests
+        uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-targets
@@ -39,15 +44,18 @@ jobs:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: rustfmt
       
-      - uses: actions-rs/cargo@v1
+      - name: Check code format
+        uses: actions-rs/cargo@v1
         with:
           command: fmt
           args: -- --check
@@ -56,16 +64,20 @@ jobs:
     name: clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
       
-      - uses: actions-rs/toolchain@v1
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: clippy
       
-      - uses: Swatinem/rust-cache@v2
+      - name: Setup CI cache
+        uses: Swatinem/rust-cache@v2
 
-      - uses: actions-rs/cargo@v1
+      - name: Run clippy lints
+        uses: actions-rs/cargo@v1
         with:
           command: clippy
