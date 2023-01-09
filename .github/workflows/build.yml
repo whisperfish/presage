@@ -10,6 +10,10 @@ on:
 env:
   CARGO_INCREMENTAL: 0
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_and_test:
     name: cargo build
