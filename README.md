@@ -1,6 +1,6 @@
 # Presage
 
-![CI](https://github.com/whisperfish/presage/workflows/CI/badge.svg)
+![CI Build](https://github.com/whisperfish/presage/workflows/Build/badge.svg)
 ![License](https://img.shields.io/github/license/whisperfish/presage)
 [![API Docs](https://img.shields.io/badge/docs-presage-blue)](https://whisperfish.github.io/presage/presage)
 
