@@ -3,6 +3,7 @@ mod errors;
 mod manager;
 mod proto;
 mod store;
+mod ext;
 
 #[cfg(feature = "sled-store")]
 pub use store::sled::{MigrationConflictStrategy, SledStore};

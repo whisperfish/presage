@@ -8,7 +8,7 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
-use log::{debug, info};
+use log::{debug, info, error};
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
@@ -447,15 +447,15 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store)?;
-            for group in manager.get_groups()? {
+            for group in manager.get_group()? {
                 match group {
                     Ok(group) => {
                         let title = std::str::from_utf8(&group.title)?;
                         let key = base64::encode(&group.public_key);
                         println!("{title} {key}");
                     }
-                    Err(e) => {
-                        println!("Error: {}", e);
+                    Err(error) => {
+                        error!("failed to list groups: {error}");
                         continue;
                     }
                 };

@@ -21,7 +21,7 @@ use libsignal_service::{
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
     proto::{
-        sync_message::{self},
+        sync_message::{self, Sent},
         AttachmentPointer, GroupContextV2,
     },
     provisioning::{
@@ -39,7 +39,7 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, Thread};
+use crate::{cache::CacheCell, ext::ContentBodyExt, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, ThreadRng>;
@@ -621,47 +621,69 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
+            let save_message =
+                |config_store: &mut C, content: Content| match Thread::try_from(&content) {
+                    Ok(thread) => {
+                        if let Err(e) = config_store.save_message(&thread, content.clone()) {
+                            log::error!("failed saving message to store: {}", e);
+                        }
+                    }
+                    Err(e) => {
+                        log::error!("failed to derive thread key from content");
+                    }
+                };
+
             loop {
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
-                            // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                            Ok(Some(Content {
-                                metadata: Metadata { .. },
-                                body:
+                            Ok(Some(content)) => {
+                                match &content.body {
+                                    // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                     ContentBody::SynchronizeMessage(SyncMessage {
                                         contacts: Some(contacts),
                                         ..
-                                    }),
-                                ..
-                            })) => {
-                                let mut message_receiver =
-                                    MessageReceiver::new(state.push_service.clone());
-                                match message_receiver.retrieve_contacts(&contacts).await {
-                                    Ok(contacts_iter) => {
-                                        let _ = state.config_store.clear_contacts();
-                                        if let Err(e) = state
-                                            .config_store
-                                            .save_contacts(contacts_iter.filter_map(Result::ok))
-                                        {
-                                            error!("failed to save contacts: {}", e)
+                                    }) => {
+                                        let mut message_receiver =
+                                            MessageReceiver::new(state.push_service.clone());
+                                        match message_receiver.retrieve_contacts(&contacts).await {
+                                            Ok(contacts_iter) => {
+                                                let _ = state.config_store.clear_contacts();
+                                                if let Err(e) = state.config_store.save_contacts(
+                                                    contacts_iter.filter_map(Result::ok),
+                                                ) {
+                                                    error!("failed to save contacts: {}", e)
+                                                }
+                                                info!("saved contacts");
+                                            }
+                                            Err(e) => error!("failed to retrieve contacts: {}", e),
                                         }
-                                        info!("saved contacts");
                                     }
-                                    Err(e) => error!("failed to retrieve contacts: {}", e),
-                                }
-                            }
-                            Ok(Some(content)) => {
-                                if let Ok(thread) = Thread::try_from(&content) {
-                                    // TODO: handle reactions here, we should update the original message?
-                                    if let Err(e) =
-                                        state.config_store.save_message(&thread, content.clone())
-                                    {
-                                        log::error!("Error saving message to store: {}", e);
-                                    }
-                                }
+                                    // groups v2 synchronization
+                                    body => {
+                                        if let Some(group_v2) = body.group_v2() {
+                                            let master_key_bytes: [u8; 32] = group_v2
+                                                .master_key
+                                                .clone()
+                                                .unwrap()
+                                                .try_into()
+                                                .unwrap();
+                                            let master_key = GroupMasterKey::new(master_key_bytes);
+                                            let group = self.get_group_v2(master_key).await?;
+                                            let group_changes =
+                                                self.decrypt_group_context(&group_v2)?;
+                                            // self.save_group(group, key);
+                                        }
 
-                                return Some((content, state));
+                                        save_message(&mut state.config_store, content.clone());
+                                    }
+                                    _ => {
+                                        save_message(&mut state.config_store, content.clone());
+                                        // TODO: handle reactions here, we should update the original message?
+
+                                        return Some((content, state));
+                                    }
+                                }
                             }
                             Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
@@ -817,8 +839,8 @@ impl<C: Store> Manager<C, Registered> {
         Ok(group_changes)
     }
 
-    pub fn save_group(&self, group: Group, key: Vec<u8>) -> Result<(), Error> {
-        let proto_group: ProtoGroup = ProtoGroup {
+    fn save_group(&self, group: Group, key: Vec<u8>) -> Result<(), Error> {
+        let proto_group = ProtoGroup {
             title: group.title.as_bytes().to_vec(),
             members: Vec::new(),
             avatar: group.avatar,
@@ -836,6 +858,7 @@ impl<C: Store> Manager<C, Registered> {
         self.config_store.save_group(proto_group)?;
         Ok(())
     }
+
     /// Downloads and decrypts a single attachment.
     pub async fn get_attachment(
         &self,
