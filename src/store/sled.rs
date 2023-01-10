@@ -355,9 +355,8 @@ impl ContactsStore for SledStore {
 
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
         self.get(SLED_KEY_CONTACTS, id)?
-            .map(|b: Vec<u8>| serde_json::from_slice(&b))
-            .transpose()
-            .map_err(Error::from)
+            .map(|contact: Contact| Some(contact))
+            .ok_or(Error::ContactNotFound)
     }
 }
 

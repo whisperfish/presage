@@ -61,6 +61,8 @@ pub enum Error {
     MigrationConflict,
     #[error("I/O error: {0}")]
     FsError(#[from] fs_extra::error::Error),
+    #[error("Could not find a contact with the given UUID")]
+    ContactNotFound
 }
 
 impl Error {
