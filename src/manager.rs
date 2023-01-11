@@ -1,6 +1,6 @@
 use std::time::UNIX_EPOCH;
 
-use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -523,6 +523,28 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    async fn wait_for_contacts_sync(
+        &mut self,
+        mut messages: impl Stream<Item = Content> + Unpin,
+    ) -> Result<(), Error> {
+        let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        while let Some(Content { body, .. }) = messages.next().await {
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                contacts: Some(contacts),
+                ..
+            }) = body
+            {
+                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
+                let _ = self.config_store.clear_contacts();
+                self.config_store
+                    .save_contacts(contacts.filter_map(Result::ok))?;
+                info!("saved contacts");
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -542,10 +564,18 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
+        // start waiting for the contacts sync
+        info!("waiting for contacts sync for 3 minutes");
+        let messages = self.receive_messages().await?;
+        pin_mut!(messages);
+
+        // first request the sync
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
 
-        trace!("requested contacts sync");
+        // wait for it to arrive
+        self.wait_for_contacts_sync(messages).await?;
+
         Ok(())
     }
 
@@ -610,14 +640,12 @@ impl<C: Store> Manager<C, Registered> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
-            push_service: HyperPushService,
             config_store: C,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
-            push_service: self.push_service()?,
             config_store: self.config_store.clone(),
         };
 
@@ -627,31 +655,6 @@ impl<C: Store> Manager<C, Registered> {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                            Ok(Some(Content {
-                                metadata: Metadata { .. },
-                                body:
-                                    ContentBody::SynchronizeMessage(SyncMessage {
-                                        contacts: Some(contacts),
-                                        ..
-                                    }),
-                                ..
-                            })) => {
-                                let mut message_receiver =
-                                    MessageReceiver::new(state.push_service.clone());
-                                match message_receiver.retrieve_contacts(&contacts).await {
-                                    Ok(contacts_iter) => {
-                                        let _ = state.config_store.clear_contacts();
-                                        if let Err(e) = state
-                                            .config_store
-                                            .save_contacts(contacts_iter.filter_map(Result::ok))
-                                        {
-                                            error!("failed to save contacts: {}", e)
-                                        }
-                                        info!("saved contacts");
-                                    }
-                                    Err(e) => error!("failed to retrieve contacts: {}", e),
-                                }
-                            }
                             Ok(Some(content)) => {
                                 if let Ok(thread) = Thread::try_from(&content) {
                                     // TODO: handle reactions here, we should update the original message?
