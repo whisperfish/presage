@@ -34,6 +34,7 @@ use libsignal_service::{
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -74,7 +75,10 @@ pub struct Confirmation {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    cache: CacheCell<HyperPushService>,
+    push_service_cache: CacheCell<HyperPushService>,
+    #[serde(skip)]
+    websocket: Option<SignalWebSocket>,
+
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
@@ -304,7 +308,8 @@ impl<C: Store> Manager<C, Linking> {
         let mut manager = Manager {
             config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: None,
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -418,7 +423,8 @@ impl<C: Store> Manager<C, Confirmation> {
         let mut manager = Manager {
             config_store: self.config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: None,
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -587,19 +593,20 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn receive_messages_encrypted(
-        &self,
+        &mut self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
+        self.state.websocket.replace(pipe.ws());
         Ok(pipe.stream())
     }
 
     /// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(&mut self) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
@@ -845,7 +852,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error> {
-        self.state.cache.get(|| {
+        self.state.push_service_cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
 
@@ -866,6 +873,10 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         Ok(MessageSender::new(
+            self.state
+                .websocket
+                .clone()
+                .ok_or(Error::MessagePipeNotStarted)?,
             self.push_service()?,
             self.new_service_cipher()?,
             rand::thread_rng(),
