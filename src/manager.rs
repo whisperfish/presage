@@ -1,4 +1,4 @@
-use std::time::{UNIX_EPOCH, Duration};
+use std::time::{Duration, UNIX_EPOCH};
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
@@ -572,12 +572,13 @@ impl<C: Store> Manager<C, Registered> {
             .await?;
 
         // wait for it to arrive
-        info!("waiting for contacts sync for up to 5 minutes");
+        info!("waiting for contacts sync for up to 3 minutes");
         tokio::time::timeout(
-            Duration::from_secs(5 * 60),
+            Duration::from_secs(3 * 60),
             self.wait_for_contacts_sync(messages),
         )
-        .await.map_err(Error::from)??;
+        .await
+        .map_err(Error::from)??;
 
         Ok(())
     }
@@ -640,16 +641,25 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
     pub async fn receive_messages(&mut self) -> Result<impl Stream<Item = Content>, Error> {
+        self.receive_messages_stream(false).await
+    }
+
+    async fn receive_messages_stream(
+        &mut self,
+        include_internal_events: bool,
+    ) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
             config_store: C,
+            include_internal_events: bool,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
             config_store: self.config_store.clone(),
+            include_internal_events,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -657,8 +667,20 @@ impl<C: Store> Manager<C, Registered> {
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
-                            // contacts synchronization sent from the primary device (happens after linking, or on demand)
                             Ok(Some(content)) => {
+                                // contacts synchronization sent from the primary device (happens after linking, or on demand)
+                                if let ContentBody::SynchronizeMessage(SyncMessage {
+                                    contacts: Some(_),
+                                    ..
+                                }) = &content.body
+                                {
+                                    if state.include_internal_events {
+                                        return Some((content, state));
+                                    } else {
+                                        return None;
+                                    }
+                                }
+
                                 if let Ok(thread) = Thread::try_from(&content) {
                                     // TODO: handle reactions here, we should update the original message?
                                     if let Err(e) =
