@@ -255,7 +255,7 @@ async fn receive<C: Store + MessageStore>(
                         let group_changes = manager.decrypt_group_context(group_v2)?;
                         println!("Group v2: {:?}", group.title);
                         println!("Group change: {:?}", group_changes);
-                        println!("Group master key: {:?}", hex::encode(&master_key_bytes));
+                        println!("Group master key: {:?}", hex::encode(master_key_bytes));
                     }
                 }
 
@@ -502,7 +502,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             let group = manager.get_group_v2(group_master_key).await?;
             println!("{:#?}", DebugGroup(&group));
             for member in &group.members {
-                let profile_key = base64::encode(&member.profile_key.bytes);
+                let profile_key = base64::encode(member.profile_key.bytes);
                 println!("{member:#?} => profile_key = {profile_key}",);
             }
         }

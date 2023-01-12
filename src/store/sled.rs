@@ -634,7 +634,7 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        self.insert(SLED_TREE_SENDER_KEYS, &key, record.serialize()?)
+        self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
             .map_err(Error::into_signal_error)
     }
 
@@ -650,7 +650,7 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        self.get(SLED_TREE_SENDER_KEYS, &key)
+        self.get(SLED_TREE_SENDER_KEYS, key)
             .map_err(Error::into_signal_error)?
             .map(|b: Vec<u8>| SenderKeyRecord::deserialize(&b))
             .transpose()
@@ -670,7 +670,7 @@ impl MessageStore for SledStore {
         let proto: ContentProto = message.into();
 
         let tree = self.messages_thread_tree_name(thread);
-        let key = self.key(&tree, &timestamp_bytes);
+        let key = self.key(&tree, timestamp_bytes);
 
         let value = proto.encode_to_vec();
         let value = self.cipher.as_ref().map_or_else(

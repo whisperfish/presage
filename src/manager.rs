@@ -1,6 +1,6 @@
-use std::time::UNIX_EPOCH;
+use std::time::{Duration, UNIX_EPOCH};
 
-use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,7 @@ use libsignal_service::{
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -74,7 +75,10 @@ pub struct Confirmation {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    cache: CacheCell<HyperPushService>,
+    push_service_cache: CacheCell<HyperPushService>,
+    #[serde(skip)]
+    websocket: Option<SignalWebSocket>,
+
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
@@ -304,7 +308,8 @@ impl<C: Store> Manager<C, Linking> {
         let mut manager = Manager {
             config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: None,
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -418,7 +423,8 @@ impl<C: Store> Manager<C, Confirmation> {
         let mut manager = Manager {
             config_store: self.config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: None,
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -517,6 +523,28 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    async fn wait_for_contacts_sync(
+        &mut self,
+        mut messages: impl Stream<Item = Content> + Unpin,
+    ) -> Result<(), Error> {
+        let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        while let Some(Content { body, .. }) = messages.next().await {
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                contacts: Some(contacts),
+                ..
+            }) = body
+            {
+                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
+                let _ = self.config_store.clear_contacts();
+                self.config_store
+                    .save_contacts(contacts.filter_map(Result::ok))?;
+                info!("saved contacts");
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -536,10 +564,22 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
+        let messages = self.receive_messages().await?;
+        pin_mut!(messages);
+
+        // first request the sync
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
 
-        trace!("requested contacts sync");
+        // wait for it to arrive
+        info!("waiting for contacts sync for up to 3 minutes");
+        tokio::time::timeout(
+            Duration::from_secs(3 * 60),
+            self.wait_for_contacts_sync(messages),
+        )
+        .await
+        .map_err(Error::from)??;
+
         Ok(())
     }
 
@@ -587,31 +627,39 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn receive_messages_encrypted(
-        &self,
+        &mut self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
+        self.state.websocket.replace(pipe.ws());
         Ok(pipe.stream())
     }
 
     /// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(&mut self) -> Result<impl Stream<Item = Content>, Error> {
+        self.receive_messages_stream(false).await
+    }
+
+    async fn receive_messages_stream(
+        &mut self,
+        include_internal_events: bool,
+    ) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
-            push_service: HyperPushService,
             config_store: C,
+            include_internal_events: bool,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
-            push_service: self.push_service()?,
             config_store: self.config_store.clone(),
+            include_internal_events,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -619,33 +667,20 @@ impl<C: Store> Manager<C, Registered> {
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
-                            // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                            Ok(Some(Content {
-                                metadata: Metadata { .. },
-                                body:
-                                    ContentBody::SynchronizeMessage(SyncMessage {
-                                        contacts: Some(contacts),
-                                        ..
-                                    }),
-                                ..
-                            })) => {
-                                let mut message_receiver =
-                                    MessageReceiver::new(state.push_service.clone());
-                                match message_receiver.retrieve_contacts(&contacts).await {
-                                    Ok(contacts_iter) => {
-                                        let _ = state.config_store.clear_contacts();
-                                        if let Err(e) = state
-                                            .config_store
-                                            .save_contacts(contacts_iter.filter_map(Result::ok))
-                                        {
-                                            error!("failed to save contacts: {}", e)
-                                        }
-                                        info!("saved contacts");
-                                    }
-                                    Err(e) => error!("failed to retrieve contacts: {}", e),
-                                }
-                            }
                             Ok(Some(content)) => {
+                                // contacts synchronization sent from the primary device (happens after linking, or on demand)
+                                if let ContentBody::SynchronizeMessage(SyncMessage {
+                                    contacts: Some(_),
+                                    ..
+                                }) = &content.body
+                                {
+                                    if state.include_internal_events {
+                                        return Some((content, state));
+                                    } else {
+                                        return None;
+                                    }
+                                }
+
                                 if let Ok(thread) = Thread::try_from(&content) {
                                     // TODO: handle reactions here, we should update the original message?
                                     if let Err(e) =
@@ -845,7 +880,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error> {
-        self.state.cache.get(|| {
+        self.state.push_service_cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
 
@@ -866,6 +901,10 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         Ok(MessageSender::new(
+            self.state
+                .websocket
+                .clone()
+                .ok_or(Error::MessagePipeNotStarted)?,
             self.push_service()?,
             self.new_service_cipher()?,
             rand::thread_rng(),
