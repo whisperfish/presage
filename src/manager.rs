@@ -1,4 +1,4 @@
-use std::time::UNIX_EPOCH;
+use std::time::{UNIX_EPOCH, Duration};
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
@@ -564,8 +564,6 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        // start waiting for the contacts sync
-        info!("waiting for contacts sync for 3 minutes");
         let messages = self.receive_messages().await?;
         pin_mut!(messages);
 
@@ -574,7 +572,12 @@ impl<C: Store> Manager<C, Registered> {
             .await?;
 
         // wait for it to arrive
-        self.wait_for_contacts_sync(messages).await?;
+        info!("waiting for contacts sync for up to 5 minutes");
+        tokio::time::timeout(
+            Duration::from_secs(5 * 60),
+            self.wait_for_contacts_sync(messages),
+        )
+        .await.map_err(Error::from)??;
 
         Ok(())
     }

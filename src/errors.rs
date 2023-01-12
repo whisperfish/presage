@@ -63,6 +63,8 @@ pub enum Error {
     MigrationConflict,
     #[error("I/O error: {0}")]
     FsError(#[from] fs_extra::error::Error),
+    #[error("timeout: {0}")]
+    Timeout(#[from] tokio::time::error::Elapsed),
 }
 
 impl Error {
