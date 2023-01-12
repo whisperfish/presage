@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../presage/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../presage/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../presage/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -894,9 +894,48 @@
 <span id="894">894</span>
 <span id="895">895</span>
 <span id="896">896</span>
-</pre><pre class="rust"><code><span class="kw">use </span>std::time::UNIX_EPOCH;
+<span id="897">897</span>
+<span id="898">898</span>
+<span id="899">899</span>
+<span id="900">900</span>
+<span id="901">901</span>
+<span id="902">902</span>
+<span id="903">903</span>
+<span id="904">904</span>
+<span id="905">905</span>
+<span id="906">906</span>
+<span id="907">907</span>
+<span id="908">908</span>
+<span id="909">909</span>
+<span id="910">910</span>
+<span id="911">911</span>
+<span id="912">912</span>
+<span id="913">913</span>
+<span id="914">914</span>
+<span id="915">915</span>
+<span id="916">916</span>
+<span id="917">917</span>
+<span id="918">918</span>
+<span id="919">919</span>
+<span id="920">920</span>
+<span id="921">921</span>
+<span id="922">922</span>
+<span id="923">923</span>
+<span id="924">924</span>
+<span id="925">925</span>
+<span id="926">926</span>
+<span id="927">927</span>
+<span id="928">928</span>
+<span id="929">929</span>
+<span id="930">930</span>
+<span id="931">931</span>
+<span id="932">932</span>
+<span id="933">933</span>
+<span id="934">934</span>
+<span id="935">935</span>
+</pre><pre class="rust"><code><span class="kw">use </span>std::time::{Duration, UNIX_EPOCH};
 
-<span class="kw">use </span>futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
+<span class="kw">use </span>futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 <span class="kw">use </span>log::{debug, error, info, trace};
 <span class="kw">use </span>rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
@@ -930,6 +969,7 @@
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
@@ -970,7 +1010,10 @@
 <span class="attribute">#[derive(Clone, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>Registered {
     <span class="attribute">#[serde(skip)]
-    </span>cache: CacheCell&lt;HyperPushService&gt;,
+    </span>push_service_cache: CacheCell&lt;HyperPushService&gt;,
+    <span class="attribute">#[serde(skip)]
+    </span>websocket: <span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;,
+
     <span class="kw">pub </span>signal_servers: SignalServers,
     <span class="kw">pub </span>device_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>phone_number: PhoneNumber,
@@ -1200,7 +1243,8 @@
         <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
             config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: <span class="prelude-val">None</span>,
                 signal_servers,
                 device_name: <span class="prelude-val">Some</span>(device_name),
                 phone_number,
@@ -1314,7 +1358,8 @@
         <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
             config_store: <span class="self">self</span>.config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: <span class="prelude-val">None</span>,
                 signal_servers: <span class="self">self</span>.state.signal_servers,
                 device_name: <span class="prelude-val">None</span>,
                 phone_number,
@@ -1413,6 +1458,28 @@
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="kw">async fn </span>wait_for_contacts_sync(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        <span class="kw-2">mut </span>messages: <span class="kw">impl </span>Stream&lt;Item = Content&gt; + Unpin,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>message_receiver = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>);
+        <span class="kw">while let </span><span class="prelude-val">Some</span>(Content { body, .. }) = messages.next().<span class="kw">await </span>{
+            <span class="kw">if let </span>ContentBody::SynchronizeMessage(SyncMessage {
+                contacts: <span class="prelude-val">Some</span>(contacts),
+                ..
+            }) = body
+            {
+                <span class="kw">let </span>contacts = message_receiver.retrieve_contacts(<span class="kw-2">&amp;</span>contacts).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="kw">let _ </span>= <span class="self">self</span>.config_store.clear_contacts();
+                <span class="self">self</span>.config_store
+                    .save_contacts(contacts.filter_map(Result::ok))<span class="question-mark">?</span>;
+                <span class="macro">info!</span>(<span class="string">&quot;saved contacts&quot;</span>);
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+            }
+        }
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="doccomment">/// Request that the primary device to encrypt &amp; send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -1432,10 +1499,22 @@
             .expect(<span class="string">&quot;Time went backwards&quot;</span>)
             .as_millis() <span class="kw">as </span>u64;
 
-        <span class="self">self</span>.send_message(<span class="self">self</span>.state.uuid, sync_message, timestamp)
+        <span class="kw">let </span>messages = <span class="self">self</span>.receive_messages().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="macro">pin_mut!</span>(messages);
+
+        <span class="comment">// first request the sync
+        </span><span class="self">self</span>.send_message(<span class="self">self</span>.state.uuid, sync_message, timestamp)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="macro">trace!</span>(<span class="string">&quot;requested contacts sync&quot;</span>);
+        <span class="comment">// wait for it to arrive
+        </span><span class="macro">info!</span>(<span class="string">&quot;waiting for contacts sync for up to 3 minutes&quot;</span>);
+        tokio::time::timeout(
+            Duration::from_secs(<span class="number">3 </span>* <span class="number">60</span>),
+            <span class="self">self</span>.wait_for_contacts_sync(messages),
+        )
+        .<span class="kw">await
+        </span>.map_err(Error::from)<span class="question-mark">??</span>;
+
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1483,31 +1562,39 @@
     }
 
     <span class="kw">async fn </span>receive_messages_encrypted(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Envelope, ServiceError&gt;&gt;, Error&gt; {
         <span class="kw">let </span>credentials = <span class="self">self</span>.credentials()<span class="question-mark">?</span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
         <span class="kw">let </span>pipe = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>)
             .create_message_pipe(credentials)
             .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.state.websocket.replace(pipe.ws());
         <span class="prelude-val">Ok</span>(pipe.stream())
     }
 
     <span class="doccomment">/// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    </span><span class="kw">pub async fn </span>receive_messages(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&gt; {
+    </span><span class="kw">pub async fn </span>receive_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&gt; {
+        <span class="self">self</span>.receive_messages_stream(<span class="bool-val">false</span>).<span class="kw">await
+    </span>}
+
+    <span class="kw">async fn </span>receive_messages_stream(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        include_internal_events: bool,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&gt; {
         <span class="kw">struct </span>StreamState&lt;S, C&gt; {
             encrypted_messages: S,
             service_cipher: ServiceCipher&lt;C&gt;,
-            push_service: HyperPushService,
             config_store: C,
+            include_internal_events: bool,
         }
 
         <span class="kw">let </span>init = StreamState {
             encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
             service_cipher: <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
-            push_service: <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
             config_store: <span class="self">self</span>.config_store.clone(),
+            include_internal_events,
         };
 
         <span class="prelude-val">Ok</span>(futures::stream::unfold(init, |<span class="kw-2">mut </span>state| <span class="kw">async move </span>{
@@ -1515,33 +1602,20 @@
                 <span class="kw">match </span>state.encrypted_messages.next().<span class="kw">await </span>{
                     <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(envelope)) =&gt; {
                         <span class="kw">match </span>state.service_cipher.open_envelope(envelope).<span class="kw">await </span>{
-                            <span class="comment">// contacts synchronization sent from the primary device (happens after linking, or on demand)
-                            </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Content {
-                                metadata: Metadata { .. },
-                                body:
-                                    ContentBody::SynchronizeMessage(SyncMessage {
-                                        contacts: <span class="prelude-val">Some</span>(contacts),
-                                        ..
-                                    }),
-                                ..
-                            })) =&gt; {
-                                <span class="kw">let </span><span class="kw-2">mut </span>message_receiver =
-                                    MessageReceiver::new(state.push_service.clone());
-                                <span class="kw">match </span>message_receiver.retrieve_contacts(<span class="kw-2">&amp;</span>contacts).<span class="kw">await </span>{
-                                    <span class="prelude-val">Ok</span>(contacts_iter) =&gt; {
-                                        <span class="kw">let _ </span>= state.config_store.clear_contacts();
-                                        <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = state
-                                            .config_store
-                                            .save_contacts(contacts_iter.filter_map(Result::ok))
-                                        {
-                                            <span class="macro">error!</span>(<span class="string">&quot;failed to save contacts: {}&quot;</span>, e)
-                                        }
-                                        <span class="macro">info!</span>(<span class="string">&quot;saved contacts&quot;</span>);
-                                    }
-                                    <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">error!</span>(<span class="string">&quot;failed to retrieve contacts: {}&quot;</span>, e),
-                                }
-                            }
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(content)) =&gt; {
+                                <span class="comment">// contacts synchronization sent from the primary device (happens after linking, or on demand)
+                                </span><span class="kw">if let </span>ContentBody::SynchronizeMessage(SyncMessage {
+                                    contacts: <span class="prelude-val">Some</span>(<span class="kw">_</span>),
+                                    ..
+                                }) = <span class="kw-2">&amp;</span>content.body
+                                {
+                                    <span class="kw">if </span>state.include_internal_events {
+                                        <span class="kw">return </span><span class="prelude-val">Some</span>((content, state));
+                                    } <span class="kw">else </span>{
+                                        <span class="kw">return </span><span class="prelude-val">None</span>;
+                                    }
+                                }
+
                                 <span class="kw">if let </span><span class="prelude-val">Ok</span>(thread) = Thread::try_from(<span class="kw-2">&amp;</span>content) {
                                     <span class="comment">// TODO: handle reactions here, we should update the original message?
                                     </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) =
@@ -1741,7 +1815,7 @@
     ///
     /// If no service is yet cached, it will create and cache one.
     </span><span class="kw">fn </span>push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HyperPushService, Error&gt; {
-        <span class="self">self</span>.state.cache.get(|| {
+        <span class="self">self</span>.state.push_service_cache.get(|| {
             <span class="kw">let </span>credentials = <span class="self">self</span>.credentials()<span class="question-mark">?</span>;
             <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
 
@@ -1762,6 +1836,10 @@
         };
 
         <span class="prelude-val">Ok</span>(MessageSender::new(
+            <span class="self">self</span>.state
+                .websocket
+                .clone()
+                .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>,
             <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
             <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
             rand::thread_rng(),
@@ -1791,4 +1869,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

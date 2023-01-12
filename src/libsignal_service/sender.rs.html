@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/456bf6e/libsignal-service/src/sender.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="mobile-topbar"><button class="sidebar-menu-toggle">&#9776;</button><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a><h2 class="location"></h2></nav><nav class="sidebar"><a class="sidebar-logo" href="../../libsignal_service/index.html"><div class="logo-container"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></div></a></nav><main><div class="width-limiter"><div class="sub-container"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><nav class="sub"><form class="search-form"><div class="search-container"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><button type="button">?</button></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></div></form></nav></div><section id="main-content" class="content"><div class="example-wrap"><pre class="line-numbers"><span id="1">1</span>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/ddccf74/libsignal-service/src/sender.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Regular.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../FiraSans-Medium.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Regular.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceSerif4-Bold.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../SourceCodePro-Semibold.ttf.woff2"><link rel="stylesheet" href="../../normalize.css"><link rel="stylesheet" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" href="../../ayu.css" disabled><link rel="stylesheet" href="../../dark.css" disabled><link rel="stylesheet" href="../../light.css" id="themeStyle"><script id="default-settings" ></script><script src="../../storage.js"></script><script defer src="../../source-script.js"></script><script defer src="../../source-files.js"></script><script defer src="../../main.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="alternate icon" type="image/png" href="../../favicon-16x16.png"><link rel="alternate icon" type="image/png" href="../../favicon-32x32.png"><link rel="icon" type="image/svg+xml" href="../../favicon.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../rust-logo.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../wheel.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><span id="1">1</span>
 <span id="2">2</span>
 <span id="3">3</span>
 <span id="4">4</span>
@@ -815,6 +815,7 @@
     },
     push_service::<span class="kw-2">*</span>,
     session_store::SessionStoreExt,
+    websocket::SignalWebSocket,
     ServiceAddress,
 };
 
@@ -871,6 +872,7 @@
 <span class="doccomment">/// Equivalent of Java&#39;s `SignalServiceMessageSender`.
 </span><span class="attribute">#[derive(Clone)]
 </span><span class="kw">pub struct </span>MessageSender&lt;Service, S, I, SP, P, SK, R&gt; {
+    ws: SignalWebSocket,
     service: Service,
     cipher: ServiceCipher&lt;S, I, SP, P, SK, R&gt;,
     csprng: R,
@@ -901,23 +903,11 @@
     <span class="attribute">#[error(<span class="string">&quot;Untrusted identity key with {identifier}&quot;</span>)]
     </span>UntrustedIdentity { identifier: String },
 
-    <span class="attribute">#[error(<span class="string">&quot;No pre-key found to establish session with {0:?}&quot;</span>)]
-    </span>NoPreKey(ServiceAddress),
-
-    <span class="attribute">#[error(<span class="string">&quot;Please try again&quot;</span>)]
-    </span>TryAgain,
-
     <span class="attribute">#[error(<span class="string">&quot;Exceeded maximum number of retries&quot;</span>)]
     </span>MaximumRetriesLimitExceeded,
 
-    <span class="attribute">#[error(<span class="string">&quot;Network failure sending message to {recipient}&quot;</span>)]
-    </span>NetworkFailure { recipient: ServiceAddress },
-
-    <span class="attribute">#[error(<span class="string">&quot;Unregistered recipient {recipient}&quot;</span>)]
-    </span>UnregisteredFailure { recipient: ServiceAddress },
-
-    <span class="attribute">#[error(<span class="string">&quot;Identity verification failure with {recipient}&quot;</span>)]
-    </span>IdentityFailure { recipient: ServiceAddress },
+    <span class="attribute">#[error(<span class="string">&quot;Proof of type {options:?} required using token {token}&quot;</span>)]
+    </span>ProofRequired { token: String, options: Vec&lt;String&gt; },
 }
 
 <span class="kw">impl</span>&lt;Service, S, I, SP, P, SK, R&gt; MessageSender&lt;Service, S, I, SP, P, SK, R&gt;
@@ -930,7 +920,9 @@
     P: PreKeyStore + Clone,
     R: Rng + CryptoRng + Clone,
 {
-    <span class="kw">pub fn </span>new(
+    <span class="attribute">#[allow(clippy::too_many_arguments)]
+    </span><span class="kw">pub fn </span>new(
+        ws: SignalWebSocket,
         service: Service,
         cipher: ServiceCipher&lt;S, I, SP, P, SK, R&gt;,
         csprng: R,
@@ -941,6 +933,7 @@
     ) -&gt; <span class="self">Self </span>{
         MessageSender {
             service,
+            ws,
             cipher,
             csprng,
             session_store,
@@ -995,7 +988,7 @@
 
         <span class="comment">// Request upload attributes
         </span><span class="macro">log::trace!</span>(<span class="string">&quot;Requesting upload attributes&quot;</span>);
-        <span class="kw">let </span>attrs = <span class="self">self</span>.service.get_attachment_v2_upload_attributes().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>attrs = <span class="self">self</span>.ws.get_attachment_v2_upload_attributes().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="macro">log::trace!</span>(<span class="string">&quot;Uploading attachment&quot;</span>);
         <span class="kw">let </span>(id, digest) = <span class="self">self
@@ -1275,7 +1268,7 @@
                 online,
             };
 
-            <span class="kw">match </span><span class="self">self</span>.service.send_messages(messages).<span class="kw">await </span>{
+            <span class="kw">match </span><span class="self">self</span>.ws.send_messages(messages).<span class="kw">await </span>{
                 <span class="prelude-val">Ok</span>(SendMessageResponse { needs_sync }) =&gt; {
                     <span class="macro">log::debug!</span>(<span class="string">&quot;message sent!&quot;</span>);
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(SentMessage {
@@ -1344,6 +1337,13 @@
                             )
                             .<span class="kw">await</span><span class="question-mark">?</span>;
                     }
+                },
+                <span class="prelude-val">Err</span>(ServiceError::ProofRequiredError(<span class="kw-2">ref </span>p)) =&gt; {
+                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, p);
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::ProofRequired {
+                        token: p.token.clone(),
+                        options: p.options.clone(),
+                    });
                 },
                 <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::ServiceError(e)),
             }
@@ -1591,4 +1591,4 @@
     }
 }
 </code></pre></div>
-</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.65.0 (897e37553 2022-11-02)" ></div></body></html>
+</section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="libsignal_service" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.0 (69f9c33d7 2022-12-12)" ></div></body></html>

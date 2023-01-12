@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"libsignal_service":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.65.0/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"libsignal_service/push_service/struct.ProfileKey.html\" title=\"struct libsignal_service::push_service::ProfileKey\">ProfileKey</a>"]]
+"libsignal_service":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.66.0/core/ops/deref/trait.Deref.html\" title=\"trait core::ops::deref::Deref\">Deref</a> for <a class=\"struct\" href=\"libsignal_service/push_service/struct.ProfileKey.html\" title=\"struct libsignal_service::push_service::ProfileKey\">ProfileKey</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
