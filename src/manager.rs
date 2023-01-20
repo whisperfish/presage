@@ -1,7 +1,12 @@
-use std::time::{Duration, UNIX_EPOCH};
+use std::{
+    fmt,
+    sync::Arc,
+    time::{Duration, UNIX_EPOCH},
+};
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
+use parking_lot::Mutex;
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -19,10 +24,7 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
-    proto::{
-        sync_message::{self},
-        AttachmentPointer, GroupContextV2,
-    },
+    proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -54,6 +56,14 @@ pub struct Manager<Store, State> {
     state: State,
 }
 
+impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Manager")
+            .field("state", &self.state)
+            .finish_non_exhaustive()
+    }
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct RegistrationOptions<'a> {
     pub signal_servers: SignalServers,
@@ -77,7 +87,7 @@ pub struct Registered {
     #[serde(skip)]
     push_service_cache: CacheCell<HyperPushService>,
     #[serde(skip)]
-    websocket: Option<SignalWebSocket>,
+    websocket: Arc<Mutex<Option<SignalWebSocket>>>,
 
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
@@ -93,6 +103,14 @@ pub struct Registered {
     #[serde(with = "serde_public_key")]
     pub(crate) public_key: PublicKey,
     profile_key: ProfileKey,
+}
+
+impl fmt::Debug for Registered {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Registered")
+            .field("websocket", &self.websocket.lock().is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 impl Registered {
@@ -309,7 +327,7 @@ impl<C: Store> Manager<C, Linking> {
             config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
-                websocket: None,
+                websocket: Default::default(),
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -424,7 +442,7 @@ impl<C: Store> Manager<C, Confirmation> {
             config_store: self.config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
-                websocket: None,
+                websocket: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -633,7 +651,7 @@ impl<C: Store> Manager<C, Registered> {
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
-        self.state.websocket.replace(pipe.ws());
+        self.state.websocket.lock().replace(pipe.ws());
         Ok(pipe.stream())
     }
 
@@ -903,6 +921,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(MessageSender::new(
             self.state
                 .websocket
+                .lock()
                 .clone()
                 .ok_or(Error::MessagePipeNotStarted)?,
             self.push_service()?,
