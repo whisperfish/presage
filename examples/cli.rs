@@ -439,12 +439,13 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                         _,
                         Group {
                             title,
+                            description,
                             version,
                             members,
                             ..
                         },
                     )) => {
-                        println!("{title} / version {version} / {} members", members.len());
+                        println!("{title}: {description:?} / version {version} / {} members", members.len());
                     }
                     Err(error) => {
                         error!("Error: failed to deserialize group, {error}");
