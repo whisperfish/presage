@@ -1,14 +1,15 @@
 use crate::{manager::Registered, Error};
 use libsignal_service::{
     content::ContentBody,
+    groups_v2::Group,
     models::Contact,
     prelude::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, GroupMasterKey, Uuid,
     },
-    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage}, groups_v2::Group,
+    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
 
 #[cfg(feature = "sled-store")]
@@ -60,10 +61,14 @@ pub trait ContactsStore {
 }
 
 pub trait GroupsStore {
-    type GroupsIter: Iterator<Item = Result<Group, Error>>;
+    type GroupsIter: Iterator<Item = Result<(GroupMasterKey, Group), Error>>;
 
     fn clear_groups(&mut self) -> Result<(), Error>;
-    fn save_group(&self, master_key: &[u8], group: Group) -> Result<(), Error>;
+    fn save_group(
+        &self,
+        master_key: &[u8],
+        group: crate::prelude::proto::Group,
+    ) -> Result<(), Error>;
     fn groups(&self) -> Result<Self::GroupsIter, Error>;
     fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error>;
 }

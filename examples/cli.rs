@@ -8,12 +8,12 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
-use log::{debug, info, error};
+use log::{debug, error, info};
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
         proto::sync_message::Sent,
-        Contact, GroupMasterKey, SignalServers,
+        Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
     Manager, MessageStore, MigrationConflictStrategy, Registered, RegistrationOptions, SledStore,
@@ -102,12 +102,7 @@ enum Cmd {
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive,
-    /// Get information about a group
-    GetGroup {
-        #[clap(long, short = 'k', value_parser = parse_base64_master_key)]
-        group_master_key: (GroupMasterKey, String),
-    },
-    #[clap(about = "List group memberships")]
+    #[clap(about = "List groups")]
     ListGroups,
     #[clap(about = "List contacts")]
     ListContacts,
@@ -390,16 +385,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 ..Default::default()
             };
 
-            let group = manager
-                .fetch_group_v2(GroupMasterKey::new(master_key))
-                .await?;
-
             manager
-                .send_message_to_group(
-                    group.members.into_iter().map(|m| m.uuid).map(Into::into),
-                    data_message,
-                    timestamp,
-                )
+                .send_message_to_group(&master_key, data_message, timestamp)
                 .await?;
         }
         Cmd::Unregister => unimplemented!(),
@@ -446,16 +433,21 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store)?;
-            for group in manager.get_group()? {
+            for group in manager.get_groups()? {
                 match group {
-                    Ok(group) => {
-                        let title = std::str::from_utf8(&group.title)?;
-                        let key = base64::encode(&group.public_key);
-                        println!("{title} {key}");
+                    Ok((
+                        _,
+                        Group {
+                            title,
+                            version,
+                            members,
+                            ..
+                        },
+                    )) => {
+                        println!("{title} / version {version} / {} members", members.len());
                     }
                     Err(error) => {
-                        error!("failed to list groups: {error}");
-                        continue;
+                        error!("Error: failed to deserialize group, {error}");
                     }
                 };
             }
@@ -512,26 +504,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
             }
         }
-        Cmd::GetGroup { group_master_key } => {
-            let (master_key, key) = group_master_key;
-            let manager = Manager::load_registered(config_store)?;
-            let group = manager.fetch_group_v2(master_key).await?;
-            println!("{:#?}", DebugGroup(&group));
-            for member in &group.members {
-                let profile_key = base64::encode(member.profile_key.bytes);
-                println!("{member:#?} => profile_key = {profile_key}",);
-            }
-            // manager.save_group(group, key.as_bytes().to_vec())?;
-        }
     };
     Ok(())
-}
-
-fn parse_base64_master_key(s: &str) -> anyhow::Result<(GroupMasterKey, String)> {
-    let bytes = base64::decode(s)?
-        .try_into()
-        .map_err(|_| anyhow!("group master key of invalid length"))?;
-    Ok((GroupMasterKey::new(bytes), s.to_string()))
 }
 
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {

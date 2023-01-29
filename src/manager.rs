@@ -16,15 +16,14 @@ use libsignal_service::{
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, Metadata, SyncMessage},
-    groups_v2::{Group, GroupChanges, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
+        Content, Envelope, GroupMasterKey, PushService, Uuid,
     },
-    proto::Group as ProtoGroup,
     proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
@@ -641,8 +640,14 @@ impl<C: Store> Manager<C, Registered> {
         self.config_store.contacts()
     }
 
+    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+        self.config_store.group(master_key_bytes)
+    }
+
     /// Returns an iterator on groups stored in the [Store].
-    pub fn get_groups(&self) -> Result<impl Iterator<Item = Result<ProtoGroup, Error>>, Error> {
+    pub fn get_groups(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
         self.config_store.groups()
     }
 
@@ -668,6 +673,23 @@ impl<C: Store> Manager<C, Registered> {
         self.receive_messages_stream(false).await
     }
 
+    fn groups_manager(
+        &self,
+    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error> {
+        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let server_public_params = service_configuration.zkgroup_server_public_params;
+
+        let groups_credentials_cache = InMemoryCredentialsCache::default();
+        let groups_manager = GroupsManager::new(
+            self.state.uuid,
+            self.push_service()?,
+            groups_credentials_cache,
+            server_public_params,
+        );
+
+        Ok(groups_manager)
+    }
+
     async fn receive_messages_stream(
         &mut self,
         include_internal_events: bool,
@@ -676,6 +698,7 @@ impl<C: Store> Manager<C, Registered> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
             config_store: C,
+            groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
             include_internal_events: bool,
         }
 
@@ -683,6 +706,7 @@ impl<C: Store> Manager<C, Registered> {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
             config_store: self.config_store.clone(),
+            groups_manager: self.groups_manager()?,
             include_internal_events,
         };
 
@@ -690,7 +714,7 @@ impl<C: Store> Manager<C, Registered> {
             let save_message =
                 |config_store: &mut C, content: Content| match Thread::try_from(&content) {
                     Ok(thread) => {
-                        if let Err(e) = config_store.save_message(&thread, content.clone()) {
+                        if let Err(e) = config_store.save_message(&thread, content) {
                             log::error!("failed saving message to store: {}", e);
                         }
                     }
@@ -720,7 +744,7 @@ impl<C: Store> Manager<C, Registered> {
                                 if let ContentBody::DataMessage(DataMessage {
                                     group_v2:
                                         Some(GroupContextV2 {
-                                            master_key: Some(master_key),
+                                            master_key: Some(master_key_bytes),
                                             revision: Some(revision),
                                             ..
                                         }),
@@ -733,7 +757,7 @@ impl<C: Store> Manager<C, Registered> {
                                                 Some(DataMessage {
                                                     group_v2:
                                                         Some(GroupContextV2 {
-                                                            master_key: Some(master_key),
+                                                            master_key: Some(master_key_bytes),
                                                             revision: Some(revision),
                                                             ..
                                                         }),
@@ -744,28 +768,19 @@ impl<C: Store> Manager<C, Registered> {
                                     ..
                                 }) = &content.body
                                 {
-                                    match state.config_store.group(master_key) {
-                                        Ok(Some(group)) => { },
-                                        Ok(Some(group)) if group.version < *revision => todo!(),
-                                        Ok(None) => {
-                                            let master_key_bytes: [u8; 32] = master_key
-                                                .clone()
-                                                .try_into()
-                                                .expect("malformed group master key");
-                                            match self.fetch_group_v2(master_key).await {
-                                                Ok(group) => {
-                                                    if let Err(e) = state.config_store.save_group(&master_key_bytes, group) {
-                                                        log::error!("failed to save group {:?}", master_key_bytes);
-                                                    }
-                                                }
-                                                Err(e) => log::warn!("failed to fetch group {}", e),
-                                            };
-                                            // TODO: save group changes? or apply them?
-                                            // let group_changes = self.decrypt_group_context(group_context.clone()).await?;
-                                        }
-                                        Err(e) => todo!(),
+                                    // there's two things to implement: the group metadata (fetched from HTTP API)
+                                    // and the group changes, which are part of the protobuf messages
+                                    // this means we kinda need our own internal representation of groups inside of presage?
+                                    if let Ok(Some(group)) = upsert_group(
+                                        &state.config_store,
+                                        &mut state.groups_manager,
+                                        master_key_bytes,
+                                        revision,
+                                    )
+                                    .await
+                                    {
+                                        log::trace!("{group:?}");
                                     }
-                                    // state.manager.upsert_group(group_v2);
                                 }
 
                                 if let Ok(thread) = Thread::try_from(&content) {
@@ -851,13 +866,18 @@ impl<C: Store> Manager<C, Registered> {
     /// Sends one message in a group (v2).
     pub async fn send_message_to_group(
         &mut self,
-        recipients: impl IntoIterator<Item = ServiceAddress>,
+        master_key_bytes: &[u8],
         message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error> {
         let mut sender = self.new_message_sender()?;
 
-        let recipients: Vec<_> = recipients.into_iter().collect();
+        let mut groups_manager = self.groups_manager()?;
+        let Some(group) = upsert_group(&self.config_store, &mut groups_manager, master_key_bytes, &0).await? else {
+            return Err(Error::UnknownGroup);
+        };
+
+        let recipients: Vec<_> = group.members.into_iter().map(|m| m.uuid.into()).collect();
 
         let online_only = false;
         let results = sender
@@ -889,49 +909,6 @@ impl<C: Store> Manager<C, Registered> {
             .delete_all_sessions(&recipient.identifier())
             .await?;
         Ok(())
-    }
-
-    async fn fetch_group_v2(&self, master_key_bytes: &[u8]) -> Result<Group, Error> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let server_public_params = service_configuration.zkgroup_server_public_params;
-
-        let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let mut groups_v2_manager = GroupsManager::new(
-            self.push_service()?,
-            &mut groups_v2_credentials_cache,
-            server_public_params,
-        );
-
-        let group_master_key = GroupMasterKey::new(master_key_bytes.try_into()?);
-        let group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
-        let authorization = groups_v2_manager
-            .get_authorization_for_today(self.state.uuid, group_secret_params)
-            .await?;
-
-        Ok(groups_v2_manager
-            .get_group(group_secret_params, authorization)
-            .await?)
-    }
-
-    /// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.
-    async fn decrypt_group_context(
-        &self,
-        group_context: GroupContextV2,
-    ) -> Result<Option<GroupChanges>, Error> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let server_public_params = service_configuration.zkgroup_server_public_params;
-        let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let groups_v2_manager = GroupsManager::new(
-            self.push_service()?,
-            &mut groups_v2_credentials_cache,
-            server_public_params,
-        );
-
-        let group_changes = groups_v2_manager
-            .decrypt_group_context(group_context)
-            .map_err(ServiceError::GroupsV2DecryptionError)?;
-
-        Ok(group_changes)
     }
 
     /// Downloads and decrypts a single attachment.
@@ -1021,4 +998,39 @@ impl<C: Store> Manager<C, Registered> {
 
         Ok(service_cipher)
     }
+}
+
+async fn upsert_group<C: Store>(
+    config_store: &C,
+    groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
+    master_key_bytes: &[u8],
+    revision: &u32,
+) -> Result<Option<Group>, Error> {
+    let save_group = match config_store.group(master_key_bytes) {
+        Ok(Some(group)) => {
+            log::debug!("loaded group from local db {group:?}");
+            group.version < *revision
+        }
+        Ok(None) => true,
+        Err(e) => {
+            log::warn!("failed to retrieve group from local db {}", e);
+            true
+        }
+    };
+
+    if save_group {
+        log::debug!("fetching group");
+        match groups_manager.fetch_encrypted_group(master_key_bytes).await {
+            Ok(group) => {
+                if let Err(e) = config_store.save_group(master_key_bytes, group) {
+                    log::error!("failed to save group {master_key_bytes:?}: {e}",);
+                }
+            }
+            Err(e) => {
+                log::warn!("failed to fetch encrypted group: {e}")
+            }
+        }
+    }
+
+    config_store.group(master_key_bytes)
 }
