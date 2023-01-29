@@ -952,6 +952,74 @@
 <span id="952">952</span>
 <span id="953">953</span>
 <span id="954">954</span>
+<span id="955">955</span>
+<span id="956">956</span>
+<span id="957">957</span>
+<span id="958">958</span>
+<span id="959">959</span>
+<span id="960">960</span>
+<span id="961">961</span>
+<span id="962">962</span>
+<span id="963">963</span>
+<span id="964">964</span>
+<span id="965">965</span>
+<span id="966">966</span>
+<span id="967">967</span>
+<span id="968">968</span>
+<span id="969">969</span>
+<span id="970">970</span>
+<span id="971">971</span>
+<span id="972">972</span>
+<span id="973">973</span>
+<span id="974">974</span>
+<span id="975">975</span>
+<span id="976">976</span>
+<span id="977">977</span>
+<span id="978">978</span>
+<span id="979">979</span>
+<span id="980">980</span>
+<span id="981">981</span>
+<span id="982">982</span>
+<span id="983">983</span>
+<span id="984">984</span>
+<span id="985">985</span>
+<span id="986">986</span>
+<span id="987">987</span>
+<span id="988">988</span>
+<span id="989">989</span>
+<span id="990">990</span>
+<span id="991">991</span>
+<span id="992">992</span>
+<span id="993">993</span>
+<span id="994">994</span>
+<span id="995">995</span>
+<span id="996">996</span>
+<span id="997">997</span>
+<span id="998">998</span>
+<span id="999">999</span>
+<span id="1000">1000</span>
+<span id="1001">1001</span>
+<span id="1002">1002</span>
+<span id="1003">1003</span>
+<span id="1004">1004</span>
+<span id="1005">1005</span>
+<span id="1006">1006</span>
+<span id="1007">1007</span>
+<span id="1008">1008</span>
+<span id="1009">1009</span>
+<span id="1010">1010</span>
+<span id="1011">1011</span>
+<span id="1012">1012</span>
+<span id="1013">1013</span>
+<span id="1014">1014</span>
+<span id="1015">1015</span>
+<span id="1016">1016</span>
+<span id="1017">1017</span>
+<span id="1018">1018</span>
+<span id="1019">1019</span>
+<span id="1020">1020</span>
+<span id="1021">1021</span>
+<span id="1022">1022</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     sync::Arc,
@@ -970,13 +1038,13 @@
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, Metadata, SyncMessage},
-    groups_v2::{Group, GroupChanges, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
+        Content, Envelope, GroupMasterKey, PushService, Uuid,
     },
     proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
@@ -1594,6 +1662,17 @@
         <span class="self">self</span>.config_store.contacts()
     }
 
+    <span class="kw">pub fn </span>get_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
+        <span class="self">self</span>.config_store.group(master_key_bytes)
+    }
+
+    <span class="doccomment">/// Returns an iterator on groups stored in the [Store].
+    </span><span class="kw">pub fn </span>get_groups(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKey, Group), Error&gt;&gt;, Error&gt; {
+        <span class="self">self</span>.config_store.groups()
+    }
+
     <span class="kw">pub fn </span>get_contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
         <span class="self">self</span>.config_store.contact_by_id(id)
     }
@@ -1616,6 +1695,23 @@
         <span class="self">self</span>.receive_messages_stream(<span class="bool-val">false</span>).<span class="kw">await
     </span>}
 
+    <span class="kw">fn </span>groups_manager(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;, Error&gt; {
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
+        <span class="kw">let </span>server_public_params = service_configuration.zkgroup_server_public_params;
+
+        <span class="kw">let </span>groups_credentials_cache = InMemoryCredentialsCache::default();
+        <span class="kw">let </span>groups_manager = GroupsManager::new(
+            <span class="self">self</span>.state.uuid,
+            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            groups_credentials_cache,
+            server_public_params,
+        );
+
+        <span class="prelude-val">Ok</span>(groups_manager)
+    }
+
     <span class="kw">async fn </span>receive_messages_stream(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         include_internal_events: bool,
@@ -1624,6 +1720,7 @@
             encrypted_messages: S,
             service_cipher: ServiceCipher&lt;C&gt;,
             config_store: C,
+            groups_manager: GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;,
             include_internal_events: bool,
         }
 
@@ -1631,6 +1728,7 @@
             encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
             service_cipher: <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
             config_store: <span class="self">self</span>.config_store.clone(),
+            groups_manager: <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>,
             include_internal_events,
         };
 
@@ -1653,6 +1751,48 @@
                                     }
                                 }
 
+                                <span class="kw">if let </span>ContentBody::DataMessage(DataMessage {
+                                    group_v2:
+                                        <span class="prelude-val">Some</span>(GroupContextV2 {
+                                            master_key: <span class="prelude-val">Some</span>(master_key_bytes),
+                                            revision: <span class="prelude-val">Some</span>(revision),
+                                            ..
+                                        }),
+                                    ..
+                                })
+                                | ContentBody::SynchronizeMessage(SyncMessage {
+                                    sent:
+                                        <span class="prelude-val">Some</span>(sync_message::Sent {
+                                            message:
+                                                <span class="prelude-val">Some</span>(DataMessage {
+                                                    group_v2:
+                                                        <span class="prelude-val">Some</span>(GroupContextV2 {
+                                                            master_key: <span class="prelude-val">Some</span>(master_key_bytes),
+                                                            revision: <span class="prelude-val">Some</span>(revision),
+                                                            ..
+                                                        }),
+                                                    ..
+                                                }),
+                                            ..
+                                        }),
+                                    ..
+                                }) = <span class="kw-2">&amp;</span>content.body
+                                {
+                                    <span class="comment">// there&#39;s two things to implement: the group metadata (fetched from HTTP API)
+                                    // and the group changes, which are part of the protobuf messages
+                                    // this means we kinda need our own internal representation of groups inside of presage?
+                                    </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) = upsert_group(
+                                        <span class="kw-2">&amp;</span>state.config_store,
+                                        <span class="kw-2">&amp;mut </span>state.groups_manager,
+                                        master_key_bytes,
+                                        revision,
+                                    )
+                                    .<span class="kw">await
+                                    </span>{
+                                        <span class="macro">log::trace!</span>(<span class="string">&quot;{group:?}&quot;</span>);
+                                    }
+                                }
+
                                 <span class="kw">if let </span><span class="prelude-val">Ok</span>(thread) = Thread::try_from(<span class="kw-2">&amp;</span>content) {
                                     <span class="comment">// TODO: handle reactions here, we should update the original message?
                                     </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) =
@@ -1661,8 +1801,6 @@
                                         <span class="macro">log::error!</span>(<span class="string">&quot;Error saving message to store: {}&quot;</span>, e);
                                     }
                                 }
-
-                                <span class="kw">return </span><span class="prelude-val">Some</span>((content, state));
                             }
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;Empty envelope..., message will be skipped!&quot;</span>),
                             <span class="prelude-val">Err</span>(e) =&gt; {
@@ -1736,13 +1874,18 @@
     <span class="doccomment">/// Sends one message in a group (v2).
     </span><span class="kw">pub async fn </span>send_message_to_group(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        recipients: <span class="kw">impl </span>IntoIterator&lt;Item = ServiceAddress&gt;,
+        master_key_bytes: <span class="kw-2">&amp;</span>[u8],
         message: DataMessage,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>recipients: Vec&lt;<span class="kw">_</span>&gt; = recipients.into_iter().collect();
+        <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(<span class="kw-2">&amp;</span><span class="self">self</span>.config_store, <span class="kw-2">&amp;mut </span>groups_manager, master_key_bytes, <span class="kw-2">&amp;</span><span class="number">0</span>).<span class="kw">await</span><span class="question-mark">? </span><span class="kw">else </span>{
+            <span class="kw">return </span><span class="prelude-val">Err</span>(Error::UnknownGroup);
+        };
+
+        <span class="kw">let </span>recipients: Vec&lt;<span class="kw">_</span>&gt; = group.members.into_iter().map(|m| m.uuid.into()).collect();
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
         <span class="kw">let </span>results = sender
@@ -1774,48 +1917,6 @@
             .delete_all_sessions(<span class="kw-2">&amp;</span>recipient.identifier())
             .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="kw">pub async fn </span>get_group_v2(<span class="kw-2">&amp;</span><span class="self">self</span>, group_master_key: GroupMasterKey) -&gt; <span class="prelude-ty">Result</span>&lt;Group, Error&gt; {
-        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
-        <span class="kw">let </span>server_public_params = service_configuration.zkgroup_server_public_params;
-
-        <span class="kw">let </span><span class="kw-2">mut </span>groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        <span class="kw">let </span><span class="kw-2">mut </span>groups_v2_manager = GroupsManager::new(
-            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
-            <span class="kw-2">&amp;mut </span>groups_v2_credentials_cache,
-            server_public_params,
-        );
-
-        <span class="kw">let </span>group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
-        <span class="kw">let </span>authorization = groups_v2_manager
-            .get_authorization_for_today(<span class="self">self</span>.state.uuid, group_secret_params)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(groups_v2_manager
-            .get_group(group_secret_params, authorization)
-            .<span class="kw">await</span><span class="question-mark">?</span>)
-    }
-
-    <span class="doccomment">/// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.
-    </span><span class="kw">pub fn </span>decrypt_group_context(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        group_context: GroupContextV2,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;GroupChanges&gt;, Error&gt; {
-        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
-        <span class="kw">let </span>server_public_params = service_configuration.zkgroup_server_public_params;
-        <span class="kw">let </span><span class="kw-2">mut </span>groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        <span class="kw">let </span>groups_v2_manager = GroupsManager::new(
-            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
-            <span class="kw-2">&amp;mut </span>groups_v2_credentials_cache,
-            server_public_params,
-        );
-
-        <span class="kw">let </span>group_changes = groups_v2_manager
-            .decrypt_group_context(group_context)
-            .map_err(ServiceError::GroupsV2DecryptionError)<span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(group_changes)
     }
 
     <span class="doccomment">/// Downloads and decrypts a single attachment.
@@ -1905,6 +2006,41 @@
 
         <span class="prelude-val">Ok</span>(service_cipher)
     }
+}
+
+<span class="kw">async fn </span>upsert_group&lt;C: Store&gt;(
+    config_store: <span class="kw-2">&amp;</span>C,
+    groups_manager: <span class="kw-2">&amp;mut </span>GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;,
+    master_key_bytes: <span class="kw-2">&amp;</span>[u8],
+    revision: <span class="kw-2">&amp;</span>u32,
+) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
+    <span class="kw">let </span>save_group = <span class="kw">match </span>config_store.group(master_key_bytes) {
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
+            <span class="macro">log::debug!</span>(<span class="string">&quot;loaded group from local db {group:?}&quot;</span>);
+            group.version &lt; <span class="kw-2">*</span>revision
+        }
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="bool-val">true</span>,
+        <span class="prelude-val">Err</span>(e) =&gt; {
+            <span class="macro">log::warn!</span>(<span class="string">&quot;failed to retrieve group from local db {}&quot;</span>, e);
+            <span class="bool-val">true
+        </span>}
+    };
+
+    <span class="kw">if </span>save_group {
+        <span class="macro">log::debug!</span>(<span class="string">&quot;fetching group&quot;</span>);
+        <span class="kw">match </span>groups_manager.fetch_encrypted_group(master_key_bytes).<span class="kw">await </span>{
+            <span class="prelude-val">Ok</span>(group) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = config_store.save_group(master_key_bytes, group) {
+                    <span class="macro">log::error!</span>(<span class="string">&quot;failed to save group {master_key_bytes:?}: {e}&quot;</span>,);
+                }
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                <span class="macro">log::warn!</span>(<span class="string">&quot;failed to fetch encrypted group: {e}&quot;</span>)
+            }
+        }
+    }
+
+    config_store.group(master_key_bytes)
 }
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../" data-current-crate="presage" data-themes="ayu,dark,light" data-resource-suffix="" data-rustdoc-version="1.66.1 (90743e729 2023-01-10)" ></div></body></html>

@@ -72,6 +72,8 @@
 <span id="72">72</span>
 <span id="73">73</span>
 <span id="74">74</span>
+<span id="75">75</span>
+<span id="76">76</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 
 <span class="kw">use </span>libsignal_service::{models::ParseContactError, prelude::protocol::SignalProtocolError};
@@ -133,6 +135,8 @@
     </span>AttachmentCipherError(<span class="attribute">#[from] </span>libsignal_service::attachment_cipher::AttachmentCipherError),
     <span class="attribute">#[error(<span class="string">&quot;message is missing a uuid&quot;</span>)]
     </span>ContentMissingUuid,
+    <span class="attribute">#[error(<span class="string">&quot;unknown group&quot;</span>)]
+    </span>UnknownGroup,
     <span class="attribute">#[error(<span class="string">&quot;database migration is not supported&quot;</span>)]
     </span>MigrationConflict,
     <span class="attribute">#[error(<span class="string">&quot;I/O error: {0}&quot;</span>)]
