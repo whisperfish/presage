@@ -7,6 +7,7 @@ use std::{
 
 use async_trait::async_trait;
 use libsignal_service::{
+    groups_v2::{decrypt_group, Group},
     models::Contact,
     prelude::{
         protocol::{
@@ -15,8 +16,9 @@ use libsignal_service::{
             SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
             SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, GroupMasterKey, Uuid,
     },
+    proto,
     push_service::DEFAULT_DEVICE_ID,
 };
 use log::{debug, trace, warn};
@@ -26,12 +28,13 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::Batch;
 
-use super::{ContactsStore, MessageStore, StateStore};
+use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
 use crate::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
 
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 
 const SLED_KEY_CONTACTS: &str = "contacts";
+const SLED_KEY_GROUPS: &str = "groups";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_REGISTRATION: &str = "registration";
@@ -361,6 +364,41 @@ impl ContactsStore for SledStore {
     }
 }
 
+impl GroupsStore for SledStore {
+    type GroupsIter = SledGroupsIter;
+
+    fn clear_groups(&mut self) -> Result<(), Error> {
+        self.db.open_tree(SLED_KEY_GROUPS)?.clear()?;
+        Ok(())
+    }
+
+    fn groups(&self) -> Result<Self::GroupsIter, Error> {
+        Ok(SledGroupsIter {
+            iter: self.db.open_tree(SLED_KEY_GROUPS)?.iter(),
+            cipher: self.cipher.clone(),
+        })
+    }
+
+    fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error> {
+        let key: [u8; 32] = master_key.try_into()?;
+        let val: Option<Vec<u8>> = self.get(SLED_KEY_GROUPS, key)?;
+        match val {
+            Some(ref v) => {
+                let encrypted_group = proto::Group::decode(v.as_slice())?;
+                let group = decrypt_group(&key, encrypted_group)?;
+                Ok(Some(group))
+            }
+            None => Ok(None),
+        }
+    }
+
+    fn save_group(&self, master_key: &[u8], group: proto::Group) -> Result<(), Error> {
+        let key: [u8; 32] = master_key.try_into()?;
+        self.insert(SLED_KEY_GROUPS, key, group.encode_to_vec())?;
+        Ok(())
+    }
+}
+
 pub struct SledContactsIter {
     cipher: Option<Arc<StoreCipher>>,
     iter: sled::Iter,
@@ -378,6 +416,40 @@ impl Iterator for SledContactsIter {
                     || serde_json::from_slice(&value).map_err(Error::from),
                     |c| c.decrypt_value(&value).map_err(Error::from),
                 )
+            })
+            .into()
+    }
+}
+
+pub struct SledGroupsIter {
+    cipher: Option<Arc<StoreCipher>>,
+    iter: sled::Iter,
+}
+
+impl Iterator for SledGroupsIter {
+    type Item = Result<(GroupMasterKey, Group), Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()?
+            .map_err(Error::from)
+            .and_then(|(master_key_bytes, value)| {
+                let decrypted_data: Vec<u8> = self.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(&value).map_err(Error::from),
+                    |c| c.decrypt_value(&value).map_err(Error::from),
+                )?;
+                Ok((master_key_bytes, decrypted_data))
+            })
+            .and_then(|(master_key_bytes, encrypted_group_data)| {
+                let encrypted_group = proto::Group::decode(encrypted_group_data.as_slice())?;
+                let master_key = GroupMasterKey::new(
+                    master_key_bytes[..]
+                        .try_into()
+                        .expect("wrong group master key length"),
+                );
+                let decrypted_group =
+                    decrypt_group(&master_key_bytes[..], encrypted_group).map_err(Error::from)?;
+                Ok((master_key, decrypted_group))
             })
             .into()
     }
@@ -488,7 +560,7 @@ impl SessionStore for SledStore {
 impl SessionStoreExt for SledStore {
     async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = format!("{name}.");
-        log::info!("get_sub_device_sessions {}", session_prefix);
+        log::debug!("get_sub_device_sessions {}", session_prefix);
         let session_ids: Vec<u32> = self
             .tree(SLED_TREE_SESSIONS)
             .map_err(Error::into_signal_error)?

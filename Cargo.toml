@@ -1,13 +1,13 @@
 [package]
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
-version = "0.4.1-dev"
+version = "0.5.0-dev"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "ddccf7431d7fe848ef8fbed487fc0d33fe385b23" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "ddccf7431d7fe848ef8fbed487fc0d33fe385b23" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "bfc293000e058924771c0651c16bb19fb778c4ef" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "bfc293000e058924771c0651c16bb19fb778c4ef" }
 
 async-trait = "0.1"
 base64 = "0.12"

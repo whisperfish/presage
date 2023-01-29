@@ -8,12 +8,12 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
 use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
-use log::{debug, info};
+use log::{debug, error, info};
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
         proto::sync_message::Sent,
-        Contact, GroupMasterKey, SignalServers,
+        Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
     Manager, MessageStore, MigrationConflictStrategy, Registered, RegistrationOptions, SledStore,
@@ -102,12 +102,7 @@ enum Cmd {
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive,
-    /// Get information about a group
-    GetGroup {
-        #[clap(long, short = 'k', value_parser = parse_base64_master_key)]
-        group_master_key: GroupMasterKey,
-    },
-    #[clap(about = "List group memberships")]
+    #[clap(about = "List groups")]
     ListGroups,
     #[clap(about = "List contacts")]
     ListContacts,
@@ -246,16 +241,13 @@ async fn receive<C: Store + MessageStore>(
                     )
                 } else {
                     println!("Message from {:?}: {:?}", metadata, message);
-                    // fetch the groups v2 info here, just for testing purposes
-                    if let Some(group_v2) = message.group_v2 {
-                        let master_key_bytes: [u8; 32] =
-                            group_v2.master_key.clone().unwrap().try_into().unwrap();
-                        let master_key = GroupMasterKey::new(master_key_bytes);
-                        let group = manager.get_group_v2(master_key).await?;
-                        let group_changes = manager.decrypt_group_context(group_v2)?;
-                        println!("Group v2: {:?}", group.title);
-                        println!("Group change: {:?}", group_changes);
-                        println!("Group master key: {:?}", hex::encode(master_key_bytes));
+                    if let Some(GroupContextV2 {
+                        master_key: Some(master_key),
+                        ..
+                    }) = message.group_v2
+                    {
+                        let Group { title, .. } = manager.get_group(&master_key)?.unwrap();
+                        println!("\tin group {title}");
                     }
                 }
 
@@ -390,16 +382,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 ..Default::default()
             };
 
-            let group = manager
-                .get_group_v2(GroupMasterKey::new(master_key))
-                .await?;
-
             manager
-                .send_message_to_group(
-                    group.members.into_iter().map(|m| m.uuid).map(Into::into),
-                    data_message,
-                    timestamp,
-                )
+                .send_message_to_group(&master_key, data_message, timestamp)
                 .await?;
         }
         Cmd::Unregister => unimplemented!(),
@@ -444,7 +428,31 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::Block => unimplemented!(),
         Cmd::Unblock => unimplemented!(),
         Cmd::UpdateContact => unimplemented!(),
-        Cmd::ListGroups => unimplemented!(),
+        Cmd::ListGroups => {
+            let manager = Manager::load_registered(config_store)?;
+            for group in manager.get_groups()? {
+                match group {
+                    Ok((
+                        _,
+                        Group {
+                            title,
+                            description,
+                            version,
+                            members,
+                            ..
+                        },
+                    )) => {
+                        println!(
+                            "{title}: {description:?} / version {version} / {} members",
+                            members.len()
+                        );
+                    }
+                    Err(error) => {
+                        error!("Error: failed to deserialize group, {error}");
+                    }
+                };
+            }
+        }
         Cmd::ListContacts => {
             let manager = Manager::load_registered(config_store)?;
             for contact in manager.get_contacts()? {
@@ -497,24 +505,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
             }
         }
-        Cmd::GetGroup { group_master_key } => {
-            let manager = Manager::load_registered(config_store)?;
-            let group = manager.get_group_v2(group_master_key).await?;
-            println!("{:#?}", DebugGroup(&group));
-            for member in &group.members {
-                let profile_key = base64::encode(member.profile_key.bytes);
-                println!("{member:#?} => profile_key = {profile_key}",);
-            }
-        }
     };
     Ok(())
-}
-
-fn parse_base64_master_key(s: &str) -> anyhow::Result<GroupMasterKey> {
-    let bytes = base64::decode(s)?
-        .try_into()
-        .map_err(|_| anyhow!("group master key of invalid length"))?;
-    Ok(GroupMasterKey::new(bytes))
 }
 
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
