@@ -1,6 +1,5 @@
 mod cache;
 mod errors;
-mod ext;
 mod manager;
 mod proto;
 mod store;

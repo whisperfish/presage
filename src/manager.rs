@@ -711,18 +711,6 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
-            let save_message =
-                |config_store: &mut C, content: Content| match Thread::try_from(&content) {
-                    Ok(thread) => {
-                        if let Err(e) = config_store.save_message(&thread, content) {
-                            log::error!("failed saving message to store: {}", e);
-                        }
-                    }
-                    Err(e) => {
-                        log::error!("failed to derive thread key from content: {}", e);
-                    }
-                };
-
             loop {
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
@@ -791,8 +779,6 @@ impl<C: Store> Manager<C, Registered> {
                                         log::error!("Error saving message to store: {}", e);
                                     }
                                 }
-
-                                save_message(&mut state.config_store, content.clone());
                             }
                             Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
