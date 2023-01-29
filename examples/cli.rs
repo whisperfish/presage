@@ -241,17 +241,14 @@ async fn receive<C: Store + MessageStore>(
                     )
                 } else {
                     println!("Message from {:?}: {:?}", metadata, message);
-                    // fetch the groups v2 info here, just for testing purposes
-                    // if let Some(group_v2) = message.group_v2 {
-                    //     let master_key_bytes: [u8; 32] =
-                    //         group_v2.master_key.clone().unwrap().try_into().unwrap();
-                    //     let master_key = GroupMasterKey::new(master_key_bytes);
-                    //     let group = manager.get_group_v2(master_key).await?;
-                    //     let group_changes = manager.decrypt_group_context(group_v2)?;
-                    //     println!("Group v2: {:?}", group.title);
-                    //     println!("Group change: {:?}", group_changes);
-                    //     println!("Group master key: {:?}", hex::encode(master_key_bytes));
-                    // }
+                    if let Some(GroupContextV2 {
+                        master_key: Some(master_key),
+                        ..
+                    }) = message.group_v2
+                    {
+                        let Group { title, .. } = manager.get_group(&master_key)?.unwrap();
+                        println!("\tin group {title}");
+                    }
                 }
 
                 for attachment_pointer in message.attachments {
@@ -445,7 +442,10 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                             ..
                         },
                     )) => {
-                        println!("{title}: {description:?} / version {version} / {} members", members.len());
+                        println!(
+                            "{title}: {description:?} / version {version} / {} members",
+                            members.len()
+                        );
                     }
                     Err(error) => {
                         error!("Error: failed to deserialize group, {error}");
