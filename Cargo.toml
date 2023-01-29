@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "ddccf7431d7fe848ef8fbed487fc0d33fe385b23" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "ddccf7431d7fe848ef8fbed487fc0d33fe385b23" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "bfc293000e058924771c0651c16bb19fb778c4ef" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "bfc293000e058924771c0651c16bb19fb778c4ef" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -62,8 +62,8 @@ quirks = []
 sled-store = ["sled", "matrix-sdk-store-encryption"]
 
 [patch."https://github.com/whisperfish/libsignal-service-rs.git"]
-libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
-libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
+# libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }
+# libsignal-service-hyper = { path = "../libsignal-service-rs/libsignal-service-hyper" }
 
 [patch.crates-io]
 "curve25519-dalek" = { git = 'https://github.com/signalapp/curve25519-dalek', branch = 'lizard2' }
