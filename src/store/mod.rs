@@ -8,8 +8,7 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
-    proto::Group,
-    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage}, groups_v2::Group,
 };
 
 #[cfg(feature = "sled-store")]
@@ -64,11 +63,11 @@ pub trait GroupsStore {
     type GroupsIter: Iterator<Item = Result<Group, Error>>;
 
     fn clear_groups(&mut self) -> Result<(), Error>;
-    fn save_groups(&mut self, groups: impl Iterator<Item = Group>) -> Result<(), Error>;
-    fn save_group(&self, group: Group) -> Result<(), Error>;
+    fn save_group(&self, master_key: &[u8], group: Group) -> Result<(), Error>;
     fn groups(&self) -> Result<Self::GroupsIter, Error>;
-    fn group_by_id(&self, id: Uuid) -> Result<Option<Group>, Error>;
+    fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error>;
 }
+
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {

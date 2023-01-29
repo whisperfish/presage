@@ -247,17 +247,16 @@ async fn receive<C: Store + MessageStore>(
                 } else {
                     println!("Message from {:?}: {:?}", metadata, message);
                     // fetch the groups v2 info here, just for testing purposes
-                    if let Some(group_v2) = message.group_v2 {
-                        let master_key_bytes: [u8; 32] =
-                            group_v2.master_key.clone().unwrap().try_into().unwrap();
-                        let master_key = GroupMasterKey::new(master_key_bytes);
-                        let group = manager.get_group_v2(master_key).await?;
-                        let group_changes = manager.decrypt_group_context(group_v2)?;
-                        println!("Group v2: {:?}", group.title);
-                        println!("Group change: {:?}", group_changes);
-                        println!("Group master key: {:?}", hex::encode(&master_key_bytes));
-                        manager.save_group(group, master_key_bytes.to_vec())?;
-                    }
+                    // if let Some(group_v2) = message.group_v2 {
+                    //     let master_key_bytes: [u8; 32] =
+                    //         group_v2.master_key.clone().unwrap().try_into().unwrap();
+                    //     let master_key = GroupMasterKey::new(master_key_bytes);
+                    //     let group = manager.get_group_v2(master_key).await?;
+                    //     let group_changes = manager.decrypt_group_context(group_v2)?;
+                    //     println!("Group v2: {:?}", group.title);
+                    //     println!("Group change: {:?}", group_changes);
+                    //     println!("Group master key: {:?}", hex::encode(master_key_bytes));
+                    // }
                 }
 
                 for attachment_pointer in message.attachments {
@@ -392,7 +391,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             };
 
             let group = manager
-                .get_group_v2(GroupMasterKey::new(master_key))
+                .fetch_group_v2(GroupMasterKey::new(master_key))
                 .await?;
 
             manager
@@ -516,13 +515,13 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::GetGroup { group_master_key } => {
             let (master_key, key) = group_master_key;
             let manager = Manager::load_registered(config_store)?;
-            let group = manager.get_group_v2(master_key).await?;
+            let group = manager.fetch_group_v2(master_key).await?;
             println!("{:#?}", DebugGroup(&group));
             for member in &group.members {
-                let profile_key = base64::encode(&member.profile_key.bytes);
+                let profile_key = base64::encode(member.profile_key.bytes);
                 println!("{member:#?} => profile_key = {profile_key}",);
             }
-            manager.save_group(group, key.as_bytes().to_vec())?;
+            // manager.save_group(group, key.as_bytes().to_vec())?;
         }
     };
     Ok(())

@@ -49,6 +49,8 @@ pub enum Error {
     LinkError,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
+    #[error("message pipe not started, you need to start receiving messages before you can send anything back")]
+    MessagePipeNotStarted,
     #[error("receiving pipe was interrupted")]
     MessagePipeInterruptedError,
     #[error("failed to parse contact information: {0}")]
@@ -61,6 +63,8 @@ pub enum Error {
     MigrationConflict,
     #[error("I/O error: {0}")]
     FsError(#[from] fs_extra::error::Error),
+    #[error("timeout: {0}")]
+    Timeout(#[from] tokio::time::error::Elapsed),
 }
 
 impl Error {

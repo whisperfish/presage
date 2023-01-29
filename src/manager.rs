@@ -1,8 +1,12 @@
-use std::time::UNIX_EPOCH;
+use std::{
+    fmt,
+    sync::Arc,
+    time::{Duration, UNIX_EPOCH},
+};
 
-use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::proto::Group as ProtoGroup;
+use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
+use parking_lot::Mutex;
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -20,10 +24,8 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
     },
-    proto::{
-        sync_message::{self, Sent},
-        AttachmentPointer, GroupContextV2,
-    },
+    proto::Group as ProtoGroup,
+    proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -35,11 +37,12 @@ use libsignal_service::{
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, ext::ContentBodyExt, Thread};
+use crate::{cache::CacheCell, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, ThreadRng>;
@@ -52,6 +55,14 @@ pub struct Manager<Store, State> {
     config_store: Store,
     /// Part of the manager which is persisted in the store.
     state: State,
+}
+
+impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Manager")
+            .field("state", &self.state)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -75,7 +86,10 @@ pub struct Confirmation {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    cache: CacheCell<HyperPushService>,
+    push_service_cache: CacheCell<HyperPushService>,
+    #[serde(skip)]
+    websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
@@ -90,6 +104,14 @@ pub struct Registered {
     #[serde(with = "serde_public_key")]
     pub(crate) public_key: PublicKey,
     profile_key: ProfileKey,
+}
+
+impl fmt::Debug for Registered {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Registered")
+            .field("websocket", &self.websocket.lock().is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 impl Registered {
@@ -305,7 +327,8 @@ impl<C: Store> Manager<C, Linking> {
         let mut manager = Manager {
             config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: Default::default(),
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -419,7 +442,8 @@ impl<C: Store> Manager<C, Confirmation> {
         let mut manager = Manager {
             config_store: self.config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -518,6 +542,28 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    async fn wait_for_contacts_sync(
+        &mut self,
+        mut messages: impl Stream<Item = Content> + Unpin,
+    ) -> Result<(), Error> {
+        let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        while let Some(Content { body, .. }) = messages.next().await {
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                contacts: Some(contacts),
+                ..
+            }) = body
+            {
+                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
+                let _ = self.config_store.clear_contacts();
+                self.config_store
+                    .save_contacts(contacts.filter_map(Result::ok))?;
+                info!("saved contacts");
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -537,10 +583,22 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
+        let messages = self.receive_messages().await?;
+        pin_mut!(messages);
+
+        // first request the sync
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
 
-        trace!("requested contacts sync");
+        // wait for it to arrive
+        info!("waiting for contacts sync for up to 3 minutes");
+        tokio::time::timeout(
+            Duration::from_secs(3 * 60),
+            self.wait_for_contacts_sync(messages),
+        )
+        .await
+        .map_err(Error::from)??;
+
         Ok(())
     }
 
@@ -593,31 +651,39 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn receive_messages_encrypted(
-        &self,
+        &mut self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
+        self.state.websocket.lock().replace(pipe.ws());
         Ok(pipe.stream())
     }
 
     /// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(&mut self) -> Result<impl Stream<Item = Content>, Error> {
+        self.receive_messages_stream(false).await
+    }
+
+    async fn receive_messages_stream(
+        &mut self,
+        include_internal_events: bool,
+    ) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
-            push_service: HyperPushService,
             config_store: C,
+            include_internal_events: bool,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
-            push_service: self.push_service()?,
             config_store: self.config_store.clone(),
+            include_internal_events,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -629,7 +695,7 @@ impl<C: Store> Manager<C, Registered> {
                         }
                     }
                     Err(e) => {
-                        log::error!("failed to derive thread key from content");
+                        log::error!("failed to derive thread key from content: {}", e);
                     }
                 };
 
@@ -638,52 +704,80 @@ impl<C: Store> Manager<C, Registered> {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             Ok(Some(content)) => {
-                                match &content.body {
-                                    // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                                    ContentBody::SynchronizeMessage(SyncMessage {
-                                        contacts: Some(contacts),
-                                        ..
-                                    }) => {
-                                        let mut message_receiver =
-                                            MessageReceiver::new(state.push_service.clone());
-                                        match message_receiver.retrieve_contacts(&contacts).await {
-                                            Ok(contacts_iter) => {
-                                                let _ = state.config_store.clear_contacts();
-                                                if let Err(e) = state.config_store.save_contacts(
-                                                    contacts_iter.filter_map(Result::ok),
-                                                ) {
-                                                    error!("failed to save contacts: {}", e)
-                                                }
-                                                info!("saved contacts");
-                                            }
-                                            Err(e) => error!("failed to retrieve contacts: {}", e),
-                                        }
-                                    }
-                                    // groups v2 synchronization
-                                    body => {
-                                        if let Some(group_v2) = body.group_v2() {
-                                            let master_key_bytes: [u8; 32] = group_v2
-                                                .master_key
-                                                .clone()
-                                                .unwrap()
-                                                .try_into()
-                                                .unwrap();
-                                            let master_key = GroupMasterKey::new(master_key_bytes);
-                                            let group = self.get_group_v2(master_key).await?;
-                                            let group_changes =
-                                                self.decrypt_group_context(&group_v2)?;
-                                            // self.save_group(group, key);
-                                        }
-
-                                        save_message(&mut state.config_store, content.clone());
-                                    }
-                                    _ => {
-                                        save_message(&mut state.config_store, content.clone());
-                                        // TODO: handle reactions here, we should update the original message?
-
+                                // contacts synchronization sent from the primary device (happens after linking, or on demand)
+                                if let ContentBody::SynchronizeMessage(SyncMessage {
+                                    contacts: Some(_),
+                                    ..
+                                }) = &content.body
+                                {
+                                    if state.include_internal_events {
                                         return Some((content, state));
+                                    } else {
+                                        return None;
                                     }
                                 }
+
+                                if let ContentBody::DataMessage(DataMessage {
+                                    group_v2:
+                                        Some(GroupContextV2 {
+                                            master_key: Some(master_key),
+                                            revision: Some(revision),
+                                            ..
+                                        }),
+                                    ..
+                                })
+                                | ContentBody::SynchronizeMessage(SyncMessage {
+                                    sent:
+                                        Some(sync_message::Sent {
+                                            message:
+                                                Some(DataMessage {
+                                                    group_v2:
+                                                        Some(GroupContextV2 {
+                                                            master_key: Some(master_key),
+                                                            revision: Some(revision),
+                                                            ..
+                                                        }),
+                                                    ..
+                                                }),
+                                            ..
+                                        }),
+                                    ..
+                                }) = &content.body
+                                {
+                                    match state.config_store.group(master_key) {
+                                        Ok(Some(group)) => { },
+                                        Ok(Some(group)) if group.version < *revision => todo!(),
+                                        Ok(None) => {
+                                            let master_key_bytes: [u8; 32] = master_key
+                                                .clone()
+                                                .try_into()
+                                                .expect("malformed group master key");
+                                            match self.fetch_group_v2(master_key).await {
+                                                Ok(group) => {
+                                                    if let Err(e) = state.config_store.save_group(&master_key_bytes, group) {
+                                                        log::error!("failed to save group {:?}", master_key_bytes);
+                                                    }
+                                                }
+                                                Err(e) => log::warn!("failed to fetch group {}", e),
+                                            };
+                                            // TODO: save group changes? or apply them?
+                                            // let group_changes = self.decrypt_group_context(group_context.clone()).await?;
+                                        }
+                                        Err(e) => todo!(),
+                                    }
+                                    // state.manager.upsert_group(group_v2);
+                                }
+
+                                if let Ok(thread) = Thread::try_from(&content) {
+                                    // TODO: handle reactions here, we should update the original message?
+                                    if let Err(e) =
+                                        state.config_store.save_message(&thread, content.clone())
+                                    {
+                                        log::error!("Error saving message to store: {}", e);
+                                    }
+                                }
+
+                                save_message(&mut state.config_store, content.clone());
                             }
                             Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
@@ -797,7 +891,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    pub async fn get_group_v2(&self, group_master_key: GroupMasterKey) -> Result<Group, Error> {
+    async fn fetch_group_v2(&self, master_key_bytes: &[u8]) -> Result<Group, Error> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
@@ -808,6 +902,7 @@ impl<C: Store> Manager<C, Registered> {
             server_public_params,
         );
 
+        let group_master_key = GroupMasterKey::new(master_key_bytes.try_into()?);
         let group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
         let authorization = groups_v2_manager
             .get_authorization_for_today(self.state.uuid, group_secret_params)
@@ -819,7 +914,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.
-    pub fn decrypt_group_context(
+    async fn decrypt_group_context(
         &self,
         group_context: GroupContextV2,
     ) -> Result<Option<GroupChanges>, Error> {
@@ -837,26 +932,6 @@ impl<C: Store> Manager<C, Registered> {
             .map_err(ServiceError::GroupsV2DecryptionError)?;
 
         Ok(group_changes)
-    }
-
-    fn save_group(&self, group: Group, key: Vec<u8>) -> Result<(), Error> {
-        let proto_group = ProtoGroup {
-            title: group.title.as_bytes().to_vec(),
-            members: Vec::new(),
-            avatar: group.avatar,
-            public_key: key,
-            disappearing_messages_timer: Vec::new(),
-            access_control: group.access_control,
-            version: group.version,
-            members_pending_admin_approval: Vec::new(),
-            members_pending_profile_key: Vec::new(),
-            invite_link_password: group.invite_link_password,
-            description_bytes: group.description.unwrap_or_default().as_bytes().to_vec(),
-            announcements_only: false,
-            members_banned: Vec::new(),
-        };
-        self.config_store.save_group(proto_group)?;
-        Ok(())
     }
 
     /// Downloads and decrypts a single attachment.
@@ -893,7 +968,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error> {
-        self.state.cache.get(|| {
+        self.state.push_service_cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
 
@@ -914,6 +989,11 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         Ok(MessageSender::new(
+            self.state
+                .websocket
+                .lock()
+                .clone()
+                .ok_or(Error::MessagePipeNotStarted)?,
             self.push_service()?,
             self.new_service_cipher()?,
             rand::thread_rng(),

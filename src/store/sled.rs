@@ -7,6 +7,7 @@ use std::{
 
 use async_trait::async_trait;
 use libsignal_service::{
+    groups_v2::Group,
     models::Contact,
     prelude::{
         protocol::{
@@ -17,7 +18,6 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
-    proto::Group,
     push_service::DEFAULT_DEVICE_ID,
 };
 use log::{debug, trace, warn};
@@ -28,12 +28,7 @@ use sha2::{Digest, Sha256};
 use sled::Batch;
 
 use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
-use crate::{
-    manager::Registered,
-    proto::{ContentProto, GroupProto},
-    store::Thread,
-    Error, Store,
-};
+use crate::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
 
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 
@@ -376,17 +371,6 @@ impl GroupsStore for SledStore {
         Ok(())
     }
 
-    fn save_groups(&mut self, groups: impl Iterator<Item = Group>) -> Result<(), Error> {
-        for group in groups {
-            let key = group.public_key.to_vec();
-            let proto: GroupProto = group.into();
-            let value = proto.encode_to_vec();
-            self.insert(SLED_KEY_GROUPS, key, value)?;
-        }
-        debug!("saved groups");
-        Ok(())
-    }
-
     fn groups(&self) -> Result<Self::GroupsIter, Error> {
         Ok(SledGroupsIter {
             iter: self.db.open_tree(SLED_KEY_GROUPS)?.iter(),
@@ -394,25 +378,25 @@ impl GroupsStore for SledStore {
         })
     }
 
-    fn group_by_id(&self, id: Uuid) -> Result<Option<Group>, Error> {
-        let val: Option<Vec<u8>> = self.get(SLED_KEY_GROUPS, id)?;
+    fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error> {
+        let key: [u8; 32] = master_key.try_into()?;
+        let val: Option<Vec<u8>> = self.get(SLED_KEY_GROUPS, key)?;
         match val {
             Some(ref v) => {
-                let proto = GroupProto::decode(v.as_slice())?;
-                let group = proto.try_into()?;
+                let group = serde_json::from_slice(v.as_slice())?;
                 Ok(Some(group))
             }
             None => Ok(None),
         }
     }
-    fn save_group(&self, group: Group) -> Result<(), Error> {
-        let key = group.public_key.to_vec();
-        let proto: GroupProto = group.into();
-        let value = proto.encode_to_vec();
-        self.insert(SLED_KEY_GROUPS, key, value)?;
+
+    fn save_group(&self, master_key: &[u8], group: Group) -> Result<(), Error> {
+        let key: [u8; 32] = master_key.try_into()?;
+        self.insert(SLED_KEY_GROUPS, key, group)?;
         Ok(())
     }
 }
+
 pub struct SledContactsIter {
     cipher: Option<Arc<StoreCipher>>,
     iter: sled::Iter,
@@ -453,8 +437,7 @@ impl Iterator for SledGroupsIter {
                     |c| c.decrypt_value(&value).map_err(Error::from),
                 )
             })
-            .and_then(|data: Vec<u8>| GroupProto::decode(&data[..]).map_err(Error::from))
-            .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
+            .into()
     }
 }
 
@@ -709,7 +692,7 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        self.insert(SLED_TREE_SENDER_KEYS, &key, record.serialize()?)
+        self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
             .map_err(Error::into_signal_error)
     }
 
@@ -725,7 +708,7 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        self.get(SLED_TREE_SENDER_KEYS, &key)
+        self.get(SLED_TREE_SENDER_KEYS, key)
             .map_err(Error::into_signal_error)?
             .map(|b: Vec<u8>| SenderKeyRecord::deserialize(&b))
             .transpose()
@@ -745,7 +728,7 @@ impl MessageStore for SledStore {
         let proto: ContentProto = message.into();
 
         let tree = self.messages_thread_tree_name(thread);
-        let key = self.key(&tree, &timestamp_bytes);
+        let key = self.key(&tree, timestamp_bytes);
 
         let value = proto.encode_to_vec();
         let value = self.cipher.as_ref().map_or_else(
