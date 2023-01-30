@@ -10,7 +10,9 @@ use libsignal_service::{
         Content, GroupMasterKey, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    utils::serde_base64,
 };
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "sled-store")]
 pub mod sled;
@@ -74,7 +76,7 @@ pub trait GroupsStore {
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
 pub enum Thread {
     /// The message was sent inside a contact-chat.
     Contact(Uuid),
