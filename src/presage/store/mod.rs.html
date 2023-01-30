@@ -159,6 +159,8 @@
 <span id="159">159</span>
 <span id="160">160</span>
 <span id="161">161</span>
+<span id="162">162</span>
+<span id="163">163</span>
 </pre><pre class="rust"><code><span class="kw">use crate</span>::{manager::Registered, Error};
 <span class="kw">use </span>libsignal_service::{
     content::ContentBody,
@@ -171,7 +173,9 @@
         Content, GroupMasterKey, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    utils::serde_base64,
 };
+<span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="attribute">#[cfg(feature = <span class="string">&quot;sled-store&quot;</span>)]
 </span><span class="kw">pub mod </span>sled;
@@ -235,7 +239,7 @@
 }
 
 <span class="doccomment">/// A thread specifies where a message was sent, either to or from a contact or in a group.
-</span><span class="attribute">#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+</span><span class="attribute">#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
 </span><span class="kw">pub enum </span>Thread {
     <span class="doccomment">/// The message was sent inside a contact-chat.
     </span>Contact(Uuid),
