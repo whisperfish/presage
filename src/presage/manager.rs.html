@@ -1018,8 +1018,6 @@
 <span id="1018">1018</span>
 <span id="1019">1019</span>
 <span id="1020">1020</span>
-<span id="1021">1021</span>
-<span id="1022">1022</span>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     sync::Arc,
@@ -1655,14 +1653,12 @@
     }
 
     <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].
-    ///
-    /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
-    /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
     </span><span class="kw">pub fn </span>get_contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&gt;&gt;, Error&gt; {
         <span class="self">self</span>.config_store.contacts()
     }
 
-    <span class="kw">pub fn </span>get_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
+    <span class="doccomment">/// Get a group (either from the local cache, or fetch it remotely) using its master key
+    </span><span class="kw">pub fn </span>get_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
         <span class="self">self</span>.config_store.group(master_key_bytes)
     }
 
