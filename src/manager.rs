@@ -633,13 +633,11 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Returns an iterator on contacts stored in the [Store].
-    ///
-    /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
-    /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
     pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
         self.config_store.contacts()
     }
 
+    /// Get a group (either from the local cache, or fetch it remotely) using its master key
     pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
         self.config_store.group(master_key_bytes)
     }
