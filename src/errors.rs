@@ -1,9 +1,6 @@
 use std::borrow::Cow;
 
-use libsignal_service::{
-    models::ParseContactError,
-    prelude::{protocol::SignalProtocolError, Uuid},
-};
+use libsignal_service::{models::ParseContactError, prelude::protocol::SignalProtocolError};
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
