@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use libsignal_service::{models::ParseContactError, prelude::protocol::SignalProtocolError};
+use libsignal_service::{
+    models::ParseContactError,
+    prelude::{protocol::SignalProtocolError, Uuid},
+};
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -49,6 +52,8 @@ pub enum Error {
     LinkError,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
+    #[error("message pipe not started, you need to start receiving messages before you can send anything back")]
+    MessagePipeNotStarted,
     #[error("receiving pipe was interrupted")]
     MessagePipeInterruptedError,
     #[error("failed to parse contact information: {0}")]
@@ -57,12 +62,14 @@ pub enum Error {
     AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
     #[error("message is missing a uuid")]
     ContentMissingUuid,
+    #[error("unknown group")]
+    UnknownGroup,
     #[error("database migration is not supported")]
     MigrationConflict,
     #[error("I/O error: {0}")]
     FsError(#[from] fs_extra::error::Error),
-    #[error("Could not find a contact with the given UUID")]
-    ContactNotFound,
+    #[error("timeout: {0}")]
+    Timeout(#[from] tokio::time::error::Elapsed),
 }
 
 impl Error {

@@ -11,6 +11,7 @@ Features:
 - [x] Local storage (using [sled](https://github.com/spacejam/sled))
   - [x] Registration/linking
   - [x] Contacts
+  - [x] Groups
   - [x] Messages
   - [x] Local encryption (using [matrix-sdk-store-encryption](https://crates.io/crates/matrix-sdk-store-encryption))
 - [x] Registration

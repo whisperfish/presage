@@ -1,15 +1,17 @@
 use crate::{manager::Registered, Error};
 use libsignal_service::{
     content::ContentBody,
+    groups_v2::Group,
     models::Contact,
     prelude::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, GroupMasterKey, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
+use serde::{Deserialize, Serialize};
 
 #[cfg(feature = "sled-store")]
 pub mod sled;
@@ -28,6 +30,7 @@ pub trait Store:
     + StateStore<Registered>
     + ContactsStore
     + MessageStore
+    + GroupsStore
     + SenderKeyStore
     + Sync
     + Clone
@@ -58,8 +61,21 @@ pub trait ContactsStore {
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
 }
 
+pub trait GroupsStore {
+    type GroupsIter: Iterator<Item = Result<(GroupMasterKey, Group), Error>>;
+
+    fn clear_groups(&mut self) -> Result<(), Error>;
+    fn save_group(
+        &self,
+        master_key: &[u8],
+        group: crate::prelude::proto::Group,
+    ) -> Result<(), Error>;
+    fn groups(&self) -> Result<Self::GroupsIter, Error>;
+    fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error>;
+}
+
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
-#[derive(Debug, Hash, Eq, PartialEq, Clone)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
 pub enum Thread {
     /// The message was sent inside a contact-chat.
     Contact(Uuid),

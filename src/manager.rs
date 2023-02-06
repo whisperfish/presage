@@ -1,7 +1,12 @@
-use std::time::UNIX_EPOCH;
+use std::{
+    fmt,
+    sync::Arc,
+    time::{Duration, UNIX_EPOCH},
+};
 
-use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace};
+use parking_lot::Mutex;
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -11,18 +16,15 @@ use libsignal_service::{
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, Metadata, SyncMessage},
-    groups_v2::{Group, GroupChanges, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, GroupMasterKey, GroupSecretParams, PushService, Uuid,
+        Content, Envelope, GroupMasterKey, PushService, Uuid,
     },
-    proto::{
-        sync_message::{self},
-        AttachmentPointer, GroupContextV2,
-    },
+    proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -34,6 +36,7 @@ use libsignal_service::{
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -51,6 +54,14 @@ pub struct Manager<Store, State> {
     config_store: Store,
     /// Part of the manager which is persisted in the store.
     state: State,
+}
+
+impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Manager")
+            .field("state", &self.state)
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -74,7 +85,10 @@ pub struct Confirmation {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    cache: CacheCell<HyperPushService>,
+    push_service_cache: CacheCell<HyperPushService>,
+    #[serde(skip)]
+    websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
@@ -89,6 +103,14 @@ pub struct Registered {
     #[serde(with = "serde_public_key")]
     pub(crate) public_key: PublicKey,
     profile_key: ProfileKey,
+}
+
+impl fmt::Debug for Registered {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Registered")
+            .field("websocket", &self.websocket.lock().is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 impl Registered {
@@ -304,7 +326,8 @@ impl<C: Store> Manager<C, Linking> {
         let mut manager = Manager {
             config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: Default::default(),
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -418,7 +441,8 @@ impl<C: Store> Manager<C, Confirmation> {
         let mut manager = Manager {
             config_store: self.config_store,
             state: Registered {
-                cache: CacheCell::default(),
+                push_service_cache: CacheCell::default(),
+                websocket: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -517,6 +541,28 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    async fn wait_for_contacts_sync(
+        &mut self,
+        mut messages: impl Stream<Item = Content> + Unpin,
+    ) -> Result<(), Error> {
+        let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        while let Some(Content { body, .. }) = messages.next().await {
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                contacts: Some(contacts),
+                ..
+            }) = body
+            {
+                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
+                let _ = self.config_store.clear_contacts();
+                self.config_store
+                    .save_contacts(contacts.filter_map(Result::ok))?;
+                info!("saved contacts");
+                return Ok(());
+            }
+        }
+        Ok(())
+    }
+
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -536,10 +582,22 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
+        let messages = self.receive_messages().await?;
+        pin_mut!(messages);
+
+        // first request the sync
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
 
-        trace!("requested contacts sync");
+        // wait for it to arrive
+        info!("waiting for contacts sync for up to 3 minutes");
+        tokio::time::timeout(
+            Duration::from_secs(3 * 60),
+            self.wait_for_contacts_sync(messages),
+        )
+        .await
+        .map_err(Error::from)??;
+
         Ok(())
     }
 
@@ -574,44 +632,92 @@ impl<C: Store> Manager<C, Registered> {
         Ok(account_manager.retrieve_profile(uuid.into()).await?)
     }
 
-    /// Returns an iterator on contacts stored in the [Store].
+    /// Get a single contact by its UUID
     ///
-    /// **Note:** after [requesting contacts sync](Manager::request_contacts_sync), you need
-    /// to start the [receiving message loop](Manager::receive_messages) for contacts to be processed
-    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
-        self.config_store.contacts()
-    }
-
-    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+    /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
+    pub fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
         self.config_store.contact_by_id(id)
     }
 
-    async fn receive_messages_encrypted(
+    /// Returns an iterator on contacts stored in the [Store].
+    pub fn contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
+        self.config_store.contacts()
+    }
+
+    /// Get a group (either from the local cache, or fetch it remotely) using its master key
+    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+        self.config_store.group(master_key_bytes)
+    }
+
+    /// Returns an iterator on groups stored in the [Store].
+    pub fn groups(
         &self,
+    ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
+        self.config_store.groups()
+    }
+
+    /// Get an iterator of messages in a thread, optionally starting from a point in time.
+    pub fn messages(
+        &self,
+        thread: impl AsRef<Thread>,
+        from: Option<u64>,
+    ) -> Result<impl Iterator<Item = Result<Content, Error>>, Error> {
+        self.config_store.messages(thread.as_ref(), from)
+    }
+
+    async fn receive_messages_encrypted(
+        &mut self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
+        self.state.websocket.lock().replace(pipe.ws());
         Ok(pipe.stream())
     }
 
     /// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    pub async fn receive_messages(&self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(&mut self) -> Result<impl Stream<Item = Content>, Error> {
+        self.receive_messages_stream(false).await
+    }
+
+    fn groups_manager(
+        &self,
+    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error> {
+        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let server_public_params = service_configuration.zkgroup_server_public_params;
+
+        let groups_credentials_cache = InMemoryCredentialsCache::default();
+        let groups_manager = GroupsManager::new(
+            self.state.uuid,
+            self.push_service()?,
+            groups_credentials_cache,
+            server_public_params,
+        );
+
+        Ok(groups_manager)
+    }
+
+    async fn receive_messages_stream(
+        &mut self,
+        include_internal_events: bool,
+    ) -> Result<impl Stream<Item = Content>, Error> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
-            push_service: HyperPushService,
             config_store: C,
+            groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
+            include_internal_events: bool,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             service_cipher: self.new_service_cipher()?,
-            push_service: self.push_service()?,
             config_store: self.config_store.clone(),
+            groups_manager: self.groups_manager()?,
+            include_internal_events,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -619,33 +725,62 @@ impl<C: Store> Manager<C, Registered> {
                 match state.encrypted_messages.next().await {
                     Some(Ok(envelope)) => {
                         match state.service_cipher.open_envelope(envelope).await {
-                            // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                            Ok(Some(Content {
-                                metadata: Metadata { .. },
-                                body:
-                                    ContentBody::SynchronizeMessage(SyncMessage {
-                                        contacts: Some(contacts),
-                                        ..
-                                    }),
-                                ..
-                            })) => {
-                                let mut message_receiver =
-                                    MessageReceiver::new(state.push_service.clone());
-                                match message_receiver.retrieve_contacts(&contacts).await {
-                                    Ok(contacts_iter) => {
-                                        let _ = state.config_store.clear_contacts();
-                                        if let Err(e) = state
-                                            .config_store
-                                            .save_contacts(contacts_iter.filter_map(Result::ok))
-                                        {
-                                            error!("failed to save contacts: {}", e)
-                                        }
-                                        info!("saved contacts");
-                                    }
-                                    Err(e) => error!("failed to retrieve contacts: {}", e),
-                                }
-                            }
                             Ok(Some(content)) => {
+                                // contacts synchronization sent from the primary device (happens after linking, or on demand)
+                                if let ContentBody::SynchronizeMessage(SyncMessage {
+                                    contacts: Some(_),
+                                    ..
+                                }) = &content.body
+                                {
+                                    if state.include_internal_events {
+                                        return Some((content, state));
+                                    } else {
+                                        return None;
+                                    }
+                                }
+
+                                if let ContentBody::DataMessage(DataMessage {
+                                    group_v2:
+                                        Some(GroupContextV2 {
+                                            master_key: Some(master_key_bytes),
+                                            revision: Some(revision),
+                                            ..
+                                        }),
+                                    ..
+                                })
+                                | ContentBody::SynchronizeMessage(SyncMessage {
+                                    sent:
+                                        Some(sync_message::Sent {
+                                            message:
+                                                Some(DataMessage {
+                                                    group_v2:
+                                                        Some(GroupContextV2 {
+                                                            master_key: Some(master_key_bytes),
+                                                            revision: Some(revision),
+                                                            ..
+                                                        }),
+                                                    ..
+                                                }),
+                                            ..
+                                        }),
+                                    ..
+                                }) = &content.body
+                                {
+                                    // there's two things to implement: the group metadata (fetched from HTTP API)
+                                    // and the group changes, which are part of the protobuf messages
+                                    // this means we kinda need our own internal representation of groups inside of presage?
+                                    if let Ok(Some(group)) = upsert_group(
+                                        &state.config_store,
+                                        &mut state.groups_manager,
+                                        master_key_bytes,
+                                        revision,
+                                    )
+                                    .await
+                                    {
+                                        log::trace!("{group:?}");
+                                    }
+                                }
+
                                 if let Ok(thread) = Thread::try_from(&content) {
                                     // TODO: handle reactions here, we should update the original message?
                                     if let Err(e) =
@@ -654,8 +789,6 @@ impl<C: Store> Manager<C, Registered> {
                                         log::error!("Error saving message to store: {}", e);
                                     }
                                 }
-
-                                return Some((content, state));
                             }
                             Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
@@ -729,13 +862,18 @@ impl<C: Store> Manager<C, Registered> {
     /// Sends one message in a group (v2).
     pub async fn send_message_to_group(
         &mut self,
-        recipients: impl IntoIterator<Item = ServiceAddress>,
+        master_key_bytes: &[u8],
         message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error> {
         let mut sender = self.new_message_sender()?;
 
-        let recipients: Vec<_> = recipients.into_iter().collect();
+        let mut groups_manager = self.groups_manager()?;
+        let Some(group) = upsert_group(&self.config_store, &mut groups_manager, master_key_bytes, &0).await? else {
+            return Err(Error::UnknownGroup);
+        };
+
+        let recipients: Vec<_> = group.members.into_iter().map(|m| m.uuid.into()).collect();
 
         let online_only = false;
         let results = sender
@@ -767,48 +905,6 @@ impl<C: Store> Manager<C, Registered> {
             .delete_all_sessions(&recipient.identifier())
             .await?;
         Ok(())
-    }
-
-    pub async fn get_group_v2(&self, group_master_key: GroupMasterKey) -> Result<Group, Error> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let server_public_params = service_configuration.zkgroup_server_public_params;
-
-        let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let mut groups_v2_manager = GroupsManager::new(
-            self.push_service()?,
-            &mut groups_v2_credentials_cache,
-            server_public_params,
-        );
-
-        let group_secret_params = GroupSecretParams::derive_from_master_key(group_master_key);
-        let authorization = groups_v2_manager
-            .get_authorization_for_today(self.state.uuid, group_secret_params)
-            .await?;
-
-        Ok(groups_v2_manager
-            .get_group(group_secret_params, authorization)
-            .await?)
-    }
-
-    /// Decrypts a blob of [GroupContextV2] and deserializes it in a higher level [GroupChanges] struct.
-    pub fn decrypt_group_context(
-        &self,
-        group_context: GroupContextV2,
-    ) -> Result<Option<GroupChanges>, Error> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let server_public_params = service_configuration.zkgroup_server_public_params;
-        let mut groups_v2_credentials_cache = InMemoryCredentialsCache::default();
-        let groups_v2_manager = GroupsManager::new(
-            self.push_service()?,
-            &mut groups_v2_credentials_cache,
-            server_public_params,
-        );
-
-        let group_changes = groups_v2_manager
-            .decrypt_group_context(group_context)
-            .map_err(ServiceError::GroupsV2DecryptionError)?;
-
-        Ok(group_changes)
     }
 
     /// Downloads and decrypts a single attachment.
@@ -845,7 +941,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error> {
-        self.state.cache.get(|| {
+        self.state.push_service_cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
 
@@ -866,6 +962,11 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         Ok(MessageSender::new(
+            self.state
+                .websocket
+                .lock()
+                .clone()
+                .ok_or(Error::MessagePipeNotStarted)?,
             self.push_service()?,
             self.new_service_cipher()?,
             rand::thread_rng(),
@@ -893,4 +994,61 @@ impl<C: Store> Manager<C, Registered> {
 
         Ok(service_cipher)
     }
+
+    #[deprecated = "use Manager::contact_by_id"]
+    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
+        self.contacts()
+    }
+
+    #[deprecated = "use Manager::contact_by_id"]
+    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        self.contact_by_id(id)
+    }
+
+    #[deprecated = "use Manager::groups"]
+    pub fn get_groups(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
+        self.groups()
+    }
+
+    #[deprecated = "use Manager::group"]
+    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+        self.group(master_key_bytes)
+    }
+}
+
+async fn upsert_group<C: Store>(
+    config_store: &C,
+    groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
+    master_key_bytes: &[u8],
+    revision: &u32,
+) -> Result<Option<Group>, Error> {
+    let save_group = match config_store.group(master_key_bytes) {
+        Ok(Some(group)) => {
+            log::debug!("loaded group from local db {group:?}");
+            group.version < *revision
+        }
+        Ok(None) => true,
+        Err(e) => {
+            log::warn!("failed to retrieve group from local db {}", e);
+            true
+        }
+    };
+
+    if save_group {
+        log::debug!("fetching group");
+        match groups_manager.fetch_encrypted_group(master_key_bytes).await {
+            Ok(group) => {
+                if let Err(e) = config_store.save_group(master_key_bytes, group) {
+                    log::error!("failed to save group {master_key_bytes:?}: {e}",);
+                }
+            }
+            Err(e) => {
+                log::warn!("failed to fetch encrypted group: {e}")
+            }
+        }
+    }
+
+    config_store.group(master_key_bytes)
 }
