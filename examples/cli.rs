@@ -246,7 +246,7 @@ async fn receive<C: Store + MessageStore>(
                         ..
                     }) = message.group_v2
                     {
-                        let Group { title, .. } = manager.get_group(&master_key)?.unwrap();
+                        let Group { title, .. } = manager.group(&master_key)?.unwrap();
                         println!("\tin group {title}");
                     }
                 }
@@ -394,7 +394,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             let manager = Manager::load_registered(config_store)?;
             if profile_key.is_none() && uuid.is_some() {
                 for contact in manager
-                    .get_contacts()?
+                    .contacts()?
                     .filter_map(Result::ok)
                     .filter(|c| c.address.uuid == uuid)
                 {
@@ -430,7 +430,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store)?;
-            for group in manager.get_groups()? {
+            for group in manager.groups()? {
                 match group {
                     Ok((
                         _,
@@ -455,7 +455,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         }
         Cmd::ListContacts => {
             let manager = Manager::load_registered(config_store)?;
-            for contact in manager.get_contacts()? {
+            for contact in manager.contacts()? {
                 if let Contact {
                     name,
                     address:
@@ -478,7 +478,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::FindContact { uuid, ref name } => {
             let manager = Manager::load_registered(config_store)?;
             for contact in manager
-                .get_contacts()?
+                .contacts()?
                 .filter_map(Result::ok)
                 .filter(|c| c.address.uuid == uuid)
                 .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))

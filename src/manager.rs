@@ -41,6 +41,7 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
+use crate::MessageStore;
 use crate::{cache::CacheCell, Thread};
 use crate::{store::Store, Error};
 
@@ -632,25 +633,37 @@ impl<C: Store> Manager<C, Registered> {
         Ok(account_manager.retrieve_profile(uuid.into()).await?)
     }
 
+    /// Get a single contact by its UUID
+    ///
+    /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
+    pub fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        self.config_store.contact_by_id(id)
+    }
+
     /// Returns an iterator on contacts stored in the [Store].
-    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
+    pub fn contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
         self.config_store.contacts()
     }
 
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
-    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
         self.config_store.group(master_key_bytes)
     }
 
     /// Returns an iterator on groups stored in the [Store].
-    pub fn get_groups(
+    pub fn groups(
         &self,
     ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
         self.config_store.groups()
     }
 
-    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        self.config_store.contact_by_id(id)
+    /// Get an iterator of messages in a thread, optionally starting from a point in time.
+    pub fn messages(
+        &self,
+        thread: impl AsRef<Thread>,
+        from: Option<u64>,
+    ) -> Result<impl Iterator<Item = Result<Content, Error>>, Error> {
+        self.config_store.messages(thread.as_ref(), from)
     }
 
     async fn receive_messages_encrypted(
@@ -981,6 +994,28 @@ impl<C: Store> Manager<C, Registered> {
         );
 
         Ok(service_cipher)
+    }
+
+    #[deprecated = "use Manager::contact_by_id"]
+    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
+        self.contacts()
+    }
+
+    #[deprecated = "use Manager::contact_by_id"]
+    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+        self.contact_by_id(id)
+    }
+
+    #[deprecated = "use Manager::groups"]
+    pub fn get_groups(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
+        self.groups()
+    }
+
+    #[deprecated = "use Manager::group"]
+    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+        self.group(master_key_bytes)
     }
 }
 
