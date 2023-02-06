@@ -125,6 +125,8 @@ enum Cmd {
         )]
         group_master_key: Option<[u8; 32]>,
     },
+    #[clap(about = "Get a single contact by UUID")]
+    GetContact { uuid: Uuid },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -240,7 +242,7 @@ async fn receive<C: Store + MessageStore>(
                         reaction.target_sent_timestamp, reaction.emoji,
                     )
                 } else {
-                    println!("Message from {:?}: {:?}", metadata, message);
+                    println!("Message from {metadata:?}: {message:?}");
                     if let Some(GroupContextV2 {
                         master_key: Some(master_key),
                         ..
@@ -274,7 +276,7 @@ async fn receive<C: Store + MessageStore>(
                 }
             }
             ContentBody::SynchronizeMessage(m) => {
-                eprintln!("Unhandled sync message: {:?}", m);
+                eprintln!("Unhandled sync message: {m:?}");
             }
             ContentBody::TypingMessage(_) => {
                 println!("{:?} is typing", metadata.sender);
@@ -345,10 +347,10 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             match manager {
                 (Ok(manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
-                    println!("{:?}", uuid);
+                    println!("{uuid:?}");
                 }
                 (Err(err), _) => {
-                    println!("{:?}", err);
+                    println!("{err:?}");
                 }
             };
         }
@@ -405,11 +407,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                     profile_key = Some(ProfileKey(profilek));
                 }
             } else {
-                println!(
-                    "Retrieving profile for: {:?} with
-                profile_key",
-                    uuid
-                );
+                println!("Retrieving profile for: {uuid:?} with profile_key");
             }
             let profile = match (uuid, profile_key) {
                 (None, None) => manager.retrieve_profile().await?,
@@ -467,13 +465,20 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                     ..
                 } = contact?
                 {
-                    println!("{} / {} / {}", uuid, name, phonenumber);
+                    println!("{uuid} / {name} / {phonenumber}");
                 }
             }
         }
         Cmd::Whoami => {
             let manager = Manager::load_registered(config_store)?;
             println!("{:?}", &manager.whoami().await?)
+        }
+        Cmd::GetContact { uuid } => {
+            let manager = Manager::load_registered(config_store)?;
+            match manager.contact_by_id(uuid)? {
+                Some(contact) => println!("{contact:#?}"),
+                None => eprintln!("Could not find contact for {uuid}"),
+            }
         }
         Cmd::FindContact { uuid, ref name } => {
             let manager = Manager::load_registered(config_store)?;
