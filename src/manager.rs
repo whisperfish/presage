@@ -41,7 +41,6 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::MessageStore;
 use crate::{cache::CacheCell, Thread};
 use crate::{store::Store, Error};
 
