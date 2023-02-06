@@ -10,7 +10,6 @@ use libsignal_service::{
         Content, GroupMasterKey, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
-    utils::serde_base64,
 };
 use serde::{Deserialize, Serialize};
 
