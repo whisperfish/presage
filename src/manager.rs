@@ -586,7 +586,7 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        let messages = self.receive_messages().await?;
+        let messages = self.receive_messages_stream(true).await?;
         pin_mut!(messages);
 
         // first request the sync
@@ -594,9 +594,9 @@ impl<C: Store> Manager<C, Registered> {
             .await?;
 
         // wait for it to arrive
-        info!("waiting for contacts sync for up to 3 minutes");
+        info!("waiting for contacts sync for up to 60 seconds");
         tokio::time::timeout(
-            Duration::from_secs(3 * 60),
+            Duration::from_secs(60),
             self.wait_for_contacts_sync(messages),
         )
         .await
