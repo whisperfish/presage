@@ -793,6 +793,8 @@ impl<C: Store> Manager<C, Registered> {
                                         log::error!("Error saving message to store: {}", e);
                                     }
                                 }
+
+                                return Some((content, state));
                             }
                             Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
