@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "bfc293000e058924771c0651c16bb19fb778c4ef" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "bfc293000e058924771c0651c16bb19fb778c4ef" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "2e38b9497ba0634fa63560bc6532305e3588ab02" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "2e38b9497ba0634fa63560bc6532305e3588ab02" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -23,7 +23,7 @@ serde_json = "1.0"
 sha2 = "0.10"
 thiserror = "1.0"
 url = "2.2.2"
-tokio = { version = "1.0", default-features = false, features = [ "time" ] }
+tokio = { version = "1.0", default-features = false, features = ["time"] }
 
 # specific to store impl
 libsodium-sys = { version = "0.2.7", optional = true }
