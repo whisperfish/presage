@@ -131,13 +131,7 @@ impl TryFrom<&Content> for Thread {
             )),
             // Case 3: Received a 1-1 message
             // => The message sender is the thread.
-            _ => Ok(Thread::Contact(
-                content
-                    .metadata
-                    .sender
-                    .uuid
-                    .ok_or(Error::ContentMissingUuid)?,
-            )),
+            _ => Ok(Thread::Contact(content.metadata.sender.uuid)),
         }
     }
 }

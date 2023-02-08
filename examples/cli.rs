@@ -7,7 +7,7 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
-use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
+use libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use log::{debug, error, info};
 use presage::{
     prelude::{
@@ -230,26 +230,29 @@ async fn receive<C: Store + MessageStore>(
                 ..
             }) => {
                 if let Some(quote) = &message.quote {
-                    println!(
+                    log::info!(
                         "Quote from {:?}: > {:?} / {}",
                         metadata.sender,
                         quote,
                         message.body(),
                     );
                 } else if let Some(reaction) = message.reaction {
-                    println!(
+                    log::info!(
                         "Reaction to message sent at {:?}: {:?}",
-                        reaction.target_sent_timestamp, reaction.emoji,
+                        reaction.target_sent_timestamp,
+                        reaction.emoji,
                     )
+                } else if let Some(body) = message.body {
+                    log::info!("Message from {metadata:?}: {body}");
                 } else {
-                    println!("Message from {metadata:?}: {message:?}");
+                    log::info!("Message from {metadata:?}: {message:?}");
                     if let Some(GroupContextV2 {
                         master_key: Some(master_key),
                         ..
                     }) = message.group_v2
                     {
                         let Group { title, .. } = manager.group(&master_key)?.unwrap();
-                        println!("\tin group {title}");
+                        log::info!("\tin group {title}");
                     }
                 }
 
@@ -269,7 +272,7 @@ async fn receive<C: Store + MessageStore>(
                     ));
                     fs::write(&file_path, &attachment_data).await?;
                     info!(
-                        "saved received attachment from {} to {}",
+                        "saved received attachment from {:?} to {}",
                         metadata.sender,
                         file_path.display()
                     );
@@ -404,20 +407,14 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                     Ok(profilek) => profilek,
                     Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid.unwrap()),
                 };
-                    profile_key = Some(ProfileKey(profilek));
+                    profile_key = Some(ProfileKey::create(profilek));
                 }
             } else {
                 println!("Retrieving profile for: {uuid:?} with profile_key");
             }
-            let profile = match (uuid, profile_key) {
-                (None, None) => manager.retrieve_profile().await?,
-                (None, Some(_)) => bail!("profile key without provided user uuid"),
-                (Some(_), None) => bail!("user uuid without provided profile key"),
-                (Some(uuid), Some(profile_key)) => {
-                    manager
-                        .retrieve_profile_by_uuid(uuid, profile_key.0)
-                        .await?
-                }
+            let profile = match profile_key {
+                None => manager.retrieve_profile().await?,
+                Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
             };
             println!("{profile:#?}");
         }
@@ -507,7 +504,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             };
             let iter = config_store.messages(&thread, None)?;
             for msg in iter.filter_map(Result::ok) {
-                println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
+                println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
         }
     };
@@ -518,7 +515,7 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
     let bytes = base64::decode(s)?
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
-    Ok(ProfileKey(bytes))
+    Ok(ProfileKey::create(bytes))
 }
 
 struct DebugGroup<'a>(&'a Group);

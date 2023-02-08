@@ -201,7 +201,10 @@ impl SessionStore for VolatileStore {
 
 #[async_trait]
 impl SessionStoreExt for VolatileStore {
-    async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
+    async fn get_sub_device_sessions(
+        &self,
+        name: &ServiceAddress,
+    ) -> Result<Vec<u32>, SignalProtocolError> {
         let session_prefix = self.session_prefix(name);
         log::info!("get_sub_device_sessions: session_prefix={}", session_prefix);
         let session_ids: Vec<u32> = self
