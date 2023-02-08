@@ -34,6 +34,9 @@
 <a href="#34" id="34">34</a>
 <a href="#35" id="35">35</a>
 <a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
 </pre><pre class="rust"><code><span class="kw">mod </span>cache;
 <span class="kw">mod </span>errors;
 <span class="kw">mod </span>manager;
@@ -70,5 +73,8 @@
 }
 
 <span class="kw">const </span>USER_AGENT: <span class="kw-2">&amp;</span>str = <span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_NAME&quot;</span>), <span class="string">&quot;-rs-&quot;</span>, <span class="macro">env!</span>(<span class="string">&quot;CARGO_PKG_VERSION&quot;</span>));
+
+<span class="comment">// TODO: open a PR in libsignal and make sure the bytes can be read from `GroupMasterKey` instead of using this type
+</span><span class="kw">pub type </span>GroupMasterKeyBytes = [u8; <span class="number">32</span>];
 </code></pre></div>
 </section></div></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.67.0 (fc594f156 2023-01-24)" data-search-js="search-444266647c4dba98.js" data-settings-js="settings-bebeae96e00e4617.js" data-settings-css="settings-af96d9e2fc13e081.css" ></div></body></html>

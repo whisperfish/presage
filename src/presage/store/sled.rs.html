@@ -937,7 +937,7 @@
             SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
             SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Content, GroupMasterKey, Uuid,
+        Content, Uuid,
     },
     proto,
     push_service::DEFAULT_DEVICE_ID,
@@ -950,7 +950,9 @@
 <span class="kw">use </span>sled::Batch;
 
 <span class="kw">use super</span>::{ContactsStore, GroupsStore, MessageStore, StateStore};
-<span class="kw">use crate</span>::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
+<span class="kw">use crate</span>::{
+    manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
+};
 
 <span class="kw">const </span>SLED_KEY_SCHEMA_VERSION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;schema_version&quot;</span>;
 
@@ -1297,7 +1299,7 @@
     }
 
     <span class="kw">fn </span>group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
-        <span class="kw">let </span>key: [u8; <span class="number">32</span>] = master_key.try_into()<span class="question-mark">?</span>;
+        <span class="kw">let </span>key: GroupMasterKeyBytes = master_key.try_into()<span class="question-mark">?</span>;
         <span class="kw">let </span>val: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt; = <span class="self">self</span>.get(SLED_KEY_GROUPS, key)<span class="question-mark">?</span>;
         <span class="kw">match </span>val {
             <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>v) =&gt; {
@@ -1310,7 +1312,7 @@
     }
 
     <span class="kw">fn </span>save_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key: <span class="kw-2">&amp;</span>[u8], group: proto::Group) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="kw">let </span>key: [u8; <span class="number">32</span>] = master_key.try_into()<span class="question-mark">?</span>;
+        <span class="kw">let </span>key: GroupMasterKeyBytes = master_key.try_into()<span class="question-mark">?</span>;
         <span class="self">self</span>.insert(SLED_KEY_GROUPS, key, group.encode_to_vec())<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
@@ -1344,7 +1346,7 @@
 }
 
 <span class="kw">impl </span>Iterator <span class="kw">for </span>SledGroupsIter {
-    <span class="kw">type </span>Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKey, Group), Error&gt;;
+    <span class="kw">type </span>Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKeyBytes, Group), Error&gt;;
 
     <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="self">self</span>.iter
@@ -1359,13 +1361,11 @@
             })
             .and_then(|(master_key_bytes, encrypted_group_data)| {
                 <span class="kw">let </span>encrypted_group = proto::Group::decode(encrypted_group_data.as_slice())<span class="question-mark">?</span>;
-                <span class="kw">let </span>master_key = GroupMasterKey::new(
-                    master_key_bytes[..]
-                        .try_into()
-                        .expect(<span class="string">&quot;wrong group master key length&quot;</span>),
-                );
+                <span class="kw">let </span>master_key: GroupMasterKeyBytes = master_key_bytes[..]
+                    .try_into()
+                    .expect(<span class="string">&quot;wrong group master key length&quot;</span>);
                 <span class="kw">let </span>decrypted_group =
-                    decrypt_group(<span class="kw-2">&amp;</span>master_key_bytes[..], encrypted_group).map_err(Error::from)<span class="question-mark">?</span>;
+                    decrypt_group(<span class="kw-2">&amp;</span>master_key, encrypted_group).map_err(Error::from)<span class="question-mark">?</span>;
                 <span class="prelude-val">Ok</span>((master_key, decrypted_group))
             })
             .into()

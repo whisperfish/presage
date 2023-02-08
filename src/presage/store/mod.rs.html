@@ -160,7 +160,7 @@
 <a href="#160" id="160">160</a>
 <a href="#161" id="161">161</a>
 <a href="#162" id="162">162</a>
-</pre><pre class="rust"><code><span class="kw">use crate</span>::{manager::Registered, Error};
+</pre><pre class="rust"><code><span class="kw">use crate</span>::{manager::Registered, Error, GroupMasterKeyBytes};
 <span class="kw">use </span>libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
@@ -169,7 +169,7 @@
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, GroupMasterKey, Uuid,
+        Content, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
@@ -224,7 +224,7 @@
 }
 
 <span class="kw">pub trait </span>GroupsStore {
-    <span class="kw">type </span>GroupsIter: Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKey, Group), Error&gt;&gt;;
+    <span class="kw">type </span>GroupsIter: Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKeyBytes, Group), Error&gt;&gt;;
 
     <span class="kw">fn </span>clear_groups(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
     <span class="kw">fn </span>save_group(
@@ -243,7 +243,7 @@
     </span>Contact(Uuid),
     <span class="comment">// Cannot use GroupMasterKey as unable to extract the bytes.
     </span><span class="doccomment">/// The message was sent inside a groups-chat with the [GroupMasterKey](crate::prelude::GroupMasterKey) (specified as bytes).
-    </span>Group([u8; <span class="number">32</span>]),
+    </span>Group(GroupMasterKeyBytes),
 }
 
 <span class="kw">impl </span>TryFrom&lt;<span class="kw-2">&amp;</span>Content&gt; <span class="kw">for </span>Thread {
