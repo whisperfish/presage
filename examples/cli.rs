@@ -218,8 +218,6 @@ async fn receive<C: Store + MessageStore>(
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
 
-    log::info!("started to receive messages");
-
     while let Some(Content { metadata, body }) = messages.next().await {
         match body {
             ContentBody::DataMessage(message)
@@ -233,27 +231,33 @@ async fn receive<C: Store + MessageStore>(
             }) => {
                 if let Some(quote) = &message.quote {
                     println!(
-                        "Quote from {:?}: > {:?} / {}",
-                        metadata.sender,
-                        quote,
+                        "Answer from {} to {}: {}",
+                        metadata.sender.uuid,
+                        quote.text(),
                         message.body(),
                     );
                 } else if let Some(reaction) = message.reaction {
                     println!(
-                        "Reaction to message sent at {:?}: {:?}",
-                        reaction.target_sent_timestamp, reaction.emoji,
+                        "{} reacted with {} to message sent at {}",
+                        metadata.sender.uuid,
+                        reaction.emoji(),
+                        reaction.target_sent_timestamp(),
                     )
                 } else if let Some(body) = message.body {
-                    println!("Message from {metadata:?}: {body}");
+                    println!("Message from {}: {}", metadata.sender.uuid, body);
                 } else {
-                    println!("Message from {metadata:?}: {message:?}");
                     if let Some(GroupContextV2 {
                         master_key: Some(master_key),
                         ..
-                    }) = message.group_v2
+                    }) = &message.group_v2
                     {
                         let Group { title, .. } = manager.group(&master_key)?.unwrap();
-                        log::info!("\tin group {title}");
+                        println!(
+                            "Group message from {} in group {}: {}",
+                            metadata.sender.uuid,
+                            title,
+                            message.body()
+                        );
                     }
                 }
 
@@ -283,13 +287,13 @@ async fn receive<C: Store + MessageStore>(
                 eprintln!("Unhandled sync message: {m:?}");
             }
             ContentBody::TypingMessage(_) => {
-                println!("{:?} is typing", metadata.sender);
+                println!("{} is typing", metadata.sender.uuid);
             }
             ContentBody::CallMessage(_) => {
-                println!("{:?} is calling!", metadata.sender);
+                println!("{} is calling!", metadata.sender.uuid);
             }
             ContentBody::ReceiptMessage(_) => {
-                println!("Got read receipt from: {:?}", metadata.sender);
+                println!("Read receipt from {}", metadata.sender.uuid);
             }
         }
     }
