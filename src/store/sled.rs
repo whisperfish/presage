@@ -339,11 +339,14 @@ impl ContactsStore for SledStore {
         Ok(())
     }
 
+    fn save_contact(&mut self, contact: Contact) -> Result<(), Error> {
+        self.insert(SLED_KEY_CONTACTS, contact.address.uuid, contact)
+    }
+
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
         for contact in contacts {
-            self.insert(SLED_KEY_CONTACTS, contact.address.uuid, contact)?;
+            self.save_contact(contact)?;
         }
-        debug!("saved contacts");
         Ok(())
     }
 

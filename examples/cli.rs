@@ -452,7 +452,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             }
         }
         Cmd::ListContacts => {
-            let manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store)?;
+            manager.update_contacts_from_profile().await?;
+
             for Contact {
                 name,
                 address: ServiceAddress { uuid },

@@ -605,6 +605,34 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    /// Look through all contacts and update their information from the Signal profile data
+    pub async fn update_contacts_from_profile(&mut self) -> Result<(), Error> {
+        for mut contact in self.contacts()?.flatten() {
+            match contact.profile_key() {
+                Ok(profile_key) => {
+                    info!("updating contact of {} using profile", contact.address.uuid);
+                    if let Ok(Profile {
+                        name: Some(name), ..
+                    }) = self
+                        .retrieve_profile_by_uuid(contact.address.uuid, profile_key)
+                        .await
+                    {
+                        contact.name = name.to_string();
+                        self.config_store.save_contact(contact)?;
+                    }
+                }
+                Err(error) => {
+                    error!(
+                        "failed to decode profile key for contact {}: {}",
+                        contact.address.uuid, error
+                    );
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Returns a handle on the registered state
     pub fn state(&self) -> &Registered {
         &self.state
