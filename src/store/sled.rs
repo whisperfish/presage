@@ -20,8 +20,9 @@ use libsignal_service::{
     },
     proto,
     push_service::DEFAULT_DEVICE_ID,
+    ServiceAddress,
 };
-use log::{debug, trace, warn};
+use log::{debug, error, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -340,11 +341,7 @@ impl ContactsStore for SledStore {
 
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
         for contact in contacts {
-            if let Some(uuid) = contact.address.uuid {
-                self.insert(SLED_KEY_CONTACTS, uuid, contact)?;
-            } else {
-                warn!("skipping contact {:?} without uuid", contact);
-            }
+            self.insert(SLED_KEY_CONTACTS, contact.address.uuid, contact)?;
         }
         debug!("saved contacts");
         Ok(())
@@ -533,9 +530,11 @@ impl SessionStore for SledStore {
         address: &ProtocolAddress,
         _ctx: Context,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
-        trace!("loading session {}", address);
-        self.get(SLED_TREE_SESSIONS, address.to_string())
-            .map_err(Error::into_signal_error)?
+        let session = self
+            .get(SLED_TREE_SESSIONS, address.to_string())
+            .map_err(Error::into_signal_error)?;
+        trace!("loading session {} / exists={}", address, session.is_some());
+        session
             .map(|b: Vec<u8>| SessionRecord::deserialize(&b))
             .transpose()
     }
@@ -554,9 +553,12 @@ impl SessionStore for SledStore {
 
 #[async_trait]
 impl SessionStoreExt for SledStore {
-    async fn get_sub_device_sessions(&self, name: &str) -> Result<Vec<u32>, SignalProtocolError> {
-        let session_prefix = format!("{name}.");
-        log::debug!("get_sub_device_sessions {}", session_prefix);
+    async fn get_sub_device_sessions(
+        &self,
+        address: &ServiceAddress,
+    ) -> Result<Vec<u32>, SignalProtocolError> {
+        let session_prefix = format!("{}.", address.uuid);
+        trace!("get_sub_device_sessions {}", session_prefix);
         let session_ids: Vec<u32> = self
             .tree(SLED_TREE_SESSIONS)
             .map_err(Error::into_signal_error)?
@@ -581,7 +583,10 @@ impl SessionStoreExt for SledStore {
         Ok(())
     }
 
-    async fn delete_all_sessions(&self, name: &str) -> Result<usize, SignalProtocolError> {
+    async fn delete_all_sessions(
+        &self,
+        address: &ServiceAddress,
+    ) -> Result<usize, SignalProtocolError> {
         let tree = self
             .tree(SLED_TREE_SESSIONS)
             .map_err(Error::into_signal_error)?;
@@ -590,7 +595,7 @@ impl SessionStoreExt for SledStore {
 
         self.tree(SLED_TREE_SESSIONS)
             .map_err(Error::into_signal_error)?
-            .scan_prefix(name)
+            .scan_prefix(address.uuid.to_string())
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
                 Some(key)
@@ -646,10 +651,10 @@ impl IdentityKeyStore for SledStore {
             identity_key.serialize(),
         )
         .map_err(|e| {
-            log::error!("error saving identity for {:?}: {}", address, e);
+            error!("error saving identity for {:?}: {}", address, e);
             SignalProtocolError::InvalidState("save_identity", "failed to save identity".into())
         })?;
-        trace!("saved identity");
+
         Ok(false)
     }
 

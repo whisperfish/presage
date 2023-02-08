@@ -7,7 +7,7 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
-use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
+use libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use log::{debug, error, info};
 use presage::{
     prelude::{
@@ -85,7 +85,7 @@ enum Cmd {
         /// Id of the user to retrieve the profile. When omitted, retrieves the registered user
         /// profile.
         #[clap(long)]
-        uuid: Option<Uuid>,
+        uuid: Uuid,
         /// Base64-encoded profile key of user to be able to access their profile
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
@@ -231,26 +231,32 @@ async fn receive<C: Store + MessageStore>(
             }) => {
                 if let Some(quote) = &message.quote {
                     println!(
-                        "Quote from {:?}: > {:?} / {}",
-                        metadata.sender,
-                        quote,
+                        "Answer from {} to {}: {}",
+                        metadata.sender.uuid,
+                        quote.text(),
                         message.body(),
                     );
                 } else if let Some(reaction) = message.reaction {
                     println!(
-                        "Reaction to message sent at {:?}: {:?}",
-                        reaction.target_sent_timestamp, reaction.emoji,
+                        "{} reacted with {} to message sent at {}",
+                        metadata.sender.uuid,
+                        reaction.emoji(),
+                        reaction.target_sent_timestamp(),
                     )
-                } else {
-                    println!("Message from {metadata:?}: {message:?}");
-                    if let Some(GroupContextV2 {
-                        master_key: Some(master_key),
-                        ..
-                    }) = message.group_v2
-                    {
-                        let Group { title, .. } = manager.group(&master_key)?.unwrap();
-                        println!("\tin group {title}");
-                    }
+                } else if let Some(body) = message.body {
+                    println!("Message from {}: {}", metadata.sender.uuid, body);
+                } else if let Some(GroupContextV2 {
+                    master_key: Some(master_key),
+                    ..
+                }) = &message.group_v2
+                {
+                    let Group { title, .. } = manager.group(master_key)?.unwrap();
+                    println!(
+                        "Group message from {} in group {}: {}",
+                        metadata.sender.uuid,
+                        title,
+                        message.body()
+                    );
                 }
 
                 for attachment_pointer in message.attachments {
@@ -269,7 +275,7 @@ async fn receive<C: Store + MessageStore>(
                     ));
                     fs::write(&file_path, &attachment_data).await?;
                     info!(
-                        "saved received attachment from {} to {}",
+                        "saved received attachment from {:?} to {}",
                         metadata.sender,
                         file_path.display()
                     );
@@ -279,13 +285,13 @@ async fn receive<C: Store + MessageStore>(
                 eprintln!("Unhandled sync message: {m:?}");
             }
             ContentBody::TypingMessage(_) => {
-                println!("{:?} is typing", metadata.sender);
+                println!("{} is typing", metadata.sender.uuid);
             }
             ContentBody::CallMessage(_) => {
-                println!("{:?} is calling!", metadata.sender);
+                println!("{} is calling!", metadata.sender.uuid);
             }
             ContentBody::ReceiptMessage(_) => {
-                println!("Got read receipt from: {:?}", metadata.sender);
+                println!("Read receipt from {}", metadata.sender.uuid);
             }
         }
     }
@@ -394,7 +400,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             mut profile_key,
         } => {
             let manager = Manager::load_registered(config_store)?;
-            if profile_key.is_none() && uuid.is_some() {
+            if profile_key.is_none() {
                 for contact in manager
                     .contacts()?
                     .filter_map(Result::ok)
@@ -402,22 +408,16 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 {
                     let profilek:[u8;32] = match(contact.profile_key).try_into() {
                     Ok(profilek) => profilek,
-                    Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid.unwrap()),
+                    Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid),
                 };
-                    profile_key = Some(ProfileKey(profilek));
+                    profile_key = Some(ProfileKey::create(profilek));
                 }
             } else {
                 println!("Retrieving profile for: {uuid:?} with profile_key");
             }
-            let profile = match (uuid, profile_key) {
-                (None, None) => manager.retrieve_profile().await?,
-                (None, Some(_)) => bail!("profile key without provided user uuid"),
-                (Some(_), None) => bail!("user uuid without provided profile key"),
-                (Some(uuid), Some(profile_key)) => {
-                    manager
-                        .retrieve_profile_by_uuid(uuid, profile_key.0)
-                        .await?
-                }
+            let profile = match profile_key {
+                None => manager.retrieve_profile().await?,
+                Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
             };
             println!("{profile:#?}");
         }
@@ -435,13 +435,13 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                         Group {
                             title,
                             description,
-                            version,
+                            revision,
                             members,
                             ..
                         },
                     )) => {
                         println!(
-                            "{title}: {description:?} / version {version} / {} members",
+                            "{title}: {description:?} / revision {revision} / {} members",
                             members.len()
                         );
                     }
@@ -453,20 +453,13 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         }
         Cmd::ListContacts => {
             let manager = Manager::load_registered(config_store)?;
-            for contact in manager.contacts()? {
-                if let Contact {
-                    name,
-                    address:
-                        ServiceAddress {
-                            uuid: Some(uuid),
-                            phonenumber: Some(phonenumber),
-                            ..
-                        },
-                    ..
-                } = contact?
-                {
-                    println!("{uuid} / {name} / {phonenumber}");
-                }
+            for Contact {
+                name,
+                address: ServiceAddress { uuid },
+                ..
+            } in manager.contacts()?.flatten()
+            {
+                println!("{uuid} / {name}");
             }
         }
         Cmd::Whoami => {
@@ -485,7 +478,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             for contact in manager
                 .contacts()?
                 .filter_map(Result::ok)
-                .filter(|c| c.address.uuid == uuid)
+                .filter(|c| uuid.map_or_else(|| true, |u| c.address.uuid == u))
                 .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
             {
                 println!("{contact:#?}");
@@ -507,7 +500,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             };
             let iter = config_store.messages(&thread, None)?;
             for msg in iter.filter_map(Result::ok) {
-                println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
+                println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
         }
     };
@@ -518,7 +511,7 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
     let bytes = base64::decode(s)?
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
-    Ok(ProfileKey(bytes))
+    Ok(ProfileKey::create(bytes))
 }
 
 struct DebugGroup<'a>(&'a Group);
@@ -529,7 +522,7 @@ impl fmt::Debug for DebugGroup<'_> {
         f.debug_struct("Group")
             .field("title", &group.title)
             .field("avatar", &group.avatar)
-            .field("version", &group.version)
+            .field("revision", &group.revision)
             .field("description", &group.description)
             .finish()
     }

@@ -2,6 +2,7 @@ mod cache;
 mod errors;
 mod manager;
 mod proto;
+mod serde;
 mod store;
 
 #[cfg(feature = "sled-store")]

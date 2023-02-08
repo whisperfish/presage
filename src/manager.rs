@@ -22,7 +22,7 @@ use libsignal_service::{
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, PushService, Uuid,
+        Content, Envelope, ProfileKey, PushService, Uuid,
     },
     proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
@@ -30,7 +30,7 @@ use libsignal_service::{
         VerificationCodeResponse,
     },
     push_service::{
-        AccountAttributes, DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse,
+        AccountAttributes, DeviceCapabilities, ProfileKeyExt, ServiceError, WhoAmIResponse,
         DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
@@ -41,7 +41,7 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, GroupMasterKeyBytes, Thread};
+use crate::{cache::CacheCell, serde::serde_profile_key, GroupMasterKeyBytes, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, ThreadRng>;
@@ -102,6 +102,7 @@ pub struct Registered {
     pub(crate) private_key: PrivateKey,
     #[serde(with = "serde_public_key")]
     pub(crate) public_key: PublicKey,
+    #[serde(with = "serde_profile_key")]
     profile_key: ProfileKey,
 }
 
@@ -338,7 +339,9 @@ impl<C: Store> Manager<C, Linking> {
                 registration_id,
                 public_key,
                 private_key,
-                profile_key: ProfileKey(profile_key.try_into().expect("32 bytes for profile key")),
+                profile_key: ProfileKey::create(
+                    profile_key.try_into().expect("32 bytes for profile key"),
+                ),
             },
         };
 
@@ -405,7 +408,8 @@ impl<C: Store> Manager<C, Confirmation> {
 
         let mut profile_key = [0u8; 32];
         rng.fill_bytes(&mut profile_key);
-        let profile_key = ProfileKey(profile_key);
+
+        let profile_key = ProfileKey::generate(profile_key);
 
         let registered = provisioning_manager
             .confirm_verification_code(
@@ -484,7 +488,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn register_pre_keys(&mut self) -> Result<(), Error> {
         trace!("registering pre keys");
         let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(*self.state.profile_key));
+            AccountManager::new(self.push_service()?, Some(self.state.profile_key));
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -510,7 +514,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn set_account_attributes(&mut self) -> Result<(), Error> {
         trace!("setting account attributes");
         let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(*self.state.profile_key));
+            AccountManager::new(self.push_service()?, Some(self.state.profile_key));
 
         account_manager
             .set_account_attributes(AccountAttributes {
@@ -582,7 +586,7 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        let messages = self.receive_messages().await?;
+        let messages = self.receive_messages_stream(true).await?;
         pin_mut!(messages);
 
         // first request the sync
@@ -590,9 +594,9 @@ impl<C: Store> Manager<C, Registered> {
             .await?;
 
         // wait for it to arrive
-        info!("waiting for contacts sync for up to 3 minutes");
+        info!("waiting for contacts sync for up to 60 seconds");
         tokio::time::timeout(
-            Duration::from_secs(3 * 60),
+            Duration::from_secs(60),
             self.wait_for_contacts_sync(messages),
         )
         .await
@@ -618,7 +622,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&self) -> Result<Profile, Error> {
-        self.retrieve_profile_by_uuid(self.state.uuid, *self.state.profile_key)
+        self.retrieve_profile_by_uuid(self.state.uuid, self.state.profile_key)
             .await
     }
 
@@ -626,7 +630,7 @@ impl<C: Store> Manager<C, Registered> {
     pub async fn retrieve_profile_by_uuid(
         &self,
         uuid: Uuid,
-        profile_key: [u8; 32],
+        profile_key: ProfileKey,
     ) -> Result<Profile, Error> {
         let mut account_manager = AccountManager::new(self.push_service()?, Some(profile_key));
         Ok(account_manager.retrieve_profile(uuid.into()).await?)
@@ -789,6 +793,8 @@ impl<C: Store> Manager<C, Registered> {
                                         log::error!("Error saving message to store: {}", e);
                                     }
                                 }
+
+                                return Some((content, state));
                             }
                             Ok(None) => debug!("Empty envelope..., message will be skipped!"),
                             Err(e) => {
@@ -829,7 +835,7 @@ impl<C: Store> Manager<C, Registered> {
             .await?;
 
         // save the message
-        let thread = Thread::Contact(recipient.uuid.ok_or(Error::ContentMissingUuid)?);
+        let thread = Thread::Contact(recipient.uuid);
         let content = Content {
             metadata: Metadata {
                 sender: self.state.uuid.into(),
@@ -901,9 +907,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
     pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
-        self.config_store
-            .delete_all_sessions(&recipient.identifier())
-            .await?;
+        self.config_store.delete_all_sessions(recipient).await?;
         Ok(())
     }
 
@@ -956,9 +960,7 @@ impl<C: Store> Manager<C, Registered> {
     /// Creates a new message sender.
     fn new_message_sender(&self) -> Result<MessageSender<C>, Error> {
         let local_addr = ServiceAddress {
-            uuid: Some(self.state.uuid),
-            phonenumber: Some(self.state.phone_number.clone()),
-            relay: None,
+            uuid: self.state.uuid,
         };
 
         Ok(MessageSender::new(
@@ -1027,7 +1029,7 @@ async fn upsert_group<C: Store>(
     let save_group = match config_store.group(master_key_bytes) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {group:?}");
-            group.version < *revision
+            group.revision < *revision
         }
         Ok(None) => true,
         Err(e) => {
