@@ -245,20 +245,18 @@ async fn receive<C: Store + MessageStore>(
                     )
                 } else if let Some(body) = message.body {
                     println!("Message from {}: {}", metadata.sender.uuid, body);
-                } else {
-                    if let Some(GroupContextV2 {
-                        master_key: Some(master_key),
-                        ..
-                    }) = &message.group_v2
-                    {
-                        let Group { title, .. } = manager.group(&master_key)?.unwrap();
-                        println!(
-                            "Group message from {} in group {}: {}",
-                            metadata.sender.uuid,
-                            title,
-                            message.body()
-                        );
-                    }
+                } else if let Some(GroupContextV2 {
+                    master_key: Some(master_key),
+                    ..
+                }) = &message.group_v2
+                {
+                    let Group { title, .. } = manager.group(master_key)?.unwrap();
+                    println!(
+                        "Group message from {} in group {}: {}",
+                        metadata.sender.uuid,
+                        title,
+                        message.body()
+                    );
                 }
 
                 for attachment_pointer in message.attachments {
@@ -455,15 +453,13 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         }
         Cmd::ListContacts => {
             let manager = Manager::load_registered(config_store)?;
-            for contact in manager.contacts()? {
-                if let Ok(Contact {
-                    name,
-                    address: ServiceAddress { uuid },
-                    ..
-                }) = contact
-                {
-                    println!("{uuid} / {name}");
-                }
+            for Contact {
+                name,
+                address: ServiceAddress { uuid },
+                ..
+            } in manager.contacts()?.flatten()
+            {
+                println!("{uuid} / {name}");
             }
         }
         Cmd::Whoami => {

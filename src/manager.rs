@@ -907,7 +907,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
     pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
-        self.config_store.delete_all_sessions(&recipient).await?;
+        self.config_store.delete_all_sessions(recipient).await?;
         Ok(())
     }
 

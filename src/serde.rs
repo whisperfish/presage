@@ -6,7 +6,7 @@ pub mod serde_profile_key {
     where
         S: Serializer,
     {
-        serializer.serialize_str(&base64::encode(&profile_key.bytes))
+        serializer.serialize_str(&base64::encode(profile_key.bytes))
     }
 
     pub fn deserialize<'de, D>(deserializer: D) -> Result<ProfileKey, D::Error>
