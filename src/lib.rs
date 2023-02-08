@@ -34,3 +34,6 @@ pub mod prelude {
 }
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-rs-", env!("CARGO_PKG_VERSION"));
+
+// TODO: open a PR in libsignal and make sure the bytes can be read from `GroupMasterKey` instead of using this type
+pub type GroupMasterKeyBytes = [u8; 32];

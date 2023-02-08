@@ -22,7 +22,7 @@ use libsignal_service::{
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, GroupMasterKey, PushService, Uuid,
+        Content, Envelope, PushService, Uuid,
     },
     proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
@@ -41,7 +41,7 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, Thread};
+use crate::{cache::CacheCell, GroupMasterKeyBytes, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, ThreadRng>;
@@ -652,7 +652,7 @@ impl<C: Store> Manager<C, Registered> {
     /// Returns an iterator on groups stored in the [Store].
     pub fn groups(
         &self,
-    ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
+    ) -> Result<impl Iterator<Item = Result<(GroupMasterKeyBytes, Group), Error>>, Error> {
         self.config_store.groups()
     }
 
@@ -1008,7 +1008,7 @@ impl<C: Store> Manager<C, Registered> {
     #[deprecated = "use Manager::groups"]
     pub fn get_groups(
         &self,
-    ) -> Result<impl Iterator<Item = Result<(GroupMasterKey, Group), Error>>, Error> {
+    ) -> Result<impl Iterator<Item = Result<(GroupMasterKeyBytes, Group), Error>>, Error> {
         self.groups()
     }
 

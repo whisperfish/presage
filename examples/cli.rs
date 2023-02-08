@@ -16,8 +16,8 @@ use presage::{
         Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
-    Manager, MessageStore, MigrationConflictStrategy, Registered, RegistrationOptions, SledStore,
-    Store, Thread,
+    GroupMasterKeyBytes, Manager, MessageStore, MigrationConflictStrategy, Registered,
+    RegistrationOptions, SledStore, Store, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -121,9 +121,9 @@ enum Cmd {
             long,
             short = 'k',
             help = "Master Key of the V2 group (hex string)",
-            value_parser = parse_master_key,
+            value_parser = parse_group_master_key,
         )]
-        group_master_key: Option<[u8; 32]>,
+        group_master_key: Option<GroupMasterKeyBytes>,
     },
     #[clap(about = "Get a single contact by UUID")]
     GetContact { uuid: Uuid },
@@ -145,14 +145,14 @@ enum Cmd {
     SendToGroup {
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_master_key)]
-        master_key: [u8; 32],
+        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
+        master_key: GroupMasterKeyBytes,
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
 }
 
-fn parse_master_key(value: &str) -> anyhow::Result<[u8; 32]> {
+fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
     let master_key_bytes = hex::decode(value)?;
     master_key_bytes
         .try_into()

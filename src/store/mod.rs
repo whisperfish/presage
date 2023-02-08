@@ -1,4 +1,4 @@
-use crate::{manager::Registered, Error};
+use crate::{manager::Registered, Error, GroupMasterKeyBytes};
 use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
@@ -7,7 +7,7 @@ use libsignal_service::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, GroupMasterKey, Uuid,
+        Content, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
@@ -62,7 +62,7 @@ pub trait ContactsStore {
 }
 
 pub trait GroupsStore {
-    type GroupsIter: Iterator<Item = Result<(GroupMasterKey, Group), Error>>;
+    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Error>>;
 
     fn clear_groups(&mut self) -> Result<(), Error>;
     fn save_group(
@@ -81,7 +81,7 @@ pub enum Thread {
     Contact(Uuid),
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [GroupMasterKey](crate::prelude::GroupMasterKey) (specified as bytes).
-    Group([u8; 32]),
+    Group(GroupMasterKeyBytes),
 }
 
 impl TryFrom<&Content> for Thread {

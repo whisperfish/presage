@@ -16,7 +16,7 @@ use libsignal_service::{
             SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
             SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Content, GroupMasterKey, Uuid,
+        Content, Uuid,
     },
     proto,
     push_service::DEFAULT_DEVICE_ID,
@@ -29,7 +29,9 @@ use sha2::{Digest, Sha256};
 use sled::Batch;
 
 use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
-use crate::{manager::Registered, proto::ContentProto, store::Thread, Error, Store};
+use crate::{
+    manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
+};
 
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 
@@ -376,7 +378,7 @@ impl GroupsStore for SledStore {
     }
 
     fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error> {
-        let key: [u8; 32] = master_key.try_into()?;
+        let key: GroupMasterKeyBytes = master_key.try_into()?;
         let val: Option<Vec<u8>> = self.get(SLED_KEY_GROUPS, key)?;
         match val {
             Some(ref v) => {
@@ -389,7 +391,7 @@ impl GroupsStore for SledStore {
     }
 
     fn save_group(&self, master_key: &[u8], group: proto::Group) -> Result<(), Error> {
-        let key: [u8; 32] = master_key.try_into()?;
+        let key: GroupMasterKeyBytes = master_key.try_into()?;
         self.insert(SLED_KEY_GROUPS, key, group.encode_to_vec())?;
         Ok(())
     }
@@ -423,7 +425,7 @@ pub struct SledGroupsIter {
 }
 
 impl Iterator for SledGroupsIter {
-    type Item = Result<(GroupMasterKey, Group), Error>;
+    type Item = Result<(GroupMasterKeyBytes, Group), Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
@@ -438,13 +440,11 @@ impl Iterator for SledGroupsIter {
             })
             .and_then(|(master_key_bytes, encrypted_group_data)| {
                 let encrypted_group = proto::Group::decode(encrypted_group_data.as_slice())?;
-                let master_key = GroupMasterKey::new(
-                    master_key_bytes[..]
-                        .try_into()
-                        .expect("wrong group master key length"),
-                );
+                let master_key: GroupMasterKeyBytes = master_key_bytes[..]
+                    .try_into()
+                    .expect("wrong group master key length");
                 let decrypted_group =
-                    decrypt_group(&master_key_bytes[..], encrypted_group).map_err(Error::from)?;
+                    decrypt_group(&master_key, encrypted_group).map_err(Error::from)?;
                 Ok((master_key, decrypted_group))
             })
             .into()
