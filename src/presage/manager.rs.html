@@ -1052,6 +1052,8 @@
 <a href="#1052" id="1052">1052</a>
 <a href="#1053" id="1053">1053</a>
 <a href="#1054" id="1054">1054</a>
+<a href="#1055" id="1055">1055</a>
+<a href="#1056" id="1056">1056</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     sync::Arc,
@@ -1076,7 +1078,7 @@
     prelude::{
         phonenumber::PhoneNumber,
         protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, PushService, Uuid,
+        Content, Envelope, ProfileKey, PushService, Uuid,
     },
     proto::{sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
@@ -1084,7 +1086,7 @@
         VerificationCodeResponse,
     },
     push_service::{
-        AccountAttributes, DeviceCapabilities, ProfileKey, ServiceError, WhoAmIResponse,
+        AccountAttributes, DeviceCapabilities, ProfileKeyExt, ServiceError, WhoAmIResponse,
         DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
@@ -1095,7 +1097,7 @@
 };
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
 
-<span class="kw">use crate</span>::{cache::CacheCell, GroupMasterKeyBytes, Thread};
+<span class="kw">use crate</span>::{cache::CacheCell, serde::serde_profile_key, GroupMasterKeyBytes, Thread};
 <span class="kw">use crate</span>::{store::Store, Error};
 
 <span class="kw">type </span>ServiceCipher&lt;C&gt; = cipher::ServiceCipher&lt;C, C, C, C, C, ThreadRng&gt;;
@@ -1156,7 +1158,8 @@
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) private_key: PrivateKey,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_public_key&quot;</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) public_key: PublicKey,
-    profile_key: ProfileKey,
+    <span class="attr">#[serde(with = <span class="string">&quot;serde_profile_key&quot;</span>)]
+    </span>profile_key: ProfileKey,
 }
 
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Registered {
@@ -1392,7 +1395,9 @@
                 registration_id,
                 public_key,
                 private_key,
-                profile_key: ProfileKey(profile_key.try_into().expect(<span class="string">&quot;32 bytes for profile key&quot;</span>)),
+                profile_key: ProfileKey::create(
+                    profile_key.try_into().expect(<span class="string">&quot;32 bytes for profile key&quot;</span>),
+                ),
             },
         };
 
@@ -1459,7 +1464,8 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>profile_key = [<span class="number">0u8</span>; <span class="number">32</span>];
         rng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
-        <span class="kw">let </span>profile_key = ProfileKey(profile_key);
+
+        <span class="kw">let </span>profile_key = ProfileKey::generate(profile_key);
 
         <span class="kw">let </span>registered = provisioning_manager
             .confirm_verification_code(
@@ -1538,7 +1544,7 @@
     <span class="kw">async fn </span>register_pre_keys(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;registering pre keys&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
-            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.state.profile_key));
+            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key));
 
         <span class="kw">let </span>(pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -1564,7 +1570,7 @@
     <span class="kw">async fn </span>set_account_attributes(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;setting account attributes&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
-            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="kw-2">*</span><span class="self">self</span>.state.profile_key));
+            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key));
 
         account_manager
             .set_account_attributes(AccountAttributes {
@@ -1636,7 +1642,7 @@
             .expect(<span class="string">&quot;Time went backwards&quot;</span>)
             .as_millis() <span class="kw">as </span>u64;
 
-        <span class="kw">let </span>messages = <span class="self">self</span>.receive_messages().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>messages = <span class="self">self</span>.receive_messages_stream(<span class="bool-val">true</span>).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="macro">pin_mut!</span>(messages);
 
         <span class="comment">// first request the sync
@@ -1644,9 +1650,9 @@
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// wait for it to arrive
-        </span><span class="macro">info!</span>(<span class="string">&quot;waiting for contacts sync for up to 3 minutes&quot;</span>);
+        </span><span class="macro">info!</span>(<span class="string">&quot;waiting for contacts sync for up to 60 seconds&quot;</span>);
         tokio::time::timeout(
-            Duration::from_secs(<span class="number">3 </span>* <span class="number">60</span>),
+            Duration::from_secs(<span class="number">60</span>),
             <span class="self">self</span>.wait_for_contacts_sync(messages),
         )
         .<span class="kw">await
@@ -1672,7 +1678,7 @@
 
     <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.
     </span><span class="kw">pub async fn </span>retrieve_profile(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
-        <span class="self">self</span>.retrieve_profile_by_uuid(<span class="self">self</span>.state.uuid, <span class="kw-2">*</span><span class="self">self</span>.state.profile_key)
+        <span class="self">self</span>.retrieve_profile_by_uuid(<span class="self">self</span>.state.uuid, <span class="self">self</span>.state.profile_key)
             .<span class="kw">await
     </span>}
 
@@ -1680,7 +1686,7 @@
     </span><span class="kw">pub async fn </span>retrieve_profile_by_uuid(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         uuid: Uuid,
-        profile_key: [u8; <span class="number">32</span>],
+        profile_key: ProfileKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(profile_key));
         <span class="prelude-val">Ok</span>(account_manager.retrieve_profile(uuid.into()).<span class="kw">await</span><span class="question-mark">?</span>)
@@ -1843,6 +1849,8 @@
                                         <span class="macro">log::error!</span>(<span class="string">&quot;Error saving message to store: {}&quot;</span>, e);
                                     }
                                 }
+
+                                <span class="kw">return </span><span class="prelude-val">Some</span>((content, state));
                             }
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;Empty envelope..., message will be skipped!&quot;</span>),
                             <span class="prelude-val">Err</span>(e) =&gt; {
@@ -1883,7 +1891,7 @@
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// save the message
-        </span><span class="kw">let </span>thread = Thread::Contact(recipient.uuid.ok_or(Error::ContentMissingUuid)<span class="question-mark">?</span>);
+        </span><span class="kw">let </span>thread = Thread::Contact(recipient.uuid);
         <span class="kw">let </span>content = Content {
             metadata: Metadata {
                 sender: <span class="self">self</span>.state.uuid.into(),
@@ -1955,9 +1963,7 @@
 
     <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).
     </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="self">self</span>.config_store
-            .delete_all_sessions(<span class="kw-2">&amp;</span>recipient.identifier())
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.config_store.delete_all_sessions(recipient).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -2010,9 +2016,7 @@
     <span class="doccomment">/// Creates a new message sender.
     </span><span class="kw">fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;C&gt;, Error&gt; {
         <span class="kw">let </span>local_addr = ServiceAddress {
-            uuid: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.uuid),
-            phonenumber: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.phone_number.clone()),
-            relay: <span class="prelude-val">None</span>,
+            uuid: <span class="self">self</span>.state.uuid,
         };
 
         <span class="prelude-val">Ok</span>(MessageSender::new(
@@ -2081,7 +2085,7 @@
     <span class="kw">let </span>save_group = <span class="kw">match </span>config_store.group(master_key_bytes) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
             <span class="macro">log::debug!</span>(<span class="string">&quot;loaded group from local db {group:?}&quot;</span>);
-            group.version &lt; <span class="kw-2">*</span>revision
+            group.revision &lt; <span class="kw-2">*</span>revision
         }
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="bool-val">true</span>,
         <span class="prelude-val">Err</span>(e) =&gt; {

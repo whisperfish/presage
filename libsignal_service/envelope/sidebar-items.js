@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["EnvelopeParseError",""]],"struct":[["EnvelopeEntity",""]]};
+window.SIDEBAR_ITEMS = {"struct":[["EnvelopeEntity",""]]};

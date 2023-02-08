@@ -76,7 +76,9 @@
 <a href="#76" id="76">76</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 
-<span class="kw">use </span>libsignal_service::{models::ParseContactError, prelude::protocol::SignalProtocolError};
+<span class="kw">use </span>libsignal_service::{
+    models::ParseContactError, prelude::protocol::SignalProtocolError, ParseServiceAddressError,
+};
 
 <span class="attr">#[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -111,8 +113,6 @@
     </span>ProfileManagerError(<span class="attr">#[from] </span>libsignal_service::ProfileManagerError),
     <span class="attr">#[error(<span class="string">&quot;libsignal-service sending error: {0}&quot;</span>)]
     </span>MessageSenderError(<span class="attr">#[from] </span>libsignal_service::prelude::MessageSenderError),
-    <span class="attr">#[error(<span class="string">&quot;libsignal-service error: {0}&quot;</span>)]
-    </span>MessageReceiverError(<span class="attr">#[from] </span>libsignal_service::receiver::MessageReceiverError),
     <span class="attr">#[error(<span class="string">&quot;this client is already registered with Signal&quot;</span>)]
     </span>AlreadyRegisteredError,
     <span class="attr">#[error(<span class="string">&quot;this client is not yet registered, please register or link as a secondary device&quot;</span>)]
@@ -129,12 +129,12 @@
     </span>MessagePipeNotStarted,
     <span class="attr">#[error(<span class="string">&quot;receiving pipe was interrupted&quot;</span>)]
     </span>MessagePipeInterruptedError,
+    <span class="attr">#[error(transparent)]
+    </span>ParseServiceAddressError(<span class="attr">#[from] </span>ParseServiceAddressError),
     <span class="attr">#[error(<span class="string">&quot;failed to parse contact information: {0}&quot;</span>)]
     </span>ParseContactError(<span class="attr">#[from] </span>ParseContactError),
     <span class="attr">#[error(<span class="string">&quot;failed to decrypt attachment: {0}&quot;</span>)]
     </span>AttachmentCipherError(<span class="attr">#[from] </span>libsignal_service::attachment_cipher::AttachmentCipherError),
-    <span class="attr">#[error(<span class="string">&quot;message is missing a uuid&quot;</span>)]
-    </span>ContentMissingUuid,
     <span class="attr">#[error(<span class="string">&quot;unknown group&quot;</span>)]
     </span>UnknownGroup,
     <span class="attr">#[error(<span class="string">&quot;database migration is not supported&quot;</span>)]

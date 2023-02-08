@@ -101,50 +101,34 @@
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
-<a href="#104" id="104">104</a>
-<a href="#105" id="105">105</a>
-<a href="#106" id="106">106</a>
-<a href="#107" id="107">107</a>
-<a href="#108" id="108">108</a>
-<a href="#109" id="109">109</a>
-<a href="#110" id="110">110</a>
-<a href="#111" id="111">111</a>
-<a href="#112" id="112">112</a>
 </pre><pre class="rust"><code><span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 
 </span><span class="kw">mod </span>textsecure {
     <span class="macro">include!</span>(<span class="macro">concat!</span>(<span class="macro">env!</span>(<span class="string">&quot;OUT_DIR&quot;</span>), <span class="string">&quot;/textsecure.rs&quot;</span>));
 }
 
-<span class="kw">use </span>std::str::FromStr;
-
 <span class="kw">use </span><span class="self">self</span>::textsecure::AddressProto;
 <span class="kw">use </span><span class="self">self</span>::textsecure::MetadataProto;
-<span class="kw">use </span><span class="kw">crate</span>::prelude::{PhoneNumber, ServiceAddress};
+<span class="kw">use </span><span class="kw">crate</span>::prelude::ServiceAddress;
 <span class="kw">use </span><span class="kw">crate</span>::Error;
 <span class="kw">use </span>libsignal_service::content::ContentBody;
 <span class="kw">use </span>libsignal_service::content::Metadata;
 <span class="kw">use </span>libsignal_service::prelude::Content;
-<span class="kw">use </span>libsignal_service::prelude::Uuid;
+<span class="kw">use </span>libsignal_service::ParseServiceAddressError;
 
 <span class="kw">impl </span>From&lt;ServiceAddress&gt; <span class="kw">for </span>AddressProto {
     <span class="kw">fn </span>from(s: ServiceAddress) -&gt; <span class="self">Self </span>{
         AddressProto {
-            uuid: s.uuid.map(|u| u.as_bytes().to_vec()),
-            e164: s.e164(),
+            uuid: <span class="prelude-val">Some</span>(s.uuid.as_bytes().to_vec()),
         }
     }
 }
 
-<span class="kw">impl </span>From&lt;AddressProto&gt; <span class="kw">for </span>ServiceAddress {
-    <span class="kw">fn </span>from(address: AddressProto) -&gt; <span class="self">Self </span>{
-        ServiceAddress {
-            uuid: address
-                .uuid
-                .map(|u| Uuid::from_bytes(u.try_into().expect(<span class="string">&quot;Proto to have 16 bytes uuid&quot;</span>))),
-            phonenumber: address.e164.and_then(|p| PhoneNumber::from_str(<span class="kw-2">&amp;</span>p).ok()),
-            relay: <span class="prelude-val">None</span>,
-        }
+<span class="kw">impl </span>TryFrom&lt;AddressProto&gt; <span class="kw">for </span>ServiceAddress {
+    <span class="kw">type </span>Error = ParseServiceAddressError;
+
+    <span class="kw">fn </span>try_from(address: AddressProto) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+        address.uuid.as_deref().try_into()
     }
 }
 
@@ -164,17 +148,15 @@
     }
 }
 
-<span class="kw">impl </span>From&lt;MetadataProto&gt; <span class="kw">for </span>Metadata {
-    <span class="kw">fn </span>from(metadata: MetadataProto) -&gt; Metadata {
-        Metadata {
+<span class="kw">impl </span>TryFrom&lt;MetadataProto&gt; <span class="kw">for </span>Metadata {
+    <span class="kw">type </span>Error = ParseServiceAddressError;
+
+    <span class="kw">fn </span>try_from(metadata: MetadataProto) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+        <span class="prelude-val">Ok</span>(Metadata {
             sender: metadata
                 .address
-                .map(|a| a.into())
-                .unwrap_or_else(|| ServiceAddress {
-                    uuid: <span class="prelude-val">None</span>,
-                    phonenumber: <span class="prelude-val">None</span>,
-                    relay: <span class="prelude-val">None</span>,
-                }),
+                .ok_or(ParseServiceAddressError::NoUuid)<span class="question-mark">?
+                </span>.try_into()<span class="question-mark">?</span>,
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())
@@ -185,7 +167,7 @@
                 .unwrap_or_default(),
             needs_receipt: metadata.needs_receipt.unwrap_or_default(),
             unidentified_sender: <span class="bool-val">false</span>,
-        }
+        })
     }
 }
 
@@ -219,7 +201,7 @@
     <span class="kw">type </span>Error = <span class="kw">crate</span>::Error;
 
     <span class="kw">fn </span>try_into(<span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Content, <span class="self">Self</span>::Error&gt; {
-        Content::from_proto(<span class="self">self</span>.content, <span class="self">self</span>.metadata.into()).map_err(Error::from)
+        Content::from_proto(<span class="self">self</span>.content, <span class="self">self</span>.metadata.try_into()<span class="question-mark">?</span>).map_err(Error::from)
     }
 }
 </code></pre></div>

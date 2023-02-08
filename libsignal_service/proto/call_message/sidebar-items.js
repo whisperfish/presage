@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":[["hangup","Nested message and enum types in `Hangup`."],["offer","Nested message and enum types in `Offer`."]],"struct":[["Answer",""],["Busy",""],["Hangup",""],["IceUpdate",""],["Offer",""],["Opaque",""]]};
+window.SIDEBAR_ITEMS = {"mod":[["hangup","Nested message and enum types in `Hangup`."],["offer","Nested message and enum types in `Offer`."],["opaque","Nested message and enum types in `Opaque`."]],"struct":[["Answer",""],["Busy",""],["Hangup",""],["IceUpdate",""],["Offer",""],["Opaque",""]]};

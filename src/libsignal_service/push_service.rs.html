@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/2e38b94/libsignal-service/src/push_service.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-6827029ac823cab7.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-ebce58d0a40c3431.css"><link rel="stylesheet" disabled href="../../static.files/dark-f23faae4a2daf9a6.css"><link rel="stylesheet" disabled href="../../static.files/ayu-8af5e100b21cd173.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-c55e1eb52e1886b4.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/26ff8bb/libsignal-service/src/push_service.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-6827029ac823cab7.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-ebce58d0a40c3431.css"><link rel="stylesheet" disabled href="../../static.files/dark-f23faae4a2daf9a6.css"><link rel="stylesheet" disabled href="../../static.files/ayu-8af5e100b21cd173.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-c55e1eb52e1886b4.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -820,64 +820,7 @@
 <a href="#820" id="820">820</a>
 <a href="#821" id="821">821</a>
 <a href="#822" id="822">822</a>
-<a href="#823" id="823">823</a>
-<a href="#824" id="824">824</a>
-<a href="#825" id="825">825</a>
-<a href="#826" id="826">826</a>
-<a href="#827" id="827">827</a>
-<a href="#828" id="828">828</a>
-<a href="#829" id="829">829</a>
-<a href="#830" id="830">830</a>
-<a href="#831" id="831">831</a>
-<a href="#832" id="832">832</a>
-<a href="#833" id="833">833</a>
-<a href="#834" id="834">834</a>
-<a href="#835" id="835">835</a>
-<a href="#836" id="836">836</a>
-<a href="#837" id="837">837</a>
-<a href="#838" id="838">838</a>
-<a href="#839" id="839">839</a>
-<a href="#840" id="840">840</a>
-<a href="#841" id="841">841</a>
-<a href="#842" id="842">842</a>
-<a href="#843" id="843">843</a>
-<a href="#844" id="844">844</a>
-<a href="#845" id="845">845</a>
-<a href="#846" id="846">846</a>
-<a href="#847" id="847">847</a>
-<a href="#848" id="848">848</a>
-<a href="#849" id="849">849</a>
-<a href="#850" id="850">850</a>
-<a href="#851" id="851">851</a>
-<a href="#852" id="852">852</a>
-<a href="#853" id="853">853</a>
-<a href="#854" id="854">854</a>
-<a href="#855" id="855">855</a>
-<a href="#856" id="856">856</a>
-<a href="#857" id="857">857</a>
-<a href="#858" id="858">858</a>
-<a href="#859" id="859">859</a>
-<a href="#860" id="860">860</a>
-<a href="#861" id="861">861</a>
-<a href="#862" id="862">862</a>
-<a href="#863" id="863">863</a>
-<a href="#864" id="864">864</a>
-<a href="#865" id="865">865</a>
-<a href="#866" id="866">866</a>
-<a href="#867" id="867">867</a>
-<a href="#868" id="868">868</a>
-<a href="#869" id="869">869</a>
-<a href="#870" id="870">870</a>
-<a href="#871" id="871">871</a>
-<a href="#872" id="872">872</a>
-<a href="#873" id="873">873</a>
-<a href="#874" id="874">874</a>
-<a href="#875" id="875">875</a>
-<a href="#876" id="876">876</a>
-<a href="#877" id="877">877</a>
-<a href="#878" id="878">878</a>
-<a href="#879" id="879">879</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::{convert::TryInto, fmt, ops::Deref, time::Duration};
+</pre><pre class="rust"><code><span class="kw">use </span>std::{fmt, time::Duration};
 
 <span class="kw">use crate</span>::{
     configuration::{Endpoint, ServiceCredentials},
@@ -889,7 +832,7 @@
     sender::{OutgoingPushMessages, SendMessageResponse},
     utils::{serde_base64, serde_optional_base64},
     websocket::SignalWebSocket,
-    MaybeSend, Profile, ServiceAddress,
+    MaybeSend, ParseServiceAddressError, Profile, ServiceAddress,
 };
 
 <span class="kw">use </span>aes_gcm::{
@@ -903,7 +846,7 @@
 <span class="kw">use </span>prost::Message <span class="kw">as </span>ProtobufMessage;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>uuid::Uuid;
-<span class="kw">use </span>zkgroup::profiles::{ProfileKeyCommitment, ProfileKeyVersion};
+<span class="kw">use </span>zkgroup::profiles::{ProfileKey, ProfileKeyCommitment, ProfileKeyVersion};
 
 <span class="doccomment">/**
 Since we can&#39;t use format!() with constants, the URLs here are just for reference purposes
@@ -1014,9 +957,6 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     <span class="kw">pub </span>options: Vec&lt;String&gt;,
 }
 
-<span class="attr">#[derive(Clone)]
-</span><span class="kw">pub struct </span>ProfileKey(<span class="kw">pub </span>[u8; <span class="number">32</span>]);
-
 <span class="attr">#[derive(Debug, Deserialize, Default)]
 #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
 </span><span class="kw">pub struct </span>PreKeyStatus {
@@ -1049,51 +989,19 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     }
 }
 
-<span class="kw">impl </span>ProfileKey {
-    <span class="kw">pub fn </span>derive_access_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
-        <span class="kw">let </span>key = GenericArray::from_slice(<span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0</span>);
+<span class="kw">pub trait </span>ProfileKeyExt {
+    <span class="kw">fn </span>derive_access_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt;;
+}
+
+<span class="kw">impl </span>ProfileKeyExt <span class="kw">for </span>ProfileKey {
+    <span class="kw">fn </span>derive_access_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="kw">let </span>key = GenericArray::from_slice(<span class="kw-2">&amp;</span><span class="self">self</span>.bytes);
         <span class="kw">let </span>cipher = Aes256Gcm::new(key);
         <span class="kw">let </span>nonce = GenericArray::from_slice(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">12</span>]);
         <span class="kw">let </span>buf = [<span class="number">0u8</span>; <span class="number">16</span>];
         <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = cipher.encrypt(nonce, <span class="kw-2">&amp;</span>buf[..]).unwrap();
         ciphertext.truncate(<span class="number">16</span>);
         ciphertext
-    }
-}
-
-<span class="kw">impl </span>Deref <span class="kw">for </span>ProfileKey {
-    <span class="kw">type </span>Target = [u8; <span class="number">32</span>];
-
-    <span class="kw">fn </span>deref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::Target {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.<span class="number">0
-    </span>}
-}
-
-<span class="kw">impl </span>Serialize <span class="kw">for </span>ProfileKey {
-    <span class="kw">fn </span>serialize&lt;S&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, serializer: S) -&gt; <span class="prelude-ty">Result</span>&lt;S::Ok, S::Error&gt;
-    <span class="kw">where
-        </span>S: serde::Serializer,
-    {
-        serializer.serialize_str(<span class="kw-2">&amp;</span>base64::encode(<span class="self">self</span>.<span class="number">0</span>))
-    }
-}
-
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;de</span>&gt; Deserialize&lt;<span class="lifetime">&#39;de</span>&gt; <span class="kw">for </span>ProfileKey {
-    <span class="kw">fn </span>deserialize&lt;D&gt;(deserializer: D) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, D::Error&gt;
-    <span class="kw">where
-        </span>D: serde::Deserializer&lt;<span class="lifetime">&#39;de</span>&gt;,
-    {
-        <span class="prelude-val">Ok</span>(ProfileKey(
-            base64::decode(String::deserialize(deserializer)<span class="question-mark">?</span>)
-                .map_err(serde::de::Error::custom)<span class="question-mark">?
-                </span>.try_into()
-                .map_err(|buf: Vec&lt;u8&gt;| {
-                    serde::de::Error::invalid_length(
-                        buf.len(),
-                        <span class="kw-2">&amp;</span><span class="string">&quot;invalid profile key length&quot;</span>,
-                    )
-                })<span class="question-mark">?</span>,
-        ))
     }
 }
 
@@ -1293,6 +1201,9 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 
     <span class="attr">#[error(<span class="string">&quot;unsupported content&quot;</span>)]
     </span>UnsupportedContent,
+
+    <span class="attr">#[error(transparent)]
+    </span>ParseServiceAddress(<span class="attr">#[from] </span>ParseServiceAddressError),
 }
 
 <span class="attr">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
@@ -1452,11 +1363,11 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         }
     }
 
-    <span class="kw">async fn </span>send_messages&lt;<span class="lifetime">&#39;a</span>&gt;(
+    <span class="kw">async fn </span>send_messages(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        messages: OutgoingPushMessages&lt;<span class="lifetime">&#39;a</span>&gt;,
+        messages: OutgoingPushMessages,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SendMessageResponse, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/v1/messages/{}&quot;</span>, messages.destination);
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/v1/messages/{}&quot;</span>, messages.recipient.uuid);
         <span class="self">self</span>.put_json(
             Endpoint::Service,
             <span class="kw-2">&amp;</span>path,
@@ -1538,19 +1449,15 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         address: ServiceAddress,
         profile_key: <span class="prelude-ty">Option</span>&lt;zkgroup::profiles::ProfileKey&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalServiceProfile, ServiceError&gt; {
-        <span class="kw">let </span>endpoint = <span class="kw">match </span>(profile_key, address.uuid) {
-            (<span class="prelude-val">Some</span>(key), <span class="prelude-val">Some</span>(uuid)) =&gt; {
-                <span class="kw">let </span>uid_bytes = uuid.as_bytes();
-                <span class="kw">let </span>version = bincode::serialize(
-                    <span class="kw-2">&amp;</span>key.get_profile_key_version(<span class="kw-2">*</span>uid_bytes),
-                )<span class="question-mark">?</span>;
-                <span class="kw">let </span>version = std::str::from_utf8(<span class="kw-2">&amp;</span>version)
-                    .expect(<span class="string">&quot;hex encoded profile key version&quot;</span>);
-                <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}/{}&quot;</span>, uuid, version)
-            },
-            (<span class="kw">_</span>, <span class="kw">_</span>) =&gt; {
-                <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}&quot;</span>, address.identifier())
-            },
+        <span class="kw">let </span>endpoint = <span class="kw">if let </span><span class="prelude-val">Some</span>(key) = profile_key {
+            <span class="kw">let </span>uid_bytes = address.uuid.as_bytes();
+            <span class="kw">let </span>version =
+                bincode::serialize(<span class="kw-2">&amp;</span>key.get_profile_key_version(<span class="kw-2">*</span>uid_bytes))<span class="question-mark">?</span>;
+            <span class="kw">let </span>version = std::str::from_utf8(<span class="kw-2">&amp;</span>version)
+                .expect(<span class="string">&quot;hex encoded profile key version&quot;</span>);
+            <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}/{}&quot;</span>, address.uuid, version)
+        } <span class="kw">else </span>{
+            <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}&quot;</span>, address.uuid)
         };
         <span class="comment">// TODO: set locale to en_US
         </span><span class="self">self</span>.get_json(
@@ -1580,16 +1487,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         destination: <span class="kw-2">&amp;</span>ServiceAddress,
         device_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyBundle, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>relay) = destination.relay {
-            <span class="macro">format!</span>(
-                <span class="string">&quot;/v2/keys/{}/{}?relay={}&quot;</span>,
-                destination.identifier(),
-                device_id,
-                relay
-            )
-        } <span class="kw">else </span>{
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.identifier(), device_id)
-        };
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.uuid, device_id);
 
         <span class="kw">let </span><span class="kw-2">mut </span>pre_key_response: PreKeyResponse = <span class="self">self
             </span>.get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)
@@ -1606,22 +1504,10 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         destination: <span class="kw-2">&amp;</span>ServiceAddress,
         device_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;PreKeyBundle&gt;, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="kw">match </span>(device_id, destination.relay.as_ref()) {
-            (<span class="number">1</span>, <span class="prelude-val">None</span>) =&gt; <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*&quot;</span>, destination.identifier()),
-            (device_id, <span class="prelude-val">None</span>) =&gt; {
-                <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.identifier(), device_id)
-            },
-            (<span class="number">1</span>, <span class="prelude-val">Some</span>(relay)) =&gt; <span class="macro">format!</span>(
-                <span class="string">&quot;/v2/keys/{}/*?relay={}&quot;</span>,
-                destination.identifier(),
-                relay
-            ),
-            (device_id, <span class="prelude-val">Some</span>(relay)) =&gt; <span class="macro">format!</span>(
-                <span class="string">&quot;/v2/keys/{}/{}?relay={}&quot;</span>,
-                destination.identifier(),
-                device_id,
-                relay
-            ),
+        <span class="kw">let </span>path = <span class="kw">if </span>device_id == <span class="number">1 </span>{
+            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*&quot;</span>, destination.uuid)
+        } <span class="kw">else </span>{
+            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.uuid, device_id)
         };
         <span class="kw">let </span>pre_key_response: PreKeyResponse = <span class="self">self
             </span>.get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)

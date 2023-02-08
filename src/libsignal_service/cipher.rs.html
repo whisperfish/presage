@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/2e38b94/libsignal-service/src/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-6827029ac823cab7.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-ebce58d0a40c3431.css"><link rel="stylesheet" disabled href="../../static.files/dark-f23faae4a2daf9a6.css"><link rel="stylesheet" disabled href="../../static.files/ayu-8af5e100b21cd173.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-c55e1eb52e1886b4.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/26ff8bb/libsignal-service/src/cipher.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-6827029ac823cab7.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-ebce58d0a40c3431.css"><link rel="stylesheet" disabled href="../../static.files/dark-f23faae4a2daf9a6.css"><link rel="stylesheet" disabled href="../../static.files/ayu-8af5e100b21cd173.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-5cf2e01a42cc9858.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-c55e1eb52e1886b4.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><div class="width-limiter"><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -524,36 +524,6 @@
 <a href="#524" id="524">524</a>
 <a href="#525" id="525">525</a>
 <a href="#526" id="526">526</a>
-<a href="#527" id="527">527</a>
-<a href="#528" id="528">528</a>
-<a href="#529" id="529">529</a>
-<a href="#530" id="530">530</a>
-<a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
-<a href="#534" id="534">534</a>
-<a href="#535" id="535">535</a>
-<a href="#536" id="536">536</a>
-<a href="#537" id="537">537</a>
-<a href="#538" id="538">538</a>
-<a href="#539" id="539">539</a>
-<a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a>
-<a href="#542" id="542">542</a>
-<a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a>
-<a href="#545" id="545">545</a>
-<a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
-<a href="#551" id="551">551</a>
-<a href="#552" id="552">552</a>
-<a href="#553" id="553">553</a>
-<a href="#554" id="554">554</a>
-<a href="#555" id="555">555</a>
-<a href="#556" id="556">556</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::convert::TryFrom;
 
 <span class="kw">use </span>block_modes::block_padding::{Iso7816, Padding};
@@ -635,12 +605,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         envelope: Envelope,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, ServiceError&gt; {
-        <span class="kw">if </span>envelope.legacy_message.is_some() {
-            <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope).<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">let </span>message =
-                <span class="kw">crate</span>::proto::DataMessage::decode(plaintext.data.as_slice())<span class="question-mark">?</span>;
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(Content::from_body(message, plaintext.metadata)))
-        } <span class="kw">else if </span>envelope.content.is_some() {
+        <span class="kw">if </span>envelope.content.is_some() {
             <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="kw">let </span>message =
                 <span class="kw">crate</span>::proto::Content::decode(plaintext.data.as_slice())<span class="question-mark">?</span>;
@@ -672,9 +637,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         envelope: <span class="kw-2">&amp;</span>Envelope,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Plaintext, ServiceError&gt; {
-        <span class="kw">let </span>ciphertext = <span class="kw">if let </span><span class="prelude-val">Some</span>(msg) = envelope.legacy_message.as_ref() {
-            msg
-        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(msg) = envelope.content.as_ref() {
+        <span class="kw">let </span>ciphertext = <span class="kw">if let </span><span class="prelude-val">Some</span>(msg) = envelope.content.as_ref() {
             msg
         } <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
@@ -769,7 +732,7 @@
             Type::UnidentifiedSender =&gt; {
                 <span class="kw">let </span>SealedSenderDecryptionResult {
                     sender_uuid,
-                    sender_e164,
+                    sender_e164: <span class="kw">_</span>,
                     device_id,
                     <span class="kw-2">mut </span>message,
                 } = sealed_sender_decrypt(
@@ -789,16 +752,11 @@
                 .<span class="kw">await</span><span class="question-mark">?</span>;
 
                 <span class="kw">let </span>sender = ServiceAddress {
-                    phonenumber: sender_e164
-                        .and_then(|n| phonenumber::parse(<span class="prelude-val">None</span>, n).ok()),
-                    uuid: <span class="prelude-val">Some</span>(Uuid::parse_str(<span class="kw-2">&amp;</span>sender_uuid).map_err(
-                        |<span class="kw">_</span>| {
-                            SignalProtocolError::InvalidSealedSenderMessage(
-                                <span class="string">&quot;invalid sender UUID&quot;</span>.to_string(),
-                            )
-                        },
-                    )<span class="question-mark">?</span>),
-                    relay: <span class="prelude-val">None</span>,
+                    uuid: Uuid::parse_str(<span class="kw-2">&amp;</span>sender_uuid).map_err(|<span class="kw">_</span>| {
+                        SignalProtocolError::InvalidSealedSenderMessage(
+                            <span class="string">&quot;invalid sender UUID&quot;</span>.to_string(),
+                        )
+                    })<span class="question-mark">?</span>,
                 };
 
                 <span class="kw">let </span>needs_receipt = <span class="kw">if </span>envelope.source_uuid.is_some() {
@@ -982,30 +940,12 @@
     address: <span class="kw-2">&amp;</span>ServiceAddress,
     device_id: DeviceId,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolAddress, libsignal_protocol::error::SignalProtocolError&gt; {
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">ref </span>uuid) = address.uuid {
-        <span class="kw">let </span>address = ProtocolAddress::new(uuid.to_string(), device_id);
-        <span class="kw">if </span>session_store.load_session(<span class="kw-2">&amp;</span>address, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.is_some() {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
-        }
-    }
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(e164) = address.e164() {
-        <span class="kw">let </span>address = ProtocolAddress::new(e164, device_id);
-        <span class="kw">if </span>session_store.load_session(<span class="kw-2">&amp;</span>address, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.is_some() {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
-        }
-        <span class="kw">if </span><span class="macro">cfg!</span>(feature = <span class="string">&quot;prefer-e164&quot;</span>) {
-            <span class="macro">log::warn!</span>(<span class="string">&quot;prefer-e164 triggered.  This is a legacy feature and shouldn&#39;t be used for new applications.&quot;</span>);
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
-        }
-    }
-    <span class="kw">if </span><span class="macro">cfg!</span>(feature = <span class="string">&quot;prefer-e164&quot;</span>) {
-        <span class="macro">panic!</span>(
-            <span class="string">&quot;{:?}:{} does not have a e164 associated, falling back to UUID.&quot;</span>,
-            address, device_id
-        );
+    <span class="kw">let </span>address = address.to_protocol_address(device_id);
+    <span class="kw">if </span>session_store.load_session(<span class="kw-2">&amp;</span>address, <span class="prelude-val">None</span>).<span class="kw">await</span><span class="question-mark">?</span>.is_some() {
+        <span class="kw">return </span><span class="prelude-val">Ok</span>(address);
     }
 
-    <span class="prelude-val">Ok</span>(ProtocolAddress::new(address.identifier(), device_id))
+    <span class="prelude-val">Ok</span>(address)
 }
 
 <span class="doccomment">/// Decrypt a Sealed Sender message `ciphertext` in either the v1 or v2 format, validate its sender
