@@ -39,14 +39,6 @@ struct Args {
     db_path: Option<PathBuf>,
 
     #[clap(
-        long = "notifications",
-        short = 'n',
-        group = "store",
-        takes_value = false
-    )]
-    notifications: bool,
-
-    #[clap(
         help = "passphrase to encrypt the local storage",
         long = "passphrase",
         short = 'p',
@@ -115,7 +107,10 @@ enum Cmd {
     #[clap(about = "Update the details of a contact")]
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
-    Receive,
+    Receive {
+        #[clap(long = "notifications", short = 'n', default_value = "true")]
+        notifications: bool,
+    },
     #[clap(about = "List groups")]
     ListGroups,
     #[clap(about = "List contacts")]
@@ -222,6 +217,7 @@ async fn send<C: Store>(
 async fn process_incoming_message<C: Store + MessageStore>(
     manager: &Manager<C, Registered>,
     attachments_tmp_dir: &Path,
+    notifications: bool,
     content: &Content,
 ) {
     let Ok(thread) = Thread::try_from(content) else {
@@ -331,13 +327,15 @@ async fn process_incoming_message<C: Store + MessageStore>(
 
         println!("{prefix} {body}");
 
-        if let Err(e) = Notification::new()
-            .summary(&prefix)
-            .body(&body)
-            .icon("presage")
-            .show()
-        {
-            log::error!("failed to display desktop notification: {e}");
+        if notifications {
+            if let Err(e) = Notification::new()
+                .summary(&prefix)
+                .body(&body)
+                .icon("presage")
+                .show()
+            {
+                log::error!("failed to display desktop notification: {e}");
+            }
         }
     }
 
@@ -373,6 +371,7 @@ async fn process_incoming_message<C: Store + MessageStore>(
 
 async fn receive<C: Store + MessageStore>(
     manager: &mut Manager<C, Registered>,
+    notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
@@ -387,8 +386,10 @@ async fn receive<C: Store + MessageStore>(
     pin_mut!(messages);
 
     while let Some(content) = messages.next().await {
-        process_incoming_message(manager, attachments_tmp_dir.path(), &content).await;
+        process_incoming_message(manager, attachments_tmp_dir.path(), notifications, &content)
+            .await;
     }
+
     Ok(())
 }
 
@@ -454,9 +455,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 }
             }
         }
-        Cmd::Receive => {
+        Cmd::Receive { notifications } => {
             let mut manager = Manager::load_registered(config_store)?;
-            receive(&mut manager).await?;
+            receive(&mut manager, notifications).await?;
         }
         Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store)?;
