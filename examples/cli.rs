@@ -248,7 +248,7 @@ async fn process_incoming_message<C: Store + MessageStore>(
                 }),
             ..
         } => {
-            let Ok(Some(message)) = manager.message(&thread, *timestamp) else {
+            let Ok(Some(message)) = manager.message(thread, *timestamp) else {
                 log::warn!("no message in {thread} sent at {timestamp}");
                 return None;
             };
@@ -313,11 +313,11 @@ async fn process_incoming_message<C: Store + MessageStore>(
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
                 let contact = format_contact(sender);
-                (format!("Received from {contact}",), body)
+                (format!("Received from {contact}"), body)
             }
             Msg::Sent(Thread::Contact(recipient), body) => {
                 let contact = format_contact(recipient);
-                (format!("Sent to {}", contact), body)
+                (format!("Sent to {contact}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
                 let group = format_group(key);
@@ -343,7 +343,7 @@ async fn process_incoming_message<C: Store + MessageStore>(
 
     if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
         for attachment_pointer in attachments {
-            let Ok(attachment_data) = manager.get_attachment(&attachment_pointer).await else {
+            let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
                 log::warn!("failed to fetch attachment");
                 continue;
             };
