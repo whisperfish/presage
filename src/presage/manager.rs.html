@@ -1054,6 +1054,13 @@
 <a href="#1054" id="1054">1054</a>
 <a href="#1055" id="1055">1055</a>
 <a href="#1056" id="1056">1056</a>
+<a href="#1057" id="1057">1057</a>
+<a href="#1058" id="1058">1058</a>
+<a href="#1059" id="1059">1059</a>
+<a href="#1060" id="1060">1060</a>
+<a href="#1061" id="1061">1061</a>
+<a href="#1062" id="1062">1062</a>
+<a href="#1063" id="1063">1063</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     sync::Arc,
@@ -1201,10 +1208,11 @@
     ///
     ///     use presage::{
     ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy
+    ///         Manager, MigrationConflictStrategy, RegistrationOptions, SledStore,
     ///     };
     ///
-    ///     let config_store = SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
+    ///     let config_store =
+    ///         SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
     ///
     ///     let manager = Manager::register(
     ///         config_store,
@@ -1283,12 +1291,13 @@
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};
     /// use futures::{channel::oneshot, future, StreamExt};
+    /// use presage::{prelude::SignalServers, Manager, MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -&gt; anyhow::Result&lt;()&gt; {
-    ///     let config_store = SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
+    ///     let config_store =
+    ///         SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -1301,7 +1310,7 @@
     ///         async move {
     ///             match rx.await {
     ///                 Ok(url) =&gt; println!(&quot;Show URL {} as QR code to user&quot;, url),
-    ///                 Err(e) =&gt; println!(&quot;Error linking device: {}&quot;, e)
+    ///                 Err(e) =&gt; println!(&quot;Error linking device: {}&quot;, e),
     ///             }
     ///         },
     ///     )
@@ -1695,8 +1704,8 @@
     <span class="doccomment">/// Get a single contact by its UUID
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    </span><span class="kw">pub fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.contact_by_id(id)
+    </span><span class="kw">pub fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
+        <span class="self">self</span>.config_store.contact_by_id(<span class="kw-2">*</span>id)
     }
 
     <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].
@@ -1716,13 +1725,18 @@
         <span class="self">self</span>.config_store.groups()
     }
 
+    <span class="doccomment">/// Get a single message in a thread (identified by its server-side sent timestamp)
+    </span><span class="kw">pub fn </span>message(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, timestamp: u64) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, Error&gt; {
+        <span class="self">self</span>.config_store.message(thread, timestamp)
+    }
+
     <span class="doccomment">/// Get an iterator of messages in a thread, optionally starting from a point in time.
     </span><span class="kw">pub fn </span>messages(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        thread: <span class="kw">impl </span>AsRef&lt;Thread&gt;,
+        thread: <span class="kw-2">&amp;</span>Thread,
         from: <span class="prelude-ty">Option</span>&lt;u64&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Content, Error&gt;&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.messages(thread.as_ref(), from)
+        <span class="self">self</span>.config_store.messages(thread, from)
     }
 
     <span class="kw">async fn </span>receive_messages_encrypted(
@@ -2060,7 +2074,7 @@
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::contact_by_id&quot;</span>]
     </span><span class="kw">pub fn </span>get_contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
-        <span class="self">self</span>.contact_by_id(id)
+        <span class="self">self</span>.contact_by_id(<span class="kw-2">&amp;</span>id)
     }
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::groups&quot;</span>]
