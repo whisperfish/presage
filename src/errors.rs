@@ -1,6 +1,8 @@
 use std::borrow::Cow;
 
-use libsignal_service::{models::ParseContactError, prelude::protocol::SignalProtocolError};
+use libsignal_service::{
+    models::ParseContactError, prelude::protocol::SignalProtocolError, ParseServiceAddressError,
+};
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -35,8 +37,6 @@ pub enum Error {
     ProfileManagerError(#[from] libsignal_service::ProfileManagerError),
     #[error("libsignal-service sending error: {0}")]
     MessageSenderError(#[from] libsignal_service::prelude::MessageSenderError),
-    #[error("libsignal-service error: {0}")]
-    MessageReceiverError(#[from] libsignal_service::receiver::MessageReceiverError),
     #[error("this client is already registered with Signal")]
     AlreadyRegisteredError,
     #[error("this client is not yet registered, please register or link as a secondary device")]
@@ -49,18 +49,24 @@ pub enum Error {
     LinkError,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
+    #[error("message pipe not started, you need to start receiving messages before you can send anything back")]
+    MessagePipeNotStarted,
     #[error("receiving pipe was interrupted")]
     MessagePipeInterruptedError,
+    #[error(transparent)]
+    ParseServiceAddressError(#[from] ParseServiceAddressError),
     #[error("failed to parse contact information: {0}")]
     ParseContactError(#[from] ParseContactError),
     #[error("failed to decrypt attachment: {0}")]
     AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
-    #[error("message is missing a uuid")]
-    ContentMissingUuid,
+    #[error("unknown group")]
+    UnknownGroup,
     #[error("database migration is not supported")]
     MigrationConflict,
     #[error("I/O error: {0}")]
     FsError(#[from] fs_extra::error::Error),
+    #[error("timeout: {0}")]
+    Timeout(#[from] tokio::time::error::Elapsed),
 }
 
 impl Error {

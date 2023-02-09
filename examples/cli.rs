@@ -1,5 +1,6 @@
 use core::fmt;
 use std::convert::TryInto;
+use std::path::Path;
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::{anyhow, bail, Context as _};
@@ -8,18 +9,21 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
-use libsignal_service::{groups_v2::Group, push_service::ProfileKey};
-use log::{debug, info};
+use libsignal_service::content::Reaction;
+use libsignal_service::proto::data_message::Quote;
+use libsignal_service::proto::sync_message::Sent;
+use libsignal_service::{groups_v2::Group, prelude::ProfileKey};
+use log::{debug, error, info};
 use notify_rust::Notification;
+use presage::prelude::SyncMessage;
 use presage::{
     prelude::{
-        content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
-        proto::sync_message::Sent,
-        Contact, GroupMasterKey, SignalServers, Uuid,
+        content::{Content, ContentBody, DataMessage, GroupContextV2},
+        Contact, SignalServers,
     },
-    prelude::{phonenumber::PhoneNumber, ServiceAddress},
-    Manager, MessageStore, MigrationConflictStrategy, Registered, RegistrationOptions, SledStore,
-    Store, Thread,
+    prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
+    GroupMasterKeyBytes, Manager, MessageStore, MigrationConflictStrategy, Registered,
+    RegistrationOptions, SledStore, Store, Thread,
 };
 use tempfile::Builder;
 use tokio::{
@@ -95,7 +99,7 @@ enum Cmd {
         /// Id of the user to retrieve the profile. When omitted, retrieves the registered user
         /// profile.
         #[clap(long)]
-        uuid: Option<Uuid>,
+        uuid: Uuid,
         /// Base64-encoded profile key of user to be able to access their profile
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
@@ -112,12 +116,7 @@ enum Cmd {
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive,
-    /// Get information about a group
-    GetGroup {
-        #[clap(long, short = 'k', value_parser = parse_base64_master_key)]
-        group_master_key: GroupMasterKey,
-    },
-    #[clap(about = "List group memberships")]
+    #[clap(about = "List groups")]
     ListGroups,
     #[clap(about = "List contacts")]
     ListContacts,
@@ -136,10 +135,12 @@ enum Cmd {
             long,
             short = 'k',
             help = "Master Key of the V2 group (hex string)",
-            value_parser = parse_master_key
+            value_parser = parse_group_master_key,
         )]
-        group_master_key: Option<[u8; 32]>,
+        group_master_key: Option<GroupMasterKeyBytes>,
     },
+    #[clap(about = "Get a single contact by UUID")]
+    GetContact { uuid: Uuid },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -158,19 +159,14 @@ enum Cmd {
     SendToGroup {
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(
-            long,
-            short = 'k',
-            help = "Master Key of the V2 group (hex string)",
-            value_parser = parse_master_key
-        )]
-        master_key: [u8; 32],
+        #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
+        master_key: GroupMasterKeyBytes,
     },
     #[cfg(feature = "quirks")]
     RequestSyncContacts,
 }
 
-fn parse_master_key(value: &str) -> anyhow::Result<[u8; 32]> {
+fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
     let master_key_bytes = hex::decode(value)?;
     master_key_bytes
         .try_into()
@@ -180,7 +176,7 @@ fn parse_master_key(value: &str) -> anyhow::Result<[u8; 32]> {
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::from_env(
-        Env::default().default_filter_or(format!("{}=info", env!("CARGO_PKG_NAME"))),
+        Env::default().default_filter_or(format!("{}=warn", env!("CARGO_PKG_NAME"))),
     )
     .init();
 
@@ -221,6 +217,160 @@ async fn send<C: Store>(
     Ok(())
 }
 
+// Note to developers, this is a good example of a function you can use as a source of inspiration
+// to process incoming messages.
+async fn process_incoming_message<C: Store + MessageStore>(
+    manager: &Manager<C, Registered>,
+    attachments_tmp_dir: &Path,
+    content: &Content,
+) {
+    let Ok(thread) = Thread::try_from(content) else {
+        log::warn!("failed to derive thread from content");
+        return;
+    };
+
+    let format_data_message = |thread: &Thread, data_message: &DataMessage| match data_message {
+        DataMessage {
+            quote:
+                Some(Quote {
+                    text: Some(quoted_text),
+                    ..
+                }),
+            body: Some(body),
+            ..
+        } => Some(format!("Answer to message \"{quoted_text}\": {body}")),
+        DataMessage {
+            reaction:
+                Some(Reaction {
+                    target_sent_timestamp: Some(timestamp),
+                    emoji: Some(emoji),
+                    ..
+                }),
+            ..
+        } => {
+            let Ok(Some(message)) = manager.message(&thread, *timestamp) else {
+                log::warn!("no message in {thread} sent at {timestamp}");
+                return None;
+            };
+
+            let ContentBody::DataMessage(DataMessage { body: Some(body), .. }) = message.body else {
+                log::warn!("message reacted to has no body");
+                return None;
+            };
+
+            Some(format!("Reacted with {emoji} to message: \"{body}\""))
+        }
+        DataMessage {
+            body: Some(body), ..
+        } => Some(body.to_string()),
+        _ => None,
+    };
+
+    let format_contact = |uuid| {
+        manager
+            .contact_by_id(uuid)
+            .ok()
+            .flatten()
+            .filter(|c| !c.name.is_empty())
+            .map(|c| c.name)
+            .unwrap_or_else(|| uuid.to_string())
+    };
+
+    let format_group = |key| {
+        manager
+            .group(key)
+            .ok()
+            .flatten()
+            .map(|g| g.title)
+            .unwrap_or_else(|| "<missing group>".to_string())
+    };
+
+    enum Msg<'a> {
+        Received(&'a Thread, String),
+        Sent(&'a Thread, String),
+    }
+
+    let sender = content.metadata.sender.uuid;
+    if let Some(msg) = match &content.body {
+        ContentBody::DataMessage(data_message) => {
+            format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body))
+        }
+        ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                Some(Sent {
+                    message: Some(data_message),
+                    ..
+                }),
+            ..
+        }) => format_data_message(&thread, data_message).map(|body| Msg::Sent(&thread, body)),
+        ContentBody::CallMessage(_) => Some(Msg::Received(&thread, "is calling!".into())),
+        ContentBody::TypingMessage(_) => Some(Msg::Received(&thread, "is typing...".into())),
+        c => {
+            log::warn!("unsupported message {c:?}");
+            None
+        }
+    } {
+        let (prefix, body) = match msg {
+            Msg::Received(Thread::Contact(sender), body) => {
+                let contact = format_contact(sender);
+                (format!("Received from {contact}",), body)
+            }
+            Msg::Sent(Thread::Contact(recipient), body) => {
+                let contact = format_contact(recipient);
+                (format!("Sent to {}", contact), body)
+            }
+            Msg::Received(Thread::Group(key), body) => {
+                let group = format_group(key);
+                (format!("Received from {sender} in group {group}"), body)
+            }
+            Msg::Sent(Thread::Group(key), body) => {
+                let group = format_group(key);
+                (format!("Sent in group: {group}"), body)
+            }
+        };
+
+        println!("{prefix} {body}");
+
+        if let Err(e) = Notification::new()
+            .summary(&prefix)
+            .body(&body)
+            .icon("presage")
+            .show()
+        {
+            log::error!("failed to display desktop notification: {e}");
+        }
+    }
+
+    if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
+        for attachment_pointer in attachments {
+            let Ok(attachment_data) = manager.get_attachment(&attachment_pointer).await else {
+                log::warn!("failed to fetch attachment");
+                continue;
+            };
+
+            let extensions = mime_guess::get_mime_extensions_str(
+                attachment_pointer
+                    .content_type
+                    .as_deref()
+                    .unwrap_or("application/octet-stream"),
+            );
+            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
+            let filename = attachment_pointer
+                .file_name
+                .clone()
+                .unwrap_or_else(|| Local::now().format("%Y-%m-%d-%H-%M-%s").to_string());
+            let file_path = attachments_tmp_dir.join(format!("presage-{filename}.{extension}",));
+            match fs::write(&file_path, &attachment_data).await {
+                Ok(_) => info!("saved attachment from {sender} to {}", file_path.display()),
+                Err(error) => error!(
+                    "failed to write attachment from {sender} to {}: {error}",
+                    file_path.display()
+                ),
+            }
+        }
+    }
+}
+
 async fn receive<C: Store + MessageStore>(
     manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
@@ -236,129 +386,8 @@ async fn receive<C: Store + MessageStore>(
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
 
-    while let Some(Content { metadata, body }) = messages.next().await {
-        match body {
-            ContentBody::DataMessage(message)
-            | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
-                        message: Some(message),
-                        ..
-                    }),
-                ..
-            }) => {
-                if let Some(quote) = &message.quote {
-                    println!(
-                        "Quote from {:?}: > {:?} / {}",
-                        metadata.sender,
-                        quote,
-                        message.body()
-                    );
-                } else if let Some(reaction) = message.reaction {
-                    println!(
-                        "Reaction to message sent at {:?}: {:?}",
-                        reaction.target_sent_timestamp, reaction.emoji
-                    );
-                } else {
-                    let self_is_sender = metadata.sender.uuid == Some(manager.uuid());
-                    if self_is_sender {
-                        println!("Message sent to {:?}: {:?}", metadata.sender, message);
-                    } else {
-                        println!("Message from {:?}: {:?}", metadata.sender, message);
-                    }
-                    let body = message.body().to_string();
-                    let mut session_name: String = "Unknown contact".to_string();
-                    // fetch the groups v2 info here
-                    if let Some(group_v2) = message.group_v2 {
-                        let master_key_bytes: [u8; 32] =
-                            group_v2.master_key.clone().unwrap().try_into().unwrap();
-                        let master_key = GroupMasterKey::new(master_key_bytes);
-                        let group = manager.get_group_v2(master_key).await?;
-                        let group_changes = manager.decrypt_group_context(group_v2)?;
-                        session_name = group.title;
-                        println!("Group v2: {:?}", session_name);
-                        println!("Group change: {:?}", group_changes);
-                        println!("Group master key: {:?}", hex::encode(&master_key_bytes));
-                    } else if !self_is_sender {
-                        //get the contact name
-                        match metadata.sender.uuid {
-                            Some(uuid) => {
-                                println!("uuid: {:?}", uuid);
-                                for contact in manager
-                                    .get_contacts()?
-                                    .filter_map(Result::ok)
-                                    .filter(|c| c.address.uuid == Some(uuid))
-                                {
-                                    if contact.name == "" {
-                                        let profile_key: [u8; 32] =
-                                            match (contact.profile_key).try_into() {
-                                                Ok(profile_key) => profile_key,
-                                                Err(_) => [0; 32],
-                                            };
-                                        session_name = match manager
-                                            .retrieve_profile_by_uuid(uuid, profile_key)
-                                            .await
-                                        {
-                                            Ok(profile) => match profile.name {
-                                                Some(name) => name.to_string(),
-                                                None => uuid.to_string(),
-                                            },
-                                            Err(_) => uuid.to_string(),
-                                        };
-                                    } else {
-                                        session_name = contact.name;
-                                    }
-                                }
-                            }
-                            None => println!("No uuid found"),
-                        };
-                    }
-                    // only show notification if the message is not from us
-                    let args = Args::parse();
-                    if !self_is_sender && args.notifications {
-                        Notification::new()
-                            .summary(&format!("{}", session_name))
-                            .body(&body)
-                            .icon("presage")
-                            .show()?;
-                    }
-                }
-
-                for attachment_pointer in message.attachments {
-                    let attachment_data = manager.get_attachment(&attachment_pointer).await?;
-                    let extensions = mime_guess::get_mime_extensions_str(
-                        attachment_pointer
-                            .content_type
-                            .as_deref()
-                            .unwrap_or("application/octet-stream"),
-                    );
-                    let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
-                    let file_path = attachments_tmp_dir.path().join(format!(
-                        "presage-{}.{}",
-                        Local::now().format("%Y-%m-%d-%H-%M-%s"),
-                        extension
-                    ));
-                    fs::write(&file_path, &attachment_data).await?;
-                    info!(
-                        "saved received attachment from {} to {}",
-                        metadata.sender,
-                        file_path.display()
-                    );
-                }
-            }
-            ContentBody::SynchronizeMessage(m) => {
-                eprintln!("Unhandled sync message: {:?}", m);
-            }
-            ContentBody::TypingMessage(_) => {
-                println!("{:?} is typing", metadata.sender);
-            }
-            ContentBody::CallMessage(_) => {
-                println!("{:?} is calling!", metadata.sender);
-            }
-            ContentBody::ReceiptMessage(_) => {
-                println!("Got read receipt from: {:?}", metadata.sender);
-            }
-        }
+    while let Some(content) = messages.next().await {
+        process_incoming_message(manager, attachments_tmp_dir.path(), &content).await;
     }
     Ok(())
 }
@@ -418,10 +447,10 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             match manager {
                 (Ok(manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
-                    println!("{:?}", uuid);
+                    println!("{uuid:?}");
                 }
                 (Err(err), _) => {
-                    println!("{:?}", err);
+                    println!("{err:?}");
                 }
             }
         }
@@ -455,16 +484,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 ..Default::default()
             };
 
-            let group = manager
-                .get_group_v2(GroupMasterKey::new(master_key))
-                .await?;
-
             manager
-                .send_message_to_group(
-                    group.members.into_iter().map(|m| m.uuid).map(Into::into),
-                    data_message,
-                    timestamp,
-                )
+                .send_message_to_group(&master_key, data_message, timestamp)
                 .await?;
         }
         Cmd::Unregister => unimplemented!(),
@@ -473,34 +494,24 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             mut profile_key,
         } => {
             let manager = Manager::load_registered(config_store)?;
-            if profile_key.is_none() && uuid.is_some() {
+            if profile_key.is_none() {
                 for contact in manager
-                    .get_contacts()?
+                    .contacts()?
                     .filter_map(Result::ok)
                     .filter(|c| c.address.uuid == uuid)
                 {
                     let profilek:[u8;32] = match(contact.profile_key).try_into() {
                     Ok(profilek) => profilek,
-                    Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid.unwrap()),
+                    Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid),
                 };
-                    profile_key = Some(ProfileKey(profilek));
+                    profile_key = Some(ProfileKey::create(profilek));
                 }
             } else {
-                println!(
-                    "Retrieving profile for: {:?} with
-                profile_key",
-                    uuid
-                );
+                println!("Retrieving profile for: {uuid:?} with profile_key");
             }
-            let profile = match (uuid, profile_key) {
-                (None, None) => manager.retrieve_profile().await?,
-                (None, Some(_)) => bail!("profile key without provided user uuid"),
-                (Some(_), None) => bail!("user uuid without provided profile key"),
-                (Some(uuid), Some(profile_key)) => {
-                    manager
-                        .retrieve_profile_by_uuid(uuid, profile_key.0)
-                        .await?
-                }
+            let profile = match profile_key {
+                None => manager.retrieve_profile().await?,
+                Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
             };
             println!("{profile:#?}");
         }
@@ -509,35 +520,59 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::Block => unimplemented!(),
         Cmd::Unblock => unimplemented!(),
         Cmd::UpdateContact => unimplemented!(),
-        Cmd::ListGroups => unimplemented!(),
-        Cmd::ListContacts => {
+        Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store)?;
-            for contact in manager.get_contacts()? {
-                if let Contact {
-                    name,
-                    address:
-                        ServiceAddress {
-                            uuid: Some(uuid),
-                            phonenumber: Some(phonenumber),
+            for group in manager.groups()? {
+                match group {
+                    Ok((
+                        _,
+                        Group {
+                            title,
+                            description,
+                            revision,
+                            members,
                             ..
                         },
-                    ..
-                } = contact?
-                {
-                    println!("{} / {} / {}", uuid, name, phonenumber);
-                }
+                    )) => {
+                        println!(
+                            "{title}: {description:?} / revision {revision} / {} members",
+                            members.len()
+                        );
+                    }
+                    Err(error) => {
+                        error!("Error: failed to deserialize group, {error}");
+                    }
+                };
+            }
+        }
+        Cmd::ListContacts => {
+            let manager = Manager::load_registered(config_store)?;
+            for Contact {
+                name,
+                address: ServiceAddress { uuid },
+                ..
+            } in manager.contacts()?.flatten()
+            {
+                println!("{uuid} / {name}");
             }
         }
         Cmd::Whoami => {
             let manager = Manager::load_registered(config_store)?;
             println!("{:?}", &manager.whoami().await?);
         }
+        Cmd::GetContact { ref uuid } => {
+            let manager = Manager::load_registered(config_store)?;
+            match manager.contact_by_id(uuid)? {
+                Some(contact) => println!("{contact:#?}"),
+                None => eprintln!("Could not find contact for {uuid}"),
+            }
+        }
         Cmd::FindContact { uuid, ref name } => {
             let manager = Manager::load_registered(config_store)?;
             for contact in manager
-                .get_contacts()?
+                .contacts()?
                 .filter_map(Result::ok)
-                .filter(|c| c.address.uuid == uuid)
+                .filter(|c| uuid.map_or_else(|| true, |u| c.address.uuid == u))
                 .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
             {
                 println!("{contact:#?}");
@@ -559,34 +594,18 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             };
             let iter = config_store.messages(&thread, None)?;
             for msg in iter.filter_map(Result::ok) {
-                println!("{}: {:?}", msg.metadata.sender.identifier(), msg);
-            }
-        }
-        Cmd::GetGroup { group_master_key } => {
-            let manager = Manager::load_registered(config_store)?;
-            let group = manager.get_group_v2(group_master_key).await?;
-            println!("{:#?}", DebugGroup(&group));
-            for member in &group.members {
-                let profile_key = base64::encode(&member.profile_key.bytes);
-                println!("{member:#?} => profile_key = {profile_key}");
+                println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
         }
     }
     Ok(())
 }
 
-fn parse_base64_master_key(s: &str) -> anyhow::Result<GroupMasterKey> {
-    let bytes = base64::decode(s)?
-        .try_into()
-        .map_err(|_| anyhow!("group master key of invalid length"))?;
-    Ok(GroupMasterKey::new(bytes))
-}
-
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
     let bytes = base64::decode(s)?
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
-    Ok(ProfileKey(bytes))
+    Ok(ProfileKey::create(bytes))
 }
 
 struct DebugGroup<'a>(&'a Group);
@@ -597,7 +616,7 @@ impl fmt::Debug for DebugGroup<'_> {
         f.debug_struct("Group")
             .field("title", &group.title)
             .field("avatar", &group.avatar)
-            .field("version", &group.version)
+            .field("revision", &group.revision)
             .field("description", &group.description)
             .finish()
     }

@@ -1,18 +1,17 @@
 # Presage
 
-![CI](https://github.com/whisperfish/presage/workflows/CI/badge.svg)
+![CI Build](https://github.com/whisperfish/presage/workflows/Build/badge.svg)
 ![License](https://img.shields.io/github/license/whisperfish/presage)
 [![API Docs](https://img.shields.io/badge/docs-presage-blue)](https://whisperfish.github.io/presage/presage)
 
 A Rust library that helps building clients for the [Signal Messenger](https://signal.org/en/), using [libsignal-service-rs](https://github.com/whisperfish/libsignal-service-rs). It is designed to provide everything you need to get started.
-
-> :warning: **The API is considered unstable** - I am still experimenting here.
 
 Features:
 
 - [x] Local storage (using [sled](https://github.com/spacejam/sled))
   - [x] Registration/linking
   - [x] Contacts
+  - [x] Groups
   - [x] Messages
   - [x] Local encryption (using [matrix-sdk-store-encryption](https://crates.io/crates/matrix-sdk-store-encryption))
 - [x] Registration

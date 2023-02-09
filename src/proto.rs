@@ -4,35 +4,28 @@ mod textsecure {
     include!(concat!(env!("OUT_DIR"), "/textsecure.rs"));
 }
 
-use std::str::FromStr;
-
 use self::textsecure::AddressProto;
 use self::textsecure::MetadataProto;
-use crate::prelude::{PhoneNumber, ServiceAddress};
+use crate::prelude::ServiceAddress;
 use crate::Error;
 use libsignal_service::content::ContentBody;
 use libsignal_service::content::Metadata;
 use libsignal_service::prelude::Content;
-use libsignal_service::prelude::Uuid;
+use libsignal_service::ParseServiceAddressError;
 
 impl From<ServiceAddress> for AddressProto {
     fn from(s: ServiceAddress) -> Self {
         AddressProto {
-            uuid: s.uuid.map(|u| u.as_bytes().to_vec()),
-            e164: s.e164(),
+            uuid: Some(s.uuid.as_bytes().to_vec()),
         }
     }
 }
 
-impl From<AddressProto> for ServiceAddress {
-    fn from(address: AddressProto) -> Self {
-        ServiceAddress {
-            uuid: address
-                .uuid
-                .map(|u| Uuid::from_bytes(u.try_into().expect("Proto to have 16 bytes uuid"))),
-            phonenumber: address.e164.and_then(|p| PhoneNumber::from_str(&p).ok()),
-            relay: None,
-        }
+impl TryFrom<AddressProto> for ServiceAddress {
+    type Error = ParseServiceAddressError;
+
+    fn try_from(address: AddressProto) -> Result<Self, Self::Error> {
+        address.uuid.as_deref().try_into()
     }
 }
 
@@ -52,17 +45,15 @@ impl From<Metadata> for MetadataProto {
     }
 }
 
-impl From<MetadataProto> for Metadata {
-    fn from(metadata: MetadataProto) -> Metadata {
-        Metadata {
+impl TryFrom<MetadataProto> for Metadata {
+    type Error = ParseServiceAddressError;
+
+    fn try_from(metadata: MetadataProto) -> Result<Self, Self::Error> {
+        Ok(Metadata {
             sender: metadata
                 .address
-                .map(|a| a.into())
-                .unwrap_or_else(|| ServiceAddress {
-                    uuid: None,
-                    phonenumber: None,
-                    relay: None,
-                }),
+                .ok_or(ParseServiceAddressError::NoUuid)?
+                .try_into()?,
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())
@@ -73,7 +64,7 @@ impl From<MetadataProto> for Metadata {
                 .unwrap_or_default(),
             needs_receipt: metadata.needs_receipt.unwrap_or_default(),
             unidentified_sender: false,
-        }
+        })
     }
 }
 
@@ -107,6 +98,6 @@ impl TryInto<Content> for ContentProto {
     type Error = crate::Error;
 
     fn try_into(self) -> Result<Content, Self::Error> {
-        Content::from_proto(self.content, self.metadata.into()).map_err(Error::from)
+        Content::from_proto(self.content, self.metadata.try_into()?).map_err(Error::from)
     }
 }

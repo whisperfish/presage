@@ -1,13 +1,13 @@
 [package]
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
-version = "0.4.0"
+version = "0.5.0-dev"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "456bf6eb2e4454ce35bdb4ca75b8dba7941c2923" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs.git", rev = "456bf6eb2e4454ce35bdb4ca75b8dba7941c2923" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "26ff8bb6c500d9c4aee5f8510e536f61b5656850" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "26ff8bb6c500d9c4aee5f8510e536f61b5656850" }
 
 async-trait = "0.1"
 base64 = "0.12"
@@ -23,12 +23,14 @@ serde_json = "1.0"
 sha2 = "0.10"
 thiserror = "1.0"
 url = "2.2.2"
+tokio = { version = "1.0", default-features = false, features = ["time"] }
 
 # specific to store impl
 libsodium-sys = { version = "0.2.7", optional = true }
 matrix-sdk-store-encryption = { version = "0.2.0", optional = true }
 secrets = { version = "1.2.0", features = ["use-libsodium-sys"], optional = true }
 sled = { version = "0.34", optional = true }
+parking_lot = "0.11.2"
 
 [build-dependencies]
 prost-build = "0.10"
