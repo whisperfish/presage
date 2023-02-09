@@ -1,4 +1,6 @@
 use core::fmt;
+use std::convert::TryInto;
+use std::path::Path;
 use std::{path::PathBuf, time::UNIX_EPOCH};
 
 use anyhow::{anyhow, bail, Context as _};
@@ -7,12 +9,16 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
+use libsignal_service::content::Reaction;
+use libsignal_service::proto::data_message::Quote;
+use libsignal_service::proto::sync_message::Sent;
 use libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use log::{debug, error, info};
+use notify_rust::Notification;
+use presage::prelude::SyncMessage;
 use presage::{
     prelude::{
-        content::{Content, ContentBody, DataMessage, GroupContextV2, SyncMessage},
-        proto::sync_message::Sent,
+        content::{Content, ContentBody, DataMessage, GroupContextV2},
         Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
@@ -101,7 +107,10 @@ enum Cmd {
     #[clap(about = "Update the details of a contact")]
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
-    Receive,
+    Receive {
+        #[clap(long = "notifications", short = 'n', default_value = "true")]
+        notifications: bool,
+    },
     #[clap(about = "List groups")]
     ListGroups,
     #[clap(about = "List contacts")]
@@ -111,7 +120,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient-uuid", "group-master-key"]),
+                .args(&["recipient-uuid", "group-master-key"])
         )
     )]
     ListMessages {
@@ -162,7 +171,7 @@ fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::from_env(
-        Env::default().default_filter_or(format!("{}=info", env!("CARGO_PKG_NAME"))),
+        Env::default().default_filter_or(format!("{}=warn", env!("CARGO_PKG_NAME"))),
     )
     .init();
 
@@ -203,8 +212,166 @@ async fn send<C: Store>(
     Ok(())
 }
 
+// Note to developers, this is a good example of a function you can use as a source of inspiration
+// to process incoming messages.
+async fn process_incoming_message<C: Store + MessageStore>(
+    manager: &Manager<C, Registered>,
+    attachments_tmp_dir: &Path,
+    notifications: bool,
+    content: &Content,
+) {
+    let Ok(thread) = Thread::try_from(content) else {
+        log::warn!("failed to derive thread from content");
+        return;
+    };
+
+    let format_data_message = |thread: &Thread, data_message: &DataMessage| match data_message {
+        DataMessage {
+            quote:
+                Some(Quote {
+                    text: Some(quoted_text),
+                    ..
+                }),
+            body: Some(body),
+            ..
+        } => Some(format!("Answer to message \"{quoted_text}\": {body}")),
+        DataMessage {
+            reaction:
+                Some(Reaction {
+                    target_sent_timestamp: Some(timestamp),
+                    emoji: Some(emoji),
+                    ..
+                }),
+            ..
+        } => {
+            let Ok(Some(message)) = manager.message(thread, *timestamp) else {
+                log::warn!("no message in {thread} sent at {timestamp}");
+                return None;
+            };
+
+            let ContentBody::DataMessage(DataMessage { body: Some(body), .. }) = message.body else {
+                log::warn!("message reacted to has no body");
+                return None;
+            };
+
+            Some(format!("Reacted with {emoji} to message: \"{body}\""))
+        }
+        DataMessage {
+            body: Some(body), ..
+        } => Some(body.to_string()),
+        _ => None,
+    };
+
+    let format_contact = |uuid| {
+        manager
+            .contact_by_id(uuid)
+            .ok()
+            .flatten()
+            .filter(|c| !c.name.is_empty())
+            .map(|c| c.name)
+            .unwrap_or_else(|| uuid.to_string())
+    };
+
+    let format_group = |key| {
+        manager
+            .group(key)
+            .ok()
+            .flatten()
+            .map(|g| g.title)
+            .unwrap_or_else(|| "<missing group>".to_string())
+    };
+
+    enum Msg<'a> {
+        Received(&'a Thread, String),
+        Sent(&'a Thread, String),
+    }
+
+    let sender = content.metadata.sender.uuid;
+    if let Some(msg) = match &content.body {
+        ContentBody::DataMessage(data_message) => {
+            format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body))
+        }
+        ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                Some(Sent {
+                    message: Some(data_message),
+                    ..
+                }),
+            ..
+        }) => format_data_message(&thread, data_message).map(|body| Msg::Sent(&thread, body)),
+        ContentBody::CallMessage(_) => Some(Msg::Received(&thread, "is calling!".into())),
+        ContentBody::TypingMessage(_) => Some(Msg::Received(&thread, "is typing...".into())),
+        c => {
+            log::warn!("unsupported message {c:?}");
+            None
+        }
+    } {
+        let (prefix, body) = match msg {
+            Msg::Received(Thread::Contact(sender), body) => {
+                let contact = format_contact(sender);
+                (format!("Received from {contact}"), body)
+            }
+            Msg::Sent(Thread::Contact(recipient), body) => {
+                let contact = format_contact(recipient);
+                (format!("Sent to {contact}"), body)
+            }
+            Msg::Received(Thread::Group(key), body) => {
+                let group = format_group(key);
+                (format!("Received from {sender} in group {group}"), body)
+            }
+            Msg::Sent(Thread::Group(key), body) => {
+                let group = format_group(key);
+                (format!("Sent in group: {group}"), body)
+            }
+        };
+
+        println!("{prefix} {body}");
+
+        if notifications {
+            if let Err(e) = Notification::new()
+                .summary(&prefix)
+                .body(&body)
+                .icon("presage")
+                .show()
+            {
+                log::error!("failed to display desktop notification: {e}");
+            }
+        }
+    }
+
+    if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
+        for attachment_pointer in attachments {
+            let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
+                log::warn!("failed to fetch attachment");
+                continue;
+            };
+
+            let extensions = mime_guess::get_mime_extensions_str(
+                attachment_pointer
+                    .content_type
+                    .as_deref()
+                    .unwrap_or("application/octet-stream"),
+            );
+            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
+            let filename = attachment_pointer
+                .file_name
+                .clone()
+                .unwrap_or_else(|| Local::now().format("%Y-%m-%d-%H-%M-%s").to_string());
+            let file_path = attachments_tmp_dir.join(format!("presage-{filename}.{extension}",));
+            match fs::write(&file_path, &attachment_data).await {
+                Ok(_) => info!("saved attachment from {sender} to {}", file_path.display()),
+                Err(error) => error!(
+                    "failed to write attachment from {sender} to {}: {error}",
+                    file_path.display()
+                ),
+            }
+        }
+    }
+}
+
 async fn receive<C: Store + MessageStore>(
     manager: &mut Manager<C, Registered>,
+    notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
@@ -218,83 +385,11 @@ async fn receive<C: Store + MessageStore>(
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
 
-    while let Some(Content { metadata, body }) = messages.next().await {
-        match body {
-            ContentBody::DataMessage(message)
-            | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
-                        message: Some(message),
-                        ..
-                    }),
-                ..
-            }) => {
-                if let Some(quote) = &message.quote {
-                    println!(
-                        "Answer from {} to {}: {}",
-                        metadata.sender.uuid,
-                        quote.text(),
-                        message.body(),
-                    );
-                } else if let Some(reaction) = message.reaction {
-                    println!(
-                        "{} reacted with {} to message sent at {}",
-                        metadata.sender.uuid,
-                        reaction.emoji(),
-                        reaction.target_sent_timestamp(),
-                    )
-                } else if let Some(body) = message.body {
-                    println!("Message from {}: {}", metadata.sender.uuid, body);
-                } else if let Some(GroupContextV2 {
-                    master_key: Some(master_key),
-                    ..
-                }) = &message.group_v2
-                {
-                    let Group { title, .. } = manager.group(master_key)?.unwrap();
-                    println!(
-                        "Group message from {} in group {}: {}",
-                        metadata.sender.uuid,
-                        title,
-                        message.body()
-                    );
-                }
-
-                for attachment_pointer in message.attachments {
-                    let attachment_data = manager.get_attachment(&attachment_pointer).await?;
-                    let extensions = mime_guess::get_mime_extensions_str(
-                        attachment_pointer
-                            .content_type
-                            .as_deref()
-                            .unwrap_or("application/octet-stream"),
-                    );
-                    let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
-                    let file_path = attachments_tmp_dir.path().join(format!(
-                        "presage-{}.{}",
-                        Local::now().format("%Y-%m-%d-%H-%M-%s"),
-                        extension
-                    ));
-                    fs::write(&file_path, &attachment_data).await?;
-                    info!(
-                        "saved received attachment from {:?} to {}",
-                        metadata.sender,
-                        file_path.display()
-                    );
-                }
-            }
-            ContentBody::SynchronizeMessage(m) => {
-                eprintln!("Unhandled sync message: {m:?}");
-            }
-            ContentBody::TypingMessage(_) => {
-                println!("{} is typing", metadata.sender.uuid);
-            }
-            ContentBody::CallMessage(_) => {
-                println!("{} is calling!", metadata.sender.uuid);
-            }
-            ContentBody::ReceiptMessage(_) => {
-                println!("Read receipt from {}", metadata.sender.uuid);
-            }
-        }
+    while let Some(content) = messages.next().await {
+        process_incoming_message(manager, attachments_tmp_dir.path(), notifications, &content)
+            .await;
     }
+
     Ok(())
 }
 
@@ -358,11 +453,11 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 (Err(err), _) => {
                     println!("{err:?}");
                 }
-            };
+            }
         }
-        Cmd::Receive => {
+        Cmd::Receive { notifications } => {
             let mut manager = Manager::load_registered(config_store)?;
-            receive(&mut manager).await?;
+            receive(&mut manager, notifications).await?;
         }
         Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store)?;
@@ -464,9 +559,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         }
         Cmd::Whoami => {
             let manager = Manager::load_registered(config_store)?;
-            println!("{:?}", &manager.whoami().await?)
+            println!("{:?}", &manager.whoami().await?);
         }
-        Cmd::GetContact { uuid } => {
+        Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store)?;
             match manager.contact_by_id(uuid)? {
                 Some(contact) => println!("{contact:#?}"),
@@ -503,7 +598,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
         }
-    };
+    }
     Ok(())
 }
 

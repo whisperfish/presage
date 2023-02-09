@@ -1,3 +1,5 @@
+use std::fmt;
+
 use crate::{manager::Registered, Error, GroupMasterKeyBytes};
 use libsignal_service::{
     content::ContentBody,
@@ -82,6 +84,17 @@ pub enum Thread {
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [GroupMasterKey](crate::prelude::GroupMasterKey) (specified as bytes).
     Group(GroupMasterKeyBytes),
+}
+
+impl fmt::Display for Thread {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Thread::Contact(uuid) => write!(f, "Thread(contact={uuid})"),
+            Thread::Group(master_key_bytes) => {
+                write!(f, "Thread(group={:x?})", &master_key_bytes[..4])
+            }
+        }
+    }
 }
 
 impl TryFrom<&Content> for Thread {

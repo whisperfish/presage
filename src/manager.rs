@@ -145,10 +145,11 @@ impl<C: Store> Manager<C, Registration> {
     ///
     ///     use presage::{
     ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, RegistrationOptions, SledStore, MigrationConflictStrategy
+    ///         Manager, MigrationConflictStrategy, RegistrationOptions, SledStore,
     ///     };
     ///
-    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
+    ///     let config_store =
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let manager = Manager::register(
     ///         config_store,
@@ -227,12 +228,13 @@ impl<C: Store> Manager<C, Linking> {
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
     /// ```no_run
-    /// use presage::{prelude::SignalServers, Manager, SledStore, MigrationConflictStrategy};
     /// use futures::{channel::oneshot, future, StreamExt};
+    /// use presage::{prelude::SignalServers, Manager, MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -> anyhow::Result<()> {
-    ///     let config_store = SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
+    ///     let config_store =
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -245,7 +247,7 @@ impl<C: Store> Manager<C, Linking> {
     ///         async move {
     ///             match rx.await {
     ///                 Ok(url) => println!("Show URL {} as QR code to user", url),
-    ///                 Err(e) => println!("Error linking device: {}", e)
+    ///                 Err(e) => println!("Error linking device: {}", e),
     ///             }
     ///         },
     ///     )
@@ -639,8 +641,8 @@ impl<C: Store> Manager<C, Registered> {
     /// Get a single contact by its UUID
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    pub fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        self.config_store.contact_by_id(id)
+    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error> {
+        self.config_store.contact_by_id(*id)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
@@ -660,13 +662,18 @@ impl<C: Store> Manager<C, Registered> {
         self.config_store.groups()
     }
 
+    /// Get a single message in a thread (identified by its server-side sent timestamp)
+    pub fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error> {
+        self.config_store.message(thread, timestamp)
+    }
+
     /// Get an iterator of messages in a thread, optionally starting from a point in time.
     pub fn messages(
         &self,
-        thread: impl AsRef<Thread>,
+        thread: &Thread,
         from: Option<u64>,
     ) -> Result<impl Iterator<Item = Result<Content, Error>>, Error> {
-        self.config_store.messages(thread.as_ref(), from)
+        self.config_store.messages(thread, from)
     }
 
     async fn receive_messages_encrypted(
@@ -1004,7 +1011,7 @@ impl<C: Store> Manager<C, Registered> {
 
     #[deprecated = "use Manager::contact_by_id"]
     pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        self.contact_by_id(id)
+        self.contact_by_id(&id)
     }
 
     #[deprecated = "use Manager::groups"]
