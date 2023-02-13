@@ -352,7 +352,7 @@ impl<C: Store> Manager<C, Linking> {
         match (
             manager.register_pre_keys().await,
             manager.set_account_attributes().await,
-            manager.request_contacts_sync().await,
+            manager.sync_contacts().await,
         ) {
             (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
                 // clear the entire store on any error, there's no possible recovery here
@@ -569,6 +569,24 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    async fn sync_contacts(&mut self) -> Result<(), Error> {
+        self.request_contacts_sync().await?;
+
+        info!("waiting for contacts sync for up to 60 seconds");
+
+        let messages = self.receive_messages_stream(true).await?;
+        pin_mut!(messages);
+
+        tokio::time::timeout(
+            Duration::from_secs(60),
+            self.wait_for_contacts_sync(messages),
+        )
+        .await
+        .map_err(Error::from)??;
+
+        Ok(())
+    }
+
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -588,21 +606,9 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        let messages = self.receive_messages_stream(true).await?;
-        pin_mut!(messages);
-
         // first request the sync
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
-
-        // wait for it to arrive
-        info!("waiting for contacts sync for up to 60 seconds");
-        tokio::time::timeout(
-            Duration::from_secs(60),
-            self.wait_for_contacts_sync(messages),
-        )
-        .await
-        .map_err(Error::from)??;
 
         Ok(())
     }
