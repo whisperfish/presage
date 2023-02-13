@@ -1061,6 +1061,12 @@
 <a href="#1061" id="1061">1061</a>
 <a href="#1062" id="1062">1062</a>
 <a href="#1063" id="1063">1063</a>
+<a href="#1064" id="1064">1064</a>
+<a href="#1065" id="1065">1065</a>
+<a href="#1066" id="1066">1066</a>
+<a href="#1067" id="1067">1067</a>
+<a href="#1068" id="1068">1068</a>
+<a href="#1069" id="1069">1069</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     sync::Arc,
@@ -1415,7 +1421,7 @@
         <span class="kw">match </span>(
             manager.register_pre_keys().<span class="kw">await</span>,
             manager.set_account_attributes().<span class="kw">await</span>,
-            manager.request_contacts_sync().<span class="kw">await</span>,
+            manager.sync_contacts().<span class="kw">await</span>,
         ) {
             (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>, <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e), <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
                 <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
@@ -1632,6 +1638,24 @@
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="kw">async fn </span>sync_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.request_contacts_sync().<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="macro">info!</span>(<span class="string">&quot;waiting for contacts sync for up to 60 seconds&quot;</span>);
+
+        <span class="kw">let </span>messages = <span class="self">self</span>.receive_messages_stream(<span class="bool-val">true</span>).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="macro">pin_mut!</span>(messages);
+
+        tokio::time::timeout(
+            Duration::from_secs(<span class="number">60</span>),
+            <span class="self">self</span>.wait_for_contacts_sync(messages),
+        )
+        .<span class="kw">await
+        </span>.map_err(Error::from)<span class="question-mark">??</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="doccomment">/// Request that the primary device to encrypt &amp; send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -1651,21 +1675,9 @@
             .expect(<span class="string">&quot;Time went backwards&quot;</span>)
             .as_millis() <span class="kw">as </span>u64;
 
-        <span class="kw">let </span>messages = <span class="self">self</span>.receive_messages_stream(<span class="bool-val">true</span>).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="macro">pin_mut!</span>(messages);
-
         <span class="comment">// first request the sync
         </span><span class="self">self</span>.send_message(<span class="self">self</span>.state.uuid, sync_message, timestamp)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="comment">// wait for it to arrive
-        </span><span class="macro">info!</span>(<span class="string">&quot;waiting for contacts sync for up to 60 seconds&quot;</span>);
-        tokio::time::timeout(
-            Duration::from_secs(<span class="number">60</span>),
-            <span class="self">self</span>.wait_for_contacts_sync(messages),
-        )
-        .<span class="kw">await
-        </span>.map_err(Error::from)<span class="question-mark">??</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
