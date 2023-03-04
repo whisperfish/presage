@@ -158,16 +158,6 @@ impl SledStore {
         self.db.open_tree(tree).map_err(Error::DbError)
     }
 
-    fn key<K>(&self, tree: &str, key: K) -> Vec<u8>
-    where
-        K: AsRef<[u8]>,
-    {
-        self.cipher.as_ref().map_or_else(
-            || key.as_ref().to_vec(),
-            |c| c.hash_key(tree, key.as_ref()).to_vec(),
-        )
-    }
-
     pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, Error>
     where
         K: AsRef<[u8]>,
@@ -743,7 +733,6 @@ impl MessageStore for SledStore {
         let proto: ContentProto = message.into();
 
         let tree = self.messages_thread_tree_name(thread);
-        let key = self.key(&tree, timestamp_bytes);
 
         let value = proto.encode_to_vec();
         let value = self.cipher.as_ref().map_or_else(
@@ -751,7 +740,7 @@ impl MessageStore for SledStore {
             |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
 
-        let _ = self.tree(tree)?.insert(key, value)?;
+        let _ = self.tree(tree)?.insert(timestamp_bytes, value)?;
         Ok(())
     }
 
