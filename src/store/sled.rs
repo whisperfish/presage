@@ -305,7 +305,11 @@ impl Store for SledStore {
         self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
         self.db.drop_tree(SLED_TREE_SESSIONS)?;
         self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SENDER_KEYS)?;
+        self.db.remove(SLED_KEY_REGISTRATION)?;
+        self.db.flush()?;
+        // TODO: Clear STORE_CIPHER?
+        // TODO: Clear contacts, groups, messages? Should maybe be optional.
 
         Ok(())
     }
