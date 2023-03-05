@@ -154,6 +154,9 @@ impl TryFrom<&Content> for Thread {
 pub trait MessageStore {
     type MessagesIter: Iterator<Item = Result<Content, Error>>;
 
+    // Clear all stored messages.
+    fn clear_messages(&mut self) -> Result<(), Error>;
+
     /// Save a message in a [Thread] identified by a timestamp.
     /// TODO: deriving the thread happens from the content, so we can also ditch the first parameter
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error>;
