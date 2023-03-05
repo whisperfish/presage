@@ -284,16 +284,12 @@ fn migrate(
 
 impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
-        let data = self
-            .db
-            .get(SLED_KEY_REGISTRATION)?
-            .ok_or(Error::NotYetRegisteredError)?;
-        serde_json::from_slice(&data).map_err(Error::from)
+        self.get(SLED_TREE_DEFAULT, SLED_KEY_REGISTRATION)?
+            .ok_or(Error::NotYetRegisteredError)
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
-        self.db
-            .insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
+        self.insert(SLED_TREE_DEFAULT, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
 }
