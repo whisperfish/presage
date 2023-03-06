@@ -730,6 +730,19 @@ impl SenderKeyStore for SledStore {
 impl MessageStore for SledStore {
     type MessagesIter = SledMessagesIter;
 
+    fn clear_messages(&mut self) -> Result<(), Error> {
+        for name in self.db.tree_names() {
+            if name
+                .as_ref()
+                .starts_with(SLED_TREE_THREAD_PREFIX.as_bytes())
+            {
+                self.db.drop_tree(&name)?;
+            }
+        }
+        self.db.flush()?;
+        Ok(())
+    }
+
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
         log::trace!(
             "Storing a message with thread: {:?}, timestamp: {}",
