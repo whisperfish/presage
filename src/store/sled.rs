@@ -346,7 +346,7 @@ impl ContactsStore for SledStore {
 
     fn contacts(&self) -> Result<Self::ContactsIter, Error> {
         Ok(SledContactsIter {
-            iter: self.db.open_tree(SLED_TREE_CONTACTS)?.iter(),
+            iter: self.tree(SLED_TREE_CONTACTS)?.iter(),
             cipher: self.cipher.clone(),
         })
     }
@@ -360,13 +360,13 @@ impl GroupsStore for SledStore {
     type GroupsIter = SledGroupsIter;
 
     fn clear_groups(&mut self) -> Result<(), Error> {
-        self.db.open_tree(SLED_TREE_GROUPS)?.clear()?;
+        self.db.drop_tree(SLED_TREE_GROUPS)?;
         Ok(())
     }
 
     fn groups(&self) -> Result<Self::GroupsIter, Error> {
         Ok(SledGroupsIter {
-            iter: self.db.open_tree(SLED_TREE_GROUPS)?.iter(),
+            iter: self.tree(SLED_TREE_GROUPS)?.iter(),
             cipher: self.cipher.clone(),
         })
     }
@@ -774,7 +774,7 @@ impl MessageStore for SledStore {
     }
 
     fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
-        let tree_thread = self.db.open_tree(self.messages_thread_tree_name(thread))?;
+        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
         debug!("{} messages in this tree", tree_thread.len());
         let iter = if let Some(from) = from {
             tree_thread.range(..from.to_be_bytes())
