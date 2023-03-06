@@ -195,6 +195,7 @@ impl SledStore {
             |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
         let _ = self.tree(tree)?.insert(key, value)?;
+        self.db.flush()?;
         Ok(())
     }
 
@@ -246,6 +247,7 @@ fn migrate(
                 SLED_KEY_SCHEMA_VERSION,
                 serde_json::to_vec(&step)?.as_slice(),
             )?;
+            db.flush()?;
         }
 
         Ok(())
@@ -294,22 +296,31 @@ impl StateStore<Registered> for SledStore {
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
         self.db
             .insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
+        self.db.flush()?;
         Ok(())
     }
 }
 
 impl Store for SledStore {
     fn clear(&mut self) -> Result<(), Error> {
+        // keys
+        self.db.remove(SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?;
+        self.db.remove(SLED_KEY_PRE_KEYS_OFFSET_ID)?;
+        self.db.remove(SLED_KEY_STORE_CIPHER)?;
+        self.db.remove(SLED_KEY_CONTACTS)?;
+        self.db.remove(SLED_KEY_GROUPS)?;
+        self.db.remove(SLED_KEY_REGISTRATION)?;
+
+        // trees
         self.db.drop_tree(SLED_TREE_DEFAULT)?;
         self.db.drop_tree(SLED_TREE_IDENTITIES)?;
         self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SENDER_KEYS)?;
         self.db.drop_tree(SLED_TREE_SESSIONS)?;
         self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_SENDER_KEYS)?;
-        self.db.remove(SLED_KEY_REGISTRATION)?;
+        self.db.drop_tree(SLED_TREE_THREAD_PREFIX)?;
+
         self.db.flush()?;
-        // TODO: Clear STORE_CIPHER?
-        // TODO: Clear contacts, groups, messages? Should maybe be optional.
 
         Ok(())
     }
@@ -745,17 +756,13 @@ impl MessageStore for SledStore {
         );
         let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
         let proto: ContentProto = message.into();
+        let value = proto.encode_to_vec();
 
         let tree = self.messages_thread_tree_name(thread);
         let key = self.key(&tree, timestamp_bytes);
 
-        let value = proto.encode_to_vec();
-        let value = self.cipher.as_ref().map_or_else(
-            || serde_json::to_vec(&value).map_err(Error::from),
-            |c| c.encrypt_value(&value).map_err(Error::from),
-        )?;
+        self.insert(&tree, key, value)?;
 
-        let _ = self.tree(tree)?.insert(key, value)?;
         Ok(())
     }
 
