@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, ops::Range};
 
 use crate::{manager::Registered, Error, GroupMasterKeyBytes};
 use libsignal_service::{
@@ -167,6 +167,13 @@ pub trait MessageStore {
     /// Retrieve a message from a [Thread] by its timestamp.
     fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error>;
 
-    /// Retrieve a message from a [Thread].
+    /// Retrieve all messages from a [Thread] optionally starting from a point in time
     fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error>;
+
+    /// Retrieve all messages from a [Thread] between two points in time
+    fn messages_in_range(
+        &self,
+        thread: &Thread,
+        range: Range<u64>,
+    ) -> Result<Self::MessagesIter, Error>;
 }

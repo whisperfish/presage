@@ -811,11 +811,26 @@ impl MessageStore for SledStore {
         let iter = if let Some(from) = from {
             tree_thread.range(from.to_be_bytes()..)
         } else {
-            tree_thread.range::<&[u8], std::ops::RangeFull>(..)
+            tree_thread.iter()
         };
         Ok(SledMessagesIter {
             cipher: self.cipher.clone(),
             iter: iter.rev(),
+        })
+    }
+
+    fn messages_in_range(
+        &self,
+        thread: &Thread,
+        Range { start, end }: Range<u64>,
+    ) -> Result<Self::MessagesIter, Error> {
+        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
+        debug!("{} messages in this tree", tree_thread.len());
+        Ok(SledMessagesIter {
+            cipher: self.cipher.clone(),
+            iter: tree_thread
+                .range(start.to_be_bytes()..end.to_be_bytes())
+                .rev(),
         })
     }
 }
@@ -847,11 +862,21 @@ impl Iterator for SledMessagesIter {
 mod tests {
     use core::fmt;
 
-    use libsignal_service::prelude::protocol::{
-        self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore,
-        SignedPreKeyRecord, SignedPreKeyStore,
+    use libsignal_service::{
+        content::{ContentBody, Metadata},
+        prelude::{
+            protocol::{
+                self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
+                SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+            },
+            Uuid,
+        },
+        proto::DataMessage,
+        ServiceAddress,
     };
     use quickcheck::{Arbitrary, Gen};
+
+    use crate::{MessageStore, Thread};
 
     use super::SledStore;
 
@@ -860,6 +885,9 @@ mod tests {
 
     #[derive(Clone)]
     struct KeyPair(protocol::KeyPair);
+
+    #[derive(Debug, Clone)]
+    struct Content(libsignal_service::prelude::Content);
 
     impl fmt::Debug for KeyPair {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -879,6 +907,41 @@ mod tests {
         fn arbitrary(_g: &mut Gen) -> Self {
             // Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241
             KeyPair(protocol::KeyPair::generate(&mut rand::thread_rng()))
+        }
+    }
+
+    impl Arbitrary for Content {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let timestamp: u64 = Arbitrary::arbitrary(g);
+            let contacts = [
+                Uuid::from_u128(Arbitrary::arbitrary(g)),
+                Uuid::from_u128(Arbitrary::arbitrary(g)),
+                Uuid::from_u128(Arbitrary::arbitrary(g)),
+            ];
+            let metadata = Metadata {
+                sender: ServiceAddress {
+                    uuid: *g.choose(&contacts).unwrap(),
+                },
+                sender_device: Arbitrary::arbitrary(g),
+                timestamp,
+                needs_receipt: Arbitrary::arbitrary(g),
+                unidentified_sender: Arbitrary::arbitrary(g),
+            };
+            let content_body = ContentBody::DataMessage(DataMessage {
+                body: Arbitrary::arbitrary(g),
+                timestamp: Some(timestamp),
+                ..Default::default()
+            });
+            Self(libsignal_service::prelude::Content::from_body(
+                content_body,
+                metadata,
+            ))
+        }
+    }
+
+    impl Arbitrary for Thread {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self::Contact(Uuid::from_u128(Arbitrary::arbitrary(g)))
         }
     }
 
@@ -947,5 +1010,18 @@ mod tests {
             .serialize()
             .unwrap()
             == signed_pre_key_record.serialize().unwrap()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_store_messages(thread: Thread, content: Vec<Content>, start_ts: u32) {
+        let mut db = SledStore::temporary().unwrap();
+        let count = content.len();
+        let mut start_ts = start_ts as u64;
+        for mut c in content {
+            c.0.metadata.timestamp = start_ts;
+            db.save_message(&thread, c.0).unwrap();
+            start_ts += 1;
+        }
+        assert_eq!(db.messages(&thread, None).unwrap().count(), count);
     }
 }
