@@ -1696,7 +1696,7 @@
         <span class="kw">let </span>tree_thread = <span class="self">self</span>.tree(<span class="self">self</span>.messages_thread_tree_name(thread))<span class="question-mark">?</span>;
         <span class="macro">debug!</span>(<span class="string">&quot;{} messages in this tree&quot;</span>, tree_thread.len());
         <span class="kw">let </span>iter = <span class="kw">if let </span><span class="prelude-val">Some</span>(from) = from {
-            tree_thread.range(..from.to_be_bytes())
+            tree_thread.range(from.to_be_bytes()..)
         } <span class="kw">else </span>{
             tree_thread.range::&lt;<span class="kw-2">&amp;</span>[u8], std::ops::RangeFull&gt;(..)
         };
