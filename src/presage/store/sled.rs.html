@@ -917,6 +917,19 @@
 <a href="#917" id="917">917</a>
 <a href="#918" id="918">918</a>
 <a href="#919" id="919">919</a>
+<a href="#920" id="920">920</a>
+<a href="#921" id="921">921</a>
+<a href="#922" id="922">922</a>
+<a href="#923" id="923">923</a>
+<a href="#924" id="924">924</a>
+<a href="#925" id="925">925</a>
+<a href="#926" id="926">926</a>
+<a href="#927" id="927">927</a>
+<a href="#928" id="928">928</a>
+<a href="#929" id="929">929</a>
+<a href="#930" id="930">930</a>
+<a href="#931" id="931">931</a>
+<a href="#932" id="932">932</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     ops::Range,
     path::Path,
@@ -1648,6 +1661,19 @@
 
 <span class="kw">impl </span>MessageStore <span class="kw">for </span>SledStore {
     <span class="kw">type </span>MessagesIter = SledMessagesIter;
+
+    <span class="kw">fn </span>clear_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">for </span>name <span class="kw">in </span><span class="self">self</span>.db.tree_names() {
+            <span class="kw">if </span>name
+                .as_ref()
+                .starts_with(SLED_TREE_THREAD_PREFIX.as_bytes())
+            {
+                <span class="self">self</span>.db.drop_tree(<span class="kw-2">&amp;</span>name)<span class="question-mark">?</span>;
+            }
+        }
+        <span class="self">self</span>.db.flush()<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
 
     <span class="kw">fn </span>save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">log::trace!</span>(
