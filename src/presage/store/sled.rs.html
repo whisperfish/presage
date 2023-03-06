@@ -913,6 +913,10 @@
 <a href="#913" id="913">913</a>
 <a href="#914" id="914">914</a>
 <a href="#915" id="915">915</a>
+<a href="#916" id="916">916</a>
+<a href="#917" id="917">917</a>
+<a href="#918" id="918">918</a>
+<a href="#919" id="919">919</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     ops::Range,
     path::Path,
@@ -949,22 +953,21 @@
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
 
-<span class="kw">const </span>SLED_KEY_SCHEMA_VERSION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;schema_version&quot;</span>;
-
-<span class="kw">const </span>SLED_KEY_CONTACTS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;contacts&quot;</span>;
-<span class="kw">const </span>SLED_KEY_GROUPS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;groups&quot;</span>;
-<span class="kw">const </span>SLED_KEY_PRE_KEYS_OFFSET_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys_offset_id&quot;</span>;
-<span class="kw">const </span>SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
-<span class="kw">const </span>SLED_KEY_REGISTRATION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;registration&quot;</span>;
-<span class="kw">const </span>SLED_KEY_STORE_CIPHER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;store_cipher&quot;</span>;
-
-<span class="kw">const </span>SLED_TREE_DEFAULT: <span class="kw-2">&amp;</span>str = <span class="string">&quot;state&quot;</span>;
-<span class="kw">const </span>SLED_TREE_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys&quot;</span>;
-<span class="kw">const </span>SLED_TREE_SIGNED_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;signed_pre_keys&quot;</span>;
+<span class="kw">const </span>SLED_TREE_CONTACTS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;contacts&quot;</span>;
+<span class="kw">const </span>SLED_TREE_GROUPS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;groups&quot;</span>;
 <span class="kw">const </span>SLED_TREE_IDENTITIES: <span class="kw-2">&amp;</span>str = <span class="string">&quot;identities&quot;</span>;
-<span class="kw">const </span>SLED_TREE_SESSIONS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;sessions&quot;</span>;
-<span class="kw">const </span>SLED_TREE_THREAD_PREFIX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;threads&quot;</span>;
+<span class="kw">const </span>SLED_TREE_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys&quot;</span>;
 <span class="kw">const </span>SLED_TREE_SENDER_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;sender_keys&quot;</span>;
+<span class="kw">const </span>SLED_TREE_SESSIONS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;sessions&quot;</span>;
+<span class="kw">const </span>SLED_TREE_SIGNED_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;signed_pre_keys&quot;</span>;
+<span class="kw">const </span>SLED_TREE_STATE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;state&quot;</span>;
+<span class="kw">const </span>SLED_TREE_THREAD_PREFIX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;threads&quot;</span>;
+
+<span class="kw">const </span>SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
+<span class="kw">const </span>SLED_KEY_PRE_KEYS_OFFSET_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys_offset_id&quot;</span>;
+<span class="kw">const </span>SLED_KEY_REGISTRATION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;registration&quot;</span>;
+<span class="kw">const </span>SLED_KEY_SCHEMA_VERSION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;schema_version&quot;</span>;
+<span class="kw">const </span>SLED_KEY_STORE_CIPHER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;store_cipher&quot;</span>;
 
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>SledStore {
@@ -1100,6 +1103,7 @@
             |c| c.encrypt_value(<span class="kw-2">&amp;</span>value).map_err(Error::from),
         )<span class="question-mark">?</span>;
         <span class="kw">let _ </span>= <span class="self">self</span>.tree(tree)<span class="question-mark">?</span>.insert(key, value)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.flush()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1151,6 +1155,7 @@
                 SLED_KEY_SCHEMA_VERSION,
                 serde_json::to_vec(<span class="kw-2">&amp;</span>step)<span class="question-mark">?</span>.as_slice(),
             )<span class="question-mark">?</span>;
+            db.flush()<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
@@ -1199,40 +1204,46 @@
     <span class="kw">fn </span>save_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>, state: <span class="kw-2">&amp;</span>Registered) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="self">self</span>.db
             .insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.flush()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
 
 <span class="kw">impl </span>Store <span class="kw">for </span>SledStore {
     <span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="self">self</span>.db.drop_tree(SLED_TREE_DEFAULT)<span class="question-mark">?</span>;
-        <span class="self">self</span>.db.drop_tree(SLED_TREE_IDENTITIES)<span class="question-mark">?</span>;
-        <span class="self">self</span>.db.drop_tree(SLED_TREE_PRE_KEYS)<span class="question-mark">?</span>;
-        <span class="self">self</span>.db.drop_tree(SLED_TREE_SESSIONS)<span class="question-mark">?</span>;
-        <span class="self">self</span>.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)<span class="question-mark">?</span>;
-        <span class="self">self</span>.db.drop_tree(SLED_TREE_PRE_KEYS)<span class="question-mark">?</span>;
+        <span class="comment">// drop all trees
+        </span><span class="kw">for </span>tree <span class="kw">in </span><span class="self">self</span>.db.tree_names() {
+            <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.db.drop_tree(tree) {
+                <span class="macro">log::warn!</span>(<span class="string">&quot;fail to drop tree on call to Store::clear(): {error}&quot;</span>);
+            }
+        }
+
+        <span class="self">self</span>.db.remove(SLED_KEY_REGISTRATION)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.remove(SLED_KEY_SCHEMA_VERSION)<span class="question-mark">?</span>;
+
+        <span class="self">self</span>.db.flush()<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">fn </span>pre_keys_offset_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self
-            </span>.get(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID)<span class="question-mark">?
+            </span>.get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)<span class="question-mark">?
             </span>.unwrap_or(<span class="number">0</span>))
     }
 
     <span class="kw">fn </span>set_pre_keys_offset_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="self">self</span>.insert(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+        <span class="self">self</span>.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
     }
 
     <span class="kw">fn </span>next_signed_pre_key_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, Error&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self
-            </span>.get(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)<span class="question-mark">?
+            </span>.get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)<span class="question-mark">?
             </span>.unwrap_or(<span class="number">0</span>))
     }
 
     <span class="kw">fn </span>set_next_signed_pre_key_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="self">self</span>.insert(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
+        <span class="self">self</span>.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
     }
 }
 
@@ -1240,13 +1251,13 @@
     <span class="kw">type </span>ContactsIter = SledContactsIter;
 
     <span class="kw">fn </span>clear_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="self">self</span>.db.open_tree(SLED_KEY_CONTACTS)<span class="question-mark">?</span>.clear()<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_CONTACTS)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">fn </span>save_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>, contacts: <span class="kw">impl </span>Iterator&lt;Item = Contact&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">for </span>contact <span class="kw">in </span>contacts {
-            <span class="self">self</span>.insert(SLED_KEY_CONTACTS, contact.address.uuid, contact)<span class="question-mark">?</span>;
+            <span class="self">self</span>.insert(SLED_TREE_CONTACTS, contact.address.uuid, contact)<span class="question-mark">?</span>;
         }
         <span class="macro">debug!</span>(<span class="string">&quot;saved contacts&quot;</span>);
         <span class="prelude-val">Ok</span>(())
@@ -1254,13 +1265,13 @@
 
     <span class="kw">fn </span>contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ContactsIter, Error&gt; {
         <span class="prelude-val">Ok</span>(SledContactsIter {
-            iter: <span class="self">self</span>.db.open_tree(SLED_KEY_CONTACTS)<span class="question-mark">?</span>.iter(),
+            iter: <span class="self">self</span>.tree(SLED_TREE_CONTACTS)<span class="question-mark">?</span>.iter(),
             cipher: <span class="self">self</span>.cipher.clone(),
         })
     }
 
     <span class="kw">fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
-        <span class="self">self</span>.get(SLED_KEY_CONTACTS, id)
+        <span class="self">self</span>.get(SLED_TREE_CONTACTS, id)
     }
 }
 
@@ -1268,20 +1279,20 @@
     <span class="kw">type </span>GroupsIter = SledGroupsIter;
 
     <span class="kw">fn </span>clear_groups(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="self">self</span>.db.open_tree(SLED_KEY_GROUPS)<span class="question-mark">?</span>.clear()<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_GROUPS)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">fn </span>groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::GroupsIter, Error&gt; {
         <span class="prelude-val">Ok</span>(SledGroupsIter {
-            iter: <span class="self">self</span>.db.open_tree(SLED_KEY_GROUPS)<span class="question-mark">?</span>.iter(),
+            iter: <span class="self">self</span>.tree(SLED_TREE_GROUPS)<span class="question-mark">?</span>.iter(),
             cipher: <span class="self">self</span>.cipher.clone(),
         })
     }
 
     <span class="kw">fn </span>group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
         <span class="kw">let </span>key: GroupMasterKeyBytes = master_key.try_into()<span class="question-mark">?</span>;
-        <span class="kw">let </span>val: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt; = <span class="self">self</span>.get(SLED_KEY_GROUPS, key)<span class="question-mark">?</span>;
+        <span class="kw">let </span>val: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt; = <span class="self">self</span>.get(SLED_TREE_GROUPS, key)<span class="question-mark">?</span>;
         <span class="kw">match </span>val {
             <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>v) =&gt; {
                 <span class="kw">let </span>encrypted_group = proto::Group::decode(v.as_slice())<span class="question-mark">?</span>;
@@ -1294,7 +1305,7 @@
 
     <span class="kw">fn </span>save_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key: <span class="kw-2">&amp;</span>[u8], group: proto::Group) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">let </span>key: GroupMasterKeyBytes = master_key.try_into()<span class="question-mark">?</span>;
-        <span class="self">self</span>.insert(SLED_KEY_GROUPS, key, group.encode_to_vec())<span class="question-mark">?</span>;
+        <span class="self">self</span>.insert(SLED_TREE_GROUPS, key, group.encode_to_vec())<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 }
@@ -1644,18 +1655,15 @@
             thread,
             message.metadata.timestamp,
         );
-        <span class="kw">let </span>timestamp_bytes = message.metadata.timestamp.to_be_bytes();
-        <span class="kw">let </span>proto: ContentProto = message.into();
 
         <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(thread);
+        <span class="kw">let </span>key = message.metadata.timestamp.to_be_bytes();
 
+        <span class="kw">let </span>proto: ContentProto = message.into();
         <span class="kw">let </span>value = proto.encode_to_vec();
-        <span class="kw">let </span>value = <span class="self">self</span>.cipher.as_ref().map_or_else(
-            || serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(Error::from),
-            |c| c.encrypt_value(<span class="kw-2">&amp;</span>value).map_err(Error::from),
-        )<span class="question-mark">?</span>;
 
-        <span class="kw">let _ </span>= <span class="self">self</span>.tree(tree)<span class="question-mark">?</span>.insert(timestamp_bytes, value)<span class="question-mark">?</span>;
+        <span class="self">self</span>.insert(<span class="kw-2">&amp;</span>tree, key, value)<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -1685,7 +1693,7 @@
     }
 
     <span class="kw">fn </span>messages(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, from: <span class="prelude-ty">Option</span>&lt;u64&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::MessagesIter, Error&gt; {
-        <span class="kw">let </span>tree_thread = <span class="self">self</span>.db.open_tree(<span class="self">self</span>.messages_thread_tree_name(thread))<span class="question-mark">?</span>;
+        <span class="kw">let </span>tree_thread = <span class="self">self</span>.tree(<span class="self">self</span>.messages_thread_tree_name(thread))<span class="question-mark">?</span>;
         <span class="macro">debug!</span>(<span class="string">&quot;{} messages in this tree&quot;</span>, tree_thread.len());
         <span class="kw">let </span>iter = <span class="kw">if let </span><span class="prelude-val">Some</span>(from) = from {
             tree_thread.range(..from.to_be_bytes())
