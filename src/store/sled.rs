@@ -777,7 +777,7 @@ impl MessageStore for SledStore {
         let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
         debug!("{} messages in this tree", tree_thread.len());
         let iter = if let Some(from) = from {
-            tree_thread.range(..from.to_be_bytes())
+            tree_thread.range(from.to_be_bytes()..)
         } else {
             tree_thread.range::<&[u8], std::ops::RangeFull>(..)
         };
