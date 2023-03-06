@@ -356,6 +356,10 @@ impl IdentityKeyStore for SecretVolatileStore {
 impl MessageStore for SecretVolatileStore {
     type MessagesIter = std::iter::Empty<Content>;
 
+    fn clear_messages(&mut self) -> Result<(), Error> {
+        todo!()
+    }
+
     fn save_message(&mut self, _thread: &Thread, _message: Content) -> Result<(), Error> {
         todo!()
     }
