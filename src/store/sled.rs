@@ -22,7 +22,7 @@ use libsignal_service::{
     push_service::DEFAULT_DEVICE_ID,
     ServiceAddress,
 };
-use log::{debug, error, trace, warn};
+use log::{debug, error, info, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -70,33 +70,48 @@ pub enum MigrationConflictStrategy {
     BackupAndDrop,
 }
 
-#[derive(PartialEq, Eq, Clone, Debug, Serialize, Deserialize)]
+#[derive(PartialEq, Eq, Clone, Debug, Default, Serialize, Deserialize)]
 pub enum SchemaVersion {
     /// prior to any versioning of the schema
+    #[default]
     V0 = 0,
-    /// the current version
     V1 = 1,
+    /// the current version
+    V2 = 2,
 }
 
 impl SchemaVersion {
     fn current() -> SchemaVersion {
-        Self::V1
+        Self::V2
     }
 
     /// return an iterator on all the necessary migration steps from another version
     fn steps(self) -> impl Iterator<Item = SchemaVersion> {
         Range {
             start: self as u8 + 1,
-            end: Self::current() as u8,
+            end: Self::current() as u8 + 1,
         }
         .map(|i| match i {
             1 => SchemaVersion::V1,
+            2 => SchemaVersion::V2,
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
 }
 
 impl SledStore {
+    fn new(db_path: impl AsRef<Path>, passphrase: Option<impl AsRef<str>>) -> Result<Self, Error> {
+        let database = sled::open(db_path)?;
+        let cipher = passphrase
+            .map(|p| Self::get_or_create_store_cipher(&database, p.as_ref()))
+            .transpose()?;
+
+        Ok(SledStore {
+            db: Arc::new(database),
+            cipher: cipher.map(Arc::new),
+        })
+    }
+
     pub fn open(
         db_path: impl AsRef<Path>,
         migration_conflict_strategy: MigrationConflictStrategy,
@@ -109,17 +124,10 @@ impl SledStore {
         passphrase: Option<impl AsRef<str>>,
         migration_conflict_strategy: MigrationConflictStrategy,
     ) -> Result<Self, Error> {
-        migrate(&db_path, migration_conflict_strategy)?;
+        let passphrase = passphrase.as_ref();
 
-        let database = sled::open(db_path)?;
-        let cipher = passphrase
-            .map(|p| Self::get_or_create_store_cipher(&database, p.as_ref()))
-            .transpose()?;
-
-        Ok(SledStore {
-            db: Arc::new(database),
-            cipher: cipher.map(Arc::new),
-        })
+        migrate(&db_path, passphrase, migration_conflict_strategy)?;
+        Self::new(db_path, passphrase)
     }
 
     fn get_or_create_store_cipher(
@@ -148,6 +156,13 @@ impl SledStore {
             db: Arc::new(db),
             cipher: None,
         })
+    }
+
+    fn schema_version(&self) -> SchemaVersion {
+        self.get(SLED_TREE_STATE, SLED_KEY_SCHEMA_VERSION)
+            .ok()
+            .flatten()
+            .unwrap_or_default()
     }
 
     fn tree<T>(&self, tree: T) -> Result<sled::Tree, Error>
@@ -212,41 +227,43 @@ impl SledStore {
 
 fn migrate(
     db_path: impl AsRef<Path>,
+    passphrase: Option<impl AsRef<str>>,
     migration_conflict_strategy: MigrationConflictStrategy,
 ) -> Result<(), Error> {
-    // first, open the database and get the list of versions
-    let database = sled::open(&db_path)?;
-    let stored_version = database.get(SLED_KEY_SCHEMA_VERSION)?.map_or_else(
-        || Ok(SchemaVersion::V0),
-        |value| serde_json::from_slice(&value[..]),
-    )?;
+    let db_path = db_path.as_ref();
+    let passphrase = passphrase.as_ref();
 
-    let db = database.clone();
     let run_migrations = move || {
-        // open the DB again
-        for step in stored_version.steps() {
-            match step {
+        let mut store = SledStore::new(db_path, passphrase)?;
+        for step in store.schema_version().steps() {
+            match &step {
                 SchemaVersion::V1 => {
                     warn!("migrating from v0, nothing to do")
+                }
+                SchemaVersion::V2 => {
+                    info!("migrating from schema v1 to v2: encrypting state if cipher is enabled");
+                    let state = store.load_state()?;
+                    store.save_state(&state)?;
+                    // remove old data
+                    store.db.remove(SLED_KEY_REGISTRATION)?;
                 }
                 _ => return Err(Error::MigrationConflict),
             }
 
-            db.insert(
-                SLED_KEY_SCHEMA_VERSION,
-                serde_json::to_vec(&step)?.as_slice(),
-            )?;
-            db.flush()?;
+            store.insert(SLED_TREE_STATE, SLED_KEY_SCHEMA_VERSION, step)?;
         }
 
         Ok(())
     };
 
     let migration_res = run_migrations();
+
     if let Err(Error::MigrationConflict) = migration_res {
+        let db = sled::open(db_path)?;
+
         match migration_conflict_strategy {
             MigrationConflictStrategy::BackupAndDrop => {
-                let mut new_db_path = db_path.as_ref().to_path_buf();
+                let mut new_db_path = db_path.to_path_buf();
                 new_db_path.set_extension(format!(
                     "{}.backup",
                     SystemTime::now()
@@ -257,13 +274,13 @@ fn migrate(
                 fs_extra::dir::create_all(&new_db_path, false)?;
                 fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
 
-                for tree in database.tree_names() {
-                    database.drop_tree(tree)?;
+                for tree in db.tree_names() {
+                    db.drop_tree(tree)?;
                 }
             }
             MigrationConflictStrategy::Drop => {
-                for tree in database.tree_names() {
-                    database.drop_tree(tree)?;
+                for tree in db.tree_names() {
+                    db.drop_tree(tree)?;
                 }
             }
             MigrationConflictStrategy::Raise => migration_res?,
@@ -275,12 +292,23 @@ fn migrate(
 
 impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
-        self.get(SLED_TREE_DEFAULT, SLED_KEY_REGISTRATION)?
-            .ok_or(Error::NotYetRegisteredError)
+        match self.schema_version() {
+            SchemaVersion::V0 | SchemaVersion::V1 => {
+                debug!("loading state from schema v1");
+                let data = self
+                    .db
+                    .get(SLED_KEY_REGISTRATION)?
+                    .ok_or(Error::NotYetRegisteredError)?;
+                serde_json::from_slice(&data).map_err(Error::from)
+            }
+            _ => Ok(self
+                .get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
+                .ok_or(Error::NotYetRegisteredError)?),
+        }
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
-        self.insert(SLED_TREE_DEFAULT, SLED_KEY_REGISTRATION, state)?;
+        self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
 }
@@ -293,9 +321,6 @@ impl Store for SledStore {
                 log::warn!("fail to drop tree on call to Store::clear(): {error}");
             }
         }
-
-        self.db.remove(SLED_KEY_REGISTRATION)?;
-        self.db.remove(SLED_KEY_SCHEMA_VERSION)?;
 
         self.db.flush()?;
 
