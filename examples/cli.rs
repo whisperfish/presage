@@ -108,7 +108,7 @@ enum Cmd {
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive {
-        #[clap(long = "notifications", short = 'n', default_value = "true")]
+        #[clap(long = "notifications", short = 'n')]
         notifications: bool,
     },
     #[clap(about = "List groups")]
