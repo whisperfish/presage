@@ -34,12 +34,6 @@ use crate::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
 
-const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
-const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
-const SLED_KEY_REGISTRATION: &str = "registration";
-const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
-const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
-
 const SLED_TREE_CONTACTS: &str = "contacts";
 const SLED_TREE_GROUPS: &str = "groups";
 const SLED_TREE_IDENTITIES: &str = "identities";
@@ -49,6 +43,12 @@ const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREAD_PREFIX: &str = "threads";
+
+const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
+const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
+const SLED_KEY_REGISTRATION: &str = "registration";
+const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
+const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
 
 #[derive(Clone)]
 pub struct SledStore {
