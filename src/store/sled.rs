@@ -301,10 +301,9 @@ fn migrate(
 
 impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
-         Ok(self
-                .get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
-                .ok_or(Error::NotYetRegisteredError)?)
-        }
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
+            .ok_or(Error::NotYetRegisteredError)?)
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
