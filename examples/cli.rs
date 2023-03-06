@@ -108,7 +108,7 @@ enum Cmd {
     UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive {
-        #[clap(long = "notifications", short = 'n', default_value = "true")]
+        #[clap(long = "notifications", short = 'n')]
         notifications: bool,
     },
     #[clap(about = "List groups")]
@@ -133,6 +133,8 @@ enum Cmd {
             value_parser = parse_group_master_key,
         )]
         group_master_key: Option<GroupMasterKeyBytes>,
+        #[clap(long, help = "start from the following date (UNIX timestamp)")]
+        from: Option<u64>,
     },
     #[clap(about = "Get a single contact by UUID")]
     GetContact { uuid: Uuid },
@@ -587,13 +589,14 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         Cmd::ListMessages {
             group_master_key,
             recipient_uuid,
+            from,
         } => {
             let thread = match (group_master_key, recipient_uuid) {
                 (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
                 _ => unreachable!(),
             };
-            let iter = config_store.messages(&thread, None)?;
+            let iter = config_store.messages(&thread, from)?;
             for msg in iter.filter_map(Result::ok) {
                 println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
