@@ -242,8 +242,17 @@ fn migrate(
                 }
                 SchemaVersion::V2 => {
                     info!("migrating from schema v1 to v2: encrypting state if cipher is enabled");
-                    let state = store.load_state()?;
+
+                    // load registration data the old school way
+                    let data = store
+                        .db
+                        .get(SLED_KEY_REGISTRATION)?
+                        .ok_or(Error::NotYetRegisteredError)?;
+                    let state = serde_json::from_slice(&data).map_err(Error::from)?;
+
+                    // save it the new school way
                     store.save_state(&state)?;
+
                     // remove old data
                     store.db.remove(SLED_KEY_REGISTRATION)?;
                 }
@@ -292,18 +301,9 @@ fn migrate(
 
 impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
-        match self.schema_version() {
-            SchemaVersion::V0 | SchemaVersion::V1 => {
-                debug!("loading state from schema v1");
-                let data = self
-                    .db
-                    .get(SLED_KEY_REGISTRATION)?
-                    .ok_or(Error::NotYetRegisteredError)?;
-                serde_json::from_slice(&data).map_err(Error::from)
-            }
-            _ => Ok(self
+         Ok(self
                 .get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
-                .ok_or(Error::NotYetRegisteredError)?),
+                .ok_or(Error::NotYetRegisteredError)?)
         }
     }
 
