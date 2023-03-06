@@ -34,22 +34,21 @@ use crate::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
 
-const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
-
-const SLED_KEY_CONTACTS: &str = "contacts";
-const SLED_KEY_GROUPS: &str = "groups";
-const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
-const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
-const SLED_KEY_REGISTRATION: &str = "registration";
-const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
-
-const SLED_TREE_DEFAULT: &str = "state";
-const SLED_TREE_PRE_KEYS: &str = "pre_keys";
-const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
+const SLED_TREE_CONTACTS: &str = "contacts";
+const SLED_TREE_GROUPS: &str = "groups";
 const SLED_TREE_IDENTITIES: &str = "identities";
-const SLED_TREE_SESSIONS: &str = "sessions";
-const SLED_TREE_THREAD_PREFIX: &str = "threads";
+const SLED_TREE_PRE_KEYS: &str = "pre_keys";
 const SLED_TREE_SENDER_KEYS: &str = "sender_keys";
+const SLED_TREE_SESSIONS: &str = "sessions";
+const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
+const SLED_TREE_STATE: &str = "state";
+const SLED_TREE_THREAD_PREFIX: &str = "threads";
+
+const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
+const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
+const SLED_KEY_REGISTRATION: &str = "registration";
+const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
+const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
 
 #[derive(Clone)]
 pub struct SledStore {
@@ -185,6 +184,7 @@ impl SledStore {
             |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
         let _ = self.tree(tree)?.insert(key, value)?;
+        self.db.flush()?;
         Ok(())
     }
 
@@ -236,6 +236,7 @@ fn migrate(
                 SLED_KEY_SCHEMA_VERSION,
                 serde_json::to_vec(&step)?.as_slice(),
             )?;
+            db.flush()?;
         }
 
         Ok(())
@@ -284,40 +285,46 @@ impl StateStore<Registered> for SledStore {
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
         self.db
             .insert(SLED_KEY_REGISTRATION, serde_json::to_vec(state)?)?;
+        self.db.flush()?;
         Ok(())
     }
 }
 
 impl Store for SledStore {
     fn clear(&mut self) -> Result<(), Error> {
-        self.db.drop_tree(SLED_TREE_DEFAULT)?;
-        self.db.drop_tree(SLED_TREE_IDENTITIES)?;
-        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_SESSIONS)?;
-        self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        // drop all trees
+        for tree in self.db.tree_names() {
+            if let Err(error) = self.db.drop_tree(tree) {
+                log::warn!("fail to drop tree on call to Store::clear(): {error}");
+            }
+        }
+
+        self.db.remove(SLED_KEY_REGISTRATION)?;
+        self.db.remove(SLED_KEY_SCHEMA_VERSION)?;
+
+        self.db.flush()?;
 
         Ok(())
     }
 
     fn pre_keys_offset_id(&self) -> Result<u32, Error> {
         Ok(self
-            .get(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID)?
+            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
             .unwrap_or(0))
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_DEFAULT, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
         Ok(self
-            .get(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
             .unwrap_or(0))
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_DEFAULT, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
     }
 }
 
@@ -325,13 +332,13 @@ impl ContactsStore for SledStore {
     type ContactsIter = SledContactsIter;
 
     fn clear_contacts(&mut self) -> Result<(), Error> {
-        self.db.open_tree(SLED_KEY_CONTACTS)?.clear()?;
+        self.db.drop_tree(SLED_TREE_CONTACTS)?;
         Ok(())
     }
 
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
         for contact in contacts {
-            self.insert(SLED_KEY_CONTACTS, contact.address.uuid, contact)?;
+            self.insert(SLED_TREE_CONTACTS, contact.address.uuid, contact)?;
         }
         debug!("saved contacts");
         Ok(())
@@ -339,13 +346,13 @@ impl ContactsStore for SledStore {
 
     fn contacts(&self) -> Result<Self::ContactsIter, Error> {
         Ok(SledContactsIter {
-            iter: self.db.open_tree(SLED_KEY_CONTACTS)?.iter(),
+            iter: self.tree(SLED_TREE_CONTACTS)?.iter(),
             cipher: self.cipher.clone(),
         })
     }
 
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
-        self.get(SLED_KEY_CONTACTS, id)
+        self.get(SLED_TREE_CONTACTS, id)
     }
 }
 
@@ -353,20 +360,20 @@ impl GroupsStore for SledStore {
     type GroupsIter = SledGroupsIter;
 
     fn clear_groups(&mut self) -> Result<(), Error> {
-        self.db.open_tree(SLED_KEY_GROUPS)?.clear()?;
+        self.db.drop_tree(SLED_TREE_GROUPS)?;
         Ok(())
     }
 
     fn groups(&self) -> Result<Self::GroupsIter, Error> {
         Ok(SledGroupsIter {
-            iter: self.db.open_tree(SLED_KEY_GROUPS)?.iter(),
+            iter: self.tree(SLED_TREE_GROUPS)?.iter(),
             cipher: self.cipher.clone(),
         })
     }
 
     fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error> {
         let key: GroupMasterKeyBytes = master_key.try_into()?;
-        let val: Option<Vec<u8>> = self.get(SLED_KEY_GROUPS, key)?;
+        let val: Option<Vec<u8>> = self.get(SLED_TREE_GROUPS, key)?;
         match val {
             Some(ref v) => {
                 let encrypted_group = proto::Group::decode(v.as_slice())?;
@@ -379,7 +386,7 @@ impl GroupsStore for SledStore {
 
     fn save_group(&self, master_key: &[u8], group: proto::Group) -> Result<(), Error> {
         let key: GroupMasterKeyBytes = master_key.try_into()?;
-        self.insert(SLED_KEY_GROUPS, key, group.encode_to_vec())?;
+        self.insert(SLED_TREE_GROUPS, key, group.encode_to_vec())?;
         Ok(())
     }
 }
@@ -729,18 +736,15 @@ impl MessageStore for SledStore {
             thread,
             message.metadata.timestamp,
         );
-        let timestamp_bytes = message.metadata.timestamp.to_be_bytes();
-        let proto: ContentProto = message.into();
 
         let tree = self.messages_thread_tree_name(thread);
+        let key = message.metadata.timestamp.to_be_bytes();
 
+        let proto: ContentProto = message.into();
         let value = proto.encode_to_vec();
-        let value = self.cipher.as_ref().map_or_else(
-            || serde_json::to_vec(&value).map_err(Error::from),
-            |c| c.encrypt_value(&value).map_err(Error::from),
-        )?;
 
-        let _ = self.tree(tree)?.insert(timestamp_bytes, value)?;
+        self.insert(&tree, key, value)?;
+
         Ok(())
     }
 
@@ -770,7 +774,7 @@ impl MessageStore for SledStore {
     }
 
     fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
-        let tree_thread = self.db.open_tree(self.messages_thread_tree_name(thread))?;
+        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
         debug!("{} messages in this tree", tree_thread.len());
         let iter = if let Some(from) = from {
             tree_thread.range(..from.to_be_bytes())
