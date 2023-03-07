@@ -1441,7 +1441,7 @@
     /// to send and receive messages.
     </span><span class="kw">pub async fn </span>confirm_verification_code(
         <span class="self">self</span>,
-        confirm_code: u32,
+        confirm_code: <span class="kw">impl </span>AsRef&lt;str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;confirming verification code&quot;</span>);
 

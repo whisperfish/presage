@@ -1308,7 +1308,7 @@
 
     <span class="kw">fn </span>save_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>, contacts: <span class="kw">impl </span>Iterator&lt;Item = Contact&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">for </span>contact <span class="kw">in </span>contacts {
-            <span class="self">self</span>.insert(SLED_TREE_CONTACTS, contact.address.uuid, contact)<span class="question-mark">?</span>;
+            <span class="self">self</span>.insert(SLED_TREE_CONTACTS, contact.uuid, contact)<span class="question-mark">?</span>;
         }
         <span class="macro">debug!</span>(<span class="string">&quot;saved contacts&quot;</span>);
         <span class="prelude-val">Ok</span>(())
