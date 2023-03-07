@@ -357,7 +357,7 @@ impl ContactsStore for SledStore {
 
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
         for contact in contacts {
-            self.insert(SLED_TREE_CONTACTS, contact.address.uuid, contact)?;
+            self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
         }
         debug!("saved contacts");
         Ok(())
