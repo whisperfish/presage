@@ -235,7 +235,10 @@ fn migrate(
 
     let run_migrations = move || {
         let mut store = SledStore::new(db_path, passphrase)?;
-        for step in store.schema_version().steps() {
+        let schema_version = store.schema_version();
+        log::info!("Store schema version: {:?}", schema_version);
+        log::info!("Current schema version: {:?}", SchemaVersion::current());
+        for step in schema_version.steps() {
             match &step {
                 SchemaVersion::V1 => {
                     warn!("migrating from v0, nothing to do")
@@ -313,6 +316,19 @@ impl StateStore<Registered> for SledStore {
 }
 
 impl Store for SledStore {
+    fn clear_registration(&mut self) -> Result<(), Error> {
+        self.db.drop_tree(SLED_TREE_STATE)?;
+        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SESSIONS)?;
+        self.db.drop_tree(SLED_TREE_IDENTITIES)?;
+        self.db.remove(SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?;
+        self.db.remove(SLED_KEY_PRE_KEYS_OFFSET_ID)?;
+        self.db.remove(SLED_KEY_REGISTRATION)?;
+        self.db.flush()?;
+        Ok(())
+    }
+
     fn clear(&mut self) -> Result<(), Error> {
         // drop all trees
         for tree in self.db.tree_names() {

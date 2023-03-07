@@ -37,10 +37,12 @@ pub trait Store:
     + Sync
     + Clone
 {
-    /// Clear the entire store, this can be useful when re-initializing an existing client
-    /// Note: you can implement this the way you want and only clear the database partially
-    /// but should always make sure the state and all keys are gone.
+    /// Clear the entire store, this can be useful when re-initializing an existing client.
     fn clear(&mut self) -> Result<(), Error>;
+
+    /// Clear information regarding the registration, but do not clear other data like messages,
+    /// contacts or groups.
+    fn clear_registration(&mut self) -> Result<(), Error>;
 
     fn pre_keys_offset_id(&self) -> Result<u32, Error>;
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error>;
