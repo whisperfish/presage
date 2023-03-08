@@ -183,7 +183,7 @@ impl<C: Store> Manager<C, Registration> {
             return Err(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear()?;
+        config_store.clear_registration()?;
 
         // generate a random 24 bytes password
         let rng = rand::thread_rng();
@@ -264,7 +264,7 @@ impl<C: Store> Manager<C, Linking> {
     ) -> Result<Manager<C, Registered>, Error> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        config_store.clear()?;
+        config_store.clear_registration()?;
 
         // generate a random 24 bytes password
         let mut rng = rand::thread_rng();
@@ -356,7 +356,7 @@ impl<C: Store> Manager<C, Linking> {
         ) {
             (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
                 // clear the entire store on any error, there's no possible recovery here
-                manager.config_store.clear()?;
+                manager.config_store.clear_registration()?;
                 Err(e)
             }
             _ => Ok(manager),
@@ -467,7 +467,7 @@ impl<C: Store> Manager<C, Confirmation> {
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
-            manager.config_store.clear()?;
+            manager.config_store.clear_registration()?;
             Err(e)
         } else {
             Ok(manager)
