@@ -282,10 +282,7 @@ fn migrate(
                 fs_extra::dir::remove(db_path)?;
             }
             MigrationConflictStrategy::Drop => {
-                let db = sled::open(db_path)?;
-                for tree in db.tree_names() {
-                    db.drop_tree(tree)?;
-                }
+                fs_extra::dir::remove(db_path)?;
             }
             MigrationConflictStrategy::Raise => return Err(error),
         }
