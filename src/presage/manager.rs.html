@@ -1067,8 +1067,10 @@
 <a href="#1067" id="1067">1067</a>
 <a href="#1068" id="1068">1068</a>
 <a href="#1069" id="1069">1069</a>
+<a href="#1070" id="1070">1070</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
+    ops::RangeBounds,
     sync::Arc,
     time::{Duration, UNIX_EPOCH},
 };
@@ -1746,9 +1748,9 @@
     </span><span class="kw">pub fn </span>messages(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         thread: <span class="kw-2">&amp;</span>Thread,
-        from: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+        range: <span class="kw">impl </span>RangeBounds&lt;u64&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Content, Error&gt;&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.messages(thread, from)
+        <span class="self">self</span>.config_store.messages(thread, range)
     }
 
     <span class="kw">async fn </span>receive_messages_encrypted(
