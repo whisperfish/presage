@@ -372,7 +372,7 @@ impl<C: Store> Manager<C, Confirmation> {
     /// to send and receive messages.
     pub async fn confirm_verification_code(
         self,
-        confirm_code: u32,
+        confirm_code: impl AsRef<str>,
     ) -> Result<Manager<C, Registered>, Error> {
         trace!("confirming verification code");
 

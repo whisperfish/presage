@@ -21,7 +21,7 @@ use presage::{
         content::{Content, ContentBody, DataMessage, GroupContextV2},
         Contact, SignalServers,
     },
-    prelude::{phonenumber::PhoneNumber, ServiceAddress, Uuid},
+    prelude::{phonenumber::PhoneNumber, Uuid},
     GroupMasterKeyBytes, Manager, MessageStore, MigrationConflictStrategy, Registered,
     RegistrationOptions, SledStore, Store, Thread,
 };
@@ -142,6 +142,8 @@ enum Cmd {
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
         uuid: Option<Uuid>,
+        #[clap(long, short = 'p', help = "contact phone number")]
+        phone_number: Option<PhoneNumber>,
         #[clap(long, short = 'n', help = "contact name")]
         name: Option<String>,
     },
@@ -419,8 +421,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             // ask for confirmation code here
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
-            if let Some(line) = reader.lines().next_line().await? {
-                let confirmation_code = line.parse()?;
+            if let Some(confirmation_code) = reader.lines().next_line().await? {
                 manager.confirm_verification_code(confirmation_code).await?;
             }
         }
@@ -501,7 +502,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 for contact in manager
                     .contacts()?
                     .filter_map(Result::ok)
-                    .filter(|c| c.address.uuid == uuid)
+                    .filter(|c| c.uuid == uuid)
                 {
                     let profilek:[u8;32] = match(contact.profile_key).try_into() {
                     Ok(profilek) => profilek,
@@ -552,11 +553,12 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             let manager = Manager::load_registered(config_store)?;
             for Contact {
                 name,
-                address: ServiceAddress { uuid },
+                uuid,
+                phone_number,
                 ..
             } in manager.contacts()?.flatten()
             {
-                println!("{uuid} / {name}");
+                println!("{uuid} / {phone_number:?} / {name}");
             }
         }
         Cmd::Whoami => {
@@ -570,12 +572,17 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 None => eprintln!("Could not find contact for {uuid}"),
             }
         }
-        Cmd::FindContact { uuid, ref name } => {
+        Cmd::FindContact {
+            uuid,
+            phone_number,
+            ref name,
+        } => {
             let manager = Manager::load_registered(config_store)?;
             for contact in manager
                 .contacts()?
                 .filter_map(Result::ok)
-                .filter(|c| uuid.map_or_else(|| true, |u| c.address.uuid == u))
+                .filter(|c| uuid.map_or_else(|| true, |u| c.uuid == u))
+                .filter(|c| c.phone_number == phone_number)
                 .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
             {
                 println!("{contact:#?}");
