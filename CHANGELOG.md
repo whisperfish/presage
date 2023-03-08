@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Changed (and fixed) the behaviour of the iterator returned by `SledStore::messages`:
+- Changed (and fixed) the behaviour of the iterator returned by `SledStore::messages` (#119)
   * The iterator yields elements in chronological order (used to be reversed)
   * The iterator now implements `DoubleEndedIterator` which means you it can be reversed or consumed from the end
   * The method now accepts the full range syntax, like `0..=1678295210` or `..` for all messages
