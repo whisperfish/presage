@@ -191,7 +191,7 @@ async fn main() -> anyhow::Result<()> {
     let config_store = SledStore::open_with_passphrase(
         db_path,
         args.passphrase,
-        MigrationConflictStrategy::BackupAndDrop,
+        MigrationConflictStrategy::Raise,
     )?;
     run(args.subcommand, config_store).await
 }

@@ -22,7 +22,7 @@ use libsignal_service::{
     push_service::DEFAULT_DEVICE_ID,
     ServiceAddress,
 };
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -58,13 +58,14 @@ pub struct SledStore {
 
 /// Sometimes Migrations can't proceed without having to drop existing
 /// data. This allows you to configure, how these cases should be handled.
-#[derive(PartialEq, Eq, Clone, Debug)]
+#[derive(Default, PartialEq, Eq, Clone, Debug)]
 pub enum MigrationConflictStrategy {
     /// Just drop the data, we don't care that we have to register or link again
     Drop,
     /// Raise a `Error::MigrationConflict` error with the path to the
     /// DB in question. The caller then has to take care about what they want
     /// to do and try again after.
+    #[default]
     Raise,
     /// _Default_: The _entire_ database is backed up under, before the databases are dropped.
     BackupAndDrop,
@@ -239,10 +240,10 @@ fn migrate(
         for step in schema_version.steps() {
             match &step {
                 SchemaVersion::V1 => {
-                    info!("migrating from v0, nothing to do")
+                    debug!("migrating from v0, nothing to do")
                 }
                 SchemaVersion::V2 => {
-                    info!("migrating from schema v1 to v2: encrypting state if cipher is enabled");
+                    debug!("migrating from schema v1 to v2: encrypting state if cipher is enabled");
 
                     // load registration data the old school way
                     if let Some(data) = store.db.get(SLED_KEY_REGISTRATION)? {
@@ -265,33 +266,29 @@ fn migrate(
         Ok(())
     };
 
-    let migration_res = run_migrations();
-
-    match migration_conflict_strategy {
-        MigrationConflictStrategy::BackupAndDrop => {
-            let db = sled::open(db_path)?;
-            let mut new_db_path = db_path.to_path_buf();
-            new_db_path.set_extension(format!(
-                "{}.backup",
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .expect("time doesn't go backwards")
-                    .as_secs()
-            ));
-            fs_extra::dir::create_all(&new_db_path, false)?;
-            fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
-
-            for tree in db.tree_names() {
-                db.drop_tree(tree)?;
+    if let Err(error) = run_migrations() {
+        match migration_conflict_strategy {
+            MigrationConflictStrategy::BackupAndDrop => {
+                let mut new_db_path = db_path.to_path_buf();
+                new_db_path.set_extension(format!(
+                    "{}.backup",
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .expect("time doesn't go backwards")
+                        .as_secs()
+                ));
+                fs_extra::dir::create_all(&new_db_path, false)?;
+                fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
+                fs_extra::dir::remove(db_path)?;
             }
-        }
-        MigrationConflictStrategy::Drop => {
-            let db = sled::open(db_path)?;
-            for tree in db.tree_names() {
-                db.drop_tree(tree)?;
+            MigrationConflictStrategy::Drop => {
+                let db = sled::open(db_path)?;
+                for tree in db.tree_names() {
+                    db.drop_tree(tree)?;
+                }
             }
+            MigrationConflictStrategy::Raise => return Err(error),
         }
-        MigrationConflictStrategy::Raise => migration_res?,
     }
 
     Ok(())
