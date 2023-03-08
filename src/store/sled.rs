@@ -27,7 +27,7 @@ use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sled::Batch;
+use sled::{Batch, IVec};
 
 use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
 use crate::{
@@ -828,25 +828,19 @@ impl MessageStore for SledStore {
         debug!("{} messages in this tree", tree_thread.len());
         Ok(SledMessagesIter {
             cipher: self.cipher.clone(),
-            iter: tree_thread
-                .range(start.to_be_bytes()..end.to_be_bytes())
-                .rev(),
+            iter: tree_thread.range(start.to_be_bytes()..end.to_be_bytes()),
         })
     }
 }
 
 pub struct SledMessagesIter {
     cipher: Option<Arc<StoreCipher>>,
-    iter: std::iter::Rev<sled::Iter>,
+    iter: sled::Iter,
 }
 
-impl Iterator for SledMessagesIter {
-    type Item = Result<Content, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()?
-            .map_err(Error::from)
+impl SledMessagesIter {
+    fn decode(&self, elem: Result<(IVec, IVec), sled::Error>) -> Option<Result<Content, Error>> {
+        elem.map_err(Error::from)
             .and_then(|(_, value)| {
                 self.cipher.as_ref().map_or_else(
                     || serde_json::from_slice(&value).map_err(Error::from),
@@ -855,6 +849,20 @@ impl Iterator for SledMessagesIter {
             })
             .and_then(|data: Vec<u8>| ContentProto::decode(&data[..]).map_err(Error::from))
             .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
+    }
+}
+
+impl Iterator for SledMessagesIter {
+    type Item = Result<Content, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.decode(self.iter.next()?)
+    }
+}
+
+impl DoubleEndedIterator for SledMessagesIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.decode(self.iter.next_back()?)
     }
 }
 
