@@ -1084,15 +1084,6 @@
 <a href="#1084" id="1084">1084</a>
 <a href="#1085" id="1085">1085</a>
 <a href="#1086" id="1086">1086</a>
-<a href="#1087" id="1087">1087</a>
-<a href="#1088" id="1088">1088</a>
-<a href="#1089" id="1089">1089</a>
-<a href="#1090" id="1090">1090</a>
-<a href="#1091" id="1091">1091</a>
-<a href="#1092" id="1092">1092</a>
-<a href="#1093" id="1093">1093</a>
-<a href="#1094" id="1094">1094</a>
-<a href="#1095" id="1095">1095</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     ops::{Bound, Range, RangeBounds, RangeFull},
     path::Path,
@@ -1117,7 +1108,7 @@
     push_service::DEFAULT_DEVICE_ID,
     ServiceAddress,
 };
-<span class="kw">use </span>log::{debug, error, info, trace, warn};
+<span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>matrix_sdk_store_encryption::StoreCipher;
 <span class="kw">use </span>prost::Message;
 <span class="kw">use </span>serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -1153,13 +1144,14 @@
 
 <span class="doccomment">/// Sometimes Migrations can&#39;t proceed without having to drop existing
 /// data. This allows you to configure, how these cases should be handled.
-</span><span class="attr">#[derive(PartialEq, Eq, Clone, Debug)]
+</span><span class="attr">#[derive(Default, PartialEq, Eq, Clone, Debug)]
 </span><span class="kw">pub enum </span>MigrationConflictStrategy {
     <span class="doccomment">/// Just drop the data, we don&#39;t care that we have to register or link again
     </span>Drop,
     <span class="doccomment">/// Raise a `Error::MigrationConflict` error with the path to the
     /// DB in question. The caller then has to take care about what they want
     /// to do and try again after.
+    </span><span class="attr">#[default]
     </span>Raise,
     <span class="doccomment">/// _Default_: The _entire_ database is backed up under, before the databases are dropped.
     </span>BackupAndDrop,
@@ -1334,38 +1326,33 @@
         <span class="kw">for </span>step <span class="kw">in </span>schema_version.steps() {
             <span class="kw">match </span><span class="kw-2">&amp;</span>step {
                 SchemaVersion::V1 =&gt; {
-                    <span class="macro">warn!</span>(<span class="string">&quot;migrating from v0, nothing to do&quot;</span>)
+                    <span class="macro">debug!</span>(<span class="string">&quot;migrating from v0, nothing to do&quot;</span>)
                 }
                 SchemaVersion::V2 =&gt; {
-                    <span class="macro">info!</span>(<span class="string">&quot;migrating from schema v1 to v2: encrypting state if cipher is enabled&quot;</span>);
+                    <span class="macro">debug!</span>(<span class="string">&quot;migrating from schema v1 to v2: encrypting state if cipher is enabled&quot;</span>);
 
                     <span class="comment">// load registration data the old school way
-                    </span><span class="kw">let </span>data = store
-                        .db
-                        .get(SLED_KEY_REGISTRATION)<span class="question-mark">?
-                        </span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
-                    <span class="kw">let </span>state = serde_json::from_slice(<span class="kw-2">&amp;</span>data).map_err(Error::from)<span class="question-mark">?</span>;
+                    </span><span class="kw">if let </span><span class="prelude-val">Some</span>(data) = store.db.get(SLED_KEY_REGISTRATION)<span class="question-mark">? </span>{
+                        <span class="kw">let </span>state = serde_json::from_slice(<span class="kw-2">&amp;</span>data).map_err(Error::from)<span class="question-mark">?</span>;
 
-                    <span class="comment">// save it the new school way
-                    </span>store.save_state(<span class="kw-2">&amp;</span>state)<span class="question-mark">?</span>;
+                        <span class="comment">// save it the new school way
+                        </span>store.save_state(<span class="kw-2">&amp;</span>state)<span class="question-mark">?</span>;
 
-                    <span class="comment">// remove old data
-                    </span>store.db.remove(SLED_KEY_REGISTRATION)<span class="question-mark">?</span>;
+                        <span class="comment">// remove old data
+                        </span>store.db.remove(SLED_KEY_REGISTRATION)<span class="question-mark">?</span>;
+                    }
                 }
                 <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(Error::MigrationConflict),
             }
 
             store.insert(SLED_TREE_STATE, SLED_KEY_SCHEMA_VERSION, step)<span class="question-mark">?</span>;
+            store.db.flush()<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
     };
 
-    <span class="kw">let </span>migration_res = run_migrations();
-
-    <span class="kw">if let </span><span class="prelude-val">Err</span>(Error::MigrationConflict) = migration_res {
-        <span class="kw">let </span>db = sled::open(db_path)<span class="question-mark">?</span>;
-
+    <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = run_migrations() {
         <span class="kw">match </span>migration_conflict_strategy {
             MigrationConflictStrategy::BackupAndDrop =&gt; {
                 <span class="kw">let </span><span class="kw-2">mut </span>new_db_path = db_path.to_path_buf();
@@ -1378,17 +1365,12 @@
                 ));
                 fs_extra::dir::create_all(<span class="kw-2">&amp;</span>new_db_path, <span class="bool-val">false</span>)<span class="question-mark">?</span>;
                 fs_extra::dir::copy(db_path, new_db_path, <span class="kw-2">&amp;</span>fs_extra::dir::CopyOptions::new())<span class="question-mark">?</span>;
-
-                <span class="kw">for </span>tree <span class="kw">in </span>db.tree_names() {
-                    db.drop_tree(tree)<span class="question-mark">?</span>;
-                }
+                fs_extra::dir::remove(db_path)<span class="question-mark">?</span>;
             }
             MigrationConflictStrategy::Drop =&gt; {
-                <span class="kw">for </span>tree <span class="kw">in </span>db.tree_names() {
-                    db.drop_tree(tree)<span class="question-mark">?</span>;
-                }
+                fs_extra::dir::remove(db_path)<span class="question-mark">?</span>;
             }
-            MigrationConflictStrategy::Raise =&gt; migration_res<span class="question-mark">?</span>,
+            MigrationConflictStrategy::Raise =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(error),
         }
     }
 
