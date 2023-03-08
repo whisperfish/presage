@@ -1,5 +1,5 @@
 use std::{
-    ops::Range,
+    ops::{Bound, Range, RangeBounds, RangeFull},
     path::Path,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -805,30 +805,31 @@ impl MessageStore for SledStore {
         }
     }
 
-    fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
-        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
-        debug!("{} messages in this tree", tree_thread.len());
-        let iter = if let Some(from) = from {
-            tree_thread.range(from.to_be_bytes()..)
-        } else {
-            tree_thread.iter()
-        };
-        Ok(SledMessagesIter {
-            cipher: self.cipher.clone(),
-            iter: iter.rev(),
-        })
-    }
-
-    fn messages_in_range(
+    fn messages(
         &self,
         thread: &Thread,
-        Range { start, end }: Range<u64>,
+        range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Error> {
         let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
         debug!("{} messages in this tree", tree_thread.len());
+
+        let iter = match (range.start_bound(), range.end_bound()) {
+            (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),
+            (Bound::Included(start), Bound::Excluded(end)) => {
+                tree_thread.range(start.to_be_bytes()..end.to_be_bytes())
+            }
+            (Bound::Included(start), Bound::Included(end)) => {
+                tree_thread.range(start.to_be_bytes()..=end.to_be_bytes())
+            }
+            (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
+            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
+        };
+
         Ok(SledMessagesIter {
             cipher: self.cipher.clone(),
-            iter: tree_thread.range(start.to_be_bytes()..end.to_be_bytes()),
+            iter,
         })
     }
 }
@@ -856,13 +857,15 @@ impl Iterator for SledMessagesIter {
     type Item = Result<Content, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.decode(self.iter.next()?)
+        let elem = self.iter.next()?;
+        self.decode(elem)
     }
 }
 
 impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.decode(self.iter.next_back()?)
+        let elem = self.iter.next_back()?;
+        self.decode(elem)
     }
 }
 
@@ -1020,16 +1023,44 @@ mod tests {
             == signed_pre_key_record.serialize().unwrap()
     }
 
-    #[quickcheck_async::tokio]
-    async fn test_store_messages(thread: Thread, content: Vec<Content>, start_ts: u32) {
-        let mut db = SledStore::temporary().unwrap();
-        let count = content.len();
-        let mut start_ts = start_ts as u64;
-        for mut c in content {
-            c.0.metadata.timestamp = start_ts;
-            db.save_message(&thread, c.0).unwrap();
-            start_ts += 1;
+    fn content_with_timestamp(content: &Content, ts: u64) -> libsignal_service::prelude::Content {
+        libsignal_service::prelude::Content {
+            metadata: Metadata {
+                timestamp: ts,
+                ..content.0.metadata.clone()
+            },
+            body: content.0.body.clone(),
         }
-        assert_eq!(db.messages(&thread, None).unwrap().count(), count);
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_store_messages(thread: Thread, content: Content) {
+        let mut db = SledStore::temporary().unwrap();
+        db.save_message(&thread, content_with_timestamp(&content, 1678295210))
+            .unwrap();
+        db.save_message(&thread, content_with_timestamp(&content, 1678295220))
+            .unwrap();
+        db.save_message(&thread, content_with_timestamp(&content, 1678295230))
+            .unwrap();
+        db.save_message(&thread, content_with_timestamp(&content, 1678295240))
+            .unwrap();
+        db.save_message(&thread, content_with_timestamp(&content, 1678280000))
+            .unwrap();
+
+        assert_eq!(db.messages(&thread, 0..1678295210).unwrap().count(), 4);
+        assert_eq!(db.messages(&thread, ..).unwrap().count(), 5);
+        assert_eq!(db.messages(&thread, 1678280000..).unwrap().count(), 5);
+        assert_eq!(
+            db.messages(&thread, 1678295210..1678295240)
+                .unwrap()
+                .count(),
+            3
+        );
+        assert_eq!(
+            db.messages(&thread, 1678295210..=1678295240)
+                .unwrap()
+                .count(),
+            4
+        );
     }
 }

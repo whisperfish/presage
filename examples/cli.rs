@@ -603,7 +603,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 (_, Some(uuid)) => Thread::Contact(uuid),
                 _ => unreachable!(),
             };
-            let iter = config_store.messages(&thread, from)?;
+            let iter = config_store.messages(&thread, from.unwrap_or(0)..)?;
             for msg in iter.filter_map(Result::ok) {
                 println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
