@@ -42,7 +42,7 @@ const SLED_TREE_SENDER_KEYS: &str = "sender_keys";
 const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
-const SLED_TREE_THREAD_PREFIX: &str = "threads";
+const SLED_TREE_THREADS_PREFIX: &str = "threads";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -213,15 +213,15 @@ impl SledStore {
     /// build a hashed messages thread key
     fn messages_thread_tree_name(&self, t: &Thread) -> String {
         let key = match t {
-            Thread::Contact(uuid) => format!("{SLED_TREE_THREAD_PREFIX}:contact:{uuid}"),
+            Thread::Contact(uuid) => format!("{SLED_TREE_THREADS_PREFIX}:contact:{uuid}"),
             Thread::Group(group_id) => format!(
-                "{SLED_TREE_THREAD_PREFIX}:group:{}",
+                "{SLED_TREE_THREADS_PREFIX}:group:{}",
                 base64::encode(group_id)
             ),
         };
         let mut hasher = Sha256::new();
         hasher.update(key.as_bytes());
-        format!("{SLED_TREE_THREAD_PREFIX}:{:x}", hasher.finalize())
+        format!("{SLED_TREE_THREADS_PREFIX}:{:x}", hasher.finalize())
     }
 }
 
@@ -236,8 +236,6 @@ fn migrate(
     let run_migrations = move || {
         let mut store = SledStore::new(db_path, passphrase)?;
         let schema_version = store.schema_version();
-        log::info!("Store schema version: {:?}", schema_version);
-        log::info!("Current schema version: {:?}", SchemaVersion::current());
         for step in schema_version.steps() {
             match &step {
                 SchemaVersion::V1 => {
@@ -317,24 +315,33 @@ impl StateStore<Registered> for SledStore {
 
 impl Store for SledStore {
     fn clear_registration(&mut self) -> Result<(), Error> {
-        self.db.drop_tree(SLED_TREE_STATE)?;
-        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_SESSIONS)?;
-        self.db.drop_tree(SLED_TREE_IDENTITIES)?;
-        self.db.remove(SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?;
-        self.db.remove(SLED_KEY_PRE_KEYS_OFFSET_ID)?;
         self.db.remove(SLED_KEY_REGISTRATION)?;
+
+        self.db.drop_tree(SLED_TREE_IDENTITIES)?;
+        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SENDER_KEYS)?;
+        self.db.drop_tree(SLED_TREE_SESSIONS)?;
+        self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        self.db.drop_tree(SLED_TREE_STATE)?;
+
         self.db.flush()?;
+
         Ok(())
     }
 
     fn clear(&mut self) -> Result<(), Error> {
-        // drop all trees
-        for tree in self.db.tree_names() {
-            if let Err(error) = self.db.drop_tree(tree) {
-                log::warn!("fail to drop tree on call to Store::clear(): {error}");
-            }
+        self.clear_registration()?;
+
+        self.db.drop_tree(SLED_TREE_CONTACTS)?;
+        self.db.drop_tree(SLED_TREE_GROUPS)?;
+
+        for tree in self
+            .db
+            .tree_names()
+            .into_iter()
+            .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
+        {
+            self.db.drop_tree(tree)?;
         }
 
         self.db.flush()?;
@@ -769,7 +776,7 @@ impl MessageStore for SledStore {
         for name in self.db.tree_names() {
             if name
                 .as_ref()
-                .starts_with(SLED_TREE_THREAD_PREFIX.as_bytes())
+                .starts_with(SLED_TREE_THREADS_PREFIX.as_bytes())
             {
                 self.db.drop_tree(&name)?;
             }
