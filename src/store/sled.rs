@@ -1033,33 +1033,40 @@ mod tests {
     }
 
     #[quickcheck_async::tokio]
-    async fn test_store_messages(thread: Thread, content: Content) {
-        let mut db = SledStore::temporary().unwrap();
-        db.save_message(&thread, content_with_timestamp(&content, 1678295210))
-            .unwrap();
-        db.save_message(&thread, content_with_timestamp(&content, 1678295220))
-            .unwrap();
-        db.save_message(&thread, content_with_timestamp(&content, 1678295230))
-            .unwrap();
-        db.save_message(&thread, content_with_timestamp(&content, 1678295240))
-            .unwrap();
-        db.save_message(&thread, content_with_timestamp(&content, 1678280000))
-            .unwrap();
+    async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
+        let mut db = SledStore::temporary()?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295210))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295220))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295230))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295240))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678280000))?;
 
-        assert_eq!(db.messages(&thread, 0..1678295210).unwrap().count(), 4);
         assert_eq!(db.messages(&thread, ..).unwrap().count(), 5);
+        assert_eq!(db.messages(&thread, 0..).unwrap().count(), 5);
         assert_eq!(db.messages(&thread, 1678280000..).unwrap().count(), 5);
+
+        assert_eq!(db.messages(&thread, 0..1678280000)?.count(), 0);
+        assert_eq!(db.messages(&thread, 0..1678295210)?.count(), 1);
+        assert_eq!(db.messages(&thread, 1678295210..1678295240)?.count(), 3);
+        assert_eq!(db.messages(&thread, 1678295210..=1678295240)?.count(), 4);
+
         assert_eq!(
-            db.messages(&thread, 1678295210..1678295240)
-                .unwrap()
-                .count(),
-            3
+            db.messages(&thread, 0..=1678295240)?
+                .next()
+                .unwrap()?
+                .metadata
+                .timestamp,
+            1678280000
         );
         assert_eq!(
-            db.messages(&thread, 1678295210..=1678295240)
-                .unwrap()
-                .count(),
-            4
+            db.messages(&thread, 0..=1678295240)?
+                .next_back()
+                .unwrap()?
+                .metadata
+                .timestamp,
+            1678295240
         );
+
+        Ok(())
     }
 }
