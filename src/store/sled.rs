@@ -239,28 +239,27 @@ fn migrate(
         for step in schema_version.steps() {
             match &step {
                 SchemaVersion::V1 => {
-                    warn!("migrating from v0, nothing to do")
+                    info!("migrating from v0, nothing to do")
                 }
                 SchemaVersion::V2 => {
                     info!("migrating from schema v1 to v2: encrypting state if cipher is enabled");
 
                     // load registration data the old school way
-                    let data = store
-                        .db
-                        .get(SLED_KEY_REGISTRATION)?
-                        .ok_or(Error::NotYetRegisteredError)?;
-                    let state = serde_json::from_slice(&data).map_err(Error::from)?;
+                    if let Some(data) = store.db.get(SLED_KEY_REGISTRATION)? {
+                        let state = serde_json::from_slice(&data).map_err(Error::from)?;
 
-                    // save it the new school way
-                    store.save_state(&state)?;
+                        // save it the new school way
+                        store.save_state(&state)?;
 
-                    // remove old data
-                    store.db.remove(SLED_KEY_REGISTRATION)?;
+                        // remove old data
+                        store.db.remove(SLED_KEY_REGISTRATION)?;
+                    }
                 }
                 _ => return Err(Error::MigrationConflict),
             }
 
             store.insert(SLED_TREE_STATE, SLED_KEY_SCHEMA_VERSION, step)?;
+            store.db.flush()?;
         }
 
         Ok(())
@@ -268,33 +267,31 @@ fn migrate(
 
     let migration_res = run_migrations();
 
-    if let Err(Error::MigrationConflict) = migration_res {
-        let db = sled::open(db_path)?;
+    match migration_conflict_strategy {
+        MigrationConflictStrategy::BackupAndDrop => {
+            let db = sled::open(db_path)?;
+            let mut new_db_path = db_path.to_path_buf();
+            new_db_path.set_extension(format!(
+                "{}.backup",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .expect("time doesn't go backwards")
+                    .as_secs()
+            ));
+            fs_extra::dir::create_all(&new_db_path, false)?;
+            fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
 
-        match migration_conflict_strategy {
-            MigrationConflictStrategy::BackupAndDrop => {
-                let mut new_db_path = db_path.to_path_buf();
-                new_db_path.set_extension(format!(
-                    "{}.backup",
-                    SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .expect("time doesn't go backwards")
-                        .as_secs()
-                ));
-                fs_extra::dir::create_all(&new_db_path, false)?;
-                fs_extra::dir::copy(db_path, new_db_path, &fs_extra::dir::CopyOptions::new())?;
-
-                for tree in db.tree_names() {
-                    db.drop_tree(tree)?;
-                }
+            for tree in db.tree_names() {
+                db.drop_tree(tree)?;
             }
-            MigrationConflictStrategy::Drop => {
-                for tree in db.tree_names() {
-                    db.drop_tree(tree)?;
-                }
-            }
-            MigrationConflictStrategy::Raise => migration_res?,
         }
+        MigrationConflictStrategy::Drop => {
+            let db = sled::open(db_path)?;
+            for tree in db.tree_names() {
+                db.drop_tree(tree)?;
+            }
+        }
+        MigrationConflictStrategy::Raise => migration_res?,
     }
 
     Ok(())
