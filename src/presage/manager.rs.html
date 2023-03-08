@@ -1252,7 +1252,7 @@
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear()<span class="question-mark">?</span>;
+        config_store.clear_registration()<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
         </span><span class="kw">let </span>rng = rand::thread_rng();
@@ -1333,7 +1333,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
         <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated
         // and you won&#39;t be able to use this client anyways
-        </span>config_store.clear()<span class="question-mark">?</span>;
+        </span>config_store.clear_registration()<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
@@ -1425,7 +1425,7 @@
         ) {
             (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>, <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e), <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
                 <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
-                </span>manager.config_store.clear()<span class="question-mark">?</span>;
+                </span>manager.config_store.clear_registration()<span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(e)
             }
             <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(manager),
@@ -1536,7 +1536,7 @@
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
             <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
-            </span>manager.config_store.clear()<span class="question-mark">?</span>;
+            </span>manager.config_store.clear_registration()<span class="question-mark">?</span>;
             <span class="prelude-val">Err</span>(e)
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(manager)

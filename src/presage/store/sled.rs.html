@@ -949,6 +949,29 @@
 <a href="#949" id="949">949</a>
 <a href="#950" id="950">950</a>
 <a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a>
+<a href="#972" id="972">972</a>
+<a href="#973" id="973">973</a>
+<a href="#974" id="974">974</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     ops::Range,
     path::Path,
@@ -993,7 +1016,7 @@
 <span class="kw">const </span>SLED_TREE_SESSIONS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;sessions&quot;</span>;
 <span class="kw">const </span>SLED_TREE_SIGNED_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;signed_pre_keys&quot;</span>;
 <span class="kw">const </span>SLED_TREE_STATE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;state&quot;</span>;
-<span class="kw">const </span>SLED_TREE_THREAD_PREFIX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;threads&quot;</span>;
+<span class="kw">const </span>SLED_TREE_THREADS_PREFIX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;threads&quot;</span>;
 
 <span class="kw">const </span>SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
 <span class="kw">const </span>SLED_KEY_PRE_KEYS_OFFSET_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys_offset_id&quot;</span>;
@@ -1164,15 +1187,15 @@
     <span class="doccomment">/// build a hashed messages thread key
     </span><span class="kw">fn </span>messages_thread_tree_name(<span class="kw-2">&amp;</span><span class="self">self</span>, t: <span class="kw-2">&amp;</span>Thread) -&gt; String {
         <span class="kw">let </span>key = <span class="kw">match </span>t {
-            Thread::Contact(uuid) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:contact:{uuid}&quot;</span>),
+            Thread::Contact(uuid) =&gt; <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREADS_PREFIX}:contact:{uuid}&quot;</span>),
             Thread::Group(group_id) =&gt; <span class="macro">format!</span>(
-                <span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:group:{}&quot;</span>,
+                <span class="string">&quot;{SLED_TREE_THREADS_PREFIX}:group:{}&quot;</span>,
                 base64::encode(group_id)
             ),
         };
         <span class="kw">let </span><span class="kw-2">mut </span>hasher = Sha256::new();
         hasher.update(key.as_bytes());
-        <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREAD_PREFIX}:{:x}&quot;</span>, hasher.finalize())
+        <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREADS_PREFIX}:{:x}&quot;</span>, hasher.finalize())
     }
 }
 
@@ -1186,7 +1209,8 @@
 
     <span class="kw">let </span>run_migrations = <span class="kw">move </span>|| {
         <span class="kw">let </span><span class="kw-2">mut </span>store = SledStore::new(db_path, passphrase)<span class="question-mark">?</span>;
-        <span class="kw">for </span>step <span class="kw">in </span>store.schema_version().steps() {
+        <span class="kw">let </span>schema_version = store.schema_version();
+        <span class="kw">for </span>step <span class="kw">in </span>schema_version.steps() {
             <span class="kw">match </span><span class="kw-2">&amp;</span>step {
                 SchemaVersion::V1 =&gt; {
                     <span class="macro">warn!</span>(<span class="string">&quot;migrating from v0, nothing to do&quot;</span>)
@@ -1264,12 +1288,34 @@
 }
 
 <span class="kw">impl </span>Store <span class="kw">for </span>SledStore {
+    <span class="kw">fn </span>clear_registration(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="self">self</span>.db.remove(SLED_KEY_REGISTRATION)<span class="question-mark">?</span>;
+
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_IDENTITIES)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_PRE_KEYS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_SENDER_KEYS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_SESSIONS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_STATE)<span class="question-mark">?</span>;
+
+        <span class="self">self</span>.db.flush()<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="kw">fn </span>clear(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-        <span class="comment">// drop all trees
-        </span><span class="kw">for </span>tree <span class="kw">in </span><span class="self">self</span>.db.tree_names() {
-            <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.db.drop_tree(tree) {
-                <span class="macro">log::warn!</span>(<span class="string">&quot;fail to drop tree on call to Store::clear(): {error}&quot;</span>);
-            }
+        <span class="self">self</span>.clear_registration()<span class="question-mark">?</span>;
+
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_CONTACTS)<span class="question-mark">?</span>;
+        <span class="self">self</span>.db.drop_tree(SLED_TREE_GROUPS)<span class="question-mark">?</span>;
+
+        <span class="kw">for </span>tree <span class="kw">in </span><span class="self">self
+            </span>.db
+            .tree_names()
+            .into_iter()
+            .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
+        {
+            <span class="self">self</span>.db.drop_tree(tree)<span class="question-mark">?</span>;
         }
 
         <span class="self">self</span>.db.flush()<span class="question-mark">?</span>;
@@ -1704,7 +1750,7 @@
         <span class="kw">for </span>name <span class="kw">in </span><span class="self">self</span>.db.tree_names() {
             <span class="kw">if </span>name
                 .as_ref()
-                .starts_with(SLED_TREE_THREAD_PREFIX.as_bytes())
+                .starts_with(SLED_TREE_THREADS_PREFIX.as_bytes())
             {
                 <span class="self">self</span>.db.drop_tree(<span class="kw-2">&amp;</span>name)<span class="question-mark">?</span>;
             }
