@@ -80,6 +80,10 @@ impl StateStore<Registered> for SecretVolatileStore {
 }
 
 impl Store for SecretVolatileStore {
+    fn clear_registration(&mut self) -> Result<(), Error> {
+        self.clear();
+    }
+
     fn clear(&mut self) -> Result<(), Error> {
         let mut new_store: SecretVolatileStore = Default::default();
         std::mem::swap(self, &mut new_store);
