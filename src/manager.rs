@@ -1,5 +1,6 @@
 use std::{
     fmt,
+    ops::RangeBounds,
     sync::Arc,
     time::{Duration, UNIX_EPOCH},
 };
@@ -677,9 +678,9 @@ impl<C: Store> Manager<C, Registered> {
     pub fn messages(
         &self,
         thread: &Thread,
-        from: Option<u64>,
+        range: impl RangeBounds<u64>,
     ) -> Result<impl Iterator<Item = Result<Content, Error>>, Error> {
-        self.config_store.messages(thread, from)
+        self.config_store.messages(thread, range)
     }
 
     async fn receive_messages_encrypted(

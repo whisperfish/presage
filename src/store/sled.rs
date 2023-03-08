@@ -1,5 +1,5 @@
 use std::{
-    ops::Range,
+    ops::{Bound, Range, RangeBounds, RangeFull},
     path::Path,
     sync::Arc,
     time::{SystemTime, UNIX_EPOCH},
@@ -27,7 +27,7 @@ use matrix_sdk_store_encryption::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use sled::Batch;
+use sled::{Batch, IVec};
 
 use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
 use crate::{
@@ -296,9 +296,8 @@ fn migrate(
 
 impl StateStore<Registered> for SledStore {
     fn load_state(&self) -> Result<Registered, Error> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
-            .ok_or(Error::NotYetRegisteredError)?)
+        self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
+            .ok_or(Error::NotYetRegisteredError)
     }
 
     fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
@@ -822,33 +821,43 @@ impl MessageStore for SledStore {
         }
     }
 
-    fn messages(&self, thread: &Thread, from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+    fn messages(
+        &self,
+        thread: &Thread,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Self::MessagesIter, Error> {
         let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
         debug!("{} messages in this tree", tree_thread.len());
-        let iter = if let Some(from) = from {
-            tree_thread.range(from.to_be_bytes()..)
-        } else {
-            tree_thread.range::<&[u8], std::ops::RangeFull>(..)
+
+        let iter = match (range.start_bound(), range.end_bound()) {
+            (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),
+            (Bound::Included(start), Bound::Excluded(end)) => {
+                tree_thread.range(start.to_be_bytes()..end.to_be_bytes())
+            }
+            (Bound::Included(start), Bound::Included(end)) => {
+                tree_thread.range(start.to_be_bytes()..=end.to_be_bytes())
+            }
+            (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
+            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
         };
+
         Ok(SledMessagesIter {
             cipher: self.cipher.clone(),
-            iter: iter.rev(),
+            iter,
         })
     }
 }
 
 pub struct SledMessagesIter {
     cipher: Option<Arc<StoreCipher>>,
-    iter: std::iter::Rev<sled::Iter>,
+    iter: sled::Iter,
 }
 
-impl Iterator for SledMessagesIter {
-    type Item = Result<Content, Error>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()?
-            .map_err(Error::from)
+impl SledMessagesIter {
+    fn decode(&self, elem: Result<(IVec, IVec), sled::Error>) -> Option<Result<Content, Error>> {
+        elem.map_err(Error::from)
             .and_then(|(_, value)| {
                 self.cipher.as_ref().map_or_else(
                     || serde_json::from_slice(&value).map_err(Error::from),
@@ -860,15 +869,41 @@ impl Iterator for SledMessagesIter {
     }
 }
 
+impl Iterator for SledMessagesIter {
+    type Item = Result<Content, Error>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let elem = self.iter.next()?;
+        self.decode(elem)
+    }
+}
+
+impl DoubleEndedIterator for SledMessagesIter {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        let elem = self.iter.next_back()?;
+        self.decode(elem)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::fmt;
 
-    use libsignal_service::prelude::protocol::{
-        self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord, SessionStore,
-        SignedPreKeyRecord, SignedPreKeyStore,
+    use libsignal_service::{
+        content::{ContentBody, Metadata},
+        prelude::{
+            protocol::{
+                self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
+                SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+            },
+            Uuid,
+        },
+        proto::DataMessage,
+        ServiceAddress,
     };
     use quickcheck::{Arbitrary, Gen};
+
+    use crate::{MessageStore, Thread};
 
     use super::SledStore;
 
@@ -877,6 +912,9 @@ mod tests {
 
     #[derive(Clone)]
     struct KeyPair(protocol::KeyPair);
+
+    #[derive(Debug, Clone)]
+    struct Content(libsignal_service::prelude::Content);
 
     impl fmt::Debug for KeyPair {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -896,6 +934,41 @@ mod tests {
         fn arbitrary(_g: &mut Gen) -> Self {
             // Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241
             KeyPair(protocol::KeyPair::generate(&mut rand::thread_rng()))
+        }
+    }
+
+    impl Arbitrary for Content {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let timestamp: u64 = Arbitrary::arbitrary(g);
+            let contacts = [
+                Uuid::from_u128(Arbitrary::arbitrary(g)),
+                Uuid::from_u128(Arbitrary::arbitrary(g)),
+                Uuid::from_u128(Arbitrary::arbitrary(g)),
+            ];
+            let metadata = Metadata {
+                sender: ServiceAddress {
+                    uuid: *g.choose(&contacts).unwrap(),
+                },
+                sender_device: Arbitrary::arbitrary(g),
+                timestamp,
+                needs_receipt: Arbitrary::arbitrary(g),
+                unidentified_sender: Arbitrary::arbitrary(g),
+            };
+            let content_body = ContentBody::DataMessage(DataMessage {
+                body: Arbitrary::arbitrary(g),
+                timestamp: Some(timestamp),
+                ..Default::default()
+            });
+            Self(libsignal_service::prelude::Content::from_body(
+                content_body,
+                metadata,
+            ))
+        }
+    }
+
+    impl Arbitrary for Thread {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self::Contact(Uuid::from_u128(Arbitrary::arbitrary(g)))
         }
     }
 
@@ -964,5 +1037,53 @@ mod tests {
             .serialize()
             .unwrap()
             == signed_pre_key_record.serialize().unwrap()
+    }
+
+    fn content_with_timestamp(content: &Content, ts: u64) -> libsignal_service::prelude::Content {
+        libsignal_service::prelude::Content {
+            metadata: Metadata {
+                timestamp: ts,
+                ..content.0.metadata.clone()
+            },
+            body: content.0.body.clone(),
+        }
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
+        let mut db = SledStore::temporary()?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295210))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295220))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295230))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678295240))?;
+        db.save_message(&thread, content_with_timestamp(&content, 1678280000))?;
+
+        assert_eq!(db.messages(&thread, ..).unwrap().count(), 5);
+        assert_eq!(db.messages(&thread, 0..).unwrap().count(), 5);
+        assert_eq!(db.messages(&thread, 1678280000..).unwrap().count(), 5);
+
+        assert_eq!(db.messages(&thread, 0..1678280000)?.count(), 0);
+        assert_eq!(db.messages(&thread, 0..1678295210)?.count(), 1);
+        assert_eq!(db.messages(&thread, 1678295210..1678295240)?.count(), 3);
+        assert_eq!(db.messages(&thread, 1678295210..=1678295240)?.count(), 4);
+
+        assert_eq!(
+            db.messages(&thread, 0..=1678295240)?
+                .next()
+                .unwrap()?
+                .metadata
+                .timestamp,
+            1678280000
+        );
+        assert_eq!(
+            db.messages(&thread, 0..=1678295240)?
+                .next_back()
+                .unwrap()?
+                .metadata
+                .timestamp,
+            1678295240
+        );
+
+        Ok(())
     }
 }
