@@ -25,7 +25,7 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, ProfileKey, PushService, Uuid,
     },
-    proto::{sync_message, AttachmentPointer, GroupContextV2},
+    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -805,6 +805,38 @@ impl<C: Store> Manager<C, Registered> {
                                         state.config_store.save_message(&thread, content.clone())
                                     {
                                         log::error!("Error saving message to store: {}", e);
+                                    }
+
+                                    if let ContentBody::DataMessage(DataMessage {
+                                        delete:
+                                            Some(Delete {
+                                                target_sent_timestamp: Some(delete_timestamp),
+                                            }),
+                                        ..
+                                    })
+                                    | ContentBody::SynchronizeMessage(SyncMessage {
+                                        sent:
+                                            Some(sync_message::Sent {
+                                                message:
+                                                    Some(DataMessage {
+                                                        delete:
+                                                            Some(Delete {
+                                                                target_sent_timestamp:
+                                                                    Some(delete_timestamp),
+                                                            }),
+                                                        ..
+                                                    }),
+                                                ..
+                                            }),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        if let Err(e) = state
+                                            .config_store
+                                            .delete_message(&thread, *delete_timestamp)
+                                        {
+                                            log::error!("Error deleting message from store: {}", e);
+                                        }
                                     }
                                 }
 
