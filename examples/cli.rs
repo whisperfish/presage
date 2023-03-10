@@ -219,7 +219,7 @@ async fn send<C: Store>(
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
 async fn process_incoming_message<C: Store + MessageStore>(
-    manager: &Manager<C, Registered>,
+    manager: &mut Manager<C, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
