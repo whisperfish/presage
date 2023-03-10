@@ -11,7 +11,7 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
-    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    proto::{sync_message::Sent, AttachmentPointer, DataMessage, GroupContextV2, SyncMessage},
 };
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +34,7 @@ pub trait Store:
     + MessageStore
     + GroupsStore
     + SenderKeyStore
+    + AttachmentStore
     + Sync
     + Clone
 {
@@ -174,4 +175,20 @@ pub trait MessageStore {
         thread: &Thread,
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Error>;
+}
+
+/// Store for caching attachments.
+pub trait AttachmentStore {
+    /// Save an attachment to the store.
+    fn save_attachment(
+        &mut self,
+        attachment_pointer: &AttachmentPointer,
+        attachment: impl AsRef<[u8]>,
+    ) -> Result<(), Error>;
+
+    /// Retrieve a attachment from the store.
+    fn attachment(
+        &mut self,
+        attachment_pointer: &AttachmentPointer,
+    ) -> Result<Option<Vec<u8>>, Error>;
 }

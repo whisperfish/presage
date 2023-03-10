@@ -927,9 +927,19 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Downloads and decrypts a single attachment.
     pub async fn get_attachment(
-        &self,
+        &mut self,
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error> {
+        if let Some(result) = self
+            .config_store
+            .attachment(attachment_pointer)
+            .ok()
+            .flatten()
+        {
+            log::trace!("AttachmentStore had cached result. Returning it");
+            return Ok(result);
+        }
+
         let mut service = self.push_service()?;
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
@@ -941,6 +951,11 @@ impl<C: Store> Manager<C, Registered> {
 
         let key: [u8; 64] = attachment_pointer.key().try_into()?;
         decrypt_in_place(key, &mut ciphertext)?;
+
+        log::trace!("Storing downloaded attachment in AttachmentStore");
+        let _ = self
+            .config_store
+            .save_attachment(attachment_pointer, &ciphertext);
 
         Ok(ciphertext)
     }

@@ -16,7 +16,7 @@ use libsignal_service::{
             SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
             SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Content, Uuid,
+        AttachmentIdentifier, Content, Uuid,
     },
     proto,
     push_service::DEFAULT_DEVICE_ID,
@@ -29,7 +29,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
+use super::{AttachmentStore, ContactsStore, GroupsStore, MessageStore, StateStore};
 use crate::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
@@ -43,6 +43,7 @@ const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
+const SLED_TREE_ATTACHMENTS: &str = "attachments";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -223,6 +224,17 @@ impl SledStore {
         let mut hasher = Sha256::new();
         hasher.update(key.as_bytes());
         format!("{SLED_TREE_THREADS_PREFIX}:{:x}", hasher.finalize())
+    }
+
+    /// Build a hashed attachment key
+    fn attachment_identifier_key(&self, a: &AttachmentIdentifier) -> Vec<u8> {
+        let key = match a {
+            AttachmentIdentifier::CdnId(id) => format!("cdnid:{id}"),
+            AttachmentIdentifier::CdnKey(key) => format!("cdnkey:{key}",),
+        };
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        hasher.finalize().to_vec()
     }
 }
 
@@ -879,6 +891,35 @@ impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next_back()?;
         self.decode(elem)
+    }
+}
+
+impl AttachmentStore for SledStore {
+    fn save_attachment(
+        &mut self,
+        attachment_pointer: &proto::AttachmentPointer,
+        attachment: impl AsRef<[u8]>,
+    ) -> Result<(), Error> {
+        // TODO: Error when None?
+        if let Some(id) = &attachment_pointer.attachment_identifier {
+            let key = self.attachment_identifier_key(id);
+            let value = attachment.as_ref();
+            self.insert(SLED_TREE_ATTACHMENTS, key, value)?;
+        }
+        Ok(())
+    }
+
+    fn attachment(
+        &mut self,
+        attachment_pointer: &proto::AttachmentPointer,
+    ) -> Result<Option<Vec<u8>>, Error> {
+        // TODO: Error when None?
+        if let Some(id) = &attachment_pointer.attachment_identifier {
+            let key = self.attachment_identifier_key(id);
+            Ok(self.get(SLED_TREE_ATTACHMENTS, key)?)
+        } else {
+            Ok(None)
+        }
     }
 }
 
