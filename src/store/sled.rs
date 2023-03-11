@@ -18,7 +18,7 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
-    proto,
+    proto::{self, receipt_message::Type},
     push_service::DEFAULT_DEVICE_ID,
     ServiceAddress,
 };
@@ -29,7 +29,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
+use super::{ContactsStore, GroupsStore, MessageStore, ReceiptStore, StateStore};
 use crate::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
@@ -43,6 +43,7 @@ const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
+const SLED_TREE_RECEIPTS: &str = "receipts";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -879,6 +880,54 @@ impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next_back()?;
         self.decode(elem)
+    }
+}
+
+impl ReceiptStore for SledStore {
+    fn save_receipt(
+        &mut self,
+        message: u64,
+        sender: Uuid,
+        receipt_type: proto::receipt_message::Type,
+    ) -> Result<(), Error> {
+        let mut existing: Vec<u8> = self
+            .get(SLED_TREE_RECEIPTS, message.to_be_bytes())?
+            .unwrap_or_default();
+        // TODO: Overwrite already existing receipts? Preferrably by "increasing type".
+        existing.extend(sender.as_u128().to_be_bytes());
+        existing.extend((receipt_type as i32).to_be_bytes());
+        self.insert(SLED_TREE_RECEIPTS, message.to_be_bytes(), &existing)?;
+        Ok(())
+    }
+
+    fn receipts(
+        &mut self,
+        message: u64,
+    ) -> Result<Vec<(Uuid, proto::receipt_message::Type)>, Error> {
+        let receipts: Vec<u8> = self
+            .get(SLED_TREE_RECEIPTS, message.to_be_bytes())?
+            .unwrap_or_default();
+        // 16 for the Uuid (u128), 4 for receipt type (i32)
+        let mut parsed: Vec<_> = receipts
+            .chunks_exact(16 + 4)
+            .map(|r| {
+                // Uuid in bytes 0 (inclusive) until 16 (exclusive).
+                let uuid_bytes = &r[0..16];
+                // Type in bytes 16 (inclusive) until 20 (exclusive).
+                let type_bytes = &r[16..20];
+
+                let uuid = Uuid::from_u128(u128::from_be_bytes(uuid_bytes.try_into().unwrap()));
+                let type_ = Type::from_i32(i32::from_be_bytes(type_bytes.try_into().unwrap()))
+                    .unwrap_or_default();
+                (uuid, type_)
+            })
+            .collect();
+
+        // Dedup by Uuid.
+        parsed.sort_by_key(|i| i.0);
+        parsed.dedup_by_key(|i| i.0);
+
+        Ok(parsed)
     }
 }
 

@@ -11,7 +11,7 @@ use libsignal_service::{
         },
         Content, Uuid,
     },
-    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    proto::{receipt_message::Type, sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
 };
 use serde::{Deserialize, Serialize};
 
@@ -32,6 +32,7 @@ pub trait Store:
     + StateStore<Registered>
     + ContactsStore
     + MessageStore
+    + ReceiptStore
     + GroupsStore
     + SenderKeyStore
     + Sync
@@ -174,4 +175,12 @@ pub trait MessageStore {
         thread: &Thread,
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Error>;
+}
+
+pub trait ReceiptStore {
+    // TODO: Also save timestamp of when the sender has sent the receipt?
+    fn save_receipt(&mut self, message: u64, sender: Uuid, receipt_type: Type)
+        -> Result<(), Error>;
+
+    fn receipts(&mut self, message: u64) -> Result<Vec<(Uuid, Type)>, Error>;
 }

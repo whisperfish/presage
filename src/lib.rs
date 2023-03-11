@@ -11,7 +11,9 @@ pub use store::sled::{MigrationConflictStrategy, SledStore};
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 pub use proto::ContentProto;
-pub use store::{ContactsStore, GroupsStore, MessageStore, StateStore, Store, Thread};
+pub use store::{
+    ContactsStore, GroupsStore, MessageStore, ReceiptStore, StateStore, Store, Thread,
+};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;

@@ -757,6 +757,25 @@ impl<C: Store> Manager<C, Registered> {
                                     }
                                 }
 
+                                // Receipt messages
+                                if let ContentBody::ReceiptMessage(msg) = &content.body {
+                                    let type_ = msg.r#type();
+                                    let sender = content.metadata.sender.uuid;
+                                    for ts in &msg.timestamp {
+                                        log::trace!(
+                                            "Storing receipt: {} {} {:?}",
+                                            ts,
+                                            sender,
+                                            type_
+                                        );
+                                        if let Err(e) =
+                                            state.config_store.save_receipt(*ts, sender, type_)
+                                        {
+                                            log::error!("Error saving receipt: {}", e);
+                                        }
+                                    }
+                                }
+
                                 if let ContentBody::DataMessage(DataMessage {
                                     group_v2:
                                         Some(GroupContextV2 {
