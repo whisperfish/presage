@@ -25,7 +25,11 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, ProfileKey, PushService, Uuid,
     },
-    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2},
+    proto::{
+        data_message::Delete,
+        sync_message::{self, Sent},
+        AttachmentPointer, GroupContextV2,
+    },
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -880,6 +884,20 @@ impl<C: Store> Manager<C, Registered> {
             )
             .await?;
 
+        let delete = match &content_body {
+            ContentBody::DataMessage(DataMessage { delete, .. }) => {
+                delete.as_ref().and_then(|d| d.target_sent_timestamp)
+            }
+            ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(Sent {
+                        message: Some(DataMessage { delete, .. }),
+                        ..
+                    }),
+                ..
+            }) => delete.as_ref().and_then(|d| d.target_sent_timestamp),
+            _ => None,
+        };
         // save the message
         let thread = Thread::Contact(recipient.uuid);
         let content = Content {
@@ -894,6 +912,12 @@ impl<C: Store> Manager<C, Registered> {
         };
 
         self.config_store.save_message(&thread, content)?;
+
+        if let Some(delete_timestamp) = delete {
+            if let Err(e) = self.config_store.delete_message(&thread, delete_timestamp) {
+                log::error!("Error deleting message from store: {}", e);
+            }
+        }
 
         Ok(())
     }
@@ -935,6 +959,10 @@ impl<C: Store> Manager<C, Registered> {
         // return first error if any
         results.into_iter().find(|res| res.is_err()).transpose()?;
 
+        let delete = message
+            .delete
+            .as_ref()
+            .and_then(|d| d.target_sent_timestamp);
         let content = Content {
             metadata: Metadata {
                 sender: self.state.uuid.into(),
@@ -947,6 +975,12 @@ impl<C: Store> Manager<C, Registered> {
         };
         let thread = Thread::try_from(&content)?;
         self.config_store.save_message(&thread, content)?;
+
+        if let Some(delete_timestamp) = delete {
+            if let Err(e) = self.config_store.delete_message(&thread, delete_timestamp) {
+                log::error!("Error deleting message from store: {}", e);
+            }
+        }
 
         Ok(())
     }
