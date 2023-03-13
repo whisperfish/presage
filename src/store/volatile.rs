@@ -20,7 +20,7 @@ use libsignal_service::{
 use log::{trace, warn};
 
 use super::{StateStore, Store};
-use crate::{manager::Registered, ContactsStore, Error, MessageStore, Thread};
+use crate::{manager::Registered, ContactsStore, Error, MessageStore, ReceiptStore, Thread};
 
 #[derive(Default, Debug, Clone)]
 pub struct VolatileStore {
@@ -324,6 +324,26 @@ impl MessageStore for VolatileStore {
     }
 
     fn messages(&self, _thread: &Thread, _from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+        todo!()
+    }
+}
+
+impl ReceiptStore for VolatileStore {
+    fn save_receipt(
+        &mut self,
+        message: u64,
+        sender: Uuid,
+        read_timestamp: u64,
+        receipt_type: Type,
+    ) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn receipts(&mut self, message: u64) -> Result<ReceiptMap, Error> {
+        todo!()
+    }
+
+    fn clear_receipts(&mut self) -> Result<(), Error> {
         todo!()
     }
 }

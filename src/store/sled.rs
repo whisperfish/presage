@@ -29,7 +29,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use super::{ContactsStore, GroupsStore, MessageStore, ReceiptStore, StateStore};
+use super::{ContactsStore, GroupsStore, MessageStore, ReceiptMap, ReceiptStore, StateStore};
 use crate::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
@@ -325,6 +325,7 @@ impl Store for SledStore {
 
         self.db.drop_tree(SLED_TREE_CONTACTS)?;
         self.db.drop_tree(SLED_TREE_GROUPS)?;
+        self.db.drop_tree(SLED_TREE_RECEIPTS)?;
 
         for tree in self
             .db
@@ -888,46 +889,64 @@ impl ReceiptStore for SledStore {
         &mut self,
         message: u64,
         sender: Uuid,
+        sender_timestamp: u64,
         receipt_type: proto::receipt_message::Type,
     ) -> Result<(), Error> {
-        let mut existing: Vec<u8> = self
-            .get(SLED_TREE_RECEIPTS, message.to_be_bytes())?
-            .unwrap_or_default();
-        // TODO: Overwrite already existing receipts? Preferrably by "increasing type".
-        existing.extend(sender.as_u128().to_be_bytes());
-        existing.extend((receipt_type as i32).to_be_bytes());
-        self.insert(SLED_TREE_RECEIPTS, message.to_be_bytes(), &existing)?;
+        let receipt_type_i32 = receipt_type as i32;
+
+        let mut existing = self.receipts(message)?;
+        if let Some(old) = existing.get(&sender) {
+            if receipt_type_i32 <= old.1.into() {
+                // Stored receipt stronger, do nothing.
+                return Ok(());
+            }
+        }
+
+        existing.insert(sender, (sender_timestamp, receipt_type));
+        let bytes = existing.iter().fold(
+            vec![],
+            |mut acc, (sender, (sender_timestamp, receipt_type))| {
+                // First sender Uuid.
+                acc.extend(sender.as_u128().to_be_bytes());
+                // Then sender timestamp.
+                acc.extend(sender_timestamp.to_be_bytes());
+                // Then receipt type.
+                let r: i32 = (*receipt_type).into();
+                acc.extend(r.to_be_bytes());
+                acc
+            },
+        );
+        self.insert(SLED_TREE_RECEIPTS, message.to_be_bytes(), bytes)?;
         Ok(())
     }
 
-    fn receipts(
-        &mut self,
-        message: u64,
-    ) -> Result<Vec<(Uuid, proto::receipt_message::Type)>, Error> {
+    fn receipts(&mut self, message: u64) -> Result<ReceiptMap, Error> {
         let receipts: Vec<u8> = self
             .get(SLED_TREE_RECEIPTS, message.to_be_bytes())?
             .unwrap_or_default();
-        // 16 for the Uuid (u128), 4 for receipt type (i32)
-        let mut parsed: Vec<_> = receipts
-            .chunks_exact(16 + 4)
+        // 16 for the Uuid (u128), 8 for receipt timestamp (u64), 4 for receipt type (i32)
+        Ok(receipts
+            .chunks_exact(16 + 8 + 4)
             .map(|r| {
                 // Uuid in bytes 0 (inclusive) until 16 (exclusive).
                 let uuid_bytes = &r[0..16];
-                // Type in bytes 16 (inclusive) until 20 (exclusive).
-                let type_bytes = &r[16..20];
+                // Timestamp in bytes 16 (inclusive) until 24 (exclusive).
+                let timestamp_bytes = &r[16..24];
+                // Type in bytes 24 (inclusive) until 28 (exclusive).
+                let type_bytes = &r[24..28];
 
                 let uuid = Uuid::from_u128(u128::from_be_bytes(uuid_bytes.try_into().unwrap()));
+                let timestamp = u64::from_be_bytes(timestamp_bytes.try_into().unwrap());
                 let type_ = Type::from_i32(i32::from_be_bytes(type_bytes.try_into().unwrap()))
                     .unwrap_or_default();
-                (uuid, type_)
+                (uuid, (timestamp, type_))
             })
-            .collect();
+            .collect())
+    }
 
-        // Dedup by Uuid.
-        parsed.sort_by_key(|i| i.0);
-        parsed.dedup_by_key(|i| i.0);
-
-        Ok(parsed)
+    fn clear_receipts(&mut self) -> Result<(), Error> {
+        self.db.drop_tree(SLED_TREE_RECEIPTS)?;
+        Ok(())
     }
 }
 

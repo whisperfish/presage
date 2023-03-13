@@ -1,4 +1,4 @@
-use std::{fmt, ops::RangeBounds};
+use std::{collections::HashMap, fmt, ops::RangeBounds};
 
 use crate::{manager::Registered, Error, GroupMasterKeyBytes};
 use libsignal_service::{
@@ -177,10 +177,28 @@ pub trait MessageStore {
     ) -> Result<Self::MessagesIter, Error>;
 }
 
-pub trait ReceiptStore {
-    // TODO: Also save timestamp of when the sender has sent the receipt?
-    fn save_receipt(&mut self, message: u64, sender: Uuid, receipt_type: Type)
-        -> Result<(), Error>;
+/// A [HashMap] mapping the Uuid of the contact to the timestamp and type of receipt.
+pub type ReceiptMap = HashMap<Uuid, (u64, Type)>;
 
-    fn receipts(&mut self, message: u64) -> Result<Vec<(Uuid, Type)>, Error>;
+/// Storage for receipts.
+pub trait ReceiptStore {
+    /// Save a receipt with:
+    ///
+    /// - The timestamp from the message that this receipt is for.
+    /// - The sender Uuid of the receipt.
+    /// - The timestamp from sending the receipt.
+    /// - The type of receipt.
+    fn save_receipt(
+        &mut self,
+        message: u64,
+        sender: Uuid,
+        read_timestamp: u64,
+        receipt_type: Type,
+    ) -> Result<(), Error>;
+
+    /// Get all receipts from a message.
+    fn receipts(&mut self, message: u64) -> Result<ReceiptMap, Error>;
+
+    /// Clear all stored receipts.
+    fn clear_receipts(&mut self) -> Result<(), Error>;
 }

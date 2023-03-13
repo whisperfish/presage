@@ -21,7 +21,7 @@ use log::{trace, warn};
 use secrets::{SecretBox, SecretVec};
 
 use super::{StateStore, Store, Thread};
-use crate::{manager::Registered, ContactsStore, Error, MessageStore};
+use crate::{manager::Registered, ContactsStore, Error, MessageStore, ReceiptStore};
 
 // - SecretId adds the Default trait to SecretBox<u32>
 #[derive(Debug, Clone)]
@@ -377,6 +377,26 @@ impl MessageStore for SecretVolatileStore {
     }
 
     fn messages(&self, _thread: &Thread, _from: Option<u64>) -> Result<Self::MessagesIter, Error> {
+        todo!()
+    }
+}
+
+impl ReceiptStore for SecretVolatileStore {
+    fn save_receipt(
+        &mut self,
+        message: u64,
+        sender: Uuid,
+        read_timestamp: u64,
+        receipt_type: Type,
+    ) -> Result<(), Error> {
+        todo!()
+    }
+
+    fn receipts(&mut self, message: u64) -> Result<ReceiptMap, Error> {
+        todo!()
+    }
+
+    fn clear_receipts(&mut self) -> Result<(), Error> {
         todo!()
     }
 }

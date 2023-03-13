@@ -761,16 +761,21 @@ impl<C: Store> Manager<C, Registered> {
                                 if let ContentBody::ReceiptMessage(msg) = &content.body {
                                     let type_ = msg.r#type();
                                     let sender = content.metadata.sender.uuid;
+                                    let sender_timestamp = content.metadata.timestamp;
                                     for ts in &msg.timestamp {
                                         log::trace!(
-                                            "Storing receipt: {} {} {:?}",
+                                            "Storing receipt: {} {} {} {:?}",
                                             ts,
                                             sender,
+                                            sender_timestamp,
                                             type_
                                         );
-                                        if let Err(e) =
-                                            state.config_store.save_receipt(*ts, sender, type_)
-                                        {
+                                        if let Err(e) = state.config_store.save_receipt(
+                                            *ts,
+                                            sender,
+                                            sender_timestamp,
+                                            type_,
+                                        ) {
                                             log::error!("Error saving receipt: {}", e);
                                         }
                                     }
