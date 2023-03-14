@@ -16,7 +16,7 @@ use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
-    content::{ContentBody, DataMessage, Metadata, SyncMessage},
+    content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
     groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
@@ -943,6 +943,22 @@ impl<C: Store> Manager<C, Registered> {
         decrypt_in_place(key, &mut ciphertext)?;
 
         Ok(ciphertext)
+    }
+
+    pub async fn send_identity_reset(
+        &mut self,
+        recipient: &ServiceAddress,
+        timestamp: u64,
+    ) -> Result<(), Error> {
+        let message = DataMessage {
+            flags: Some(DataMessageFlags::EndSession as u32),
+            ..Default::default()
+        };
+
+        self.send_message(*recipient, message, timestamp).await?;
+        self.clear_sessions(recipient).await?;
+
+        Ok(())
     }
 
     fn credentials(&self) -> Result<Option<ServiceCredentials>, Error> {
