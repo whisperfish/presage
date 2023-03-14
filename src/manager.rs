@@ -950,13 +950,13 @@ impl<C: Store> Manager<C, Registered> {
         recipient: &ServiceAddress,
         timestamp: u64,
     ) -> Result<(), Error> {
+        log::trace!("Resetting identity for adress: {}", recipient.uuid);
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
             ..Default::default()
         };
 
         self.send_message(*recipient, message, timestamp).await?;
-        self.clear_sessions(recipient).await?;
 
         Ok(())
     }
