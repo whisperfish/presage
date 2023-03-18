@@ -9,9 +9,10 @@ use libsignal_service::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, ProfileKey, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    Profile,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,6 +34,7 @@ pub trait Store:
     + ContactsStore
     + MessageStore
     + GroupsStore
+    + ProfilesStore
     + SenderKeyStore
     + Sync
     + Clone
@@ -174,4 +176,13 @@ pub trait MessageStore {
         thread: &Thread,
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Error>;
+}
+
+/// Cache profiles locally.
+pub trait ProfilesStore {
+    /// Save a profile by [Uuid] and [ProfileKey].
+    fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error>;
+
+    /// Retrieve a profile by [Uuid] and [ProfileKey].
+    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error>;
 }

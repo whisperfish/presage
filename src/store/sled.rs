@@ -16,11 +16,11 @@ use libsignal_service::{
             SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
             SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, ProfileKey, Uuid,
     },
     proto,
     push_service::DEFAULT_DEVICE_ID,
-    ServiceAddress,
+    Profile, ServiceAddress,
 };
 use log::{debug, error, trace, warn};
 use matrix_sdk_store_encryption::StoreCipher;
@@ -29,7 +29,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
+use super::{ContactsStore, GroupsStore, MessageStore, ProfilesStore, StateStore};
 use crate::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
@@ -43,6 +43,7 @@ const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
+const SLED_TREE_PROFILES: &str = "profiles";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -223,6 +224,17 @@ impl SledStore {
         let mut hasher = Sha256::new();
         hasher.update(key.as_bytes());
         format!("{SLED_TREE_THREADS_PREFIX}:{:x}", hasher.finalize())
+    }
+
+    fn profile_key(&self, uuid: Uuid, key: ProfileKey) -> String {
+        let key = uuid
+            .into_bytes()
+            .into_iter()
+            .chain(key.get_bytes().into_iter());
+
+        let mut hasher = Sha256::new();
+        hasher.update(key.collect::<Vec<_>>());
+        format!("{:x}", hasher.finalize())
     }
 }
 
@@ -879,6 +891,18 @@ impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next_back()?;
         self.decode(elem)
+    }
+}
+
+impl ProfilesStore for SledStore {
+    fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error> {
+        let key = self.profile_key(uuid, key);
+        self.insert(SLED_TREE_PROFILES, &key, profile)
+    }
+
+    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error> {
+        let key = self.profile_key(uuid, key);
+        self.get(SLED_TREE_PROFILES, key)
     }
 }
 
