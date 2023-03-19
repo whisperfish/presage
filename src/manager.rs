@@ -1103,7 +1103,9 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
         }) => {
             config_store.save_message(&thread, message)?;
         }
-        ContentBody::SynchronizeMessage(_) => debug!("skipping saving sync message without interesting fields"),
+        ContentBody::SynchronizeMessage(_) => {
+            debug!("skipping saving sync message without interesting fields")
+        }
         ContentBody::CallMessage(_) => debug!("skipping saving call message"),
         ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
         ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
