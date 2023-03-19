@@ -1084,6 +1084,10 @@
 <a href="#1084" id="1084">1084</a>
 <a href="#1085" id="1085">1085</a>
 <a href="#1086" id="1086">1086</a>
+<a href="#1087" id="1087">1087</a>
+<a href="#1088" id="1088">1088</a>
+<a href="#1089" id="1089">1089</a>
+<a href="#1090" id="1090">1090</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1092,7 +1096,7 @@
 };
 
 <span class="kw">use </span>futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
-<span class="kw">use </span>log::{debug, error, info, trace};
+<span class="kw">use </span>log::{debug, error, info, trace, warn};
 <span class="kw">use </span>parking_lot::Mutex;
 <span class="kw">use </span>rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
@@ -1441,10 +1445,14 @@
             manager.set_account_attributes().<span class="kw">await</span>,
             manager.sync_contacts().<span class="kw">await</span>,
         ) {
-            (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>, <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e), <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
+            (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>, <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e), <span class="kw">_</span>) =&gt; {
                 <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
                 </span>manager.config_store.clear_registration()<span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(e)
+            }
+            (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
+                <span class="macro">warn!</span>(<span class="string">&quot;failed to synchronize contacts: {e}&quot;</span>);
+                <span class="prelude-val">Ok</span>(manager)
             }
             <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(manager),
         }
