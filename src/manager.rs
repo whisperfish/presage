@@ -8,7 +8,7 @@ use std::{
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
-use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
+use rand::{distributions::Alphanumeric, rngs::StdRng, Rng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -45,9 +45,9 @@ use libsignal_service_hyper::push_service::HyperPushService;
 use crate::{cache::CacheCell, serde::serde_profile_key, GroupMasterKeyBytes, Thread};
 use crate::{store::Store, Error};
 
-type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, ThreadRng>;
+type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, StdRng>;
 type MessageSender<C> =
-    libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, C, ThreadRng>;
+    libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, C, StdRng>;
 
 #[derive(Clone)]
 pub struct Manager<Store, State> {
@@ -55,6 +55,8 @@ pub struct Manager<Store, State> {
     config_store: Store,
     /// Part of the manager which is persisted in the store.
     state: State,
+    /// Random number generator
+    rng: StdRng,
 }
 
 impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
@@ -187,8 +189,8 @@ impl<C: Store> Manager<C, Registration> {
         config_store.clear_registration()?;
 
         // generate a random 24 bytes password
-        let rng = rand::thread_rng();
-        let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
+        let mut rng = StdRng::from_entropy();
+        let password: String = (&mut rng).sample_iter(&Alphanumeric).take(24).collect();
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut push_service =
@@ -218,6 +220,7 @@ impl<C: Store> Manager<C, Registration> {
                 phone_number,
                 password,
             },
+            rng,
         };
 
         Ok(manager)
@@ -268,8 +271,8 @@ impl<C: Store> Manager<C, Linking> {
         config_store.clear_registration()?;
 
         // generate a random 24 bytes password
-        let mut rng = rand::thread_rng();
-        let password: String = rng.sample_iter(&Alphanumeric).take(24).collect();
+        let mut rng = StdRng::from_entropy();
+        let password: String = (&mut rng).sample_iter(&Alphanumeric).take(24).collect();
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
@@ -285,7 +288,7 @@ impl<C: Store> Manager<C, Linking> {
         let (tx, mut rx) = mpsc::channel(1);
 
         let (fut1, fut2) = future::join(
-            linking_manager.provision_secondary_device(&mut rand::thread_rng(), signaling_key, tx),
+            linking_manager.provision_secondary_device(&mut rng, signaling_key, tx),
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
                     log::info!("generating qrcode from provisioning link: {}", &url);
@@ -328,6 +331,7 @@ impl<C: Store> Manager<C, Linking> {
             fut2?;
 
         let mut manager = Manager {
+            rng,
             config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
@@ -382,7 +386,7 @@ impl<C: Store> Manager<C, Confirmation> {
         trace!("confirming verification code");
 
         // see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
-        let registration_id = generate_registration_id(&mut rand::thread_rng());
+        let registration_id = generate_registration_id(&mut StdRng::from_entropy());
         trace!("registration_id: {}", registration_id);
 
         let credentials = ServiceCredentials {
@@ -407,7 +411,7 @@ impl<C: Store> Manager<C, Confirmation> {
                 self.state.password.to_string(),
             );
 
-        let mut rng = rand::thread_rng();
+        let mut rng = StdRng::from_entropy();
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
@@ -442,7 +446,7 @@ impl<C: Store> Manager<C, Confirmation> {
             )
             .await?;
 
-        let identity_key_pair = KeyPair::generate(&mut rand::thread_rng());
+        let identity_key_pair = KeyPair::generate(&mut rng);
 
         let phone_number = self.state.phone_number.clone();
         let password = self.state.password.clone();
@@ -450,6 +454,7 @@ impl<C: Store> Manager<C, Confirmation> {
         trace!("confirmed! (and registered)");
 
         let mut manager = Manager {
+            rng,
             config_store: self.config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
@@ -487,6 +492,7 @@ impl<C: Store> Manager<C, Registered> {
     pub fn load_registered(config_store: C) -> Result<Self, Error> {
         let state = config_store.load_state()?;
         Ok(Self {
+            rng: StdRng::from_entropy(),
             config_store,
             state,
         })
@@ -502,7 +508,7 @@ impl<C: Store> Manager<C, Registered> {
                 &self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.config_store.clone(),
-                &mut rand::thread_rng(),
+                &mut self.rng,
                 self.config_store.pre_keys_offset_id()?,
                 self.config_store.next_signed_pre_key_id()?,
                 true,
@@ -1005,7 +1011,7 @@ impl<C: Store> Manager<C, Registered> {
                 .ok_or(Error::MessagePipeNotStarted)?,
             self.push_service()?,
             self.new_service_cipher()?,
-            rand::thread_rng(),
+            self.rng.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
             local_addr,
@@ -1022,7 +1028,7 @@ impl<C: Store> Manager<C, Registered> {
             self.config_store.clone(),
             self.config_store.clone(),
             self.config_store.clone(),
-            rand::thread_rng(),
+            self.rng.clone(),
             service_configuration.unidentified_sender_trust_root,
             self.state.uuid,
             self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
