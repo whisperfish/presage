@@ -9,7 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Only `DataMessage` that are sent, received, or sent from another device are saved in the local store (#137)
+- Only `DataMessage` that are sent, received, or sent from another device are saved in the local store (#137).
+  This is a breaking change because clients previously had to introduce calls to filter internal messages themselves.
 
 - Changed (and fixed) the behaviour of the iterator returned by `SledStore::messages` (#119)
   * The iterator yields elements in chronological order (used to be reversed)
