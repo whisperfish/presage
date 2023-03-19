@@ -1088,6 +1088,12 @@
 <a href="#1088" id="1088">1088</a>
 <a href="#1089" id="1089">1089</a>
 <a href="#1090" id="1090">1090</a>
+<a href="#1091" id="1091">1091</a>
+<a href="#1092" id="1092">1092</a>
+<a href="#1093" id="1093">1093</a>
+<a href="#1094" id="1094">1094</a>
+<a href="#1095" id="1095">1095</a>
+<a href="#1096" id="1096">1096</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1098,7 +1104,7 @@
 <span class="kw">use </span>futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 <span class="kw">use </span>log::{debug, error, info, trace, warn};
 <span class="kw">use </span>parking_lot::Mutex;
-<span class="kw">use </span>rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
+<span class="kw">use </span>rand::{distributions::Alphanumeric, rngs::StdRng, Rng, RngCore, SeedableRng};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>url::Url;
 
@@ -1135,9 +1141,9 @@
 <span class="kw">use crate</span>::{cache::CacheCell, serde::serde_profile_key, GroupMasterKeyBytes, Thread};
 <span class="kw">use crate</span>::{store::Store, Error};
 
-<span class="kw">type </span>ServiceCipher&lt;C&gt; = cipher::ServiceCipher&lt;C, C, C, C, C, ThreadRng&gt;;
+<span class="kw">type </span>ServiceCipher&lt;C&gt; = cipher::ServiceCipher&lt;C, C, C, C, C, StdRng&gt;;
 <span class="kw">type </span>MessageSender&lt;C&gt; =
-    libsignal_service::prelude::MessageSender&lt;HyperPushService, C, C, C, C, C, ThreadRng&gt;;
+    libsignal_service::prelude::MessageSender&lt;HyperPushService, C, C, C, C, C, StdRng&gt;;
 
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>Manager&lt;Store, State&gt; {
@@ -1145,6 +1151,8 @@
     </span>config_store: Store,
     <span class="doccomment">/// Part of the manager which is persisted in the store.
     </span>state: State,
+    <span class="doccomment">/// Random number generator
+    </span>rng: StdRng,
 }
 
 <span class="kw">impl</span>&lt;Store, State: fmt::Debug&gt; fmt::Debug <span class="kw">for </span>Manager&lt;Store, State&gt; {
@@ -1277,8 +1285,8 @@
         config_store.clear_registration()<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
-        </span><span class="kw">let </span>rng = rand::thread_rng();
-        <span class="kw">let </span>password: String = rng.sample_iter(<span class="kw-2">&amp;</span>Alphanumeric).take(<span class="number">24</span>).collect();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
+        <span class="kw">let </span>password: String = (<span class="kw-2">&amp;mut </span>rng).sample_iter(<span class="kw-2">&amp;</span>Alphanumeric).take(<span class="number">24</span>).collect();
 
         <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
         <span class="kw">let </span><span class="kw-2">mut </span>push_service =
@@ -1308,6 +1316,7 @@
                 phone_number,
                 password,
             },
+            rng,
         };
 
         <span class="prelude-val">Ok</span>(manager)
@@ -1358,8 +1367,8 @@
         </span>config_store.clear_registration()<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
-        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
-        <span class="kw">let </span>password: String = rng.sample_iter(<span class="kw-2">&amp;</span>Alphanumeric).take(<span class="number">24</span>).collect();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
+        <span class="kw">let </span>password: String = (<span class="kw-2">&amp;mut </span>rng).sample_iter(<span class="kw-2">&amp;</span>Alphanumeric).take(<span class="number">24</span>).collect();
 
         <span class="comment">// generate a 52 bytes signaling key
         </span><span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
@@ -1375,7 +1384,7 @@
         <span class="kw">let </span>(tx, <span class="kw-2">mut </span>rx) = mpsc::channel(<span class="number">1</span>);
 
         <span class="kw">let </span>(fut1, fut2) = future::join(
-            linking_manager.provision_secondary_device(<span class="kw-2">&amp;mut </span>rand::thread_rng(), signaling_key, tx),
+            linking_manager.provision_secondary_device(<span class="kw-2">&amp;mut </span>rng, signaling_key, tx),
             <span class="kw">async move </span>{
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::Url(url)) = rx.next().<span class="kw">await </span>{
                     <span class="macro">log::info!</span>(<span class="string">&quot;generating qrcode from provisioning link: {}&quot;</span>, <span class="kw-2">&amp;</span>url);
@@ -1418,6 +1427,7 @@
             fut2<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
+            rng,
             config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
@@ -1472,7 +1482,7 @@
         <span class="macro">trace!</span>(<span class="string">&quot;confirming verification code&quot;</span>);
 
         <span class="comment">// see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
-        </span><span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>rand::thread_rng());
+        </span><span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>StdRng::from_entropy());
         <span class="macro">trace!</span>(<span class="string">&quot;registration_id: {}&quot;</span>, registration_id);
 
         <span class="kw">let </span>credentials = ServiceCredentials {
@@ -1497,7 +1507,7 @@
                 <span class="self">self</span>.state.password.to_string(),
             );
 
-        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
 
         <span class="comment">// generate a 52 bytes signaling key
         </span><span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
@@ -1532,7 +1542,7 @@
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>identity_key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>rand::thread_rng());
+        <span class="kw">let </span>identity_key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>rng);
 
         <span class="kw">let </span>phone_number = <span class="self">self</span>.state.phone_number.clone();
         <span class="kw">let </span>password = <span class="self">self</span>.state.password.clone();
@@ -1540,6 +1550,7 @@
         <span class="macro">trace!</span>(<span class="string">&quot;confirmed! (and registered)&quot;</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
+            rng,
             config_store: <span class="self">self</span>.config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
@@ -1577,6 +1588,7 @@
     </span><span class="kw">pub fn </span>load_registered(config_store: C) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
         <span class="kw">let </span>state = config_store.load_state()<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            rng: StdRng::from_entropy(),
             config_store,
             state,
         })
@@ -1592,7 +1604,7 @@
                 <span class="kw-2">&amp;</span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
-                <span class="kw-2">&amp;mut </span>rand::thread_rng(),
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
                 <span class="self">self</span>.config_store.pre_keys_offset_id()<span class="question-mark">?</span>,
                 <span class="self">self</span>.config_store.next_signed_pre_key_id()<span class="question-mark">?</span>,
                 <span class="bool-val">true</span>,
@@ -2095,7 +2107,7 @@
                 .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>,
             <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
             <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
-            rand::thread_rng(),
+            <span class="self">self</span>.rng.clone(),
             <span class="self">self</span>.config_store.clone(),
             <span class="self">self</span>.config_store.clone(),
             local_addr,
@@ -2112,7 +2124,7 @@
             <span class="self">self</span>.config_store.clone(),
             <span class="self">self</span>.config_store.clone(),
             <span class="self">self</span>.config_store.clone(),
-            rand::thread_rng(),
+            <span class="self">self</span>.rng.clone(),
             service_configuration.unidentified_sender_trust_root,
             <span class="self">self</span>.state.uuid,
             <span class="self">self</span>.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
