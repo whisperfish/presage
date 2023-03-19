@@ -219,7 +219,7 @@ async fn send<C: Store>(
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
 async fn process_incoming_message<C: Store + MessageStore>(
-    manager: &Manager<C, Registered>,
+    manager: &mut Manager<C, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
@@ -497,7 +497,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             uuid,
             mut profile_key,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store)?;
             if profile_key.is_none() {
                 for contact in manager
                     .contacts()?
