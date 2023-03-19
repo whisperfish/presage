@@ -353,7 +353,7 @@ impl<C: Store> Manager<C, Linking> {
         match (
             manager.register_pre_keys().await,
             manager.set_account_attributes().await,
-            manager.sync_contacts().await,
+            manager.sync_contacts_and_groups().await,
         ) {
             (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
                 // clear the entire store on any error, there's no possible recovery here
@@ -548,39 +548,59 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn wait_for_contacts_sync(
+    pub async fn wait_for_initial_sync(
         &mut self,
         mut messages: impl Stream<Item = Content> + Unpin,
     ) -> Result<(), Error> {
         let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        let mut synced_contacts = false;
+        let mut synced_groups = false;
+        error!("starting to receive msgs");
         while let Some(Content { body, .. }) = messages.next().await {
-            if let ContentBody::SynchronizeMessage(SyncMessage {
-                contacts: Some(contacts),
-                ..
-            }) = body
-            {
-                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
-                let _ = self.config_store.clear_contacts();
-                self.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))?;
-                info!("saved contacts");
+            match dbg!(body) {
+                ContentBody::SynchronizeMessage(SyncMessage {
+                    contacts: Some(contacts),
+                    ..
+                }) => {
+                    let contacts = message_receiver.retrieve_contacts(contacts).await?;
+                    let _ = self.config_store.clear_contacts();
+                    self.config_store
+                        .save_contacts(contacts.filter_map(Result::ok))?;
+                    info!("saved contacts");
+                    synced_contacts = true;
+                }
+                ContentBody::SynchronizeMessage(SyncMessage {
+                    groups: Some(groups),
+                    ..
+                }) => {
+                    let groups = message_receiver.retrieve_groups(groups).await?;
+                    for group in groups {
+                        let _ = dbg!(group);
+                    }
+                    info!("saved groups");
+                    synced_groups = true;
+                }
+                _ => (),
+            }
+            if synced_contacts && synced_groups {
                 return Ok(());
             }
         }
         Ok(())
     }
 
-    async fn sync_contacts(&mut self) -> Result<(), Error> {
+    pub async fn sync_contacts_and_groups(&mut self) -> Result<(), Error> {
         let messages = self.receive_messages_stream(true).await?;
         pin_mut!(messages);
 
         self.request_contacts_sync().await?;
+        self.request_groups_sync().await?;
 
         info!("waiting for contacts sync for up to 60 seconds");
 
         tokio::time::timeout(
             Duration::from_secs(60),
-            self.wait_for_contacts_sync(messages),
+            self.wait_for_initial_sync(messages),
         )
         .await
         .map_err(Error::from)??;
@@ -595,9 +615,28 @@ impl<C: Store> Manager<C, Registered> {
     /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&mut self) -> Result<(), Error> {
         trace!("requesting contacts sync");
+        self.request_sync(sync_message::request::Type::Contacts)
+            .await
+    }
+
+    /// Request that the primary device to encrypt & send all of its group details as a message to ourselves
+    /// which can be then received, decrypted and stored in the message receiving loop.
+    ///
+    /// **Note**: If successful, the groups are not yet received and stored, but will only be
+    /// processed when they're received using the `MessageReceiver`.
+    pub async fn request_groups_sync(&mut self) -> Result<(), Error> {
+        trace!("requesting groups sync");
+        self.request_sync(sync_message::request::Type::Groups).await
+    }
+
+    async fn request_sync(
+        &mut self,
+        sync_request_type: sync_message::request::Type,
+    ) -> Result<(), Error> {
+        trace!("requesting groups sync");
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
-                r#type: Some(sync_message::request::Type::Contacts as i32),
+                r#type: Some(sync_request_type as i32),
             }),
             ..Default::default()
         };
@@ -610,6 +649,8 @@ impl<C: Store> Manager<C, Registered> {
         // first request the sync
         self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
+
+        trace!("sync message sent");
 
         Ok(())
     }
@@ -833,6 +874,7 @@ impl<C: Store> Manager<C, Registered> {
         timestamp: u64,
     ) -> Result<(), Error> {
         let mut sender = self.new_message_sender()?;
+        debug!("NEW MESSAGE SENDER");
 
         let online_only = false;
         let recipient = recipient_addr.into();
@@ -847,6 +889,7 @@ impl<C: Store> Manager<C, Registered> {
                 online_only,
             )
             .await?;
+        debug!("MESSAGE SENT");
 
         // save the message
         let thread = Thread::Contact(recipient.uuid);

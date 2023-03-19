@@ -162,7 +162,7 @@ enum Cmd {
         master_key: GroupMasterKeyBytes,
     },
     #[cfg(feature = "quirks")]
-    RequestSyncContacts,
+    RequestSync,
 }
 
 fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
@@ -589,9 +589,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             }
         }
         #[cfg(feature = "quirks")]
-        Cmd::RequestSyncContacts => {
+        Cmd::RequestSync => {
             let mut manager = Manager::load_registered(config_store)?;
-            manager.request_contacts_sync().await?;
+            manager.sync_contacts_and_groups().await?;
         }
         Cmd::ListMessages {
             group_master_key,

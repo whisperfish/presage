@@ -24,6 +24,7 @@ Features:
 - [x] Download + decrypt attachments
 - [x] Send messages
 - [x] Groups support
+- [ ] PNI support
 
 ## Instructions
 
