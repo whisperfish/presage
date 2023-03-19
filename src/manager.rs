@@ -809,13 +809,10 @@ impl<C: Store> Manager<C, Registered> {
                                     }
                                 }
 
-                                if let Ok(thread) = Thread::try_from(&content) {
-                                    // TODO: handle reactions here, we should update the original message?
-                                    if let Err(e) =
-                                        state.config_store.save_message(&thread, content.clone())
-                                    {
-                                        log::error!("Error saving message to store: {}", e);
-                                    }
+                                if let Err(e) =
+                                    save_message(&mut state.config_store, content.clone())
+                                {
+                                    log::error!("Error saving message to store: {}", e);
                                 }
 
                                 return Some((content, state));
@@ -859,7 +856,6 @@ impl<C: Store> Manager<C, Registered> {
             .await?;
 
         // save the message
-        let thread = Thread::Contact(recipient.uuid);
         let content = Content {
             metadata: Metadata {
                 sender: self.state.uuid.into(),
@@ -871,7 +867,7 @@ impl<C: Store> Manager<C, Registered> {
             body: content_body,
         };
 
-        self.config_store.save_message(&thread, content)?;
+        save_message(&mut self.config_store, content)?;
 
         Ok(())
     }
@@ -923,8 +919,8 @@ impl<C: Store> Manager<C, Registered> {
             },
             body: message.into(),
         };
-        let thread = Thread::try_from(&content)?;
-        self.config_store.save_message(&thread, content)?;
+
+        save_message(&mut self.config_store, content)?;
 
         Ok(())
     }
@@ -1093,4 +1089,20 @@ async fn upsert_group<C: Store>(
     }
 
     config_store.group(master_key_bytes)
+}
+
+fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error> {
+    let thread = Thread::try_from(&message)?;
+    // only save DataMessage and SynchronizeMessage (sent)
+    match message.body {
+        ContentBody::DataMessage(_)
+        | ContentBody::SynchronizeMessage(SyncMessage { sent: Some(_), .. }) => {
+            config_store.save_message(&thread, message)?;
+        }
+        _ => {
+            trace!("not saving message {:?}", message);
+        }
+    }
+
+    Ok(())
 }
