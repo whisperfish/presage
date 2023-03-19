@@ -1868,7 +1868,7 @@
             message.metadata.timestamp,
         );
 
-        <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(thread);
+        <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(<span class="kw-2">&amp;</span>thread);
         <span class="kw">let </span>key = message.metadata.timestamp.to_be_bytes();
 
         <span class="kw">let </span>proto: ContentProto = message.into();
