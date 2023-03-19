@@ -6,7 +6,7 @@ use std::{
 };
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
 use rand::{distributions::Alphanumeric, prelude::ThreadRng, Rng, RngCore};
 use serde::{Deserialize, Serialize};
@@ -355,10 +355,14 @@ impl<C: Store> Manager<C, Linking> {
             manager.set_account_attributes().await,
             manager.sync_contacts().await,
         ) {
-            (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
+            (Err(e), _, _) | (_, Err(e), _) => {
                 // clear the entire store on any error, there's no possible recovery here
                 manager.config_store.clear_registration()?;
                 Err(e)
+            }
+            (_, _, Err(e)) => {
+                warn!("failed to synchronize contacts: {e}");
+                Ok(manager)
             }
             _ => Ok(manager),
         }
