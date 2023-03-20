@@ -1,7 +1,7 @@
 use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
-use std::{path::PathBuf, time::UNIX_EPOCH};
+use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context as _};
 use chrono::Local;
@@ -201,18 +201,14 @@ async fn send<C: Store>(
     uuid: &Uuid,
     manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis() as u64;
-
     let message = ContentBody::DataMessage(DataMessage {
         body: Some(msg.to_string()),
-        timestamp: Some(timestamp),
         ..Default::default()
     });
 
-    manager.send_message(*uuid, message, timestamp).await?;
+    let mut m = manager.clone();
+    let _ = future::join(receive(&mut m, false), manager.send_message(*uuid, message)).await;
+
     Ok(())
 }
 
@@ -472,14 +468,8 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
         } => {
             let mut manager = Manager::load_registered(config_store)?;
 
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as u64;
-
             let data_message = DataMessage {
                 body: Some(message),
-                timestamp: Some(timestamp),
                 group_v2: Some(GroupContextV2 {
                     master_key: Some(master_key.to_vec()),
                     revision: Some(0),
@@ -489,7 +479,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             };
 
             manager
-                .send_message_to_group(&master_key, data_message, timestamp)
+                .send_message_to_group(&master_key, data_message)
                 .await?;
         }
         Cmd::Unregister => unimplemented!(),
