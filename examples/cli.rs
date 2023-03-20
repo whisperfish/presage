@@ -1,7 +1,8 @@
 use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
-use std::{path::PathBuf, time::UNIX_EPOCH};
+use std::path::PathBuf;
+use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
 use chrono::Local;
@@ -212,7 +213,13 @@ async fn send<C: Store>(
         ..Default::default()
     });
 
-    manager.send_message(*uuid, message, timestamp).await?;
+    let mut m = manager.clone();
+    let _ = future::join(
+        receive(&mut m, false),
+        manager.send_message(*uuid, message, timestamp),
+    )
+    .await;
+
     Ok(())
 }
 
