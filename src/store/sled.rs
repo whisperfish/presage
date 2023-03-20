@@ -191,7 +191,7 @@ impl SledStore {
             .map_err(Error::from)
     }
 
-    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), Error>
+    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<bool, Error>
     where
         K: AsRef<[u8]>,
         V: Serialize,
@@ -200,9 +200,9 @@ impl SledStore {
             || serde_json::to_vec(&value).map_err(Error::from),
             |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
-        let _ = self.tree(tree)?.insert(key, value)?;
+        let last_value = self.tree(tree)?.insert(key, value)?;
         self.db.flush()?;
-        Ok(())
+        Ok(last_value.is_some())
     }
 
     fn remove<K>(&self, tree: &str, key: K) -> Result<bool, Error>
@@ -358,7 +358,8 @@ impl Store for SledStore {
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
+        Ok(())
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
@@ -368,7 +369,8 @@ impl Store for SledStore {
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
+        Ok(())
     }
 }
 
@@ -560,7 +562,8 @@ impl SignedPreKeyStore for SledStore {
         .map_err(|e| {
             log::error!("sled error: {}", e);
             SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
-        })
+        })?;
+        Ok(())
     }
 }
 
@@ -588,7 +591,8 @@ impl SessionStore for SledStore {
     ) -> Result<(), SignalProtocolError> {
         trace!("storing session {}", address);
         self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
-            .map_err(Error::into_signal_error)
+            .map_err(Error::into_signal_error)?;
+        Ok(())
     }
 }
 
@@ -749,7 +753,8 @@ impl SenderKeyStore for SledStore {
             distribution_id
         );
         self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
-            .map_err(Error::into_signal_error)
+            .map_err(Error::into_signal_error)?;
+        Ok(())
     }
 
     async fn load_sender_key(
@@ -789,12 +794,11 @@ impl MessageStore for SledStore {
 
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
         log::trace!(
-            "Storing a message with thread: {:?}, timestamp: {}",
-            thread,
+            "storing a message with thread: {thread}, timestamp: {}",
             message.metadata.timestamp,
         );
 
-        let tree = self.messages_thread_tree_name(&thread);
+        let tree = self.messages_thread_tree_name(thread);
         let key = message.metadata.timestamp.to_be_bytes();
 
         let proto: ContentProto = message.into();
@@ -897,7 +901,8 @@ impl DoubleEndedIterator for SledMessagesIter {
 impl ProfilesStore for SledStore {
     fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error> {
         let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, &key, profile)
+        self.insert(SLED_TREE_PROFILES, &key, profile)?;
+        Ok(())
     }
 
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error> {
