@@ -640,19 +640,30 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
-    pub async fn retrieve_profile(&self) -> Result<Profile, Error> {
+    pub async fn retrieve_profile(&mut self) -> Result<Profile, Error> {
         self.retrieve_profile_by_uuid(self.state.uuid, self.state.profile_key)
             .await
     }
 
     /// Fetches the profile of the provided user by UUID and profile key.
     pub async fn retrieve_profile_by_uuid(
-        &self,
+        &mut self,
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -> Result<Profile, Error> {
+        // Check if profile is cached.
+        if let Some(profile) = self.config_store.profile(uuid, profile_key).ok().flatten() {
+            return Ok(profile);
+        }
+
         let mut account_manager = AccountManager::new(self.push_service()?, Some(profile_key));
-        Ok(account_manager.retrieve_profile(uuid.into()).await?)
+
+        let profile = account_manager.retrieve_profile(uuid.into()).await?;
+
+        let _ = self
+            .config_store
+            .save_profile(uuid, profile_key, profile.clone());
+        Ok(profile)
     }
 
     /// Get a single contact by its UUID
