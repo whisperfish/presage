@@ -1113,6 +1113,17 @@
 <a href="#1113" id="1113">1113</a>
 <a href="#1114" id="1114">1114</a>
 <a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1755,19 +1766,30 @@
     }
 
     <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.
-    </span><span class="kw">pub async fn </span>retrieve_profile(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
+    </span><span class="kw">pub async fn </span>retrieve_profile(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
         <span class="self">self</span>.retrieve_profile_by_uuid(<span class="self">self</span>.state.uuid, <span class="self">self</span>.state.profile_key)
             .<span class="kw">await
     </span>}
 
     <span class="doccomment">/// Fetches the profile of the provided user by UUID and profile key.
     </span><span class="kw">pub async fn </span>retrieve_profile_by_uuid(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
+        <span class="comment">// Check if profile is cached.
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile) = <span class="self">self</span>.config_store.profile(uuid, profile_key).ok().flatten() {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(profile);
+        }
+
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(profile_key));
-        <span class="prelude-val">Ok</span>(account_manager.retrieve_profile(uuid.into()).<span class="kw">await</span><span class="question-mark">?</span>)
+
+        <span class="kw">let </span>profile = account_manager.retrieve_profile(uuid.into()).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let _ </span>= <span class="self">self
+            </span>.config_store
+            .save_profile(uuid, profile_key, profile.clone());
+        <span class="prelude-val">Ok</span>(profile)
     }
 
     <span class="doccomment">/// Get a single contact by its UUID

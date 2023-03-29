@@ -1084,6 +1084,30 @@
 <a href="#1084" id="1084">1084</a>
 <a href="#1085" id="1085">1085</a>
 <a href="#1086" id="1086">1086</a>
+<a href="#1087" id="1087">1087</a>
+<a href="#1088" id="1088">1088</a>
+<a href="#1089" id="1089">1089</a>
+<a href="#1090" id="1090">1090</a>
+<a href="#1091" id="1091">1091</a>
+<a href="#1092" id="1092">1092</a>
+<a href="#1093" id="1093">1093</a>
+<a href="#1094" id="1094">1094</a>
+<a href="#1095" id="1095">1095</a>
+<a href="#1096" id="1096">1096</a>
+<a href="#1097" id="1097">1097</a>
+<a href="#1098" id="1098">1098</a>
+<a href="#1099" id="1099">1099</a>
+<a href="#1100" id="1100">1100</a>
+<a href="#1101" id="1101">1101</a>
+<a href="#1102" id="1102">1102</a>
+<a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     ops::{Bound, Range, RangeBounds, RangeFull},
     path::Path,
@@ -1102,11 +1126,11 @@
             SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
             SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, ProfileKey, Uuid,
     },
     proto,
     push_service::DEFAULT_DEVICE_ID,
-    ServiceAddress,
+    Profile, ServiceAddress,
 };
 <span class="kw">use </span>log::{debug, error, trace, warn};
 <span class="kw">use </span>matrix_sdk_store_encryption::StoreCipher;
@@ -1115,7 +1139,7 @@
 <span class="kw">use </span>sha2::{Digest, Sha256};
 <span class="kw">use </span>sled::{Batch, IVec};
 
-<span class="kw">use super</span>::{ContactsStore, GroupsStore, MessageStore, StateStore};
+<span class="kw">use super</span>::{ContactsStore, GroupsStore, MessageStore, ProfilesStore, StateStore};
 <span class="kw">use crate</span>::{
     manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
 };
@@ -1129,6 +1153,7 @@
 <span class="kw">const </span>SLED_TREE_SIGNED_PRE_KEYS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;signed_pre_keys&quot;</span>;
 <span class="kw">const </span>SLED_TREE_STATE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;state&quot;</span>;
 <span class="kw">const </span>SLED_TREE_THREADS_PREFIX: <span class="kw-2">&amp;</span>str = <span class="string">&quot;threads&quot;</span>;
+<span class="kw">const </span>SLED_TREE_PROFILES: <span class="kw-2">&amp;</span>str = <span class="string">&quot;profiles&quot;</span>;
 
 <span class="kw">const </span>SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;next_signed_pre_key_id&quot;</span>;
 <span class="kw">const </span>SLED_KEY_PRE_KEYS_OFFSET_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;pre_keys_offset_id&quot;</span>;
@@ -1309,6 +1334,17 @@
         <span class="kw">let </span><span class="kw-2">mut </span>hasher = Sha256::new();
         hasher.update(key.as_bytes());
         <span class="macro">format!</span>(<span class="string">&quot;{SLED_TREE_THREADS_PREFIX}:{:x}&quot;</span>, hasher.finalize())
+    }
+
+    <span class="kw">fn </span>profile_key(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: Uuid, key: ProfileKey) -&gt; String {
+        <span class="kw">let </span>key = uuid
+            .into_bytes()
+            .into_iter()
+            .chain(key.get_bytes().into_iter());
+
+        <span class="kw">let </span><span class="kw-2">mut </span>hasher = Sha256::new();
+        hasher.update(key.collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;());
+        <span class="macro">format!</span>(<span class="string">&quot;{:x}&quot;</span>, hasher.finalize())
     }
 }
 
@@ -1965,6 +2001,18 @@
     <span class="kw">fn </span>next_back(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
         <span class="kw">let </span>elem = <span class="self">self</span>.iter.next_back()<span class="question-mark">?</span>;
         <span class="self">self</span>.decode(elem)
+    }
+}
+
+<span class="kw">impl </span>ProfilesStore <span class="kw">for </span>SledStore {
+    <span class="kw">fn </span>save_profile(<span class="kw-2">&amp;mut </span><span class="self">self</span>, uuid: Uuid, key: ProfileKey, profile: Profile) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">let </span>key = <span class="self">self</span>.profile_key(uuid, key);
+        <span class="self">self</span>.insert(SLED_TREE_PROFILES, <span class="kw-2">&amp;</span>key, profile)
+    }
+
+    <span class="kw">fn </span>profile(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: Uuid, key: ProfileKey) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Profile&gt;, Error&gt; {
+        <span class="kw">let </span>key = <span class="self">self</span>.profile_key(uuid, key);
+        <span class="self">self</span>.get(SLED_TREE_PROFILES, key)
     }
 }
 

@@ -174,6 +174,17 @@
 <a href="#174" id="174">174</a>
 <a href="#175" id="175">175</a>
 <a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{fmt, ops::RangeBounds};
 
 <span class="kw">use crate</span>::{manager::Registered, Error, GroupMasterKeyBytes};
@@ -185,9 +196,10 @@
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, ProfileKey, Uuid,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    Profile,
 };
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
@@ -209,6 +221,7 @@
     + ContactsStore
     + MessageStore
     + GroupsStore
+    + ProfilesStore
     + SenderKeyStore
     + Sync
     + Clone
@@ -349,6 +362,15 @@
         thread: <span class="kw-2">&amp;</span>Thread,
         range: <span class="kw">impl </span>RangeBounds&lt;u64&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::MessagesIter, Error&gt;;
+}
+
+<span class="doccomment">/// Cache profiles locally.
+</span><span class="kw">pub trait </span>ProfilesStore {
+    <span class="doccomment">/// Save a profile by [Uuid] and [ProfileKey].
+    </span><span class="kw">fn </span>save_profile(<span class="kw-2">&amp;mut </span><span class="self">self</span>, uuid: Uuid, key: ProfileKey, profile: Profile) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt;;
+
+    <span class="doccomment">/// Retrieve a profile by [Uuid] and [ProfileKey].
+    </span><span class="kw">fn </span>profile(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: Uuid, key: ProfileKey) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Profile&gt;, Error&gt;;
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0 (2c8cc3432 2023-03-06)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
