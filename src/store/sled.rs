@@ -794,7 +794,7 @@ impl MessageStore for SledStore {
             message.metadata.timestamp,
         );
 
-        let tree = self.messages_thread_tree_name(thread);
+        let tree = self.messages_thread_tree_name(&thread);
         let key = message.metadata.timestamp.to_be_bytes();
 
         let proto: ContentProto = message.into();
