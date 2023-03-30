@@ -9,9 +9,10 @@ use libsignal_service::{
         protocol::{
             IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
         },
-        Content, Uuid,
+        Content, ProfileKey, Uuid,
     },
     proto::{receipt_message::Type, sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    Profile,
 };
 use serde::{Deserialize, Serialize};
 
@@ -34,6 +35,7 @@ pub trait Store:
     + MessageStore
     + ReceiptStore
     + GroupsStore
+    + ProfilesStore
     + SenderKeyStore
     + Sync
     + Clone
@@ -160,7 +162,6 @@ pub trait MessageStore {
     fn clear_messages(&mut self) -> Result<(), Error>;
 
     /// Save a message in a [Thread] identified by a timestamp.
-    /// TODO: deriving the thread happens from the content, so we can also ditch the first parameter
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
@@ -201,4 +202,13 @@ pub trait ReceiptStore {
 
     /// Clear all stored receipts.
     fn clear_receipts(&mut self) -> Result<(), Error>;
+}
+
+/// Cache profiles locally.
+pub trait ProfilesStore {
+    /// Save a profile by [Uuid] and [ProfileKey].
+    fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error>;
+
+    /// Retrieve a profile by [Uuid] and [ProfileKey].
+    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error>;
 }

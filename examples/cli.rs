@@ -1,7 +1,8 @@
 use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
-use std::{path::PathBuf, time::UNIX_EPOCH};
+use std::path::PathBuf;
+use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
 use chrono::Local;
@@ -212,14 +213,20 @@ async fn send<C: Store>(
         ..Default::default()
     });
 
-    manager.send_message(*uuid, message, timestamp).await?;
+    let mut m = manager.clone();
+    let _ = future::join(
+        receive(&mut m, false),
+        manager.send_message(*uuid, message, timestamp),
+    )
+    .await;
+
     Ok(())
 }
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
 async fn process_incoming_message<C: Store + MessageStore>(
-    manager: &Manager<C, Registered>,
+    manager: &mut Manager<C, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
@@ -497,7 +504,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             uuid,
             mut profile_key,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store)?;
             if profile_key.is_none() {
                 for contact in manager
                     .contacts()?
