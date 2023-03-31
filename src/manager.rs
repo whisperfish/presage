@@ -923,7 +923,12 @@ impl<C: Store> Manager<C, Registered> {
             return Err(Error::UnknownGroup);
         };
 
-        let recipients: Vec<_> = group.members.into_iter().map(|m| m.uuid.into()).collect();
+        let recipients: Vec<_> = group
+            .members
+            .into_iter()
+            .filter(|m| m.uuid != self.state.uuid)
+            .map(|m| m.uuid.into())
+            .collect();
 
         let online_only = false;
         let results = sender
