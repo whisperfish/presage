@@ -890,7 +890,8 @@ impl<C: Store> Manager<C, Registered> {
             body: content_body,
         };
 
-        save_message(&mut self.config_store, content)?;
+        let thread = Thread::Contact(recipient.uuid);
+        save_message_with_thread(&mut self.config_store, content, thread)?;
 
         Ok(())
     }
@@ -1114,8 +1115,11 @@ async fn upsert_group<C: Store>(
     config_store.group(master_key_bytes)
 }
 
-fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error> {
-    let thread = Thread::try_from(&message)?;
+fn save_message_with_thread<C: Store>(
+    config_store: &mut C,
+    message: Content,
+    thread: Thread,
+) -> Result<(), Error> {
     // only save DataMessage and SynchronizeMessage (sent)
     match message.body {
         ContentBody::DataMessage(_)
@@ -1129,10 +1133,15 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
         ContentBody::SynchronizeMessage(_) => {
             debug!("skipping saving sync message without interesting fields")
         }
-        ContentBody::CallMessage(_) => debug!("skipping saving call message"),
+        ContentBody::CallMessage(_) => config_store.save_message(&thread, message)?,
         ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
         ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
     }
 
     Ok(())
+}
+
+fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error> {
+    let thread = Thread::try_from(&message)?;
+    save_message_with_thread(config_store, message, thread)
 }
