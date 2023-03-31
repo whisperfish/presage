@@ -624,6 +624,18 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    pub async fn submit_recaptcha_challenge(
+        &self,
+        token: &str,
+        captcha: &str,
+    ) -> Result<(), Error> {
+        let mut account_manager = AccountManager::new(self.push_service()?, None);
+        account_manager
+            .submit_recaptcha_challenge(token, captcha)
+            .await?;
+        Ok(())
+    }
+
     /// Returns a handle on the registered state
     pub fn state(&self) -> &Registered {
         &self.state
