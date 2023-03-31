@@ -1136,6 +1136,15 @@
 <a href="#1136" id="1136">1136</a>
 <a href="#1137" id="1137">1137</a>
 <a href="#1138" id="1138">1138</a>
+<a href="#1139" id="1139">1139</a>
+<a href="#1140" id="1140">1140</a>
+<a href="#1141" id="1141">1141</a>
+<a href="#1142" id="1142">1142</a>
+<a href="#1143" id="1143">1143</a>
+<a href="#1144" id="1144">1144</a>
+<a href="#1145" id="1145">1145</a>
+<a href="#1146" id="1146">1146</a>
+<a href="#1147" id="1147">1147</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -2028,7 +2037,8 @@
             body: content_body,
         };
 
-        save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store, content)<span class="question-mark">?</span>;
+        <span class="kw">let </span>thread = Thread::Contact(recipient.uuid);
+        save_message_with_thread(<span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store, content, thread)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -2252,8 +2262,11 @@
     config_store.group(master_key_bytes)
 }
 
-<span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
-    <span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
+<span class="kw">fn </span>save_message_with_thread&lt;C: Store&gt;(
+    config_store: <span class="kw-2">&amp;mut </span>C,
+    message: Content,
+    thread: Thread,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
     <span class="comment">// only save DataMessage and SynchronizeMessage (sent)
     </span><span class="kw">match </span>message.body {
         ContentBody::DataMessage(<span class="kw">_</span>)
@@ -2267,12 +2280,17 @@
         ContentBody::SynchronizeMessage(<span class="kw">_</span>) =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;skipping saving sync message without interesting fields&quot;</span>)
         }
-        ContentBody::CallMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving call message&quot;</span>),
+        ContentBody::CallMessage(<span class="kw">_</span>) =&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
         ContentBody::ReceiptMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving receipt message&quot;</span>),
         ContentBody::TypingMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving typing message&quot;</span>),
     }
 
     <span class="prelude-val">Ok</span>(())
+}
+
+<span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
+    save_message_with_thread(config_store, message, thread)
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.1 (8460ca823 2023-03-20)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
