@@ -1124,6 +1124,18 @@
 <a href="#1124" id="1124">1124</a>
 <a href="#1125" id="1125">1125</a>
 <a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
+<a href="#1131" id="1131">1131</a>
+<a href="#1132" id="1132">1132</a>
+<a href="#1133" id="1133">1133</a>
+<a href="#1134" id="1134">1134</a>
+<a href="#1135" id="1135">1135</a>
+<a href="#1136" id="1136">1136</a>
+<a href="#1137" id="1137">1137</a>
+<a href="#1138" id="1138">1138</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1750,6 +1762,18 @@
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="kw">pub async fn </span>submit_recaptcha_challenge(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        token: <span class="kw-2">&amp;</span>str,
+        captcha: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
+        account_manager
+            .submit_recaptcha_challenge(token, captcha)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="doccomment">/// Returns a handle on the registered state
     </span><span class="kw">pub fn </span>state(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Registered {
         <span class="kw-2">&amp;</span><span class="self">self</span>.state
@@ -2251,4 +2275,4 @@
     <span class="prelude-val">Ok</span>(())
 }
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.0 (2c8cc3432 2023-03-06)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.1 (8460ca823 2023-03-20)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
