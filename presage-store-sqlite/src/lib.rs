@@ -1,3 +1,5 @@
+#![recursion_limit = "512"]
+
 use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard};

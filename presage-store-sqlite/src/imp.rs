@@ -1,4 +1,5 @@
 use std::ops::RangeBounds;
+use std::str::FromStr;
 
 use super::SqliteStore;
 
@@ -454,26 +455,94 @@ impl SenderKeyStore for SqliteStore {
 }
 
 impl ContactsStore for SqliteStore {
-    type ContactsIter = std::iter::Empty<Result<Contact, Error>>;
+    type ContactsIter = std::vec::IntoIter<Result<Contact, Error>>;
 
     fn clear_contacts(&mut self) -> Result<(), Error> {
         log::error!("Contacts currently not implemented");
         Ok(())
     }
 
-    fn save_contacts(&mut self, _: impl Iterator<Item = Contact>) -> Result<(), Error> {
-        log::error!("Contacts currently not implemented");
+    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
+        use crate::schema::recipients;
+        use crate::schema::recipients::dsl::*;
+
+        let insert: Vec<_> = contacts
+            .map(|c| {
+                (
+                    uuid.eq(c.uuid.to_string()),
+                    e164.eq(c.phone_number.map(|p| p.to_string())),
+                    username.eq(c.name),
+                    profile_key.eq(c.profile_key),
+                    is_blocked.eq(c.blocked),
+                )
+            })
+            .collect();
+        diesel::insert_into(recipients::table)
+            .values(&insert)
+            .execute(&mut *self.db())
+            .expect("db");
         Ok(())
     }
 
     fn contacts(&self) -> Result<Self::ContactsIter, Error> {
-        log::error!("Contacts currently not implemented");
-        Ok(std::iter::empty())
+        use crate::schema::recipients;
+        use crate::schema::recipients::dsl::*;
+
+        let rec: Vec<crate::orm::Recipient> = recipients.load(&mut *self.db()).expect("db");
+
+        let contacts: Vec<Result<_, Error>> = rec
+            .into_iter()
+            .map(|r| Contact {
+                uuid: Uuid::try_parse(&r.uuid.expect("Uuid of recipient always set"))
+                    .expect("The DB to store valid Uuids"),
+                phone_number: r.e164.as_ref().map(|p| {
+                    PhoneNumber::from_str(p).expect("The DB to store valid phone numbers")
+                }),
+                name: r.username.unwrap_or_default(),
+                profile_key: r.profile_key.unwrap_or_default(),
+                blocked: r.blocked,
+                color: None,
+                verified: Default::default(),
+                expire_timer: 0,
+                inbox_position: 0,
+                archived: false,
+                avatar: None,
+            })
+            .map(|c| Ok(c))
+            .collect();
+
+        Ok(contacts.into_iter())
     }
 
-    fn contact_by_id(&self, _: Uuid) -> Result<Option<Contact>, Error> {
-        log::error!("Contacts currently not implemented");
-        Ok(None)
+    fn contact_by_id(&self, u: Uuid) -> Result<Option<Contact>, Error> {
+        use crate::schema::recipients;
+        use crate::schema::recipients::dsl::*;
+
+        let rec: Option<crate::orm::Recipient> = recipients
+            .filter(uuid.eq(u.to_string()))
+            .first(&mut *self.db())
+            .optional()
+            .expect("db");
+
+        let contact = rec.map(|r| Contact {
+            uuid: Uuid::try_parse(&r.uuid.expect("Uuid of recipient always set"))
+                .expect("The DB to store valid Uuids"),
+            phone_number: r
+                .e164
+                .as_ref()
+                .map(|p| PhoneNumber::from_str(p).expect("The DB to store valid phone numbers")),
+            name: r.username.unwrap_or_default(),
+            profile_key: r.profile_key.unwrap_or_default(),
+            blocked: r.blocked,
+            color: None,
+            verified: Default::default(),
+            expire_timer: 0,
+            inbox_position: 0,
+            archived: false,
+            avatar: None,
+        });
+
+        Ok(contact)
     }
 }
 

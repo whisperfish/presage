@@ -1,6 +1,6 @@
 
 CREATE TABLE states (
-  id SERIAL PRIMARY KEY,
+  id INTEGER PRIMARY KEY,
   registration BINARY NOT NULL,
   pre_keys_offset_id INTEGER NOT NULL,
   next_signed_pre_key_id INTEGER NOT NULL
@@ -13,8 +13,8 @@ CREATE TABLE recipients (
     -- Recipient identification with Signal
     e164 VARCHAR(25) UNIQUE,
     uuid VARCHAR(36) UNIQUE,
-    username TEXT UNIQUE,
-    email TEXT UNIQUE,
+    username TEXT,
+    email TEXT,
 
     is_blocked BOOLEAN DEFAULT FALSE NOT NULL,
 
