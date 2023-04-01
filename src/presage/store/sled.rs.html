@@ -1859,7 +1859,8 @@
             distribution_id
         );
         <span class="self">self</span>.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()<span class="question-mark">?</span>)
-            .map_err(Error::into_signal_error)
+            .map_err(Error::into_signal_error)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">async fn </span>load_sender_key(
@@ -1899,12 +1900,11 @@
 
     <span class="kw">fn </span>save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="macro">log::trace!</span>(
-            <span class="string">&quot;Storing a message with thread: {:?}, timestamp: {}&quot;</span>,
-            thread,
+            <span class="string">&quot;storing a message with thread: {thread}, timestamp: {}&quot;</span>,
             message.metadata.timestamp,
         );
 
-        <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(<span class="kw-2">&amp;</span>thread);
+        <span class="kw">let </span>tree = <span class="self">self</span>.messages_thread_tree_name(thread);
         <span class="kw">let </span>key = message.metadata.timestamp.to_be_bytes();
 
         <span class="kw">let </span>proto: ContentProto = message.into();
@@ -2007,7 +2007,7 @@
 <span class="kw">impl </span>ProfilesStore <span class="kw">for </span>SledStore {
     <span class="kw">fn </span>save_profile(<span class="kw-2">&amp;mut </span><span class="self">self</span>, uuid: Uuid, key: ProfileKey, profile: Profile) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
         <span class="kw">let </span>key = <span class="self">self</span>.profile_key(uuid, key);
-        <span class="self">self</span>.insert(SLED_TREE_PROFILES, <span class="kw-2">&amp;</span>key, profile)
+        <span class="self">self</span>.insert(SLED_TREE_PROFILES, key, profile)
     }
 
     <span class="kw">fn </span>profile(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: Uuid, key: ProfileKey) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Profile&gt;, Error&gt; {
