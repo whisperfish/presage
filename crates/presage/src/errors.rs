@@ -13,14 +13,6 @@ pub enum Error {
     IoError(#[from] std::io::Error),
     #[error("JSON error: {0}")]
     JsonError(#[from] serde_json::Error),
-    #[error("Prost error: {0}")]
-    ProstError(#[from] prost::DecodeError),
-    #[error("data store error: {0}")]
-    DbError(#[from] sled::Error),
-    #[error("data store error: {0}")]
-    DbTransactionError(#[from] sled::transaction::TransactionError),
-    #[error("store cipher error: {0}")]
-    StoreCipherError(#[from] matrix_sdk_store_encryption::Error),
     #[error("error decoding base64 data: {0}")]
     Base64Error(#[from] base64::DecodeError),
     #[error("wrong slice size: {0}")]
@@ -61,16 +53,14 @@ pub enum Error {
     AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
     #[error("unknown group")]
     UnknownGroup,
-    #[error("database migration is not supported")]
-    MigrationConflict,
-    #[error("I/O error: {0}")]
-    FsError(#[from] fs_extra::error::Error),
     #[error("timeout: {0}")]
     Timeout(#[from] tokio::time::error::Elapsed),
+    #[error("store error: {0}")]
+    Store(Box<dyn std::error::Error + Send + Sync>),
 }
 
 impl Error {
-    pub(crate) fn into_signal_error(self) -> SignalProtocolError {
-        SignalProtocolError::InvalidState("presage error", self.to_string())
+    pub fn into_store_error(e: impl std::error::Error + Send + Sync + 'static) -> Self {
+        Self::Store(Box::new(e))
     }
 }

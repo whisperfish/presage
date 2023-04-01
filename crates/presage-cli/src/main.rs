@@ -10,12 +10,12 @@ use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
 use futures::{channel::oneshot, future, pin_mut, StreamExt};
-use libsignal_service::content::Reaction;
-use libsignal_service::proto::data_message::Quote;
-use libsignal_service::proto::sync_message::Sent;
-use libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use log::{debug, error, info};
 use notify_rust::Notification;
+use presage::libsignal_service::content::Reaction;
+use presage::libsignal_service::proto::data_message::Quote;
+use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use presage::prelude::SyncMessage;
 use presage::{
     prelude::{
@@ -23,9 +23,11 @@ use presage::{
         Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, Uuid},
-    GroupMasterKeyBytes, Manager, MessageStore, MigrationConflictStrategy, Registered,
-    RegistrationOptions, SledStore, Store, Thread,
+    GroupMasterKeyBytes, Manager, MessageStore, Registered,
+    RegistrationOptions, Store, Thread,
 };
+use presage_store_sled::MigrationConflictStrategy;
+use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::{
     fs,
@@ -610,7 +612,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                 (_, Some(uuid)) => Thread::Contact(uuid),
                 _ => unreachable!(),
             };
-            let iter = config_store.messages(&thread, from.unwrap_or(0)..)?;
+            let iter = config_store
+                .messages(&thread, from.unwrap_or(0)..)
+                .map_err(Into::into)?;
             for msg in iter.filter_map(Result::ok) {
                 println!("{:?}: {:?}", msg.metadata.sender, msg);
             }
