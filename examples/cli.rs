@@ -308,7 +308,7 @@ fn print_message<C: Store + MessageStore>(
         DataMessage {
             body: Some(body), ..
         } => Some(body.to_string()),
-        _ => Some(format!("Empty data message")),
+        _ => Some("Empty data message".to_string()),
     };
 
     let format_contact = |uuid| {
@@ -338,7 +338,7 @@ fn print_message<C: Store + MessageStore>(
     if let Some(msg) = match &content.body {
         ContentBody::NullMessage(_) => Some(Msg::Received(
             &thread,
-            format!("Null message (for example deleted)"),
+            "Null message (for example deleted)".to_string(),
         )),
         ContentBody::DataMessage(data_message) => {
             format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body))
@@ -559,7 +559,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                             ..
                         },
                     )) => {
-                        let key = hex::encode(&group_master_key);
+                        let key = hex::encode(group_master_key);
                         println!(
                             "{key} {title}: {description:?} / revision {revision} / {} members",
                             members.len()

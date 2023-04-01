@@ -901,7 +901,7 @@ impl DoubleEndedIterator for SledMessagesIter {
 impl ProfilesStore for SledStore {
     fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error> {
         let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, &key, profile)?;
+        self.insert(SLED_TREE_PROFILES, key, profile)?;
         Ok(())
     }
 
