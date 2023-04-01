@@ -191,7 +191,7 @@ impl SledStore {
             .map_err(Error::from)
     }
 
-    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<bool, Error>
+    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), Error>
     where
         K: AsRef<[u8]>,
         V: Serialize,
@@ -200,9 +200,9 @@ impl SledStore {
             || serde_json::to_vec(&value).map_err(Error::from),
             |c| c.encrypt_value(&value).map_err(Error::from),
         )?;
-        let last_value = self.tree(tree)?.insert(key, value)?;
+        let _ = self.tree(tree)?.insert(key, value)?;
         self.db.flush()?;
-        Ok(last_value.is_some())
+        Ok(())
     }
 
     fn remove<K>(&self, tree: &str, key: K) -> Result<bool, Error>
@@ -358,8 +358,7 @@ impl Store for SledStore {
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
-        Ok(())
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
@@ -369,8 +368,7 @@ impl Store for SledStore {
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
-        Ok(())
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
     }
 }
 
@@ -562,8 +560,7 @@ impl SignedPreKeyStore for SledStore {
         .map_err(|e| {
             log::error!("sled error: {}", e);
             SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
-        })?;
-        Ok(())
+        })
     }
 }
 
@@ -591,8 +588,7 @@ impl SessionStore for SledStore {
     ) -> Result<(), SignalProtocolError> {
         trace!("storing session {}", address);
         self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
-            .map_err(Error::into_signal_error)?;
-        Ok(())
+            .map_err(Error::into_signal_error)
     }
 }
 
@@ -901,8 +897,7 @@ impl DoubleEndedIterator for SledMessagesIter {
 impl ProfilesStore for SledStore {
     fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error> {
         let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, key, profile)?;
-        Ok(())
+        self.insert(SLED_TREE_PROFILES, key, profile)
     }
 
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error> {
