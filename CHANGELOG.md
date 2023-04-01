@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fix sending duplicate messages to group for other clients (like Signal Desktop). (#142)
 - Fix storing of outgoing messages. (#144)
 
+### Changed
+
+- Handle message deletion sent by contacts. (#147)
+
 ## [0.5.0]
 
 ### Added

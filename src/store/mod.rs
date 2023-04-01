@@ -164,6 +164,7 @@ pub trait MessageStore {
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
+    #[deprecated = "message deletion is now handled internally"]
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error>;
 
     /// Retrieve a message from a [Thread] by its timestamp.

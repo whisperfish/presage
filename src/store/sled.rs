@@ -749,7 +749,8 @@ impl SenderKeyStore for SledStore {
             distribution_id
         );
         self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
-            .map_err(Error::into_signal_error)
+            .map_err(Error::into_signal_error)?;
+        Ok(())
     }
 
     async fn load_sender_key(
@@ -789,12 +790,11 @@ impl MessageStore for SledStore {
 
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
         log::trace!(
-            "Storing a message with thread: {:?}, timestamp: {}",
-            thread,
+            "storing a message with thread: {thread}, timestamp: {}",
             message.metadata.timestamp,
         );
 
-        let tree = self.messages_thread_tree_name(&thread);
+        let tree = self.messages_thread_tree_name(thread);
         let key = message.metadata.timestamp.to_be_bytes();
 
         let proto: ContentProto = message.into();
@@ -897,7 +897,7 @@ impl DoubleEndedIterator for SledMessagesIter {
 impl ProfilesStore for SledStore {
     fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error> {
         let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, &key, profile)
+        self.insert(SLED_TREE_PROFILES, key, profile)
     }
 
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error> {

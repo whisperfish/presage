@@ -231,6 +231,44 @@ async fn process_incoming_message<C: Store + MessageStore>(
     notifications: bool,
     content: &Content,
 ) {
+    print_message(manager, notifications, content);
+
+    let sender = content.metadata.sender.uuid;
+    if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
+        for attachment_pointer in attachments {
+            let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
+                log::warn!("failed to fetch attachment");
+                continue;
+            };
+
+            let extensions = mime_guess::get_mime_extensions_str(
+                attachment_pointer
+                    .content_type
+                    .as_deref()
+                    .unwrap_or("application/octet-stream"),
+            );
+            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
+            let filename = attachment_pointer
+                .file_name
+                .clone()
+                .unwrap_or_else(|| Local::now().format("%Y-%m-%d-%H-%M-%s").to_string());
+            let file_path = attachments_tmp_dir.join(format!("presage-{filename}.{extension}",));
+            match fs::write(&file_path, &attachment_data).await {
+                Ok(_) => info!("saved attachment from {sender} to {}", file_path.display()),
+                Err(error) => error!(
+                    "failed to write attachment from {sender} to {}: {error}",
+                    file_path.display()
+                ),
+            }
+        }
+    }
+}
+
+fn print_message<C: Store + MessageStore>(
+    manager: &Manager<C, Registered>,
+    notifications: bool,
+    content: &Content,
+) {
     let Ok(thread) = Thread::try_from(content) else {
         log::warn!("failed to derive thread from content");
         return;
@@ -270,7 +308,7 @@ async fn process_incoming_message<C: Store + MessageStore>(
         DataMessage {
             body: Some(body), ..
         } => Some(body.to_string()),
-        _ => None,
+        _ => Some("Empty data message".to_string()),
     };
 
     let format_contact = |uuid| {
@@ -297,8 +335,11 @@ async fn process_incoming_message<C: Store + MessageStore>(
         Sent(&'a Thread, String),
     }
 
-    let sender = content.metadata.sender.uuid;
     if let Some(msg) = match &content.body {
+        ContentBody::NullMessage(_) => Some(Msg::Received(
+            &thread,
+            "Null message (for example deleted)".to_string(),
+        )),
         ContentBody::DataMessage(data_message) => {
             format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body))
         }
@@ -317,26 +358,28 @@ async fn process_incoming_message<C: Store + MessageStore>(
             None
         }
     } {
+        let ts = content.metadata.timestamp;
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
                 let contact = format_contact(sender);
-                (format!("Received from {contact}"), body)
+                (format!("From {contact} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Contact(recipient), body) => {
                 let contact = format_contact(recipient);
-                (format!("Sent to {contact}"), body)
+                (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
+                let sender = content.metadata.sender.uuid;
                 let group = format_group(key);
-                (format!("Received from {sender} in group {group}"), body)
+                (format!("From {sender} to group {group} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Group(key), body) => {
                 let group = format_group(key);
-                (format!("Sent in group: {group}"), body)
+                (format!("To group {group} @ {ts}"), body)
             }
         };
 
-        println!("{prefix} {body}");
+        println!("{prefix} / {body}");
 
         if notifications {
             if let Err(e) = Notification::new()
@@ -346,35 +389,6 @@ async fn process_incoming_message<C: Store + MessageStore>(
                 .show()
             {
                 log::error!("failed to display desktop notification: {e}");
-            }
-        }
-    }
-
-    if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
-        for attachment_pointer in attachments {
-            let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
-                log::warn!("failed to fetch attachment");
-                continue;
-            };
-
-            let extensions = mime_guess::get_mime_extensions_str(
-                attachment_pointer
-                    .content_type
-                    .as_deref()
-                    .unwrap_or("application/octet-stream"),
-            );
-            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
-            let filename = attachment_pointer
-                .file_name
-                .clone()
-                .unwrap_or_else(|| Local::now().format("%Y-%m-%d-%H-%M-%s").to_string());
-            let file_path = attachments_tmp_dir.join(format!("presage-{filename}.{extension}",));
-            match fs::write(&file_path, &attachment_data).await {
-                Ok(_) => info!("saved attachment from {sender} to {}", file_path.display()),
-                Err(error) => error!(
-                    "failed to write attachment from {sender} to {}: {error}",
-                    file_path.display()
-                ),
             }
         }
     }
@@ -536,7 +550,7 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             for group in manager.groups()? {
                 match group {
                     Ok((
-                        _,
+                        group_master_key,
                         Group {
                             title,
                             description,
@@ -545,8 +559,9 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
                             ..
                         },
                     )) => {
+                        let key = hex::encode(group_master_key);
                         println!(
-                            "{title}: {description:?} / revision {revision} / {} members",
+                            "{key} {title}: {description:?} / revision {revision} / {} members",
                             members.len()
                         );
                     }
@@ -605,14 +620,17 @@ async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyho
             recipient_uuid,
             from,
         } => {
+            let manager = Manager::load_registered(config_store)?;
             let thread = match (group_master_key, recipient_uuid) {
                 (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
                 _ => unreachable!(),
             };
-            let iter = config_store.messages(&thread, from.unwrap_or(0)..)?;
-            for msg in iter.filter_map(Result::ok) {
-                println!("{:?}: {:?}", msg.metadata.sender, msg);
+            for msg in manager
+                .messages(&thread, from.unwrap_or(0)..)?
+                .filter_map(Result::ok)
+            {
+                print_message(&manager, false, &msg);
             }
         }
     }
