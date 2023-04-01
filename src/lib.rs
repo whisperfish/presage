@@ -1,6 +1,7 @@
 mod cache;
 mod errors;
 mod manager;
+mod model;
 mod proto;
 mod serde;
 mod store;
@@ -10,8 +11,11 @@ pub use store::sled::{MigrationConflictStrategy, SledStore};
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
+pub use model::*;
 pub use proto::ContentProto;
-pub use store::{ContactsStore, GroupsStore, MessageStore, StateStore, Store, Thread};
+pub use store::{
+    ContactsStore, GroupsStore, MessageStore, ProfilesStore, StateStore, Store, Thread,
+};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;
