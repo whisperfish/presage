@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Handle message deletion sent by contacts. (#147)
+- Split `presage` into multiple crates, before introducing additional store implementations. (#148)
 
 ## [0.5.0]
 
