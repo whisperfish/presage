@@ -25,7 +25,7 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey},
         Content, Envelope, ProfileKey, PushService, Uuid,
     },
-    proto::{sync_message, AttachmentPointer, GroupContextV2},
+    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2, NullMessage},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -1151,10 +1151,41 @@ fn save_message_with_thread<C: Store>(
     thread: Thread,
 ) -> Result<(), Error> {
     // only save DataMessage and SynchronizeMessage (sent)
-    match message.body {
-        ContentBody::DataMessage(_)
-        | ContentBody::CallMessage(_)
-        | ContentBody::SynchronizeMessage(SyncMessage { sent: Some(_), .. })
+    match &message.body {
+        ContentBody::NullMessage(_) => config_store
+            .save_message(&thread, message)
+            .map_err(Into::into)?,
+        ContentBody::DataMessage(d)
+        | ContentBody::SynchronizeMessage(SyncMessage {
+            sent: Some(sync_message::Sent {
+                message: Some(d), ..
+            }),
+            ..
+        }) => match d {
+            DataMessage {
+                delete:
+                    Some(Delete {
+                        target_sent_timestamp: Some(ts),
+                    }),
+                ..
+            } => {
+                // replace an existing message by an empty NullMessage
+                if let Some(mut existing_msg) =
+                    config_store.message(&thread, *ts).map_err(Into::into)?
+                {
+                    existing_msg.metadata.sender.uuid = Uuid::nil();
+                    existing_msg.body = NullMessage::default().into();
+                    config_store
+                        .save_message(&thread, existing_msg)
+                        .map_err(Into::into)?;
+                    debug!("message in thread {thread} @ {ts} deleted");
+                }
+            }
+            _ => config_store
+                .save_message(&thread, message)
+                .map_err(Into::into)?,
+        },
+        ContentBody::CallMessage(_)
         | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: Some(_),
             ..

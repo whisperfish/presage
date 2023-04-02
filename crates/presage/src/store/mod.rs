@@ -76,7 +76,6 @@ pub trait GroupsStore {
     fn group(&self, master_key: GroupMasterKeyBytes) -> Result<Option<Group>, Self::GroupsStoreError>;
 }
 
-
 /// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
 /// [MessageIdentity], by [Thread] or completely.
 pub trait MessageStore {
@@ -90,6 +89,7 @@ pub trait MessageStore {
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Self::MessageStoreError>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
+    #[deprecated = "message deletion is now handled internally"]    
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Self::MessageStoreError>;
 
     /// Retrieve a message from a [Thread] by its timestamp.

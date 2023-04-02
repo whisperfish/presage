@@ -17,8 +17,8 @@ pub enum SledStoreError {
     ProtobufDecode(#[from] prost::DecodeError),
     #[error("I/O error: {0}")]
     FsExtra(#[from] fs_extra::error::Error),
-    #[error("group decryption: {0}")]
-    GroupDecryption(#[from] presage::libsignal_service::groups_v2::GroupDecryptionError),
+    #[error("group decryption error")]
+    GroupDecryption,
     #[error("No UUID")]
     NoUuid,
     #[error("Unsupported message content")]

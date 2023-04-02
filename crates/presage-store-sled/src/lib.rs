@@ -439,7 +439,7 @@ impl GroupsStore for SledStore {
         match val {
             Some(ref v) => {
                 let encrypted_group = proto::Group::decode(v.as_slice())?;
-                let group = decrypt_group(&master_key_bytes, encrypted_group)?;
+                let group = decrypt_group(&master_key_bytes, encrypted_group).map_err(|_| SledStoreError::GroupDecryption)?;
                 Ok(Some(group))
             }
             None => Ok(None),
@@ -499,7 +499,7 @@ impl Iterator for SledGroupsIter {
                     .try_into()
                     .expect("wrong group master key length");
                 let decrypted_group =
-                    decrypt_group(&master_key, encrypted_group)?;
+                    decrypt_group(&master_key, encrypted_group).map_err(|_| SledStoreError::GroupDecryption)?;
                 Ok((master_key, decrypted_group))
             })
             .into()
@@ -819,12 +819,11 @@ impl MessageStore for SledStore {
         message: Content,
     ) -> Result<(), Self::MessageStoreError> {
         log::trace!(
-            "Storing a message with thread: {:?}, timestamp: {}",
-            thread,
+            "storing a message with thread: {thread}, timestamp: {}",
             message.metadata.timestamp,
         );
 
-        let tree = self.messages_thread_tree_name(&thread);
+        let tree = self.messages_thread_tree_name(thread);
         let key = message.metadata.timestamp.to_be_bytes();
 
         let proto: ContentProto = message.into();
@@ -941,7 +940,7 @@ impl ProfilesStore for SledStore {
         profile: Profile,
     ) -> Result<(), Self::ProfilesStoreError> {
         let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, &key, profile)
+        self.insert(SLED_TREE_PROFILES, key, profile)
     }
 
     fn profile(
