@@ -9,22 +9,25 @@ use async_trait::async_trait;
 use log::{debug, error, trace, warn};
 #[cfg(feature = "encryption")]
 use matrix_sdk_store_encryption::StoreCipher;
-use presage::{libsignal_service::{
-    self,
-    groups_v2::{decrypt_group, Group},
-    models::Contact,
-    prelude::{
-        protocol::{
-            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, SenderKeyRecord, SenderKeyStore,
-            SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
-            SignedPreKeyRecord, SignedPreKeyStore,
+use presage::{
+    libsignal_service::{
+        self,
+        groups_v2::{decrypt_group, Group},
+        models::Contact,
+        prelude::{
+            protocol::{
+                Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+                PreKeyRecord, PreKeyStore, ProtocolAddress, SenderKeyRecord, SenderKeyStore,
+                SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
+                SignedPreKeyRecord, SignedPreKeyStore,
+            },
+            Content, ProfileKey, Uuid,
         },
-        Content, ProfileKey, Uuid,
+        push_service::DEFAULT_DEVICE_ID,
+        Profile, ServiceAddress,
     },
-    push_service::DEFAULT_DEVICE_ID,
-    Profile, ServiceAddress,
-}, prelude::proto};
+    prelude::proto,
+};
 use prost::Message;
 use protobuf::ContentProto;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -434,19 +437,27 @@ impl GroupsStore for SledStore {
         })
     }
 
-    fn group(&self, master_key_bytes: GroupMasterKeyBytes) -> Result<Option<Group>, SledStoreError> {
+    fn group(
+        &self,
+        master_key_bytes: GroupMasterKeyBytes,
+    ) -> Result<Option<Group>, SledStoreError> {
         let val: Option<Vec<u8>> = self.get(SLED_TREE_GROUPS, master_key_bytes)?;
         match val {
             Some(ref v) => {
                 let encrypted_group = proto::Group::decode(v.as_slice())?;
-                let group = decrypt_group(&master_key_bytes, encrypted_group).map_err(|_| SledStoreError::GroupDecryption)?;
+                let group = decrypt_group(&master_key_bytes, encrypted_group)
+                    .map_err(|_| SledStoreError::GroupDecryption)?;
                 Ok(Some(group))
             }
             None => Ok(None),
         }
     }
 
-    fn save_group(&self, master_key: GroupMasterKeyBytes, group: proto::Group) -> Result<(), SledStoreError> {
+    fn save_group(
+        &self,
+        master_key: GroupMasterKeyBytes,
+        group: proto::Group,
+    ) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_GROUPS, master_key, group.encode_to_vec())?;
         Ok(())
     }
@@ -498,8 +509,8 @@ impl Iterator for SledGroupsIter {
                 let master_key: GroupMasterKeyBytes = master_key_bytes[..]
                     .try_into()
                     .expect("wrong group master key length");
-                let decrypted_group =
-                    decrypt_group(&master_key, encrypted_group).map_err(|_| SledStoreError::GroupDecryption)?;
+                let decrypted_group = decrypt_group(&master_key, encrypted_group)
+                    .map_err(|_| SledStoreError::GroupDecryption)?;
                 Ok((master_key, decrypted_group))
             })
             .into()
@@ -1030,16 +1041,15 @@ mod tests {
                 timestamp: Some(timestamp),
                 ..Default::default()
             });
-            Self(presage::prelude::Content::from_body(
-                content_body,
-                metadata,
-            ))
+            Self(presage::prelude::Content::from_body(content_body, metadata))
         }
     }
 
     impl Arbitrary for Thread {
         fn arbitrary(g: &mut Gen) -> Self {
-            Self(presage::Thread::Contact(Uuid::from_u128(Arbitrary::arbitrary(g))))
+            Self(presage::Thread::Contact(Uuid::from_u128(
+                Arbitrary::arbitrary(g),
+            )))
         }
     }
 

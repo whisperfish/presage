@@ -23,8 +23,7 @@ use presage::{
         Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, Uuid},
-    GroupMasterKeyBytes, Manager, MessageStore, Registered,
-    RegistrationOptions, Store, Thread,
+    GroupMasterKeyBytes, Manager, MessageStore, Registered, RegistrationOptions, Store, Thread,
 };
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;

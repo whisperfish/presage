@@ -1,6 +1,5 @@
 use presage::libsignal_service::prelude::protocol::SignalProtocolError;
 
-
 #[derive(Debug, thiserror::Error)]
 pub enum SledStoreError {
     #[error("database migration is not supported")]

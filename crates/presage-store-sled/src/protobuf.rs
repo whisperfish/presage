@@ -55,10 +55,7 @@ impl TryFrom<MetadataProto> for Metadata {
 
     fn try_from(metadata: MetadataProto) -> Result<Self, Self::Error> {
         Ok(Metadata {
-            sender: metadata
-                .address
-                .ok_or(SledStoreError::NoUuid)?
-                .try_into()?,
+            sender: metadata.address.ok_or(SledStoreError::NoUuid)?.try_into()?,
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())

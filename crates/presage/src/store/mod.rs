@@ -57,7 +57,10 @@ pub trait ContactsStore {
     type ContactsIter: Iterator<Item = Result<Contact, Self::ContactsStoreError>>;
 
     fn clear_contacts(&mut self) -> Result<(), Self::ContactsStoreError>;
-    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Self::ContactsStoreError>;
+    fn save_contacts(
+        &mut self,
+        contacts: impl Iterator<Item = Contact>,
+    ) -> Result<(), Self::ContactsStoreError>;
     fn contacts(&self) -> Result<Self::ContactsIter, Self::ContactsStoreError>;
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Self::ContactsStoreError>;
 }
@@ -73,7 +76,10 @@ pub trait GroupsStore {
         group: crate::prelude::proto::Group,
     ) -> Result<(), Self::GroupsStoreError>;
     fn groups(&self) -> Result<Self::GroupsIter, Self::GroupsStoreError>;
-    fn group(&self, master_key: GroupMasterKeyBytes) -> Result<Option<Group>, Self::GroupsStoreError>;
+    fn group(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<Option<Group>, Self::GroupsStoreError>;
 }
 
 /// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
@@ -86,14 +92,26 @@ pub trait MessageStore {
     fn clear_messages(&mut self) -> Result<(), Self::MessageStoreError>;
 
     /// Save a message in a [Thread] identified by a timestamp.
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Self::MessageStoreError>;
+    fn save_message(
+        &mut self,
+        thread: &Thread,
+        message: Content,
+    ) -> Result<(), Self::MessageStoreError>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
-    #[deprecated = "message deletion is now handled internally"]    
-    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Self::MessageStoreError>;
+    #[deprecated = "message deletion is now handled internally"]
+    fn delete_message(
+        &mut self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<bool, Self::MessageStoreError>;
 
     /// Retrieve a message from a [Thread] by its timestamp.
-    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Self::MessageStoreError>;
+    fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<Content>, Self::MessageStoreError>;
 
     /// Retrieve all messages from a [Thread] within a range in time
     fn messages(
@@ -108,10 +126,19 @@ pub trait ProfilesStore {
     type ProfilesStoreError: std::error::Error + Into<Error>;
 
     /// Save a profile by [Uuid] and [ProfileKey].
-    fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Self::ProfilesStoreError>;
+    fn save_profile(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        profile: Profile,
+    ) -> Result<(), Self::ProfilesStoreError>;
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
-    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Self::ProfilesStoreError>;
+    fn profile(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<Profile>, Self::ProfilesStoreError>;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
