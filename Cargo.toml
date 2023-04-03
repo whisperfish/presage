@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/presage", "crates/presage-cli", "crates/presage-store-sled"]
+members = ["presage", "presage-cli", "presage-store-sled"]
 
 [patch.crates-io]
 "curve25519-dalek" = { git = 'https://github.com/signalapp/curve25519-dalek', branch = 'lizard2' }
