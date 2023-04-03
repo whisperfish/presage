@@ -1206,6 +1206,18 @@
 <a href="#1206" id="1206">1206</a>
 <a href="#1207" id="1207">1207</a>
 <a href="#1208" id="1208">1208</a>
+<a href="#1209" id="1209">1209</a>
+<a href="#1210" id="1210">1210</a>
+<a href="#1211" id="1211">1211</a>
+<a href="#1212" id="1212">1212</a>
+<a href="#1213" id="1213">1213</a>
+<a href="#1214" id="1214">1214</a>
+<a href="#1215" id="1215">1215</a>
+<a href="#1216" id="1216">1216</a>
+<a href="#1217" id="1217">1217</a>
+<a href="#1218" id="1218">1218</a>
+<a href="#1219" id="1219">1219</a>
+<a href="#1220" id="1220">1220</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1250,7 +1262,7 @@
 };
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
 
-<span class="kw">use crate</span>::{cache::CacheCell, serde::serde_profile_key, GroupsStore, MessageStore, Thread};
+<span class="kw">use crate</span>::{cache::CacheCell, serde::serde_profile_key, Thread};
 <span class="kw">use crate</span>::{store::Store, Error};
 
 <span class="kw">type </span>ServiceCipher&lt;C&gt; = cipher::ServiceCipher&lt;C, C, C, C, C, StdRng&gt;;
@@ -1380,7 +1392,7 @@
     </span><span class="kw">pub async fn </span>register(
         <span class="kw-2">mut </span>config_store: C,
         registration_options: RegistrationOptions&lt;<span class="lifetime">&#39;_</span>&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Confirmation&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Confirmation&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>RegistrationOptions {
             signal_servers,
             phone_number,
@@ -1394,7 +1406,7 @@
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear_registration().map_err(Into::into)<span class="question-mark">?</span>;
+        config_store.clear_registration().map_err(Error::Store)<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
@@ -1473,10 +1485,10 @@
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender&lt;Url&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated
         // and you won&#39;t be able to use this client anyways
-        </span>config_store.clear_registration().map_err(Into::into)<span class="question-mark">?</span>;
+        </span>config_store.clear_registration().map_err(Error::Store)<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
@@ -1563,7 +1575,7 @@
         manager
             .config_store
             .save_state(<span class="kw-2">&amp;</span>manager.state)
-            .map_err(Into::into)<span class="question-mark">?</span>;
+            .map_err(Error::Store)<span class="question-mark">?</span>;
 
         <span class="kw">match </span>(
             manager.register_pre_keys().<span class="kw">await</span>,
@@ -1575,7 +1587,7 @@
                 </span>manager
                     .config_store
                     .clear_registration()
-                    .map_err(Into::into)<span class="question-mark">?</span>;
+                    .map_err(Error::Store)<span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(e)
             }
             (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
@@ -1596,7 +1608,7 @@
     </span><span class="kw">pub async fn </span>confirm_verification_code(
         <span class="self">self</span>,
         confirm_code: <span class="kw">impl </span>AsRef&lt;str&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;confirming verification code&quot;</span>);
 
         <span class="comment">// see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
@@ -1690,14 +1702,14 @@
         manager
             .config_store
             .save_state(<span class="kw-2">&amp;</span>manager.state)
-            .map_err(Into::into)<span class="question-mark">?</span>;
+            .map_err(Error::Store)<span class="question-mark">?</span>;
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
             <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
             </span>manager
                 .config_store
                 .clear_registration()
-                .map_err(Into::into)<span class="question-mark">?</span>;
+                .map_err(Error::Store)<span class="question-mark">?</span>;
             <span class="prelude-val">Err</span>(e)
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(manager)
@@ -1709,10 +1721,10 @@
     <span class="doccomment">/// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send &amp; receive messages.
-    </span><span class="kw">pub fn </span>load_registered(config_store: C) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
+    </span><span class="kw">pub fn </span>load_registered(config_store: C) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>state = config_store
             .load_state()
-            .map_err(Into::into)<span class="question-mark">?
+            .map_err(Error::Store)<span class="question-mark">?
             </span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             rng: StdRng::from_entropy(),
@@ -1721,7 +1733,7 @@
         })
     }
 
-    <span class="kw">async fn </span>register_pre_keys(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">async fn </span>register_pre_keys(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;registering pre keys&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
             AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key));
@@ -1732,26 +1744,28 @@
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
-                <span class="self">self</span>.config_store.pre_keys_offset_id().map_err(Into::into)<span class="question-mark">?</span>,
+                <span class="self">self</span>.config_store
+                    .pre_keys_offset_id()
+                    .map_err(Error::Store)<span class="question-mark">?</span>,
                 <span class="self">self</span>.config_store
                     .next_signed_pre_key_id()
-                    .map_err(Into::into)<span class="question-mark">?</span>,
+                    .map_err(Error::Store)<span class="question-mark">?</span>,
                 <span class="bool-val">true</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="self">self</span>.config_store
             .set_pre_keys_offset_id(pre_keys_offset_id)
-            .map_err(Into::into)<span class="question-mark">?</span>;
+            .map_err(Error::Store)<span class="question-mark">?</span>;
         <span class="self">self</span>.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)
-            .map_err(Into::into)<span class="question-mark">?</span>;
+            .map_err(Error::Store)<span class="question-mark">?</span>;
 
         <span class="macro">trace!</span>(<span class="string">&quot;registered pre keys&quot;</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async fn </span>set_account_attributes(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">async fn </span>set_account_attributes(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;setting account attributes&quot;</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
             AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key));
@@ -1788,7 +1802,7 @@
     <span class="kw">async fn </span>wait_for_contacts_sync(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         <span class="kw-2">mut </span>messages: <span class="kw">impl </span>Stream&lt;Item = Content&gt; + Unpin,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>message_receiver = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>);
         <span class="kw">while let </span><span class="prelude-val">Some</span>(Content { body, .. }) = messages.next().<span class="kw">await </span>{
             <span class="kw">if let </span>ContentBody::SynchronizeMessage(SyncMessage {
@@ -1800,7 +1814,7 @@
                 <span class="kw">let _ </span>= <span class="self">self</span>.config_store.clear_contacts();
                 <span class="self">self</span>.config_store
                     .save_contacts(contacts.filter_map(Result::ok))
-                    .map_err(Into::into)<span class="question-mark">?</span>;
+                    .map_err(Error::Store)<span class="question-mark">?</span>;
                 <span class="macro">info!</span>(<span class="string">&quot;saved contacts&quot;</span>);
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(());
             }
@@ -1808,7 +1822,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">async fn </span>sync_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    <span class="kw">async fn </span>sync_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>messages = <span class="self">self</span>.receive_messages_stream(<span class="bool-val">true</span>).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="macro">pin_mut!</span>(messages);
 
@@ -1831,7 +1845,7 @@
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
     /// processed when they&#39;re received using the `MessageReceiver`.
-    </span><span class="kw">pub async fn </span>request_contacts_sync(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    </span><span class="kw">pub async fn </span>request_contacts_sync(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;requesting contacts sync&quot;</span>);
         <span class="kw">let </span>sync_message = SyncMessage {
             request: <span class="prelude-val">Some</span>(sync_message::Request {
@@ -1856,7 +1870,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         token: <span class="kw-2">&amp;</span>str,
         captcha: <span class="kw-2">&amp;</span>str,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
         account_manager
             .submit_recaptcha_challenge(token, captcha)
@@ -1875,12 +1889,12 @@
     }
 
     <span class="doccomment">/// Fetches basic information on the registered device.
-    </span><span class="kw">pub async fn </span>whoami(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, Error&gt; {
+    </span><span class="kw">pub async fn </span>whoami(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, Error&lt;C::Error&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.push_service()<span class="question-mark">?</span>.whoami().<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.
-    </span><span class="kw">pub async fn </span>retrieve_profile(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
+    </span><span class="kw">pub async fn </span>retrieve_profile(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.retrieve_profile_by_uuid(<span class="self">self</span>.state.uuid, <span class="self">self</span>.state.profile_key)
             .<span class="kw">await
     </span>}
@@ -1890,7 +1904,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         uuid: Uuid,
         profile_key: ProfileKey,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&lt;C::Error&gt;&gt; {
         <span class="comment">// Check if profile is cached.
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile) = <span class="self">self</span>.config_store.profile(uuid, profile_key).ok().flatten() {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(profile);
@@ -1909,33 +1923,39 @@
     <span class="doccomment">/// Get a single contact by its UUID
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    </span><span class="kw">pub fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.contact_by_id(<span class="kw-2">*</span>id).map_err(Into::into)
+    </span><span class="kw">pub fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&lt;C::Error&gt;&gt; {
+        <span class="self">self</span>.config_store.contact_by_id(<span class="kw-2">*</span>id).map_err(Error::Store)
     }
 
     <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].
-    </span><span class="kw">pub fn </span>contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&gt;&gt;, Error&gt; {
-        <span class="kw">let </span>iter = <span class="self">self</span>.config_store.contacts().map_err(Into::into)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(iter.map(|r| r.map_err(Into::into)))
+    </span><span class="kw">pub fn </span>contacts(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&lt;C::Error&gt;&gt;&gt;, Error&lt;C::Error&gt;&gt; {
+        <span class="kw">let </span>iter = <span class="self">self</span>.config_store.contacts().map_err(Error::Store)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(iter.map(|r| r.map_err(Error::Store)))
     }
 
     <span class="doccomment">/// Get a group (either from the local cache, or fetch it remotely) using its master key
-    </span><span class="kw">pub fn </span>group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
+    </span><span class="kw">pub fn </span>group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.config_store
             .group(master_key_bytes.try_into()<span class="question-mark">?</span>)
-            .map_err(Into::into)
+            .map_err(Error::Store)
     }
 
     <span class="doccomment">/// Returns an iterator on groups stored in the [Store].
-    </span><span class="kw">pub fn </span>groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;C <span class="kw">as </span>GroupsStore&gt;::GroupsIter, Error&gt; {
-        <span class="self">self</span>.config_store.groups().map_err(Into::into)
+    </span><span class="kw">pub fn </span>groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;C::GroupsIter, Error&lt;C::Error&gt;&gt; {
+        <span class="self">self</span>.config_store.groups().map_err(Error::Store)
     }
 
     <span class="doccomment">/// Get a single message in a thread (identified by its server-side sent timestamp)
-    </span><span class="kw">pub fn </span>message(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, timestamp: u64) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, Error&gt; {
+    </span><span class="kw">pub fn </span>message(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        thread: <span class="kw-2">&amp;</span>Thread,
+        timestamp: u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.config_store
             .message(thread, timestamp)
-            .map_err(Into::into)
+            .map_err(Error::Store)
     }
 
     <span class="doccomment">/// Get an iterator of messages in a thread, optionally starting from a point in time.
@@ -1943,15 +1963,15 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         thread: <span class="kw-2">&amp;</span>Thread,
         range: <span class="kw">impl </span>RangeBounds&lt;u64&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;C <span class="kw">as </span>MessageStore&gt;::MessagesIter, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;C::MessagesIter, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.config_store
             .messages(thread, range)
-            .map_err(Into::into)
+            .map_err(Error::Store)
     }
 
     <span class="kw">async fn </span>receive_messages_encrypted(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Envelope, ServiceError&gt;&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Envelope, ServiceError&gt;&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>credentials = <span class="self">self</span>.credentials()<span class="question-mark">?</span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
         <span class="kw">let </span>pipe = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>)
             .create_message_pipe(credentials)
@@ -1963,13 +1983,15 @@
     <span class="doccomment">/// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    </span><span class="kw">pub async fn </span>receive_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&gt; {
+    </span><span class="kw">pub async fn </span>receive_messages(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.receive_messages_stream(<span class="bool-val">false</span>).<span class="kw">await
     </span>}
 
     <span class="kw">fn </span>groups_manager(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
         <span class="kw">let </span>server_public_params = service_configuration.zkgroup_server_public_params;
 
@@ -1987,7 +2009,7 @@
     <span class="kw">async fn </span>receive_messages_stream(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         include_internal_events: bool,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">struct </span>StreamState&lt;S, C&gt; {
             encrypted_messages: S,
             service_cipher: ServiceCipher&lt;C&gt;,
@@ -2094,7 +2116,7 @@
         recipient_addr: <span class="kw">impl </span>Into&lt;ServiceAddress&gt;,
         message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
         timestamp: u64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
@@ -2133,7 +2155,7 @@
     </span><span class="kw">pub async fn </span>upload_attachments(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         attachments: Vec&lt;(AttachmentSpec, Vec&lt;u8&gt;)&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
         <span class="kw">let </span>upload = future::join_all(attachments.into_iter().map(<span class="kw">move </span>|(spec, contents)| {
             <span class="kw">let </span><span class="kw-2">mut </span>sender = sender.clone();
@@ -2148,7 +2170,7 @@
         master_key_bytes: <span class="kw-2">&amp;</span>[u8],
         message: DataMessage,
         timestamp: u64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
@@ -2188,7 +2210,7 @@
     }
 
     <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).
-    </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.config_store.delete_all_sessions(recipient).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
@@ -2197,7 +2219,7 @@
     </span><span class="kw">pub async fn </span>get_attachment(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         attachment_pointer: <span class="kw-2">&amp;</span>AttachmentPointer,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>service = <span class="self">self</span>.push_service()<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>attachment_stream = service.get_attachment(attachment_pointer).<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -2217,7 +2239,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
         timestamp: u64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
         <span class="macro">log::trace!</span>(<span class="string">&quot;Resetting identity for adress: {}&quot;</span>, recipient.uuid);
         <span class="kw">let </span>message = DataMessage {
             flags: <span class="prelude-val">Some</span>(DataMessageFlags::EndSession <span class="kw">as </span>u32),
@@ -2229,7 +2251,7 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="kw">fn </span>credentials(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;, Error&gt; {
+    <span class="kw">fn </span>credentials(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(ServiceCredentials {
             uuid: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.uuid),
             phonenumber: <span class="self">self</span>.state.phone_number.clone(),
@@ -2242,7 +2264,7 @@
     <span class="doccomment">/// Returns a clone of a cached push service.
     ///
     /// If no service is yet cached, it will create and cache one.
-    </span><span class="kw">fn </span>push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HyperPushService, Error&gt; {
+    </span><span class="kw">fn </span>push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HyperPushService, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.state.push_service_cache.get(|| {
             <span class="kw">let </span>credentials = <span class="self">self</span>.credentials()<span class="question-mark">?</span>;
             <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
@@ -2256,7 +2278,7 @@
     }
 
     <span class="doccomment">/// Creates a new message sender.
-    </span><span class="kw">fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;C&gt;, Error&gt; {
+    </span><span class="kw">fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;C&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>local_addr = ServiceAddress {
             uuid: <span class="self">self</span>.state.uuid,
         };
@@ -2278,7 +2300,7 @@
     }
 
     <span class="doccomment">/// Creates a new service cipher.
-    </span><span class="kw">fn </span>new_service_cipher(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceCipher&lt;C&gt;, Error&gt; {
+    </span><span class="kw">fn </span>new_service_cipher(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceCipher&lt;C&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
         <span class="kw">let </span>service_cipher = ServiceCipher::new(
             <span class="self">self</span>.config_store.clone(),
@@ -2296,22 +2318,24 @@
     }
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::contact_by_id&quot;</span>]
-    </span><span class="kw">pub fn </span>get_contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&gt;&gt;, Error&gt; {
+    </span><span class="kw">pub fn </span>get_contacts(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&lt;C::Error&gt;&gt;&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.contacts()
     }
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::contact_by_id&quot;</span>]
-    </span><span class="kw">pub fn </span>get_contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
+    </span><span class="kw">pub fn </span>get_contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.contact_by_id(<span class="kw-2">&amp;</span>id)
     }
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::groups&quot;</span>]
-    </span><span class="kw">pub fn </span>get_groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;C <span class="kw">as </span>GroupsStore&gt;::GroupsIter, Error&gt; {
+    </span><span class="kw">pub fn </span>get_groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;C::GroupsIter, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.groups()
     }
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::group&quot;</span>]
-    </span><span class="kw">pub fn </span>get_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
+    </span><span class="kw">pub fn </span>get_group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="self">self</span>.group(master_key_bytes)
     }
 }
@@ -2321,7 +2345,7 @@
     groups_manager: <span class="kw-2">&amp;mut </span>GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;,
     master_key_bytes: <span class="kw-2">&amp;</span>[u8],
     revision: <span class="kw-2">&amp;</span>u32,
-) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;C::Error&gt;&gt; {
     <span class="kw">let </span>save_group = <span class="kw">match </span>config_store.group(master_key_bytes.try_into()<span class="question-mark">?</span>) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
             <span class="macro">log::debug!</span>(<span class="string">&quot;loaded group from local db {group:?}&quot;</span>);
@@ -2350,19 +2374,19 @@
 
     config_store
         .group(master_key_bytes.try_into()<span class="question-mark">?</span>)
-        .map_err(Into::into)
+        .map_err(Error::Store)
 }
 
 <span class="kw">fn </span>save_message_with_thread&lt;C: Store&gt;(
     config_store: <span class="kw-2">&amp;mut </span>C,
     message: Content,
     thread: Thread,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
     <span class="comment">// only save DataMessage and SynchronizeMessage (sent)
     </span><span class="kw">match </span><span class="kw-2">&amp;</span>message.body {
         ContentBody::NullMessage(<span class="kw">_</span>) =&gt; config_store
             .save_message(<span class="kw-2">&amp;</span>thread, message)
-            .map_err(Into::into)<span class="question-mark">?</span>,
+            .map_err(Error::Store)<span class="question-mark">?</span>,
         ContentBody::DataMessage(d)
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent: <span class="prelude-val">Some</span>(sync_message::Sent {
@@ -2379,19 +2403,19 @@
             } =&gt; {
                 <span class="comment">// replace an existing message by an empty NullMessage
                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) =
-                    config_store.message(<span class="kw-2">&amp;</span>thread, <span class="kw-2">*</span>ts).map_err(Into::into)<span class="question-mark">?
+                    config_store.message(<span class="kw-2">&amp;</span>thread, <span class="kw-2">*</span>ts).map_err(Error::Store)<span class="question-mark">?
                 </span>{
                     existing_msg.metadata.sender.uuid = Uuid::nil();
                     existing_msg.body = NullMessage::default().into();
                     config_store
                         .save_message(<span class="kw-2">&amp;</span>thread, existing_msg)
-                        .map_err(Into::into)<span class="question-mark">?</span>;
+                        .map_err(Error::Store)<span class="question-mark">?</span>;
                     <span class="macro">debug!</span>(<span class="string">&quot;message in thread {thread} @ {ts} deleted&quot;</span>);
                 }
             }
             <span class="kw">_ </span>=&gt; config_store
                 .save_message(<span class="kw-2">&amp;</span>thread, message)
-                .map_err(Into::into)<span class="question-mark">?</span>,
+                .map_err(Error::Store)<span class="question-mark">?</span>,
         },
         ContentBody::CallMessage(<span class="kw">_</span>)
         | ContentBody::SynchronizeMessage(SyncMessage {
@@ -2399,7 +2423,7 @@
             ..
         }) =&gt; config_store
             .save_message(<span class="kw-2">&amp;</span>thread, message)
-            .map_err(Into::into)<span class="question-mark">?</span>,
+            .map_err(Error::Store)<span class="question-mark">?</span>,
         ContentBody::SynchronizeMessage(<span class="kw">_</span>) =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;skipping saving sync message without interesting fields&quot;</span>)
         }
@@ -2410,7 +2434,7 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
+<span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
     <span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
     save_message_with_thread(config_store, message, thread)
 }

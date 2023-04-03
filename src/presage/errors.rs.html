@@ -57,13 +57,6 @@
 <a href="#57" id="57">57</a>
 <a href="#58" id="58">58</a>
 <a href="#59" id="59">59</a>
-<a href="#60" id="60">60</a>
-<a href="#61" id="61">61</a>
-<a href="#62" id="62">62</a>
-<a href="#63" id="63">63</a>
-<a href="#64" id="64">64</a>
-<a href="#65" id="65">65</a>
-<a href="#66" id="66">66</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 
 <span class="kw">use </span>libsignal_service::{
@@ -71,8 +64,7 @@
 };
 
 <span class="attr">#[derive(thiserror::Error, Debug)]
-#[non_exhaustive]
-</span><span class="kw">pub enum </span>Error {
+</span><span class="kw">pub enum </span>Error&lt;S: std::error::Error&gt; {
     <span class="attr">#[error(<span class="string">&quot;captcha from https://signalcaptchas.org/registration/generate.html required&quot;</span>)]
     </span>CaptchaRequired,
     <span class="attr">#[error(<span class="string">&quot;input/output error: {0}&quot;</span>)]
@@ -122,13 +114,7 @@
     <span class="attr">#[error(<span class="string">&quot;timeout: {0}&quot;</span>)]
     </span>Timeout(<span class="attr">#[from] </span>tokio::time::error::Elapsed),
     <span class="attr">#[error(<span class="string">&quot;store error: {0}&quot;</span>)]
-    </span>Store(Box&lt;<span class="kw">dyn </span>std::error::Error + Send + Sync&gt;),
-}
-
-<span class="kw">impl </span>Error {
-    <span class="kw">pub fn </span>into_store_error(e: <span class="kw">impl </span>std::error::Error + Send + Sync + <span class="lifetime">&#39;static</span>) -&gt; <span class="self">Self </span>{
-        <span class="self">Self</span>::Store(Box::new(e))
-    }
+    </span>Store(S),
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.1 (8460ca823 2023-03-20)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
