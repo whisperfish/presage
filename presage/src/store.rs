@@ -1,6 +1,8 @@
 use std::{fmt, ops::RangeBounds};
 
-use crate::{manager::Registered, GroupMasterKeyBytes};
+use crate::model::*;
+use crate::{manager::Registered, Error, GroupMasterKeyBytes};
+use libsignal_service::proto::receipt_message::Type;
 use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
@@ -38,7 +40,22 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     fn clear_registration(&mut self) -> Result<(), Self::Error>;
 
     /// Clear the entire store: this can be useful when resetting an existing client.
-    fn clear(&mut self) -> Result<(), Self::Error>;
+    fn clear(&mut self) -> Result<(), Self::Error> {
+        // XXX: Error only after both executed?
+        self.clear_registration()?;
+        self.clear_data()?;
+        Ok(())
+    }
+
+    /// Clear data only without registration.
+    fn clear_data(&mut self) -> Result<(), Self::Error> {
+        // XXX: Error only after all executed?
+        self.clear_recipients()?;
+        self.clear_groups()?;
+        self.clear_messages()?;
+        // XXX: Add other things to clear here.
+        Ok(())
+    }
 
     /// Pre-keys
 
@@ -47,14 +64,26 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Self::Error>;
-
-    fn next_pq_pre_key_id(&self) -> Result<u32, Self::Error>;
-
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
+    fn next_pq_pre_key_id(&self) -> Result<u32, Self::Error>;
     fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
-    /// Messages
+    fn clear_recipients(&mut self) -> Result<(), Self::Error>;
+    fn save_recipients(
+        &mut self,
+        recipients: impl Iterator<Item = Recipient>,
+    ) -> Result<(), Self::Error> {
+        // TODO: Maybe insert first, then return error.
+        for r in recipients {
+            self.save_recipient(&r)?
+        }
+        Ok(())
+    }
+
+    fn save_recipient(&mut self, receipient: Recipient) -> Result<(), Self::Error>;
+    fn recipients(&self) -> Result<Vec<Recipient>, Self::Error>;
+    fn recipient_by_uuid(&self, id: Uuid) -> Result<Option<Recipient>, Self::Error>;
 
     // Clear all stored messages.
     fn clear_messages(&mut self) -> Result<(), Self::Error>;
@@ -62,15 +91,9 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     // Clear the messages in a thread.
     fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::Error>;
 
-    /// Save a message in a [Thread] identified by a timestamp.
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Self::Error>;
-
     /// Delete a single message, identified by its received timestamp from a thread.
     #[deprecated = "message deletion is now handled internally"]
     fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Self::Error>;
-
-    /// Retrieve a message from a [Thread] by its timestamp.
-    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Self::Error>;
 
     /// Retrieve all messages from a [Thread] within a range in time
     fn messages(
@@ -137,6 +160,98 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Self::Error>;
+
+    /// Save a message. This should also overwrite a message if a message with the same [MessageId]
+    /// already exists.
+    fn save_message(&mut self, message: Message) -> Result<(), Self::Error>;
+
+    /// Mark a message by [MessageId] as deleted.
+    fn mark_message_as_deleted(&mut self, id: MessageId) -> Result<(), Self::Error> {
+        self.save_message(generate_deleted_message_for_id(id))
+    }
+
+    /// Add a receipt to a message. Even though there is a predefined body for this function, you
+    /// may want to optimize this based on your store.
+    ///
+    /// Note that you may not only put the receipt in the list, but will need to "upgrade" a
+    /// receipt (e.g. from delivered to read).
+    fn add_receipt_to_message(
+        &mut self,
+        id: MessageId,
+        receipt: Receipt,
+    ) -> Result<(), Self::Error> {
+        // TODO: What to do if message does not exist?
+        let msg = self.message(id)?;
+        if let Some(mut msg) = msg {
+            let existing_receipt = msg
+                .receipts
+                .iter()
+                .filter(|r| r.sender_uuid == receipt.sender_uuid)
+                .next();
+            // Only overwrite if the old either does not exist or is weaker.
+            if let (None, _)
+            | (Some(Type::Delivery), Type::Read)
+            | (Some(Type::Delivery), Type::Viewed) =
+                (existing_receipt.map(|r| r.r#type), receipt.r#type)
+            {
+                msg.receipts = msg
+                    .receipts
+                    .into_iter()
+                    .filter(|r| r.sender_uuid != receipt.sender_uuid)
+                    .chain([receipt.clone()])
+                    .collect();
+                self.save_message(&msg)?;
+            }
+        }
+        Ok(())
+    }
+    /// Add a reaction to a message. Even though there is a predefined body for this function, you
+    /// may want to optimize this based on your store.
+    fn add_reaction_to_message(
+        &mut self,
+        id: MessageId,
+        reaction: Reaction,
+    ) -> Result<(), Self::Error> {
+        // TODO: What to do if message does not exist?
+        let msg = self.message(id)?;
+        if let Some(mut msg) = msg {
+            msg.reactions.push(reaction.clone());
+            self.save_message(&msg)?;
+        }
+        Ok(())
+    }
+
+    /// Remove a reaction from a message by its sender. Even though there is a predefined body for
+    /// this function, you may want to optimize this based on your store.
+    fn remove_reaction_from_message_by_sender(
+        &mut self,
+        id: MessageId,
+        sender: Uuid,
+    ) -> Result<(), Self::MessagesStoreError> {
+        // TODO: What to do if message does not exist?
+        let msg = self.message(id)?;
+        if let Some(mut msg) = msg {
+            msg.reactions = msg
+                .reactions
+                .into_iter()
+                .filter(|r| r.author != sender)
+                .collect();
+            self.save_message(&msg)?;
+        }
+        Ok(())
+    }
+
+    /// Retrieve a message by its [MessageId].
+    fn message(&self, id: MessageId) -> Result<Option<Message>, Self::Error>;
+
+    /// Retrieve all messages in the conversation previous to a timestamp (excluding), returning
+    /// the specified amount of messages (or less if there are fewer messages).
+    fn messages_previous_to(
+        &self,
+        conversation: ConversationId,
+        previous_to: Timestamp,
+        number: usize,
+    ) -> Result<Vec<Message>, Self::Error>;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.

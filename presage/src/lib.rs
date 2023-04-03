@@ -1,6 +1,7 @@
 mod cache;
 mod errors;
 mod manager;
+mod model;
 mod serde;
 mod store;
 
@@ -11,6 +12,7 @@ pub use store::{Store, StoreError, Thread};
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;
 
+pub use model::*;
 pub mod prelude {
     pub use libsignal_service::{
         configuration::SignalServers,
