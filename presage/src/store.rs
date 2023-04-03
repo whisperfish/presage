@@ -21,8 +21,16 @@ pub trait Store:
 {
     type Error: std::error::Error + Sync + Send + 'static;
 
+    type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
+    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
+    type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
+
+    /// State
+
+    /// Load registered (or linked) state
     fn load_state(&self) -> Result<Option<Registered>, Self::Error>;
 
+    /// Save registered (or linked) state
     fn save_state(&mut self, state: &Registered) -> Result<(), Self::Error>;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
@@ -31,13 +39,17 @@ pub trait Store:
     /// Clear the entire store: this can be useful when resetting an existing client.
     fn clear(&mut self) -> Result<(), Self::Error>;
 
+    /// Pre-keys
+
     fn pre_keys_offset_id(&self) -> Result<u32, Self::Error>;
+
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Self::Error>;
+
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
-    type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
+    /// Messages
 
     // Clear all stored messages.
     fn clear_messages(&mut self) -> Result<(), Self::Error>;
@@ -59,30 +71,38 @@ pub trait Store:
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Self::Error>;
 
-    type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
+    /// Contacts
 
+    /// Clear all saved synchronized contact data
     fn clear_contacts(&mut self) -> Result<(), Self::Error>;
 
+    /// Replace all contact data
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>)
         -> Result<(), Self::Error>;
 
+    /// Get an iterator on all stored (synchronized) contacts
     fn contacts(&self) -> Result<Self::ContactsIter, Self::Error>;
 
+    /// Get contact data for a single user by its [Uuid].
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Self::Error>;
 
-    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
-
+    /// Delete all cached group data
     fn clear_groups(&mut self) -> Result<(), Self::Error>;
 
+    /// Save a group in the cache
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
         group: crate::prelude::proto::Group,
     ) -> Result<(), Self::Error>;
 
+    /// Get an iterator on all cached groups
     fn groups(&self) -> Result<Self::GroupsIter, Self::Error>;
 
+    /// Retrieve a single unencrypted group indexed by its `[GroupMasterKeyBytes]`
     fn group(&self, master_key: GroupMasterKeyBytes) -> Result<Option<Group>, Self::Error>;
+
+    /// Profiles
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(

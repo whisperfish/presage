@@ -946,21 +946,22 @@ impl DoubleEndedIterator for SledMessagesIter {
 mod tests {
     use core::fmt;
 
-    use presage::libsignal_service::{
-        content::{ContentBody, Metadata},
-        prelude::{
-            protocol::{
-                self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
-                SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+    use presage::{
+        libsignal_service::{
+            content::{ContentBody, Metadata},
+            prelude::{
+                protocol::{
+                    self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
+                    SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+                },
+                Uuid,
             },
-            Uuid,
+            proto::DataMessage,
+            ServiceAddress,
         },
-        proto::DataMessage,
-        ServiceAddress,
+        Store,
     };
     use quickcheck::{Arbitrary, Gen};
-
-    use presage::MessageStore;
 
     use super::SledStore;
 
