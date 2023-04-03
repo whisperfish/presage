@@ -57,9 +57,3 @@ pub enum Error<S: std::error::Error> {
     #[error("store error: {0}")]
     Store(S),
 }
-
-impl<S: std::error::Error> Error<S> {
-    pub fn into_store_error(e: S) -> Self {
-        Self::Store(e)
-    }
-}
