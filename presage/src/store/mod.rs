@@ -16,15 +16,6 @@ use libsignal_service::{
 };
 use serde::{Deserialize, Serialize};
 
-#[cfg(feature = "sled-store")]
-pub mod sled;
-
-#[cfg(feature = "volatile-store")]
-pub mod volatile;
-
-#[cfg(feature = "secret-volatile-store")]
-pub mod secret_volatile;
-
 pub trait Store:
     PreKeyStore
     + SignedPreKeyStore
@@ -39,44 +30,115 @@ pub trait Store:
     + Sync
     + Clone
 {
+    type StoreError: std::error::Error + Into<Error>;
+
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
-    fn clear_registration(&mut self) -> Result<(), Error>;
+    fn clear_registration(&mut self) -> Result<(), Self::StoreError>;
 
     /// Clear the entire store: this can be useful when resetting an existing client.
-    fn clear(&mut self) -> Result<(), Error>;
+    fn clear(&mut self) -> Result<(), Self::StoreError>;
 
-    fn pre_keys_offset_id(&self) -> Result<u32, Error>;
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error>;
+    fn pre_keys_offset_id(&self) -> Result<u32, Self::StoreError>;
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Self::StoreError>;
 
-    fn next_signed_pre_key_id(&self) -> Result<u32, Error>;
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error>;
+    fn next_signed_pre_key_id(&self) -> Result<u32, Self::StoreError>;
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::StoreError>;
 }
 
 pub trait StateStore<S> {
-    fn load_state(&self) -> Result<Registered, Error>;
-    fn save_state(&mut self, state: &S) -> Result<(), Error>;
+    type StateStoreError: std::error::Error + Into<Error>;
+
+    fn load_state(&self) -> Result<Option<S>, Self::StateStoreError>;
+    fn save_state(&mut self, state: &S) -> Result<(), Self::StateStoreError>;
 }
 
 pub trait ContactsStore {
-    type ContactsIter: Iterator<Item = Result<Contact, Error>>;
+    type ContactsStoreError: std::error::Error + Into<Error>;
+    type ContactsIter: Iterator<Item = Result<Contact, Self::ContactsStoreError>>;
 
-    fn clear_contacts(&mut self) -> Result<(), Error>;
-    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error>;
-    fn contacts(&self) -> Result<Self::ContactsIter, Error>;
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error>;
+    fn clear_contacts(&mut self) -> Result<(), Self::ContactsStoreError>;
+    fn save_contacts(
+        &mut self,
+        contacts: impl Iterator<Item = Contact>,
+    ) -> Result<(), Self::ContactsStoreError>;
+    fn contacts(&self) -> Result<Self::ContactsIter, Self::ContactsStoreError>;
+    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Self::ContactsStoreError>;
 }
 
 pub trait GroupsStore {
-    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Error>>;
+    type GroupsStoreError: std::error::Error + Into<Error>;
+    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::GroupsStoreError>>;
 
-    fn clear_groups(&mut self) -> Result<(), Error>;
+    fn clear_groups(&mut self) -> Result<(), Self::GroupsStoreError>;
     fn save_group(
         &self,
-        master_key: &[u8],
+        master_key: GroupMasterKeyBytes,
         group: crate::prelude::proto::Group,
-    ) -> Result<(), Error>;
-    fn groups(&self) -> Result<Self::GroupsIter, Error>;
-    fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error>;
+    ) -> Result<(), Self::GroupsStoreError>;
+    fn groups(&self) -> Result<Self::GroupsIter, Self::GroupsStoreError>;
+    fn group(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<Option<Group>, Self::GroupsStoreError>;
+}
+
+/// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
+/// [MessageIdentity], by [Thread] or completely.
+pub trait MessageStore {
+    type MessageStoreError: std::error::Error + Into<Error>;
+    type MessagesIter: Iterator<Item = Result<Content, Self::MessageStoreError>>;
+
+    // Clear all stored messages.
+    fn clear_messages(&mut self) -> Result<(), Self::MessageStoreError>;
+
+    /// Save a message in a [Thread] identified by a timestamp.
+    fn save_message(
+        &mut self,
+        thread: &Thread,
+        message: Content,
+    ) -> Result<(), Self::MessageStoreError>;
+
+    /// Delete a single message, identified by its received timestamp from a thread.
+    #[deprecated = "message deletion is now handled internally"]
+    fn delete_message(
+        &mut self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<bool, Self::MessageStoreError>;
+
+    /// Retrieve a message from a [Thread] by its timestamp.
+    fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<Content>, Self::MessageStoreError>;
+
+    /// Retrieve all messages from a [Thread] within a range in time
+    fn messages(
+        &self,
+        thread: &Thread,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Self::MessagesIter, Self::MessageStoreError>;
+}
+
+/// Cache profiles locally.
+pub trait ProfilesStore {
+    type ProfilesStoreError: std::error::Error + Into<Error>;
+
+    /// Save a profile by [Uuid] and [ProfileKey].
+    fn save_profile(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        profile: Profile,
+    ) -> Result<(), Self::ProfilesStoreError>;
+
+    /// Retrieve a profile by [Uuid] and [ProfileKey].
+    fn profile(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<Profile>, Self::ProfilesStoreError>;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
@@ -150,39 +212,4 @@ impl TryFrom<&Content> for Thread {
             _ => Ok(Thread::Contact(content.metadata.sender.uuid)),
         }
     }
-}
-
-/// A [MessageStore] can store messages in the form [Content] and retrieve messages either by
-/// [MessageIdentity], by [Thread] or completely.
-pub trait MessageStore {
-    type MessagesIter: Iterator<Item = Result<Content, Error>>;
-
-    // Clear all stored messages.
-    fn clear_messages(&mut self) -> Result<(), Error>;
-
-    /// Save a message in a [Thread] identified by a timestamp.
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error>;
-
-    /// Delete a single message, identified by its received timestamp from a thread.
-    #[deprecated = "message deletion is now handled internally"]
-    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error>;
-
-    /// Retrieve a message from a [Thread] by its timestamp.
-    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error>;
-
-    /// Retrieve all messages from a [Thread] within a range in time
-    fn messages(
-        &self,
-        thread: &Thread,
-        range: impl RangeBounds<u64>,
-    ) -> Result<Self::MessagesIter, Error>;
-}
-
-/// Cache profiles locally.
-pub trait ProfilesStore {
-    /// Save a profile by [Uuid] and [ProfileKey].
-    fn save_profile(&mut self, uuid: Uuid, key: ProfileKey, profile: Profile) -> Result<(), Error>;
-
-    /// Retrieve a profile by [Uuid] and [ProfileKey].
-    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Error>;
 }

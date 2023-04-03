@@ -42,7 +42,7 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, serde::serde_profile_key, GroupMasterKeyBytes, Thread};
+use crate::{cache::CacheCell, serde::serde_profile_key, GroupsStore, MessageStore, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, StdRng>;
@@ -100,11 +100,11 @@ pub struct Registered {
     #[serde(with = "serde_signaling_key")]
     signaling_key: SignalingKey,
     pub device_id: Option<u32>,
-    pub(crate) registration_id: u32,
+    pub registration_id: u32,
     #[serde(with = "serde_private_key")]
-    pub(crate) private_key: PrivateKey,
+    pub private_key: PrivateKey,
     #[serde(with = "serde_public_key")]
-    pub(crate) public_key: PublicKey,
+    pub public_key: PublicKey,
     #[serde(with = "serde_profile_key")]
     profile_key: ProfileKey,
 }
@@ -186,7 +186,7 @@ impl<C: Store> Manager<C, Registration> {
             return Err(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear_registration()?;
+        config_store.clear_registration().map_err(Into::into)?;
 
         // generate a random 24 bytes password
         let mut rng = StdRng::from_entropy();
@@ -268,7 +268,7 @@ impl<C: Store> Manager<C, Linking> {
     ) -> Result<Manager<C, Registered>, Error> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        config_store.clear_registration()?;
+        config_store.clear_registration().map_err(Into::into)?;
 
         // generate a random 24 bytes password
         let mut rng = StdRng::from_entropy();
@@ -352,7 +352,10 @@ impl<C: Store> Manager<C, Linking> {
             },
         };
 
-        manager.config_store.save_state(&manager.state)?;
+        manager
+            .config_store
+            .save_state(&manager.state)
+            .map_err(Into::into)?;
 
         match (
             manager.register_pre_keys().await,
@@ -361,7 +364,10 @@ impl<C: Store> Manager<C, Linking> {
         ) {
             (Err(e), _, _) | (_, Err(e), _) => {
                 // clear the entire store on any error, there's no possible recovery here
-                manager.config_store.clear_registration()?;
+                manager
+                    .config_store
+                    .clear_registration()
+                    .map_err(Into::into)?;
                 Err(e)
             }
             (_, _, Err(e)) => {
@@ -473,11 +479,17 @@ impl<C: Store> Manager<C, Confirmation> {
             },
         };
 
-        manager.config_store.save_state(&manager.state)?;
+        manager
+            .config_store
+            .save_state(&manager.state)
+            .map_err(Into::into)?;
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
-            manager.config_store.clear_registration()?;
+            manager
+                .config_store
+                .clear_registration()
+                .map_err(Into::into)?;
             Err(e)
         } else {
             Ok(manager)
@@ -490,7 +502,10 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
     pub fn load_registered(config_store: C) -> Result<Self, Error> {
-        let state = config_store.load_state()?;
+        let state = config_store
+            .load_state()
+            .map_err(Into::into)?
+            .ok_or(Error::NotYetRegisteredError)?;
         Ok(Self {
             rng: StdRng::from_entropy(),
             config_store,
@@ -509,16 +524,20 @@ impl<C: Store> Manager<C, Registered> {
                 &mut self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.rng,
-                self.config_store.pre_keys_offset_id()?,
-                self.config_store.next_signed_pre_key_id()?,
+                self.config_store.pre_keys_offset_id().map_err(Into::into)?,
+                self.config_store
+                    .next_signed_pre_key_id()
+                    .map_err(Into::into)?,
                 true,
             )
             .await?;
 
         self.config_store
-            .set_pre_keys_offset_id(pre_keys_offset_id)?;
+            .set_pre_keys_offset_id(pre_keys_offset_id)
+            .map_err(Into::into)?;
         self.config_store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)
+            .map_err(Into::into)?;
 
         trace!("registered pre keys");
         Ok(())
@@ -572,7 +591,8 @@ impl<C: Store> Manager<C, Registered> {
                 let contacts = message_receiver.retrieve_contacts(&contacts).await?;
                 let _ = self.config_store.clear_contacts();
                 self.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))?;
+                    .save_contacts(contacts.filter_map(Result::ok))
+                    .map_err(Into::into)?;
                 info!("saved contacts");
                 return Ok(());
             }
@@ -682,29 +702,32 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
     pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error> {
-        self.config_store.contact_by_id(*id)
+        self.config_store.contact_by_id(*id).map_err(Into::into)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
     pub fn contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
-        self.config_store.contacts()
+        let iter = self.config_store.contacts().map_err(Into::into)?;
+        Ok(iter.map(|r| r.map_err(Into::into)))
     }
 
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
     pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
-        self.config_store.group(master_key_bytes)
+        self.config_store
+            .group(master_key_bytes.try_into()?)
+            .map_err(Into::into)
     }
 
     /// Returns an iterator on groups stored in the [Store].
-    pub fn groups(
-        &self,
-    ) -> Result<impl Iterator<Item = Result<(GroupMasterKeyBytes, Group), Error>>, Error> {
-        self.config_store.groups()
+    pub fn groups(&self) -> Result<<C as GroupsStore>::GroupsIter, Error> {
+        self.config_store.groups().map_err(Into::into)
     }
 
     /// Get a single message in a thread (identified by its server-side sent timestamp)
     pub fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error> {
-        self.config_store.message(thread, timestamp)
+        self.config_store
+            .message(thread, timestamp)
+            .map_err(Into::into)
     }
 
     /// Get an iterator of messages in a thread, optionally starting from a point in time.
@@ -712,8 +735,10 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
-    ) -> Result<impl Iterator<Item = Result<Content, Error>>, Error> {
-        self.config_store.messages(thread, range)
+    ) -> Result<<C as MessageStore>::MessagesIter, Error> {
+        self.config_store
+            .messages(thread, range)
+            .map_err(Into::into)
     }
 
     async fn receive_messages_encrypted(
@@ -1073,9 +1098,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     #[deprecated = "use Manager::groups"]
-    pub fn get_groups(
-        &self,
-    ) -> Result<impl Iterator<Item = Result<(GroupMasterKeyBytes, Group), Error>>, Error> {
+    pub fn get_groups(&self) -> Result<<C as GroupsStore>::GroupsIter, Error> {
         self.groups()
     }
 
@@ -1091,7 +1114,7 @@ async fn upsert_group<C: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error> {
-    let save_group = match config_store.group(master_key_bytes) {
+    let save_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {group:?}");
             group.revision < *revision
@@ -1107,7 +1130,7 @@ async fn upsert_group<C: Store>(
         log::debug!("fetching group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(group) => {
-                if let Err(e) = config_store.save_group(master_key_bytes, group) {
+                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, group) {
                     log::error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
@@ -1117,7 +1140,9 @@ async fn upsert_group<C: Store>(
         }
     }
 
-    config_store.group(master_key_bytes)
+    config_store
+        .group(master_key_bytes.try_into()?)
+        .map_err(Into::into)
 }
 
 fn save_message_with_thread<C: Store>(
@@ -1127,7 +1152,9 @@ fn save_message_with_thread<C: Store>(
 ) -> Result<(), Error> {
     // only save DataMessage and SynchronizeMessage (sent)
     match &message.body {
-        ContentBody::NullMessage(_) => config_store.save_message(&thread, message)?,
+        ContentBody::NullMessage(_) => config_store
+            .save_message(&thread, message)
+            .map_err(Into::into)?,
         ContentBody::DataMessage(d)
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent: Some(sync_message::Sent {
@@ -1143,23 +1170,31 @@ fn save_message_with_thread<C: Store>(
                 ..
             } => {
                 // replace an existing message by an empty NullMessage
-                if let Some(mut existing_msg) = config_store.message(&thread, *ts)? {
+                if let Some(mut existing_msg) =
+                    config_store.message(&thread, *ts).map_err(Into::into)?
+                {
                     existing_msg.metadata.sender.uuid = Uuid::nil();
                     existing_msg.body = NullMessage::default().into();
-                    config_store.save_message(&thread, existing_msg)?;
+                    config_store
+                        .save_message(&thread, existing_msg)
+                        .map_err(Into::into)?;
                     debug!("message in thread {thread} @ {ts} deleted");
                 }
             }
-            _ => config_store.save_message(&thread, message)?,
+            _ => config_store
+                .save_message(&thread, message)
+                .map_err(Into::into)?,
         },
-        ContentBody::SynchronizeMessage(SyncMessage {
+        ContentBody::CallMessage(_)
+        | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: Some(_),
             ..
-        }) => config_store.save_message(&thread, message)?,
+        }) => config_store
+            .save_message(&thread, message)
+            .map_err(Into::into)?,
         ContentBody::SynchronizeMessage(_) => {
             debug!("skipping saving sync message without interesting fields")
         }
-        ContentBody::CallMessage(_) => config_store.save_message(&thread, message)?,
         ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
         ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
     }

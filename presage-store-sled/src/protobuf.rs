@@ -4,14 +4,15 @@ mod textsecure {
     include!(concat!(env!("OUT_DIR"), "/textsecure.rs"));
 }
 
+use crate::SledStoreError;
+
 use self::textsecure::AddressProto;
 use self::textsecure::MetadataProto;
-use crate::prelude::ServiceAddress;
-use crate::Error;
-use libsignal_service::content::ContentBody;
-use libsignal_service::content::Metadata;
-use libsignal_service::prelude::Content;
-use libsignal_service::ParseServiceAddressError;
+use presage::prelude::content::ContentBody;
+use presage::prelude::content::Metadata;
+use presage::prelude::proto;
+use presage::prelude::Content;
+use presage::prelude::ServiceAddress;
 
 impl From<ServiceAddress> for AddressProto {
     fn from(s: ServiceAddress) -> Self {
@@ -22,10 +23,14 @@ impl From<ServiceAddress> for AddressProto {
 }
 
 impl TryFrom<AddressProto> for ServiceAddress {
-    type Error = ParseServiceAddressError;
+    type Error = SledStoreError;
 
     fn try_from(address: AddressProto) -> Result<Self, Self::Error> {
-        address.uuid.as_deref().try_into()
+        address
+            .uuid
+            .as_deref()
+            .try_into()
+            .map_err(|_| SledStoreError::NoUuid)
     }
 }
 
@@ -46,14 +51,11 @@ impl From<Metadata> for MetadataProto {
 }
 
 impl TryFrom<MetadataProto> for Metadata {
-    type Error = ParseServiceAddressError;
+    type Error = SledStoreError;
 
     fn try_from(metadata: MetadataProto) -> Result<Self, Self::Error> {
         Ok(Metadata {
-            sender: metadata
-                .address
-                .ok_or(ParseServiceAddressError::NoUuid)?
-                .try_into()?,
+            sender: metadata.address.ok_or(SledStoreError::NoUuid)?.try_into()?,
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())
@@ -73,7 +75,7 @@ pub struct ContentProto {
     #[prost(message, required, tag = "1")]
     metadata: MetadataProto,
     #[prost(message, required, tag = "2")]
-    content: crate::prelude::proto::Content,
+    content: proto::Content,
 }
 
 impl From<Content> for ContentProto {
@@ -91,13 +93,11 @@ impl From<(Metadata, ContentBody)> for ContentProto {
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-enum ContentProtoError {}
-
 impl TryInto<Content> for ContentProto {
-    type Error = crate::Error;
+    type Error = SledStoreError;
 
     fn try_into(self) -> Result<Content, Self::Error> {
-        Content::from_proto(self.content, self.metadata.try_into()?).map_err(Error::from)
+        let metadata = self.metadata.try_into()?;
+        Content::from_proto(self.content, metadata).map_err(|_| SledStoreError::UnsupportedContent)
     }
 }
