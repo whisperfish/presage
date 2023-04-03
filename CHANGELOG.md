@@ -7,9 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Add `Manager::submit_recaptcha_challenge`. (#143)
+- Cache profile API responses. (#134)
+
 ### Fixed
 
 - Fix sending with example CLI. (#140)
+- Fix sending with example CLI. (#140)
+- Fix sending duplicate messages to group for other clients (like Signal Desktop). (#142)
+- Fix storing of outgoing messages. (#144)
+
+### Changed
+
+- Handle message deletion sent by contacts. (#147)
+- Split `presage` into multiple crates, before introducing additional store implementations. (#148)
 
 ## [0.5.0]
 

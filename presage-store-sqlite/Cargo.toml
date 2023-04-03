@@ -9,7 +9,7 @@ edition = "2021"
 diesel = { version = "2.0", features = ["sqlite", "chrono"] }
 diesel_migrations = "2.0"
 
-presage = { path = ".." }
+presage = { path = "../presage" }
 # TODO: Take all types from presage instead of libsignal-service.
 libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "791c521" }
 

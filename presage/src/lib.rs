@@ -2,17 +2,12 @@ mod cache;
 mod errors;
 mod manager;
 mod model;
-mod proto;
 mod serde;
 mod store;
-
-#[cfg(feature = "sled-store")]
-pub use store::sled::{MigrationConflictStrategy, SledStore};
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
 pub use model::*;
-pub use proto::ContentProto;
 pub use store::{
     ContactsStore, GroupsStore, MessageStore, ProfilesStore, StateStore, Store, Thread,
 };
@@ -34,7 +29,7 @@ pub mod prelude {
         },
         proto,
         sender::AttachmentSpec,
-        ServiceAddress,
+        ParseServiceAddressError, ServiceAddress,
     };
 }
 

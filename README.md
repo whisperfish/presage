@@ -42,3 +42,18 @@ cargo run --example=cli -- receive
 
 For usage of the library, a few examples are included under the `examples/` directory, and most features are demonstrated
 in [examples/cli.rs](./examples/cli.rs).
+
+## Migration notes
+
+### Migrating from `0.5.x` to `0.6.x`
+
+Apart from the few obvious changes in the API, one of the main differences between both versions is that you will now
+require to use two crates as `[dependencies]`, one for the library and one for the store backend, which could look like:
+
+```toml
+[dependencies]
+presage = { git = "https://github.com/whisperfish/presage" }
+presage-store-sled = { git = "https://github.com/whisperfish/presage" }
+```
+
+and then get the store implementation from the store crate instead when importing it like `use presage_store_sled::SledStore;`.
