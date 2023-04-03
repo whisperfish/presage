@@ -1005,12 +1005,12 @@ impl<C: Store> Manager<C, Registered> {
         Ok(ciphertext)
     }
 
-    pub async fn send_identity_reset(
+    pub async fn send_session_reset(
         &mut self,
         recipient: &ServiceAddress,
         timestamp: u64,
     ) -> Result<(), Error> {
-        log::trace!("Resetting identity for adress: {}", recipient.uuid);
+        log::trace!("Resetting session for adress: {}", recipient.uuid);
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
             ..Default::default()
