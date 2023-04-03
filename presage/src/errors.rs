@@ -5,8 +5,7 @@ use libsignal_service::{
 };
 
 #[derive(thiserror::Error, Debug)]
-#[non_exhaustive]
-pub enum Error {
+pub enum Error<S: std::error::Error> {
     #[error("captcha from https://signalcaptchas.org/registration/generate.html required")]
     CaptchaRequired,
     #[error("input/output error: {0}")]
@@ -56,11 +55,11 @@ pub enum Error {
     #[error("timeout: {0}")]
     Timeout(#[from] tokio::time::error::Elapsed),
     #[error("store error: {0}")]
-    Store(Box<dyn std::error::Error + Send + Sync>),
+    Store(S),
 }
 
-impl Error {
-    pub fn into_store_error(e: impl std::error::Error + Send + Sync + 'static) -> Self {
-        Self::Store(Box::new(e))
+impl<S: std::error::Error> Error<S> {
+    pub fn into_store_error(e: S) -> Self {
+        Self::Store(e)
     }
 }

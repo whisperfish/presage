@@ -34,7 +34,6 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use presage::{ContactsStore, GroupsStore, MessageStore, ProfilesStore, StateStore};
 use presage::{GroupMasterKeyBytes, Registered, Store, Thread};
 
 mod error;
@@ -317,21 +316,23 @@ fn migrate(
     Ok(())
 }
 
-impl StateStore<Registered> for SledStore {
-    type StateStoreError = SledStoreError;
+impl Store for SledStore {
+    type Error = SledStoreError;
 
-    fn load_state(&self) -> Result<Option<Registered>, Self::StateStoreError> {
+    type ContactsIter = SledContactsIter;
+    type GroupsIter = SledGroupsIter;
+    type MessagesIter = SledMessagesIter;
+
+    /// State
+
+    fn load_state(&self) -> Result<Option<Registered>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered) -> Result<(), Self::StateStoreError> {
+    fn save_state(&mut self, state: &Registered) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
-}
-
-impl Store for SledStore {
-    type StoreError = SledStoreError;
 
     fn clear_registration(&mut self) -> Result<(), SledStoreError> {
         self.db.remove(SLED_KEY_REGISTRATION)?;
@@ -368,6 +369,8 @@ impl Store for SledStore {
         Ok(())
     }
 
+    /// Pre-keys
+
     fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
         Ok(self
             .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
@@ -387,11 +390,8 @@ impl Store for SledStore {
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
     }
-}
 
-impl ContactsStore for SledStore {
-    type ContactsStoreError = SledStoreError;
-    type ContactsIter = SledContactsIter;
+    /// Contacts
 
     fn clear_contacts(&mut self) -> Result<(), SledStoreError> {
         self.db.drop_tree(SLED_TREE_CONTACTS)?;
@@ -419,11 +419,8 @@ impl ContactsStore for SledStore {
     fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, SledStoreError> {
         self.get(SLED_TREE_CONTACTS, id)
     }
-}
 
-impl GroupsStore for SledStore {
-    type GroupsStoreError = SledStoreError;
-    type GroupsIter = SledGroupsIter;
+    /// Groups
 
     fn clear_groups(&mut self) -> Result<(), SledStoreError> {
         self.db.drop_tree(SLED_TREE_GROUPS)?;
@@ -460,6 +457,106 @@ impl GroupsStore for SledStore {
     ) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_GROUPS, master_key, group.encode_to_vec())?;
         Ok(())
+    }
+
+    /// Messages
+
+    fn clear_messages(&mut self) -> Result<(), SledStoreError> {
+        for name in self.db.tree_names() {
+            if name
+                .as_ref()
+                .starts_with(SLED_TREE_THREADS_PREFIX.as_bytes())
+            {
+                self.db.drop_tree(&name)?;
+            }
+        }
+        self.db.flush()?;
+        Ok(())
+    }
+
+    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
+        log::trace!(
+            "storing a message with thread: {thread}, timestamp: {}",
+            message.metadata.timestamp,
+        );
+
+        let tree = self.messages_thread_tree_name(thread);
+        let key = message.metadata.timestamp.to_be_bytes();
+
+        let proto: ContentProto = message.into();
+        let value = proto.encode_to_vec();
+
+        self.insert(&tree, key, value)?;
+
+        Ok(())
+    }
+
+    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, SledStoreError> {
+        let tree = self.messages_thread_tree_name(thread);
+        self.remove(&tree, timestamp.to_be_bytes())
+    }
+
+    fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<libsignal_service::prelude::Content>, SledStoreError> {
+        // Big-Endian needed, otherwise wrong ordering in sled.
+        let val: Option<Vec<u8>> = self.get(
+            &self.messages_thread_tree_name(thread),
+            timestamp.to_be_bytes(),
+        )?;
+        match val {
+            Some(ref v) => {
+                let proto = ContentProto::decode(v.as_slice())?;
+                let content = proto.try_into()?;
+                Ok(Some(content))
+            }
+            None => Ok(None),
+        }
+    }
+
+    fn messages(
+        &self,
+        thread: &Thread,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Self::MessagesIter, SledStoreError> {
+        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
+        debug!("{} messages in this tree", tree_thread.len());
+
+        let iter = match (range.start_bound(), range.end_bound()) {
+            (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),
+            (Bound::Included(start), Bound::Excluded(end)) => {
+                tree_thread.range(start.to_be_bytes()..end.to_be_bytes())
+            }
+            (Bound::Included(start), Bound::Included(end)) => {
+                tree_thread.range(start.to_be_bytes()..=end.to_be_bytes())
+            }
+            (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
+            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
+        };
+
+        Ok(SledMessagesIter {
+            cipher: self.cipher.clone(),
+            iter,
+        })
+    }
+
+    fn save_profile(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        profile: Profile,
+    ) -> Result<(), SledStoreError> {
+        let key = self.profile_key(uuid, key);
+        self.insert(SLED_TREE_PROFILES, key, profile)
+    }
+
+    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, SledStoreError> {
+        let key = self.profile_key(uuid, key);
+        self.get(SLED_TREE_PROFILES, key)
     }
 }
 
@@ -807,102 +904,6 @@ impl SenderKeyStore for SledStore {
     }
 }
 
-impl MessageStore for SledStore {
-    type MessageStoreError = SledStoreError;
-    type MessagesIter = SledMessagesIter;
-
-    fn clear_messages(&mut self) -> Result<(), Self::MessageStoreError> {
-        for name in self.db.tree_names() {
-            if name
-                .as_ref()
-                .starts_with(SLED_TREE_THREADS_PREFIX.as_bytes())
-            {
-                self.db.drop_tree(&name)?;
-            }
-        }
-        self.db.flush()?;
-        Ok(())
-    }
-
-    fn save_message(
-        &mut self,
-        thread: &Thread,
-        message: Content,
-    ) -> Result<(), Self::MessageStoreError> {
-        log::trace!(
-            "storing a message with thread: {thread}, timestamp: {}",
-            message.metadata.timestamp,
-        );
-
-        let tree = self.messages_thread_tree_name(thread);
-        let key = message.metadata.timestamp.to_be_bytes();
-
-        let proto: ContentProto = message.into();
-        let value = proto.encode_to_vec();
-
-        self.insert(&tree, key, value)?;
-
-        Ok(())
-    }
-
-    fn delete_message(
-        &mut self,
-        thread: &Thread,
-        timestamp: u64,
-    ) -> Result<bool, Self::MessageStoreError> {
-        let tree = self.messages_thread_tree_name(thread);
-        self.remove(&tree, timestamp.to_be_bytes())
-    }
-
-    fn message(
-        &self,
-        thread: &Thread,
-        timestamp: u64,
-    ) -> Result<Option<libsignal_service::prelude::Content>, Self::MessageStoreError> {
-        // Big-Endian needed, otherwise wrong ordering in sled.
-        let val: Option<Vec<u8>> = self.get(
-            &self.messages_thread_tree_name(thread),
-            timestamp.to_be_bytes(),
-        )?;
-        match val {
-            Some(ref v) => {
-                let proto = ContentProto::decode(v.as_slice())?;
-                let content = proto.try_into()?;
-                Ok(Some(content))
-            }
-            None => Ok(None),
-        }
-    }
-
-    fn messages(
-        &self,
-        thread: &Thread,
-        range: impl RangeBounds<u64>,
-    ) -> Result<Self::MessagesIter, SledStoreError> {
-        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
-        debug!("{} messages in this tree", tree_thread.len());
-
-        let iter = match (range.start_bound(), range.end_bound()) {
-            (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),
-            (Bound::Included(start), Bound::Excluded(end)) => {
-                tree_thread.range(start.to_be_bytes()..end.to_be_bytes())
-            }
-            (Bound::Included(start), Bound::Included(end)) => {
-                tree_thread.range(start.to_be_bytes()..=end.to_be_bytes())
-            }
-            (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
-            (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
-            (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
-            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
-        };
-
-        Ok(SledMessagesIter {
-            cipher: self.cipher.clone(),
-            iter,
-        })
-    }
-}
-
 pub struct SledMessagesIter {
     cipher: Option<Arc<StoreCipher>>,
     iter: sled::Iter,
@@ -938,29 +939,6 @@ impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next_back()?;
         self.decode(elem)
-    }
-}
-
-impl ProfilesStore for SledStore {
-    type ProfilesStoreError = SledStoreError;
-
-    fn save_profile(
-        &mut self,
-        uuid: Uuid,
-        key: ProfileKey,
-        profile: Profile,
-    ) -> Result<(), Self::ProfilesStoreError> {
-        let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, key, profile)
-    }
-
-    fn profile(
-        &self,
-        uuid: Uuid,
-        key: ProfileKey,
-    ) -> Result<Option<Profile>, Self::ProfilesStoreError> {
-        let key = self.profile_key(uuid, key);
-        self.get(SLED_TREE_PROFILES, key)
     }
 }
 
