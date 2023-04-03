@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../presage/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../presage/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1171,6 +1171,41 @@
 <a href="#1171" id="1171">1171</a>
 <a href="#1172" id="1172">1172</a>
 <a href="#1173" id="1173">1173</a>
+<a href="#1174" id="1174">1174</a>
+<a href="#1175" id="1175">1175</a>
+<a href="#1176" id="1176">1176</a>
+<a href="#1177" id="1177">1177</a>
+<a href="#1178" id="1178">1178</a>
+<a href="#1179" id="1179">1179</a>
+<a href="#1180" id="1180">1180</a>
+<a href="#1181" id="1181">1181</a>
+<a href="#1182" id="1182">1182</a>
+<a href="#1183" id="1183">1183</a>
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
+<a href="#1197" id="1197">1197</a>
+<a href="#1198" id="1198">1198</a>
+<a href="#1199" id="1199">1199</a>
+<a href="#1200" id="1200">1200</a>
+<a href="#1201" id="1201">1201</a>
+<a href="#1202" id="1202">1202</a>
+<a href="#1203" id="1203">1203</a>
+<a href="#1204" id="1204">1204</a>
+<a href="#1205" id="1205">1205</a>
+<a href="#1206" id="1206">1206</a>
+<a href="#1207" id="1207">1207</a>
+<a href="#1208" id="1208">1208</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1215,7 +1250,7 @@
 };
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
 
-<span class="kw">use crate</span>::{cache::CacheCell, serde::serde_profile_key, GroupMasterKeyBytes, Thread};
+<span class="kw">use crate</span>::{cache::CacheCell, serde::serde_profile_key, GroupsStore, MessageStore, Thread};
 <span class="kw">use crate</span>::{store::Store, Error};
 
 <span class="kw">type </span>ServiceCipher&lt;C&gt; = cipher::ServiceCipher&lt;C, C, C, C, C, StdRng&gt;;
@@ -1273,11 +1308,11 @@
     <span class="attr">#[serde(with = <span class="string">&quot;serde_signaling_key&quot;</span>)]
     </span>signaling_key: SignalingKey,
     <span class="kw">pub </span>device_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) registration_id: u32,
+    <span class="kw">pub </span>registration_id: u32,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_private_key&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) private_key: PrivateKey,
+    </span><span class="kw">pub </span>private_key: PrivateKey,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_public_key&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) public_key: PublicKey,
+    </span><span class="kw">pub </span>public_key: PublicKey,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_profile_key&quot;</span>)]
     </span>profile_key: ProfileKey,
 }
@@ -1359,7 +1394,7 @@
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear_registration()<span class="question-mark">?</span>;
+        config_store.clear_registration().map_err(Into::into)<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
@@ -1441,7 +1476,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;C, Registered&gt;, Error&gt; {
         <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated
         // and you won&#39;t be able to use this client anyways
-        </span>config_store.clear_registration()<span class="question-mark">?</span>;
+        </span>config_store.clear_registration().map_err(Into::into)<span class="question-mark">?</span>;
 
         <span class="comment">// generate a random 24 bytes password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
@@ -1525,7 +1560,10 @@
             },
         };
 
-        manager.config_store.save_state(<span class="kw-2">&amp;</span>manager.state)<span class="question-mark">?</span>;
+        manager
+            .config_store
+            .save_state(<span class="kw-2">&amp;</span>manager.state)
+            .map_err(Into::into)<span class="question-mark">?</span>;
 
         <span class="kw">match </span>(
             manager.register_pre_keys().<span class="kw">await</span>,
@@ -1534,7 +1572,10 @@
         ) {
             (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>, <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e), <span class="kw">_</span>) =&gt; {
                 <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
-                </span>manager.config_store.clear_registration()<span class="question-mark">?</span>;
+                </span>manager
+                    .config_store
+                    .clear_registration()
+                    .map_err(Into::into)<span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(e)
             }
             (<span class="kw">_</span>, <span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
@@ -1646,11 +1687,17 @@
             },
         };
 
-        manager.config_store.save_state(<span class="kw-2">&amp;</span>manager.state)<span class="question-mark">?</span>;
+        manager
+            .config_store
+            .save_state(<span class="kw-2">&amp;</span>manager.state)
+            .map_err(Into::into)<span class="question-mark">?</span>;
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
             <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
-            </span>manager.config_store.clear_registration()<span class="question-mark">?</span>;
+            </span>manager
+                .config_store
+                .clear_registration()
+                .map_err(Into::into)<span class="question-mark">?</span>;
             <span class="prelude-val">Err</span>(e)
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(manager)
@@ -1663,7 +1710,10 @@
     ///
     /// Returns a instance of [Manager] you can use to send &amp; receive messages.
     </span><span class="kw">pub fn </span>load_registered(config_store: C) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, Error&gt; {
-        <span class="kw">let </span>state = config_store.load_state()<span class="question-mark">?</span>;
+        <span class="kw">let </span>state = config_store
+            .load_state()
+            .map_err(Into::into)<span class="question-mark">?
+            </span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             rng: StdRng::from_entropy(),
             config_store,
@@ -1682,16 +1732,20 @@
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
-                <span class="self">self</span>.config_store.pre_keys_offset_id()<span class="question-mark">?</span>,
-                <span class="self">self</span>.config_store.next_signed_pre_key_id()<span class="question-mark">?</span>,
+                <span class="self">self</span>.config_store.pre_keys_offset_id().map_err(Into::into)<span class="question-mark">?</span>,
+                <span class="self">self</span>.config_store
+                    .next_signed_pre_key_id()
+                    .map_err(Into::into)<span class="question-mark">?</span>,
                 <span class="bool-val">true</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="self">self</span>.config_store
-            .set_pre_keys_offset_id(pre_keys_offset_id)<span class="question-mark">?</span>;
+            .set_pre_keys_offset_id(pre_keys_offset_id)
+            .map_err(Into::into)<span class="question-mark">?</span>;
         <span class="self">self</span>.config_store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)<span class="question-mark">?</span>;
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)
+            .map_err(Into::into)<span class="question-mark">?</span>;
 
         <span class="macro">trace!</span>(<span class="string">&quot;registered pre keys&quot;</span>);
         <span class="prelude-val">Ok</span>(())
@@ -1745,7 +1799,8 @@
                 <span class="kw">let </span>contacts = message_receiver.retrieve_contacts(<span class="kw-2">&amp;</span>contacts).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="kw">let _ </span>= <span class="self">self</span>.config_store.clear_contacts();
                 <span class="self">self</span>.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))<span class="question-mark">?</span>;
+                    .save_contacts(contacts.filter_map(Result::ok))
+                    .map_err(Into::into)<span class="question-mark">?</span>;
                 <span class="macro">info!</span>(<span class="string">&quot;saved contacts&quot;</span>);
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(());
             }
@@ -1855,29 +1910,32 @@
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
     </span><span class="kw">pub fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.contact_by_id(<span class="kw-2">*</span>id)
+        <span class="self">self</span>.config_store.contact_by_id(<span class="kw-2">*</span>id).map_err(Into::into)
     }
 
     <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].
     </span><span class="kw">pub fn </span>contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&gt;&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.contacts()
+        <span class="kw">let </span>iter = <span class="self">self</span>.config_store.contacts().map_err(Into::into)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(iter.map(|r| r.map_err(Into::into)))
     }
 
     <span class="doccomment">/// Get a group (either from the local cache, or fetch it remotely) using its master key
     </span><span class="kw">pub fn </span>group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.group(master_key_bytes)
+        <span class="self">self</span>.config_store
+            .group(master_key_bytes.try_into()<span class="question-mark">?</span>)
+            .map_err(Into::into)
     }
 
     <span class="doccomment">/// Returns an iterator on groups stored in the [Store].
-    </span><span class="kw">pub fn </span>groups(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKeyBytes, Group), Error&gt;&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.groups()
+    </span><span class="kw">pub fn </span>groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;C <span class="kw">as </span>GroupsStore&gt;::GroupsIter, Error&gt; {
+        <span class="self">self</span>.config_store.groups().map_err(Into::into)
     }
 
     <span class="doccomment">/// Get a single message in a thread (identified by its server-side sent timestamp)
     </span><span class="kw">pub fn </span>message(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, timestamp: u64) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.message(thread, timestamp)
+        <span class="self">self</span>.config_store
+            .message(thread, timestamp)
+            .map_err(Into::into)
     }
 
     <span class="doccomment">/// Get an iterator of messages in a thread, optionally starting from a point in time.
@@ -1885,8 +1943,10 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         thread: <span class="kw-2">&amp;</span>Thread,
         range: <span class="kw">impl </span>RangeBounds&lt;u64&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Content, Error&gt;&gt;, Error&gt; {
-        <span class="self">self</span>.config_store.messages(thread, range)
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;C <span class="kw">as </span>MessageStore&gt;::MessagesIter, Error&gt; {
+        <span class="self">self</span>.config_store
+            .messages(thread, range)
+            .map_err(Into::into)
     }
 
     <span class="kw">async fn </span>receive_messages_encrypted(
@@ -2246,9 +2306,7 @@
     }
 
     <span class="attr">#[deprecated = <span class="string">&quot;use Manager::groups&quot;</span>]
-    </span><span class="kw">pub fn </span>get_groups(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;(GroupMasterKeyBytes, Group), Error&gt;&gt;, Error&gt; {
+    </span><span class="kw">pub fn </span>get_groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;C <span class="kw">as </span>GroupsStore&gt;::GroupsIter, Error&gt; {
         <span class="self">self</span>.groups()
     }
 
@@ -2264,7 +2322,7 @@
     master_key_bytes: <span class="kw-2">&amp;</span>[u8],
     revision: <span class="kw-2">&amp;</span>u32,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&gt; {
-    <span class="kw">let </span>save_group = <span class="kw">match </span>config_store.group(master_key_bytes) {
+    <span class="kw">let </span>save_group = <span class="kw">match </span>config_store.group(master_key_bytes.try_into()<span class="question-mark">?</span>) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
             <span class="macro">log::debug!</span>(<span class="string">&quot;loaded group from local db {group:?}&quot;</span>);
             group.revision &lt; <span class="kw-2">*</span>revision
@@ -2280,7 +2338,7 @@
         <span class="macro">log::debug!</span>(<span class="string">&quot;fetching group&quot;</span>);
         <span class="kw">match </span>groups_manager.fetch_encrypted_group(master_key_bytes).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(group) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = config_store.save_group(master_key_bytes, group) {
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = config_store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, group) {
                     <span class="macro">log::error!</span>(<span class="string">&quot;failed to save group {master_key_bytes:?}: {e}&quot;</span>,);
                 }
             }
@@ -2290,7 +2348,9 @@
         }
     }
 
-    config_store.group(master_key_bytes)
+    config_store
+        .group(master_key_bytes.try_into()<span class="question-mark">?</span>)
+        .map_err(Into::into)
 }
 
 <span class="kw">fn </span>save_message_with_thread&lt;C: Store&gt;(
@@ -2300,7 +2360,9 @@
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&gt; {
     <span class="comment">// only save DataMessage and SynchronizeMessage (sent)
     </span><span class="kw">match </span><span class="kw-2">&amp;</span>message.body {
-        ContentBody::NullMessage(<span class="kw">_</span>) =&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
+        ContentBody::NullMessage(<span class="kw">_</span>) =&gt; config_store
+            .save_message(<span class="kw-2">&amp;</span>thread, message)
+            .map_err(Into::into)<span class="question-mark">?</span>,
         ContentBody::DataMessage(d)
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent: <span class="prelude-val">Some</span>(sync_message::Sent {
@@ -2316,23 +2378,31 @@
                 ..
             } =&gt; {
                 <span class="comment">// replace an existing message by an empty NullMessage
-                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) = config_store.message(<span class="kw-2">&amp;</span>thread, <span class="kw-2">*</span>ts)<span class="question-mark">? </span>{
+                </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) =
+                    config_store.message(<span class="kw-2">&amp;</span>thread, <span class="kw-2">*</span>ts).map_err(Into::into)<span class="question-mark">?
+                </span>{
                     existing_msg.metadata.sender.uuid = Uuid::nil();
                     existing_msg.body = NullMessage::default().into();
-                    config_store.save_message(<span class="kw-2">&amp;</span>thread, existing_msg)<span class="question-mark">?</span>;
+                    config_store
+                        .save_message(<span class="kw-2">&amp;</span>thread, existing_msg)
+                        .map_err(Into::into)<span class="question-mark">?</span>;
                     <span class="macro">debug!</span>(<span class="string">&quot;message in thread {thread} @ {ts} deleted&quot;</span>);
                 }
             }
-            <span class="kw">_ </span>=&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
+            <span class="kw">_ </span>=&gt; config_store
+                .save_message(<span class="kw-2">&amp;</span>thread, message)
+                .map_err(Into::into)<span class="question-mark">?</span>,
         },
-        ContentBody::SynchronizeMessage(SyncMessage {
+        ContentBody::CallMessage(<span class="kw">_</span>)
+        | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: <span class="prelude-val">Some</span>(<span class="kw">_</span>),
             ..
-        }) =&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
+        }) =&gt; config_store
+            .save_message(<span class="kw-2">&amp;</span>thread, message)
+            .map_err(Into::into)<span class="question-mark">?</span>,
         ContentBody::SynchronizeMessage(<span class="kw">_</span>) =&gt; {
             <span class="macro">debug!</span>(<span class="string">&quot;skipping saving sync message without interesting fields&quot;</span>)
         }
-        ContentBody::CallMessage(<span class="kw">_</span>) =&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
         ContentBody::ReceiptMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving receipt message&quot;</span>),
         ContentBody::TypingMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving typing message&quot;</span>),
     }
