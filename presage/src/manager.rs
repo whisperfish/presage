@@ -186,7 +186,7 @@ impl<C: Store> Manager<C, Registration> {
             return Err(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear_registration().map_err(Error::Store)?;
+        config_store.clear_registration()?;
 
         // generate a random 24 bytes password
         let mut rng = StdRng::from_entropy();
@@ -268,7 +268,7 @@ impl<C: Store> Manager<C, Linking> {
     ) -> Result<Manager<C, Registered>, Error<C::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        config_store.clear_registration().map_err(Error::Store)?;
+        config_store.clear_registration()?;
 
         // generate a random 24 bytes password
         let mut rng = StdRng::from_entropy();
@@ -352,10 +352,7 @@ impl<C: Store> Manager<C, Linking> {
             },
         };
 
-        manager
-            .config_store
-            .save_state(&manager.state)
-            .map_err(Error::Store)?;
+        manager.config_store.save_state(&manager.state)?;
 
         match (
             manager.register_pre_keys().await,
@@ -364,10 +361,7 @@ impl<C: Store> Manager<C, Linking> {
         ) {
             (Err(e), _, _) | (_, Err(e), _) => {
                 // clear the entire store on any error, there's no possible recovery here
-                manager
-                    .config_store
-                    .clear_registration()
-                    .map_err(Error::Store)?;
+                manager.config_store.clear_registration()?;
                 Err(e)
             }
             (_, _, Err(e)) => {
@@ -479,17 +473,11 @@ impl<C: Store> Manager<C, Confirmation> {
             },
         };
 
-        manager
-            .config_store
-            .save_state(&manager.state)
-            .map_err(Error::Store)?;
+        manager.config_store.save_state(&manager.state)?;
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
-            manager
-                .config_store
-                .clear_registration()
-                .map_err(Error::Store)?;
+            manager.config_store.clear_registration()?;
             Err(e)
         } else {
             Ok(manager)
@@ -503,8 +491,7 @@ impl<C: Store> Manager<C, Registered> {
     /// Returns a instance of [Manager] you can use to send & receive messages.
     pub fn load_registered(config_store: C) -> Result<Self, Error<C::Error>> {
         let state = config_store
-            .load_state()
-            .map_err(Error::Store)?
+            .load_state()?
             .ok_or(Error::NotYetRegisteredError)?;
         Ok(Self {
             rng: StdRng::from_entropy(),
@@ -524,22 +511,16 @@ impl<C: Store> Manager<C, Registered> {
                 &mut self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.rng,
-                self.config_store
-                    .pre_keys_offset_id()
-                    .map_err(Error::Store)?,
-                self.config_store
-                    .next_signed_pre_key_id()
-                    .map_err(Error::Store)?,
+                self.config_store.pre_keys_offset_id()?,
+                self.config_store.next_signed_pre_key_id()?,
                 true,
             )
             .await?;
 
         self.config_store
-            .set_pre_keys_offset_id(pre_keys_offset_id)
-            .map_err(Error::Store)?;
+            .set_pre_keys_offset_id(pre_keys_offset_id)?;
         self.config_store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)
-            .map_err(Error::Store)?;
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
 
         trace!("registered pre keys");
         Ok(())
@@ -593,8 +574,7 @@ impl<C: Store> Manager<C, Registered> {
                 let contacts = message_receiver.retrieve_contacts(&contacts).await?;
                 let _ = self.config_store.clear_contacts();
                 self.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))
-                    .map_err(Error::Store)?;
+                    .save_contacts(contacts.filter_map(Result::ok))?;
                 info!("saved contacts");
                 return Ok(());
             }
@@ -704,27 +684,25 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
     pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<C::Error>> {
-        self.config_store.contact_by_id(*id).map_err(Error::Store)
+        Ok(self.config_store.contact_by_id(*id)?)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
     pub fn contacts(
         &self,
     ) -> Result<impl Iterator<Item = Result<Contact, Error<C::Error>>>, Error<C::Error>> {
-        let iter = self.config_store.contacts().map_err(Error::Store)?;
-        Ok(iter.map(|r| r.map_err(Error::Store)))
+        let iter = self.config_store.contacts()?;
+        Ok(iter.map(|r| r.map_err(Into::into)))
     }
 
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
     pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
-        self.config_store
-            .group(master_key_bytes.try_into()?)
-            .map_err(Error::Store)
+        Ok(self.config_store.group(master_key_bytes.try_into()?)?)
     }
 
     /// Returns an iterator on groups stored in the [Store].
     pub fn groups(&self) -> Result<C::GroupsIter, Error<C::Error>> {
-        self.config_store.groups().map_err(Error::Store)
+        Ok(self.config_store.groups()?)
     }
 
     /// Get a single message in a thread (identified by its server-side sent timestamp)
@@ -733,9 +711,7 @@ impl<C: Store> Manager<C, Registered> {
         thread: &Thread,
         timestamp: u64,
     ) -> Result<Option<Content>, Error<C::Error>> {
-        self.config_store
-            .message(thread, timestamp)
-            .map_err(Error::Store)
+        Ok(self.config_store.message(thread, timestamp)?)
     }
 
     /// Get an iterator of messages in a thread, optionally starting from a point in time.
@@ -744,9 +720,7 @@ impl<C: Store> Manager<C, Registered> {
         thread: &Thread,
         range: impl RangeBounds<u64>,
     ) -> Result<C::MessagesIter, Error<C::Error>> {
-        self.config_store
-            .messages(thread, range)
-            .map_err(Error::Store)
+        Ok(self.config_store.messages(thread, range)?)
     }
 
     async fn receive_messages_encrypted(
@@ -1152,9 +1126,7 @@ async fn upsert_group<C: Store>(
         }
     }
 
-    config_store
-        .group(master_key_bytes.try_into()?)
-        .map_err(Error::Store)
+    Ok(config_store.group(master_key_bytes.try_into()?)?)
 }
 
 fn save_message_with_thread<C: Store>(
@@ -1164,9 +1136,7 @@ fn save_message_with_thread<C: Store>(
 ) -> Result<(), Error<C::Error>> {
     // only save DataMessage and SynchronizeMessage (sent)
     match &message.body {
-        ContentBody::NullMessage(_) => config_store
-            .save_message(&thread, message)
-            .map_err(Error::Store)?,
+        ContentBody::NullMessage(_) => config_store.save_message(&thread, message)?,
         ContentBody::DataMessage(d)
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent: Some(sync_message::Sent {
@@ -1182,28 +1152,20 @@ fn save_message_with_thread<C: Store>(
                 ..
             } => {
                 // replace an existing message by an empty NullMessage
-                if let Some(mut existing_msg) =
-                    config_store.message(&thread, *ts).map_err(Error::Store)?
-                {
+                if let Some(mut existing_msg) = config_store.message(&thread, *ts)? {
                     existing_msg.metadata.sender.uuid = Uuid::nil();
                     existing_msg.body = NullMessage::default().into();
-                    config_store
-                        .save_message(&thread, existing_msg)
-                        .map_err(Error::Store)?;
+                    config_store.save_message(&thread, existing_msg)?;
                     debug!("message in thread {thread} @ {ts} deleted");
                 }
             }
-            _ => config_store
-                .save_message(&thread, message)
-                .map_err(Error::Store)?,
+            _ => config_store.save_message(&thread, message)?,
         },
         ContentBody::CallMessage(_)
         | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: Some(_),
             ..
-        }) => config_store
-            .save_message(&thread, message)
-            .map_err(Error::Store)?,
+        }) => config_store.save_message(&thread, message)?,
         ContentBody::SynchronizeMessage(_) => {
             debug!("skipping saving sync message without interesting fields")
         }

@@ -4,6 +4,8 @@ use libsignal_service::{
     models::ParseContactError, prelude::protocol::SignalProtocolError, ParseServiceAddressError,
 };
 
+use crate::store::StoreError;
+
 #[derive(thiserror::Error, Debug)]
 pub enum Error<S: std::error::Error> {
     #[error("captcha from https://signalcaptchas.org/registration/generate.html required")]
@@ -56,4 +58,10 @@ pub enum Error<S: std::error::Error> {
     Timeout(#[from] tokio::time::error::Elapsed),
     #[error("store error: {0}")]
     Store(S),
+}
+
+impl<S: StoreError> From<S> for Error<S> {
+    fn from(e: S) -> Self {
+        Self::Store(e)
+    }
 }
