@@ -962,12 +962,12 @@ impl<C: Store> Manager<C, Registered> {
             .members
             .into_iter()
             .filter(|m| m.uuid != self.state.uuid)
-            .map(|m| m.uuid.into())
+            .map(|m| (m.uuid.into(), None))
             .collect();
 
         let online_only = false;
         let results = sender
-            .send_message_to_group(recipients, None, message.clone(), timestamp, online_only)
+            .send_message_to_group(recipients, message.clone(), timestamp, online_only)
             .await;
 
         // return first error if any
@@ -1063,12 +1063,17 @@ impl<C: Store> Manager<C, Registered> {
             uuid: self.state.uuid,
         };
 
-        Ok(MessageSender::new(
+        let websocket = || -> Result<SignalWebSocket, Error<C::Error>> {
             self.state
                 .websocket
                 .lock()
                 .clone()
-                .ok_or(Error::MessagePipeNotStarted)?,
+                .ok_or(Error::MessagePipeNotStarted)
+        };
+
+        Ok(MessageSender::new(
+            websocket()?,
+            websocket()?,
             self.push_service()?,
             self.new_service_cipher()?,
             self.rng.clone(),
