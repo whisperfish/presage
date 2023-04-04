@@ -29,9 +29,3 @@ impl SledStoreError {
         SignalProtocolError::InvalidState("presage error", self.to_string())
     }
 }
-
-impl Into<presage::Error> for SledStoreError {
-    fn into(self) -> presage::Error {
-        presage::Error::Store(Box::new(self))
-    }
-}

@@ -42,7 +42,7 @@ use libsignal_service::{
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, serde::serde_profile_key, GroupsStore, MessageStore, Thread};
+use crate::{cache::CacheCell, serde::serde_profile_key, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, StdRng>;
@@ -172,7 +172,7 @@ impl<C: Store> Manager<C, Registration> {
     pub async fn register(
         mut config_store: C,
         registration_options: RegistrationOptions<'_>,
-    ) -> Result<Manager<C, Confirmation>, Error> {
+    ) -> Result<Manager<C, Confirmation>, Error<C::Error>> {
         let RegistrationOptions {
             signal_servers,
             phone_number,
@@ -186,7 +186,7 @@ impl<C: Store> Manager<C, Registration> {
             return Err(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear_registration().map_err(Into::into)?;
+        config_store.clear_registration().map_err(Error::Store)?;
 
         // generate a random 24 bytes password
         let mut rng = StdRng::from_entropy();
@@ -265,10 +265,10 @@ impl<C: Store> Manager<C, Linking> {
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
-    ) -> Result<Manager<C, Registered>, Error> {
+    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        config_store.clear_registration().map_err(Into::into)?;
+        config_store.clear_registration().map_err(Error::Store)?;
 
         // generate a random 24 bytes password
         let mut rng = StdRng::from_entropy();
@@ -355,7 +355,7 @@ impl<C: Store> Manager<C, Linking> {
         manager
             .config_store
             .save_state(&manager.state)
-            .map_err(Into::into)?;
+            .map_err(Error::Store)?;
 
         match (
             manager.register_pre_keys().await,
@@ -367,7 +367,7 @@ impl<C: Store> Manager<C, Linking> {
                 manager
                     .config_store
                     .clear_registration()
-                    .map_err(Into::into)?;
+                    .map_err(Error::Store)?;
                 Err(e)
             }
             (_, _, Err(e)) => {
@@ -388,7 +388,7 @@ impl<C: Store> Manager<C, Confirmation> {
     pub async fn confirm_verification_code(
         self,
         confirm_code: impl AsRef<str>,
-    ) -> Result<Manager<C, Registered>, Error> {
+    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
         trace!("confirming verification code");
 
         // see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
@@ -482,14 +482,14 @@ impl<C: Store> Manager<C, Confirmation> {
         manager
             .config_store
             .save_state(&manager.state)
-            .map_err(Into::into)?;
+            .map_err(Error::Store)?;
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
             manager
                 .config_store
                 .clear_registration()
-                .map_err(Into::into)?;
+                .map_err(Error::Store)?;
             Err(e)
         } else {
             Ok(manager)
@@ -501,10 +501,10 @@ impl<C: Store> Manager<C, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
-    pub fn load_registered(config_store: C) -> Result<Self, Error> {
+    pub fn load_registered(config_store: C) -> Result<Self, Error<C::Error>> {
         let state = config_store
             .load_state()
-            .map_err(Into::into)?
+            .map_err(Error::Store)?
             .ok_or(Error::NotYetRegisteredError)?;
         Ok(Self {
             rng: StdRng::from_entropy(),
@@ -513,7 +513,7 @@ impl<C: Store> Manager<C, Registered> {
         })
     }
 
-    async fn register_pre_keys(&mut self) -> Result<(), Error> {
+    async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
         trace!("registering pre keys");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -524,26 +524,28 @@ impl<C: Store> Manager<C, Registered> {
                 &mut self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.rng,
-                self.config_store.pre_keys_offset_id().map_err(Into::into)?,
+                self.config_store
+                    .pre_keys_offset_id()
+                    .map_err(Error::Store)?,
                 self.config_store
                     .next_signed_pre_key_id()
-                    .map_err(Into::into)?,
+                    .map_err(Error::Store)?,
                 true,
             )
             .await?;
 
         self.config_store
             .set_pre_keys_offset_id(pre_keys_offset_id)
-            .map_err(Into::into)?;
+            .map_err(Error::Store)?;
         self.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)
-            .map_err(Into::into)?;
+            .map_err(Error::Store)?;
 
         trace!("registered pre keys");
         Ok(())
     }
 
-    async fn set_account_attributes(&mut self) -> Result<(), Error> {
+    async fn set_account_attributes(&mut self) -> Result<(), Error<C::Error>> {
         trace!("setting account attributes");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -580,7 +582,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn wait_for_contacts_sync(
         &mut self,
         mut messages: impl Stream<Item = Content> + Unpin,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C::Error>> {
         let mut message_receiver = MessageReceiver::new(self.push_service()?);
         while let Some(Content { body, .. }) = messages.next().await {
             if let ContentBody::SynchronizeMessage(SyncMessage {
@@ -592,7 +594,7 @@ impl<C: Store> Manager<C, Registered> {
                 let _ = self.config_store.clear_contacts();
                 self.config_store
                     .save_contacts(contacts.filter_map(Result::ok))
-                    .map_err(Into::into)?;
+                    .map_err(Error::Store)?;
                 info!("saved contacts");
                 return Ok(());
             }
@@ -600,7 +602,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn sync_contacts(&mut self) -> Result<(), Error> {
+    async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
         let messages = self.receive_messages_stream(true).await?;
         pin_mut!(messages);
 
@@ -623,7 +625,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
     /// processed when they're received using the `MessageReceiver`.
-    pub async fn request_contacts_sync(&mut self) -> Result<(), Error> {
+    pub async fn request_contacts_sync(&mut self) -> Result<(), Error<C::Error>> {
         trace!("requesting contacts sync");
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
@@ -648,7 +650,7 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         token: &str,
         captcha: &str,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C::Error>> {
         let mut account_manager = AccountManager::new(self.push_service()?, None);
         account_manager
             .submit_recaptcha_challenge(token, captcha)
@@ -667,12 +669,12 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Fetches basic information on the registered device.
-    pub async fn whoami(&self) -> Result<WhoAmIResponse, Error> {
+    pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<C::Error>> {
         Ok(self.push_service()?.whoami().await?)
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
-    pub async fn retrieve_profile(&mut self) -> Result<Profile, Error> {
+    pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<C::Error>> {
         self.retrieve_profile_by_uuid(self.state.uuid, self.state.profile_key)
             .await
     }
@@ -682,7 +684,7 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
         uuid: Uuid,
         profile_key: ProfileKey,
-    ) -> Result<Profile, Error> {
+    ) -> Result<Profile, Error<C::Error>> {
         // Check if profile is cached.
         if let Some(profile) = self.config_store.profile(uuid, profile_key).ok().flatten() {
             return Ok(profile);
@@ -701,33 +703,39 @@ impl<C: Store> Manager<C, Registered> {
     /// Get a single contact by its UUID
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error> {
-        self.config_store.contact_by_id(*id).map_err(Into::into)
+    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<C::Error>> {
+        self.config_store.contact_by_id(*id).map_err(Error::Store)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
-    pub fn contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
-        let iter = self.config_store.contacts().map_err(Into::into)?;
-        Ok(iter.map(|r| r.map_err(Into::into)))
+    pub fn contacts(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<Contact, Error<C::Error>>>, Error<C::Error>> {
+        let iter = self.config_store.contacts().map_err(Error::Store)?;
+        Ok(iter.map(|r| r.map_err(Error::Store)))
     }
 
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
-    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
         self.config_store
             .group(master_key_bytes.try_into()?)
-            .map_err(Into::into)
+            .map_err(Error::Store)
     }
 
     /// Returns an iterator on groups stored in the [Store].
-    pub fn groups(&self) -> Result<<C as GroupsStore>::GroupsIter, Error> {
-        self.config_store.groups().map_err(Into::into)
+    pub fn groups(&self) -> Result<C::GroupsIter, Error<C::Error>> {
+        self.config_store.groups().map_err(Error::Store)
     }
 
     /// Get a single message in a thread (identified by its server-side sent timestamp)
-    pub fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Error> {
+    pub fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<Content>, Error<C::Error>> {
         self.config_store
             .message(thread, timestamp)
-            .map_err(Into::into)
+            .map_err(Error::Store)
     }
 
     /// Get an iterator of messages in a thread, optionally starting from a point in time.
@@ -735,15 +743,15 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
-    ) -> Result<<C as MessageStore>::MessagesIter, Error> {
+    ) -> Result<C::MessagesIter, Error<C::Error>> {
         self.config_store
             .messages(thread, range)
-            .map_err(Into::into)
+            .map_err(Error::Store)
     }
 
     async fn receive_messages_encrypted(
         &mut self,
-    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error> {
+    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error<C::Error>> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
@@ -755,13 +763,15 @@ impl<C: Store> Manager<C, Registered> {
     /// Starts receiving and storing messages.
     ///
     /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    pub async fn receive_messages(&mut self) -> Result<impl Stream<Item = Content>, Error> {
+    pub async fn receive_messages(
+        &mut self,
+    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
         self.receive_messages_stream(false).await
     }
 
     fn groups_manager(
         &self,
-    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error> {
+    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error<C::Error>> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
@@ -779,7 +789,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn receive_messages_stream(
         &mut self,
         include_internal_events: bool,
-    ) -> Result<impl Stream<Item = Content>, Error> {
+    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
@@ -886,7 +896,7 @@ impl<C: Store> Manager<C, Registered> {
         recipient_addr: impl Into<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C::Error>> {
         let mut sender = self.new_message_sender()?;
 
         let online_only = false;
@@ -925,7 +935,7 @@ impl<C: Store> Manager<C, Registered> {
     pub async fn upload_attachments(
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
-    ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error> {
+    ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<C::Error>> {
         let sender = self.new_message_sender()?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
@@ -940,7 +950,7 @@ impl<C: Store> Manager<C, Registered> {
         master_key_bytes: &[u8],
         message: DataMessage,
         timestamp: u64,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C::Error>> {
         let mut sender = self.new_message_sender()?;
 
         let mut groups_manager = self.groups_manager()?;
@@ -980,7 +990,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
-    pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error> {
+    pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<C::Error>> {
         self.config_store.delete_all_sessions(recipient).await?;
         Ok(())
     }
@@ -989,7 +999,7 @@ impl<C: Store> Manager<C, Registered> {
     pub async fn get_attachment(
         &self,
         attachment_pointer: &AttachmentPointer,
-    ) -> Result<Vec<u8>, Error> {
+    ) -> Result<Vec<u8>, Error<C::Error>> {
         let mut service = self.push_service()?;
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
@@ -1009,8 +1019,8 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
         recipient: &ServiceAddress,
         timestamp: u64,
-    ) -> Result<(), Error> {
-        log::trace!("Resetting session for adress: {}", recipient.uuid);
+    ) -> Result<(), Error<C::Error>> {
+        log::trace!("Resetting session for address: {}", recipient.uuid);
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
             ..Default::default()
@@ -1021,7 +1031,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    fn credentials(&self) -> Result<Option<ServiceCredentials>, Error> {
+    fn credentials(&self) -> Result<Option<ServiceCredentials>, Error<C::Error>> {
         Ok(Some(ServiceCredentials {
             uuid: Some(self.state.uuid),
             phonenumber: self.state.phone_number.clone(),
@@ -1034,7 +1044,7 @@ impl<C: Store> Manager<C, Registered> {
     /// Returns a clone of a cached push service.
     ///
     /// If no service is yet cached, it will create and cache one.
-    fn push_service(&self) -> Result<HyperPushService, Error> {
+    fn push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
         self.state.push_service_cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
@@ -1048,7 +1058,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Creates a new message sender.
-    fn new_message_sender(&self) -> Result<MessageSender<C>, Error> {
+    fn new_message_sender(&self) -> Result<MessageSender<C>, Error<C::Error>> {
         let local_addr = ServiceAddress {
             uuid: self.state.uuid,
         };
@@ -1070,7 +1080,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Creates a new service cipher.
-    fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error> {
+    fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error<C::Error>> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let service_cipher = ServiceCipher::new(
             self.config_store.clone(),
@@ -1088,22 +1098,24 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     #[deprecated = "use Manager::contact_by_id"]
-    pub fn get_contacts(&self) -> Result<impl Iterator<Item = Result<Contact, Error>>, Error> {
+    pub fn get_contacts(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<Contact, Error<C::Error>>>, Error<C::Error>> {
         self.contacts()
     }
 
     #[deprecated = "use Manager::contact_by_id"]
-    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error<C::Error>> {
         self.contact_by_id(&id)
     }
 
     #[deprecated = "use Manager::groups"]
-    pub fn get_groups(&self) -> Result<<C as GroupsStore>::GroupsIter, Error> {
+    pub fn get_groups(&self) -> Result<C::GroupsIter, Error<C::Error>> {
         self.groups()
     }
 
     #[deprecated = "use Manager::group"]
-    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error> {
+    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
         self.group(master_key_bytes)
     }
 }
@@ -1113,7 +1125,7 @@ async fn upsert_group<C: Store>(
     groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
     revision: &u32,
-) -> Result<Option<Group>, Error> {
+) -> Result<Option<Group>, Error<C::Error>> {
     let save_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {group:?}");
@@ -1142,19 +1154,19 @@ async fn upsert_group<C: Store>(
 
     config_store
         .group(master_key_bytes.try_into()?)
-        .map_err(Into::into)
+        .map_err(Error::Store)
 }
 
 fn save_message_with_thread<C: Store>(
     config_store: &mut C,
     message: Content,
     thread: Thread,
-) -> Result<(), Error> {
+) -> Result<(), Error<C::Error>> {
     // only save DataMessage and SynchronizeMessage (sent)
     match &message.body {
         ContentBody::NullMessage(_) => config_store
             .save_message(&thread, message)
-            .map_err(Into::into)?,
+            .map_err(Error::Store)?,
         ContentBody::DataMessage(d)
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent: Some(sync_message::Sent {
@@ -1171,19 +1183,19 @@ fn save_message_with_thread<C: Store>(
             } => {
                 // replace an existing message by an empty NullMessage
                 if let Some(mut existing_msg) =
-                    config_store.message(&thread, *ts).map_err(Into::into)?
+                    config_store.message(&thread, *ts).map_err(Error::Store)?
                 {
                     existing_msg.metadata.sender.uuid = Uuid::nil();
                     existing_msg.body = NullMessage::default().into();
                     config_store
                         .save_message(&thread, existing_msg)
-                        .map_err(Into::into)?;
+                        .map_err(Error::Store)?;
                     debug!("message in thread {thread} @ {ts} deleted");
                 }
             }
             _ => config_store
                 .save_message(&thread, message)
-                .map_err(Into::into)?,
+                .map_err(Error::Store)?,
         },
         ContentBody::CallMessage(_)
         | ContentBody::SynchronizeMessage(SyncMessage {
@@ -1191,7 +1203,7 @@ fn save_message_with_thread<C: Store>(
             ..
         }) => config_store
             .save_message(&thread, message)
-            .map_err(Into::into)?,
+            .map_err(Error::Store)?,
         ContentBody::SynchronizeMessage(_) => {
             debug!("skipping saving sync message without interesting fields")
         }
@@ -1202,7 +1214,7 @@ fn save_message_with_thread<C: Store>(
     Ok(())
 }
 
-fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error> {
+fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
     let thread = Thread::try_from(&message)?;
     save_message_with_thread(config_store, message, thread)
 }

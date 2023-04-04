@@ -23,7 +23,7 @@ use presage::{
         Contact, SignalServers,
     },
     prelude::{phonenumber::PhoneNumber, Uuid},
-    GroupMasterKeyBytes, Manager, MessageStore, Registered, RegistrationOptions, Store, Thread,
+    GroupMasterKeyBytes, Manager, Registered, RegistrationOptions, Store, Thread,
 };
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
@@ -226,7 +226,7 @@ async fn send<C: Store>(
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
-async fn process_incoming_message<C: Store + MessageStore>(
+async fn process_incoming_message<C: Store>(
     manager: &mut Manager<C, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
@@ -265,7 +265,7 @@ async fn process_incoming_message<C: Store + MessageStore>(
     }
 }
 
-fn print_message<C: Store + MessageStore>(
+fn print_message<C: Store>(
     manager: &Manager<C, Registered>,
     notifications: bool,
     content: &Content,
@@ -395,7 +395,7 @@ fn print_message<C: Store + MessageStore>(
     }
 }
 
-async fn receive<C: Store + MessageStore>(
+async fn receive<C: Store>(
     manager: &mut Manager<C, Registered>,
     notifications: bool,
 ) -> anyhow::Result<()> {
@@ -419,7 +419,7 @@ async fn receive<C: Store + MessageStore>(
     Ok(())
 }
 
-async fn run<C: Store + MessageStore>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,

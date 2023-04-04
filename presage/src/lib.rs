@@ -6,9 +6,7 @@ mod store;
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
-pub use store::{
-    ContactsStore, GroupsStore, MessageStore, ProfilesStore, StateStore, Store, Thread,
-};
+pub use store::{Store, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;
