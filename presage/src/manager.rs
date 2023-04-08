@@ -90,7 +90,9 @@ pub struct Registered {
     #[serde(skip)]
     push_service_cache: CacheCell<HyperPushService>,
     #[serde(skip)]
-    websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    #[serde(skip)]
+    unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
 
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
@@ -112,7 +114,7 @@ pub struct Registered {
 impl fmt::Debug for Registered {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Registered")
-            .field("websocket", &self.websocket.lock().is_some())
+            .field("websocket", &self.identified_websocket.lock().is_some())
             .finish_non_exhaustive()
     }
 }
@@ -335,7 +337,8 @@ impl<C: Store> Manager<C, Linking> {
             config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
-                websocket: Default::default(),
+                identified_websocket: Default::default(),
+                unidentified_websocket: Default::default(),
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -458,7 +461,8 @@ impl<C: Store> Manager<C, Confirmation> {
             config_store: self.config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
-                websocket: Default::default(),
+                identified_websocket: Default::default(),
+                unidentified_websocket: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -730,7 +734,15 @@ impl<C: Store> Manager<C, Registered> {
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
-        self.state.websocket.lock().replace(pipe.ws());
+        let unidentified_ws = self
+            .push_service()?
+            .ws("/v1/websocket/", None, true)
+            .await?;
+        self.state.identified_websocket.lock().replace(pipe.ws());
+        self.state
+            .unidentified_websocket
+            .lock()
+            .replace(unidentified_ws);
         Ok(pipe.stream())
     }
 
@@ -936,12 +948,12 @@ impl<C: Store> Manager<C, Registered> {
             .members
             .into_iter()
             .filter(|m| m.uuid != self.state.uuid)
-            .map(|m| m.uuid.into())
+            .map(|m| (m.uuid.into(), None))
             .collect();
 
         let online_only = false;
         let results = sender
-            .send_message_to_group(recipients, None, message.clone(), timestamp, online_only)
+            .send_message_to_group(recipients, message.clone(), timestamp, online_only)
             .await;
 
         // return first error if any
@@ -1037,12 +1049,23 @@ impl<C: Store> Manager<C, Registered> {
             uuid: self.state.uuid,
         };
 
+        let identified_websocket = self
+            .state
+            .identified_websocket
+            .lock()
+            .clone()
+            .ok_or(Error::MessagePipeNotStarted)?;
+
+        let unidentified_websocket = self
+            .state
+            .unidentified_websocket
+            .lock()
+            .clone()
+            .ok_or(Error::MessagePipeNotStarted)?;
+
         Ok(MessageSender::new(
-            self.state
-                .websocket
-                .lock()
-                .clone()
-                .ok_or(Error::MessagePipeNotStarted)?,
+            identified_websocket,
+            unidentified_websocket,
             self.push_service()?,
             self.new_service_cipher()?,
             self.rng.clone(),
