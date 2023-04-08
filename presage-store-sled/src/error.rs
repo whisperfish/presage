@@ -1,4 +1,4 @@
-use presage::libsignal_service::prelude::protocol::SignalProtocolError;
+use presage::{libsignal_service::prelude::protocol::SignalProtocolError, StoreError};
 
 #[derive(Debug, thiserror::Error)]
 pub enum SledStoreError {
@@ -23,6 +23,8 @@ pub enum SledStoreError {
     #[error("Unsupported message content")]
     UnsupportedContent,
 }
+
+impl StoreError for SledStoreError {}
 
 impl SledStoreError {
     pub(crate) fn into_signal_error(self) -> SignalProtocolError {

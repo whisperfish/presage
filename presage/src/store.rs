@@ -16,10 +16,12 @@ use libsignal_service::{
 };
 use serde::{Deserialize, Serialize};
 
+pub trait StoreError: std::error::Error + Sync + Send + 'static {}
+
 pub trait Store:
     PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + SenderKeyStore + Sync + Clone
 {
-    type Error: std::error::Error + Sync + Send + 'static;
+    type Error: StoreError;
 
     type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
