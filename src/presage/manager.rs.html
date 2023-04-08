@@ -1180,6 +1180,29 @@
 <a href="#1180" id="1180">1180</a>
 <a href="#1181" id="1181">1181</a>
 <a href="#1182" id="1182">1182</a>
+<a href="#1183" id="1183">1183</a>
+<a href="#1184" id="1184">1184</a>
+<a href="#1185" id="1185">1185</a>
+<a href="#1186" id="1186">1186</a>
+<a href="#1187" id="1187">1187</a>
+<a href="#1188" id="1188">1188</a>
+<a href="#1189" id="1189">1189</a>
+<a href="#1190" id="1190">1190</a>
+<a href="#1191" id="1191">1191</a>
+<a href="#1192" id="1192">1192</a>
+<a href="#1193" id="1193">1193</a>
+<a href="#1194" id="1194">1194</a>
+<a href="#1195" id="1195">1195</a>
+<a href="#1196" id="1196">1196</a>
+<a href="#1197" id="1197">1197</a>
+<a href="#1198" id="1198">1198</a>
+<a href="#1199" id="1199">1199</a>
+<a href="#1200" id="1200">1200</a>
+<a href="#1201" id="1201">1201</a>
+<a href="#1202" id="1202">1202</a>
+<a href="#1203" id="1203">1203</a>
+<a href="#1204" id="1204">1204</a>
+<a href="#1205" id="1205">1205</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1272,7 +1295,9 @@
     <span class="attr">#[serde(skip)]
     </span>push_service_cache: CacheCell&lt;HyperPushService&gt;,
     <span class="attr">#[serde(skip)]
-    </span>websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
+    </span>identified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
+    <span class="attr">#[serde(skip)]
+    </span>unidentified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
 
     <span class="kw">pub </span>signal_servers: SignalServers,
     <span class="kw">pub </span>device_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
@@ -1294,7 +1319,7 @@
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Registered {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
         f.debug_struct(<span class="string">&quot;Registered&quot;</span>)
-            .field(<span class="string">&quot;websocket&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.websocket.lock().is_some())
+            .field(<span class="string">&quot;websocket&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.identified_websocket.lock().is_some())
             .finish_non_exhaustive()
     }
 }
@@ -1517,7 +1542,8 @@
             config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
-                websocket: Default::default(),
+                identified_websocket: Default::default(),
+                unidentified_websocket: Default::default(),
                 signal_servers,
                 device_name: <span class="prelude-val">Some</span>(device_name),
                 phone_number,
@@ -1640,7 +1666,8 @@
             config_store: <span class="self">self</span>.config_store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
-                websocket: Default::default(),
+                identified_websocket: Default::default(),
+                unidentified_websocket: Default::default(),
                 signal_servers: <span class="self">self</span>.state.signal_servers,
                 device_name: <span class="prelude-val">None</span>,
                 phone_number,
@@ -1912,7 +1939,15 @@
         <span class="kw">let </span>pipe = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>)
             .create_message_pipe(credentials)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="self">self</span>.state.websocket.lock().replace(pipe.ws());
+        <span class="kw">let </span>unidentified_ws = <span class="self">self
+            </span>.push_service()<span class="question-mark">?
+            </span>.ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="prelude-val">None</span>, <span class="bool-val">true</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.state.identified_websocket.lock().replace(pipe.ws());
+        <span class="self">self</span>.state
+            .unidentified_websocket
+            .lock()
+            .replace(unidentified_ws);
         <span class="prelude-val">Ok</span>(pipe.stream())
     }
 
@@ -2118,12 +2153,12 @@
             .members
             .into_iter()
             .filter(|m| m.uuid != <span class="self">self</span>.state.uuid)
-            .map(|m| m.uuid.into())
+            .map(|m| (m.uuid.into(), <span class="prelude-val">None</span>))
             .collect();
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
         <span class="kw">let </span>results = sender
-            .send_message_to_group(recipients, <span class="prelude-val">None</span>, message.clone(), timestamp, online_only)
+            .send_message_to_group(recipients, message.clone(), timestamp, online_only)
             .<span class="kw">await</span>;
 
         <span class="comment">// return first error if any
@@ -2219,12 +2254,23 @@
             uuid: <span class="self">self</span>.state.uuid,
         };
 
+        <span class="kw">let </span>identified_websocket = <span class="self">self
+            </span>.state
+            .identified_websocket
+            .lock()
+            .clone()
+            .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>unidentified_websocket = <span class="self">self
+            </span>.state
+            .unidentified_websocket
+            .lock()
+            .clone()
+            .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(MessageSender::new(
-            <span class="self">self</span>.state
-                .websocket
-                .lock()
-                .clone()
-                .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>,
+            identified_websocket,
+            unidentified_websocket,
             <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
             <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
             <span class="self">self</span>.rng.clone(),

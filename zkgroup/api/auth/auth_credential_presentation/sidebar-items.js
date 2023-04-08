@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["AnyAuthCredentialPresentation",""]],"struct":[["AuthCredentialPresentationV1",""],["AuthCredentialPresentationV2","Like [`AuthCredentialPresentationV1`], but with an optimized proof."],["AuthCredentialWithPniPresentation",""]]};
+window.SIDEBAR_ITEMS = {"enum":[["AnyAuthCredentialPresentation",""]],"struct":[["AuthCredentialPresentationV2",""],["AuthCredentialWithPniPresentation",""]]};
