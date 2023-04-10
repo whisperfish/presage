@@ -35,6 +35,9 @@ pub trait Store:
     /// Save registered (or linked) state
     fn save_state(&mut self, state: &Registered) -> Result<(), Self::Error>;
 
+    /// Returns whether this store contains registration data or not
+    fn is_registered(&self) -> bool;
+
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
     fn clear_registration(&mut self) -> Result<(), Self::Error>;
 
