@@ -334,6 +334,10 @@ impl Store for SledStore {
         Ok(())
     }
 
+    fn is_registered(&self) -> bool {
+        self.load_state().unwrap_or_default().is_some()
+    }
+
     fn clear_registration(&mut self) -> Result<(), SledStoreError> {
         self.db.remove(SLED_KEY_REGISTRATION)?;
 
