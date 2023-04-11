@@ -190,6 +190,9 @@
 <a href="#190" id="190">190</a>
 <a href="#191" id="191">191</a>
 <a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{fmt, ops::RangeBounds};
 
 <span class="kw">use crate</span>::{manager::Registered, GroupMasterKeyBytes};
@@ -226,6 +229,9 @@
 
     <span class="doccomment">/// Save registered (or linked) state
     </span><span class="kw">fn </span>save_state(<span class="kw-2">&amp;mut </span><span class="self">self</span>, state: <span class="kw-2">&amp;</span>Registered) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
+
+    <span class="doccomment">/// Returns whether this store contains registration data or not
+    </span><span class="kw">fn </span>is_registered(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool;
 
     <span class="doccomment">/// Clear registration data (including keys), but keep received messages, groups and contacts.
     </span><span class="kw">fn </span>clear_registration(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
