@@ -2,7 +2,7 @@ use std::{
     fmt,
     ops::RangeBounds,
     sync::Arc,
-    time::{Duration, UNIX_EPOCH},
+    time::{Duration, UNIX_EPOCH, SystemTime}, mem::needs_drop,
 };
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
@@ -22,10 +22,10 @@ use libsignal_service::{
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
-        protocol::{KeyPair, PrivateKey, PublicKey},
-        Content, Envelope, ProfileKey, PushService, Uuid,
+        protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
+        Content, ProfileKey, PushService, Uuid,
     },
-    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2, NullMessage},
+    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2, NullMessage, Envelope, sender_certificate},
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -36,6 +36,7 @@ use libsignal_service::{
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
+    unidentified_access::UnidentifiedAccess,
     utils::{serde_private_key, serde_public_key, serde_signaling_key},
     websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
@@ -93,6 +94,8 @@ pub struct Registered {
     identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     #[serde(skip)]
     unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    #[serde(skip)]
+    unidentified_sender_certificate: Option<SenderCertificate>,
 
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
@@ -339,6 +342,7 @@ impl<C: Store> Manager<C, Linking> {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
                 unidentified_websocket: Default::default(),
+                unidentified_sender_certificate: Default::default(),
                 signal_servers,
                 device_name: Some(device_name),
                 phone_number,
@@ -463,6 +467,7 @@ impl<C: Store> Manager<C, Confirmation> {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
                 unidentified_websocket: Default::default(),
+                unidentified_sender_certificate: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
@@ -624,10 +629,41 @@ impl<C: Store> Manager<C, Registered> {
             .as_millis() as u64;
 
         // first request the sync
-        self.send_message(self.state.uuid, sync_message, timestamp)
+        self.send_message(self.state.uuid, sync_message, timestamp, false)
             .await?;
 
         Ok(())
+    }
+
+    async fn sender_certificate(&mut self) -> Result<SenderCertificate, Error<C::Error>> {
+        let needs_renewal = |sender_certificate: Option<&SenderCertificate>| -> bool {
+            if sender_certificate.is_none() {
+                return true;
+            }
+
+            let seconds_since_epoch = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards").as_secs();
+
+            if let Some(expiration) = sender_certificate.and_then(|s| s.expiration().ok()) {
+                expiration >= seconds_since_epoch - 600
+            } else {
+                true
+            }
+        };
+
+        if needs_renewal(self.state.unidentified_sender_certificate.as_ref()) {
+            let sender_certificate = self
+                .push_service()?
+                .get_uuid_only_sender_certificate()
+                .await?;
+
+            self.state
+                .unidentified_sender_certificate
+                .replace(sender_certificate);
+        }
+
+        Ok(self.state.unidentified_sender_certificate.clone().expect("logic error"))
     }
 
     pub async fn submit_recaptcha_challenge(
@@ -734,15 +770,19 @@ impl<C: Store> Manager<C, Registered> {
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials)
             .await?;
-        let unidentified_ws = self
-            .push_service()?
-            .ws("/v1/websocket/", None, true)
+
+        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let mut unidentified_push_service =
+            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+        let unidentified_ws = unidentified_push_service
+            .ws("/v1/websocket/", None, false)
             .await?;
         self.state.identified_websocket.lock().replace(pipe.ws());
         self.state
             .unidentified_websocket
             .lock()
             .replace(unidentified_ws);
+
         Ok(pipe.stream())
     }
 
@@ -861,7 +901,9 @@ impl<C: Store> Manager<C, Registered> {
 
                                 return Some((content, state));
                             }
-                            Ok(None) => debug!("Empty envelope..., message will be skipped!"),
+                            Ok(None) => {
+                                debug!("Empty envelope..., message will be skipped!")
+                            }
                             Err(e) => {
                                 error!("Error opening envelope: {:?}, message will be skipped!", e);
                             }
@@ -882,6 +924,7 @@ impl<C: Store> Manager<C, Registered> {
         recipient_addr: impl Into<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
+        unidentified: bool,
     ) -> Result<(), Error<C::Error>> {
         let mut sender = self.new_message_sender()?;
 
@@ -889,10 +932,23 @@ impl<C: Store> Manager<C, Registered> {
         let recipient = recipient_addr.into();
         let content_body: ContentBody = message.into();
 
+        // XXX: this would only work for clients linked as secondary device, as we don't have 
+        // a separate store for profile (yet!)
+        let recipient_profile_key = self
+            .contact_by_id(&recipient.uuid)?
+            .map(|c| ProfileKey::create(c.profile_key.try_into().unwrap()).derive_access_key()).ok_or(Error::UnknownRecipient)?;
+
+        let certificate = self.sender_certificate().await?;
+
+        let unidentified_access = unidentified.then(|| UnidentifiedAccess {
+            key: recipient_profile_key,
+            certificate,
+        });
+
         sender
             .send_message(
                 &recipient,
-                None,
+                unidentified_access,
                 content_body.clone(),
                 timestamp,
                 online_only,
@@ -1012,7 +1068,8 @@ impl<C: Store> Manager<C, Registered> {
             ..Default::default()
         };
 
-        self.send_message(*recipient, message, timestamp).await?;
+        self.send_message(*recipient, message, timestamp, false)
+            .await?;
 
         Ok(())
     }

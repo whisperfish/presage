@@ -2,6 +2,7 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -9,7 +10,8 @@ use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
-use futures::{channel::oneshot, future, pin_mut, StreamExt};
+use futures::StreamExt;
+use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
 use presage::libsignal_service::content::Reaction;
@@ -28,6 +30,8 @@ use presage::{
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
+use tokio::task;
+use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -155,6 +159,8 @@ enum Cmd {
         uuid: Uuid,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
+        #[clap(long, help = "whether to send identified or not")]
+        unidentified: bool,
     },
     #[clap(about = "Send a message to group")]
     SendToGroup {
@@ -198,9 +204,10 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: Store>(
+async fn send<C: Store + 'static>(
     msg: &str,
     uuid: &Uuid,
+    unidentified: bool,
     manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
@@ -214,12 +221,27 @@ async fn send<C: Store>(
         ..Default::default()
     });
 
-    let mut m = manager.clone();
-    let _ = future::join(
-        receive(&mut m, false),
-        manager.send_message(*uuid, message, timestamp),
-    )
-    .await;
+    let local = task::LocalSet::new();
+
+    local
+        .run_until(async move {
+            let mut receiving_manager = manager.clone();
+            let receiving_task = task::spawn_local(async move {
+                if let Err(e) = receive(&mut receiving_manager, false).await {
+                    error!("error while receiving stuff: {e}");
+                }
+            });
+
+            sleep(Duration::from_secs(5)).await;
+
+
+            manager
+                .send_message(*uuid, message, timestamp, unidentified)
+                .await.unwrap();
+
+            sleep(Duration::from_secs(5)).await;
+        })
+        .await;
 
     Ok(())
 }
@@ -419,7 +441,7 @@ async fn receive<C: Store>(
     Ok(())
 }
 
-async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -484,9 +506,13 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             let mut manager = Manager::load_registered(config_store)?;
             receive(&mut manager, notifications).await?;
         }
-        Cmd::Send { uuid, message } => {
+        Cmd::Send {
+            uuid,
+            message,
+            unidentified,
+        } => {
             let mut manager = Manager::load_registered(config_store)?;
-            send(&message, &uuid, &mut manager).await?;
+            send(&message, &uuid, unidentified, &mut manager).await?;
         }
         Cmd::SendToGroup {
             message,
