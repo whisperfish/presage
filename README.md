@@ -27,6 +27,18 @@ Features:
 
 ## Instructions
 
+Add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+presage = { git = "https://github.com/whisperfish/presage" }
+presage-store-sled = { git = "https://github.com/whisperfish/presage" }
+```
+
+and look at the generated Rust documentation of the `Manager` struct to get started.
+
+## Demo CLI
+
 Included in this repository is a CLI very similar (on purpose) to the great [signal-cli](https://github.com/AsamK/signal-cli):
 
 ```
