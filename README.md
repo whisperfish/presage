@@ -52,4 +52,4 @@ cargo run -- link-device --device-name presage
 cargo run -- receive
 ```
 
-For usage of the library, the CLI is a good starting point to look at how the API can be used.
+For using the library, the CLI is a good starting point to learn how the API can be used.
