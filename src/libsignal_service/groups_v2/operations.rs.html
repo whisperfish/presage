@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/59625be/libsignal-service/src/groups_v2/operations.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>operations.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/f11b2d1/libsignal-service/src/groups_v2/operations.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>operations.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -428,187 +428,7 @@
 <a href="#428" id="428">428</a>
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
-<a href="#431" id="431">431</a>
-<a href="#432" id="432">432</a>
-<a href="#433" id="433">433</a>
-<a href="#434" id="434">434</a>
-<a href="#435" id="435">435</a>
-<a href="#436" id="436">436</a>
-<a href="#437" id="437">437</a>
-<a href="#438" id="438">438</a>
-<a href="#439" id="439">439</a>
-<a href="#440" id="440">440</a>
-<a href="#441" id="441">441</a>
-<a href="#442" id="442">442</a>
-<a href="#443" id="443">443</a>
-<a href="#444" id="444">444</a>
-<a href="#445" id="445">445</a>
-<a href="#446" id="446">446</a>
-<a href="#447" id="447">447</a>
-<a href="#448" id="448">448</a>
-<a href="#449" id="449">449</a>
-<a href="#450" id="450">450</a>
-<a href="#451" id="451">451</a>
-<a href="#452" id="452">452</a>
-<a href="#453" id="453">453</a>
-<a href="#454" id="454">454</a>
-<a href="#455" id="455">455</a>
-<a href="#456" id="456">456</a>
-<a href="#457" id="457">457</a>
-<a href="#458" id="458">458</a>
-<a href="#459" id="459">459</a>
-<a href="#460" id="460">460</a>
-<a href="#461" id="461">461</a>
-<a href="#462" id="462">462</a>
-<a href="#463" id="463">463</a>
-<a href="#464" id="464">464</a>
-<a href="#465" id="465">465</a>
-<a href="#466" id="466">466</a>
-<a href="#467" id="467">467</a>
-<a href="#468" id="468">468</a>
-<a href="#469" id="469">469</a>
-<a href="#470" id="470">470</a>
-<a href="#471" id="471">471</a>
-<a href="#472" id="472">472</a>
-<a href="#473" id="473">473</a>
-<a href="#474" id="474">474</a>
-<a href="#475" id="475">475</a>
-<a href="#476" id="476">476</a>
-<a href="#477" id="477">477</a>
-<a href="#478" id="478">478</a>
-<a href="#479" id="479">479</a>
-<a href="#480" id="480">480</a>
-<a href="#481" id="481">481</a>
-<a href="#482" id="482">482</a>
-<a href="#483" id="483">483</a>
-<a href="#484" id="484">484</a>
-<a href="#485" id="485">485</a>
-<a href="#486" id="486">486</a>
-<a href="#487" id="487">487</a>
-<a href="#488" id="488">488</a>
-<a href="#489" id="489">489</a>
-<a href="#490" id="490">490</a>
-<a href="#491" id="491">491</a>
-<a href="#492" id="492">492</a>
-<a href="#493" id="493">493</a>
-<a href="#494" id="494">494</a>
-<a href="#495" id="495">495</a>
-<a href="#496" id="496">496</a>
-<a href="#497" id="497">497</a>
-<a href="#498" id="498">498</a>
-<a href="#499" id="499">499</a>
-<a href="#500" id="500">500</a>
-<a href="#501" id="501">501</a>
-<a href="#502" id="502">502</a>
-<a href="#503" id="503">503</a>
-<a href="#504" id="504">504</a>
-<a href="#505" id="505">505</a>
-<a href="#506" id="506">506</a>
-<a href="#507" id="507">507</a>
-<a href="#508" id="508">508</a>
-<a href="#509" id="509">509</a>
-<a href="#510" id="510">510</a>
-<a href="#511" id="511">511</a>
-<a href="#512" id="512">512</a>
-<a href="#513" id="513">513</a>
-<a href="#514" id="514">514</a>
-<a href="#515" id="515">515</a>
-<a href="#516" id="516">516</a>
-<a href="#517" id="517">517</a>
-<a href="#518" id="518">518</a>
-<a href="#519" id="519">519</a>
-<a href="#520" id="520">520</a>
-<a href="#521" id="521">521</a>
-<a href="#522" id="522">522</a>
-<a href="#523" id="523">523</a>
-<a href="#524" id="524">524</a>
-<a href="#525" id="525">525</a>
-<a href="#526" id="526">526</a>
-<a href="#527" id="527">527</a>
-<a href="#528" id="528">528</a>
-<a href="#529" id="529">529</a>
-<a href="#530" id="530">530</a>
-<a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
-<a href="#534" id="534">534</a>
-<a href="#535" id="535">535</a>
-<a href="#536" id="536">536</a>
-<a href="#537" id="537">537</a>
-<a href="#538" id="538">538</a>
-<a href="#539" id="539">539</a>
-<a href="#540" id="540">540</a>
-<a href="#541" id="541">541</a>
-<a href="#542" id="542">542</a>
-<a href="#543" id="543">543</a>
-<a href="#544" id="544">544</a>
-<a href="#545" id="545">545</a>
-<a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
-<a href="#551" id="551">551</a>
-<a href="#552" id="552">552</a>
-<a href="#553" id="553">553</a>
-<a href="#554" id="554">554</a>
-<a href="#555" id="555">555</a>
-<a href="#556" id="556">556</a>
-<a href="#557" id="557">557</a>
-<a href="#558" id="558">558</a>
-<a href="#559" id="559">559</a>
-<a href="#560" id="560">560</a>
-<a href="#561" id="561">561</a>
-<a href="#562" id="562">562</a>
-<a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
-<a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a>
-<a href="#577" id="577">577</a>
-<a href="#578" id="578">578</a>
-<a href="#579" id="579">579</a>
-<a href="#580" id="580">580</a>
-<a href="#581" id="581">581</a>
-<a href="#582" id="582">582</a>
-<a href="#583" id="583">583</a>
-<a href="#584" id="584">584</a>
-<a href="#585" id="585">585</a>
-<a href="#586" id="586">586</a>
-<a href="#587" id="587">587</a>
-<a href="#588" id="588">588</a>
-<a href="#589" id="589">589</a>
-<a href="#590" id="590">590</a>
-<a href="#591" id="591">591</a>
-<a href="#592" id="592">592</a>
-<a href="#593" id="593">593</a>
-<a href="#594" id="594">594</a>
-<a href="#595" id="595">595</a>
-<a href="#596" id="596">596</a>
-<a href="#597" id="597">597</a>
-<a href="#598" id="598">598</a>
-<a href="#599" id="599">599</a>
-<a href="#600" id="600">600</a>
-<a href="#601" id="601">601</a>
-<a href="#602" id="602">602</a>
-<a href="#603" id="603">603</a>
-<a href="#604" id="604">604</a>
-<a href="#605" id="605">605</a>
-<a href="#606" id="606">606</a>
-<a href="#607" id="607">607</a>
-<a href="#608" id="608">608</a>
-<a href="#609" id="609">609</a>
-<a href="#610" id="610">610</a>
-</pre><pre class="rust"><code><span class="kw">use </span>core::fmt;
+</pre><pre class="rust"><code><span class="kw">use </span>std::convert::TryInto;
 
 <span class="kw">use </span>bytes::Bytes;
 <span class="kw">use </span>prost::Message;
@@ -618,198 +438,25 @@
     profiles::{AnyProfileKeyCredentialPresentation, ProfileKey},
 };
 
-<span class="kw">use </span><span class="kw">crate</span>::proto::{
-    <span class="self">self</span>, access_control::AccessRequired, group_attribute_blob, member::Role,
-    AccessControl, GroupAttributeBlob, Member <span class="kw">as </span>EncryptedMember,
+<span class="kw">use crate</span>::{
+    groups_v2::model::Timer,
+    proto::{
+        <span class="self">self</span>, group_attribute_blob, GroupAttributeBlob,
+        Member <span class="kw">as </span>EncryptedMember,
+    },
+};
+
+<span class="kw">use super</span>::{
+    model::{Member, PendingMember, RequestingMember},
+    Group, GroupChange, GroupChanges,
 };
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>GroupOperations {
     <span class="kw">pub </span>group_secret_params: GroupSecretParams,
 }
 
-<span class="attr">#[derive(Clone)]
-</span><span class="kw">pub struct </span>Member {
-    <span class="kw">pub </span>uuid: Uuid,
-    <span class="kw">pub </span>role: Role,
-    <span class="kw">pub </span>profile_key: ProfileKey,
-    <span class="kw">pub </span>joined_at_revision: u32,
-}
-
-<span class="kw">impl </span>PartialEq <span class="kw">for </span>Member {
-    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
-        <span class="self">self</span>.uuid == other.uuid
-    }
-}
-
-<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Member {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        f.debug_struct(<span class="string">&quot;Member&quot;</span>)
-            .field(<span class="string">&quot;uuid&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.uuid)
-            .field(<span class="string">&quot;role&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.role)
-            .field(<span class="string">&quot;joined_at_revision&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.joined_at_revision)
-            .finish()
-    }
-}
-
-<span class="attr">#[derive(Clone, Debug, PartialEq, Eq)]
-</span><span class="kw">pub struct </span>PendingMember {
-    <span class="kw">pub </span>uuid: Uuid,
-    <span class="kw">pub </span>role: Role,
-    <span class="kw">pub </span>added_by_uuid: Uuid,
-    <span class="kw">pub </span>timestamp: u64,
-}
-
-<span class="attr">#[derive(Clone)]
-</span><span class="kw">pub struct </span>RequestingMember {
-    <span class="kw">pub </span>uuid: Uuid,
-    <span class="kw">pub </span>profile_key: ProfileKey,
-    <span class="kw">pub </span>timestamp: u64,
-}
-
-<span class="kw">impl </span>PartialEq <span class="kw">for </span>RequestingMember {
-    <span class="kw">fn </span>eq(<span class="kw-2">&amp;</span><span class="self">self</span>, other: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; bool {
-        <span class="self">self</span>.uuid == other.uuid
-    }
-}
-
-<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>RequestingMember {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        f.debug_struct(<span class="string">&quot;RequestingMember&quot;</span>)
-            .field(<span class="string">&quot;uuid&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.uuid)
-            .field(<span class="string">&quot;timestamp&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.timestamp)
-            .finish()
-    }
-}
-
-<span class="attr">#[derive(Debug, Clone, PartialEq)]
-</span><span class="kw">pub struct </span>Group {
-    <span class="kw">pub </span>title: String,
-    <span class="kw">pub </span>avatar: String,
-    <span class="kw">pub </span>disappearing_messages_timer: <span class="prelude-ty">Option</span>&lt;Timer&gt;,
-    <span class="kw">pub </span>access_control: <span class="prelude-ty">Option</span>&lt;AccessControl&gt;,
-    <span class="kw">pub </span>revision: u32,
-    <span class="kw">pub </span>members: Vec&lt;Member&gt;,
-    <span class="kw">pub </span>pending_members: Vec&lt;PendingMember&gt;,
-    <span class="kw">pub </span>requesting_members: Vec&lt;RequestingMember&gt;,
-    <span class="kw">pub </span>invite_link_password: Vec&lt;u8&gt;,
-    <span class="kw">pub </span>description: <span class="prelude-ty">Option</span>&lt;String&gt;,
-}
-
-<span class="attr">#[derive(Clone, Debug)]
-</span><span class="kw">pub struct </span>GroupChanges {
-    <span class="kw">pub </span>editor: Uuid,
-    <span class="kw">pub </span>revision: u32,
-    <span class="kw">pub </span>changes: Vec&lt;GroupChange&gt;,
-}
-
-<span class="attr">#[derive(Clone)]
-</span><span class="kw">pub enum </span>GroupChange {
-    NewMember(Member),
-    DeleteMember(Uuid),
-    ModifyMemberRole { uuid: Uuid, role: Role },
-    ModifyMemberProfileKey { uuid: Uuid, profile_key: ProfileKey },
-    <span class="comment">// for open groups
-    </span>NewPendingMember(PendingMember),
-    DeletePendingMember(Uuid),
-    PromotePendingMember { uuid: Uuid, profile_key: ProfileKey },
-    <span class="comment">// when admin control is enabled
-    </span>NewRequestingMember(RequestingMember),
-    DeleteRequestingMember(Uuid),
-    PromoteRequestingMember { uuid: Uuid, role: Role },
-    <span class="comment">// group metadata
-    </span>Title(String),
-    Avatar(String),
-    Timer(<span class="prelude-ty">Option</span>&lt;Timer&gt;),
-    Description(<span class="prelude-ty">Option</span>&lt;String&gt;),
-    AttributeAccess(AccessRequired),
-    MemberAccess(AccessRequired),
-    InviteLinkAccess(AccessRequired),
-    InviteLinkPassword(String),
-    AnnouncementOnly(bool),
-}
-
-<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>GroupChange {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        <span class="kw">match </span><span class="self">self </span>{
-            <span class="self">Self</span>::NewMember(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;NewMember&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::DeleteMember(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;DeleteMember&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::ModifyMemberRole { uuid, role } =&gt; f
-                .debug_struct(<span class="string">&quot;ModifyMemberRole&quot;</span>)
-                .field(<span class="string">&quot;uuid&quot;</span>, uuid)
-                .field(<span class="string">&quot;role&quot;</span>, role)
-                .finish(),
-            <span class="self">Self</span>::ModifyMemberProfileKey { uuid, .. } =&gt; f
-                .debug_struct(<span class="string">&quot;ModifyMemberProfileKey&quot;</span>)
-                .field(<span class="string">&quot;uuid&quot;</span>, uuid)
-                .finish(),
-            <span class="self">Self</span>::NewPendingMember(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;NewPendingMember&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::DeletePendingMember(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;DeletePendingMember&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::PromotePendingMember { uuid, .. } =&gt; f
-                .debug_struct(<span class="string">&quot;PromotePendingMember&quot;</span>)
-                .field(<span class="string">&quot;uuid&quot;</span>, uuid)
-                .finish(),
-            <span class="self">Self</span>::NewRequestingMember(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;NewRequestingMember&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::DeleteRequestingMember(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;DeleteRequestingMember&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::PromoteRequestingMember { uuid, role } =&gt; f
-                .debug_struct(<span class="string">&quot;PromoteRequestingMember&quot;</span>)
-                .field(<span class="string">&quot;uuid&quot;</span>, uuid)
-                .field(<span class="string">&quot;role&quot;</span>, role)
-                .finish(),
-            <span class="self">Self</span>::Title(arg0) =&gt; f.debug_tuple(<span class="string">&quot;Title&quot;</span>).field(arg0).finish(),
-            <span class="self">Self</span>::Avatar(arg0) =&gt; f.debug_tuple(<span class="string">&quot;Avatar&quot;</span>).field(arg0).finish(),
-            <span class="self">Self</span>::Timer(arg0) =&gt; f.debug_tuple(<span class="string">&quot;Timer&quot;</span>).field(arg0).finish(),
-            <span class="self">Self</span>::Description(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;Description&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::AttributeAccess(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;AttributeAccess&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::MemberAccess(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;MemberAccess&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::InviteLinkAccess(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;InviteLinkAccess&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::InviteLinkPassword(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;InviteLinkPassword&quot;</span>).field(arg0).finish()
-            },
-            <span class="self">Self</span>::AnnouncementOnly(arg0) =&gt; {
-                f.debug_tuple(<span class="string">&quot;AnnouncementOnly&quot;</span>).field(arg0).finish()
-            },
-        }
-    }
-}
-
-<span class="attr">#[derive(Clone, Debug, PartialEq, Eq)]
-</span><span class="kw">pub struct </span>Timer {
-    <span class="kw">pub </span>duration: u32,
-}
-
-<span class="attr">#[derive(Clone, PartialEq, Eq)]
-</span><span class="kw">pub struct </span>GroupJoinInfo {
-    <span class="kw">pub </span>title: String,
-    <span class="kw">pub </span>avatar: String,
-    <span class="kw">pub </span>member_count: u32,
-    <span class="kw">pub </span>add_from_invite_link: i32,
-    <span class="kw">pub </span>revision: u32,
-    <span class="kw">pub </span>pending_admin_approval: bool,
-    <span class="kw">pub </span>description: String,
-}
-
 <span class="attr">#[derive(Debug, thiserror::Error)]
-</span><span class="kw">pub enum </span>GroupDecryptionError {
+</span><span class="kw">pub enum </span>GroupDecodingError {
     <span class="attr">#[error(<span class="string">&quot;zero-knowledge group deserialization failure&quot;</span>)]
     </span>ZkGroupDeserializationFailure,
     <span class="attr">#[error(<span class="string">&quot;zero-knowledge group verification failure&quot;</span>)]
@@ -824,20 +471,20 @@
     </span>WrongEnumValue,
 }
 
-<span class="kw">impl </span>From&lt;zkgroup::ZkGroupDeserializationFailure&gt; <span class="kw">for </span>GroupDecryptionError {
+<span class="kw">impl </span>From&lt;zkgroup::ZkGroupDeserializationFailure&gt; <span class="kw">for </span>GroupDecodingError {
     <span class="kw">fn </span>from(<span class="kw">_</span>: zkgroup::ZkGroupDeserializationFailure) -&gt; <span class="self">Self </span>{
-        GroupDecryptionError::ZkGroupDeserializationFailure
+        GroupDecodingError::ZkGroupDeserializationFailure
     }
 }
 
-<span class="kw">impl </span>From&lt;zkgroup::ZkGroupVerificationFailure&gt; <span class="kw">for </span>GroupDecryptionError {
+<span class="kw">impl </span>From&lt;zkgroup::ZkGroupVerificationFailure&gt; <span class="kw">for </span>GroupDecodingError {
     <span class="kw">fn </span>from(<span class="kw">_</span>: zkgroup::ZkGroupVerificationFailure) -&gt; <span class="self">Self </span>{
-        GroupDecryptionError::ZkGroupVerificationFailure
+        GroupDecodingError::ZkGroupVerificationFailure
     }
 }
 
 <span class="kw">impl </span>GroupOperations {
-    <span class="kw">fn </span>decrypt_uuid(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Uuid, GroupDecryptionError&gt; {
+    <span class="kw">fn </span>decrypt_uuid(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Uuid, GroupDecodingError&gt; {
         <span class="kw">let </span>bytes = <span class="self">self
             </span>.group_secret_params
             .decrypt_uuid(bincode::deserialize(uuid)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
@@ -848,7 +495,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         encrypted_profile_key: <span class="kw-2">&amp;</span>[u8],
         decrypted_uuid: <span class="kw-2">&amp;</span>Uuid,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProfileKey, GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;ProfileKey, GroupDecodingError&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.group_secret_params.decrypt_profile_key(
             bincode::deserialize(encrypted_profile_key)<span class="question-mark">?</span>,
             <span class="kw-2">*</span>decrypted_uuid.as_bytes(),
@@ -858,7 +505,7 @@
     <span class="kw">fn </span>decrypt_profile_key_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         presentation: <span class="kw-2">&amp;</span>[u8],
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(Uuid, ProfileKey), GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(Uuid, ProfileKey), GroupDecodingError&gt; {
         <span class="kw">let </span>profile_key_credential_presentation =
             AnyProfileKeyCredentialPresentation::new(presentation)<span class="question-mark">?</span>;
         <span class="kw">let </span>uuid = Uuid::from_bytes(<span class="self">self</span>.group_secret_params.decrypt_uuid(
@@ -874,7 +521,7 @@
     <span class="kw">fn </span>decrypt_member(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         member: EncryptedMember,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Member, GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Member, GroupDecodingError&gt; {
         <span class="kw">let </span>(uuid, profile_key) = <span class="kw">if </span>member.presentation.is_empty() {
             <span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>member.user_id)<span class="question-mark">?</span>;
             <span class="kw">let </span>profile_key =
@@ -886,8 +533,7 @@
         <span class="prelude-val">Ok</span>(Member {
             uuid,
             profile_key,
-            role: Role::from_i32(member.role)
-                .ok_or(GroupDecryptionError::WrongBlob)<span class="question-mark">?</span>,
+            role: member.role.try_into()<span class="question-mark">?</span>,
             joined_at_revision: member.joined_at_revision,
         })
     }
@@ -895,17 +541,16 @@
     <span class="kw">fn </span>decrypt_pending_member(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         member: proto::PendingMember,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;PendingMember, GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;PendingMember, GroupDecodingError&gt; {
         <span class="kw">let </span>inner_member =
-            member.member.ok_or(GroupDecryptionError::WrongBlob)<span class="question-mark">?</span>;
+            member.member.ok_or(GroupDecodingError::WrongBlob)<span class="question-mark">?</span>;
         <span class="comment">// &quot;Unknown&quot; UUID with zeroes in case of errors, see: UuidUtil.java:16
         </span><span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>inner_member.user_id).unwrap_or_default();
         <span class="kw">let </span>added_by_uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>member.added_by_user_id)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(PendingMember {
             uuid,
-            role: Role::from_i32(inner_member.role)
-                .ok_or(GroupDecryptionError::WrongBlob)<span class="question-mark">?</span>,
+            role: inner_member.role.try_into()<span class="question-mark">?</span>,
             added_by_uuid,
             timestamp: member.timestamp,
         })
@@ -914,7 +559,7 @@
     <span class="kw">fn </span>decrypt_requesting_member(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         member: proto::RequestingMember,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;RequestingMember, GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;RequestingMember, GroupDecodingError&gt; {
         <span class="kw">let </span>(uuid, profile_key) = <span class="kw">if </span>member.presentation.is_empty() {
             <span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>member.user_id)<span class="question-mark">?</span>;
             <span class="kw">let </span>profile_key =
@@ -939,10 +584,10 @@
         } <span class="kw">else </span>{
             <span class="self">self</span>.group_secret_params
                 .decrypt_blob(bytes)
-                .map_err(GroupDecryptionError::from)
+                .map_err(GroupDecodingError::from)
                 .and_then(|b| {
                     GroupAttributeBlob::decode(Bytes::copy_from_slice(<span class="kw-2">&amp;</span>b[<span class="number">4</span>..]))
-                        .map_err(GroupDecryptionError::ProtobufDecodeError)
+                        .map_err(GroupDecodingError::ProtobufDecodeError)
                 })
                 .unwrap_or_else(|e| {
                     <span class="macro">log::warn!</span>(<span class="string">&quot;bad encrypted blob: {}&quot;</span>, e);
@@ -989,7 +634,7 @@
     <span class="kw">pub fn </span>decrypt_group(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         group: proto::Group,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Group, GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Group, GroupDecodingError&gt; {
         <span class="kw">let </span>title = <span class="self">self</span>.decrypt_title(<span class="kw-2">&amp;</span>group.title);
 
         <span class="kw">let </span>description = <span class="self">self</span>.decrypt_description(<span class="kw-2">&amp;</span>group.description);
@@ -1021,7 +666,10 @@
             title,
             avatar: group.avatar,
             disappearing_messages_timer,
-            access_control: group.access_control,
+            access_control: group
+                .access_control
+                .map(TryInto::try_into)
+                .transpose()<span class="question-mark">?</span>,
             revision: group.revision,
             members,
             pending_members,
@@ -1034,7 +682,7 @@
     <span class="kw">pub fn </span>decrypt_group_change(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         group_change: proto::GroupChange,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GroupChanges, GroupDecryptionError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;GroupChanges, GroupDecodingError&gt; {
         <span class="kw">let </span>actions: proto::group_change::Actions =
             Message::decode(Bytes::from(group_change.actions))<span class="question-mark">?</span>;
 
@@ -1055,8 +703,7 @@
             actions.modify_member_roles.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::ModifyMemberRole {
                     uuid: <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>m.user_id)<span class="question-mark">?</span>,
-                    role: Role::from_i32(m.role)
-                        .ok_or(GroupDecryptionError::WrongEnumValue)<span class="question-mark">?</span>,
+                    role: m.role.try_into()<span class="question-mark">?</span>,
                 })
             });
 
@@ -1120,17 +767,13 @@
         <span class="kw">let </span>modify_attributes_access =
             actions.modify_attributes_access.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::AttributeAccess(
-                    AccessRequired::from_i32(m.attributes_access)
-                        .ok_or(GroupDecryptionError::WrongEnumValue)<span class="question-mark">?</span>,
+                    m.attributes_access.try_into()<span class="question-mark">?</span>,
                 ))
             });
 
         <span class="kw">let </span>modify_member_access =
             actions.modify_member_access.into_iter().map(|m| {
-                <span class="prelude-val">Ok</span>(GroupChange::MemberAccess(
-                    AccessRequired::from_i32(m.members_access)
-                        .ok_or(GroupDecryptionError::WrongEnumValue)<span class="question-mark">?</span>,
-                ))
+                <span class="prelude-val">Ok</span>(GroupChange::MemberAccess(m.members_access.try_into()<span class="question-mark">?</span>))
             });
 
         <span class="kw">let </span>modify_add_from_invite_link_access = actions
@@ -1138,8 +781,7 @@
             .into_iter()
             .map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::InviteLinkAccess(
-                    AccessRequired::from_i32(m.add_from_invite_link_access)
-                        .ok_or(GroupDecryptionError::WrongEnumValue)<span class="question-mark">?</span>,
+                    m.add_from_invite_link_access.try_into()<span class="question-mark">?</span>,
                 ))
             });
 
@@ -1164,8 +806,7 @@
             actions.promote_requesting_members.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::PromoteRequestingMember {
                     uuid: <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>m.user_id)<span class="question-mark">?</span>,
-                    role: Role::from_i32(m.role)
-                        .ok_or(GroupDecryptionError::WrongEnumValue)<span class="question-mark">?</span>,
+                    role: m.role.try_into()<span class="question-mark">?</span>,
                 })
             });
 
@@ -1181,27 +822,26 @@
             .into_iter()
             .map(|m| <span class="prelude-val">Ok</span>(GroupChange::AnnouncementOnly(m.announcements_only)));
 
-        <span class="kw">let </span>changes: <span class="prelude-ty">Result</span>&lt;Vec&lt;GroupChange&gt;, GroupDecryptionError&gt; =
-            new_members
-                .chain(delete_members)
-                .chain(modify_member_roles)
-                .chain(modify_member_profile_keys)
-                .chain(add_pending_members)
-                .chain(delete_pending_members)
-                .chain(promote_pending_members)
-                .chain(modify_title)
-                .chain(modify_avatar)
-                .chain(modify_disappearing_messages_timer)
-                .chain(modify_attributes_access)
-                .chain(modify_description)
-                .chain(modify_member_access)
-                .chain(modify_add_from_invite_link_access)
-                .chain(add_requesting_members)
-                .chain(delete_requesting_members)
-                .chain(promote_requesting_members)
-                .chain(modify_invite_link_password)
-                .chain(modify_announcements_only)
-                .collect();
+        <span class="kw">let </span>changes: <span class="prelude-ty">Result</span>&lt;Vec&lt;GroupChange&gt;, GroupDecodingError&gt; = new_members
+            .chain(delete_members)
+            .chain(modify_member_roles)
+            .chain(modify_member_profile_keys)
+            .chain(add_pending_members)
+            .chain(delete_pending_members)
+            .chain(promote_pending_members)
+            .chain(modify_title)
+            .chain(modify_avatar)
+            .chain(modify_disappearing_messages_timer)
+            .chain(modify_attributes_access)
+            .chain(modify_description)
+            .chain(modify_member_access)
+            .chain(modify_add_from_invite_link_access)
+            .chain(add_requesting_members)
+            .chain(delete_requesting_members)
+            .chain(promote_requesting_members)
+            .chain(modify_invite_link_password)
+            .chain(modify_announcements_only)
+            .collect();
 
         <span class="prelude-val">Ok</span>(GroupChanges {
             editor: uuid,
