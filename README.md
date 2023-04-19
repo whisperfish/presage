@@ -31,29 +31,13 @@ Included in this repository is a CLI very similar (on purpose) to the great [sig
 
 ```
 # print help section
-cargo run --example=cli -- --help
+cargo run -- --help
 
 # link as secondary device, a PNG with a QR code to scan should open
-cargo run --example=cli -- link-device --device-name presage
+cargo run -- link-device --device-name presage
 
 # start receiving messages
-cargo run --example=cli -- receive
+cargo run -- receive
 ```
 
-For usage of the library, a few examples are included under the `examples/` directory, and most features are demonstrated
-in [examples/cli.rs](./examples/cli.rs).
-
-## Migration notes
-
-### Migrating from `0.5.x` to `0.6.x`
-
-Apart from the few obvious changes in the API, one of the main differences between both versions is that you will now
-require to use two crates as `[dependencies]`, one for the library and one for the store backend, which could look like:
-
-```toml
-[dependencies]
-presage = { git = "https://github.com/whisperfish/presage" }
-presage-store-sled = { git = "https://github.com/whisperfish/presage" }
-```
-
-and then get the store implementation from the store crate instead when importing it like `use presage_store_sled::SledStore;`.
+For usage of the library, the CLI is a good starting point to look at how the API can be used.
