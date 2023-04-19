@@ -2,6 +2,7 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -9,7 +10,8 @@ use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
-use futures::{channel::oneshot, future, pin_mut, StreamExt};
+use futures::StreamExt;
+use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
 use presage::libsignal_service::content::Reaction;
@@ -28,6 +30,8 @@ use presage::{
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
+use tokio::task;
+use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -198,7 +202,7 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: Store>(
+async fn send<C: Store + 'static>(
     msg: &str,
     uuid: &Uuid,
     manager: &mut Manager<C, Registered>,
@@ -214,12 +218,27 @@ async fn send<C: Store>(
         ..Default::default()
     });
 
-    let mut m = manager.clone();
-    let _ = future::join(
-        receive(&mut m, false),
-        manager.send_message(*uuid, message, timestamp),
-    )
-    .await;
+    let local = task::LocalSet::new();
+
+    local
+        .run_until(async move {
+            let mut receiving_manager = manager.clone();
+            task::spawn_local(async move {
+                if let Err(e) = receive(&mut receiving_manager, false).await {
+                    error!("error while receiving stuff: {e}");
+                }
+            });
+
+            sleep(Duration::from_secs(5)).await;
+
+            manager
+                .send_message(*uuid, message, timestamp)
+                .await
+                .unwrap();
+
+            sleep(Duration::from_secs(5)).await;
+        })
+        .await;
 
     Ok(())
 }
@@ -318,7 +337,7 @@ fn print_message<C: Store>(
             .ok()
             .flatten()
             .filter(|c| !c.name.is_empty())
-            .map(|c| c.name)
+            .map(|c| format!("{}: {}", c.name, uuid))
             .unwrap_or_else(|| uuid.to_string())
     };
 
@@ -370,7 +389,7 @@ fn print_message<C: Store>(
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = content.metadata.sender.uuid;
+                let sender = format_contact(&content.metadata.sender.uuid);
                 let group = format_group(key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
@@ -419,7 +438,7 @@ async fn receive<C: Store>(
     Ok(())
 }
 
-async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,

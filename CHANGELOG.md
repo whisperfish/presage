@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Handle message deletion sent by contacts. (#147)
 - Split `presage` into multiple crates, before introducing additional store implementations. (#148)
+- Messages are now sent, whenever possible (which should be all the time), as [sealed sender](https://signal.org/blog/sealed-sender/). [#159] 
 
 ## [0.5.0]
 

@@ -51,6 +51,7 @@ const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
 const SLED_TREE_PROFILES: &str = "profiles";
+const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -204,7 +205,7 @@ impl SledStore {
             .map_err(SledStoreError::from)
     }
 
-    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), SledStoreError>
+    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<bool, SledStoreError>
     where
         K: AsRef<[u8]>,
         V: Serialize,
@@ -213,9 +214,9 @@ impl SledStore {
             || serde_json::to_vec(&value).map_err(SledStoreError::from),
             |c| c.encrypt_value(&value).map_err(SledStoreError::from),
         )?;
-        let _ = self.tree(tree)?.insert(key, value)?;
+        let replaced = self.tree(tree)?.insert(key, value)?;
         self.db.flush()?;
-        Ok(())
+        Ok(replaced.is_some())
     }
 
     fn remove<K>(&self, tree: &str, key: K) -> Result<bool, SledStoreError>
@@ -239,7 +240,7 @@ impl SledStore {
         format!("{SLED_TREE_THREADS_PREFIX}:{:x}", hasher.finalize())
     }
 
-    fn profile_key(&self, uuid: Uuid, key: ProfileKey) -> String {
+    fn profile_key_for_uuid(&self, uuid: Uuid, key: ProfileKey) -> String {
         let key = uuid
             .into_bytes()
             .into_iter()
@@ -382,7 +383,8 @@ impl Store for SledStore {
     }
 
     fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
+        Ok(())
     }
 
     fn next_signed_pre_key_id(&self) -> Result<u32, SledStoreError> {
@@ -392,7 +394,8 @@ impl Store for SledStore {
     }
 
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
+        Ok(())
     }
 
     /// Contacts
@@ -548,18 +551,27 @@ impl Store for SledStore {
         })
     }
 
+    fn upsert_profile_key(&mut self, uuid: &Uuid, key: ProfileKey) -> Result<bool, SledStoreError> {
+        self.insert(SLED_TREE_PROFILE_KEYS, uuid.as_bytes(), key)
+    }
+
+    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, SledStoreError> {
+        self.get(SLED_TREE_PROFILE_KEYS, uuid.as_bytes())
+    }
+
     fn save_profile(
         &mut self,
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
     ) -> Result<(), SledStoreError> {
-        let key = self.profile_key(uuid, key);
-        self.insert(SLED_TREE_PROFILES, key, profile)
+        let key = self.profile_key_for_uuid(uuid, key);
+        self.insert(SLED_TREE_PROFILES, key, profile)?;
+        Ok(())
     }
 
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, SledStoreError> {
-        let key = self.profile_key(uuid, key);
+        let key = self.profile_key_for_uuid(uuid, key);
         self.get(SLED_TREE_PROFILES, key)
     }
 }
@@ -689,7 +701,8 @@ impl SignedPreKeyStore for SledStore {
         .map_err(|e| {
             log::error!("sled error: {}", e);
             SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
-        })
+        })?;
+        Ok(())
     }
 }
 
@@ -717,7 +730,8 @@ impl SessionStore for SledStore {
     ) -> Result<(), SignalProtocolError> {
         trace!("storing session {}", address);
         self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
-            .map_err(SledStoreError::into_signal_error)
+            .map_err(SledStoreError::into_signal_error)?;
+        Ok(())
     }
 }
 
@@ -886,7 +900,8 @@ impl SenderKeyStore for SledStore {
             distribution_id
         );
         self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
-            .map_err(SledStoreError::into_signal_error)
+            .map_err(SledStoreError::into_signal_error)?;
+        Ok(())
     }
 
     async fn load_sender_key(
