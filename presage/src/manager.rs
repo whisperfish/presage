@@ -2,7 +2,7 @@ use std::{
     fmt,
     ops::RangeBounds,
     sync::Arc,
-    time::{Duration, UNIX_EPOCH, SystemTime}, mem::needs_drop,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
@@ -25,7 +25,10 @@ use libsignal_service::{
         protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
         Content, ProfileKey, PushService, Uuid,
     },
-    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2, NullMessage, Envelope, sender_certificate},
+    proto::{
+        data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
+        NullMessage,
+    },
     provisioning::{
         generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
         VerificationCodeResponse,
@@ -629,7 +632,7 @@ impl<C: Store> Manager<C, Registered> {
             .as_millis() as u64;
 
         // first request the sync
-        self.send_message(self.state.uuid, sync_message, timestamp, false)
+        self.send_message(self.state.uuid, sync_message, timestamp)
             .await?;
 
         Ok(())
@@ -642,8 +645,9 @@ impl<C: Store> Manager<C, Registered> {
             }
 
             let seconds_since_epoch = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards").as_secs();
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_secs();
 
             if let Some(expiration) = sender_certificate.and_then(|s| s.expiration().ok()) {
                 expiration >= seconds_since_epoch - 600
@@ -663,7 +667,11 @@ impl<C: Store> Manager<C, Registered> {
                 .replace(sender_certificate);
         }
 
-        Ok(self.state.unidentified_sender_certificate.clone().expect("logic error"))
+        Ok(self
+            .state
+            .unidentified_sender_certificate
+            .clone()
+            .expect("logic error"))
     }
 
     pub async fn submit_recaptcha_challenge(
@@ -924,7 +932,6 @@ impl<C: Store> Manager<C, Registered> {
         recipient_addr: impl Into<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
-        unidentified: bool,
     ) -> Result<(), Error<C::Error>> {
         let mut sender = self.new_message_sender()?;
 
@@ -932,18 +939,16 @@ impl<C: Store> Manager<C, Registered> {
         let recipient = recipient_addr.into();
         let content_body: ContentBody = message.into();
 
-        // XXX: this would only work for clients linked as secondary device, as we don't have 
-        // a separate store for profile (yet!)
-        let recipient_profile_key = self
-            .contact_by_id(&recipient.uuid)?
-            .map(|c| ProfileKey::create(c.profile_key.try_into().unwrap()).derive_access_key()).ok_or(Error::UnknownRecipient)?;
-
-        let certificate = self.sender_certificate().await?;
-
-        let unidentified_access = unidentified.then(|| UnidentifiedAccess {
-            key: recipient_profile_key,
-            certificate,
-        });
+        let sender_certificate = self.sender_certificate().await?;
+        let unidentified_access =
+            if let Some(profile_key) = self.config_store.profile_key(&recipient.uuid)? {
+                Some(UnidentifiedAccess {
+                    key: profile_key.derive_access_key(),
+                    certificate: sender_certificate.clone(),
+                })
+            } else {
+                None
+            };
 
         sender
             .send_message(
@@ -1000,12 +1005,24 @@ impl<C: Store> Manager<C, Registered> {
             return Err(Error::UnknownGroup);
         };
 
-        let recipients: Vec<_> = group
+        let sender_certificate = self.sender_certificate().await?;
+        let mut recipients = Vec::new();
+        for member in group
             .members
             .into_iter()
             .filter(|m| m.uuid != self.state.uuid)
-            .map(|m| (m.uuid.into(), None))
-            .collect();
+        {
+            let unidentified_access =
+                if let Some(profile_key) = self.config_store.profile_key(&member.uuid)? {
+                    Some(UnidentifiedAccess {
+                        key: profile_key.derive_access_key(),
+                        certificate: sender_certificate.clone(),
+                    })
+                } else {
+                    None
+                };
+            recipients.push((member.uuid.into(), unidentified_access));
+        }
 
         let online_only = false;
         let results = sender
@@ -1068,8 +1085,7 @@ impl<C: Store> Manager<C, Registered> {
             ..Default::default()
         };
 
-        self.send_message(*recipient, message, timestamp, false)
-            .await?;
+        self.send_message(*recipient, message, timestamp).await?;
 
         Ok(())
     }
@@ -1182,7 +1198,7 @@ async fn upsert_group<C: Store>(
 ) -> Result<Option<Group>, Error<C::Error>> {
     let save_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
-            log::debug!("loaded group from local db {group:?}");
+            log::debug!("loaded group from local db {}", group.title);
             group.revision < *revision
         }
         Ok(None) => true,
@@ -1214,6 +1230,20 @@ fn save_message_with_thread<C: Store>(
     message: Content,
     thread: Thread,
 ) -> Result<(), Error<C::Error>> {
+    // update recipient profile keys
+    if let ContentBody::DataMessage(DataMessage {
+        profile_key: Some(profile_key_bytes),
+        ..
+    }) = &message.body
+    {
+        if let Ok(profile_key_bytes) = profile_key_bytes.clone().try_into() {
+            let sender_uuid = message.metadata.sender.uuid;
+            let profile_key = ProfileKey::create(profile_key_bytes);
+            log::debug!("inserting profile key for {sender_uuid}");
+            config_store.upsert_profile_key(&sender_uuid, profile_key)?;
+        }
+    }
+
     // only save DataMessage and SynchronizeMessage (sent)
     match &message.body {
         ContentBody::NullMessage(_) => config_store.save_message(&thread, message)?,

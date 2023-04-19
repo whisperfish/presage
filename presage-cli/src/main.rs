@@ -159,8 +159,6 @@ enum Cmd {
         uuid: Uuid,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(long, help = "whether to send identified or not")]
-        unidentified: bool,
     },
     #[clap(about = "Send a message to group")]
     SendToGroup {
@@ -207,7 +205,6 @@ async fn main() -> anyhow::Result<()> {
 async fn send<C: Store + 'static>(
     msg: &str,
     uuid: &Uuid,
-    unidentified: bool,
     manager: &mut Manager<C, Registered>,
 ) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
@@ -226,7 +223,7 @@ async fn send<C: Store + 'static>(
     local
         .run_until(async move {
             let mut receiving_manager = manager.clone();
-            let receiving_task = task::spawn_local(async move {
+            task::spawn_local(async move {
                 if let Err(e) = receive(&mut receiving_manager, false).await {
                     error!("error while receiving stuff: {e}");
                 }
@@ -234,10 +231,10 @@ async fn send<C: Store + 'static>(
 
             sleep(Duration::from_secs(5)).await;
 
-
             manager
-                .send_message(*uuid, message, timestamp, unidentified)
-                .await.unwrap();
+                .send_message(*uuid, message, timestamp)
+                .await
+                .unwrap();
 
             sleep(Duration::from_secs(5)).await;
         })
@@ -340,7 +337,7 @@ fn print_message<C: Store>(
             .ok()
             .flatten()
             .filter(|c| !c.name.is_empty())
-            .map(|c| c.name)
+            .map(|c| format!("{}: {}", c.name, uuid))
             .unwrap_or_else(|| uuid.to_string())
     };
 
@@ -392,7 +389,7 @@ fn print_message<C: Store>(
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = content.metadata.sender.uuid;
+                let sender = format_contact(&content.metadata.sender.uuid);
                 let group = format_group(key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
@@ -506,13 +503,9 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             let mut manager = Manager::load_registered(config_store)?;
             receive(&mut manager, notifications).await?;
         }
-        Cmd::Send {
-            uuid,
-            message,
-            unidentified,
-        } => {
+        Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store)?;
-            send(&message, &uuid, unidentified, &mut manager).await?;
+            send(&message, &uuid, &mut manager).await?;
         }
         Cmd::SendToGroup {
             message,

@@ -109,6 +109,12 @@ pub trait Store:
 
     /// Profiles
 
+    /// Insert or update the profile key of a contact
+    fn upsert_profile_key(&mut self, uuid: &Uuid, key: ProfileKey) -> Result<bool, Self::Error>;
+
+    /// Get the profile key for a contact
+    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, Self::Error>;
+
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(
         &mut self,
