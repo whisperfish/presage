@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Fix synchronization issue in the `sled` store implementation which could lead to corrupted sessions. (#162)
+
 ### Changed
 
 ## [0.5.1]
