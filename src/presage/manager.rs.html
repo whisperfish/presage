@@ -1286,10 +1286,6 @@
 <a href="#1286" id="1286">1286</a>
 <a href="#1287" id="1287">1287</a>
 <a href="#1288" id="1288">1288</a>
-<a href="#1289" id="1289">1289</a>
-<a href="#1290" id="1290">1290</a>
-<a href="#1291" id="1291">1291</a>
-<a href="#1292" id="1292">1292</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -2233,14 +2229,12 @@
 
         <span class="kw">let </span>sender_certificate = <span class="self">self</span>.sender_certificate().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>unidentified_access =
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(profile_key) = <span class="self">self</span>.config_store.profile_key(<span class="kw-2">&amp;</span>recipient.uuid)<span class="question-mark">? </span>{
-                <span class="prelude-val">Some</span>(UnidentifiedAccess {
+            <span class="self">self</span>.config_store
+                .profile_key(<span class="kw-2">&amp;</span>recipient.uuid)<span class="question-mark">?
+                </span>.map(|profile_key| UnidentifiedAccess {
                     key: profile_key.derive_access_key(),
                     certificate: sender_certificate.clone(),
-                })
-            } <span class="kw">else </span>{
-                <span class="prelude-val">None
-            </span>};
+                });
 
         sender
             .send_message(
@@ -2305,14 +2299,12 @@
             .filter(|m| m.uuid != <span class="self">self</span>.state.uuid)
         {
             <span class="kw">let </span>unidentified_access =
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(profile_key) = <span class="self">self</span>.config_store.profile_key(<span class="kw-2">&amp;</span>member.uuid)<span class="question-mark">? </span>{
-                    <span class="prelude-val">Some</span>(UnidentifiedAccess {
+                <span class="self">self</span>.config_store
+                    .profile_key(<span class="kw-2">&amp;</span>member.uuid)<span class="question-mark">?
+                    </span>.map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key(),
                         certificate: sender_certificate.clone(),
-                    })
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">None
-                </span>};
+                    });
             recipients.push((member.uuid.into(), unidentified_access));
         }
 
