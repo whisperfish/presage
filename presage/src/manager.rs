@@ -941,14 +941,12 @@ impl<C: Store> Manager<C, Registered> {
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
-            if let Some(profile_key) = self.config_store.profile_key(&recipient.uuid)? {
-                Some(UnidentifiedAccess {
+            self.config_store
+                .profile_key(&recipient.uuid)?
+                .map(|profile_key| UnidentifiedAccess {
                     key: profile_key.derive_access_key(),
                     certificate: sender_certificate.clone(),
-                })
-            } else {
-                None
-            };
+                });
 
         sender
             .send_message(
@@ -1013,14 +1011,12 @@ impl<C: Store> Manager<C, Registered> {
             .filter(|m| m.uuid != self.state.uuid)
         {
             let unidentified_access =
-                if let Some(profile_key) = self.config_store.profile_key(&member.uuid)? {
-                    Some(UnidentifiedAccess {
+                self.config_store
+                    .profile_key(&member.uuid)?
+                    .map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key(),
                         certificate: sender_certificate.clone(),
-                    })
-                } else {
-                    None
-                };
+                    });
             recipients.push((member.uuid.into(), unidentified_access));
         }
 
