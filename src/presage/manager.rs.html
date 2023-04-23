@@ -1272,20 +1272,6 @@
 <a href="#1272" id="1272">1272</a>
 <a href="#1273" id="1273">1273</a>
 <a href="#1274" id="1274">1274</a>
-<a href="#1275" id="1275">1275</a>
-<a href="#1276" id="1276">1276</a>
-<a href="#1277" id="1277">1277</a>
-<a href="#1278" id="1278">1278</a>
-<a href="#1279" id="1279">1279</a>
-<a href="#1280" id="1280">1280</a>
-<a href="#1281" id="1281">1281</a>
-<a href="#1282" id="1282">1282</a>
-<a href="#1283" id="1283">1283</a>
-<a href="#1284" id="1284">1284</a>
-<a href="#1285" id="1285">1285</a>
-<a href="#1286" id="1286">1286</a>
-<a href="#1287" id="1287">1287</a>
-<a href="#1288" id="1288">1288</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1383,8 +1369,6 @@
     </span>push_service_cache: CacheCell&lt;HyperPushService&gt;,
     <span class="attr">#[serde(skip)]
     </span>identified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
-    <span class="attr">#[serde(skip)]
-    </span>unidentified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
     <span class="attr">#[serde(skip)]
     </span>unidentified_sender_certificate: <span class="prelude-ty">Option</span>&lt;SenderCertificate&gt;,
 
@@ -1632,7 +1616,6 @@
             state: Registered {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
-                unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
                 signal_servers,
                 device_name: <span class="prelude-val">Some</span>(device_name),
@@ -1757,7 +1740,6 @@
             state: Registered {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
-                unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
                 signal_servers: <span class="self">self</span>.state.signal_servers,
                 device_name: <span class="prelude-val">None</span>,
@@ -2067,17 +2049,7 @@
             .create_message_pipe(credentials)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
-        <span class="kw">let </span><span class="kw-2">mut </span>unidentified_push_service =
-            HyperPushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
-        <span class="kw">let </span>unidentified_ws = unidentified_push_service
-            .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="self">self</span>.state.identified_websocket.lock().replace(pipe.ws());
-        <span class="self">self</span>.state
-            .unidentified_websocket
-            .lock()
-            .replace(unidentified_ws);
 
         <span class="prelude-val">Ok</span>(pipe.stream())
     }
@@ -2221,7 +2193,7 @@
         message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
         <span class="kw">let </span>recipient = recipient_addr.into();
@@ -2269,7 +2241,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         attachments: Vec&lt;(AttachmentSpec, Vec&lt;u8&gt;)&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;&gt;, Error&lt;C::Error&gt;&gt; {
-        <span class="kw">let </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
+        <span class="kw">let </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>upload = future::join_all(attachments.into_iter().map(<span class="kw">move </span>|(spec, contents)| {
             <span class="kw">let </span><span class="kw-2">mut </span>sender = sender.clone();
             <span class="kw">async move </span>{ sender.upload_attachment(spec, contents).<span class="kw">await </span>}
@@ -2284,7 +2256,7 @@
         message: DataMessage,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender()<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(<span class="kw-2">&amp;</span><span class="self">self</span>.config_store, <span class="kw-2">&amp;mut </span>groups_manager, master_key_bytes, <span class="kw-2">&amp;</span><span class="number">0</span>).<span class="kw">await</span><span class="question-mark">? </span><span class="kw">else </span>{
@@ -2401,7 +2373,7 @@
     }
 
     <span class="doccomment">/// Creates a new message sender.
-    </span><span class="kw">fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;C&gt;, Error&lt;C::Error&gt;&gt; {
+    </span><span class="kw">async fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;C&gt;, Error&lt;C::Error&gt;&gt; {
         <span class="kw">let </span>local_addr = ServiceAddress {
             uuid: <span class="self">self</span>.state.uuid,
         };
@@ -2413,12 +2385,12 @@
             .clone()
             .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>unidentified_websocket = <span class="self">self
-            </span>.state
-            .unidentified_websocket
-            .lock()
-            .clone()
-            .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>;
+        <span class="kw">let </span>service_configuration: ServiceConfiguration = <span class="self">self</span>.state.signal_servers.into();
+        <span class="kw">let </span><span class="kw-2">mut </span>unidentified_push_service =
+            HyperPushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
+        <span class="kw">let </span>unidentified_websocket = unidentified_push_service
+            .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(MessageSender::new(
             identified_websocket,
