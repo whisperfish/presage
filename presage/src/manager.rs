@@ -96,8 +96,6 @@ pub struct Registered {
     #[serde(skip)]
     identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     #[serde(skip)]
-    unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
-    #[serde(skip)]
     unidentified_sender_certificate: Option<SenderCertificate>,
 
     pub signal_servers: SignalServers,
@@ -344,7 +342,6 @@ impl<C: Store> Manager<C, Linking> {
             state: Registered {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
-                unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
                 signal_servers,
                 device_name: Some(device_name),
@@ -469,7 +466,6 @@ impl<C: Store> Manager<C, Confirmation> {
             state: Registered {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
-                unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
@@ -779,17 +775,7 @@ impl<C: Store> Manager<C, Registered> {
             .create_message_pipe(credentials)
             .await?;
 
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let mut unidentified_push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
-        let unidentified_ws = unidentified_push_service
-            .ws("/v1/websocket/", None, false)
-            .await?;
         self.state.identified_websocket.lock().replace(pipe.ws());
-        self.state
-            .unidentified_websocket
-            .lock()
-            .replace(unidentified_ws);
 
         Ok(pipe.stream())
     }
@@ -933,7 +919,7 @@ impl<C: Store> Manager<C, Registered> {
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error<C::Error>> {
-        let mut sender = self.new_message_sender()?;
+        let mut sender = self.new_message_sender().await?;
 
         let online_only = false;
         let recipient = recipient_addr.into();
@@ -981,7 +967,7 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
     ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<C::Error>> {
-        let sender = self.new_message_sender()?;
+        let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
             async move { sender.upload_attachment(spec, contents).await }
@@ -996,7 +982,7 @@ impl<C: Store> Manager<C, Registered> {
         message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error<C::Error>> {
-        let mut sender = self.new_message_sender()?;
+        let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
         let Some(group) = upsert_group(&self.config_store, &mut groups_manager, master_key_bytes, &0).await? else {
@@ -1113,7 +1099,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Creates a new message sender.
-    fn new_message_sender(&self) -> Result<MessageSender<C>, Error<C::Error>> {
+    async fn new_message_sender(&self) -> Result<MessageSender<C>, Error<C::Error>> {
         let local_addr = ServiceAddress {
             uuid: self.state.uuid,
         };
@@ -1125,12 +1111,12 @@ impl<C: Store> Manager<C, Registered> {
             .clone()
             .ok_or(Error::MessagePipeNotStarted)?;
 
-        let unidentified_websocket = self
-            .state
-            .unidentified_websocket
-            .lock()
-            .clone()
-            .ok_or(Error::MessagePipeNotStarted)?;
+        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let mut unidentified_push_service =
+            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+        let unidentified_websocket = unidentified_push_service
+            .ws("/v1/websocket/", None, false)
+            .await?;
 
         Ok(MessageSender::new(
             identified_websocket,
