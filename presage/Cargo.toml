@@ -6,8 +6,8 @@ authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "b26189c" }
-libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "b26189c" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "c2f70ef" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "c2f70ef" }
 
 base64 = "0.12"
 futures = "0.3"

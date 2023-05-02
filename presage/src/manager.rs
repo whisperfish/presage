@@ -40,7 +40,10 @@ use libsignal_service::{
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     unidentified_access::UnidentifiedAccess,
-    utils::{serde_private_key, serde_public_key, serde_signaling_key},
+    utils::{
+        serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
+        serde_signaling_key,
+    },
     websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
@@ -114,10 +117,10 @@ pub struct Registered {
     pub aci_private_key: PrivateKey,
     #[serde(with = "serde_public_key", rename = "public_key")]
     pub aci_public_key: PublicKey,
-    #[serde(with = "serde_private_key")]
-    pub pni_private_key: PrivateKey,
-    #[serde(with = "serde_public_key")]
-    pub pni_public_key: PublicKey,
+    #[serde(with = "serde_optional_private_key")]
+    pub pni_private_key: Option<PrivateKey>,
+    #[serde(with = "serde_optional_public_key")]
+    pub pni_public_key: Option<PublicKey>,
     #[serde(with = "serde_profile_key")]
     profile_key: ProfileKey,
 }
@@ -329,8 +332,8 @@ impl<C: Store> Manager<C, Linking> {
                         pni_registration_id: None,
                         aci_public_key,
                         aci_private_key,
-                        pni_public_key,
-                        pni_private_key,
+                        pni_public_key: Some(pni_public_key),
+                        pni_private_key: Some(pni_private_key),
                         profile_key: ProfileKey::create(
                             profile_key.try_into().expect("32 bytes for profile key"),
                         ),
@@ -474,8 +477,8 @@ impl<C: Store> Manager<C, Confirmation> {
                 pni_registration_id: Some(pni_registration_id),
                 aci_private_key: aci_identity_key_pair.private_key,
                 aci_public_key: aci_identity_key_pair.public_key,
-                pni_private_key: pni_identity_key_pair.private_key,
-                pni_public_key: pni_identity_key_pair.public_key,
+                pni_private_key: Some(pni_identity_key_pair.private_key),
+                pni_public_key: Some(pni_identity_key_pair.public_key),
                 profile_key,
             },
         };
