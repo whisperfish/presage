@@ -11,9 +11,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+### Changed
+
+## [0.5.2]
+
+### Added
+
+- Set registration for PNI (phone-number identity) which will be fully implemented later. (#164)
+
+### Fixed
+
 - Fix synchronization issue in the `sled` store implementation which could lead to corrupted sessions. (#162)
+- Don't reuse websocket when sending unidentified messages. (#165)
+- Fix fetching groups v2 metadata. (#164)
 
 ### Changed
+
+- `Manager::load_registered` is now an async method (small breaking change, sorry!). (#164)
 
 ## [0.5.1]
 
@@ -76,4 +90,5 @@ and then get the store implementation from the store crate instead when importin
 
 [0.5.0]: https://github.com/whisperfish/presage/compare/0.4.0...0.5.0
 [0.5.1]: https://github.com/whisperfish/presage/compare/0.5.0...0.5.1
-[Unreleased]: https://github.com/whisperfish/presage/compare/0.5.1...main
+[0.5.1]: https://github.com/whisperfish/presage/compare/0.5.2...0.5.2
+[Unreleased]: https://github.com/whisperfish/presage/compare/0.5.2...main
