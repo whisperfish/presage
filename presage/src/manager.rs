@@ -34,8 +34,8 @@ use libsignal_service::{
         VerificationCodeResponse,
     },
     push_service::{
-        AccountAttributes, DeviceCapabilities, ProfileKeyExt, ServiceError, WhoAmIResponse,
-        DEFAULT_DEVICE_ID,
+        AccountAttributes, DeviceCapabilities, DeviceId, ProfileKeyExt, ServiceError, ServiceIds,
+        WhoAmIResponse, DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -49,9 +49,8 @@ use libsignal_service_hyper::push_service::HyperPushService;
 use crate::{cache::CacheCell, serde::serde_profile_key, Thread};
 use crate::{store::Store, Error};
 
-type ServiceCipher<C> = cipher::ServiceCipher<C, C, C, C, C, StdRng>;
-type MessageSender<C> =
-    libsignal_service::prelude::MessageSender<HyperPushService, C, C, C, C, C, StdRng>;
+type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
+type MessageSender<C> = libsignal_service::prelude::MessageSender<HyperPushService, C, StdRng>;
 
 #[derive(Clone)]
 pub struct Manager<Store, State> {
@@ -96,21 +95,29 @@ pub struct Registered {
     #[serde(skip)]
     identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     #[serde(skip)]
+    unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    #[serde(skip)]
     unidentified_sender_certificate: Option<SenderCertificate>,
 
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
-    pub uuid: Uuid,
+    #[serde(flatten)]
+    pub service_ids: ServiceIds,
     password: String,
     #[serde(with = "serde_signaling_key")]
     signaling_key: SignalingKey,
     pub device_id: Option<u32>,
     pub registration_id: u32,
+    pub pni_registration_id: Option<u32>,
+    #[serde(with = "serde_private_key", rename = "private_key")]
+    pub aci_private_key: PrivateKey,
+    #[serde(with = "serde_public_key", rename = "public_key")]
+    pub aci_public_key: PublicKey,
     #[serde(with = "serde_private_key")]
-    pub private_key: PrivateKey,
+    pub pni_private_key: PrivateKey,
     #[serde(with = "serde_public_key")]
-    pub public_key: PublicKey,
+    pub pni_public_key: PublicKey,
     #[serde(with = "serde_profile_key")]
     profile_key: ProfileKey,
 }
@@ -126,18 +133,6 @@ impl fmt::Debug for Registered {
 impl Registered {
     pub fn device_id(&self) -> u32 {
         self.device_id.unwrap_or(DEFAULT_DEVICE_ID)
-    }
-
-    pub fn registration_id(&self) -> u32 {
-        self.registration_id
-    }
-
-    pub fn private_key(&self) -> PrivateKey {
-        self.private_key
-    }
-
-    pub fn public_key(&self) -> PublicKey {
-        self.public_key
     }
 }
 
@@ -293,7 +288,7 @@ impl<C: Store> Manager<C, Linking> {
 
         let (tx, mut rx) = mpsc::channel(1);
 
-        let (fut1, fut2) = future::join(
+        let (wait_for_qrcode_scan, registration) = future::join(
             linking_manager.provision_secondary_device(&mut rng, signaling_key, tx),
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
@@ -307,24 +302,40 @@ impl<C: Store> Manager<C, Linking> {
 
                 if let Some(SecondaryDeviceProvisioning::NewDeviceRegistration {
                     phone_number,
-                    device_id,
+                    device_id: DeviceId { device_id },
                     registration_id,
-                    uuid,
-                    private_key,
-                    public_key,
+                    pni_registration_id,
                     profile_key,
+                    service_ids,
+                    aci_private_key,
+                    aci_public_key,
+                    pni_private_key,
+                    pni_public_key,
                 }) = rx.next().await
                 {
-                    log::info!("successfully registered device {}", &uuid);
-                    Ok((
+                    log::info!("successfully registered device {}", &service_ids);
+                    Ok(Registered {
+                        push_service_cache: CacheCell::default(),
+                        identified_websocket: Default::default(),
+                        unidentified_websocket: Default::default(),
+                        unidentified_sender_certificate: Default::default(),
+                        signal_servers,
+                        device_name: Some(device_name),
                         phone_number,
-                        device_id.device_id,
+                        service_ids,
+                        signaling_key,
+                        password,
+                        device_id: Some(device_id),
                         registration_id,
-                        uuid,
-                        private_key,
-                        public_key,
-                        profile_key,
-                    ))
+                        pni_registration_id: Some(pni_registration_id),
+                        aci_public_key,
+                        aci_private_key,
+                        pni_public_key,
+                        pni_private_key,
+                        profile_key: ProfileKey::create(
+                            profile_key.try_into().expect("32 bytes for profile key"),
+                        ),
+                    })
                 } else {
                     Err(Error::NoProvisioningMessageReceived)
                 }
@@ -332,31 +343,12 @@ impl<C: Store> Manager<C, Linking> {
         )
         .await;
 
-        fut1?;
-        let (phone_number, device_id, registration_id, uuid, private_key, public_key, profile_key) =
-            fut2?;
+        wait_for_qrcode_scan?;
 
         let mut manager = Manager {
             rng,
             config_store,
-            state: Registered {
-                push_service_cache: CacheCell::default(),
-                identified_websocket: Default::default(),
-                unidentified_sender_certificate: Default::default(),
-                signal_servers,
-                device_name: Some(device_name),
-                phone_number,
-                uuid,
-                signaling_key,
-                password,
-                device_id: Some(device_id),
-                registration_id,
-                public_key,
-                private_key,
-                profile_key: ProfileKey::create(
-                    profile_key.try_into().expect("32 bytes for profile key"),
-                ),
-            },
+            state: registration?,
         };
 
         manager.config_store.save_state(&manager.state)?;
@@ -392,9 +384,8 @@ impl<C: Store> Manager<C, Confirmation> {
     ) -> Result<Manager<C, Registered>, Error<C::Error>> {
         trace!("confirming verification code");
 
-        // see libsignal-protocol-c / signal_protocol_key_helper_generate_registration_id
         let registration_id = generate_registration_id(&mut StdRng::from_entropy());
-        trace!("registration_id: {}", registration_id);
+        let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
 
         let credentials = ServiceCredentials {
             uuid: None,
@@ -433,9 +424,10 @@ impl<C: Store> Manager<C, Confirmation> {
             .confirm_verification_code(
                 confirm_code,
                 AccountAttributes {
-                    name: "".to_string(),
+                    name: None,
                     signaling_key: Some(signaling_key.to_vec()),
                     registration_id,
+                    pni_registration_id,
                     voice: false,
                     video: false,
                     fetches_messages: true,
@@ -453,7 +445,8 @@ impl<C: Store> Manager<C, Confirmation> {
             )
             .await?;
 
-        let identity_key_pair = KeyPair::generate(&mut rng);
+        let aci_identity_key_pair = KeyPair::generate(&mut rng);
+        let pni_identity_key_pair = KeyPair::generate(&mut rng);
 
         let phone_number = self.state.phone_number.clone();
         let password = self.state.password.clone();
@@ -466,17 +459,24 @@ impl<C: Store> Manager<C, Confirmation> {
             state: Registered {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
+                unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
-                uuid: registered.uuid,
+                service_ids: ServiceIds {
+                    aci: registered.uuid,
+                    pni: registered.pni,
+                },
                 password,
                 signaling_key,
                 device_id: None,
                 registration_id,
-                private_key: identity_key_pair.private_key,
-                public_key: identity_key_pair.public_key,
+                pni_registration_id: Some(pni_registration_id),
+                aci_private_key: aci_identity_key_pair.private_key,
+                aci_public_key: aci_identity_key_pair.public_key,
+                pni_private_key: pni_identity_key_pair.private_key,
+                pni_public_key: pni_identity_key_pair.public_key,
                 profile_key,
             },
         };
@@ -515,8 +515,6 @@ impl<C: Store> Manager<C, Registered> {
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
-                &self.config_store.clone(),
-                &mut self.config_store.clone(),
                 &mut self.config_store.clone(),
                 &mut self.rng,
                 self.config_store.pre_keys_offset_id()?,
@@ -541,12 +539,12 @@ impl<C: Store> Manager<C, Registered> {
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: self
-                    .state
-                    .device_name
-                    .clone()
-                    .expect("Device name to be set"),
+                name: self.state.device_name.clone(),
                 registration_id: self.state.registration_id,
+                pni_registration_id: self
+                    .state
+                    .pni_registration_id
+                    .unwrap_or_else(|| generate_registration_id(&mut StdRng::from_entropy())),
                 signaling_key: None,
                 voice: false,
                 video: false,
@@ -628,7 +626,7 @@ impl<C: Store> Manager<C, Registered> {
             .as_millis() as u64;
 
         // first request the sync
-        self.send_message(self.state.uuid, sync_message, timestamp)
+        self.send_message(self.state.service_ids.aci, sync_message, timestamp)
             .await?;
 
         Ok(())
@@ -687,11 +685,6 @@ impl<C: Store> Manager<C, Registered> {
         &self.state
     }
 
-    /// Get the profile UUID
-    pub fn uuid(&self) -> Uuid {
-        self.state.uuid
-    }
-
     /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<C::Error>> {
         Ok(self.push_service()?.whoami().await?)
@@ -699,7 +692,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<C::Error>> {
-        self.retrieve_profile_by_uuid(self.state.uuid, self.state.profile_key)
+        self.retrieve_profile_by_uuid(self.state.service_ids.aci, self.state.profile_key)
             .await
     }
 
@@ -775,7 +768,17 @@ impl<C: Store> Manager<C, Registered> {
             .create_message_pipe(credentials)
             .await?;
 
+        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let mut unidentified_push_service =
+            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+        let unidentified_ws = unidentified_push_service
+            .ws("/v1/websocket/", None, false)
+            .await?;
         self.state.identified_websocket.lock().replace(pipe.ws());
+        self.state
+            .unidentified_websocket
+            .lock()
+            .replace(unidentified_ws);
 
         Ok(pipe.stream())
     }
@@ -797,7 +800,7 @@ impl<C: Store> Manager<C, Registered> {
 
         let groups_credentials_cache = InMemoryCredentialsCache::default();
         let groups_manager = GroupsManager::new(
-            self.state.uuid,
+            self.state.service_ids.clone(),
             self.push_service()?,
             groups_credentials_cache,
             server_public_params,
@@ -878,8 +881,8 @@ impl<C: Store> Manager<C, Registered> {
                                     if let Ok(Some(group)) = upsert_group(
                                         &state.config_store,
                                         &mut state.groups_manager,
-                                        master_key_bytes,
-                                        revision,
+                                        &master_key_bytes,
+                                        &revision,
                                     )
                                     .await
                                     {
@@ -947,7 +950,7 @@ impl<C: Store> Manager<C, Registered> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: self.state.uuid.into(),
+                sender: self.state.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false,
@@ -994,7 +997,7 @@ impl<C: Store> Manager<C, Registered> {
         for member in group
             .members
             .into_iter()
-            .filter(|m| m.uuid != self.state.uuid)
+            .filter(|m| m.uuid != self.state.service_ids.aci)
         {
             let unidentified_access =
                 self.config_store
@@ -1016,7 +1019,7 @@ impl<C: Store> Manager<C, Registered> {
 
         let content = Content {
             metadata: Metadata {
-                sender: self.state.uuid.into(),
+                sender: self.state.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
@@ -1074,7 +1077,7 @@ impl<C: Store> Manager<C, Registered> {
 
     fn credentials(&self) -> Result<Option<ServiceCredentials>, Error<C::Error>> {
         Ok(Some(ServiceCredentials {
-            uuid: Some(self.state.uuid),
+            uuid: Some(self.state.service_ids.aci),
             phonenumber: self.state.phone_number.clone(),
             password: Some(self.state.password.clone()),
             signaling_key: Some(self.state.signaling_key),
@@ -1101,7 +1104,7 @@ impl<C: Store> Manager<C, Registered> {
     /// Creates a new message sender.
     async fn new_message_sender(&self) -> Result<MessageSender<C>, Error<C::Error>> {
         let local_addr = ServiceAddress {
-            uuid: self.state.uuid,
+            uuid: self.state.service_ids.aci,
         };
 
         let identified_websocket = self
@@ -1125,7 +1128,6 @@ impl<C: Store> Manager<C, Registered> {
             self.new_service_cipher()?,
             self.rng.clone(),
             self.config_store.clone(),
-            self.config_store.clone(),
             local_addr,
             self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
         ))
@@ -1136,13 +1138,9 @@ impl<C: Store> Manager<C, Registered> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let service_cipher = ServiceCipher::new(
             self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
-            self.config_store.clone(),
             self.rng.clone(),
             service_configuration.unidentified_sender_trust_root,
-            self.state.uuid,
+            self.state.service_ids.aci,
             self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
         );
 
