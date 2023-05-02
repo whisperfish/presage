@@ -17,9 +17,9 @@ use presage::{
         prelude::{
             protocol::{
                 Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
-                PreKeyRecord, PreKeyStore, ProtocolAddress, SenderKeyRecord, SenderKeyStore,
-                SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
-                SignedPreKeyRecord, SignedPreKeyStore,
+                PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
+                SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
+                SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
             },
             Content, ProfileKey, Uuid,
         },
@@ -324,6 +324,8 @@ fn migrate(
 
     Ok(())
 }
+
+impl ProtocolStore for SledStore {}
 
 impl Store for SledStore {
     type Error = SledStoreError;
@@ -833,8 +835,8 @@ impl IdentityKeyStore for SledStore {
                 "no registration data".into(),
             ))?;
         Ok(IdentityKeyPair::new(
-            IdentityKey::new(state.public_key),
-            state.private_key,
+            IdentityKey::new(state.aci_public_key),
+            state.aci_private_key,
         ))
     }
 

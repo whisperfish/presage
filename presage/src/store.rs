@@ -6,9 +6,7 @@ use libsignal_service::{
     groups_v2::Group,
     models::Contact,
     prelude::{
-        protocol::{
-            IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
-        },
+        protocol::{ProtocolStore, SenderKeyStore, SessionStoreExt},
         Content, ProfileKey, Uuid, UuidError,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
@@ -18,9 +16,7 @@ use serde::{Deserialize, Serialize};
 
 pub trait StoreError: std::error::Error + Sync + Send + 'static {}
 
-pub trait Store:
-    PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + SenderKeyStore + Sync + Clone
-{
+pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone {
     type Error: StoreError;
 
     type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
