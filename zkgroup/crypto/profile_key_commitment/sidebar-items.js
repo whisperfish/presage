@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Commitment",""],["CommitmentWithSecretNonce",""],["SystemParams",""]]};
+window.SIDEBAR_ITEMS = {"struct":["Commitment","CommitmentWithSecretNonce","SystemParams"]};

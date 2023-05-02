@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["Contents",""]],"struct":[["GroupInviteLinkContentsV1",""]]};
+window.SIDEBAR_ITEMS = {"enum":["Contents"],"struct":["GroupInviteLinkContentsV1"]};

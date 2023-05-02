@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["Direction",""],["Event",""],["Type",""]]};
+window.SIDEBAR_ITEMS = {"enum":["Direction","Event","Type"]};

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/f11b2d1/libsignal-service/src/groups_v2/manager.rs`."><meta name="keywords" content="rust, rustlang, rust-lang"><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-1f7d512b176f0f72.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-124a1ca42af929b6.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-93196c7a1c3542a8.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-4743e13df3dfe8c4.css"><link rel="stylesheet" disabled href="../../../static.files/dark-0e1b889528bd466b.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-65289d5d067c7c66.css"><script id="default-settings" ></script><script src="../../../static.files/storage-d43fa987303ecbbb.js"></script><script defer src="../../../static.files/source-script-ea63cb6500f71309.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-3367e395607fafc1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-5ec35bf9ca753509.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/c2f70ef/libsignal-service/src/groups_v2/manager.rs`."><title>manager.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c4dbdcde0fbd8430.css" id="mainThemeStyle"><link rel="stylesheet" id="themeStyle" href="../../../static.files/light-db279b6232be9c13.css"><link rel="stylesheet" disabled href="../../../static.files/dark-cf923f49f397b216.css"><link rel="stylesheet" disabled href="../../../static.files/ayu-be46fdc453a55015.css"><script src="../../../static.files/storage-3891ce972e3a2bf8.js"></script><script defer src="../../../static.files/source-script-1b95b7cca98b26e5.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-98a684e84ae5b08b.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -329,11 +329,9 @@
 <a href="#329" id="329">329</a>
 <a href="#330" id="330">330</a>
 <a href="#331" id="331">331</a>
-</pre><pre class="rust"><code><span class="kw">use </span>std::{
-    collections::HashMap,
-    convert::TryInto,
-    time::{SystemTime, UNIX_EPOCH},
-};
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+</pre><pre class="rust"><code><span class="kw">use </span>std::{collections::HashMap, convert::TryInto};
 
 <span class="kw">use crate</span>::{
     configuration::Endpoint,
@@ -341,16 +339,16 @@
     groups_v2::operations::{GroupDecodingError, GroupOperations},
     prelude::{PushService, ServiceError},
     proto::GroupContextV2,
-    push_service::{HttpAuth, HttpAuthOverride},
+    push_service::{HttpAuth, HttpAuthOverride, ServiceIds},
 };
 
 <span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>chrono::{Days, NaiveDate, NaiveTime, Utc};
 <span class="kw">use </span>futures::AsyncReadExt;
 <span class="kw">use </span>rand::RngCore;
 <span class="kw">use </span>serde::Deserialize;
-<span class="kw">use </span>uuid::Uuid;
 <span class="kw">use </span>zkgroup::{
-    auth::AuthCredentialResponse,
+    auth::AuthCredentialWithPniResponse,
     groups::{GroupMasterKey, GroupSecretParams},
     ServerPublicParams,
 };
@@ -359,7 +357,7 @@
 #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
 </span><span class="kw">pub struct </span>TemporalCredential {
     credential: String,
-    redemption_time: i64,
+    redemption_time: u64,
 }
 
 <span class="attr">#[derive(Deserialize)]
@@ -371,7 +369,7 @@
 <span class="kw">impl </span>CredentialResponse {
     <span class="kw">pub fn </span>parse(
         <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;HashMap&lt;i64, AuthCredentialResponse&gt;, ServiceError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;HashMap&lt;u64, AuthCredentialWithPniResponse&gt;, ServiceError&gt; {
         <span class="self">self</span>.credentials
             .into_iter()
             .map(|c| {
@@ -401,19 +399,19 @@
     <span class="doccomment">/// Get an entry of the cache, key usually represents the day number since EPOCH.
     </span><span class="kw">fn </span>get(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        key: <span class="kw-2">&amp;</span>i64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialResponse&gt;, CredentialsCacheError&gt;;
+        key: <span class="kw-2">&amp;</span>u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialWithPniResponse&gt;, CredentialsCacheError&gt;;
 
     <span class="doccomment">/// Overwrite the entire contents of the cache with new data.
     </span><span class="kw">fn </span>write(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        map: HashMap&lt;i64, AuthCredentialResponse&gt;,
+        map: HashMap&lt;u64, AuthCredentialWithPniResponse&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt;;
 }
 
 <span class="attr">#[derive(Default)]
 </span><span class="kw">pub struct </span>InMemoryCredentialsCache {
-    map: HashMap&lt;i64, AuthCredentialResponse&gt;,
+    map: HashMap&lt;u64, AuthCredentialWithPniResponse&gt;,
 }
 
 <span class="kw">impl </span>CredentialsCache <span class="kw">for </span>InMemoryCredentialsCache {
@@ -424,14 +422,15 @@
 
     <span class="kw">fn </span>get(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        key: <span class="kw-2">&amp;</span>i64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialResponse&gt;, CredentialsCacheError&gt; {
+        key: <span class="kw-2">&amp;</span>u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialWithPniResponse&gt;, CredentialsCacheError&gt;
+    {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.map.get(key))
     }
 
     <span class="kw">fn </span>write(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        map: HashMap&lt;i64, AuthCredentialResponse&gt;,
+        map: HashMap&lt;u64, AuthCredentialWithPniResponse&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt; {
         <span class="self">self</span>.map = map;
         <span class="prelude-val">Ok</span>(())
@@ -445,21 +444,22 @@
 
     <span class="kw">fn </span>get(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        key: <span class="kw-2">&amp;</span>i64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialResponse&gt;, CredentialsCacheError&gt; {
+        key: <span class="kw-2">&amp;</span>u64,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>AuthCredentialWithPniResponse&gt;, CredentialsCacheError&gt;
+    {
         (<span class="kw-2">**</span><span class="self">self</span>).get(key)
     }
 
     <span class="kw">fn </span>write(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        map: HashMap&lt;i64, AuthCredentialResponse&gt;,
+        map: HashMap&lt;u64, AuthCredentialWithPniResponse&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), CredentialsCacheError&gt; {
         (<span class="kw-2">**</span><span class="self">self</span>).write(map)
     }
 }
 
 <span class="kw">pub struct </span>GroupsManager&lt;S: PushService, C: CredentialsCache&gt; {
-    self_uuid: Uuid,
+    service_ids: ServiceIds,
     push_service: S,
     credentials_cache: C,
     server_public_params: ServerPublicParams,
@@ -467,13 +467,13 @@
 
 <span class="kw">impl</span>&lt;S: PushService, C: CredentialsCache&gt; GroupsManager&lt;S, C&gt; {
     <span class="kw">pub fn </span>new(
-        self_uuid: Uuid,
+        service_ids: ServiceIds,
         push_service: S,
         credentials_cache: C,
         server_public_params: ServerPublicParams,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            self_uuid,
+            service_ids,
             push_service,
             credentials_cache,
             server_public_params,
@@ -482,18 +482,28 @@
 
     <span class="kw">pub async fn </span>get_authorization_for_today(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        uuid: Uuid,
         group_secret_params: GroupSecretParams,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;HttpAuth, ServiceError&gt; {
-        <span class="kw">let </span>today = <span class="self">Self</span>::current_time_days();
+        <span class="kw">let </span>(today, today_plus_7_days) = current_days_seconds();
+
         <span class="kw">let </span>auth_credential_response = <span class="kw">if let </span><span class="prelude-val">Some</span>(auth_credential_response) =
             <span class="self">self</span>.credentials_cache.get(<span class="kw-2">&amp;</span>today)<span class="question-mark">?
         </span>{
             auth_credential_response
         } <span class="kw">else </span>{
-            <span class="kw">let </span>credentials_map =
-                <span class="self">self</span>.get_authorization(today).<span class="kw">await</span><span class="question-mark">?</span>.parse()<span class="question-mark">?</span>;
-            <span class="self">self</span>.credentials_cache.write(credentials_map)<span class="question-mark">?</span>;
+            <span class="kw">let </span>path =
+            <span class="macro">format!</span>(<span class="string">&quot;/v1/certificate/auth/group?redemptionStartSeconds={}&amp;redemptionEndSeconds={}&quot;</span>, today, today_plus_7_days);
+
+            <span class="kw">let </span>credentials_response: CredentialResponse = <span class="self">self
+                </span>.push_service
+                .get_json(
+                    Endpoint::Service,
+                    <span class="kw-2">&amp;</span>path,
+                    HttpAuthOverride::NoOverride,
+                )
+                .<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="self">self</span>.credentials_cache
+                .write(credentials_response.parse()<span class="question-mark">?</span>)<span class="question-mark">?</span>;
             <span class="self">self</span>.credentials_cache.get(<span class="kw-2">&amp;</span>today)<span class="question-mark">?</span>.ok_or_else(|| {
                 ServiceError::ResponseError {
                     reason:
@@ -504,49 +514,31 @@
         </span>};
 
         <span class="self">self</span>.get_authorization_string(
-            uuid,
             group_secret_params,
             auth_credential_response,
-            today <span class="kw">as </span>u32,
+            today,
         )
-    }
-
-    <span class="kw">async fn </span>get_authorization(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        today: i64,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;CredentialResponse, ServiceError&gt; {
-        <span class="kw">let </span>today_plus_7_days = today + <span class="number">7</span>;
-
-        <span class="kw">let </span>path =
-            <span class="macro">format!</span>(<span class="string">&quot;/v1/certificate/group/{}/{}&quot;</span>, today, today_plus_7_days);
-
-        <span class="self">self</span>.push_service
-            .get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)
-            .<span class="kw">await
-    </span>}
-
-    <span class="kw">fn </span>current_time_days() -&gt; i64 {
-        <span class="kw">let </span>now = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        <span class="kw">let </span>today = chrono::Duration::from_std(now).unwrap();
-        today.num_days()
     }
 
     <span class="kw">fn </span>get_authorization_string(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        uuid: Uuid,
         group_secret_params: GroupSecretParams,
-        credential_response: <span class="kw-2">&amp;</span>AuthCredentialResponse,
-        today: u32,
+        credential_response: <span class="kw-2">&amp;</span>AuthCredentialWithPniResponse,
+        today: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;HttpAuth, ServiceError&gt; {
         <span class="kw">let </span>auth_credential = <span class="self">self
             </span>.server_public_params
-            .receive_auth_credential(
-                <span class="kw-2">*</span>uuid.as_bytes(),
+            .receive_auth_credential_with_pni(
+                <span class="self">self</span>.service_ids.aci.into_bytes(),
+                <span class="self">self</span>.service_ids.pni.into_bytes(),
                 today,
                 credential_response,
             )
             .map_err(|e| {
-                <span class="macro">log::error!</span>(<span class="string">&quot;zero-knowledge group error: {:?}&quot;</span>, e);
+                <span class="macro">log::error!</span>(
+                    <span class="string">&quot;failed to receive auth credentials with PNI: {:?}&quot;</span>,
+                    e
+                );
                 ServiceError::GroupsV2Error
             })<span class="question-mark">?</span>;
 
@@ -555,7 +547,7 @@
 
         <span class="kw">let </span>auth_credential_presentation = <span class="self">self
             </span>.server_public_params
-            .create_auth_credential_presentation(
+            .create_auth_credential_with_pni_presentation(
                 random_bytes,
                 group_secret_params,
                 auth_credential,
@@ -598,7 +590,7 @@
         <span class="kw">let </span>group_secret_params =
             GroupSecretParams::derive_from_master_key(group_master_key);
         <span class="kw">let </span>authorization = <span class="self">self
-            </span>.get_authorization_for_today(<span class="self">self</span>.self_uuid, group_secret_params)
+            </span>.get_authorization_for_today(group_secret_params)
             .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="self">self</span>.push_service.get_group(authorization).<span class="kw">await
     </span>}
@@ -660,5 +652,17 @@
     <span class="prelude-val">Ok</span>(GroupOperations::new(group_secret_params)
         .decrypt_group(encrypted_group)<span class="question-mark">?</span>)
 }
+
+<span class="kw">fn </span>current_days_seconds() -&gt; (u64, u64) {
+    <span class="kw">let </span>days_seconds = |date: NaiveDate| {
+        date.and_time(NaiveTime::from_hms_opt(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>).unwrap())
+            .timestamp() <span class="kw">as </span>u64
+    };
+
+    <span class="kw">let </span>today = Utc::now().naive_utc().date();
+    <span class="kw">let </span>today_plus_7_days = today + Days::new(<span class="number">7</span>);
+
+    (days_seconds(today), days_seconds(today_plus_7_days))
+}
 </code></pre></div>
-</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.68.2 (9eb3afe9e 2023-03-27)" data-search-js="search-98d53477a794af0b.js" data-settings-js="settings-c3c521c753752a1a.js" data-settings-css="settings-08ddfdda51b8ee2e.css" ></div></body></html>
+</section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

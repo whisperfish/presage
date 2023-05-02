@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["AccessRequired",""]]};
+window.SIDEBAR_ITEMS = {"enum":["AccessRequired"]};

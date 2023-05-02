@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["ParseServiceAddressError",""]],"struct":[["ServiceAddress",""]]};
+window.SIDEBAR_ITEMS = {"enum":["ParseServiceAddressError"],"struct":["ServiceAddress"]};

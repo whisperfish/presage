@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["ProvisioningError",""],["SecondaryDeviceProvisioning",""],["VerificationCodeResponse",""]],"fn":[["generate_registration_id",""]],"struct":[["ConfirmCodeResponse",""],["LinkingManager",""],["ProvisioningCipher",""],["ProvisioningManager",""],["VerifyAccountResponse",""]]};
+window.SIDEBAR_ITEMS = {"enum":["ProvisioningError","SecondaryDeviceProvisioning","VerificationCodeResponse"],"fn":["generate_registration_id"],"struct":["ConfirmCodeResponse","LinkingManager","ProvisioningCipher","ProvisioningManager","VerifyAccountResponse"]};

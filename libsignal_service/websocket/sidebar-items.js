@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["SignalRequestStream",""],["SignalWebSocket","A dispatching web socket client for the Signal web socket API."]]};
+window.SIDEBAR_ITEMS = {"struct":["SignalRequestStream","SignalWebSocket"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["ProfileName",""]]};
+window.SIDEBAR_ITEMS = {"struct":["ProfileName"]};

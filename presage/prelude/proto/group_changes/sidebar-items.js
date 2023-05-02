@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["GroupChangeState",""]]};
+window.SIDEBAR_ITEMS = {"struct":["GroupChangeState"]};

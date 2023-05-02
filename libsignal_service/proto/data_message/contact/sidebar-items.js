@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":[["email","Nested message and enum types in `Email`."],["phone","Nested message and enum types in `Phone`."],["postal_address","Nested message and enum types in `PostalAddress`."]],"struct":[["Avatar",""],["Email",""],["Name",""],["Phone",""],["PostalAddress",""]]};
+window.SIDEBAR_ITEMS = {"mod":["email","phone","postal_address"],"struct":["Avatar","Email","Name","Phone","PostalAddress"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["UuidCiphertext",""]]};
+window.SIDEBAR_ITEMS = {"struct":["UuidCiphertext"]};

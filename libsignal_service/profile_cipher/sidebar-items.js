@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["ProfileCipherError",""]],"struct":[["ProfileCipher","Encrypt and decrypt a [`ProfileName`] and other profile information."]]};
+window.SIDEBAR_ITEMS = {"enum":["ProfileCipherError"],"struct":["ProfileCipher"]};

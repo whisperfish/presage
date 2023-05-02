@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["AuthCredential",""]]};
+window.SIDEBAR_ITEMS = {"struct":["AuthCredential"]};

@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["Ciphertext",""],["CiphertextWithSecretNonce",""],["KeyPair",""],["PublicKey",""]]};
+window.SIDEBAR_ITEMS = {"struct":["Ciphertext","CiphertextWithSecretNonce","KeyPair","PublicKey"]};

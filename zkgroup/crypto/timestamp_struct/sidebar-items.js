@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["TimestampStruct",""]]};
+window.SIDEBAR_ITEMS = {"struct":["TimestampStruct"]};

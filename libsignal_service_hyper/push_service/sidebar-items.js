@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["HyperPushService",""]]};
+window.SIDEBAR_ITEMS = {"struct":["HyperPushService"]};

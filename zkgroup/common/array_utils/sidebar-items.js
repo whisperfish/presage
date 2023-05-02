@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["OneBased","A wrapper around an array or slice to use one-based indexing."]],"trait":[["ArrayLike","Abstracts over fixed-length arrays (and similar types) with an element type `T`."]]};
+window.SIDEBAR_ITEMS = {"struct":["OneBased"],"trait":["ArrayLike"]};

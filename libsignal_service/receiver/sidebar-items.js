@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["MessageReceiver","Equivalent of Java’s `SignalServiceMessageReceiver`."]]};
+window.SIDEBAR_ITEMS = {"struct":["MessageReceiver"]};

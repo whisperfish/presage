@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["PniCredential",""]]};
+window.SIDEBAR_ITEMS = {"struct":["PniCredential"]};

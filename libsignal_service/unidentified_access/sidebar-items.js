@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["UnidentifiedAccess",""]]};
+window.SIDEBAR_ITEMS = {"struct":["UnidentifiedAccess"]};

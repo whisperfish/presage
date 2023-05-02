@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["AuthCredentialWithPniResponse",""]]};
+window.SIDEBAR_ITEMS = {"struct":["AuthCredentialWithPniResponse"]};

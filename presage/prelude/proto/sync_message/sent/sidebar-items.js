@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["StoryMessageRecipient",""],["UnidentifiedDeliveryStatus",""]]};
+window.SIDEBAR_ITEMS = {"struct":["StoryMessageRecipient","UnidentifiedDeliveryStatus"]};

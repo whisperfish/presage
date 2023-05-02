@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":[["ReceiptCredentialRequest",""]]};
+window.SIDEBAR_ITEMS = {"struct":["ReceiptCredentialRequest"]};

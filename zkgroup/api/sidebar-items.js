@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":[["auth",""],["groups",""],["profiles",""],["receipts",""],["server_params",""]]};
+window.SIDEBAR_ITEMS = {"mod":["auth","groups","profiles","receipts","server_params"]};

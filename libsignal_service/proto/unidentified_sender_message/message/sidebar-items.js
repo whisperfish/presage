@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":[["ContentHint",""],["Type",""]]};
+window.SIDEBAR_ITEMS = {"enum":["ContentHint","Type"]};
