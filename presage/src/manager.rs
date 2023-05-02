@@ -497,15 +497,24 @@ impl<C: Store> Manager<C, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
-    pub fn load_registered(config_store: C) -> Result<Self, Error<C::Error>> {
+    pub async fn load_registered(config_store: C) -> Result<Self, Error<C::Error>> {
         let state = config_store
             .load_state()?
             .ok_or(Error::NotYetRegisteredError)?;
-        Ok(Self {
+
+        let mut manager = Self {
             rng: StdRng::from_entropy(),
             config_store,
             state,
-        })
+        };
+
+        if manager.state.pni_registration_id.is_none() {
+            manager.set_account_attributes().await?;
+            let whoami = manager.whoami().await?;
+            manager.state.service_ids.pni = whoami.pni;
+        }
+
+        Ok(manager)
     }
 
     async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
@@ -537,14 +546,21 @@ impl<C: Store> Manager<C, Registered> {
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
 
+        let pni_registration_id = if let Some(pni_registration_id) = self.state.pni_registration_id
+        {
+            pni_registration_id
+        } else {
+            info!("migrating to PNI");
+            let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
+            self.config_store.save_state(&self.state)?;
+            pni_registration_id
+        };
+
         account_manager
             .set_account_attributes(AccountAttributes {
                 name: self.state.device_name.clone(),
                 registration_id: self.state.registration_id,
-                pni_registration_id: self
-                    .state
-                    .pni_registration_id
-                    .unwrap_or_else(|| generate_registration_id(&mut StdRng::from_entropy())),
+                pni_registration_id,
                 signaling_key: None,
                 voice: false,
                 video: false,

@@ -500,18 +500,18 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             }
         }
         Cmd::Receive { notifications } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             receive(&mut manager, notifications).await?;
         }
         Cmd::Send { uuid, message } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             send(&message, &uuid, &mut manager).await?;
         }
         Cmd::SendToGroup {
             message,
             master_key,
         } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -538,7 +538,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             uuid,
             mut profile_key,
         } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             if profile_key.is_none() {
                 for contact in manager
                     .contacts()?
@@ -566,7 +566,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         Cmd::Unblock => unimplemented!(),
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             for group in manager.groups()? {
                 match group {
                     Ok((
@@ -592,7 +592,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             }
         }
         Cmd::ListContacts => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             for Contact {
                 name,
                 uuid,
@@ -604,11 +604,11 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             }
         }
         Cmd::Whoami => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             println!("{:?}", &manager.whoami().await?);
         }
         Cmd::GetContact { ref uuid } => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             match manager.contact_by_id(uuid)? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
@@ -619,7 +619,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             phone_number,
             ref name,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             for contact in manager
                 .contacts()?
                 .filter_map(Result::ok)
@@ -632,7 +632,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             manager.request_contacts_sync().await?;
         }
         Cmd::ListMessages {
@@ -640,7 +640,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             recipient_uuid,
             from,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             let thread = match (group_master_key, recipient_uuid) {
                 (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
