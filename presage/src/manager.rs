@@ -509,8 +509,6 @@ impl<C: Store> Manager<C, Registered> {
 
         if manager.state.pni_registration_id.is_none() {
             manager.set_account_attributes().await?;
-            let whoami = manager.whoami().await?;
-            manager.state.service_ids.pni = whoami.pni;
         }
 
         Ok(manager)
@@ -577,6 +575,13 @@ impl<C: Store> Manager<C, Registered> {
                 },
             })
             .await?;
+
+        if self.state.pni_registration_id.is_none() {
+            debug!("fetching PNI UUID and updating state");
+            let whoami = self.whoami().await?;
+            self.state.service_ids.pni = whoami.pni;
+            self.config_store.save_state(&self.state)?;
+        }
 
         trace!("done setting account attributes");
         Ok(())
