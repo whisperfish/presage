@@ -304,7 +304,6 @@ impl<C: Store> Manager<C, Linking> {
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
-                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -327,7 +326,7 @@ impl<C: Store> Manager<C, Linking> {
                         password,
                         device_id: Some(device_id),
                         registration_id,
-                        pni_registration_id: Some(pni_registration_id),
+                        pni_registration_id: None,
                         aci_public_key,
                         aci_private_key,
                         pni_public_key,
@@ -552,6 +551,7 @@ impl<C: Store> Manager<C, Registered> {
         } else {
             info!("migrating to PNI");
             let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
+            self.state.pni_registration_id = Some(pni_registration_id);
             self.config_store.save_state(&self.state)?;
             pni_registration_id
         };
