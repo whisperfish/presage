@@ -1294,6 +1294,59 @@
 <a href="#1294" id="1294">1294</a>
 <a href="#1295" id="1295">1295</a>
 <a href="#1296" id="1296">1296</a>
+<a href="#1297" id="1297">1297</a>
+<a href="#1298" id="1298">1298</a>
+<a href="#1299" id="1299">1299</a>
+<a href="#1300" id="1300">1300</a>
+<a href="#1301" id="1301">1301</a>
+<a href="#1302" id="1302">1302</a>
+<a href="#1303" id="1303">1303</a>
+<a href="#1304" id="1304">1304</a>
+<a href="#1305" id="1305">1305</a>
+<a href="#1306" id="1306">1306</a>
+<a href="#1307" id="1307">1307</a>
+<a href="#1308" id="1308">1308</a>
+<a href="#1309" id="1309">1309</a>
+<a href="#1310" id="1310">1310</a>
+<a href="#1311" id="1311">1311</a>
+<a href="#1312" id="1312">1312</a>
+<a href="#1313" id="1313">1313</a>
+<a href="#1314" id="1314">1314</a>
+<a href="#1315" id="1315">1315</a>
+<a href="#1316" id="1316">1316</a>
+<a href="#1317" id="1317">1317</a>
+<a href="#1318" id="1318">1318</a>
+<a href="#1319" id="1319">1319</a>
+<a href="#1320" id="1320">1320</a>
+<a href="#1321" id="1321">1321</a>
+<a href="#1322" id="1322">1322</a>
+<a href="#1323" id="1323">1323</a>
+<a href="#1324" id="1324">1324</a>
+<a href="#1325" id="1325">1325</a>
+<a href="#1326" id="1326">1326</a>
+<a href="#1327" id="1327">1327</a>
+<a href="#1328" id="1328">1328</a>
+<a href="#1329" id="1329">1329</a>
+<a href="#1330" id="1330">1330</a>
+<a href="#1331" id="1331">1331</a>
+<a href="#1332" id="1332">1332</a>
+<a href="#1333" id="1333">1333</a>
+<a href="#1334" id="1334">1334</a>
+<a href="#1335" id="1335">1335</a>
+<a href="#1336" id="1336">1336</a>
+<a href="#1337" id="1337">1337</a>
+<a href="#1338" id="1338">1338</a>
+<a href="#1339" id="1339">1339</a>
+<a href="#1340" id="1340">1340</a>
+<a href="#1341" id="1341">1341</a>
+<a href="#1342" id="1342">1342</a>
+<a href="#1343" id="1343">1343</a>
+<a href="#1344" id="1344">1344</a>
+<a href="#1345" id="1345">1345</a>
+<a href="#1346" id="1346">1346</a>
+<a href="#1347" id="1347">1347</a>
+<a href="#1348" id="1348">1348</a>
+<a href="#1349" id="1349">1349</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1408,14 +1461,15 @@
     </span>signaling_key: SignalingKey,
     <span class="kw">pub </span>device_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
     <span class="kw">pub </span>registration_id: u32,
-    <span class="kw">pub </span>pni_registration_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+    <span class="attr">#[serde(default)]
+    </span><span class="kw">pub </span>pni_registration_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_private_key&quot;</span>, rename = <span class="string">&quot;private_key&quot;</span>)]
     </span><span class="kw">pub </span>aci_private_key: PrivateKey,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_public_key&quot;</span>, rename = <span class="string">&quot;public_key&quot;</span>)]
     </span><span class="kw">pub </span>aci_public_key: PublicKey,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_optional_private_key&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">&quot;serde_optional_private_key&quot;</span>, default)]
     </span><span class="kw">pub </span>pni_private_key: <span class="prelude-ty">Option</span>&lt;PrivateKey&gt;,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_optional_public_key&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">&quot;serde_optional_public_key&quot;</span>, default)]
     </span><span class="kw">pub </span>pni_public_key: <span class="prelude-ty">Option</span>&lt;PublicKey&gt;,
     <span class="attr">#[serde(with = <span class="string">&quot;serde_profile_key&quot;</span>)]
     </span>profile_key: ProfileKey,
@@ -2589,6 +2643,58 @@
 <span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
     <span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
     save_message_with_thread(config_store, message, thread)
+}
+
+<span class="attr">#[cfg(test)]
+</span><span class="kw">mod </span>tests {
+    <span class="kw">use </span>libsignal_service::prelude::{protocol::KeyPair, ProfileKey};
+    <span class="kw">use </span>rand::RngCore;
+    <span class="kw">use </span>serde_json::json;
+
+    <span class="kw">use </span><span class="kw">crate</span>::Registered;
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_state_before_pni() {
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
+        <span class="kw">let </span>key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>rng);
+        <span class="kw">let </span><span class="kw-2">mut </span>profile_key = [<span class="number">0u8</span>; <span class="number">32</span>];
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
+        <span class="kw">let </span>profile_key = ProfileKey::generate(profile_key);
+        <span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
+
+        <span class="comment">// this is before public_key and private_key were renamed to aci_public_key and aci_private_key
+        // and pni_public_key + pni_private_key were added
+        </span><span class="kw">let </span>previous_state = <span class="macro">json!</span>({
+          <span class="string">&quot;signal_servers&quot;</span>: <span class="string">&quot;Production&quot;</span>,
+          <span class="string">&quot;device_name&quot;</span>: <span class="string">&quot;Test&quot;</span>,
+          <span class="string">&quot;phone_number&quot;</span>: {
+            <span class="string">&quot;code&quot;</span>: {
+              <span class="string">&quot;value&quot;</span>: <span class="number">1</span>,
+              <span class="string">&quot;source&quot;</span>: <span class="string">&quot;plus&quot;
+            </span>},
+            <span class="string">&quot;national&quot;</span>: {
+              <span class="string">&quot;value&quot;</span>: <span class="number">5550199</span>,
+              <span class="string">&quot;zeros&quot;</span>: <span class="number">0
+            </span>},
+            <span class="string">&quot;extension&quot;</span>: null,
+            <span class="string">&quot;carrier&quot;</span>: null
+          },
+          <span class="string">&quot;uuid&quot;</span>: <span class="string">&quot;ff9a89d9-8052-4af0-a91d-2a0dfa0c6b95&quot;</span>,
+          <span class="string">&quot;password&quot;</span>: <span class="string">&quot;HelloWorldOfPasswords&quot;</span>,
+          <span class="string">&quot;signaling_key&quot;</span>: base64::encode(signaling_key),
+          <span class="string">&quot;device_id&quot;</span>: <span class="number">42</span>,
+          <span class="string">&quot;registration_id&quot;</span>: <span class="number">64</span>,
+          <span class="string">&quot;private_key&quot;</span>: base64::encode(key_pair.private_key.serialize()),
+          <span class="string">&quot;public_key&quot;</span>: base64::encode(key_pair.public_key.serialize()),
+          <span class="string">&quot;profile_key&quot;</span>: base64::encode(profile_key.get_bytes()),
+        });
+
+        <span class="kw">let </span>state: Registered = serde_json::from_value(previous_state).expect(<span class="string">&quot;should deserialize&quot;</span>);
+        <span class="macro">assert_eq!</span>(state.aci_public_key, key_pair.public_key);
+        <span class="macro">assert!</span>(state.aci_private_key == key_pair.private_key);
+        <span class="macro">assert!</span>(state.pni_public_key.is_none());
+    }
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0 (84c898d65 2023-04-16)" data-search-js="search-8a59a8356673ec1f.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
