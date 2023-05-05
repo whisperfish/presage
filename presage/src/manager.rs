@@ -112,14 +112,15 @@ pub struct Registered {
     signaling_key: SignalingKey,
     pub device_id: Option<u32>,
     pub registration_id: u32,
+    #[serde(default)]
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_private_key", rename = "private_key")]
     pub aci_private_key: PrivateKey,
     #[serde(with = "serde_public_key", rename = "public_key")]
     pub aci_public_key: PublicKey,
-    #[serde(with = "serde_optional_private_key")]
+    #[serde(with = "serde_optional_private_key", default)]
     pub pni_private_key: Option<PrivateKey>,
-    #[serde(with = "serde_optional_public_key")]
+    #[serde(with = "serde_optional_public_key", default)]
     pub pni_public_key: Option<PublicKey>,
     #[serde(with = "serde_profile_key")]
     profile_key: ProfileKey,
@@ -1293,4 +1294,56 @@ fn save_message_with_thread<C: Store>(
 fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
     let thread = Thread::try_from(&message)?;
     save_message_with_thread(config_store, message, thread)
+}
+
+#[cfg(test)]
+mod tests {
+    use libsignal_service::prelude::{protocol::KeyPair, ProfileKey};
+    use rand::RngCore;
+    use serde_json::json;
+
+    use crate::Registered;
+
+    #[test]
+    fn test_state_before_pni() {
+        let mut rng = rand::thread_rng();
+        let key_pair = KeyPair::generate(&mut rng);
+        let mut profile_key = [0u8; 32];
+        rng.fill_bytes(&mut profile_key);
+        let profile_key = ProfileKey::generate(profile_key);
+        let mut signaling_key = [0u8; 52];
+        rng.fill_bytes(&mut signaling_key);
+
+        // this is before public_key and private_key were renamed to aci_public_key and aci_private_key
+        // and pni_public_key + pni_private_key were added
+        let previous_state = json!({
+          "signal_servers": "Production",
+          "device_name": "Test",
+          "phone_number": {
+            "code": {
+              "value": 1,
+              "source": "plus"
+            },
+            "national": {
+              "value": 5550199,
+              "zeros": 0
+            },
+            "extension": null,
+            "carrier": null
+          },
+          "uuid": "ff9a89d9-8052-4af0-a91d-2a0dfa0c6b95",
+          "password": "HelloWorldOfPasswords",
+          "signaling_key": base64::encode(signaling_key),
+          "device_id": 42,
+          "registration_id": 64,
+          "private_key": base64::encode(key_pair.private_key.serialize()),
+          "public_key": base64::encode(key_pair.public_key.serialize()),
+          "profile_key": base64::encode(profile_key.get_bytes()),
+        });
+
+        let state: Registered = serde_json::from_value(previous_state).expect("should deserialize");
+        assert_eq!(state.aci_public_key, key_pair.public_key);
+        assert!(state.aci_private_key == key_pair.private_key);
+        assert!(state.pni_public_key.is_none());
+    }
 }
