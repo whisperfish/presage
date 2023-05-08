@@ -2,6 +2,7 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -9,7 +10,8 @@ use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
-use futures::{channel::oneshot, future, pin_mut, StreamExt};
+use futures::StreamExt;
+use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
 use presage::libsignal_service::content::Reaction;
@@ -28,6 +30,8 @@ use presage::{
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
+use tokio::task;
+use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -198,7 +202,7 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: Store>(
+async fn send<C: Store + 'static>(
     msg: &str,
     uuid: &Uuid,
     manager: &mut Manager<C, Registered>,
@@ -214,12 +218,27 @@ async fn send<C: Store>(
         ..Default::default()
     });
 
-    let mut m = manager.clone();
-    let _ = future::join(
-        receive(&mut m, false),
-        manager.send_message(*uuid, message, timestamp),
-    )
-    .await;
+    let local = task::LocalSet::new();
+
+    local
+        .run_until(async move {
+            let mut receiving_manager = manager.clone();
+            task::spawn_local(async move {
+                if let Err(e) = receive(&mut receiving_manager, false).await {
+                    error!("error while receiving stuff: {e}");
+                }
+            });
+
+            sleep(Duration::from_secs(5)).await;
+
+            manager
+                .send_message(*uuid, message, timestamp)
+                .await
+                .unwrap();
+
+            sleep(Duration::from_secs(5)).await;
+        })
+        .await;
 
     Ok(())
 }
@@ -318,7 +337,7 @@ fn print_message<C: Store>(
             .ok()
             .flatten()
             .filter(|c| !c.name.is_empty())
-            .map(|c| c.name)
+            .map(|c| format!("{}: {}", c.name, uuid))
             .unwrap_or_else(|| uuid.to_string())
     };
 
@@ -370,7 +389,7 @@ fn print_message<C: Store>(
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = content.metadata.sender.uuid;
+                let sender = format_contact(&content.metadata.sender.uuid);
                 let group = format_group(key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
@@ -419,7 +438,7 @@ async fn receive<C: Store>(
     Ok(())
 }
 
-async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -481,18 +500,18 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             }
         }
         Cmd::Receive { notifications } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             receive(&mut manager, notifications).await?;
         }
         Cmd::Send { uuid, message } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             send(&message, &uuid, &mut manager).await?;
         }
         Cmd::SendToGroup {
             message,
             master_key,
         } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
 
             let timestamp = std::time::SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -519,7 +538,7 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             uuid,
             mut profile_key,
         } => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             if profile_key.is_none() {
                 for contact in manager
                     .contacts()?
@@ -547,7 +566,7 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
         Cmd::Unblock => unimplemented!(),
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             for group in manager.groups()? {
                 match group {
                     Ok((
@@ -573,7 +592,7 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             }
         }
         Cmd::ListContacts => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             for Contact {
                 name,
                 uuid,
@@ -585,11 +604,11 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             }
         }
         Cmd::Whoami => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             println!("{:?}", &manager.whoami().await?);
         }
         Cmd::GetContact { ref uuid } => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             match manager.contact_by_id(uuid)? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
@@ -600,7 +619,7 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             phone_number,
             ref name,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             for contact in manager
                 .contacts()?
                 .filter_map(Result::ok)
@@ -613,7 +632,7 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
         }
         #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             manager.request_contacts_sync().await?;
         }
         Cmd::ListMessages {
@@ -621,7 +640,7 @@ async fn run<C: Store>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
             recipient_uuid,
             from,
         } => {
-            let manager = Manager::load_registered(config_store)?;
+            let manager = Manager::load_registered(config_store).await?;
             let thread = match (group_master_key, recipient_uuid) {
                 (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),

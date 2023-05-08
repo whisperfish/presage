@@ -6,9 +6,7 @@ use libsignal_service::{
     groups_v2::Group,
     models::Contact,
     prelude::{
-        protocol::{
-            IdentityKeyStore, PreKeyStore, SenderKeyStore, SessionStoreExt, SignedPreKeyStore,
-        },
+        protocol::{ProtocolStore, SenderKeyStore, SessionStoreExt},
         Content, ProfileKey, Uuid, UuidError,
     },
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
@@ -18,9 +16,7 @@ use serde::{Deserialize, Serialize};
 
 pub trait StoreError: std::error::Error + Sync + Send + 'static {}
 
-pub trait Store:
-    PreKeyStore + SignedPreKeyStore + SessionStoreExt + IdentityKeyStore + SenderKeyStore + Sync + Clone
-{
+pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone {
     type Error: StoreError;
 
     type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
@@ -108,6 +104,12 @@ pub trait Store:
     fn group(&self, master_key: GroupMasterKeyBytes) -> Result<Option<Group>, Self::Error>;
 
     /// Profiles
+
+    /// Insert or update the profile key of a contact
+    fn upsert_profile_key(&mut self, uuid: &Uuid, key: ProfileKey) -> Result<bool, Self::Error>;
+
+    /// Get the profile key for a contact
+    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, Self::Error>;
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(

@@ -9,8 +9,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+### Fixed
+
+### Changed
+
+## [0.5.2]
+
+### Added
+
+- Set registration for PNI (phone-number identity) which will be fully implemented later. (#164)
+
+### Fixed
+
+- Fix synchronization issue in the `sled` store implementation which could lead to corrupted sessions. (#162)
+- Don't reuse websocket when sending unidentified messages. (#165)
+- Fix fetching groups v2 metadata. (#164)
+
+### Changed
+
+- `Manager::load_registered` is now an async method (small breaking change, sorry!). (#164)
+
+## [0.5.1]
+
+Note: this release splits the project into multiple crates, to prepare for adding concurrent store implementations.
+While this might seem like a breaking change, the API has not been altered and your `Cargo.toml` should now look like:
+
+```toml
+[dependencies]
+presage = { git = "https://github.com/whisperfish/presage" }
+presage-store-sled = { git = "https://github.com/whisperfish/presage" }
+```
+
+and then get the store implementation from the store crate instead when importing it like `use presage_store_sled::SledStore;`.
+
+### Added
+
 - Add `Manager::submit_recaptcha_challenge`. (#143)
 - Cache profile API responses. (#134)
+- Add `is_registered` method to the store trait. (#156)
 
 ### Fixed
 
@@ -23,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Handle message deletion sent by contacts. (#147)
 - Split `presage` into multiple crates, before introducing additional store implementations. (#148)
+- Messages are now sent, whenever possible (which should be all the time), as [sealed sender](https://signal.org/blog/sealed-sender/). [#159]
+- Split project into multiple crates. (#148)
 
 ## [0.5.0]
 
@@ -51,3 +89,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Encrypt registration data (when store encryption is enabled). (#114)
 
 [0.5.0]: https://github.com/whisperfish/presage/compare/0.4.0...0.5.0
+[0.5.1]: https://github.com/whisperfish/presage/compare/0.5.0...0.5.1
+[0.5.2]: https://github.com/whisperfish/presage/compare/0.5.1...0.5.2
+[Unreleased]: https://github.com/whisperfish/presage/compare/0.5.2...main
