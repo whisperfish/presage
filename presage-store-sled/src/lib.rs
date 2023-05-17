@@ -1,38 +1,45 @@
 use std::{
     ops::{Bound, Range, RangeBounds, RangeFull},
     path::Path,
-    sync::Arc,
+    sync::{Arc, RwLock, RwLockReadGuard, RwLockWriteGuard},
     time::{SystemTime, UNIX_EPOCH},
 };
 
 use async_trait::async_trait;
-use libsignal_service::{
-    groups_v2::{decrypt_group, Group},
-    models::Contact,
-    prelude::{
-        protocol::{
-            Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, SenderKeyRecord, SenderKeyStore,
-            SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError, SignedPreKeyId,
-            SignedPreKeyRecord, SignedPreKeyStore,
-        },
-        Content, Uuid,
-    },
-    proto,
-    push_service::DEFAULT_DEVICE_ID,
-    ServiceAddress,
-};
 use log::{debug, error, trace, warn};
+#[cfg(feature = "encryption")]
 use matrix_sdk_store_encryption::StoreCipher;
+use presage::{
+    libsignal_service::{
+        self,
+        groups_v2::{decrypt_group, Group},
+        models::Contact,
+        prelude::{
+            protocol::{
+                Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+                PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
+                SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
+                SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+            },
+            Content, ProfileKey, Uuid,
+        },
+        push_service::DEFAULT_DEVICE_ID,
+        Profile, ServiceAddress,
+    },
+    prelude::proto,
+};
 use prost::Message;
+use protobuf::ContentProto;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use super::{ContactsStore, GroupsStore, MessageStore, StateStore};
-use crate::{
-    manager::Registered, proto::ContentProto, store::Thread, Error, GroupMasterKeyBytes, Store,
-};
+use presage::{GroupMasterKeyBytes, Registered, Store, Thread};
+
+mod error;
+mod protobuf;
+
+pub use error::SledStoreError;
 
 const SLED_TREE_CONTACTS: &str = "contacts";
 const SLED_TREE_GROUPS: &str = "groups";
@@ -43,6 +50,8 @@ const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
+const SLED_TREE_PROFILES: &str = "profiles";
+const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
@@ -52,7 +61,7 @@ const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
 
 #[derive(Clone)]
 pub struct SledStore {
-    db: Arc<sled::Db>,
+    db: Arc<RwLock<sled::Db>>,
     cipher: Option<Arc<StoreCipher>>,
 }
 
@@ -101,14 +110,20 @@ impl SchemaVersion {
 }
 
 impl SledStore {
-    fn new(db_path: impl AsRef<Path>, passphrase: Option<impl AsRef<str>>) -> Result<Self, Error> {
+    fn new(
+        db_path: impl AsRef<Path>,
+        passphrase: Option<impl AsRef<str>>,
+    ) -> Result<Self, SledStoreError> {
         let database = sled::open(db_path)?;
+
+        #[cfg(feature = "encryption")]
         let cipher = passphrase
             .map(|p| Self::get_or_create_store_cipher(&database, p.as_ref()))
             .transpose()?;
 
         Ok(SledStore {
-            db: Arc::new(database),
+            db: Arc::new(RwLock::new(database)),
+            #[cfg(feature = "encryption")]
             cipher: cipher.map(Arc::new),
         })
     }
@@ -116,7 +131,7 @@ impl SledStore {
     pub fn open(
         db_path: impl AsRef<Path>,
         migration_conflict_strategy: MigrationConflictStrategy,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, SledStoreError> {
         Self::open_with_passphrase(db_path, None::<&str>, migration_conflict_strategy)
     }
 
@@ -124,7 +139,7 @@ impl SledStore {
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
         migration_conflict_strategy: MigrationConflictStrategy,
-    ) -> Result<Self, Error> {
+    ) -> Result<Self, SledStoreError> {
         let passphrase = passphrase.as_ref();
 
         migrate(&db_path, passphrase, migration_conflict_strategy)?;
@@ -134,7 +149,7 @@ impl SledStore {
     fn get_or_create_store_cipher(
         database: &sled::Db,
         passphrase: &str,
-    ) -> Result<StoreCipher, Error> {
+    ) -> Result<StoreCipher, SledStoreError> {
         let cipher = if let Some(key) = database.get(SLED_KEY_STORE_CIPHER)? {
             StoreCipher::import(passphrase, &key)?
         } else {
@@ -151,12 +166,20 @@ impl SledStore {
     }
 
     #[cfg(test)]
-    fn temporary() -> Result<Self, Error> {
+    fn temporary() -> Result<Self, SledStoreError> {
         let db = sled::Config::new().temporary(true).open()?;
         Ok(Self {
-            db: Arc::new(db),
+            db: Arc::new(RwLock::new(db)),
             cipher: None,
         })
+    }
+
+    fn read(&self) -> RwLockReadGuard<sled::Db> {
+        self.db.read().expect("poisoned rwlock")
+    }
+
+    fn write(&self) -> RwLockWriteGuard<sled::Db> {
+        self.db.write().expect("poisoned rwlock")
     }
 
     fn schema_version(&self) -> SchemaVersion {
@@ -166,49 +189,47 @@ impl SledStore {
             .unwrap_or_default()
     }
 
-    fn tree<T>(&self, tree: T) -> Result<sled::Tree, Error>
-    where
-        T: AsRef<[u8]>,
-    {
-        self.db.open_tree(tree).map_err(Error::DbError)
-    }
-
-    pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, Error>
+    pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, SledStoreError>
     where
         K: AsRef<[u8]>,
         V: DeserializeOwned,
     {
-        self.tree(tree)?
+        self.read()
+            .open_tree(tree)?
             .get(key)?
             .map(|p| {
                 self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&p).map_err(Error::from),
-                    |c| c.decrypt_value(&p).map_err(Error::from),
+                    || serde_json::from_slice(&p).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&p).map_err(SledStoreError::from),
                 )
             })
             .transpose()
-            .map_err(Error::from)
+            .map_err(SledStoreError::from)
     }
 
-    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<(), Error>
+    fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<bool, SledStoreError>
     where
         K: AsRef<[u8]>,
         V: Serialize,
     {
         let value = self.cipher.as_ref().map_or_else(
-            || serde_json::to_vec(&value).map_err(Error::from),
-            |c| c.encrypt_value(&value).map_err(Error::from),
+            || serde_json::to_vec(&value).map_err(SledStoreError::from),
+            |c| c.encrypt_value(&value).map_err(SledStoreError::from),
         )?;
-        let _ = self.tree(tree)?.insert(key, value)?;
-        self.db.flush()?;
-        Ok(())
+        let db = self.write();
+        let replaced = db.open_tree(tree)?.insert(key, value)?;
+        db.flush()?;
+        Ok(replaced.is_some())
     }
 
-    fn remove<K>(&self, tree: &str, key: K) -> Result<bool, Error>
+    fn remove<K>(&self, tree: &str, key: K) -> Result<bool, SledStoreError>
     where
         K: AsRef<[u8]>,
     {
-        Ok(self.tree(tree)?.remove(key)?.is_some())
+        let db = self.write();
+        let removed = db.open_tree(tree)?.remove(key)?;
+        db.flush()?;
+        Ok(removed.is_some())
     }
 
     /// build a hashed messages thread key
@@ -224,13 +245,24 @@ impl SledStore {
         hasher.update(key.as_bytes());
         format!("{SLED_TREE_THREADS_PREFIX}:{:x}", hasher.finalize())
     }
+
+    fn profile_key_for_uuid(&self, uuid: Uuid, key: ProfileKey) -> String {
+        let key = uuid
+            .into_bytes()
+            .into_iter()
+            .chain(key.get_bytes().into_iter());
+
+        let mut hasher = Sha256::new();
+        hasher.update(key.collect::<Vec<_>>());
+        format!("{:x}", hasher.finalize())
+    }
 }
 
 fn migrate(
     db_path: impl AsRef<Path>,
     passphrase: Option<impl AsRef<str>>,
     migration_conflict_strategy: MigrationConflictStrategy,
-) -> Result<(), Error> {
+) -> Result<(), SledStoreError> {
     let db_path = db_path.as_ref();
     let passphrase = passphrase.as_ref();
 
@@ -246,21 +278,23 @@ fn migrate(
                     debug!("migrating from schema v1 to v2: encrypting state if cipher is enabled");
 
                     // load registration data the old school way
-                    if let Some(data) = store.db.get(SLED_KEY_REGISTRATION)? {
-                        let state = serde_json::from_slice(&data).map_err(Error::from)?;
+                    let registration = store.read().get(SLED_KEY_REGISTRATION)?;
+                    if let Some(data) = registration {
+                        let state = serde_json::from_slice(&data).map_err(SledStoreError::from)?;
 
                         // save it the new school way
                         store.save_state(&state)?;
 
                         // remove old data
-                        store.db.remove(SLED_KEY_REGISTRATION)?;
+                        let db = store.write();
+                        db.remove(SLED_KEY_REGISTRATION)?;
+                        db.flush()?;
                     }
                 }
-                _ => return Err(Error::MigrationConflict),
+                _ => return Err(SledStoreError::MigrationConflict),
             }
 
             store.insert(SLED_TREE_STATE, SLED_KEY_SCHEMA_VERSION, step)?;
-            store.db.flush()?;
         }
 
         Ok(())
@@ -291,84 +325,103 @@ fn migrate(
     Ok(())
 }
 
-impl StateStore<Registered> for SledStore {
-    fn load_state(&self) -> Result<Registered, Error> {
-        self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?
-            .ok_or(Error::NotYetRegisteredError)
+impl ProtocolStore for SledStore {}
+
+impl Store for SledStore {
+    type Error = SledStoreError;
+
+    type ContactsIter = SledContactsIter;
+    type GroupsIter = SledGroupsIter;
+    type MessagesIter = SledMessagesIter;
+
+    /// State
+
+    fn load_state(&self) -> Result<Option<Registered>, SledStoreError> {
+        self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered) -> Result<(), Error> {
+    fn save_state(&mut self, state: &Registered) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
-}
 
-impl Store for SledStore {
-    fn clear_registration(&mut self) -> Result<(), Error> {
-        self.db.remove(SLED_KEY_REGISTRATION)?;
+    fn is_registered(&self) -> bool {
+        self.load_state().unwrap_or_default().is_some()
+    }
 
-        self.db.drop_tree(SLED_TREE_IDENTITIES)?;
-        self.db.drop_tree(SLED_TREE_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_SENDER_KEYS)?;
-        self.db.drop_tree(SLED_TREE_SESSIONS)?;
-        self.db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
-        self.db.drop_tree(SLED_TREE_STATE)?;
+    fn clear_registration(&mut self) -> Result<(), SledStoreError> {
+        let db = self.write();
+        db.remove(SLED_KEY_REGISTRATION)?;
 
-        self.db.flush()?;
+        db.drop_tree(SLED_TREE_IDENTITIES)?;
+        db.drop_tree(SLED_TREE_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_SENDER_KEYS)?;
+        db.drop_tree(SLED_TREE_SESSIONS)?;
+        db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_STATE)?;
+        db.drop_tree(SLED_TREE_PROFILES)?;
+        db.drop_tree(SLED_TREE_PROFILE_KEYS)?;
+
+        db.flush()?;
 
         Ok(())
     }
 
-    fn clear(&mut self) -> Result<(), Error> {
+    fn clear(&mut self) -> Result<(), SledStoreError> {
         self.clear_registration()?;
 
-        self.db.drop_tree(SLED_TREE_CONTACTS)?;
-        self.db.drop_tree(SLED_TREE_GROUPS)?;
+        let db = self.write();
+        db.drop_tree(SLED_TREE_CONTACTS)?;
+        db.drop_tree(SLED_TREE_GROUPS)?;
 
-        for tree in self
-            .db
+        for tree in db
             .tree_names()
             .into_iter()
             .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
         {
-            self.db.drop_tree(tree)?;
+            db.drop_tree(tree)?;
         }
 
-        self.db.flush()?;
+        db.flush()?;
 
         Ok(())
     }
 
-    fn pre_keys_offset_id(&self) -> Result<u32, Error> {
+    /// Pre-keys
+
+    fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
         Ok(self
             .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
             .unwrap_or(0))
     }
 
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
+        Ok(())
     }
 
-    fn next_signed_pre_key_id(&self) -> Result<u32, Error> {
+    fn next_signed_pre_key_id(&self) -> Result<u32, SledStoreError> {
         Ok(self
             .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
             .unwrap_or(0))
     }
 
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
-    }
-}
-
-impl ContactsStore for SledStore {
-    type ContactsIter = SledContactsIter;
-
-    fn clear_contacts(&mut self) -> Result<(), Error> {
-        self.db.drop_tree(SLED_TREE_CONTACTS)?;
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
         Ok(())
     }
 
-    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>) -> Result<(), Error> {
+    /// Contacts
+
+    fn clear_contacts(&mut self) -> Result<(), SledStoreError> {
+        self.write().drop_tree(SLED_TREE_CONTACTS)?;
+        Ok(())
+    }
+
+    fn save_contacts(
+        &mut self,
+        contacts: impl Iterator<Item = Contact>,
+    ) -> Result<(), SledStoreError> {
         for contact in contacts {
             self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
         }
@@ -376,50 +429,168 @@ impl ContactsStore for SledStore {
         Ok(())
     }
 
-    fn contacts(&self) -> Result<Self::ContactsIter, Error> {
+    fn contacts(&self) -> Result<Self::ContactsIter, SledStoreError> {
         Ok(SledContactsIter {
-            iter: self.tree(SLED_TREE_CONTACTS)?.iter(),
+            iter: self.read().open_tree(SLED_TREE_CONTACTS)?.iter(),
             cipher: self.cipher.clone(),
         })
     }
 
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error> {
+    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, SledStoreError> {
         self.get(SLED_TREE_CONTACTS, id)
     }
-}
 
-impl GroupsStore for SledStore {
-    type GroupsIter = SledGroupsIter;
+    /// Groups
 
-    fn clear_groups(&mut self) -> Result<(), Error> {
-        self.db.drop_tree(SLED_TREE_GROUPS)?;
+    fn clear_groups(&mut self) -> Result<(), SledStoreError> {
+        let db = self.write();
+        db.drop_tree(SLED_TREE_GROUPS)?;
+        db.flush()?;
         Ok(())
     }
 
-    fn groups(&self) -> Result<Self::GroupsIter, Error> {
+    fn groups(&self) -> Result<Self::GroupsIter, SledStoreError> {
         Ok(SledGroupsIter {
-            iter: self.tree(SLED_TREE_GROUPS)?.iter(),
+            iter: self.read().open_tree(SLED_TREE_GROUPS)?.iter(),
             cipher: self.cipher.clone(),
         })
     }
 
-    fn group(&self, master_key: &[u8]) -> Result<Option<Group>, Error> {
-        let key: GroupMasterKeyBytes = master_key.try_into()?;
-        let val: Option<Vec<u8>> = self.get(SLED_TREE_GROUPS, key)?;
+    fn group(
+        &self,
+        master_key_bytes: GroupMasterKeyBytes,
+    ) -> Result<Option<Group>, SledStoreError> {
+        let val: Option<Vec<u8>> = self.get(SLED_TREE_GROUPS, master_key_bytes)?;
         match val {
             Some(ref v) => {
                 let encrypted_group = proto::Group::decode(v.as_slice())?;
-                let group = decrypt_group(&key, encrypted_group)?;
+                let group = decrypt_group(&master_key_bytes, encrypted_group)
+                    .map_err(|_| SledStoreError::GroupDecryption)?;
                 Ok(Some(group))
             }
             None => Ok(None),
         }
     }
 
-    fn save_group(&self, master_key: &[u8], group: proto::Group) -> Result<(), Error> {
-        let key: GroupMasterKeyBytes = master_key.try_into()?;
-        self.insert(SLED_TREE_GROUPS, key, group.encode_to_vec())?;
+    fn save_group(
+        &self,
+        master_key: GroupMasterKeyBytes,
+        group: proto::Group,
+    ) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_GROUPS, master_key, group.encode_to_vec())?;
         Ok(())
+    }
+
+    /// Messages
+
+    fn clear_messages(&mut self) -> Result<(), SledStoreError> {
+        let db = self.write();
+        for name in db.tree_names() {
+            if name
+                .as_ref()
+                .starts_with(SLED_TREE_THREADS_PREFIX.as_bytes())
+            {
+                db.drop_tree(&name)?;
+            }
+        }
+        db.flush()?;
+        Ok(())
+    }
+
+    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
+        log::trace!(
+            "storing a message with thread: {thread}, timestamp: {}",
+            message.metadata.timestamp,
+        );
+
+        let tree = self.messages_thread_tree_name(thread);
+        let key = message.metadata.timestamp.to_be_bytes();
+
+        let proto: ContentProto = message.into();
+        let value = proto.encode_to_vec();
+
+        self.insert(&tree, key, value)?;
+
+        Ok(())
+    }
+
+    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, SledStoreError> {
+        let tree = self.messages_thread_tree_name(thread);
+        self.remove(&tree, timestamp.to_be_bytes())
+    }
+
+    fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<libsignal_service::prelude::Content>, SledStoreError> {
+        // Big-Endian needed, otherwise wrong ordering in sled.
+        let val: Option<Vec<u8>> = self.get(
+            &self.messages_thread_tree_name(thread),
+            timestamp.to_be_bytes(),
+        )?;
+        match val {
+            Some(ref v) => {
+                let proto = ContentProto::decode(v.as_slice())?;
+                let content = proto.try_into()?;
+                Ok(Some(content))
+            }
+            None => Ok(None),
+        }
+    }
+
+    fn messages(
+        &self,
+        thread: &Thread,
+        range: impl RangeBounds<u64>,
+    ) -> Result<Self::MessagesIter, SledStoreError> {
+        let tree_thread = self
+            .read()
+            .open_tree(self.messages_thread_tree_name(thread))?;
+        debug!("{} messages in this tree", tree_thread.len());
+
+        let iter = match (range.start_bound(), range.end_bound()) {
+            (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),
+            (Bound::Included(start), Bound::Excluded(end)) => {
+                tree_thread.range(start.to_be_bytes()..end.to_be_bytes())
+            }
+            (Bound::Included(start), Bound::Included(end)) => {
+                tree_thread.range(start.to_be_bytes()..=end.to_be_bytes())
+            }
+            (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
+            (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
+            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
+        };
+
+        Ok(SledMessagesIter {
+            cipher: self.cipher.clone(),
+            iter,
+        })
+    }
+
+    fn upsert_profile_key(&mut self, uuid: &Uuid, key: ProfileKey) -> Result<bool, SledStoreError> {
+        self.insert(SLED_TREE_PROFILE_KEYS, uuid.as_bytes(), key)
+    }
+
+    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, SledStoreError> {
+        self.get(SLED_TREE_PROFILE_KEYS, uuid.as_bytes())
+    }
+
+    fn save_profile(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        profile: Profile,
+    ) -> Result<(), SledStoreError> {
+        let key = self.profile_key_for_uuid(uuid, key);
+        self.insert(SLED_TREE_PROFILES, key, profile)?;
+        Ok(())
+    }
+
+    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, SledStoreError> {
+        let key = self.profile_key_for_uuid(uuid, key);
+        self.get(SLED_TREE_PROFILES, key)
     }
 }
 
@@ -429,16 +600,16 @@ pub struct SledContactsIter {
 }
 
 impl Iterator for SledContactsIter {
-    type Item = Result<Contact, Error>;
+    type Item = Result<Contact, SledStoreError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()?
-            .map_err(Error::from)
+            .map_err(SledStoreError::from)
             .and_then(|(_key, value)| {
                 self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(Error::from),
-                    |c| c.decrypt_value(&value).map_err(Error::from),
+                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
                 )
             })
             .into()
@@ -451,16 +622,16 @@ pub struct SledGroupsIter {
 }
 
 impl Iterator for SledGroupsIter {
-    type Item = Result<(GroupMasterKeyBytes, Group), Error>;
+    type Item = Result<(GroupMasterKeyBytes, Group), SledStoreError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter
             .next()?
-            .map_err(Error::from)
+            .map_err(SledStoreError::from)
             .and_then(|(master_key_bytes, value)| {
                 let decrypted_data: Vec<u8> = self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(Error::from),
-                    |c| c.decrypt_value(&value).map_err(Error::from),
+                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
                 )?;
                 Ok((master_key_bytes, decrypted_data))
             })
@@ -469,8 +640,8 @@ impl Iterator for SledGroupsIter {
                 let master_key: GroupMasterKeyBytes = master_key_bytes[..]
                     .try_into()
                     .expect("wrong group master key length");
-                let decrypted_group =
-                    decrypt_group(&master_key, encrypted_group).map_err(Error::from)?;
+                let decrypted_group = decrypt_group(&master_key, encrypted_group)
+                    .map_err(|_| SledStoreError::GroupDecryption)?;
                 Ok((master_key, decrypted_group))
             })
             .into()
@@ -548,7 +719,8 @@ impl SignedPreKeyStore for SledStore {
         .map_err(|e| {
             log::error!("sled error: {}", e);
             SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
-        })
+        })?;
+        Ok(())
     }
 }
 
@@ -561,7 +733,7 @@ impl SessionStore for SledStore {
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
         let session = self
             .get(SLED_TREE_SESSIONS, address.to_string())
-            .map_err(Error::into_signal_error)?;
+            .map_err(SledStoreError::into_signal_error)?;
         trace!("loading session {} / exists={}", address, session.is_some());
         session
             .map(|b: Vec<u8>| SessionRecord::deserialize(&b))
@@ -576,7 +748,8 @@ impl SessionStore for SledStore {
     ) -> Result<(), SignalProtocolError> {
         trace!("storing session {}", address);
         self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
-            .map_err(Error::into_signal_error)
+            .map_err(SledStoreError::into_signal_error)?;
+        Ok(())
     }
 }
 
@@ -589,8 +762,10 @@ impl SessionStoreExt for SledStore {
         let session_prefix = format!("{}.", address.uuid);
         trace!("get_sub_device_sessions {}", session_prefix);
         let session_ids: Vec<u32> = self
-            .tree(SLED_TREE_SESSIONS)
-            .map_err(Error::into_signal_error)?
+            .read()
+            .open_tree(SLED_TREE_SESSIONS)
+            .map_err(Into::into)
+            .map_err(SledStoreError::into_signal_error)?
             .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
@@ -605,8 +780,10 @@ impl SessionStoreExt for SledStore {
 
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
         trace!("deleting session {}", address);
-        self.tree(SLED_TREE_SESSIONS)
-            .map_err(Error::into_signal_error)?
+        self.write()
+            .open_tree(SLED_TREE_SESSIONS)
+            .map_err(Into::into)
+            .map_err(SledStoreError::into_signal_error)?
             .remove(address.to_string())
             .map_err(|_e| SignalProtocolError::SessionNotFound(address.clone()))?;
         Ok(())
@@ -616,14 +793,14 @@ impl SessionStoreExt for SledStore {
         &self,
         address: &ServiceAddress,
     ) -> Result<usize, SignalProtocolError> {
-        let tree = self
-            .tree(SLED_TREE_SESSIONS)
-            .map_err(Error::into_signal_error)?;
+        let db = self.write();
+        let sessions_tree = db
+            .open_tree(SLED_TREE_SESSIONS)
+            .map_err(Into::into)
+            .map_err(SledStoreError::into_signal_error)?;
 
         let mut batch = Batch::default();
-
-        self.tree(SLED_TREE_SESSIONS)
-            .map_err(Error::into_signal_error)?
+        sessions_tree
             .scan_prefix(address.uuid.to_string())
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
@@ -631,13 +808,12 @@ impl SessionStoreExt for SledStore {
             })
             .for_each(|k| batch.remove(k));
 
-        self.db
-            .apply_batch(batch)
-            .map_err(Error::DbError)
-            .map_err(Error::into_signal_error)?;
+        db.apply_batch(batch)
+            .map_err(SledStoreError::Db)
+            .map_err(SledStoreError::into_signal_error)?;
 
-        let len = tree.len();
-        tree.clear().map_err(|_e| {
+        let len = sessions_tree.len();
+        sessions_tree.clear().map_err(|_e| {
             SignalProtocolError::InvalidSessionStructure("failed to delete all sessions")
         })?;
         Ok(len)
@@ -651,19 +827,27 @@ impl IdentityKeyStore for SledStore {
         _ctx: Context,
     ) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let state = self.load_state().map_err(|e| {
-            SignalProtocolError::InvalidState("failed to load presage state", e.to_string())
-        })?;
+        let state = self
+            .load_state()
+            .map_err(SledStoreError::into_signal_error)?
+            .ok_or(SignalProtocolError::InvalidState(
+                "failed to load identity key pair",
+                "no registration data".into(),
+            ))?;
         Ok(IdentityKeyPair::new(
-            IdentityKey::new(state.public_key),
-            state.private_key,
+            IdentityKey::new(state.aci_public_key),
+            state.aci_private_key,
         ))
     }
 
     async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
-        let state = self.load_state().map_err(|e| {
-            SignalProtocolError::InvalidState("failed to load presage state", e.to_string())
-        })?;
+        let state = self
+            .load_state()
+            .map_err(SledStoreError::into_signal_error)?
+            .ok_or(SignalProtocolError::InvalidState(
+                "failed to load identity key pair",
+                "no registration data".into(),
+            ))?;
         Ok(state.registration_id)
     }
 
@@ -681,7 +865,7 @@ impl IdentityKeyStore for SledStore {
         )
         .map_err(|e| {
             error!("error saving identity for {:?}: {}", address, e);
-            SignalProtocolError::InvalidState("save_identity", "failed to save identity".into())
+            e.into_signal_error()
         })?;
 
         Ok(false)
@@ -696,7 +880,7 @@ impl IdentityKeyStore for SledStore {
     ) -> Result<bool, SignalProtocolError> {
         match self
             .get(SLED_TREE_IDENTITIES, address.to_string())
-            .map_err(Error::into_signal_error)?
+            .map_err(SledStoreError::into_signal_error)?
             .map(|b: Vec<u8>| IdentityKey::decode(&b))
             .transpose()?
         {
@@ -715,7 +899,7 @@ impl IdentityKeyStore for SledStore {
         _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
         self.get(SLED_TREE_IDENTITIES, address.to_string())
-            .map_err(Error::into_signal_error)?
+            .map_err(SledStoreError::into_signal_error)?
             .map(|b: Vec<u8>| IdentityKey::decode(&b))
             .transpose()
     }
@@ -737,7 +921,8 @@ impl SenderKeyStore for SledStore {
             distribution_id
         );
         self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
-            .map_err(Error::into_signal_error)
+            .map_err(SledStoreError::into_signal_error)?;
+        Ok(())
     }
 
     async fn load_sender_key(
@@ -753,97 +938,9 @@ impl SenderKeyStore for SledStore {
             distribution_id
         );
         self.get(SLED_TREE_SENDER_KEYS, key)
-            .map_err(Error::into_signal_error)?
+            .map_err(SledStoreError::into_signal_error)?
             .map(|b: Vec<u8>| SenderKeyRecord::deserialize(&b))
             .transpose()
-    }
-}
-
-impl MessageStore for SledStore {
-    type MessagesIter = SledMessagesIter;
-
-    fn clear_messages(&mut self) -> Result<(), Error> {
-        for name in self.db.tree_names() {
-            if name
-                .as_ref()
-                .starts_with(SLED_TREE_THREADS_PREFIX.as_bytes())
-            {
-                self.db.drop_tree(&name)?;
-            }
-        }
-        self.db.flush()?;
-        Ok(())
-    }
-
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Error> {
-        log::trace!(
-            "Storing a message with thread: {:?}, timestamp: {}",
-            thread,
-            message.metadata.timestamp,
-        );
-
-        let tree = self.messages_thread_tree_name(thread);
-        let key = message.metadata.timestamp.to_be_bytes();
-
-        let proto: ContentProto = message.into();
-        let value = proto.encode_to_vec();
-
-        self.insert(&tree, key, value)?;
-
-        Ok(())
-    }
-
-    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Error> {
-        let tree = self.messages_thread_tree_name(thread);
-        self.remove(&tree, timestamp.to_be_bytes())
-    }
-
-    fn message(
-        &self,
-        thread: &Thread,
-        timestamp: u64,
-    ) -> Result<Option<libsignal_service::prelude::Content>, Error> {
-        // Big-Endian needed, otherwise wrong ordering in sled.
-        let val: Option<Vec<u8>> = self.get(
-            &self.messages_thread_tree_name(thread),
-            timestamp.to_be_bytes(),
-        )?;
-        match val {
-            Some(ref v) => {
-                let proto = ContentProto::decode(v.as_slice())?;
-                let content = proto.try_into()?;
-                Ok(Some(content))
-            }
-            None => Ok(None),
-        }
-    }
-
-    fn messages(
-        &self,
-        thread: &Thread,
-        range: impl RangeBounds<u64>,
-    ) -> Result<Self::MessagesIter, Error> {
-        let tree_thread = self.tree(self.messages_thread_tree_name(thread))?;
-        debug!("{} messages in this tree", tree_thread.len());
-
-        let iter = match (range.start_bound(), range.end_bound()) {
-            (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),
-            (Bound::Included(start), Bound::Excluded(end)) => {
-                tree_thread.range(start.to_be_bytes()..end.to_be_bytes())
-            }
-            (Bound::Included(start), Bound::Included(end)) => {
-                tree_thread.range(start.to_be_bytes()..=end.to_be_bytes())
-            }
-            (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
-            (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
-            (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
-            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
-        };
-
-        Ok(SledMessagesIter {
-            cipher: self.cipher.clone(),
-            iter,
-        })
     }
 }
 
@@ -853,21 +950,24 @@ pub struct SledMessagesIter {
 }
 
 impl SledMessagesIter {
-    fn decode(&self, elem: Result<(IVec, IVec), sled::Error>) -> Option<Result<Content, Error>> {
-        elem.map_err(Error::from)
+    fn decode(
+        &self,
+        elem: Result<(IVec, IVec), sled::Error>,
+    ) -> Option<Result<Content, SledStoreError>> {
+        elem.map_err(SledStoreError::from)
             .and_then(|(_, value)| {
                 self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(Error::from),
-                    |c| c.decrypt_value(&value).map_err(Error::from),
+                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
                 )
             })
-            .and_then(|data: Vec<u8>| ContentProto::decode(&data[..]).map_err(Error::from))
+            .and_then(|data: Vec<u8>| ContentProto::decode(&data[..]).map_err(SledStoreError::from))
             .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
     }
 }
 
 impl Iterator for SledMessagesIter {
-    type Item = Result<Content, Error>;
+    type Item = Result<Content, SledStoreError>;
 
     fn next(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next()?;
@@ -886,21 +986,22 @@ impl DoubleEndedIterator for SledMessagesIter {
 mod tests {
     use core::fmt;
 
-    use libsignal_service::{
-        content::{ContentBody, Metadata},
-        prelude::{
-            protocol::{
-                self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
-                SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+    use presage::{
+        libsignal_service::{
+            content::{ContentBody, Metadata},
+            prelude::{
+                protocol::{
+                    self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
+                    SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+                },
+                Uuid,
             },
-            Uuid,
+            proto::DataMessage,
+            ServiceAddress,
         },
-        proto::DataMessage,
-        ServiceAddress,
+        Store,
     };
     use quickcheck::{Arbitrary, Gen};
-
-    use crate::{MessageStore, Thread};
 
     use super::SledStore;
 
@@ -911,7 +1012,10 @@ mod tests {
     struct KeyPair(protocol::KeyPair);
 
     #[derive(Debug, Clone)]
-    struct Content(libsignal_service::prelude::Content);
+    struct Thread(presage::Thread);
+
+    #[derive(Debug, Clone)]
+    struct Content(presage::prelude::Content);
 
     impl fmt::Debug for KeyPair {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -956,16 +1060,15 @@ mod tests {
                 timestamp: Some(timestamp),
                 ..Default::default()
             });
-            Self(libsignal_service::prelude::Content::from_body(
-                content_body,
-                metadata,
-            ))
+            Self(presage::prelude::Content::from_body(content_body, metadata))
         }
     }
 
     impl Arbitrary for Thread {
         fn arbitrary(g: &mut Gen) -> Self {
-            Self::Contact(Uuid::from_u128(Arbitrary::arbitrary(g)))
+            Self(presage::Thread::Contact(Uuid::from_u128(
+                Arbitrary::arbitrary(g),
+            )))
         }
     }
 
@@ -1036,8 +1139,8 @@ mod tests {
             == signed_pre_key_record.serialize().unwrap()
     }
 
-    fn content_with_timestamp(content: &Content, ts: u64) -> libsignal_service::prelude::Content {
-        libsignal_service::prelude::Content {
+    fn content_with_timestamp(content: &Content, ts: u64) -> presage::prelude::Content {
+        presage::prelude::Content {
             metadata: Metadata {
                 timestamp: ts,
                 ..content.0.metadata.clone()
@@ -1049,6 +1152,7 @@ mod tests {
     #[quickcheck_async::tokio]
     async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
         let mut db = SledStore::temporary()?;
+        let thread = thread.0;
         db.save_message(&thread, content_with_timestamp(&content, 1678295210))?;
         db.save_message(&thread, content_with_timestamp(&content, 1678295220))?;
         db.save_message(&thread, content_with_timestamp(&content, 1678295230))?;

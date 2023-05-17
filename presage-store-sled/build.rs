@@ -7,9 +7,6 @@ fn main() -> Result<()> {
     // Build script does not automagically rerun when a new protobuf file is added.
     // Directories are checked against mtime, which is platform specific
     println!("cargo:rerun-if-changed=src/protobuf");
-    // Adding src/proto.rs means an extra `include!` will trigger a rerun. This is on best-effort
-    // basis.
-    println!("cargo:rerun-if-changed=src/proto.rs");
 
     let input: Vec<_> = protobuf
         .read_dir()
