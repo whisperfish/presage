@@ -308,6 +308,7 @@ impl<C: Store> Manager<C, Linking> {
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
+                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -330,7 +331,7 @@ impl<C: Store> Manager<C, Linking> {
                         password,
                         device_id: Some(device_id),
                         registration_id,
-                        pni_registration_id: None,
+                        pni_registration_id: Some(pni_registration_id),
                         aci_public_key,
                         aci_private_key,
                         pni_public_key: Some(pni_public_key),
@@ -618,7 +619,6 @@ impl<C: Store> Manager<C, Registered> {
                 }) => {
                     let groups = message_receiver.retrieve_groups(groups).await?;
                     for group in groups {
-                        let _ = dbg!(group);
                     }
                     info!("saved groups");
                     synced_groups = true;
@@ -632,14 +632,14 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    pub async fn sync_contacts_and_groups(&mut self) -> Result<(), Error> {
+    pub async fn sync_contacts_and_groups(&mut self) -> Result<(), Error<C::Error>> {
         let messages = self.receive_messages_stream(true).await?;
         pin_mut!(messages);
 
         self.request_contacts_sync().await?;
         self.request_groups_sync().await?;
 
-        info!("waiting for contacts sync for up to 60 seconds");
+        info!("waiting for contacts and groups sync for up to 60 seconds");
 
         tokio::time::timeout(
             Duration::from_secs(60),
@@ -667,7 +667,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// **Note**: If successful, the groups are not yet received and stored, but will only be
     /// processed when they're received using the `MessageReceiver`.
-    pub async fn request_groups_sync(&mut self) -> Result<(), Error> {
+    pub async fn request_groups_sync(&mut self) -> Result<(), Error<C::Error>> {
         trace!("requesting groups sync");
         self.request_sync(sync_message::request::Type::Groups).await
     }
@@ -675,7 +675,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn request_sync(
         &mut self,
         sync_request_type: sync_message::request::Type,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error<C::Error>> {
         trace!("requesting groups sync");
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
@@ -690,6 +690,7 @@ impl<C: Store> Manager<C, Registered> {
             .as_millis() as u64;
 
         // first request the sync
+        // TODO: send this only to the primary device and skip sync messages
         self.send_message(self.state.service_ids.aci, sync_message, timestamp)
             .await?;
 

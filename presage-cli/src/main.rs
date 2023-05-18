@@ -126,7 +126,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient-uuid", "group-master-key"])
+                .args(&["recipient_uuid", "group_master_key"])
         )
     )]
     ListMessages {
@@ -632,7 +632,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         #[cfg(feature = "quirks")]
         Cmd::RequestSync => {
-            let mut manager = Manager::load_registered(config_store)?;
+            let mut manager = Manager::load_registered(config_store).await?;
             manager.sync_contacts_and_groups().await?;
         }
         Cmd::ListMessages {
