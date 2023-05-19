@@ -91,6 +91,23 @@ pub struct Confirmation {
     password: String,
 }
 
+pub struct RegistrationInfo {
+    phone_number: PhoneNumber,
+    service_id_aci: Uuid,
+    service_id_pni: Uuid,
+    password: String,
+    signaling_key: [u8; 52],
+    registration_id: u32,
+    aci_public_key: PublicKey,
+    aci_private_key: PrivateKey,
+    profile_key: ProfileKey,
+    pni_registration_id: Option<u32>,
+    pni_public_key: Option<PublicKey>,
+    pni_private_key: Option<PrivateKey>,
+    device_name: Option<String>,
+    device_id: Option<u32>,
+}
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
@@ -137,6 +154,32 @@ impl fmt::Debug for Registered {
 impl Registered {
     pub fn device_id(&self) -> u32 {
         self.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    }
+
+    pub fn from_import(signal_servers: SignalServers, info: RegistrationInfo) -> Registered {
+        Registered {
+            push_service_cache: Default::default(),
+            identified_websocket: Default::default(),
+            unidentified_websocket: Default::default(),
+            unidentified_sender_certificate: Default::default(),
+            signal_servers,
+            device_name: info.device_name,
+            phone_number: info.phone_number,
+            service_ids: ServiceIds{
+                aci: info.service_id_aci,
+                pni: info.service_id_pni,
+            },
+            signaling_key: info.signaling_key,
+            password: info.password,
+            device_id: info.device_id,
+            registration_id: info.registration_id,
+            pni_registration_id: info.pni_registration_id,
+            aci_public_key: info.aci_public_key,
+            aci_private_key: info.aci_private_key,
+            pni_public_key: info.pni_public_key,
+            pni_private_key: info.pni_private_key,
+            profile_key: info.profile_key,
+        }
     }
 }
 
@@ -318,7 +361,7 @@ impl<C: Store> Manager<C, Linking> {
                 {
                     log::info!("successfully registered device {}", &service_ids);
                     Ok(Registered {
-                        push_service_cache: CacheCell::default(),
+                        push_service_cache: Default::default(),
                         identified_websocket: Default::default(),
                         unidentified_websocket: Default::default(),
                         unidentified_sender_certificate: Default::default(),
@@ -492,6 +535,91 @@ impl<C: Store> Manager<C, Confirmation> {
             Err(e)
         } else {
             Ok(manager)
+        }
+    }
+}
+
+impl<C: Store> Manager<C, RegistrationInfo> {
+    /// Imports an existing registration to this client. I don't know yet if this will work for primary and secondary registrations or only primary.
+    /// The existing registration must have valid API credentials and its not a good idea to use the same registration in more than one client concurrently.
+    ///
+    /// ```no_run
+    /// # use futures::{channel::oneshot, future, StreamExt};
+    /// # use presage::{
+    /// #    prelude::{PhoneNumber, SignalServers},
+    /// #    Manager, MigrationConflictStrategy, SledStore, RegistrationInfo
+    /// # };
+    /// # use s
+    /// # use std::str::FromStr;
+    /// # use rand::RngCore;
+    /// # use libsignal_service::prelude::{ProfileKey, Uuid, protocol::KeyPair};
+    /// #
+    /// # #[tokio::main]
+    /// # async fn main() {
+    ///     let config_store =
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop).unwrap();
+    ///     let mut rng = rand::thread_rng();
+    ///     let key_pair = KeyPair::generate(&mut rng);
+    ///     let mut profile_key = [0u8; 32];
+    ///     rng.fill_bytes(&mut profile_key);
+    ///     let profile_key = ProfileKey::generate(profile_key);
+    ///
+    ///     let info = RegistrationInfo{
+    ///         phone_number: PhoneNumber::from_str("+49301/23456").unwrap(),
+    ///         service_id_aci: Uuid::from_bytes([0xa1, 0xa2, 0xa3, 0xa4, 0xb1, 0xb2, 0xc1, 0xc2, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8]),
+    ///         service_id_pni: Uuid::from_bytes([0xa1, 0xa2, 0xa3, 0xa4, 0xb1, 0xb2, 0xc1, 0xc2, 0xd1, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8]),
+    ///         password: "password".to_string(),
+    ///         signaling_key: [0u8; 52],
+    ///         registration_id: 1,
+    ///         aci_public_key: key_pair.public_key,
+    ///         aci_private_key: key_pair.private_key,
+    ///         profile_key,
+    ///         pni_registration_id: None,
+    ///         pni_public_key: None,
+    ///         pni_private_key: None,
+    ///         device_name: None,
+    ///         device_id: None,
+    ///     };
+    ///     Manager::import_registration(
+    ///         config_store,
+    ///         SignalServers::Staging,
+    ///         info,
+    ///     )
+    ///     .await;
+    /// # }
+    /// ```
+    pub async fn import_registration(
+        mut config_store: C,
+        signal_servers: SignalServers,
+        registration_info: RegistrationInfo,
+    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
+        // clear the database: the moment we start the process, old API credentials are invalidated
+        // and you won't be able to use this client anyways
+        config_store.clear_registration()?;
+
+        let state = Registered::from_import(signal_servers, registration_info);
+
+        let rng = StdRng::from_entropy();
+
+        let mut manager = Manager {
+            rng,
+            config_store,
+            state,
+        };
+
+        manager.config_store.save_state(&manager.state)?;
+
+        match (
+            manager.register_pre_keys().await,
+            manager.set_account_attributes().await,
+            // what else needs to be done?
+        ) {
+            (Err(e), _) | (_, Err(e)) => {
+                // clear the entire store on any error, there's no possible recovery here
+                manager.config_store.clear_registration()?;
+                Err(e)
+            }
+            _ => Ok(manager),
         }
     }
 }
