@@ -869,7 +869,7 @@ impl<C: Store> Manager<C, Registered> {
                                     if state.include_internal_events {
                                         return Some((content, state));
                                     } else {
-                                        return None;
+                                        continue;
                                     }
                                 }
 
