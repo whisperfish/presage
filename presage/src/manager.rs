@@ -1,5 +1,5 @@
 use std::{
-    cell::{RefCell},
+    cell::RefCell,
     fmt,
     ops::RangeBounds,
     time::{Duration, SystemTime, UNIX_EPOCH},

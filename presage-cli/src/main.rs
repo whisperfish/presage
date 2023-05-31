@@ -220,18 +220,20 @@ async fn send<C: Store + 'static>(
 
     let local = task::LocalSet::new();
 
-    local.run_until(async move {
-        let mut receiving_manager = manager.clone();
-        task::spawn_local(async move {
-            if let Err(e) = receive(&mut receiving_manager, false).await {
-                error!("error while receiving stuff: {e}");
-            }
-        });
+    local
+        .run_until(async move {
+            let mut receiving_manager = manager.clone();
+            task::spawn_local(async move {
+                if let Err(e) = receive(&mut receiving_manager, false).await {
+                    error!("error while receiving stuff: {e}");
+                }
+            });
 
-        if let Err(error) = manager.send_message(*uuid, message, timestamp).await {
-            error!("failed to send message: {error}");
-        }
-    }).await;
+            if let Err(error) = manager.send_message(*uuid, message, timestamp).await {
+                error!("failed to send message: {error}");
+            }
+        })
+        .await;
 
     Ok(())
 }
