@@ -2,7 +2,6 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -12,6 +11,7 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
+use log::warn;
 use log::{debug, error, info};
 use notify_rust::Notification;
 use presage::libsignal_service::content::Reaction;
@@ -30,8 +30,6 @@ use presage::{
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
-use tokio::task;
-use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -218,22 +216,9 @@ async fn send<C: Store + 'static>(
         ..Default::default()
     });
 
-    let local = task::LocalSet::new();
-
-    local
-        .run_until(async move {
-            let mut receiving_manager = manager.clone();
-            task::spawn_local(async move {
-                if let Err(e) = receive(&mut receiving_manager, false).await {
-                    error!("error while receiving stuff: {e}");
-                }
-            });
-
-            if let Err(error) = manager.send_message(*uuid, message, timestamp).await {
-                error!("failed to send message: {error}");
-            }
-        })
-        .await;
+    if let Err(error) = manager.send_message(*uuid, message, timestamp).await {
+        warn!("possible failure when sending message: {error}");
+    }
 
     Ok(())
 }
