@@ -1,13 +1,12 @@
 use std::{
+    cell::{RefCell},
     fmt,
     ops::RangeBounds,
-    sync::Arc,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace, warn};
-use parking_lot::Mutex;
 use rand::{distributions::Alphanumeric, rngs::StdRng, Rng, RngCore, SeedableRng};
 use serde::{Deserialize, Serialize};
 use url::Url;
@@ -18,7 +17,7 @@ use libsignal_service::{
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
     groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
-    messagepipe::ServiceCredentials,
+    messagepipe::{MessagePipe, ServiceCredentials},
     models::Contact,
     prelude::{
         phonenumber::PhoneNumber,
@@ -94,11 +93,13 @@ pub struct Confirmation {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    push_service_cache: CacheCell<HyperPushService>,
+    identified_push_service: CacheCell<HyperPushService>,
     #[serde(skip)]
-    identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    unidentified_push_service: CacheCell<HyperPushService>,
     #[serde(skip)]
-    unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    identified_websocket: RefCell<Option<SignalWebSocket>>,
+    #[serde(skip)]
+    unidentified_websocket: RefCell<Option<SignalWebSocket>>,
     #[serde(skip)]
     unidentified_sender_certificate: Option<SenderCertificate>,
 
@@ -129,7 +130,8 @@ pub struct Registered {
 impl fmt::Debug for Registered {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Registered")
-            .field("websocket", &self.identified_websocket.lock().is_some())
+            .field("signal_servers", &self.signal_servers)
+            .field("phone_number", &self.phone_number)
             .finish_non_exhaustive()
     }
 }
@@ -318,7 +320,8 @@ impl<C: Store> Manager<C, Linking> {
                 {
                     log::info!("successfully registered device {}", &service_ids);
                     Ok(Registered {
-                        push_service_cache: CacheCell::default(),
+                        identified_push_service: CacheCell::default(),
+                        unidentified_push_service: CacheCell::default(),
                         identified_websocket: Default::default(),
                         unidentified_websocket: Default::default(),
                         unidentified_sender_certificate: Default::default(),
@@ -460,7 +463,8 @@ impl<C: Store> Manager<C, Confirmation> {
             rng,
             config_store: self.config_store,
             state: Registered {
-                push_service_cache: CacheCell::default(),
+                identified_push_service: CacheCell::default(),
+                unidentified_push_service: CacheCell::default(),
                 identified_websocket: Default::default(),
                 unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
@@ -520,8 +524,10 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
         trace!("registering pre keys");
-        let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(self.state.profile_key));
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service()?,
+            Some(self.state.profile_key),
+        );
 
         let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -544,8 +550,10 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn set_account_attributes(&mut self) -> Result<(), Error<C::Error>> {
         trace!("setting account attributes");
-        let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(self.state.profile_key));
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service()?,
+            Some(self.state.profile_key),
+        );
 
         let pni_registration_id = if let Some(pni_registration_id) = self.state.pni_registration_id
         {
@@ -595,7 +603,7 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
         mut messages: impl Stream<Item = Content> + Unpin,
     ) -> Result<(), Error<C::Error>> {
-        let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        let mut message_receiver = MessageReceiver::new(self.identified_push_service()?);
         while let Some(Content { body, .. }) = messages.next().await {
             if let ContentBody::SynchronizeMessage(SyncMessage {
                 contacts: Some(contacts),
@@ -677,7 +685,7 @@ impl<C: Store> Manager<C, Registered> {
 
         if needs_renewal(self.state.unidentified_sender_certificate.as_ref()) {
             let sender_certificate = self
-                .push_service()?
+                .identified_push_service()?
                 .get_uuid_only_sender_certificate()
                 .await?;
 
@@ -698,7 +706,7 @@ impl<C: Store> Manager<C, Registered> {
         token: &str,
         captcha: &str,
     ) -> Result<(), Error<C::Error>> {
-        let mut account_manager = AccountManager::new(self.push_service()?, None);
+        let mut account_manager = AccountManager::new(self.identified_push_service()?, None);
         account_manager
             .submit_recaptcha_challenge(token, captcha)
             .await?;
@@ -712,7 +720,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<C::Error>> {
-        Ok(self.push_service()?.whoami().await?)
+        Ok(self.identified_push_service()?.whoami().await?)
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
@@ -732,7 +740,8 @@ impl<C: Store> Manager<C, Registered> {
             return Ok(profile);
         }
 
-        let mut account_manager = AccountManager::new(self.push_service()?, Some(profile_key));
+        let mut account_manager =
+            AccountManager::new(self.identified_push_service()?, Some(profile_key));
 
         let profile = account_manager.retrieve_profile(uuid.into()).await?;
 
@@ -789,22 +798,8 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error<C::Error>> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
-        let pipe = MessageReceiver::new(self.push_service()?)
-            .create_message_pipe(credentials)
-            .await?;
-
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let mut unidentified_push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
-        let unidentified_ws = unidentified_push_service
-            .ws("/v1/websocket/", None, false)
-            .await?;
-        self.state.identified_websocket.lock().replace(pipe.ws());
-        self.state
-            .unidentified_websocket
-            .lock()
-            .replace(unidentified_ws);
-
+        let ws = self.identified_websocket().await?;
+        let pipe = MessagePipe::from_socket(ws, credentials);
         Ok(pipe.stream())
     }
 
@@ -826,7 +821,7 @@ impl<C: Store> Manager<C, Registered> {
         let groups_credentials_cache = InMemoryCredentialsCache::default();
         let groups_manager = GroupsManager::new(
             self.state.service_ids.clone(),
-            self.push_service()?,
+            self.identified_push_service()?,
             groups_credentials_cache,
             server_public_params,
         );
@@ -1069,7 +1064,7 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error<C::Error>> {
-        let mut service = self.push_service()?;
+        let mut service = self.identified_push_service()?;
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
         // We need the whole file for the crypto to check out
@@ -1110,14 +1105,13 @@ impl<C: Store> Manager<C, Registered> {
         }))
     }
 
-    /// Returns a clone of a cached push service.
+    /// Return a clone of a cached push service.
     ///
     /// If no service is yet cached, it will create and cache one.
-    fn push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
-        self.state.push_service_cache.get(|| {
+    fn identified_push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
+        self.state.identified_push_service.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-
             Ok(HyperPushService::new(
                 service_configuration,
                 credentials,
@@ -1126,30 +1120,54 @@ impl<C: Store> Manager<C, Registered> {
         })
     }
 
+    /// Return a clone of a cached _unidentified_ push service.
+    fn unidentified_push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
+        self.state.unidentified_push_service.get(|| {
+            let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+            Ok(HyperPushService::new(
+                service_configuration,
+                None,
+                crate::USER_AGENT.to_string(),
+            ))
+        })
+    }
+
+    async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<C::Error>> {
+        if let Some(ws) = self.state.identified_websocket.borrow().as_ref() {
+            return Ok(ws.clone());
+        }
+
+        let ws = self
+            .identified_push_service()?
+            .ws("/v1/websocket/", self.credentials()?, true)
+            .await?;
+        self.state.identified_websocket.replace(Some(ws.clone()));
+        Ok(ws)
+    }
+
+    async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<C::Error>> {
+        if let Some(ws) = self.state.unidentified_websocket.borrow().as_ref() {
+            Ok(ws.clone())
+        } else {
+            let ws = self
+                .unidentified_push_service()?
+                .ws("/v1/websocket/", None, true)
+                .await?;
+            self.state.identified_websocket.replace(Some(ws.clone()));
+            Ok(ws)
+        }
+    }
+
     /// Creates a new message sender.
     async fn new_message_sender(&self) -> Result<MessageSender<C>, Error<C::Error>> {
         let local_addr = ServiceAddress {
             uuid: self.state.service_ids.aci,
         };
 
-        let identified_websocket = self
-            .state
-            .identified_websocket
-            .lock()
-            .clone()
-            .ok_or(Error::MessagePipeNotStarted)?;
-
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let mut unidentified_push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
-        let unidentified_websocket = unidentified_push_service
-            .ws("/v1/websocket/", None, false)
-            .await?;
-
         Ok(MessageSender::new(
-            identified_websocket,
-            unidentified_websocket,
-            self.push_service()?,
+            self.identified_websocket().await?,
+            self.unidentified_websocket().await?,
+            self.identified_push_service()?,
             self.new_service_cipher()?,
             self.rng.clone(),
             self.config_store.clone(),
