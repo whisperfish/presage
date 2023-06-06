@@ -1347,6 +1347,9 @@
 <a href="#1347" id="1347">1347</a>
 <a href="#1348" id="1348">1348</a>
 <a href="#1349" id="1349">1349</a>
+<a href="#1350" id="1350">1350</a>
+<a href="#1351" id="1351">1351</a>
+<a href="#1352" id="1352">1352</a>
 </pre><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -2344,6 +2347,9 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         attachments: Vec&lt;(AttachmentSpec, Vec&lt;u8&gt;)&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="prelude-ty">Result</span>&lt;AttachmentPointer, AttachmentUploadError&gt;&gt;, Error&lt;C::Error&gt;&gt; {
+        <span class="kw">if </span>attachments.is_empty() {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(Vec::new());
+        }
         <span class="kw">let </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>upload = future::join_all(attachments.into_iter().map(<span class="kw">move </span>|(spec, contents)| {
             <span class="kw">let </span><span class="kw-2">mut </span>sender = sender.clone();
