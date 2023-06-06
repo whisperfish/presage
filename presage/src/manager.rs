@@ -995,6 +995,9 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
     ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<C::Error>> {
+        if attachments.is_empty() {
+            return Ok(Vec::new());
+        }
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
