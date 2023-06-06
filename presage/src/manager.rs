@@ -1133,8 +1133,9 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<C::Error>> {
-        if let Some(ws) = self.state.identified_websocket.borrow().as_ref() {
-            return Ok(ws.clone());
+        let socket = self.state.identified_websocket.borrow().clone();
+        if let Some(ws) = socket {
+            return Ok(ws);
         }
 
         let ws = self
@@ -1146,8 +1147,9 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<C::Error>> {
-        if let Some(ws) = self.state.unidentified_websocket.borrow().as_ref() {
-            Ok(ws.clone())
+        let socket = self.state.unidentified_websocket.borrow().clone();
+        if let Some(ws) = socket {
+            Ok(ws)
         } else {
             let ws = self
                 .unidentified_push_service()?
