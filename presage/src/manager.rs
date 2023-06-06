@@ -1153,7 +1153,7 @@ impl<C: Store> Manager<C, Registered> {
                 .unidentified_push_service()?
                 .ws("/v1/websocket/", None, true)
                 .await?;
-            self.state.identified_websocket.replace(Some(ws.clone()));
+            self.state.unidentified_websocket.replace(Some(ws.clone()));
             Ok(ws)
         }
     }
