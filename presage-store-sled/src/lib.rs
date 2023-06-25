@@ -32,7 +32,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use presage::{GroupMasterKeyBytes, Registered, Store, Thread};
+use presage::{GroupMasterKeyBytes, Registered, StickerPack, Store, Thread};
 
 mod error;
 mod protobuf;
@@ -51,6 +51,7 @@ const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
 const SLED_TREE_PROFILES: &str = "profiles";
 const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
+const SLED_TREE_STICKER_PACKS: &str = "stickerpacks";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_NEXT_PQ_PRE_KEY_ID: &str = "next_pq_pre_key_id";
@@ -59,6 +60,7 @@ const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 #[cfg(feature = "encryption")]
 const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
+const SLED_KEY_STICKER_PACK_QUEUE: &str = "pack_queue";
 
 #[derive(Clone)]
 pub struct SledStore {
@@ -370,6 +372,7 @@ impl Store for SledStore {
     type ContactsIter = SledContactsIter;
     type GroupsIter = SledGroupsIter;
     type MessagesIter = SledMessagesIter;
+    type StickerPacksIter = SledStickerPacksIter;
 
     /// State
 
@@ -643,6 +646,55 @@ impl Store for SledStore {
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, SledStoreError> {
         let key = self.profile_key_for_uuid(uuid, key);
         self.get(SLED_TREE_PROFILES, key)
+    }
+
+    fn add_sticker_pack(&mut self, pack: StickerPack) -> Result<(), Self::Error> {
+        self.insert(SLED_TREE_STICKER_PACKS, pack.id.clone(), pack)?;
+        Ok(())
+    }
+    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::Error> {
+        self.remove(SLED_TREE_STICKER_PACKS, id)
+    }
+    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::Error> {
+        self.get(SLED_TREE_STICKER_PACKS, id)
+    }
+    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::Error> {
+        Ok(SledStickerPacksIter {
+            cipher: self.cipher.clone(),
+            iter: self.read().open_tree(SLED_TREE_STICKER_PACKS)?.iter(),
+        })
+    }
+
+    fn set_sticker_pack_queue(&mut self, queue: Vec<StickerPack>) -> Result<(), Self::Error> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_STICKER_PACK_QUEUE, queue)?;
+        Ok(())
+    }
+
+    fn sticker_pack_queue(&self) -> Result<Vec<StickerPack>, Self::Error> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_STICKER_PACK_QUEUE)?
+            .unwrap_or_default())
+    }
+}
+
+pub struct SledStickerPacksIter {
+    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
+    iter: sled::Iter,
+}
+
+impl Iterator for SledStickerPacksIter {
+    type Item = Result<StickerPack, SledStoreError>;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()?
+            .map_err(SledStoreError::from)
+            .and_then(|(_key, value)| {
+                self.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
+                )
+            })
+            .into()
     }
 }
 

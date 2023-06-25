@@ -26,19 +26,23 @@ use libsignal_service::{
     groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
-    prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
+    prelude::{phonenumber::PhoneNumber, Content, ProfileKey, ProtobufMessage, PushService, Uuid},
     proto::{
-        data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
-        NullMessage,
+        data_message::Delete,
+        sync_message::{self, sticker_pack_operation, StickerPackOperation},
+        AttachmentPointer, Envelope, GroupContextV2, NullMessage,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
-    provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
+    provisioning::{
+        generate_registration_id, LinkingManager, ProvisioningError, SecondaryDeviceProvisioning,
+    },
     push_service::{
         AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
         DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
+    sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
     utils::{
         serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
@@ -50,8 +54,11 @@ use libsignal_service::{
 use libsignal_service_hyper::push_service::HyperPushService;
 
 use crate::cache::CacheCell;
-use crate::{serde::serde_profile_key, Thread};
-use crate::{store::Store, Error};
+use crate::{serde::serde_profile_key, StickerPack, Thread};
+use crate::{
+    store::{Sticker, Store},
+    Error,
+};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
 type MessageSender<C> = libsignal_service::prelude::MessageSender<HyperPushService, C, StdRng>;
@@ -916,6 +923,57 @@ impl<C: Store> Manager<C, Registered> {
                                     }
                                 }
 
+                                if let ContentBody::SynchronizeMessage(SyncMessage {
+                                    sticker_pack_operation: operations,
+                                    ..
+                                }) = &content.body
+                                {
+                                    for operation in operations.iter() {
+                                        match operation.r#type() {
+                                            sticker_pack_operation::Type::Install => {
+                                                match state.config_store.sticker_pack_queue() {
+                                                    Ok(mut queue) => {
+                                                        queue.push(StickerPack {
+                                                            id: operation.pack_id().to_vec(),
+                                                            key: operation.pack_key().to_vec(),
+                                                            manifest: None,
+                                                        });
+                                                        if let Err(e) = state
+                                                            .config_store
+                                                            .set_sticker_pack_queue(queue)
+                                                        {
+                                                            log::error!("Error setting sticker pack queue: {}", e);
+                                                        }
+                                                    }
+                                                    Err(e) => {
+                                                        log::error!(
+                                                            "Error getting sticker pack queue: {}",
+                                                            e
+                                                        );
+                                                    }
+                                                }
+                                                if let Err(e) = state.config_store.add_sticker_pack(
+                                                    StickerPack {
+                                                        id: operation.pack_id().to_vec(),
+                                                        key: operation.pack_key().to_vec(),
+                                                        manifest: None,
+                                                    },
+                                                ) {
+                                                    log::error!("Error adding sticker pack: {}", e)
+                                                }
+                                            }
+                                            sticker_pack_operation::Type::Remove => {
+                                                if let Err(e) = state
+                                                    .config_store
+                                                    .remove_sticker_pack(operation.pack_id())
+                                                {
+                                                    log::error!("Error removing sticker pack from store: {}", e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                                 if let ContentBody::DataMessage(DataMessage {
                                     group_v2:
                                         Some(GroupContextV2 {
@@ -1177,6 +1235,178 @@ impl<C: Store> Manager<C, Registered> {
         decrypt_in_place(key, &mut ciphertext)?;
 
         Ok(ciphertext)
+    }
+
+    /// Downloads and decrypts a sticker
+    pub async fn get_sticker(
+        &self,
+        pack_id: &[u8],
+        sticker_id: u32,
+        pack_key: &[u8],
+    ) -> Result<Vec<u8>, Error<C::Error>> {
+        let key = derive_key(pack_key)?;
+
+        let mut service = self.push_service()?;
+        let mut sticker_stream = service
+            .get_sticker(&hex::encode(pack_id), sticker_id)
+            .await?;
+
+        let mut ciphertext = Vec::new();
+        let len = sticker_stream.read_to_end(&mut ciphertext).await?;
+
+        trace!("downloaded encrypted sticker of {} bytes", len);
+
+        decrypt_in_place(key, &mut ciphertext)?;
+
+        Ok(ciphertext)
+    }
+
+    /// Downloads and decrypts a sticker manifest
+    async fn get_sticker_pack_manifest(
+        &self,
+        pack_id: &[u8],
+        pack_key: &[u8],
+    ) -> Result<libsignal_service::proto::Pack, Error<C::Error>> {
+        let key = derive_key(pack_key)?;
+
+        let mut service = self.push_service()?;
+        let mut manifest_stream = service
+            .get_sticker_pack_manifest(&hex::encode(pack_id))
+            .await?;
+
+        let mut ciphertext = Vec::new();
+        let len = manifest_stream.read_to_end(&mut ciphertext).await?;
+
+        trace!(
+            "downloaded encrypted sticker pack manifest of {} bytes",
+            len
+        );
+
+        decrypt_in_place(key, &mut ciphertext)?;
+
+        Ok(
+            libsignal_service::proto::Pack::decode(ciphertext.as_slice())
+                .map_err(|e| ProvisioningError::from(e))?,
+        )
+    }
+
+    /// Get an iterator over installed sticker packs
+    pub async fn sticker_packs(&self) -> Result<C::StickerPacksIter, Error<C::Error>> {
+        Ok(self.config_store.sticker_packs()?)
+    }
+
+    /// Gets a sticker pack by id
+    pub async fn sticker_pack(
+        &self,
+        pack_id: &[u8],
+    ) -> Result<Option<StickerPack>, Error<C::Error>> {
+        Ok(self.config_store.sticker_pack(pack_id)?)
+    }
+
+    /// Gets the metadata of a sticker
+    pub async fn sticker_metadata(
+        &mut self,
+        pack_id: &[u8],
+        sticker_id: u32,
+    ) -> Result<Option<Sticker>, Error<C::Error>> {
+        let pack = self.config_store.sticker_pack(pack_id)?;
+        match pack {
+            Some(pack) => match pack.manifest {
+                Some(manifest) => Ok(manifest
+                    .stickers
+                    .iter()
+                    .find(|&x| x.id == sticker_id)
+                    .map(|x| x.clone())),
+                None => Ok(None),
+            },
+            None => Ok(None),
+        }
+    }
+
+    async fn add_sticker_pack(
+        &mut self,
+        pack_id: &[u8],
+        pack_key: &[u8],
+    ) -> Result<(), Error<C::Error>> {
+        let manifest = self
+            .get_sticker_pack_manifest(pack_id, pack_key)
+            .await?
+            .into();
+        self.config_store.add_sticker_pack(StickerPack {
+            id: pack_id.to_vec(),
+            key: pack_key.to_vec(),
+            manifest: Some(manifest),
+        })?;
+        Ok(())
+    }
+
+    /// Installs a sticker pack
+    pub async fn install_sticker_pack(
+        &mut self,
+        pack_id: &[u8],
+        pack_key: &[u8],
+    ) -> Result<(), Error<C::Error>> {
+        self.add_sticker_pack(pack_id, pack_key).await?;
+
+        // Sync the change with the other clients
+        let sync_message = SyncMessage {
+            sticker_pack_operation: vec![StickerPackOperation {
+                pack_id: Some(pack_id.to_vec()),
+                pack_key: Some(pack_key.to_vec()),
+                r#type: Some(sticker_pack_operation::Type::Install as i32),
+            }],
+            ..Default::default()
+        };
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64;
+
+        self.send_message(self.state.service_ids.aci, sync_message, timestamp)
+            .await?;
+        Ok(())
+    }
+
+    /// Removes an installed sticker pack
+    pub async fn remove_sticker_pack(
+        &mut self,
+        pack_id: &[u8],
+        pack_key: &[u8],
+    ) -> Result<(), Error<C::Error>> {
+        // Sync the change with the other clients
+        let sync_message = SyncMessage {
+            sticker_pack_operation: vec![StickerPackOperation {
+                pack_id: Some(pack_id.to_vec()),
+                pack_key: Some(pack_key.to_vec()), // The pack key might not be neccesary in the message
+                r#type: Some(sticker_pack_operation::Type::Remove as i32),
+            }],
+            ..Default::default()
+        };
+
+        let timestamp = std::time::SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64;
+
+        self.send_message(self.state.service_ids.aci, sync_message, timestamp)
+            .await?;
+        self.config_store.remove_sticker_pack(pack_id)?;
+        Ok(())
+    }
+
+    /// Processes manifest-less sticker packs, downloading a manifest for them
+    pub async fn process_sticker_pack_queue(&mut self) -> Result<(), Error<C::Error>> {
+        let queue = self.config_store.sticker_pack_queue()?;
+        if queue.len() > 0 {
+            for pack in queue.iter() {
+                if let Err(e) = self.add_sticker_pack(&pack.id, &pack.key).await {
+                    error!("Error processing sticker pack queue {:?}", e)
+                }
+            }
+            self.config_store.set_sticker_pack_queue(Vec::new())?;
+        }
+        Ok(())
     }
 
     pub async fn send_session_reset(

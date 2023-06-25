@@ -24,6 +24,7 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
     type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
+    type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::Error>>;
 
     /// State
 
@@ -139,6 +140,26 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Self::Error>;
+
+    /// Stickers
+
+    /// Add a sticker pack
+    fn add_sticker_pack(&mut self, pack: StickerPack) -> Result<(), Self::Error>;
+
+    /// Gets a cached sticker pack
+    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::Error>;
+
+    /// Removes a sticker pack
+    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::Error>;
+
+    /// Get an iterator on all installed stickerpacks
+    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::Error>;
+
+    /// Get the manifest-less sticker pack queue
+    fn sticker_pack_queue(&self) -> Result<Vec<StickerPack>, Self::Error>;
+
+    /// Set the manifest-less sticker pack queue
+    fn set_sticker_pack_queue(&mut self, queue: Vec<StickerPack>) -> Result<(), Self::Error>;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
@@ -279,6 +300,49 @@ impl ContentTimestamp for Content {
                 ..
             }) => ts,
             _ => self.metadata.timestamp,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StickerPack {
+    pub id: Vec<u8>,
+    pub key: Vec<u8>,
+    pub manifest: Option<Pack>,
+}
+
+/// equivalent to [Pack](crate::prelude::proto::Pack)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Pack {
+    pub title: String,
+    pub author: String,
+    pub cover: Option<Sticker>,
+    pub stickers: Vec<Sticker>,
+}
+impl From<libsignal_service::proto::Pack> for Pack {
+    fn from(value: libsignal_service::proto::Pack) -> Self {
+        Self {
+            title: value.title().to_owned(),
+            author: value.author().to_owned(),
+            cover: value.cover.map(|s| s.into()),
+            stickers: value.stickers.into_iter().map(|s| s.into()).collect(),
+        }
+    }
+}
+
+/// equivalent to [Sticker](crate::prelude::proto::pack::Sticker)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Sticker {
+    pub id: u32,
+    pub emoji: Option<String>,
+    pub content_type: Option<String>,
+}
+impl From<libsignal_service::proto::pack::Sticker> for Sticker {
+    fn from(value: libsignal_service::proto::pack::Sticker) -> Self {
+        Self {
+            id: value.id(),
+            emoji: value.emoji,
+            content_type: value.content_type,
         }
     }
 }
