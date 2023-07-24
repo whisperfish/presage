@@ -1222,6 +1222,29 @@ impl<C: Store> Manager<C, Registered> {
         Ok(service_cipher)
     }
 
+    /// Returns the title of a thread (contact or group).
+    pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
+        match thread {
+            Thread::Contact(uuid) => {
+                let contact = match self.contact_by_id(uuid) {
+                    Ok(contact) => contact,
+                    Err(e) => {
+                        log::info!("Error getting contact by id: {}, {:?}", e, uuid);
+                        None
+                    }
+                };
+                Ok(match contact {
+                    Some(contact) => contact.name,
+                    None => uuid.to_string(),
+                })
+            }
+            Thread::Group(id) => match self.group(id)? {
+                Some(group) => Ok(group.title),
+                None => Ok("".to_string()),
+            },
+        }
+    }
+
     #[deprecated = "use Manager::contact_by_id"]
     pub fn get_contacts(
         &self,
