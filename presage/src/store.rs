@@ -107,11 +107,8 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     fn clear_groups(&mut self) -> Result<(), Self::Error>;
 
     /// Save a group in the cache
-    fn save_group(
-        &self,
-        master_key: GroupMasterKeyBytes,
-        group: crate::prelude::proto::Group,
-    ) -> Result<(), Self::Error>;
+    fn save_group(&self, master_key: GroupMasterKeyBytes, group: &Group)
+        -> Result<(), Self::Error>;
 
     /// Get an iterator on all cached groups
     fn groups(&self) -> Result<Self::GroupsIter, Self::Error>;

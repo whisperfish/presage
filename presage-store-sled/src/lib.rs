@@ -89,13 +89,13 @@ pub enum SchemaVersion {
     #[default]
     V0 = 0,
     V1 = 1,
-    /// the current version
     V2 = 2,
+    V3 = 3,
 }
 
 impl SchemaVersion {
     fn current() -> SchemaVersion {
-        Self::V2
+        Self::V3
     }
 
     /// return an iterator on all the necessary migration steps from another version
@@ -107,6 +107,7 @@ impl SchemaVersion {
         .map(|i| match i {
             1 => SchemaVersion::V1,
             2 => SchemaVersion::V2,
+            3 => SchemaVersion::V3,
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
@@ -294,6 +295,12 @@ fn migrate(
                         db.flush()?;
                     }
                 }
+                SchemaVersion::V3 => {
+                    debug!("migrating from schema v2 to v3: dropping encrypted group cache");
+                    let db = store.write();
+                    db.drop_tree(SLED_TREE_GROUPS)?;
+                    db.flush()?;
+                }
                 _ => return Err(SledStoreError::MigrationConflict),
             }
 
@@ -474,24 +481,15 @@ impl Store for SledStore {
         &self,
         master_key_bytes: GroupMasterKeyBytes,
     ) -> Result<Option<Group>, SledStoreError> {
-        let val: Option<Vec<u8>> = self.get(SLED_TREE_GROUPS, master_key_bytes)?;
-        match val {
-            Some(ref v) => {
-                let encrypted_group = proto::Group::decode(v.as_slice())?;
-                let group = decrypt_group(&master_key_bytes, encrypted_group)
-                    .map_err(|_| SledStoreError::GroupDecryption)?;
-                Ok(Some(group))
-            }
-            None => Ok(None),
-        }
+        self.get(SLED_TREE_GROUPS, master_key_bytes)
     }
 
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
-        group: proto::Group,
+        group: &Group,
     ) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_GROUPS, master_key, group.encode_to_vec())?;
+        self.insert(SLED_TREE_GROUPS, master_key, group)?;
         Ok(())
     }
 

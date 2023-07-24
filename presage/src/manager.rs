@@ -17,7 +17,7 @@ use libsignal_service::{
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
-    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
@@ -1251,7 +1251,7 @@ async fn upsert_group<C: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<C::Error>> {
-    let save_group = match config_store.group(master_key_bytes.try_into()?) {
+    let upsert_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {}", group.title);
             group.revision < *revision
@@ -1263,11 +1263,12 @@ async fn upsert_group<C: Store>(
         }
     };
 
-    if save_group {
-        log::debug!("fetching group");
+    if upsert_group {
+        log::debug!("fetching and saving group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
-            Ok(group) => {
-                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, group) {
+            Ok(encrypted_group) => {
+                let group = decrypt_group(&master_key_bytes, encrypted_group)?;
+                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
                     log::error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
