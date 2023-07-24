@@ -1,19 +1,12 @@
 mod cache;
 mod errors;
 mod manager;
-mod proto;
 mod serde;
 mod store;
 
-#[cfg(feature = "sled-store")]
-pub use store::sled::{MigrationConflictStrategy, SledStore};
-
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
-pub use proto::ContentProto;
-pub use store::{
-    ContactsStore, GroupsStore, MessageStore, ReceiptStore, StateStore, Store, Thread,
-};
+pub use store::{ReceiptMap, Store, StoreError, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;
@@ -25,6 +18,7 @@ pub mod prelude {
             self, Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType,
             Metadata, SyncMessage,
         },
+        groups_v2::{AccessControl, Group, GroupChange, PendingMember, RequestingMember, Timer},
         models::Contact,
         prelude::{
             phonenumber::{self, PhoneNumber},
@@ -32,7 +26,7 @@ pub mod prelude {
         },
         proto,
         sender::AttachmentSpec,
-        ServiceAddress,
+        ParseServiceAddressError, ServiceAddress,
     };
 }
 

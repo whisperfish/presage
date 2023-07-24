@@ -27,18 +27,29 @@ Features:
 
 ## Instructions
 
+Add the following to your `Cargo.toml`:
+
+```toml
+[dependencies]
+presage = { git = "https://github.com/whisperfish/presage" }
+presage-store-sled = { git = "https://github.com/whisperfish/presage" }
+```
+
+and look at the generated Rust documentation of the `Manager` struct to get started.
+
+## Demo CLI
+
 Included in this repository is a CLI very similar (on purpose) to the great [signal-cli](https://github.com/AsamK/signal-cli):
 
 ```
 # print help section
-cargo run --example=cli -- --help
+cargo run -- --help
 
 # link as secondary device, a PNG with a QR code to scan should open
-cargo run --example=cli -- link-device --device-name presage
+cargo run -- link-device --device-name presage
 
 # start receiving messages
-cargo run --example=cli -- receive
+cargo run -- receive
 ```
 
-For usage of the library, a few examples are included under the `examples/` directory, and most features are demonstrated
-in [examples/cli.rs](./examples/cli.rs).
+For using the library, the CLI is a good starting point to learn how the API can be used.

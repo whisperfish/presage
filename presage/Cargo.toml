@@ -1,0 +1,25 @@
+[package]
+# be a sign or warning of (an imminent event, typically an unwelcome one).
+name = "presage"
+version = "0.6.0-dev"
+authors = ["Gabriel Féron <g@leirbag.net>"]
+edition = "2021"
+
+[dependencies]
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "3c65765" }
+libsignal-service-hyper = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "3c65765" }
+
+base64 = "0.12"
+futures = "0.3"
+log = "0.4.8"
+rand = "0.7"
+serde = "1.0"
+serde_json = "1.0"
+thiserror = "1.0"
+url = "2.2"
+parking_lot = "0.11"
+tokio = { version = "1.0", default-features = false, features = ["time"] }
+
+[dev-dependencies]
+quickcheck = "1.0.3"
+quickcheck_async = "0.1"
