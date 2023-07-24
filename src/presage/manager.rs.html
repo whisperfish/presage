@@ -1397,6 +1397,7 @@
 <a href="#1397" id="1397">1397</a>
 <a href="#1398" id="1398">1398</a>
 <a href="#1399" id="1399">1399</a>
+<a href="#1400" id="1400">1400</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1416,7 +1417,7 @@
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
-    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
@@ -2650,7 +2651,7 @@
     master_key_bytes: <span class="kw-2">&amp;</span>[u8],
     revision: <span class="kw-2">&amp;</span>u32,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;C::Error&gt;&gt; {
-    <span class="kw">let </span>save_group = <span class="kw">match </span>config_store.group(master_key_bytes.try_into()<span class="question-mark">?</span>) {
+    <span class="kw">let </span>upsert_group = <span class="kw">match </span>config_store.group(master_key_bytes.try_into()<span class="question-mark">?</span>) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
             <span class="macro">log::debug!</span>(<span class="string">&quot;loaded group from local db {}&quot;</span>, group.title);
             group.revision &lt; <span class="kw-2">*</span>revision
@@ -2662,11 +2663,12 @@
         </span>}
     };
 
-    <span class="kw">if </span>save_group {
-        <span class="macro">log::debug!</span>(<span class="string">&quot;fetching group&quot;</span>);
+    <span class="kw">if </span>upsert_group {
+        <span class="macro">log::debug!</span>(<span class="string">&quot;fetching and saving group&quot;</span>);
         <span class="kw">match </span>groups_manager.fetch_encrypted_group(master_key_bytes).<span class="kw">await </span>{
-            <span class="prelude-val">Ok</span>(group) =&gt; {
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = config_store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, group) {
+            <span class="prelude-val">Ok</span>(encrypted_group) =&gt; {
+                <span class="kw">let </span>group = decrypt_group(<span class="kw-2">&amp;</span>master_key_bytes, encrypted_group)<span class="question-mark">?</span>;
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = config_store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>group) {
                     <span class="macro">log::error!</span>(<span class="string">&quot;failed to save group {master_key_bytes:?}: {e}&quot;</span>,);
                 }
             }
