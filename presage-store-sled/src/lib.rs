@@ -509,6 +509,16 @@ impl Store for SledStore {
         Ok(())
     }
 
+    fn clear_thread(&mut self, thread: &Thread) -> Result<(), SledStoreError> {
+        log::trace!("clearing thread {thread}");
+
+        let db = self.write();
+        db.drop_tree(self.messages_thread_tree_name(thread))?;
+        db.flush()?;
+
+        Ok(())
+    }
+
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
         log::trace!(
             "storing a message with thread: {thread}, timestamp: {}",
