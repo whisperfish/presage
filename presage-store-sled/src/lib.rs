@@ -86,13 +86,13 @@ pub enum SchemaVersion {
     #[default]
     V0 = 0,
     V1 = 1,
-    /// the current version
     V2 = 2,
+    V3 = 3,
 }
 
 impl SchemaVersion {
     fn current() -> SchemaVersion {
-        Self::V2
+        Self::V3
     }
 
     /// return an iterator on all the necessary migration steps from another version
@@ -104,6 +104,7 @@ impl SchemaVersion {
         .map(|i| match i {
             1 => SchemaVersion::V1,
             2 => SchemaVersion::V2,
+            3 => SchemaVersion::V3,
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
@@ -291,6 +292,11 @@ fn migrate(
                         db.flush()?;
                     }
                 }
+                SchemaVersion::V3 => {
+                    let db = store.write();
+                    db.drop_tree(SLED_TREE_GROUPS)?;
+                    db.flush()?;
+                }
                 _ => return Err(SledStoreError::MigrationConflict),
             }
 
@@ -475,9 +481,9 @@ impl Store for SledStore {
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
-        group: proto::Group,
+        group: &Group,
     ) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_GROUPS, master_key, group.encode_to_vec())?;
+        self.insert(SLED_TREE_GROUPS, master_key, group)?;
         Ok(())
     }
 

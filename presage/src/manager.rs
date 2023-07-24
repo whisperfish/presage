@@ -17,7 +17,7 @@ use libsignal_service::{
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
-    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
@@ -308,6 +308,7 @@ impl<C: Store> Manager<C, Linking> {
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
+                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -330,7 +331,7 @@ impl<C: Store> Manager<C, Linking> {
                         password,
                         device_id: Some(device_id),
                         registration_id,
-                        pni_registration_id: None,
+                        pni_registration_id: Some(pni_registration_id),
                         aci_public_key,
                         aci_private_key,
                         pni_public_key: Some(pni_public_key),
@@ -1247,7 +1248,7 @@ async fn upsert_group<C: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<C::Error>> {
-    let save_group = match config_store.group(master_key_bytes.try_into()?) {
+    let upsert_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {}", group.title);
             group.revision < *revision
@@ -1259,11 +1260,12 @@ async fn upsert_group<C: Store>(
         }
     };
 
-    if save_group {
-        log::debug!("fetching group");
+    if upsert_group {
+        log::debug!("fetching and saving group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
-            Ok(group) => {
-                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, group) {
+            Ok(encrypted_group) => {
+                let group = decrypt_group(&master_key_bytes, encrypted_group)?;
+                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
                     log::error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
