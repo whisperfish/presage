@@ -18,6 +18,7 @@ pub mod prelude {
             self, Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType,
             Metadata, SyncMessage,
         },
+        groups_v2::{AccessControl, Group, GroupChange, PendingMember, RequestingMember, Timer},
         models::Contact,
         prelude::{
             phonenumber::{self, PhoneNumber},

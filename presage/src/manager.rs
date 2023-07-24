@@ -17,7 +17,7 @@ use libsignal_service::{
     cipher,
     configuration::{ServiceConfiguration, SignalServers, SignalingKey},
     content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
-    groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{
@@ -34,8 +34,8 @@ use libsignal_service::{
         VerificationCodeResponse,
     },
     push_service::{
-        AccountAttributes, DeviceCapabilities, DeviceId, ProfileKeyExt, ServiceError, ServiceIds,
-        WhoAmIResponse, DEFAULT_DEVICE_ID,
+        AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
+        DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -308,6 +308,7 @@ impl<C: Store> Manager<C, Linking> {
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
+                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -330,7 +331,7 @@ impl<C: Store> Manager<C, Linking> {
                         password,
                         device_id: Some(device_id),
                         registration_id,
-                        pni_registration_id: None,
+                        pni_registration_id: Some(pni_registration_id),
                         aci_public_key,
                         aci_private_key,
                         pni_public_key: Some(pni_public_key),
@@ -436,7 +437,7 @@ impl<C: Store> Manager<C, Confirmation> {
                     fetches_messages: true,
                     pin: None,
                     registration_lock: None,
-                    unidentified_access_key: Some(profile_key.derive_access_key()),
+                    unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
                     unrestricted_unidentified_access: false, // TODO: make this configurable?
                     discoverable_by_phone_number: true,
                     capabilities: DeviceCapabilities {
@@ -523,12 +524,13 @@ impl<C: Store> Manager<C, Registered> {
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
 
-        let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
+        let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
                 &mut self.config_store.clone(),
                 &mut self.rng,
                 self.config_store.pre_keys_offset_id()?,
                 self.config_store.next_signed_pre_key_id()?,
+                self.config_store.next_pq_pre_key_id()?,
                 true,
             )
             .await?;
@@ -537,6 +539,8 @@ impl<C: Store> Manager<C, Registered> {
             .set_pre_keys_offset_id(pre_keys_offset_id)?;
         self.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
+        self.config_store
+            .set_next_pq_pre_key_id(next_pq_pre_key_id)?;
 
         trace!("registered pre keys");
         Ok(())
@@ -569,7 +573,7 @@ impl<C: Store> Manager<C, Registered> {
                 fetches_messages: true,
                 pin: None,
                 registration_lock: None,
-                unidentified_access_key: Some(self.state.profile_key.derive_access_key()),
+                unidentified_access_key: Some(self.state.profile_key.derive_access_key().to_vec()),
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
@@ -869,7 +873,7 @@ impl<C: Store> Manager<C, Registered> {
                                     if state.include_internal_events {
                                         return Some((content, state));
                                     } else {
-                                        return None;
+                                        continue;
                                     }
                                 }
 
@@ -941,6 +945,9 @@ impl<C: Store> Manager<C, Registered> {
     /// Sends a messages to the provided [ServiceAddress].
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
+    ///
+    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message(
         &mut self,
         recipient_addr: impl Into<ServiceAddress>,
@@ -951,14 +958,31 @@ impl<C: Store> Manager<C, Registered> {
 
         let online_only = false;
         let recipient = recipient_addr.into();
-        let content_body: ContentBody = message.into();
+        let mut content_body: ContentBody = message.into();
+
+        // Only update the expiration timer if it is not set.
+        match content_body {
+            ContentBody::DataMessage(DataMessage {
+                expire_timer: ref mut timer,
+                ..
+            }) if timer.is_none() => {
+                // Set the expire timer to None for errors.
+                let store_expire_timer = self
+                    .config_store
+                    .expire_timer(&Thread::Contact(recipient.uuid))
+                    .unwrap_or_default();
+
+                *timer = store_expire_timer;
+            }
+            _ => {}
+        }
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
             self.config_store
                 .profile_key(&recipient.uuid)?
                 .map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key(),
+                    key: profile_key.derive_access_key().to_vec(),
                     certificate: sender_certificate.clone(),
                 });
 
@@ -995,6 +1019,9 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
     ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<C::Error>> {
+        if attachments.is_empty() {
+            return Ok(Vec::new());
+        }
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
@@ -1003,13 +1030,36 @@ impl<C: Store> Manager<C, Registered> {
         Ok(upload.await)
     }
 
-    /// Sends one message in a group (v2).
+    /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
+    ///
+    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message_to_group(
         &mut self,
         master_key_bytes: &[u8],
-        message: DataMessage,
+        mut message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error<C::Error>> {
+        // Only update the expiration timer if it is not set.
+        match message {
+            DataMessage {
+                expire_timer: ref mut timer,
+                ..
+            } if timer.is_none() => {
+                // Set the expire timer to None for errors.
+                let store_expire_timer = self
+                    .config_store
+                    .expire_timer(&Thread::Group(
+                        master_key_bytes
+                            .try_into()
+                            .expect("Master key bytes to be of size 32."),
+                    ))
+                    .unwrap_or_default();
+
+                *timer = store_expire_timer;
+            }
+            _ => {}
+        }
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
@@ -1028,7 +1078,7 @@ impl<C: Store> Manager<C, Registered> {
                 self.config_store
                     .profile_key(&member.uuid)?
                     .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key(),
+                        key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
             recipients.push((member.uuid.into(), unidentified_access));
@@ -1222,7 +1272,7 @@ async fn upsert_group<C: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<C::Error>> {
-    let save_group = match config_store.group(master_key_bytes.try_into()?) {
+    let upsert_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {}", group.title);
             group.revision < *revision
@@ -1234,11 +1284,12 @@ async fn upsert_group<C: Store>(
         }
     };
 
-    if save_group {
-        log::debug!("fetching group");
+    if upsert_group {
+        log::debug!("fetching and saving group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
-            Ok(group) => {
-                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, group) {
+            Ok(encrypted_group) => {
+                let group = decrypt_group(&master_key_bytes, encrypted_group)?;
+                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
                     log::error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
