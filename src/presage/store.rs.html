@@ -208,6 +208,9 @@
 <a href="#208" id="208">208</a>
 <a href="#209" id="209">209</a>
 <a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fmt, ops::RangeBounds};
 
 <span class="kw">use crate</span>::{manager::Registered, GroupMasterKeyBytes};
@@ -268,6 +271,9 @@
 
     </span><span class="comment">// Clear all stored messages.
     </span><span class="kw">fn </span>clear_messages(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
+
+    <span class="comment">// Clear the messages in a thread.
+    </span><span class="kw">fn </span>clear_thread(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
 
     <span class="doccomment">/// Save a message in a [Thread] identified by a timestamp.
     </span><span class="kw">fn </span>save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;
