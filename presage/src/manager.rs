@@ -34,8 +34,8 @@ use libsignal_service::{
         VerificationCodeResponse,
     },
     push_service::{
-        AccountAttributes, DeviceCapabilities, DeviceId, ProfileKeyExt, ServiceError, ServiceIds,
-        WhoAmIResponse, DEFAULT_DEVICE_ID,
+        AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
+        DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -308,6 +308,7 @@ impl<C: Store> Manager<C, Linking> {
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
+                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -330,7 +331,7 @@ impl<C: Store> Manager<C, Linking> {
                         password,
                         device_id: Some(device_id),
                         registration_id,
-                        pni_registration_id: None,
+                        pni_registration_id: Some(pni_registration_id),
                         aci_public_key,
                         aci_private_key,
                         pni_public_key: Some(pni_public_key),
@@ -436,7 +437,7 @@ impl<C: Store> Manager<C, Confirmation> {
                     fetches_messages: true,
                     pin: None,
                     registration_lock: None,
-                    unidentified_access_key: Some(profile_key.derive_access_key()),
+                    unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
                     unrestricted_unidentified_access: false, // TODO: make this configurable?
                     discoverable_by_phone_number: true,
                     capabilities: DeviceCapabilities {
@@ -523,12 +524,13 @@ impl<C: Store> Manager<C, Registered> {
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
 
-        let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
+        let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
                 &mut self.config_store.clone(),
                 &mut self.rng,
                 self.config_store.pre_keys_offset_id()?,
                 self.config_store.next_signed_pre_key_id()?,
+                self.config_store.next_pq_pre_key_id()?,
                 true,
             )
             .await?;
@@ -537,6 +539,8 @@ impl<C: Store> Manager<C, Registered> {
             .set_pre_keys_offset_id(pre_keys_offset_id)?;
         self.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
+        self.config_store
+            .set_next_pq_pre_key_id(next_pq_pre_key_id)?;
 
         trace!("registered pre keys");
         Ok(())
@@ -569,7 +573,7 @@ impl<C: Store> Manager<C, Registered> {
                 fetches_messages: true,
                 pin: None,
                 registration_lock: None,
-                unidentified_access_key: Some(self.state.profile_key.derive_access_key()),
+                unidentified_access_key: Some(self.state.profile_key.derive_access_key().to_vec()),
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
@@ -978,7 +982,7 @@ impl<C: Store> Manager<C, Registered> {
             self.config_store
                 .profile_key(&recipient.uuid)?
                 .map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key(),
+                    key: profile_key.derive_access_key().to_vec(),
                     certificate: sender_certificate.clone(),
                 });
 
@@ -1074,7 +1078,7 @@ impl<C: Store> Manager<C, Registered> {
                 self.config_store
                     .profile_key(&member.uuid)?
                     .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key(),
+                        key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
             recipients.push((member.uuid.into(), unidentified_access));
