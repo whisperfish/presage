@@ -1221,8 +1221,9 @@ impl<C: Store> Manager<C, Registered> {
 
         Ok(service_cipher)
     }
-    // Returns the title for a thread depending on the type of thread.
-    pub async fn get_title_for_thread(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
+
+    /// Returns the title of a thread (contact or group).
+    pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
         match thread {
             Thread::Contact(uuid) => {
                 let contact = match self.contact_by_id(uuid) {
@@ -1243,6 +1244,7 @@ impl<C: Store> Manager<C, Registered> {
             },
         }
     }
+
     #[deprecated = "use Manager::contact_by_id"]
     pub fn get_contacts(
         &self,
