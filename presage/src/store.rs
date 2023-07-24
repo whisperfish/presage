@@ -59,6 +59,9 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     // Clear all stored messages.
     fn clear_messages(&mut self) -> Result<(), Self::Error>;
 
+    // Clear the messages in a thread.
+    fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::Error>;
+
     /// Save a message in a [Thread] identified by a timestamp.
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Self::Error>;
 
