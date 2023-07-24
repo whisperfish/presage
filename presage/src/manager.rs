@@ -941,6 +941,9 @@ impl<C: Store> Manager<C, Registered> {
     /// Sends a messages to the provided [ServiceAddress].
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
+    ///
+    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message(
         &mut self,
         recipient_addr: impl Into<ServiceAddress>,
@@ -951,7 +954,24 @@ impl<C: Store> Manager<C, Registered> {
 
         let online_only = false;
         let recipient = recipient_addr.into();
-        let content_body: ContentBody = message.into();
+        let mut content_body: ContentBody = message.into();
+
+        // Only update the expiration timer if it is not set.
+        match content_body {
+            ContentBody::DataMessage(DataMessage {
+                expire_timer: ref mut timer,
+                ..
+            }) if timer.is_none() => {
+                // Set the expire timer to None for errors.
+                let store_expire_timer = self
+                    .config_store
+                    .expire_timer(&Thread::Contact(recipient.uuid))
+                    .unwrap_or_default();
+
+                *timer = store_expire_timer;
+            }
+            _ => {}
+        }
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
@@ -1006,13 +1026,36 @@ impl<C: Store> Manager<C, Registered> {
         Ok(upload.await)
     }
 
-    /// Sends one message in a group (v2).
+    /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
+    ///
+    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message_to_group(
         &mut self,
         master_key_bytes: &[u8],
-        message: DataMessage,
+        mut message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error<C::Error>> {
+        // Only update the expiration timer if it is not set.
+        match message {
+            DataMessage {
+                expire_timer: ref mut timer,
+                ..
+            } if timer.is_none() => {
+                // Set the expire timer to None for errors.
+                let store_expire_timer = self
+                    .config_store
+                    .expire_timer(&Thread::Group(
+                        master_key_bytes
+                            .try_into()
+                            .expect("Master key bytes to be of size 32."),
+                    ))
+                    .unwrap_or_default();
+
+                *timer = store_expire_timer;
+            }
+            _ => {}
+        }
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;

@@ -72,6 +72,18 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Self::Error>;
 
+    /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
+    /// or [Group::disappearing_messages_timer].
+    fn expire_timer(&self, thread: &Thread) -> Result<Option<u32>, Self::Error> {
+        match thread {
+            Thread::Contact(uuid) => Ok(self.contact_by_id(*uuid)?.map(|c| c.expire_timer)),
+            Thread::Group(key) => Ok(self
+                .group(*key)?
+                .and_then(|g| g.disappearing_messages_timer)
+                .map(|t| t.duration)),
+        }
+    }
+
     /// Contacts
 
     /// Clear all saved synchronized contact data
