@@ -16,7 +16,8 @@ use presage::{
         models::Contact,
         prelude::{
             protocol::{
-                Context, Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, PreKeyId,
+                Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair,
+                IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
                 PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
                 SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
                 SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
@@ -48,12 +49,14 @@ const SLED_TREE_PRE_KEYS: &str = "pre_keys";
 const SLED_TREE_SENDER_KEYS: &str = "sender_keys";
 const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
+const SLED_TREE_KYBER_PRE_KEYS: &str = "kyber_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
 const SLED_TREE_PROFILES: &str = "profiles";
 const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
+const SLED_KEY_NEXT_PQ_PRE_KEY_ID: &str = "next_pq_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
@@ -417,6 +420,17 @@ impl Store for SledStore {
         Ok(())
     }
 
+    fn next_pq_pre_key_id(&self) -> Result<u32, SledStoreError> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)?
+            .unwrap_or(0))
+    }
+
+    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)?;
+        Ok(())
+    }
+
     /// Contacts
 
     fn clear_contacts(&mut self) -> Result<(), SledStoreError> {
@@ -731,6 +745,57 @@ impl SignedPreKeyStore for SledStore {
 }
 
 #[async_trait(?Send)]
+impl KyberPreKeyStore for SledStore {
+    async fn get_kyber_pre_key(
+        &self,
+        kyber_prekey_id: KyberPreKeyId,
+        _ctx: Context,
+    ) -> Result<KyberPreKeyRecord, SignalProtocolError> {
+        let buf: Vec<u8> = self
+            .get(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())
+            .ok()
+            .flatten()
+            .ok_or(SignalProtocolError::InvalidKyberPreKeyId)?;
+        KyberPreKeyRecord::deserialize(&buf)
+    }
+
+    async fn save_kyber_pre_key(
+        &mut self,
+        kyber_prekey_id: KyberPreKeyId,
+        record: &KyberPreKeyRecord,
+        _ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        self.insert(
+            SLED_TREE_KYBER_PRE_KEYS,
+            kyber_prekey_id.to_string(),
+            record.serialize()?,
+        )
+        .map_err(|e| {
+            log::error!("sled error: {}", e);
+            SignalProtocolError::InvalidState("save_kyber_pre_key", "sled error".into())
+        })?;
+        Ok(())
+    }
+
+    async fn mark_kyber_pre_key_used(
+        &mut self,
+        kyber_prekey_id: KyberPreKeyId,
+        _ctx: Context,
+    ) -> Result<(), SignalProtocolError> {
+        if self
+            .remove(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState("mark_kyber_pre_key_used", "sled error".into())
+            })?
+        {
+            log::trace!("removed kyber pre-key {kyber_prekey_id}");
+        }
+        Ok(())
+    }
+}
+
+#[async_trait(?Send)]
 impl SessionStore for SledStore {
     async fn load_session(
         &self,
@@ -997,8 +1062,9 @@ mod tests {
             content::{ContentBody, Metadata},
             prelude::{
                 protocol::{
-                    self, Direction, IdentityKeyStore, PreKeyRecord, PreKeyStore, SessionRecord,
-                    SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+                    self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord,
+                    PreKeyStore, SessionRecord, SessionStore, SignedPreKeyRecord,
+                    SignedPreKeyStore,
                 },
                 Uuid,
             },

@@ -48,7 +48,11 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Self::Error>;
 
+    fn next_pq_pre_key_id(&self) -> Result<u32, Self::Error>;
+
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
+
+    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
     /// Messages
 
