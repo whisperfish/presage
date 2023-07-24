@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["auth","groups","profiles","receipts","server_params"]};
+window.SIDEBAR_ITEMS = {"mod":["auth","call_links","generic_server_params","groups","profiles","receipts","server_params"]};

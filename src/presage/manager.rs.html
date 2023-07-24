@@ -1393,6 +1393,10 @@
 <a href="#1393" id="1393">1393</a>
 <a href="#1394" id="1394">1394</a>
 <a href="#1395" id="1395">1395</a>
+<a href="#1396" id="1396">1396</a>
+<a href="#1397" id="1397">1397</a>
+<a href="#1398" id="1398">1398</a>
+<a href="#1399" id="1399">1399</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1429,8 +1433,8 @@
         VerificationCodeResponse,
     },
     push_service::{
-        AccountAttributes, DeviceCapabilities, DeviceId, ProfileKeyExt, ServiceError, ServiceIds,
-        WhoAmIResponse, DEFAULT_DEVICE_ID,
+        AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
+        DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -1703,6 +1707,7 @@
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
+                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -1725,7 +1730,7 @@
                         password,
                         device_id: <span class="prelude-val">Some</span>(device_id),
                         registration_id,
-                        pni_registration_id: <span class="prelude-val">None</span>,
+                        pni_registration_id: <span class="prelude-val">Some</span>(pni_registration_id),
                         aci_public_key,
                         aci_private_key,
                         pni_public_key: <span class="prelude-val">Some</span>(pni_public_key),
@@ -1831,7 +1836,7 @@
                     fetches_messages: <span class="bool-val">true</span>,
                     pin: <span class="prelude-val">None</span>,
                     registration_lock: <span class="prelude-val">None</span>,
-                    unidentified_access_key: <span class="prelude-val">Some</span>(profile_key.derive_access_key()),
+                    unidentified_access_key: <span class="prelude-val">Some</span>(profile_key.derive_access_key().to_vec()),
                     unrestricted_unidentified_access: <span class="bool-val">false</span>, <span class="comment">// TODO: make this configurable?
                     </span>discoverable_by_phone_number: <span class="bool-val">true</span>,
                     capabilities: DeviceCapabilities {
@@ -1918,12 +1923,13 @@
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
             AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key));
 
-        <span class="kw">let </span>(pre_keys_offset_id, next_signed_pre_key_id) = account_manager
+        <span class="kw">let </span>(pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
                 <span class="self">self</span>.config_store.pre_keys_offset_id()<span class="question-mark">?</span>,
                 <span class="self">self</span>.config_store.next_signed_pre_key_id()<span class="question-mark">?</span>,
+                <span class="self">self</span>.config_store.next_pq_pre_key_id()<span class="question-mark">?</span>,
                 <span class="bool-val">true</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1932,6 +1938,8 @@
             .set_pre_keys_offset_id(pre_keys_offset_id)<span class="question-mark">?</span>;
         <span class="self">self</span>.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)<span class="question-mark">?</span>;
+        <span class="self">self</span>.config_store
+            .set_next_pq_pre_key_id(next_pq_pre_key_id)<span class="question-mark">?</span>;
 
         <span class="macro">trace!</span>(<span class="string">&quot;registered pre keys&quot;</span>);
         <span class="prelude-val">Ok</span>(())
@@ -1964,7 +1972,7 @@
                 fetches_messages: <span class="bool-val">true</span>,
                 pin: <span class="prelude-val">None</span>,
                 registration_lock: <span class="prelude-val">None</span>,
-                unidentified_access_key: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key.derive_access_key()),
+                unidentified_access_key: <span class="prelude-val">Some</span>(<span class="self">self</span>.state.profile_key.derive_access_key().to_vec()),
                 unrestricted_unidentified_access: <span class="bool-val">false</span>,
                 discoverable_by_phone_number: <span class="bool-val">true</span>,
                 capabilities: DeviceCapabilities {
@@ -2373,7 +2381,7 @@
             <span class="self">self</span>.config_store
                 .profile_key(<span class="kw-2">&amp;</span>recipient.uuid)<span class="question-mark">?
                 </span>.map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key(),
+                    key: profile_key.derive_access_key().to_vec(),
                     certificate: sender_certificate.clone(),
                 });
 
@@ -2469,7 +2477,7 @@
                 <span class="self">self</span>.config_store
                     .profile_key(<span class="kw-2">&amp;</span>member.uuid)<span class="question-mark">?
                     </span>.map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key(),
+                        key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
             recipients.push((member.uuid.into(), unidentified_access));

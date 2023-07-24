@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e871a/libsignal-service/src/push_service.rs`."><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/3c65765/libsignal-service/src/push_service.rs`."><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -897,13 +897,28 @@
 <a href="#897" id="897">897</a>
 <a href="#898" id="898">898</a>
 <a href="#899" id="899">899</a>
+<a href="#900" id="900">900</a>
+<a href="#901" id="901">901</a>
+<a href="#902" id="902">902</a>
+<a href="#903" id="903">903</a>
+<a href="#904" id="904">904</a>
+<a href="#905" id="905">905</a>
+<a href="#906" id="906">906</a>
+<a href="#907" id="907">907</a>
+<a href="#908" id="908">908</a>
+<a href="#909" id="909">909</a>
+<a href="#910" id="910">910</a>
+<a href="#911" id="911">911</a>
+<a href="#912" id="912">912</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{fmt, time::Duration};
 
 <span class="kw">use crate</span>::{
     configuration::{Endpoint, ServiceCredentials},
     envelope::<span class="kw-2">*</span>,
     groups_v2::GroupDecodingError,
-    pre_keys::{PreKeyEntity, PreKeyState, SignedPreKeyEntity},
+    pre_keys::{
+        KyberPreKeyEntity, PreKeyEntity, PreKeyState, SignedPreKeyEntity,
+    },
     profile_cipher::ProfileCipherError,
     proto::{attachment_pointer::AttachmentIdentifier, AttachmentPointer},
     sender::{OutgoingPushMessages, SendMessageResponse},
@@ -912,21 +927,18 @@
     MaybeSend, ParseServiceAddressError, Profile, ServiceAddress,
 };
 
-<span class="kw">use </span>aes_gcm::{
-    aead::{generic_array::GenericArray, Aead},
-    Aes256Gcm, NewAead,
-};
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>derivative::Derivative;
 <span class="kw">use </span>libsignal_protocol::{
-    error::SignalProtocolError, IdentityKey, PreKeyBundle, PublicKey,
-    SenderCertificate,
+    error::SignalProtocolError,
+    kem::{Key, Public},
+    IdentityKey, PreKeyBundle, PublicKey, SenderCertificate,
 };
 <span class="kw">use </span>phonenumber::PhoneNumber;
 <span class="kw">use </span>prost::Message <span class="kw">as </span>ProtobufMessage;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>uuid::Uuid;
-<span class="kw">use </span>zkgroup::profiles::{ProfileKey, ProfileKeyCommitment, ProfileKeyVersion};
+<span class="kw">use </span>zkgroup::profiles::{ProfileKeyCommitment, ProfileKeyVersion};
 
 <span class="doccomment">/**
 Since we can&#39;t use format!() with constants, the URLs here are just for reference purposes
@@ -1077,6 +1089,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
 </span><span class="kw">pub struct </span>PreKeyStatus {
     <span class="kw">pub </span>count: u32,
+    <span class="kw">pub </span>pq_count: u32,
 }
 
 <span class="attr">#[derive(Derivative, Clone)]
@@ -1108,22 +1121,6 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     </span>certificate: Vec&lt;u8&gt;,
 }
 
-<span class="kw">pub trait </span>ProfileKeyExt {
-    <span class="kw">fn </span>derive_access_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt;;
-}
-
-<span class="kw">impl </span>ProfileKeyExt <span class="kw">for </span>ProfileKey {
-    <span class="kw">fn </span>derive_access_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
-        <span class="kw">let </span>key = GenericArray::from_slice(<span class="kw-2">&amp;</span><span class="self">self</span>.bytes);
-        <span class="kw">let </span>cipher = Aes256Gcm::new(key);
-        <span class="kw">let </span>nonce = GenericArray::from_slice(<span class="kw-2">&amp;</span>[<span class="number">0u8</span>; <span class="number">12</span>]);
-        <span class="kw">let </span>buf = [<span class="number">0u8</span>; <span class="number">16</span>];
-        <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = cipher.encrypt(nonce, <span class="kw-2">&amp;</span>buf[..]).unwrap();
-        ciphertext.truncate(<span class="number">16</span>);
-        ciphertext
-    }
-}
-
 <span class="attr">#[derive(Debug, Deserialize)]
 #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
 </span><span class="kw">pub struct </span>PreKeyResponse {
@@ -1149,6 +1146,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     <span class="kw">pub </span>registration_id: u32,
     <span class="kw">pub </span>signed_pre_key: SignedPreKeyEntity,
     <span class="kw">pub </span>pre_key: <span class="prelude-ty">Option</span>&lt;PreKeyEntity&gt;,
+    <span class="kw">pub </span>pq_pre_key: <span class="prelude-ty">Option</span>&lt;KyberPreKeyEntity&gt;,
 }
 
 <span class="kw">impl </span>PreKeyResponseItem {
@@ -1156,7 +1154,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="self">self</span>,
         identity: IdentityKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyBundle, SignalProtocolError&gt; {
-        PreKeyBundle::new(
+        <span class="kw">let </span>b = PreKeyBundle::new(
             <span class="self">self</span>.registration_id,
             <span class="self">self</span>.device_id.into(),
             <span class="self">self</span>.pre_key
@@ -1172,7 +1170,17 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
             PublicKey::deserialize(<span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key.public_key)<span class="question-mark">?</span>,
             <span class="self">self</span>.signed_pre_key.signature,
             identity,
-        )
+        )<span class="question-mark">?</span>;
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(pq_pk) = <span class="self">self</span>.pq_pre_key {
+            <span class="prelude-val">Ok</span>(b.with_kyber_pre_key(
+                pq_pk.key_id.into(),
+                Key::&lt;Public&gt;::deserialize(<span class="kw-2">&amp;</span>pq_pk.public_key)<span class="question-mark">?</span>,
+                pq_pk.signature,
+            ))
+        } <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(b)
+        }
     }
 }
 
@@ -1491,6 +1499,23 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         }
     }
 
+    <span class="kw">async fn </span>get_sticker_pack_manifest(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        id: <span class="kw-2">&amp;</span>str,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/stickers/{}/manifest.proto&quot;</span>, id);
+        <span class="self">self</span>.get_from_cdn(<span class="number">0</span>, <span class="kw-2">&amp;</span>path).<span class="kw">await
+    </span>}
+
+    <span class="kw">async fn </span>get_sticker(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        pack_id: <span class="kw-2">&amp;</span>str,
+        sticker_id: u32,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/stickers/{}/full/{}&quot;</span>, pack_id, sticker_id);
+        <span class="self">self</span>.get_from_cdn(<span class="number">0</span>, <span class="kw-2">&amp;</span>path).<span class="kw">await
+    </span>}
+
     <span class="kw">async fn </span>send_messages(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         messages: OutgoingPushMessages,
@@ -1615,7 +1640,8 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         destination: <span class="kw-2">&amp;</span>ServiceAddress,
         device_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyBundle, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.uuid, device_id);
+        <span class="kw">let </span>path =
+            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}?pq=true&quot;</span>, destination.uuid, device_id);
 
         <span class="kw">let </span><span class="kw-2">mut </span>pre_key_response: PreKeyResponse = <span class="self">self
             </span>.get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)
@@ -1633,9 +1659,9 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         device_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;PreKeyBundle&gt;, ServiceError&gt; {
         <span class="kw">let </span>path = <span class="kw">if </span>device_id == <span class="number">1 </span>{
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*&quot;</span>, destination.uuid)
+            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*?pq=true&quot;</span>, destination.uuid)
         } <span class="kw">else </span>{
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}&quot;</span>, destination.uuid, device_id)
+            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}?pq=true&quot;</span>, destination.uuid, device_id)
         };
         <span class="kw">let </span>pre_key_response: PreKeyResponse = <span class="self">self
             </span>.get_json(Endpoint::Service, <span class="kw-2">&amp;</span>path, HttpAuthOverride::NoOverride)

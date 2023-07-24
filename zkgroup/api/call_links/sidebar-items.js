@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["CallLinkAuthCredential","CallLinkAuthCredentialPresentation","CallLinkAuthCredentialResponse","CallLinkPublicParams","CallLinkSecretParams","CreateCallLinkCredential","CreateCallLinkCredentialPresentation","CreateCallLinkCredentialRequest","CreateCallLinkCredentialRequestContext","CreateCallLinkCredentialResponse"]};

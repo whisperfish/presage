@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/39293fa/rust/protocol/src/state/signed_prekey.rs`."><title>signed_prekey.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_protocol/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/86b2fcc/rust/protocol/src/state/signed_prekey.rs`."><title>signed_prekey.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.0 (8ede3aae2 2023-07-12)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_protocol/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -91,20 +91,145 @@
 <a href="#91" id="91">91</a>
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
+<a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
+<a href="#189" id="189">189</a>
+<a href="#190" id="190">190</a>
+<a href="#191" id="191">191</a>
+<a href="#192" id="192">192</a>
+<a href="#193" id="193">193</a>
+<a href="#194" id="194">194</a>
+<a href="#195" id="195">195</a>
+<a href="#196" id="196">196</a>
+<a href="#197" id="197">197</a>
+<a href="#198" id="198">198</a>
+<a href="#199" id="199">199</a>
+<a href="#200" id="200">200</a>
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+<a href="#208" id="208">208</a>
+<a href="#209" id="209">209</a>
+<a href="#210" id="210">210</a>
+<a href="#211" id="211">211</a>
+<a href="#212" id="212">212</a>
+<a href="#213" id="213">213</a>
+<a href="#214" id="214">214</a>
+<a href="#215" id="215">215</a>
+<a href="#216" id="216">216</a>
+<a href="#217" id="217">217</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020-2022 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
 </span><span class="kw">use </span><span class="kw">crate</span>::proto::storage::SignedPreKeyRecordStructure;
-<span class="kw">use crate</span>::{KeyPair, PrivateKey, PublicKey, <span class="prelude-ty">Result</span>, SignalProtocolError};
+<span class="kw">use crate</span>::{kem, KeyPair, PrivateKey, PublicKey, <span class="prelude-ty">Result</span>, SignalProtocolError};
 
 <span class="kw">use </span>prost::Message;
 
+<span class="kw">use </span>std::convert::AsRef;
 <span class="kw">use </span>std::fmt;
 
 <span class="doccomment">/// A unique identifier selecting among this client&#39;s known signed pre-keys.
-</span><span class="attr">#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
+</span><span class="attr">#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq, Ord, PartialOrd)]
 </span><span class="kw">pub struct </span>SignedPreKeyId(u32);
 
 <span class="kw">impl </span>From&lt;u32&gt; <span class="kw">for </span>SignedPreKeyId {
@@ -131,57 +256,180 @@
 }
 
 <span class="kw">impl </span>SignedPreKeyRecord {
-    <span class="kw">pub fn </span>new(id: SignedPreKeyId, timestamp: u64, key: <span class="kw-2">&amp;</span>KeyPair, signature: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>public_key = key.public_key.serialize().to_vec();
-        <span class="kw">let </span>private_key = key.private_key.serialize().to_vec();
-        <span class="kw">let </span>signature = signature.to_vec();
-        <span class="self">Self </span>{
-            signed_pre_key: SignedPreKeyRecordStructure {
-                id: id.into(),
-                timestamp,
-                public_key,
-                private_key,
-                signature,
-            },
-        }
+    <span class="kw">pub fn </span>private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKey&gt; {
+        PrivateKey::deserialize(<span class="kw-2">&amp;</span><span class="self">self</span>.get_storage().private_key)
+    }
+}
+
+<span class="kw">impl </span>GenericSignedPreKey <span class="kw">for </span>SignedPreKeyRecord {
+    <span class="kw">type </span>KeyPair = KeyPair;
+    <span class="kw">type </span>Id = SignedPreKeyId;
+
+    <span class="kw">fn </span>get_storage(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>SignedPreKeyRecordStructure {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key
     }
 
-    <span class="kw">pub fn </span>deserialize(data: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
-            signed_pre_key: SignedPreKeyRecordStructure::decode(data)
-                .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidProtobufEncoding)<span class="question-mark">?</span>,
+    <span class="kw">fn </span>from_storage(storage: SignedPreKeyRecordStructure) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            signed_pre_key: storage,
+        }
+    }
+}
+
+<span class="kw">pub trait </span>GenericSignedPreKey {
+    <span class="kw">type </span>KeyPair: KeyPairSerde;
+    <span class="kw">type </span>Id: From&lt;u32&gt; + Into&lt;u32&gt;;
+
+    <span class="kw">fn </span>get_storage(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>SignedPreKeyRecordStructure;
+    <span class="kw">fn </span>from_storage(storage: SignedPreKeyRecordStructure) -&gt; <span class="self">Self</span>;
+
+    <span class="kw">fn </span>new(id: <span class="self">Self</span>::Id, timestamp: u64, key_pair: <span class="kw-2">&amp;</span><span class="self">Self</span>::KeyPair, signature: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="self">Self
+    </span><span class="kw">where
+        </span><span class="self">Self</span>: Sized,
+    {
+        <span class="kw">let </span>public_key = key_pair.get_public().serialize();
+        <span class="kw">let </span>private_key = key_pair.get_private().serialize();
+        <span class="kw">let </span>signature = signature.to_vec();
+        <span class="self">Self</span>::from_storage(SignedPreKeyRecordStructure {
+            id: id.into(),
+            timestamp,
+            public_key,
+            private_key,
+            signature,
         })
     }
 
-    <span class="kw">pub fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignedPreKeyId&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.signed_pre_key.id.into())
+    <span class="kw">fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.get_storage().encode_to_vec())
     }
 
-    <span class="kw">pub fn </span>timestamp(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.signed_pre_key.timestamp)
+    <span class="kw">fn </span>deserialize(data: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt;
+    <span class="kw">where
+        </span><span class="self">Self</span>: Sized,
+    {
+        <span class="prelude-val">Ok</span>(<span class="self">Self</span>::from_storage(
+            SignedPreKeyRecordStructure::decode(data)
+                .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidProtobufEncoding)<span class="question-mark">?</span>,
+        ))
     }
 
-    <span class="kw">pub fn </span>signature(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.signed_pre_key.signature.clone())
+    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Id&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.get_storage().id.into())
     }
 
-    <span class="kw">pub fn </span>public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PublicKey&gt; {
-        PublicKey::deserialize(<span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key.public_key)
+    <span class="kw">fn </span>timestamp(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u64&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.get_storage().timestamp)
     }
 
-    <span class="kw">pub fn </span>private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKey&gt; {
-        PrivateKey::deserialize(<span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key.private_key)
+    <span class="kw">fn </span>signature(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.get_storage().signature.clone())
     }
 
-    <span class="kw">pub fn </span>key_pair(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;KeyPair&gt; {
-        KeyPair::from_public_and_private(
-            <span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key.public_key,
-            <span class="kw-2">&amp;</span><span class="self">self</span>.signed_pre_key.private_key,
+    <span class="kw">fn </span>public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;&lt;<span class="self">Self</span>::KeyPair <span class="kw">as </span>KeyPairSerde&gt;::PublicKey&gt; {
+        &lt;<span class="self">Self</span>::KeyPair <span class="kw">as </span>KeyPairSerde&gt;::PublicKey::deserialize(<span class="kw-2">&amp;</span><span class="self">self</span>.get_storage().public_key)
+    }
+
+    <span class="kw">fn </span>key_pair(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::KeyPair&gt; {
+        <span class="self">Self</span>::KeyPair::from_public_and_private(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.get_storage().public_key,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.get_storage().private_key,
         )
     }
+}
 
-    <span class="kw">pub fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.signed_pre_key.encode_to_vec())
+<span class="kw">pub trait </span>KeySerde {
+    <span class="kw">fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt;;
+    <span class="kw">fn </span>deserialize&lt;T: AsRef&lt;[u8]&gt;&gt;(bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt;
+    <span class="kw">where
+        </span><span class="self">Self</span>: Sized;
+}
+
+<span class="kw">pub trait </span>KeyPairSerde {
+    <span class="kw">type </span>PublicKey: KeySerde;
+    <span class="kw">type </span>PrivateKey: KeySerde;
+    <span class="kw">fn </span>from_public_and_private(public_key: <span class="kw-2">&amp;</span>[u8], private_key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt;
+    <span class="kw">where
+        </span><span class="self">Self</span>: Sized;
+    <span class="kw">fn </span>get_public(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::PublicKey;
+    <span class="kw">fn </span>get_private(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="self">Self</span>::PrivateKey;
+}
+
+<span class="kw">impl </span>KeySerde <span class="kw">for </span>PublicKey {
+    <span class="kw">fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="self">self</span>.serialize().to_vec()
+    }
+
+    <span class="kw">fn </span>deserialize&lt;T: AsRef&lt;[u8]&gt;&gt;(bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="self">Self</span>::deserialize(bytes.as_ref())
+    }
+}
+
+<span class="kw">impl </span>KeySerde <span class="kw">for </span>PrivateKey {
+    <span class="kw">fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="self">self</span>.serialize()
+    }
+
+    <span class="kw">fn </span>deserialize&lt;T: AsRef&lt;[u8]&gt;&gt;(bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="self">Self</span>::deserialize(bytes.as_ref())
+    }
+}
+
+<span class="kw">impl </span>KeySerde <span class="kw">for </span>kem::PublicKey {
+    <span class="kw">fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="self">self</span>.serialize().to_vec()
+    }
+
+    <span class="kw">fn </span>deserialize&lt;T: AsRef&lt;[u8]&gt;&gt;(bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt;
+    <span class="kw">where
+        </span><span class="self">Self</span>: Sized,
+    {
+        <span class="self">Self</span>::deserialize(bytes.as_ref())
+    }
+}
+
+<span class="kw">impl </span>KeySerde <span class="kw">for </span>kem::SecretKey {
+    <span class="kw">fn </span>serialize(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Vec&lt;u8&gt; {
+        <span class="self">self</span>.serialize().to_vec()
+    }
+    <span class="kw">fn </span>deserialize&lt;T: AsRef&lt;[u8]&gt;&gt;(bytes: T) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt;
+    <span class="kw">where
+        </span><span class="self">Self</span>: Sized,
+    {
+        <span class="self">Self</span>::deserialize(bytes.as_ref())
+    }
+}
+
+<span class="kw">impl </span>KeyPairSerde <span class="kw">for </span>KeyPair {
+    <span class="kw">type </span>PublicKey = PublicKey;
+    <span class="kw">type </span>PrivateKey = PrivateKey;
+
+    <span class="kw">fn </span>from_public_and_private(public_key: <span class="kw-2">&amp;</span>[u8], private_key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        KeyPair::from_public_and_private(public_key, private_key)
+    }
+
+    <span class="kw">fn </span>get_public(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>PublicKey {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.public_key
+    }
+
+    <span class="kw">fn </span>get_private(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>PrivateKey {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.private_key
+    }
+}
+
+<span class="kw">impl </span>KeyPairSerde <span class="kw">for </span>kem::KeyPair {
+    <span class="kw">type </span>PublicKey = kem::PublicKey;
+    <span class="kw">type </span>PrivateKey = kem::SecretKey;
+
+    <span class="kw">fn </span>from_public_and_private(public_key: <span class="kw-2">&amp;</span>[u8], private_key: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        kem::KeyPair::from_public_and_private(public_key, private_key)
+    }
+
+    <span class="kw">fn </span>get_public(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>kem::PublicKey {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.public_key
+    }
+
+    <span class="kw">fn </span>get_private(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>kem::SecretKey {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.secret_key
     }
 }
 </code></pre></div></section></main></body></html>
