@@ -9,25 +9,22 @@ use async_trait::async_trait;
 use log::{debug, error, trace, warn};
 #[cfg(feature = "encryption")]
 use matrix_sdk_store_encryption::StoreCipher;
-use presage::{
-    libsignal_service::{
-        self,
-        groups_v2::{decrypt_group, Group},
-        models::Contact,
-        prelude::{
-            protocol::{
-                Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair,
-                IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
-                PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
-                SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
-                SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
-            },
-            Content, ProfileKey, Uuid,
+use presage::libsignal_service::{
+    self,
+    groups_v2::Group,
+    models::Contact,
+    prelude::{
+        protocol::{
+            Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair,
+            IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
+            SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
+            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
-        push_service::DEFAULT_DEVICE_ID,
-        Profile, ServiceAddress,
+        Content, ProfileKey, Uuid,
     },
-    prelude::proto,
+    push_service::DEFAULT_DEVICE_ID,
+    Profile, ServiceAddress,
 };
 use prost::Message;
 use protobuf::ContentProto;
@@ -647,26 +644,21 @@ impl Iterator for SledGroupsIter {
     type Item = Result<(GroupMasterKeyBytes, Group), SledStoreError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()?
-            .map_err(SledStoreError::from)
-            .and_then(|(master_key_bytes, value)| {
-                let decrypted_data: Vec<u8> = self.cipher.as_ref().map_or_else(
+        Some(self.iter.next()?.map_err(SledStoreError::from).and_then(
+            |(group_master_key_bytes, value)| {
+                let group = self.cipher.as_ref().map_or_else(
                     || serde_json::from_slice(&value).map_err(SledStoreError::from),
                     |c| c.decrypt_value(&value).map_err(SledStoreError::from),
                 )?;
-                Ok((master_key_bytes, decrypted_data))
-            })
-            .and_then(|(master_key_bytes, encrypted_group_data)| {
-                let encrypted_group = proto::Group::decode(encrypted_group_data.as_slice())?;
-                let master_key: GroupMasterKeyBytes = master_key_bytes[..]
-                    .try_into()
-                    .expect("wrong group master key length");
-                let decrypted_group = decrypt_group(&master_key, encrypted_group)
-                    .map_err(|_| SledStoreError::GroupDecryption)?;
-                Ok((master_key, decrypted_group))
-            })
-            .into()
+                Ok((
+                    group_master_key_bytes
+                        .as_ref()
+                        .try_into()
+                        .map_err(|_| SledStoreError::GroupDecryption)?,
+                    group,
+                ))
+            },
+        ))
     }
 }
 
