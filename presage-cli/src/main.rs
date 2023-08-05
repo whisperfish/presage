@@ -126,7 +126,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient-uuid", "group-master-key"])
+                .args(&["recipient_uuid", "group_master_key"])
         )
     )]
     ListMessages {
