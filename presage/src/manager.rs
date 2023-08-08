@@ -26,9 +26,7 @@ use libsignal_service::{
         NullMessage,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
-    provisioning::{
-        generate_registration_id, LinkingManager, SecondaryDeviceProvisioning,
-    },
+    provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
     push_service::{
         AccountAttributes, DeviceCapabilities, DeviceId, RegistrationMethod, ServiceError,
         ServiceIds, VerificationTransport, WhoAmIResponse, DEFAULT_DEVICE_ID,
@@ -438,7 +436,7 @@ impl<C: Store> Manager<C, Confirmation> {
         let session = push_service
             .submit_verification_code(&session_id, confirmation_code.as_ref())
             .await?;
-        
+
         trace!("verification code submitted");
 
         if !session.verified {
@@ -1399,7 +1397,8 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use libsignal_service::prelude::{protocol::KeyPair, ProfileKey};
+    use libsignal_service::prelude::ProfileKey;
+    use libsignal_service::protocol::KeyPair;
     use rand::RngCore;
     use serde_json::json;
 

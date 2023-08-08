@@ -18,11 +18,11 @@ use presage::libsignal_service::{
         Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
         KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
         ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
-        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-        SignedPreKeyStore,
+        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
     },
     push_service::DEFAULT_DEVICE_ID,
-    Profile, ServiceAddress, session_store::SessionStoreExt,
+    session_store::SessionStoreExt,
+    Profile, ServiceAddress,
 };
 use prost::Message;
 use protobuf::ContentProto;
@@ -1052,15 +1052,12 @@ mod tests {
     use presage::{
         libsignal_service::{
             content::{ContentBody, Metadata},
-            prelude::{
-                protocol::{
-                    self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord,
-                    PreKeyStore, SessionRecord, SessionStore, SignedPreKeyRecord,
-                    SignedPreKeyStore,
-                },
-                Uuid,
-            },
+            prelude::Uuid,
             proto::DataMessage,
+            protocol::{
+                self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
+                SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+            },
             ServiceAddress,
         },
         Store,
