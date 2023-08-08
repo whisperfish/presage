@@ -460,6 +460,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             .await?;
 
             // ask for confirmation code here
+            println!("input confirmation code (followed by RETURN): ");
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
             if let Some(confirmation_code) = reader.lines().next_line().await? {

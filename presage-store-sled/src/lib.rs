@@ -13,18 +13,16 @@ use presage::libsignal_service::{
     self,
     groups_v2::Group,
     models::Contact,
-    prelude::{
-        protocol::{
-            Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair,
-            IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
-            SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
-            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
-        },
-        Content, ProfileKey, Uuid,
+    prelude::{Content, ProfileKey, Uuid},
+    protocol::{
+        Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+        KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
+        ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
+        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+        SignedPreKeyStore,
     },
     push_service::DEFAULT_DEVICE_ID,
-    Profile, ServiceAddress,
+    Profile, ServiceAddress, session_store::SessionStoreExt,
 };
 use prost::Message;
 use protobuf::ContentProto;
