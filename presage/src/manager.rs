@@ -205,17 +205,18 @@ impl<C: Store> Manager<C, Registration> {
             .create_verification_session(&phone_number_string, None, None, None)
             .await?;
 
-        if !session.verified {
-            if !session.allowed_to_request_code {
-                if session.captcha_required() {
-                    trace!("captcha required");
-                    session = push_service
-                        .patch_verification_session(&session.id, None, None, None, captcha, None)
-                        .await?
+        if !session.allowed_to_request_code {
+            if session.captcha_required() {
+                trace!("captcha required");
+                if captcha.is_none() {
+                    return Err(Error::CaptchaRequired);
                 }
-                if session.push_challenge_required() {
-                    return Err(Error::PushChallengeRequired);
-                }
+                session = push_service
+                    .patch_verification_session(&session.id, None, None, None, captcha, None)
+                    .await?
+            }
+            if session.push_challenge_required() {
+                return Err(Error::PushChallengeRequired);
             }
         }
 
