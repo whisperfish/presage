@@ -318,7 +318,10 @@ fn print_message<C: Store>(
                 return None;
             };
 
-            let ContentBody::DataMessage(DataMessage { body: Some(body), .. }) = message.body else {
+            let ContentBody::DataMessage(DataMessage {
+                body: Some(body), ..
+            }) = message.body
+            else {
                 log::warn!("message reacted to has no body");
                 return None;
             };

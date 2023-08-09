@@ -12,9 +12,7 @@ use rand::{distributions::Alphanumeric, rngs::StdRng, Rng, RngCore, SeedableRng}
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use libsignal_service::push_service::{
-    RegistrationMethod, VerificationTransport,
-};
+use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -29,9 +27,7 @@ use libsignal_service::{
         NullMessage,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
-    provisioning::{
-        generate_registration_id, LinkingManager, SecondaryDeviceProvisioning,
-    },
+    provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
     push_service::{
         AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
         DEFAULT_DEVICE_ID,
@@ -460,30 +456,30 @@ impl<C: Store> Manager<C, Confirmation> {
 
         let skip_device_transfer = false;
         let registered = push_service
-                .submit_registration_request(
-                    RegistrationMethod::SessionId(&session_id),
-                    AccountAttributes {
-                        name: None,
-                        signaling_key: Some(signaling_key.to_vec()),
-                        registration_id,
-                        pni_registration_id,
-                        voice: false,
-                        video: false,
-                        fetches_messages: true,
-                        pin: None,
-                        registration_lock: None,
-                        unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
-                        unrestricted_unidentified_access: false, // TODO: make this configurable?
-                        discoverable_by_phone_number: true,
-                        capabilities: DeviceCapabilities {
-                            gv2: true,
-                            gv1_migration: true,
-                            ..Default::default()
-                        },
+            .submit_registration_request(
+                RegistrationMethod::SessionId(&session_id),
+                AccountAttributes {
+                    name: None,
+                    signaling_key: Some(signaling_key.to_vec()),
+                    registration_id,
+                    pni_registration_id,
+                    voice: false,
+                    video: false,
+                    fetches_messages: true,
+                    pin: None,
+                    registration_lock: None,
+                    unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
+                    unrestricted_unidentified_access: false, // TODO: make this configurable?
+                    discoverable_by_phone_number: true,
+                    capabilities: DeviceCapabilities {
+                        gv2: true,
+                        gv1_migration: true,
+                        ..Default::default()
                     },
-                    skip_device_transfer,
-                )
-                .await?;
+                },
+                skip_device_transfer,
+            )
+            .await?;
 
         let aci_identity_key_pair = KeyPair::generate(&mut rng);
         let pni_identity_key_pair = KeyPair::generate(&mut rng);
@@ -1096,7 +1092,14 @@ impl<C: Store> Manager<C, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
-        let Some(group) = upsert_group(&self.config_store, &mut groups_manager, master_key_bytes, &0).await? else {
+        let Some(group) = upsert_group(
+            &self.config_store,
+            &mut groups_manager,
+            master_key_bytes,
+            &0,
+        )
+        .await?
+        else {
             return Err(Error::UnknownGroup);
         };
 
