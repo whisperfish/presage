@@ -940,8 +940,8 @@ impl<C: Store> Manager<C, Registered> {
                                     if let Ok(Some(group)) = upsert_group(
                                         &state.config_store,
                                         &mut state.groups_manager,
-                                        &master_key_bytes,
-                                        &revision,
+                                        master_key_bytes,
+                                        revision,
                                     )
                                     .await
                                     {
@@ -1327,7 +1327,7 @@ async fn upsert_group<C: Store>(
         log::debug!("fetching and saving group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(encrypted_group) => {
-                let group = decrypt_group(&master_key_bytes, encrypted_group)?;
+                let group = decrypt_group(master_key_bytes, encrypted_group)?;
                 if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
                     log::error!("failed to save group {master_key_bytes:?}: {e}",);
                 }

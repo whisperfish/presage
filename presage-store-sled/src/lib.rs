@@ -774,13 +774,13 @@ impl KyberPreKeyStore for SledStore {
         kyber_prekey_id: KyberPreKeyId,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        if self
+        let removed = self
             .remove(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())
             .map_err(|e| {
                 log::error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("mark_kyber_pre_key_used", "sled error".into())
-            })?
-        {
+            })?;
+        if removed {
             log::trace!("removed kyber pre-key {kyber_prekey_id}");
         }
         Ok(())
