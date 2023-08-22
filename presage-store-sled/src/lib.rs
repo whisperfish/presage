@@ -13,17 +13,15 @@ use presage::libsignal_service::{
     self,
     groups_v2::Group,
     models::Contact,
-    prelude::{
-        protocol::{
-            Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair,
-            IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
-            SenderKeyStore, SessionRecord, SessionStore, SessionStoreExt, SignalProtocolError,
-            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
-        },
-        Content, ProfileKey, Uuid,
+    prelude::{Content, ProfileKey, Uuid},
+    protocol::{
+        Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+        KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
+        ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
+        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
     },
     push_service::DEFAULT_DEVICE_ID,
+    session_store::SessionStoreExt,
     Profile, ServiceAddress,
 };
 use prost::Message;
@@ -776,13 +774,13 @@ impl KyberPreKeyStore for SledStore {
         kyber_prekey_id: KyberPreKeyId,
         _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
-        if self
+        let removed = self
             .remove(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())
             .map_err(|e| {
                 log::error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("mark_kyber_pre_key_used", "sled error".into())
-            })?
-        {
+            })?;
+        if removed {
             log::trace!("removed kyber pre-key {kyber_prekey_id}");
         }
         Ok(())
@@ -1054,15 +1052,12 @@ mod tests {
     use presage::{
         libsignal_service::{
             content::{ContentBody, Metadata},
-            prelude::{
-                protocol::{
-                    self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord,
-                    PreKeyStore, SessionRecord, SessionStore, SignedPreKeyRecord,
-                    SignedPreKeyStore,
-                },
-                Uuid,
-            },
+            prelude::Uuid,
             proto::DataMessage,
+            protocol::{
+                self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
+                SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+            },
             ServiceAddress,
         },
         Store,

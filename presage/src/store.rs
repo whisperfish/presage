@@ -5,11 +5,10 @@ use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
     models::Contact,
-    prelude::{
-        protocol::{ProtocolStore, SenderKeyStore, SessionStoreExt},
-        Content, ProfileKey, Uuid, UuidError,
-    },
+    prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    protocol::{ProtocolStore, SenderKeyStore},
+    session_store::SessionStoreExt,
     Profile,
 };
 use serde::{Deserialize, Serialize};
