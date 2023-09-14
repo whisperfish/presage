@@ -8,7 +8,11 @@ use std::{
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
-use rand::{distributions::Alphanumeric, rngs::StdRng, Rng, RngCore, SeedableRng};
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    rngs::StdRng,
+    RngCore, SeedableRng,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -190,9 +194,9 @@ impl<C: Store> Manager<C, Registration> {
 
         config_store.clear_registration()?;
 
-        // generate a random 24 bytes password
+        // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
-        let password: String = (&mut rng).sample_iter(&Alphanumeric).take(24).collect();
+        let password = Alphanumeric.sample_string(&mut rng, 24);
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut push_service =
@@ -296,9 +300,9 @@ impl<C: Store> Manager<C, Linking> {
         // and you won't be able to use this client anyways
         config_store.clear_registration()?;
 
-        // generate a random 24 bytes password
+        // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
-        let password: String = (&mut rng).sample_iter(&Alphanumeric).take(24).collect();
+        let password = Alphanumeric.sample_string(&mut rng, 24);
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
@@ -823,15 +827,16 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error<C::Error>> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
+        let allow_stories = false;
         let pipe = MessageReceiver::new(self.push_service()?)
-            .create_message_pipe(credentials)
+            .create_message_pipe(credentials, allow_stories)
             .await?;
 
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let mut unidentified_push_service =
             HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
         let unidentified_ws = unidentified_push_service
-            .ws("/v1/websocket/", None, false)
+            .ws("/v1/websocket/", &[], None, false)
             .await?;
         self.state.identified_websocket.lock().replace(pipe.ws());
         self.state
@@ -1230,7 +1235,7 @@ impl<C: Store> Manager<C, Registered> {
         let mut unidentified_push_service =
             HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
         let unidentified_websocket = unidentified_push_service
-            .ws("/v1/websocket/", None, false)
+            .ws("/v1/websocket/", &[], None, false)
             .await?;
 
         Ok(MessageSender::new(
@@ -1397,6 +1402,8 @@ fn save_message_with_thread<C: Store>(
         }
         ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
         ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
+        ContentBody::StoryMessage(_) => debug!("skipping story message"),
+        ContentBody::PniSignatureMessage(_) => todo!(),
     }
 
     Ok(())

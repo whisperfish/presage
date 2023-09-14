@@ -15,7 +15,7 @@ use presage::libsignal_service::{
     models::Contact,
     prelude::{Content, ProfileKey, Uuid},
     protocol::{
-        Context, Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
         KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
         ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
         SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
@@ -246,10 +246,7 @@ impl SledStore {
     }
 
     fn profile_key_for_uuid(&self, uuid: Uuid, key: ProfileKey) -> String {
-        let key = uuid
-            .into_bytes()
-            .into_iter()
-            .chain(key.get_bytes().into_iter());
+        let key = uuid.into_bytes().into_iter().chain(key.get_bytes());
 
         let mut hasher = Sha256::new();
         hasher.update(key.collect::<Vec<_>>());
@@ -662,11 +659,7 @@ impl Iterator for SledGroupsIter {
 
 #[async_trait(?Send)]
 impl PreKeyStore for SledStore {
-    async fn get_pre_key(
-        &self,
-        prekey_id: PreKeyId,
-        _ctx: Context,
-    ) -> Result<PreKeyRecord, SignalProtocolError> {
+    async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, SignalProtocolError> {
         let buf: Vec<u8> = self
             .get(SLED_TREE_PRE_KEYS, prekey_id.to_string())
             .ok()
@@ -680,7 +673,6 @@ impl PreKeyStore for SledStore {
         &mut self,
         prekey_id: PreKeyId,
         record: &PreKeyRecord,
-        _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.insert(
             SLED_TREE_PRE_KEYS,
@@ -691,11 +683,7 @@ impl PreKeyStore for SledStore {
         Ok(())
     }
 
-    async fn remove_pre_key(
-        &mut self,
-        prekey_id: PreKeyId,
-        _ctx: Context,
-    ) -> Result<(), SignalProtocolError> {
+    async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), SignalProtocolError> {
         self.remove(SLED_TREE_PRE_KEYS, prekey_id.to_string())
             .expect("failed to remove pre-key");
         Ok(())
@@ -707,7 +695,6 @@ impl SignedPreKeyStore for SledStore {
     async fn get_signed_pre_key(
         &self,
         signed_prekey_id: SignedPreKeyId,
-        _ctx: Context,
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf: Vec<u8> = self
             .get(SLED_TREE_SIGNED_PRE_KEYS, signed_prekey_id.to_string())
@@ -721,7 +708,6 @@ impl SignedPreKeyStore for SledStore {
         &mut self,
         signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
-        _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.insert(
             SLED_TREE_SIGNED_PRE_KEYS,
@@ -741,7 +727,6 @@ impl KyberPreKeyStore for SledStore {
     async fn get_kyber_pre_key(
         &self,
         kyber_prekey_id: KyberPreKeyId,
-        _ctx: Context,
     ) -> Result<KyberPreKeyRecord, SignalProtocolError> {
         let buf: Vec<u8> = self
             .get(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())
@@ -755,7 +740,6 @@ impl KyberPreKeyStore for SledStore {
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
-        _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         self.insert(
             SLED_TREE_KYBER_PRE_KEYS,
@@ -772,7 +756,6 @@ impl KyberPreKeyStore for SledStore {
     async fn mark_kyber_pre_key_used(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
-        _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         let removed = self
             .remove(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())
@@ -792,7 +775,6 @@ impl SessionStore for SledStore {
     async fn load_session(
         &self,
         address: &ProtocolAddress,
-        _ctx: Context,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
         let session = self
             .get(SLED_TREE_SESSIONS, address.to_string())
@@ -807,7 +789,6 @@ impl SessionStore for SledStore {
         &mut self,
         address: &ProtocolAddress,
         record: &SessionRecord,
-        _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         trace!("storing session {}", address);
         self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
@@ -885,10 +866,7 @@ impl SessionStoreExt for SledStore {
 
 #[async_trait(?Send)]
 impl IdentityKeyStore for SledStore {
-    async fn get_identity_key_pair(
-        &self,
-        _ctx: Context,
-    ) -> Result<IdentityKeyPair, SignalProtocolError> {
+    async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
         let state = self
             .load_state()
@@ -903,7 +881,7 @@ impl IdentityKeyStore for SledStore {
         ))
     }
 
-    async fn get_local_registration_id(&self, _ctx: Context) -> Result<u32, SignalProtocolError> {
+    async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
         let state = self
             .load_state()
             .map_err(SledStoreError::into_signal_error)?
@@ -918,7 +896,6 @@ impl IdentityKeyStore for SledStore {
         &mut self,
         address: &ProtocolAddress,
         identity_key: &IdentityKey,
-        _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         trace!("saving identity");
         self.insert(
@@ -939,7 +916,6 @@ impl IdentityKeyStore for SledStore {
         address: &ProtocolAddress,
         right_identity_key: &IdentityKey,
         _direction: Direction,
-        _ctx: Context,
     ) -> Result<bool, SignalProtocolError> {
         match self
             .get(SLED_TREE_IDENTITIES, address.to_string())
@@ -959,7 +935,6 @@ impl IdentityKeyStore for SledStore {
     async fn get_identity(
         &self,
         address: &ProtocolAddress,
-        _ctx: Context,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
         self.get(SLED_TREE_IDENTITIES, address.to_string())
             .map_err(SledStoreError::into_signal_error)?
@@ -975,7 +950,6 @@ impl SenderKeyStore for SledStore {
         sender: &ProtocolAddress,
         distribution_id: Uuid,
         record: &SenderKeyRecord,
-        _ctx: Context,
     ) -> Result<(), SignalProtocolError> {
         let key = format!(
             "{}.{}/{}",
@@ -992,7 +966,6 @@ impl SenderKeyStore for SledStore {
         &mut self,
         sender: &ProtocolAddress,
         distribution_id: Uuid,
-        _ctx: Context,
     ) -> Result<Option<SenderKeyRecord>, SignalProtocolError> {
         let key = format!(
             "{}.{}/{}",
@@ -1137,14 +1110,12 @@ mod tests {
     async fn test_save_get_trust_identity(addr: ProtocolAddress, key_pair: KeyPair) -> bool {
         let mut db = SledStore::temporary().unwrap();
         let identity_key = protocol::IdentityKey::new(key_pair.0.public_key);
-        db.save_identity(&addr.0, &identity_key, None)
-            .await
-            .unwrap();
-        let id = db.get_identity(&addr.0, None).await.unwrap().unwrap();
+        db.save_identity(&addr.0, &identity_key).await.unwrap();
+        let id = db.get_identity(&addr.0).await.unwrap().unwrap();
         if id != identity_key {
             return false;
         }
-        db.is_trusted_identity(&addr.0, &id, Direction::Receiving, None)
+        db.is_trusted_identity(&addr.0, &id, Direction::Receiving)
             .await
             .unwrap()
     }
@@ -1154,11 +1125,11 @@ mod tests {
         let session = SessionRecord::new_fresh();
 
         let mut db = SledStore::temporary().unwrap();
-        db.store_session(&addr.0, &session, None).await.unwrap();
-        if db.load_session(&addr.0, None).await.unwrap().is_none() {
+        db.store_session(&addr.0, &session).await.unwrap();
+        if db.load_session(&addr.0).await.unwrap().is_none() {
             return false;
         }
-        let loaded_session = db.load_session(&addr.0, None).await.unwrap().unwrap();
+        let loaded_session = db.load_session(&addr.0).await.unwrap().unwrap();
         session.serialize().unwrap() == loaded_session.serialize().unwrap()
     }
 
@@ -1167,15 +1138,15 @@ mod tests {
         let id = id.into();
         let mut db = SledStore::temporary().unwrap();
         let pre_key_record = PreKeyRecord::new(id, &key_pair.0);
-        db.save_pre_key(id, &pre_key_record, None).await.unwrap();
-        if db.get_pre_key(id, None).await.unwrap().serialize().unwrap()
+        db.save_pre_key(id, &pre_key_record).await.unwrap();
+        if db.get_pre_key(id).await.unwrap().serialize().unwrap()
             != pre_key_record.serialize().unwrap()
         {
             return false;
         }
 
-        db.remove_pre_key(id, None).await.unwrap();
-        db.get_pre_key(id, None).await.is_err()
+        db.remove_pre_key(id).await.unwrap();
+        db.get_pre_key(id).await.is_err()
     }
 
     #[quickcheck_async::tokio]
@@ -1188,11 +1159,11 @@ mod tests {
         let mut db = SledStore::temporary().unwrap();
         let id = id.into();
         let signed_pre_key_record = SignedPreKeyRecord::new(id, timestamp, &key_pair.0, &signature);
-        db.save_signed_pre_key(id, &signed_pre_key_record, None)
+        db.save_signed_pre_key(id, &signed_pre_key_record)
             .await
             .unwrap();
 
-        db.get_signed_pre_key(id, None)
+        db.get_signed_pre_key(id)
             .await
             .unwrap()
             .serialize()
