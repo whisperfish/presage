@@ -1,6 +1,6 @@
 use std::{fmt, ops::RangeBounds};
 
-use crate::{manager::Registered, GroupMasterKeyBytes};
+use crate::{manager::Registered, GroupMasterKeyBytes, ThreadMetadata};
 use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
@@ -21,6 +21,7 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
     type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
+    type ThreadMetadataIter: Iterator<Item = Result<ThreadMetadata, Self::Error>>;
 
     /// State
 
@@ -99,6 +100,9 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>)
         -> Result<(), Self::Error>;
 
+    /// Save a single contact
+    fn save_contact(&mut self, contact: Contact) -> Result<(), Self::Error>;
+
     /// Get an iterator on all stored (synchronized) contacts
     fn contacts(&self) -> Result<Self::ContactsIter, Self::Error>;
 
@@ -136,6 +140,19 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Self::Error>;
+
+    /// Retrieve ThereadMetadata for all threads.
+    fn thread_metadatas(&self) -> Result<Self::ThreadMetadataIter, Self::Error>;
+
+    /// Retrieve ThereadMetadata for a single thread.
+    fn thread_metadata(&self, thread: &Thread) -> Result<Option<ThreadMetadata>, Self::Error>;
+
+    /// Save ThereadMetadata for a single thread.
+    /// This will overwrite any existing metadata for the thread.
+    /// 
+    fn save_thread_metadata(&mut self, metadata: ThreadMetadata) -> Result<(), Self::Error>;
+
+
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.

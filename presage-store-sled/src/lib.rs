@@ -30,7 +30,7 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use presage::{GroupMasterKeyBytes, Registered, Store, Thread};
+use presage::{GroupMasterKeyBytes, Registered, Store, Thread, ThreadMetadata};
 
 mod error;
 mod protobuf;
@@ -47,6 +47,7 @@ const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_KYBER_PRE_KEYS: &str = "kyber_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
+const SLED_TREE_THREADS_METADATA: &str = "threads_metadata";
 const SLED_TREE_PROFILES: &str = "profiles";
 const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
 
@@ -252,6 +253,13 @@ impl SledStore {
         hasher.update(key.collect::<Vec<_>>());
         format!("{:x}", hasher.finalize())
     }
+
+    fn thread_metadata_key(&self, thread: &Thread) -> Vec<u8> {
+        match thread {
+            Thread::Contact(contact) => contact.to_string().into_bytes(),
+            Thread::Group(group) => group.to_vec(),
+        }
+    }
 }
 
 fn migrate(
@@ -335,6 +343,7 @@ impl Store for SledStore {
     type ContactsIter = SledContactsIter;
     type GroupsIter = SledGroupsIter;
     type MessagesIter = SledMessagesIter;
+    type ThreadMetadataIter = SledThreadMetadataIter;
 
     /// State
 
@@ -439,6 +448,12 @@ impl Store for SledStore {
             self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
         }
         debug!("saved contacts");
+        Ok(())
+    }
+
+    fn save_contact(&mut self, contact: Contact) -> Result<(), Self::Error> {
+        self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
+        debug!("saved contact");
         Ok(())
     }
 
@@ -605,6 +620,29 @@ impl Store for SledStore {
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, SledStoreError> {
         let key = self.profile_key_for_uuid(uuid, key);
         self.get(SLED_TREE_PROFILES, key)
+    }
+    /// Thread metadata
+
+    fn save_thread_metadata(&mut self, metadata: ThreadMetadata) -> Result<(), Self::Error> {
+        let key = self.thread_metadata_key(&metadata.thread);
+        self.insert(SLED_TREE_THREADS_METADATA, key, metadata)?;
+        Ok(())
+    }
+
+    fn thread_metadata(&self, thread: &Thread) -> Result<Option<ThreadMetadata>, Self::Error> {
+        let key = self.thread_metadata_key(thread);
+        self.get(SLED_TREE_THREADS_METADATA, key)
+    }
+
+    fn thread_metadatas(
+        &self,
+    ) -> Result<<Self as presage::Store>::ThreadMetadataIter, <Self as presage::Store>::Error> {
+        let tree = self.read().open_tree(SLED_TREE_THREADS_METADATA)?;
+        let iter = tree.iter();
+        Ok(SledThreadMetadataIter {
+            cipher: self.cipher.clone(),
+            iter,
+        })
     }
 }
 
@@ -1015,6 +1053,28 @@ impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next_back()?;
         self.decode(elem)
+    }
+}
+
+pub struct SledThreadMetadataIter {
+    cipher: Option<Arc<StoreCipher>>,
+    iter: sled::Iter,
+}
+
+impl Iterator for SledThreadMetadataIter {
+    type Item = Result<ThreadMetadata, SledStoreError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()?
+            .map_err(SledStoreError::from)
+            .and_then(|(_key, value)| {
+                self.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
+                )
+            })
+            .into()
     }
 }
 

@@ -1,7 +1,8 @@
 mod cache;
 mod errors;
 mod manager;
-mod serde;
+mod serializers;
+use serde::{Deserialize, Serialize};
 mod store;
 
 pub use errors::Error;
@@ -34,3 +35,21 @@ const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-rs-", env!("CARGO_PKG
 
 // TODO: open a PR in libsignal and make sure the bytes can be read from `GroupMasterKey` instead of using this type
 pub type GroupMasterKeyBytes = [u8; 32];
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ThreadMetadata {
+    pub thread: Thread,
+    pub last_message: Option<ThreadMetadataMessageContent>,
+    pub unread_messages_count: usize,
+    pub title: Option<String>,
+    pub archived: bool,
+    pub muted: bool,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct ThreadMetadataMessageContent {
+    pub sender: prelude::Uuid,
+    pub timestamp: u64,
+    pub message: Option<String>,
+
+}

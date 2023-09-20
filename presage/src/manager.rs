@@ -26,9 +26,10 @@ use libsignal_service::{
     messagepipe::ServiceCredentials,
     models::Contact,
     prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
+    profile_name::ProfileName,
     proto::{
         data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
-        NullMessage,
+        NullMessage, Verified,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
     provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
@@ -49,7 +50,7 @@ use libsignal_service::{
 use libsignal_service_hyper::push_service::HyperPushService;
 
 use crate::cache::CacheCell;
-use crate::{serde::serde_profile_key, Thread};
+use crate::{serializers::serde_profile_key, Thread, ThreadMetadata};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
@@ -795,6 +796,11 @@ impl<C: Store> Manager<C, Registered> {
         Ok(iter.map(|r| r.map_err(Into::into)))
     }
 
+    /// Save a contact to the [Store]
+    pub fn save_contact(&mut self, contact: Contact) -> Result<(), C::Error> {
+        self.config_store.save_contact(contact)
+    }
+
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
     pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
         Ok(self.config_store.group(master_key_bytes.try_into()?)?)
@@ -953,6 +959,64 @@ impl<C: Store> Manager<C, Registered> {
                                         log::trace!("{group:?}");
                                     }
                                 }
+                                let uuid = content.metadata.sender.uuid.clone();
+                                match state.config_store.contact_by_id(uuid) {
+                                    Ok(Some(_)) => {}
+                                    Ok(None) => {
+                                        // Fetch the profile of the contact
+                                        if let ContentBody::DataMessage(DataMessage {
+                                            profile_key: Some(profile_key),
+                                            ..
+                                        }) = &content.body
+                                        {
+                                            let contact = Contact {
+                                                uuid: uuid.clone(),
+                                                name: "".to_string(),
+                                                color: None,
+                                                phone_number: None,
+                                                verified: Verified {
+                                                    identity_key: None,
+                                                    state: None,
+                                                    destination_uuid: None,
+                                                    null_message: None,
+                                                },
+                                                blocked: false,
+                                                expire_timer: 0,
+                                                inbox_position: 0,
+                                                archived: false,
+                                                avatar: None,
+                                                profile_key: profile_key.to_vec(),
+                                            };
+                                            match state.config_store.save_contact(contact) {
+                                                Ok(_) => {
+                                                    log::info!("Saved contact: {}", uuid);
+                                                }
+                                                Err(e) => {
+                                                    log::error!("Error saving contact: {}", e);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    Err(e) => {
+                                        log::error!("Error getting contact: {}", e);
+                                    }
+                                }
+
+                                let thread = Thread::try_from(&content).unwrap();
+
+                                let store = &mut state.config_store;
+
+                                match store.thread_metadata(&thread) {
+                                    Ok(metadata) => {
+                                        if metadata.is_none() {
+                                            // Create a new thread metadata and save it
+                                            create_thread_metadata(store, &thread).ok()?;
+                                        }
+                                    }
+                                    Err(e) => {
+                                        log::error!("Error getting thread metadata: {}", e);
+                                    }
+                                };
 
                                 if let Err(e) =
                                     save_message(&mut state.config_store, content.clone())
@@ -1263,6 +1327,192 @@ impl<C: Store> Manager<C, Registered> {
 
         Ok(service_cipher)
     }
+    // Returns the title for a thread depending on the type of thread.
+    pub async fn get_title_for_thread(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
+        match thread {
+            Thread::Contact(uuid) => {
+                let contact = match self.contact_by_id(uuid) {
+                    Ok(contact) => contact,
+                    Err(e) => {
+                        log::info!("Error getting contact by id: {}, {:?}", e, uuid);
+                        None
+                    }
+                };
+                Ok(match contact {
+                    Some(contact) => contact.name,
+                    None => uuid.to_string(),
+                })
+            }
+            Thread::Group(id) => match self.group(id)? {
+                Some(group) => Ok(group.title),
+                None => Ok("".to_string()),
+            },
+        }
+    }
+
+    pub async fn request_contacts_update_from_profile(&mut self) -> Result<(), Error<C::Error>> {
+        log::debug!("requesting contacts update from profile");
+        for contact in self.contacts()? {
+            let mut contact = contact?;
+            let uuid = contact.uuid;
+            if contact.name.is_empty() {
+                let k = contact.profile_key.to_vec();
+                let profile_key: [u8; 32] = match k.try_into() {
+                    Ok(key) => key,
+                    Err(_) => continue,
+                };
+                let profile = match self
+                    .retrieve_profile_by_uuid(contact.uuid, ProfileKey { bytes: profile_key })
+                    .await
+                {
+                    Ok(profile) => profile,
+                    Err(_) => continue,
+                };
+                let name = profile.name.unwrap_or(ProfileName {
+                    given_name: match contact.phone_number {
+                        Some(_) => "".to_string(),
+                        None => continue,
+                    },
+                    family_name: None,
+                });
+                contact.name = name.to_string();
+                match self.save_contact(contact) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("Error saving contact: {:?}", e);
+                    }
+                };
+                println!("Updating contact: {:?}", name);
+            }
+            let contact_thread = Thread::Contact(uuid);
+
+            match self.thread_metadata(&contact_thread).await? {
+                Some(thread_metadata) => {
+                    let title = self.get_title_for_thread(&contact_thread).await?;
+                    if thread_metadata.title == Some(title.clone()) {
+                        continue;
+                    }
+                    let mut thread_metadata = thread_metadata;
+                    thread_metadata.title = Some(title);
+                    self.save_thread_metadata(thread_metadata)?;
+                }
+                None => {
+                    log::debug!("no thread metadata for contact {}", uuid);
+                    let title = self.get_title_for_thread(&contact_thread).await?;
+
+                    self.save_thread_metadata(ThreadMetadata {
+                        thread: contact_thread,
+                        last_message: None,
+                        unread_messages_count: 0,
+                        title: Some(title),
+                        archived: false,
+                        muted: false,
+                    })?;
+                    continue;
+                }
+            };
+        }
+        Ok(())
+    }
+    pub async fn request_contact_update_from_profile(
+        &mut self,
+        uuid: Uuid,
+    ) -> Result<Contact, Error<C::Error>> {
+        log::debug!("requesting contacts update from profile");
+        let contact = self.contact_by_id(&uuid)?;
+        match contact {
+            Some(mut contact) => {
+                let k = contact.profile_key.to_vec();
+                let profile_key: [u8; 32] = match k.try_into() {
+                    Ok(key) => key,
+                    Err(_) => {
+                        log::debug!("Error converting profile key to bytes");
+                        return Err(Error::UnknownContact);
+                    }
+                };
+                let profile = match self
+                    .retrieve_profile_by_uuid(contact.uuid, ProfileKey { bytes: profile_key })
+                    .await
+                {
+                    Ok(profile) => profile,
+                    Err(e) => {
+                        log::debug!("Error retrieving profile {}", e);
+                        return Err(Error::UnknownContact);
+                    }
+                };
+                let name = profile.name.unwrap_or(ProfileName {
+                    given_name: match contact.phone_number {
+                        Some(_) => "".to_string(),
+                        None => "Unknown Contact".to_string(),
+                    },
+                    family_name: None,
+                });
+                contact.name = name.to_string();
+                match self.save_contact(contact) {
+                    Ok(_) => {}
+                    Err(e) => {
+                        println!("Error saving contact: {:?}", e);
+                    }
+                };
+                contact = self.contact_by_id(&uuid)?.unwrap();
+
+                println!("Updating contact: {:?}", name);
+
+                let contact_thread = Thread::Contact(uuid);
+
+                match self.thread_metadata(&contact_thread).await? {
+                    Some(thread_metadata) => {
+                        if thread_metadata.title != Some(name.to_string()) {
+                            let mut thread_metadata = thread_metadata;
+                            thread_metadata.title = Some(name.to_string());
+                            self.save_thread_metadata(thread_metadata)?;
+                        }
+                    }
+                    None => {
+                        log::debug!("no thread metadata for contact {}", uuid);
+
+                        self.save_thread_metadata(ThreadMetadata {
+                            thread: contact_thread,
+                            last_message: None,
+                            unread_messages_count: 0,
+                            title: Some(name.to_string()),
+                            archived: false,
+                            muted: false,
+                        })?;
+                    }
+                };
+                return Ok(contact);
+            }
+            None => return Err(Error::UnknownContact),
+        }
+    }
+
+    // Returns the metadatas for all threads.
+    pub async fn thread_metadatas(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<ThreadMetadata, Error<C::Error>>>, Error<C::Error>>
+    {
+        let iter = self.config_store.thread_metadatas()?;
+        Ok(iter.map(|r| r.map_err(Into::into)))
+    }
+
+    // Returns the metadata for a thread.
+    pub async fn thread_metadata(
+        &self,
+        thread: &Thread,
+    ) -> Result<Option<ThreadMetadata>, Error<C::Error>> {
+        let metadata = self.config_store.thread_metadata(&thread)?;
+        Ok(metadata)
+    }
+
+    // Saves the metadata for a thread.
+    pub fn save_thread_metadata(
+        &mut self,
+        metadata: ThreadMetadata,
+    ) -> Result<(), Error<C::Error>> {
+        self.config_store.save_thread_metadata(metadata)?;
+        Ok(())
+    }
 
     /// Returns the title of a thread (contact or group).
     pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
@@ -1413,7 +1663,48 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
     let thread = Thread::try_from(&message)?;
     save_message_with_thread(config_store, message, thread)
 }
+pub fn save_thread_metadata<C: Store>(
+    config_store: &mut C,
+    metadata: ThreadMetadata,
+) -> Result<(), Error<C::Error>> {
+    config_store.save_thread_metadata(metadata)?;
+    Ok(())
+}
 
+pub fn create_thread_metadata<C: Store>(
+    config_store: &mut C,
+    thread: &Thread,
+) -> Result<ThreadMetadata, Error<C::Error>> {
+    let title = match thread {
+        Thread::Contact(uuid) => {
+            let contact = match config_store.contact_by_id(*uuid) {
+                Ok(contact) => contact,
+                Err(e) => {
+                    log::info!("Error getting contact by id: {}, {:?}", e, uuid);
+                    None
+                }
+            };
+            match contact {
+                Some(contact) => contact.name,
+                None => uuid.to_string(),
+            }
+        }
+        Thread::Group(id) => match config_store.group(*id)? {
+            Some(group) => group.title,
+            None => "".to_string(),
+        },
+    };
+    let metadata = ThreadMetadata {
+        thread: thread.clone(),
+        unread_messages_count: 0,
+        last_message: None,
+        title: Some(title),
+        archived: false,
+        muted: false,
+    };
+    save_thread_metadata(config_store, metadata.clone())?;
+    Ok(metadata)
+}
 #[cfg(test)]
 mod tests {
     use libsignal_service::prelude::ProfileKey;
