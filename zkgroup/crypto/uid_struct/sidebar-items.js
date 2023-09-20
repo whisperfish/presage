@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["PointDecodeFailure","UidStruct"]};
+window.SIDEBAR_ITEMS = {"struct":["UidStruct"]};

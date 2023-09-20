@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/8789920/libsignal-service/src/groups_v2/operations.rs`."><title>operations.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/8305357/libsignal-service/src/groups_v2/operations.rs`."><title>operations.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.0 (5680fa18f 2023-08-23)" data-channel="1.72.0" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../../source-files.js"></script><script defer src="../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../libsignal_service/index.html"><img class="rust-logo" src="../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -428,11 +428,31 @@
 <a href="#428" id="428">428</a>
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::convert::TryInto;
 
 <span class="kw">use </span>bytes::Bytes;
+<span class="kw">use </span>libsignal_protocol::{Aci, ServiceId};
 <span class="kw">use </span>prost::Message;
-<span class="kw">use </span>uuid::Uuid;
 <span class="kw">use </span>zkgroup::{
     groups::GroupSecretParams,
     profiles::{AnyProfileKeyCredentialPresentation, ProfileKey},
@@ -469,6 +489,8 @@
     </span>WrongBlob,
     <span class="attr">#[error(<span class="string">&quot;wrong enum value&quot;</span>)]
     </span>WrongEnumValue,
+    <span class="attr">#[error(<span class="string">&quot;wrong service ID type: should be ACI&quot;</span>)]
+    </span>NotAci,
 }
 
 <span class="kw">impl </span>From&lt;zkgroup::ZkGroupDeserializationFailure&gt; <span class="kw">for </span>GroupDecodingError {
@@ -484,54 +506,67 @@
 }
 
 <span class="kw">impl </span>GroupOperations {
-    <span class="kw">fn </span>decrypt_uuid(<span class="kw-2">&amp;</span><span class="self">self</span>, uuid: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Uuid, GroupDecodingError&gt; {
-        <span class="kw">let </span>bytes = <span class="self">self
+    <span class="kw">fn </span>decrypt_aci(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        ciphertext: <span class="kw-2">&amp;</span>[u8],
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Aci, GroupDecodingError&gt; {
+        <span class="kw">match </span><span class="self">self
             </span>.group_secret_params
-            .decrypt_uuid(bincode::deserialize(uuid)<span class="question-mark">?</span>)<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(Uuid::from_bytes(bytes))
+            .decrypt_service_id(bincode::deserialize(ciphertext)<span class="question-mark">?</span>)<span class="question-mark">?
+        </span>{
+            ServiceId::Aci(aci) =&gt; <span class="prelude-val">Ok</span>(aci),
+            ServiceId::Pni(_pni) =&gt; <span class="prelude-val">Err</span>(GroupDecodingError::NotAci),
+        }
     }
 
     <span class="kw">fn </span>decrypt_profile_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         encrypted_profile_key: <span class="kw-2">&amp;</span>[u8],
-        decrypted_uuid: <span class="kw-2">&amp;</span>Uuid,
+        decrypted_aci: libsignal_protocol::Aci,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;ProfileKey, GroupDecodingError&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.group_secret_params.decrypt_profile_key(
             bincode::deserialize(encrypted_profile_key)<span class="question-mark">?</span>,
-            <span class="kw-2">*</span>decrypted_uuid.as_bytes(),
+            decrypted_aci,
         )<span class="question-mark">?</span>)
     }
 
     <span class="kw">fn </span>decrypt_profile_key_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         presentation: <span class="kw-2">&amp;</span>[u8],
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(Uuid, ProfileKey), GroupDecodingError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(Aci, ProfileKey), GroupDecodingError&gt; {
         <span class="kw">let </span>profile_key_credential_presentation =
             AnyProfileKeyCredentialPresentation::new(presentation)<span class="question-mark">?</span>;
-        <span class="kw">let </span>uuid = Uuid::from_bytes(<span class="self">self</span>.group_secret_params.decrypt_uuid(
+
+        <span class="kw">match </span><span class="self">self</span>.group_secret_params.decrypt_service_id(
             profile_key_credential_presentation.get_uuid_ciphertext(),
-        )<span class="question-mark">?</span>);
-        <span class="kw">let </span>profile_key = <span class="self">self</span>.group_secret_params.decrypt_profile_key(
-            profile_key_credential_presentation.get_profile_key_ciphertext(),
-            <span class="kw-2">*</span>uuid.as_bytes(),
-        )<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>((uuid, profile_key))
+        )<span class="question-mark">? </span>{
+            ServiceId::Aci(aci) =&gt; {
+                <span class="kw">let </span>profile_key =
+                    <span class="self">self</span>.group_secret_params.decrypt_profile_key(
+                        profile_key_credential_presentation
+                            .get_profile_key_ciphertext(),
+                        aci,
+                    )<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>((aci, profile_key))
+            },
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Err</span>(GroupDecodingError::NotAci),
+        }
     }
 
     <span class="kw">fn </span>decrypt_member(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         member: EncryptedMember,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Member, GroupDecodingError&gt; {
-        <span class="kw">let </span>(uuid, profile_key) = <span class="kw">if </span>member.presentation.is_empty() {
-            <span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>member.user_id)<span class="question-mark">?</span>;
+        <span class="kw">let </span>(aci, profile_key) = <span class="kw">if </span>member.presentation.is_empty() {
+            <span class="kw">let </span>aci = <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>member.user_id)<span class="question-mark">?</span>;
             <span class="kw">let </span>profile_key =
-                <span class="self">self</span>.decrypt_profile_key(<span class="kw-2">&amp;</span>member.profile_key, <span class="kw-2">&amp;</span>uuid)<span class="question-mark">?</span>;
-            (uuid, profile_key)
+                <span class="self">self</span>.decrypt_profile_key(<span class="kw-2">&amp;</span>member.profile_key, aci)<span class="question-mark">?</span>;
+            (aci, profile_key)
         } <span class="kw">else </span>{
             <span class="self">self</span>.decrypt_profile_key_presentation(<span class="kw-2">&amp;</span>member.presentation)<span class="question-mark">?
         </span>};
         <span class="prelude-val">Ok</span>(Member {
-            uuid,
+            uuid: aci.into(),
             profile_key,
             role: member.role.try_into()<span class="question-mark">?</span>,
             joined_at_revision: member.joined_at_revision,
@@ -544,14 +579,13 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PendingMember, GroupDecodingError&gt; {
         <span class="kw">let </span>inner_member =
             member.member.ok_or(GroupDecodingError::WrongBlob)<span class="question-mark">?</span>;
-        <span class="comment">// &quot;Unknown&quot; UUID with zeroes in case of errors, see: UuidUtil.java:16
-        </span><span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>inner_member.user_id).unwrap_or_default();
-        <span class="kw">let </span>added_by_uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>member.added_by_user_id)<span class="question-mark">?</span>;
+        <span class="kw">let </span>aci = <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>inner_member.user_id)<span class="question-mark">?</span>;
+        <span class="kw">let </span>added_by_uuid = <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>member.added_by_user_id)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(PendingMember {
-            uuid,
+            uuid: aci.into(),
             role: inner_member.role.try_into()<span class="question-mark">?</span>,
-            added_by_uuid,
+            added_by_uuid: added_by_uuid.into(),
             timestamp: member.timestamp,
         })
     }
@@ -560,17 +594,17 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         member: proto::RequestingMember,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;RequestingMember, GroupDecodingError&gt; {
-        <span class="kw">let </span>(uuid, profile_key) = <span class="kw">if </span>member.presentation.is_empty() {
-            <span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>member.user_id)<span class="question-mark">?</span>;
+        <span class="kw">let </span>(aci, profile_key) = <span class="kw">if </span>member.presentation.is_empty() {
+            <span class="kw">let </span>aci = <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>member.user_id)<span class="question-mark">?</span>;
             <span class="kw">let </span>profile_key =
-                <span class="self">self</span>.decrypt_profile_key(<span class="kw-2">&amp;</span>member.profile_key, <span class="kw-2">&amp;</span>uuid)<span class="question-mark">?</span>;
-            (uuid, profile_key)
+                <span class="self">self</span>.decrypt_profile_key(<span class="kw-2">&amp;</span>member.profile_key, aci)<span class="question-mark">?</span>;
+            (aci, profile_key)
         } <span class="kw">else </span>{
             <span class="self">self</span>.decrypt_profile_key_presentation(<span class="kw-2">&amp;</span>member.presentation)<span class="question-mark">?
         </span>};
         <span class="prelude-val">Ok</span>(RequestingMember {
             profile_key,
-            uuid,
+            uuid: aci.into(),
             timestamp: member.timestamp,
         })
     }
@@ -686,7 +720,7 @@
         <span class="kw">let </span>actions: proto::group_change::Actions =
             Message::decode(Bytes::from(group_change.actions))<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>uuid = <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>actions.source_uuid)<span class="question-mark">?</span>;
+        <span class="kw">let </span>aci = <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>actions.source_uuid)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>new_members =
             actions.add_members.into_iter().filter_map(|m| m.added).map(
@@ -695,23 +729,26 @@
 
         <span class="kw">let </span>delete_members = actions.delete_members.into_iter().map(|c| {
             <span class="prelude-val">Ok</span>(GroupChange::DeleteMember(
-                <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>c.deleted_user_id)<span class="question-mark">?</span>,
+                <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>c.deleted_user_id)<span class="question-mark">?</span>.into(),
             ))
         });
 
         <span class="kw">let </span>modify_member_roles =
             actions.modify_member_roles.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::ModifyMemberRole {
-                    uuid: <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>m.user_id)<span class="question-mark">?</span>,
+                    uuid: <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>m.user_id)<span class="question-mark">?</span>.into(),
                     role: m.role.try_into()<span class="question-mark">?</span>,
                 })
             });
 
         <span class="kw">let </span>modify_member_profile_keys =
             actions.modify_member_profile_keys.into_iter().map(|m| {
-                <span class="kw">let </span>(uuid, profile_key) =
+                <span class="kw">let </span>(aci, profile_key) =
                     <span class="self">self</span>.decrypt_profile_key_presentation(<span class="kw-2">&amp;</span>m.presentation)<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(GroupChange::ModifyMemberProfileKey { uuid, profile_key })
+                <span class="prelude-val">Ok</span>(GroupChange::ModifyMemberProfileKey {
+                    uuid: aci.into(),
+                    profile_key,
+                })
             });
 
         <span class="kw">let </span>add_pending_members = actions
@@ -727,15 +764,18 @@
         <span class="kw">let </span>delete_pending_members =
             actions.delete_pending_members.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::DeletePendingMember(
-                    <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>m.deleted_user_id)<span class="question-mark">?</span>,
+                    <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>m.deleted_user_id)<span class="question-mark">?</span>.into(),
                 ))
             });
 
         <span class="kw">let </span>promote_pending_members =
             actions.promote_pending_members.into_iter().map(|m| {
-                <span class="kw">let </span>(uuid, profile_key) =
+                <span class="kw">let </span>(aci, profile_key) =
                     <span class="self">self</span>.decrypt_profile_key_presentation(<span class="kw-2">&amp;</span>m.presentation)<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(GroupChange::PromotePendingMember { uuid, profile_key })
+                <span class="prelude-val">Ok</span>(GroupChange::PromotePendingMember {
+                    uuid: aci.into(),
+                    profile_key,
+                })
             });
 
         <span class="kw">let </span>modify_title = actions
@@ -798,14 +838,14 @@
         <span class="kw">let </span>delete_requesting_members =
             actions.delete_requesting_members.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::DeleteRequestingMember(
-                    <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>m.deleted_user_id)<span class="question-mark">?</span>,
+                    <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>m.deleted_user_id)<span class="question-mark">?</span>.into(),
                 ))
             });
 
         <span class="kw">let </span>promote_requesting_members =
             actions.promote_requesting_members.into_iter().map(|m| {
                 <span class="prelude-val">Ok</span>(GroupChange::PromoteRequestingMember {
-                    uuid: <span class="self">self</span>.decrypt_uuid(<span class="kw-2">&amp;</span>m.user_id)<span class="question-mark">?</span>,
+                    uuid: <span class="self">self</span>.decrypt_aci(<span class="kw-2">&amp;</span>m.user_id)<span class="question-mark">?</span>.into(),
                     role: m.role.try_into()<span class="question-mark">?</span>,
                 })
             });
@@ -844,7 +884,7 @@
             .collect();
 
         <span class="prelude-val">Ok</span>(GroupChanges {
-            editor: uuid,
+            editor: aci.into(),
             revision: actions.revision,
             changes: changes<span class="question-mark">?</span>,
         })
