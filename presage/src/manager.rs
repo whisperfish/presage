@@ -963,7 +963,7 @@ impl<C: Store> Manager<C, Registered> {
                                 match state.config_store.contact_by_id(uuid) {
                                     Ok(Some(_)) => {}
                                     Ok(None) => {
-                                        // Fetch the profile of the contact
+                                        // Create a new contact
                                         if let ContentBody::DataMessage(DataMessage {
                                             profile_key: Some(profile_key),
                                             ..
@@ -987,6 +987,7 @@ impl<C: Store> Manager<C, Registered> {
                                                 avatar: None,
                                                 profile_key: profile_key.to_vec(),
                                             };
+                                            // Todo: get the profile from the server
                                             match state.config_store.save_contact(contact) {
                                                 Ok(_) => {
                                                     log::info!("Saved contact: {}", uuid);
@@ -1349,7 +1350,7 @@ impl<C: Store> Manager<C, Registered> {
             },
         }
     }
-
+    // this checks for contacts that have no name and updates them from the profile
     pub async fn request_contacts_update_from_profile(&mut self) -> Result<(), Error<C::Error>> {
         log::debug!("requesting contacts update from profile");
         for contact in self.contacts()? {
@@ -1414,6 +1415,8 @@ impl<C: Store> Manager<C, Registered> {
         }
         Ok(())
     }
+    
+    // this updates a single contact from the profile 
     pub async fn request_contact_update_from_profile(
         &mut self,
         uuid: Uuid,
@@ -1679,6 +1682,7 @@ pub fn create_thread_metadata<C: Store>(
         Thread::Contact(uuid) => {
             let contact = match config_store.contact_by_id(*uuid) {
                 Ok(contact) => contact,
+                // TODO: propably we should create the contact and update the profile here.
                 Err(e) => {
                     log::info!("Error getting contact by id: {}, {:?}", e, uuid);
                     None
