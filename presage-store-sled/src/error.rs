@@ -8,8 +8,9 @@ pub enum SledStoreError {
     Db(#[from] sled::Error),
     #[error("data store error: {0}")]
     DbTransaction(#[from] sled::transaction::TransactionError),
+    #[cfg(feature = "encryption")]
     #[error("store cipher error: {0}")]
-    StoreCipher(#[from] matrix_sdk_store_encryption::Error),
+    StoreCipher(#[from] presage_store_cipher::StoreCipherError),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
     #[error("Prost error: {0}")]

@@ -7,8 +7,6 @@ use std::{
 
 use async_trait::async_trait;
 use log::{debug, error, trace, warn};
-#[cfg(feature = "encryption")]
-use matrix_sdk_store_encryption::StoreCipher;
 use presage::libsignal_service::{
     self,
     groups_v2::Group,
@@ -55,12 +53,14 @@ const SLED_KEY_NEXT_PQ_PRE_KEY_ID: &str = "next_pq_pre_key_id";
 const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
+#[cfg(feature = "encryption")]
 const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
 
 #[derive(Clone)]
 pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
-    cipher: Option<Arc<StoreCipher>>,
+    #[cfg(feature = "encryption")]
+    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
 }
 
 /// Sometimes Migrations can't proceed without having to drop existing
@@ -109,6 +109,7 @@ impl SchemaVersion {
 }
 
 impl SledStore {
+    #[allow(unused_variables)]
     fn new(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
@@ -145,18 +146,19 @@ impl SledStore {
         Self::new(db_path, passphrase)
     }
 
+    #[cfg(feature = "encryption")]
     fn get_or_create_store_cipher(
         database: &sled::Db,
         passphrase: &str,
-    ) -> Result<StoreCipher, SledStoreError> {
+    ) -> Result<presage_store_cipher::StoreCipher, SledStoreError> {
         let cipher = if let Some(key) = database.get(SLED_KEY_STORE_CIPHER)? {
-            StoreCipher::import(passphrase, &key)?
+            presage_store_cipher::StoreCipher::import(passphrase, &key)?
         } else {
-            let cipher = StoreCipher::new()?;
+            let cipher = presage_store_cipher::StoreCipher::new();
             #[cfg(not(test))]
             let export = cipher.export(passphrase);
             #[cfg(test)]
-            let export = cipher._insecure_export_fast_for_testing(passphrase);
+            let export = cipher.insecure_export_fast_for_testing(passphrase);
             database.insert(SLED_KEY_STORE_CIPHER, export?)?;
             cipher
         };
@@ -169,7 +171,9 @@ impl SledStore {
         let db = sled::Config::new().temporary(true).open()?;
         Ok(Self {
             db: Arc::new(RwLock::new(db)),
-            cipher: None,
+            #[cfg(feature = "encryption")]
+            // use store cipher with a random key
+            cipher: Some(Arc::new(presage_store_cipher::StoreCipher::new())),
         })
     }
 
@@ -188,6 +192,34 @@ impl SledStore {
             .unwrap_or_default()
     }
 
+    #[cfg(feature = "encryption")]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        if let Some(cipher) = self.cipher.as_ref() {
+            Ok(cipher.decrypt_value(value)?)
+        } else {
+            Ok(serde_json::from_slice(value)?)
+        }
+    }
+
+    #[cfg(not(feature = "encryption"))]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        Ok(serde_json::from_slice(value)?)
+    }
+
+    #[cfg(feature = "encryption")]
+    fn encrypt_value(&self, value: &impl Serialize) -> Result<Vec<u8>, SledStoreError> {
+        if let Some(cipher) = self.cipher.as_ref() {
+            Ok(cipher.encrypt_value(value)?)
+        } else {
+            Ok(serde_json::to_vec(value)?)
+        }
+    }
+
+    #[cfg(not(feature = "encryption"))]
+    fn encrypt_value(&self, value: &impl Serialize) -> Result<Vec<u8>, SledStoreError> {
+        Ok(serde_json::to_vec(value)?)
+    }
+
     pub fn get<K, V>(&self, tree: &str, key: K) -> Result<Option<V>, SledStoreError>
     where
         K: AsRef<[u8]>,
@@ -196,12 +228,7 @@ impl SledStore {
         self.read()
             .open_tree(tree)?
             .get(key)?
-            .map(|p| {
-                self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&p).map_err(SledStoreError::from),
-                    |c| c.decrypt_value(&p).map_err(SledStoreError::from),
-                )
-            })
+            .map(|p| self.decrypt_value(&p))
             .transpose()
             .map_err(SledStoreError::from)
     }
@@ -211,10 +238,7 @@ impl SledStore {
         K: AsRef<[u8]>,
         V: Serialize,
     {
-        let value = self.cipher.as_ref().map_or_else(
-            || serde_json::to_vec(&value).map_err(SledStoreError::from),
-            |c| c.encrypt_value(&value).map_err(SledStoreError::from),
-        )?;
+        let value = self.encrypt_value(&value)?;
         let db = self.write();
         let replaced = db.open_tree(tree)?.insert(key, value)?;
         db.flush()?;
@@ -234,7 +258,9 @@ impl SledStore {
     /// build a hashed messages thread key
     fn messages_thread_tree_name(&self, t: &Thread) -> String {
         let key = match t {
-            Thread::Contact(uuid) => format!("{SLED_TREE_THREADS_PREFIX}:contact:{uuid}"),
+            Thread::Contact(uuid) => {
+                format!("{SLED_TREE_THREADS_PREFIX}:contact:{uuid}")
+            }
             Thread::Group(group_id) => format!(
                 "{SLED_TREE_THREADS_PREFIX}:group:{}",
                 base64::encode(group_id)
@@ -445,6 +471,7 @@ impl Store for SledStore {
     fn contacts(&self) -> Result<Self::ContactsIter, SledStoreError> {
         Ok(SledContactsIter {
             iter: self.read().open_tree(SLED_TREE_CONTACTS)?.iter(),
+            #[cfg(feature = "encryption")]
             cipher: self.cipher.clone(),
         })
     }
@@ -465,6 +492,7 @@ impl Store for SledStore {
     fn groups(&self) -> Result<Self::GroupsIter, SledStoreError> {
         Ok(SledGroupsIter {
             iter: self.read().open_tree(SLED_TREE_GROUPS)?.iter(),
+            #[cfg(feature = "encryption")]
             cipher: self.cipher.clone(),
         })
     }
@@ -574,10 +602,13 @@ impl Store for SledStore {
             (Bound::Unbounded, Bound::Included(end)) => tree_thread.range(..=end.to_be_bytes()),
             (Bound::Unbounded, Bound::Excluded(end)) => tree_thread.range(..end.to_be_bytes()),
             (Bound::Unbounded, Bound::Unbounded) => tree_thread.range::<[u8; 8], RangeFull>(..),
-            (Bound::Excluded(_), _) => unreachable!("range that excludes the initial value"),
+            (Bound::Excluded(_), _) => {
+                unreachable!("range that excludes the initial value")
+            }
         };
 
         Ok(SledMessagesIter {
+            #[cfg(feature = "encryption")]
             cipher: self.cipher.clone(),
             iter,
         })
@@ -609,8 +640,25 @@ impl Store for SledStore {
 }
 
 pub struct SledContactsIter {
-    cipher: Option<Arc<StoreCipher>>,
+    #[cfg(feature = "encryption")]
+    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
+}
+
+impl SledContactsIter {
+    #[cfg(feature = "encryption")]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        if let Some(cipher) = self.cipher.as_ref() {
+            Ok(cipher.decrypt_value(value)?)
+        } else {
+            Ok(serde_json::from_slice(value)?)
+        }
+    }
+
+    #[cfg(not(feature = "encryption"))]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        Ok(serde_json::from_slice(value)?)
+    }
 }
 
 impl Iterator for SledContactsIter {
@@ -620,19 +668,31 @@ impl Iterator for SledContactsIter {
         self.iter
             .next()?
             .map_err(SledStoreError::from)
-            .and_then(|(_key, value)| {
-                self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
-                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
-                )
-            })
+            .and_then(|(_key, value)| self.decrypt_value(&value))
             .into()
     }
 }
 
 pub struct SledGroupsIter {
-    cipher: Option<Arc<StoreCipher>>,
+    #[cfg(feature = "encryption")]
+    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
+}
+
+impl SledGroupsIter {
+    #[cfg(feature = "encryption")]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        if let Some(cipher) = self.cipher.as_ref() {
+            Ok(cipher.decrypt_value(value)?)
+        } else {
+            Ok(serde_json::from_slice(value)?)
+        }
+    }
+
+    #[cfg(not(feature = "encryption"))]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        Ok(serde_json::from_slice(value)?)
+    }
 }
 
 impl Iterator for SledGroupsIter {
@@ -641,10 +701,7 @@ impl Iterator for SledGroupsIter {
     fn next(&mut self) -> Option<Self::Item> {
         Some(self.iter.next()?.map_err(SledStoreError::from).and_then(
             |(group_master_key_bytes, value)| {
-                let group = self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
-                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
-                )?;
+                let group = self.decrypt_value(&value)?;
                 Ok((
                     group_master_key_bytes
                         .as_ref()
@@ -981,8 +1038,25 @@ impl SenderKeyStore for SledStore {
 }
 
 pub struct SledMessagesIter {
-    cipher: Option<Arc<StoreCipher>>,
+    #[cfg(feature = "encryption")]
+    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
+}
+
+impl SledMessagesIter {
+    #[cfg(feature = "encryption")]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        if let Some(cipher) = self.cipher.as_ref() {
+            Ok(cipher.decrypt_value(value)?)
+        } else {
+            Ok(serde_json::from_slice(value)?)
+        }
+    }
+
+    #[cfg(not(feature = "encryption"))]
+    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+        Ok(serde_json::from_slice(value)?)
+    }
 }
 
 impl SledMessagesIter {
@@ -991,12 +1065,7 @@ impl SledMessagesIter {
         elem: Result<(IVec, IVec), sled::Error>,
     ) -> Option<Result<Content, SledStoreError>> {
         elem.map_err(SledStoreError::from)
-            .and_then(|(_, value)| {
-                self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
-                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
-                )
-            })
+            .and_then(|(_, value)| self.decrypt_value(&value).map_err(SledStoreError::from))
             .and_then(|data: Vec<u8>| ContentProto::decode(&data[..]).map_err(SledStoreError::from))
             .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
     }
