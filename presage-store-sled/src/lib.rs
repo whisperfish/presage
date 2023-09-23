@@ -121,6 +121,11 @@ impl SledStore {
             .map(|p| Self::get_or_create_store_cipher(&database, p.as_ref()))
             .transpose()?;
 
+        #[cfg(not(feature = "encryption"))]
+        if passphrase.is_some() {
+            panic!("A passphrase was supplied but the encryption feature flag is not enabled")
+        }
+
         Ok(SledStore {
             db: Arc::new(RwLock::new(database)),
             #[cfg(feature = "encryption")]
