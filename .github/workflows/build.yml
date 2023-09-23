@@ -16,7 +16,10 @@ concurrency:
 
 jobs:
   build_and_test:
-    name: cargo build
+    strategy:
+      matrix:
+        cargo_flags: ["--all-features", "--no-default-features"]
+    name: build ${{ matrix.cargo_flags }}
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -D warnings
@@ -36,13 +39,13 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --all-targets
+          args: --all-targets ${{ matrix.cargo_flags }}
       
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --all-targets
+          args: --all-targets ${{ matrix.cargo_flags }}
 
   rustfmt:
     name: rustfmt
