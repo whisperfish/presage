@@ -19,7 +19,7 @@ jobs:
     strategy:
       matrix:
         cargo_flags: ["--all-features", "--no-default-features"]
-    name: build ${{ matrix.cargo_flags }}
+    name: cargo ${{ matrix.cargo_flags }}
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -D warnings
