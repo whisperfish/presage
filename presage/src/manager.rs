@@ -7,7 +7,11 @@ use std::{
 
 use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace, warn};
-use rand::{distributions::Alphanumeric, rngs::StdRng, Rng, RngCore, SeedableRng};
+use rand::{
+    distributions::{Alphanumeric, DistString},
+    rngs::StdRng,
+    RngCore, SeedableRng,
+};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
@@ -19,22 +23,16 @@ use libsignal_service::{
     groups_v2::{Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{MessagePipe, ServiceCredentials},
     models::Contact,
-    prelude::{
-        phonenumber::PhoneNumber,
-        protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
-        Content, ProfileKey, PushService, Uuid,
-    },
+    prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
     proto::{
         data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
         NullMessage,
     },
-    provisioning::{
-        generate_registration_id, LinkingManager, ProvisioningManager, SecondaryDeviceProvisioning,
-        VerificationCodeResponse,
-    },
+    protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
+    provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
     push_service::{
-        AccountAttributes, DeviceCapabilities, DeviceId, ProfileKeyExt, ServiceError, ServiceIds,
-        WhoAmIResponse, DEFAULT_DEVICE_ID,
+        AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
+        DEFAULT_DEVICE_ID,
     },
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -46,9 +44,14 @@ use libsignal_service::{
     websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
+use libsignal_service::{
+    groups_v2::decrypt_group,
+    push_service::{RegistrationMethod, VerificationTransport},
+};
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::{cache::CacheCell, serde::serde_profile_key, Thread};
+use crate::cache::CacheCell;
+use crate::{serde::serde_profile_key, Thread};
 use crate::{store::Store, Error};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
@@ -88,6 +91,7 @@ pub struct Confirmation {
     signal_servers: SignalServers,
     phone_number: PhoneNumber,
     password: String,
+    session_id: String,
 }
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -195,30 +199,53 @@ impl<C: Store> Manager<C, Registration> {
 
         config_store.clear_registration()?;
 
-        // generate a random 24 bytes password
+        // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
-        let password: String = (&mut rng).sample_iter(&Alphanumeric).take(24).collect();
+        let password = Alphanumeric.sample_string(&mut rng, 24);
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut push_service =
             HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
 
-        let mut provisioning_manager: ProvisioningManager<HyperPushService> =
-            ProvisioningManager::new(&mut push_service, phone_number.clone(), password.clone());
+        trace!("creating registration verification session");
 
-        let verification_code_response = if use_voice_call {
-            provisioning_manager
-                .request_voice_verification_code(captcha, None)
-                .await?
-        } else {
-            provisioning_manager
-                .request_sms_verification_code(captcha, None)
-                .await?
-        };
+        let phone_number_string = phone_number.to_string();
+        let mut session = push_service
+            .create_verification_session(&phone_number_string, None, None, None)
+            .await?;
 
-        if let VerificationCodeResponse::CaptchaRequired = verification_code_response {
-            return Err(Error::CaptchaRequired);
+        if !session.allowed_to_request_code {
+            if session.captcha_required() {
+                trace!("captcha required");
+                if captcha.is_none() {
+                    return Err(Error::CaptchaRequired);
+                }
+                session = push_service
+                    .patch_verification_session(&session.id, None, None, None, captcha, None)
+                    .await?
+            }
+            if session.push_challenge_required() {
+                return Err(Error::PushChallengeRequired);
+            }
         }
+
+        if !session.allowed_to_request_code {
+            return Err(Error::RequestingCodeForbidden(session));
+        }
+
+        trace!("requesting verification code");
+
+        session = push_service
+            .request_verification_code(
+                &session.id,
+                crate::USER_AGENT,
+                if use_voice_call {
+                    VerificationTransport::Voice
+                } else {
+                    VerificationTransport::Sms
+                },
+            )
+            .await?;
 
         let manager = Manager {
             config_store,
@@ -226,6 +253,7 @@ impl<C: Store> Manager<C, Registration> {
                 signal_servers,
                 phone_number,
                 password,
+                session_id: session.id,
             },
             rng,
         };
@@ -277,9 +305,9 @@ impl<C: Store> Manager<C, Linking> {
         // and you won't be able to use this client anyways
         config_store.clear_registration()?;
 
-        // generate a random 24 bytes password
+        // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
-        let password: String = (&mut rng).sample_iter(&Alphanumeric).take(24).collect();
+        let password = Alphanumeric.sample_string(&mut rng, 24);
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
@@ -310,6 +338,7 @@ impl<C: Store> Manager<C, Linking> {
                     phone_number,
                     device_id: DeviceId { device_id },
                     registration_id,
+                    pni_registration_id,
                     profile_key,
                     service_ids,
                     aci_private_key,
@@ -333,7 +362,7 @@ impl<C: Store> Manager<C, Linking> {
                         password,
                         device_id: Some(device_id),
                         registration_id,
-                        pni_registration_id: None,
+                        pni_registration_id: Some(pni_registration_id),
                         aci_public_key,
                         aci_private_key,
                         pni_public_key: Some(pni_public_key),
@@ -386,34 +415,44 @@ impl<C: Store> Manager<C, Confirmation> {
     /// to send and receive messages.
     pub async fn confirm_verification_code(
         self,
-        confirm_code: impl AsRef<str>,
+        confirmation_code: impl AsRef<str>,
     ) -> Result<Manager<C, Registered>, Error<C::Error>> {
         trace!("confirming verification code");
 
         let registration_id = generate_registration_id(&mut StdRng::from_entropy());
         let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
 
+        let Confirmation {
+            signal_servers,
+            phone_number,
+            password,
+            session_id,
+        } = self.state;
+
         let credentials = ServiceCredentials {
             uuid: None,
-            phonenumber: self.state.phone_number.clone(),
-            password: Some(self.state.password.clone()),
+            phonenumber: phone_number.clone(),
+            password: Some(password.clone()),
             signaling_key: None,
             device_id: None,
         };
 
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut push_service = HyperPushService::new(
             service_configuration,
             Some(credentials),
             crate::USER_AGENT.to_string(),
         );
 
-        let mut provisioning_manager: ProvisioningManager<HyperPushService> =
-            ProvisioningManager::new(
-                &mut push_service,
-                self.state.phone_number.clone(),
-                self.state.password.to_string(),
-            );
+        let session = push_service
+            .submit_verification_code(&session_id, confirmation_code.as_ref())
+            .await?;
+
+        trace!("verification code submitted");
+
+        if !session.verified {
+            return Err(Error::UnverifiedRegistrationSession);
+        }
 
         let mut rng = StdRng::from_entropy();
 
@@ -426,9 +465,10 @@ impl<C: Store> Manager<C, Confirmation> {
 
         let profile_key = ProfileKey::generate(profile_key);
 
-        let registered = provisioning_manager
-            .confirm_verification_code(
-                confirm_code,
+        let skip_device_transfer = false;
+        let registered = push_service
+            .submit_registration_request(
+                RegistrationMethod::SessionId(&session_id),
                 AccountAttributes {
                     name: None,
                     signaling_key: Some(signaling_key.to_vec()),
@@ -439,7 +479,7 @@ impl<C: Store> Manager<C, Confirmation> {
                     fetches_messages: true,
                     pin: None,
                     registration_lock: None,
-                    unidentified_access_key: Some(profile_key.derive_access_key()),
+                    unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
                     unrestricted_unidentified_access: false, // TODO: make this configurable?
                     discoverable_by_phone_number: true,
                     capabilities: DeviceCapabilities {
@@ -448,14 +488,12 @@ impl<C: Store> Manager<C, Confirmation> {
                         ..Default::default()
                     },
                 },
+                skip_device_transfer,
             )
             .await?;
 
         let aci_identity_key_pair = KeyPair::generate(&mut rng);
         let pni_identity_key_pair = KeyPair::generate(&mut rng);
-
-        let phone_number = self.state.phone_number.clone();
-        let password = self.state.password.clone();
 
         trace!("confirmed! (and registered)");
 
@@ -529,12 +567,13 @@ impl<C: Store> Manager<C, Registered> {
             Some(self.state.profile_key),
         );
 
-        let (pre_keys_offset_id, next_signed_pre_key_id) = account_manager
+        let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
                 &mut self.config_store.clone(),
                 &mut self.rng,
                 self.config_store.pre_keys_offset_id()?,
                 self.config_store.next_signed_pre_key_id()?,
+                self.config_store.next_pq_pre_key_id()?,
                 true,
             )
             .await?;
@@ -543,6 +582,8 @@ impl<C: Store> Manager<C, Registered> {
             .set_pre_keys_offset_id(pre_keys_offset_id)?;
         self.config_store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
+        self.config_store
+            .set_next_pq_pre_key_id(next_pq_pre_key_id)?;
 
         trace!("registered pre keys");
         Ok(())
@@ -577,7 +618,7 @@ impl<C: Store> Manager<C, Registered> {
                 fetches_messages: true,
                 pin: None,
                 registration_lock: None,
-                unidentified_access_key: Some(self.state.profile_key.derive_access_key()),
+                unidentified_access_key: Some(self.state.profile_key.derive_access_key().to_vec()),
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
@@ -901,8 +942,8 @@ impl<C: Store> Manager<C, Registered> {
                                     if let Ok(Some(group)) = upsert_group(
                                         &state.config_store,
                                         &mut state.groups_manager,
-                                        &master_key_bytes,
-                                        &revision,
+                                        master_key_bytes,
+                                        revision,
                                     )
                                     .await
                                     {
@@ -936,6 +977,9 @@ impl<C: Store> Manager<C, Registered> {
     /// Sends a messages to the provided [ServiceAddress].
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
+    ///
+    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message(
         &mut self,
         recipient_addr: impl Into<ServiceAddress>,
@@ -946,14 +990,31 @@ impl<C: Store> Manager<C, Registered> {
 
         let online_only = false;
         let recipient = recipient_addr.into();
-        let content_body: ContentBody = message.into();
+        let mut content_body: ContentBody = message.into();
+
+        // Only update the expiration timer if it is not set.
+        match content_body {
+            ContentBody::DataMessage(DataMessage {
+                expire_timer: ref mut timer,
+                ..
+            }) if timer.is_none() => {
+                // Set the expire timer to None for errors.
+                let store_expire_timer = self
+                    .config_store
+                    .expire_timer(&Thread::Contact(recipient.uuid))
+                    .unwrap_or_default();
+
+                *timer = store_expire_timer;
+            }
+            _ => {}
+        }
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
             self.config_store
                 .profile_key(&recipient.uuid)?
                 .map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key(),
+                    key: profile_key.derive_access_key().to_vec(),
                     certificate: sender_certificate.clone(),
                 });
 
@@ -990,6 +1051,9 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
     ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<C::Error>> {
+        if attachments.is_empty() {
+            return Ok(Vec::new());
+        }
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
@@ -998,17 +1062,47 @@ impl<C: Store> Manager<C, Registered> {
         Ok(upload.await)
     }
 
-    /// Sends one message in a group (v2).
+    /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
+    ///
+    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message_to_group(
         &mut self,
         master_key_bytes: &[u8],
-        message: DataMessage,
+        mut message: DataMessage,
         timestamp: u64,
     ) -> Result<(), Error<C::Error>> {
+        // Only update the expiration timer if it is not set.
+        match message {
+            DataMessage {
+                expire_timer: ref mut timer,
+                ..
+            } if timer.is_none() => {
+                // Set the expire timer to None for errors.
+                let store_expire_timer = self
+                    .config_store
+                    .expire_timer(&Thread::Group(
+                        master_key_bytes
+                            .try_into()
+                            .expect("Master key bytes to be of size 32."),
+                    ))
+                    .unwrap_or_default();
+
+                *timer = store_expire_timer;
+            }
+            _ => {}
+        }
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
-        let Some(group) = upsert_group(&self.config_store, &mut groups_manager, master_key_bytes, &0).await? else {
+        let Some(group) = upsert_group(
+            &self.config_store,
+            &mut groups_manager,
+            master_key_bytes,
+            &0,
+        )
+        .await?
+        else {
             return Err(Error::UnknownGroup);
         };
 
@@ -1023,7 +1117,7 @@ impl<C: Store> Manager<C, Registered> {
                 self.config_store
                     .profile_key(&member.uuid)?
                     .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key(),
+                        key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
             recipients.push((member.uuid.into(), unidentified_access));
@@ -1140,7 +1234,7 @@ impl<C: Store> Manager<C, Registered> {
 
         let ws = self
             .identified_push_service()?
-            .ws("/v1/websocket/", self.credentials()?, true)
+            .ws("/v1/websocket/", &[], self.credentials()?, true)
             .await?;
         self.state.identified_websocket.replace(Some(ws.clone()));
         Ok(ws)
@@ -1153,7 +1247,7 @@ impl<C: Store> Manager<C, Registered> {
         } else {
             let ws = self
                 .unidentified_push_service()?
-                .ws("/v1/websocket/", None, true)
+                .ws("/v1/websocket/", &[], None, true)
                 .await?;
             self.state.unidentified_websocket.replace(Some(ws.clone()));
             Ok(ws)
@@ -1192,6 +1286,29 @@ impl<C: Store> Manager<C, Registered> {
         Ok(service_cipher)
     }
 
+    /// Returns the title of a thread (contact or group).
+    pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
+        match thread {
+            Thread::Contact(uuid) => {
+                let contact = match self.contact_by_id(uuid) {
+                    Ok(contact) => contact,
+                    Err(e) => {
+                        log::info!("Error getting contact by id: {}, {:?}", e, uuid);
+                        None
+                    }
+                };
+                Ok(match contact {
+                    Some(contact) => contact.name,
+                    None => uuid.to_string(),
+                })
+            }
+            Thread::Group(id) => match self.group(id)? {
+                Some(group) => Ok(group.title),
+                None => Ok("".to_string()),
+            },
+        }
+    }
+
     #[deprecated = "use Manager::contact_by_id"]
     pub fn get_contacts(
         &self,
@@ -1221,7 +1338,7 @@ async fn upsert_group<C: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<C::Error>> {
-    let save_group = match config_store.group(master_key_bytes.try_into()?) {
+    let upsert_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             log::debug!("loaded group from local db {}", group.title);
             group.revision < *revision
@@ -1233,11 +1350,12 @@ async fn upsert_group<C: Store>(
         }
     };
 
-    if save_group {
-        log::debug!("fetching group");
+    if upsert_group {
+        log::debug!("fetching and saving group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
-            Ok(group) => {
-                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, group) {
+            Ok(encrypted_group) => {
+                let group = decrypt_group(master_key_bytes, encrypted_group)?;
+                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
                     log::error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
@@ -1306,6 +1424,8 @@ fn save_message_with_thread<C: Store>(
         }
         ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
         ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
+        ContentBody::StoryMessage(_) => debug!("skipping story message"),
+        ContentBody::PniSignatureMessage(_) => todo!(),
     }
 
     Ok(())
@@ -1318,7 +1438,8 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
-    use libsignal_service::prelude::{protocol::KeyPair, ProfileKey};
+    use libsignal_service::prelude::ProfileKey;
+    use libsignal_service::protocol::KeyPair;
     use rand::RngCore;
     use serde_json::json;
 

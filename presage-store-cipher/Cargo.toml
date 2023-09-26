@@ -1,0 +1,16 @@
+[package]
+name = "presage-store-cipher"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+blake3 = "1.5.0"
+chacha20poly1305 = { version = "0.10.1", features = ["std"] }
+hmac = "0.12.1"
+pbkdf2 = "0.12.2"
+rand = "0.8"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+sha2 = "0.10"
+thiserror = "1.0"
+zeroize = { version = "1.6.0", features = ["derive"] }

@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use libsignal_service::{
-    models::ParseContactError, prelude::protocol::SignalProtocolError, ParseServiceAddressError,
+    models::ParseContactError, protocol::SignalProtocolError, ParseServiceAddressError,
 };
 
 use crate::store::StoreError;
@@ -60,6 +60,12 @@ pub enum Error<S: std::error::Error> {
     Timeout(#[from] tokio::time::error::Elapsed),
     #[error("store error: {0}")]
     Store(S),
+    #[error("push challenge required (not implemented)")]
+    PushChallengeRequired,
+    #[error("Not allowed to request verification code, reason unknown: {0:?}")]
+    RequestingCodeForbidden(libsignal_service::push_service::RegistrationSessionMetadataResponse),
+    #[error("Unverified registration session (i.e. wrong verification code)")]
+    UnverifiedRegistrationSession,
 }
 
 impl<S: StoreError> From<S> for Error<S> {

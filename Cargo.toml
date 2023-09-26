@@ -1,8 +1,9 @@
 [workspace]
-members = ["presage", "presage-cli", "presage-store-sled"]
+members = ["presage", "presage-cli", "presage-store-sled", "presage-store-cipher"]
+resolver = "2"
 
 [patch.crates-io]
-"curve25519-dalek" = { git = 'https://github.com/signalapp/curve25519-dalek', branch = 'lizard2' }
+curve25519-dalek = { git = 'https://github.com/signalapp/curve25519-dalek', tag = 'signal-curve25519-4.0.0' }
 
 # [patch."https://github.com/whisperfish/libsignal-service-rs.git"]
 # libsignal-service = { path = "../libsignal-service-rs/libsignal-service" }

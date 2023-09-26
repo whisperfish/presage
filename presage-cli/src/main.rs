@@ -124,7 +124,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient-uuid", "group-master-key"])
+                .args(&["recipient_uuid", "group_master_key"])
         )
     )]
     ListMessages {
@@ -298,7 +298,10 @@ fn print_message<C: Store>(
                 return None;
             };
 
-            let ContentBody::DataMessage(DataMessage { body: Some(body), .. }) = message.body else {
+            let ContentBody::DataMessage(DataMessage {
+                body: Some(body), ..
+            }) = message.body
+            else {
                 log::warn!("message reacted to has no body");
                 return None;
             };
@@ -440,6 +443,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             .await?;
 
             // ask for confirmation code here
+            println!("input confirmation code (followed by RETURN): ");
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
             if let Some(confirmation_code) = reader.lines().next_line().await? {

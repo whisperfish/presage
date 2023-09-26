@@ -5,11 +5,10 @@ use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
     models::Contact,
-    prelude::{
-        protocol::{ProtocolStore, SenderKeyStore, SessionStoreExt},
-        Content, ProfileKey, Uuid, UuidError,
-    },
+    prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    protocol::{ProtocolStore, SenderKeyStore},
+    session_store::SessionStoreExt,
     Profile,
 };
 use serde::{Deserialize, Serialize};
@@ -48,12 +47,19 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
 
     fn next_signed_pre_key_id(&self) -> Result<u32, Self::Error>;
 
+    fn next_pq_pre_key_id(&self) -> Result<u32, Self::Error>;
+
     fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
+
+    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
 
     /// Messages
 
     // Clear all stored messages.
     fn clear_messages(&mut self) -> Result<(), Self::Error>;
+
+    // Clear the messages in a thread.
+    fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::Error>;
 
     /// Save a message in a [Thread] identified by a timestamp.
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Self::Error>;
@@ -71,6 +77,18 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
         thread: &Thread,
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Self::Error>;
+
+    /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
+    /// or [Group::disappearing_messages_timer].
+    fn expire_timer(&self, thread: &Thread) -> Result<Option<u32>, Self::Error> {
+        match thread {
+            Thread::Contact(uuid) => Ok(self.contact_by_id(*uuid)?.map(|c| c.expire_timer)),
+            Thread::Group(key) => Ok(self
+                .group(*key)?
+                .and_then(|g| g.disappearing_messages_timer)
+                .map(|t| t.duration)),
+        }
+    }
 
     /// Contacts
 
@@ -91,11 +109,8 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     fn clear_groups(&mut self) -> Result<(), Self::Error>;
 
     /// Save a group in the cache
-    fn save_group(
-        &self,
-        master_key: GroupMasterKeyBytes,
-        group: crate::prelude::proto::Group,
-    ) -> Result<(), Self::Error>;
+    fn save_group(&self, master_key: GroupMasterKeyBytes, group: &Group)
+        -> Result<(), Self::Error>;
 
     /// Get an iterator on all cached groups
     fn groups(&self) -> Result<Self::GroupsIter, Self::Error>;
