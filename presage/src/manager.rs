@@ -188,7 +188,7 @@ impl<C: Store> Manager<C, Registration> {
         } = registration_options;
 
         // check if we are already registered
-        if !force && config_store.load_state().is_ok() {
+        if !force && config_store.is_registered() {
             return Err(Error::AlreadyRegisteredError);
         }
 
