@@ -2,10 +2,10 @@ use std::{
     fmt,
     ops::RangeBounds,
     sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+    time::{SystemTime, UNIX_EPOCH},
 };
 
-use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, channel::oneshot, future, AsyncReadExt, Stream, StreamExt};
 use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
 use rand::{
@@ -16,7 +16,6 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -45,6 +44,10 @@ use libsignal_service::{
     },
     websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
+};
+use libsignal_service::{
+    proto::EditMessage,
+    push_service::{RegistrationMethod, VerificationTransport},
 };
 use libsignal_service_hyper::push_service::HyperPushService;
 
@@ -385,7 +388,7 @@ impl<C: Store> Manager<C, Linking> {
         match (
             manager.register_pre_keys().await,
             manager.set_account_attributes().await,
-            manager.sync_contacts().await,
+            manager.request_contacts_sync().await,
         ) {
             (Err(e), _, _) | (_, Err(e), _) => {
                 // clear the entire store on any error, there's no possible recovery here
@@ -629,46 +632,6 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn wait_for_contacts_sync(
-        &mut self,
-        mut messages: impl Stream<Item = Content> + Unpin,
-    ) -> Result<(), Error<C::Error>> {
-        let mut message_receiver = MessageReceiver::new(self.push_service()?);
-        while let Some(Content { body, .. }) = messages.next().await {
-            if let ContentBody::SynchronizeMessage(SyncMessage {
-                contacts: Some(contacts),
-                ..
-            }) = body
-            {
-                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
-                let _ = self.config_store.clear_contacts();
-                self.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))?;
-                info!("saved contacts");
-                return Ok(());
-            }
-        }
-        Ok(())
-    }
-
-    async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
-        let messages = self.receive_messages_stream(true).await?;
-        pin_mut!(messages);
-
-        self.request_contacts_sync().await?;
-
-        info!("waiting for contacts sync for up to 60 seconds");
-
-        tokio::time::timeout(
-            Duration::from_secs(60),
-            self.wait_for_contacts_sync(messages),
-        )
-        .await
-        .map_err(Error::from)??;
-
-        Ok(())
-    }
-
     /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
     /// which can be then received, decrypted and stored in the message receiving loop.
     ///
@@ -853,7 +816,7 @@ impl<C: Store> Manager<C, Registered> {
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
-        self.receive_messages_stream(false).await
+        self.receive_messages_stream().await
     }
 
     fn groups_manager(
@@ -875,14 +838,13 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_stream(
         &mut self,
-        include_internal_events: bool,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
             config_store: C,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
-            include_internal_events: bool,
+            push_service: HyperPushService,
         }
 
         let init = StreamState {
@@ -890,7 +852,7 @@ impl<C: Store> Manager<C, Registered> {
             service_cipher: self.new_service_cipher()?,
             config_store: self.config_store.clone(),
             groups_manager: self.groups_manager()?,
-            include_internal_events,
+            push_service: self.push_service()?,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -901,15 +863,22 @@ impl<C: Store> Manager<C, Registered> {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                 if let ContentBody::SynchronizeMessage(SyncMessage {
-                                    contacts: Some(_),
+                                    contacts: Some(contacts),
                                     ..
                                 }) = &content.body
                                 {
-                                    if state.include_internal_events {
-                                        return Some((content, state));
-                                    } else {
-                                        continue;
-                                    }
+                                    debug!("syncing contacts");
+                                    let mut message_receiver =
+                                        MessageReceiver::new(state.push_service);
+                                    let contacts =
+                                        message_receiver.retrieve_contacts(contacts).await.ok()?;
+                                    let _ = state.config_store.clear_contacts();
+                                    state
+                                        .config_store
+                                        .save_contacts(contacts.filter_map(Result::ok))
+                                        .ok()?;
+                                    debug!("saved contacts");
+                                    return None;
                                 }
 
                                 if let ContentBody::DataMessage(DataMessage {
@@ -1043,8 +1012,7 @@ impl<C: Store> Manager<C, Registered> {
             body: content_body,
         };
 
-        let thread = Thread::Contact(recipient.uuid);
-        save_message_with_thread(&mut self.config_store, content, thread)?;
+        save_message(&mut self.config_store, content)?;
 
         Ok(())
     }
@@ -1346,11 +1314,10 @@ async fn upsert_group<C: Store>(
     Ok(config_store.group(master_key_bytes.try_into()?)?)
 }
 
-fn save_message_with_thread<C: Store>(
-    config_store: &mut C,
-    message: Content,
-    thread: Thread,
-) -> Result<(), Error<C::Error>> {
+fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
+    // derive the thread from the message type
+    let thread = Thread::try_from(&message)?;
+
     // update recipient profile keys
     if let ContentBody::DataMessage(DataMessage {
         profile_key: Some(profile_key_bytes),
@@ -1366,15 +1333,17 @@ fn save_message_with_thread<C: Store>(
     }
 
     // only save DataMessage and SynchronizeMessage (sent)
-    match &message.body {
-        ContentBody::NullMessage(_) => config_store.save_message(&thread, message)?,
-        ContentBody::DataMessage(d)
+    let message = match message.body {
+        ContentBody::NullMessage(_) => Some(message),
+        ContentBody::DataMessage(ref data_message)
         | ContentBody::SynchronizeMessage(SyncMessage {
-            sent: Some(sync_message::Sent {
-                message: Some(d), ..
-            }),
+            sent:
+                Some(sync_message::Sent {
+                    message: Some(ref data_message),
+                    ..
+                }),
             ..
-        }) => match d {
+        }) => match data_message {
             DataMessage {
                 delete:
                     Some(Delete {
@@ -1388,30 +1357,78 @@ fn save_message_with_thread<C: Store>(
                     existing_msg.body = NullMessage::default().into();
                     config_store.save_message(&thread, existing_msg)?;
                     debug!("message in thread {thread} @ {ts} deleted");
+                    None
+                } else {
+                    warn!("could not find message to delete in thread {thread} @ {ts}");
+                    None
                 }
             }
-            _ => config_store.save_message(&thread, message)?,
+            _ => Some(message),
         },
+        ContentBody::EditMessage(EditMessage {
+            target_sent_timestamp: Some(ts),
+            data_message: Some(data_message),
+        })
+        | ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                Some(sync_message::Sent {
+                    edit_message:
+                        Some(EditMessage {
+                            target_sent_timestamp: Some(ts),
+                            data_message: Some(data_message),
+                        }),
+                    ..
+                }),
+            ..
+        }) => {
+            if let Some(mut existing_msg) = config_store.message(&thread, ts)? {
+                existing_msg.metadata = message.metadata;
+                existing_msg.body = ContentBody::DataMessage(data_message);
+                // TODO: find a way to mark the message as edited (so that it's visible in a client)
+                trace!("message in thread {thread} @ {ts} edited");
+                Some(existing_msg)
+            } else {
+                warn!("could not find edited message {thread} @ {ts}");
+                None
+            }
+        }
         ContentBody::CallMessage(_)
         | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: Some(_),
             ..
-        }) => config_store.save_message(&thread, message)?,
-        ContentBody::SynchronizeMessage(_) => {
-            debug!("skipping saving sync message without interesting fields")
+        }) => Some(message),
+        ContentBody::SynchronizeMessage(s) => {
+            debug!("skipping saving sync message without interesting fields: {s:?}");
+            None
         }
-        ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
-        ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
-        ContentBody::StoryMessage(_) => debug!("skipping story message"),
-        ContentBody::PniSignatureMessage(_) => todo!(),
+        ContentBody::ReceiptMessage(_) => {
+            debug!("skipping saving receipt message");
+            None
+        }
+        ContentBody::TypingMessage(_) => {
+            debug!("skipping saving typing message");
+            None
+        }
+        ContentBody::StoryMessage(_) => {
+            debug!("skipping story message");
+            None
+        }
+        ContentBody::PniSignatureMessage(_) => {
+            debug!("skipping PNI signature message");
+            None
+        }
+        ContentBody::EditMessage(_) => {
+            debug!("invalid edited");
+            None
+        }
+    };
+
+    if let Some(message) = message {
+        let thread = Thread::try_from(&message)?;
+        config_store.save_message(&thread, message)?;
     }
 
     Ok(())
-}
-
-fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
-    let thread = Thread::try_from(&message)?;
-    save_message_with_thread(config_store, message, thread)
 }
 
 #[cfg(test)]

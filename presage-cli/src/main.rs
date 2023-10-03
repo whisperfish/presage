@@ -143,7 +143,9 @@ enum Cmd {
         from: Option<u64>,
     },
     #[clap(about = "Get a single contact by UUID")]
-    GetContact { uuid: Uuid },
+    GetContact {
+        uuid: Uuid,
+    },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -167,7 +169,6 @@ enum Cmd {
         #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
         master_key: GroupMasterKeyBytes,
     },
-    #[cfg(feature = "quirks")]
     RequestSyncContacts,
 }
 
@@ -219,7 +220,6 @@ async fn send<C: Store + 'static>(
     });
 
     let local = task::LocalSet::new();
-
     local
         .run_until(async move {
             let mut receiving_manager = manager.clone();
@@ -634,10 +634,22 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 println!("{contact:#?}");
             }
         }
-        #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
-            manager.request_contacts_sync().await?;
+            let local = task::LocalSet::new();
+            local
+                .run_until(async move {
+                    let mut receiving_manager = manager.clone();
+                    task::spawn_local(async move {
+                        if let Err(e) = receive(&mut receiving_manager, false).await {
+                            error!("error while receiving stuff: {e}");
+                        }
+                    });
+                    sleep(Duration::from_secs(5)).await;
+                    manager.request_contacts_sync().await.unwrap();
+                    sleep(Duration::from_secs(60)).await;
+                })
+                .await;
         }
         Cmd::ListMessages {
             group_master_key,
