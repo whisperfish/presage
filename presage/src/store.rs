@@ -6,7 +6,10 @@ use libsignal_service::{
     groups_v2::Group,
     models::Contact,
     prelude::{Content, ProfileKey, Uuid, UuidError},
-    proto::{sync_message::Sent, DataMessage, EditMessage, GroupContextV2, SyncMessage},
+    proto::{
+        sync_message::{self, Sent},
+        DataMessage, EditMessage, GroupContextV2, SyncMessage,
+    },
     protocol::{ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     Profile,
@@ -239,6 +242,43 @@ impl TryFrom<&Content> for Thread {
             )),
             // [1-1] Any other message directly to us
             _ => Ok(Thread::Contact(content.metadata.sender.uuid)),
+        }
+    }
+}
+
+pub trait ContentTimestamp {
+    fn timestamp(&self) -> u64;
+}
+
+impl ContentTimestamp for Content {
+    /// The original timestamp of the message.
+    fn timestamp(&self) -> u64 {
+        match self.body {
+            ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(sync_message::Sent {
+                        timestamp: Some(ts),
+                        ..
+                    }),
+                ..
+            }) => ts,
+            ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(sync_message::Sent {
+                        edit_message:
+                            Some(EditMessage {
+                                target_sent_timestamp: Some(ts),
+                                ..
+                            }),
+                        ..
+                    }),
+                ..
+            }) => ts,
+            ContentBody::EditMessage(EditMessage {
+                target_sent_timestamp: Some(ts),
+                ..
+            }) => ts,
+            _ => self.metadata.timestamp,
         }
     }
 }

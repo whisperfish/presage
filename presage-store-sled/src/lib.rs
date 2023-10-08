@@ -7,20 +7,24 @@ use std::{
 
 use async_trait::async_trait;
 use log::{debug, error, trace, warn};
-use presage::libsignal_service::{
-    self,
-    groups_v2::Group,
-    models::Contact,
-    prelude::{Content, ProfileKey, Uuid},
-    protocol::{
-        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
-        KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-        ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
-        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+use presage::{
+    libsignal_service::{
+        self,
+        groups_v2::Group,
+        models::Contact,
+        prelude::{Content, ProfileKey, Uuid},
+        protocol::{
+            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
+            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
+            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
+        },
+        push_service::DEFAULT_DEVICE_ID,
+        session_store::SessionStoreExt,
+        Profile, ServiceAddress,
     },
-    push_service::DEFAULT_DEVICE_ID,
-    session_store::SessionStoreExt,
-    Profile, ServiceAddress,
+    ContentTimestamp,
 };
 use prost::Message;
 use protobuf::ContentProto;

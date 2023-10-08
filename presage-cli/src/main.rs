@@ -20,6 +20,7 @@ use presage::libsignal_service::proto::sync_message::Sent;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use presage::prelude::proto::EditMessage;
 use presage::prelude::SyncMessage;
+use presage::ContentTimestamp;
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2},
