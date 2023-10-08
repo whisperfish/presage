@@ -16,6 +16,7 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use url::Url;
 
+use libsignal_service::proto::EditMessage;
 use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -1043,8 +1044,7 @@ impl<C: Store> Manager<C, Registered> {
             body: content_body,
         };
 
-        let thread = Thread::Contact(recipient.uuid);
-        save_message_with_thread(&mut self.config_store, content, thread)?;
+        save_message(&mut self.config_store, content)?;
 
         Ok(())
     }
@@ -1346,11 +1346,10 @@ async fn upsert_group<C: Store>(
     Ok(config_store.group(master_key_bytes.try_into()?)?)
 }
 
-fn save_message_with_thread<C: Store>(
-    config_store: &mut C,
-    message: Content,
-    thread: Thread,
-) -> Result<(), Error<C::Error>> {
+fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
+    // derive the thread from the message type
+    let thread = Thread::try_from(&message)?;
+
     // update recipient profile keys
     if let ContentBody::DataMessage(DataMessage {
         profile_key: Some(profile_key_bytes),
@@ -1366,15 +1365,17 @@ fn save_message_with_thread<C: Store>(
     }
 
     // only save DataMessage and SynchronizeMessage (sent)
-    match &message.body {
-        ContentBody::NullMessage(_) => config_store.save_message(&thread, message)?,
-        ContentBody::DataMessage(d)
+    let message = match message.body {
+        ContentBody::NullMessage(_) => Some(message),
+        ContentBody::DataMessage(ref data_message)
         | ContentBody::SynchronizeMessage(SyncMessage {
-            sent: Some(sync_message::Sent {
-                message: Some(d), ..
-            }),
+            sent:
+                Some(sync_message::Sent {
+                    message: Some(ref data_message),
+                    ..
+                }),
             ..
-        }) => match d {
+        }) => match data_message {
             DataMessage {
                 delete:
                     Some(Delete {
@@ -1388,30 +1389,79 @@ fn save_message_with_thread<C: Store>(
                     existing_msg.body = NullMessage::default().into();
                     config_store.save_message(&thread, existing_msg)?;
                     debug!("message in thread {thread} @ {ts} deleted");
+                    None
+                } else {
+                    warn!("could not find message to delete in thread {thread} @ {ts}");
+                    None
                 }
             }
-            _ => config_store.save_message(&thread, message)?,
+            _ => Some(message),
         },
+        ContentBody::EditMessage(EditMessage {
+            target_sent_timestamp: Some(ts),
+            data_message: Some(data_message),
+        })
+        | ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                Some(sync_message::Sent {
+                    edit_message:
+                        Some(EditMessage {
+                            target_sent_timestamp: Some(ts),
+                            data_message: Some(data_message),
+                        }),
+                    ..
+                }),
+            ..
+        }) => {
+            if let Some(mut existing_msg) = config_store.message(&thread, ts)? {
+                existing_msg.metadata = message.metadata;
+                existing_msg.body = ContentBody::DataMessage(data_message);
+                // TODO: find a way to mark the message as edited (so that it's visible in a client)
+                trace!("message in thread {thread} @ {ts} edited");
+                Some(existing_msg)
+            } else {
+                warn!("could not find edited message {thread} @ {ts}");
+                None
+            }
+        }
         ContentBody::CallMessage(_)
         | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: Some(_),
             ..
-        }) => config_store.save_message(&thread, message)?,
-        ContentBody::SynchronizeMessage(_) => {
-            debug!("skipping saving sync message without interesting fields")
+        }) => Some(message),
+        ContentBody::SynchronizeMessage(s) => {
+            debug!("skipping saving sync message without interesting fields: {s:?}");
+            None
         }
-        ContentBody::ReceiptMessage(_) => debug!("skipping saving receipt message"),
-        ContentBody::TypingMessage(_) => debug!("skipping saving typing message"),
-        ContentBody::StoryMessage(_) => debug!("skipping story message"),
-        ContentBody::PniSignatureMessage(_) => todo!(),
+        ContentBody::ReceiptMessage(_) => {
+            debug!("skipping saving receipt message");
+            None
+        }
+        ContentBody::TypingMessage(_) => {
+            debug!("skipping saving typing message");
+            None
+        }
+        ContentBody::StoryMessage(_) => {
+            debug!("skipping story message");
+            None
+        }
+        ContentBody::PniSignatureMessage(_) => {
+            debug!("skipping PNI signature message");
+            None
+        }
+        ContentBody::EditMessage(_) => {
+            debug!("invalid edited");
+            None
+        }
+    };
+
+    if let Some(message) = message {
+        let thread = Thread::try_from(&message)?;
+        config_store.save_message(&thread, message)?;
+        info!("saved message in thread {thread}");
     }
 
     Ok(())
-}
-
-fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
-    let thread = Thread::try_from(&message)?;
-    save_message_with_thread(config_store, message, thread)
 }
 
 #[cfg(test)]

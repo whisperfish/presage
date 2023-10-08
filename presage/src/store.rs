@@ -6,7 +6,7 @@ use libsignal_service::{
     groups_v2::Group,
     models::Contact,
     prelude::{Content, ProfileKey, Uuid, UuidError},
-    proto::{sync_message::Sent, DataMessage, GroupContextV2, SyncMessage},
+    proto::{sync_message::Sent, DataMessage, EditMessage, GroupContextV2, SyncMessage},
     protocol::{ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     Profile,
@@ -164,18 +164,16 @@ impl TryFrom<&Content> for Thread {
 
     fn try_from(content: &Content) -> Result<Self, Self::Error> {
         match &content.body {
-            // Case 1: SyncMessage sent from other device notifying about a message sent to someone else.
-            // => The recipient of the message mentioned in the SyncMessage is the thread.
+            // [1-1] Message sent by us with another device
             ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
                     Some(Sent {
-                        destination_uuid: Some(uuid),
+                        destination_service_id: Some(uuid),
                         ..
                     }),
                 ..
             }) => Ok(Self::Contact(Uuid::parse_str(uuid)?)),
-            // Case 2: Received a group message
-            // => The group is the thread.
+            // [Group] message from somebody else
             ContentBody::DataMessage(DataMessage {
                 group_v2:
                     Some(GroupContextV2 {
@@ -184,6 +182,7 @@ impl TryFrom<&Content> for Thread {
                     }),
                 ..
             })
+            // [Group] message sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
                     Some(Sent {
@@ -199,13 +198,46 @@ impl TryFrom<&Content> for Thread {
                         ..
                     }),
                 ..
+            })
+            // [Group] message edit sent by us with another device
+            | ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(Sent {
+                        edit_message:
+                            Some(EditMessage {
+                                data_message:
+                                    Some(DataMessage {
+                                        group_v2:
+                                            Some(GroupContextV2 {
+                                                master_key: Some(key),
+                                                ..
+                                            }),
+                                        ..
+                                    }),
+                                ..
+                            }),
+                        ..
+                    }),
+                ..
+            })
+            // [Group] Message edit sent by somebody else
+            | ContentBody::EditMessage(EditMessage {
+                data_message:
+                    Some(DataMessage {
+                        group_v2:
+                            Some(GroupContextV2 {
+                                master_key: Some(key),
+                                ..
+                            }),
+                        ..
+                    }),
+                ..
             }) => Ok(Self::Group(
                 key.clone()
                     .try_into()
                     .expect("Group master key to have 32 bytes"),
             )),
-            // Case 3: Received a 1-1 message
-            // => The message sender is the thread.
+            // [1-1] Any other message directly to us
             _ => Ok(Thread::Contact(content.metadata.sender.uuid)),
         }
     }
