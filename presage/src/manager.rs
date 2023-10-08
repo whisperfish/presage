@@ -1456,9 +1456,7 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
     };
 
     if let Some(message) = message {
-        let thread = Thread::try_from(&message)?;
         config_store.save_message(&thread, message)?;
-        info!("saved message in thread {thread}");
     }
 
     Ok(())

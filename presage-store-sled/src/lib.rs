@@ -545,13 +545,11 @@ impl Store for SledStore {
     }
 
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
-        log::trace!(
-            "storing a message with thread: {thread}, timestamp: {}",
-            message.metadata.timestamp,
-        );
+        let ts = message.timestamp();
+        log::trace!("storing a message with thread: {thread}, timestamp: {ts}",);
 
         let tree = self.messages_thread_tree_name(thread);
-        let key = message.metadata.timestamp.to_be_bytes();
+        let key = ts.to_be_bytes();
 
         let proto: ContentProto = message.into();
         let value = proto.encode_to_vec();
