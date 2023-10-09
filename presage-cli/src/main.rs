@@ -653,6 +653,8 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
+            use presage::prelude::proto::sync_message;
+
             let mut manager = Manager::load_registered(config_store).await?;
             let uuid = manager.state().service_ids.aci;
             let timestamp = std::time::SystemTime::now()
