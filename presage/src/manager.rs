@@ -631,19 +631,8 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
-        let messages = self.receive_messages_stream(true).await?;
-        pin_mut!(messages);
-
+        let _messages = self.receive_messages_stream(true).await?;
         self.request_contacts_sync().await?;
-
-        info!("waiting for contacts sync for up to 60 seconds");
-
-        tokio::time::timeout(Duration::from_secs(60), async move {
-            while messages.next().await.is_some() {}
-        })
-        .await
-        .map_err(Error::from)?;
-
         Ok(())
     }
 
