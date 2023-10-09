@@ -205,21 +205,11 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn send<C: Store + 'static>(
-    msg: &str,
-    uuid: &Uuid,
     manager: &mut Manager<C, Registered>,
+    uuid: &Uuid,
+    content_body: impl Into<ContentBody>,
+    timestamp: u64,
 ) -> anyhow::Result<()> {
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("Time went backwards")
-        .as_millis() as u64;
-
-    let message = ContentBody::DataMessage(DataMessage {
-        body: Some(msg.to_string()),
-        timestamp: Some(timestamp),
-        ..Default::default()
-    });
-
     let local = task::LocalSet::new();
 
     local
@@ -234,7 +224,7 @@ async fn send<C: Store + 'static>(
             sleep(Duration::from_secs(5)).await;
 
             manager
-                .send_message(*uuid, message, timestamp)
+                .send_message(*uuid, content_body, timestamp)
                 .await
                 .unwrap();
 
@@ -527,7 +517,16 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store).await?;
-            send(&message, &uuid, &mut manager).await?;
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64;
+            let message = DataMessage {
+                body: Some(message.to_string()),
+                timestamp: Some(timestamp),
+                ..Default::default()
+            };
+            send(&mut manager, &uuid, message, timestamp).await?;
         }
         Cmd::SendToGroup {
             message,
@@ -655,7 +654,18 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
-            manager.request_contacts_sync().await?;
+            let uuid = manager.state().service_ids.aci;
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .expect("Time went backwards")
+                .as_millis() as u64;
+            let sync_message = SyncMessage {
+                request: Some(sync_message::Request {
+                    r#type: Some(sync_message::request::Type::Contacts as i32),
+                }),
+                ..Default::default()
+            };
+            send(&mut manager, &uuid, sync_message, timestamp).await?;
         }
         Cmd::ListMessages {
             group_master_key,
