@@ -6,7 +6,7 @@ mod store;
 
 pub use errors::Error;
 pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
-pub use store::{Store, StoreError, Thread};
+pub use store::{ContentTimestamp, Store, StoreError, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
 pub use libsignal_service;

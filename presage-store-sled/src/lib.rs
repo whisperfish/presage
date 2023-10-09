@@ -7,20 +7,24 @@ use std::{
 
 use async_trait::async_trait;
 use log::{debug, error, trace, warn};
-use presage::libsignal_service::{
-    self,
-    groups_v2::Group,
-    models::Contact,
-    prelude::{Content, ProfileKey, Uuid},
-    protocol::{
-        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
-        KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-        ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
-        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+use presage::{
+    libsignal_service::{
+        self,
+        groups_v2::Group,
+        models::Contact,
+        prelude::{Content, ProfileKey, Uuid},
+        protocol::{
+            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
+            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
+            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
+        },
+        push_service::DEFAULT_DEVICE_ID,
+        session_store::SessionStoreExt,
+        Profile, ServiceAddress,
     },
-    push_service::DEFAULT_DEVICE_ID,
-    session_store::SessionStoreExt,
-    Profile, ServiceAddress,
+    ContentTimestamp,
 };
 use prost::Message;
 use protobuf::ContentProto;
@@ -545,13 +549,11 @@ impl Store for SledStore {
     }
 
     fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
-        log::trace!(
-            "storing a message with thread: {thread}, timestamp: {}",
-            message.metadata.timestamp,
-        );
+        let ts = message.timestamp();
+        log::trace!("storing a message with thread: {thread}, timestamp: {ts}",);
 
         let tree = self.messages_thread_tree_name(thread);
-        let key = message.metadata.timestamp.to_be_bytes();
+        let key = ts.to_be_bytes();
 
         let proto: ContentProto = message.into();
         let value = proto.encode_to_vec();

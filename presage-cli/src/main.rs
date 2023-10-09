@@ -18,7 +18,9 @@ use presage::libsignal_service::content::Reaction;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
+use presage::prelude::proto::EditMessage;
 use presage::prelude::SyncMessage;
+use presage::ContentTimestamp;
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2},
@@ -366,10 +368,26 @@ fn print_message<C: Store>(
         ContentBody::DataMessage(data_message) => {
             format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body))
         }
+        ContentBody::EditMessage(EditMessage {
+            data_message: Some(data_message),
+            ..
+        }) => format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
             sent:
                 Some(Sent {
                     message: Some(data_message),
+                    ..
+                }),
+            ..
+        }) => format_data_message(&thread, data_message).map(|body| Msg::Sent(&thread, body)),
+        ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                Some(Sent {
+                    edit_message:
+                        Some(EditMessage {
+                            data_message: Some(data_message),
+                            ..
+                        }),
                     ..
                 }),
             ..
@@ -381,7 +399,7 @@ fn print_message<C: Store>(
             None
         }
     } {
-        let ts = content.metadata.timestamp;
+        let ts = content.timestamp();
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
                 let contact = format_contact(sender);
