@@ -630,28 +630,6 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn wait_for_contacts_sync(
-        &mut self,
-        mut messages: impl Stream<Item = Content> + Unpin,
-    ) -> Result<(), Error<C::Error>> {
-        let mut message_receiver = MessageReceiver::new(self.push_service()?);
-        while let Some(Content { body, .. }) = messages.next().await {
-            if let ContentBody::SynchronizeMessage(SyncMessage {
-                contacts: Some(contacts),
-                ..
-            }) = body
-            {
-                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
-                let _ = self.config_store.clear_contacts();
-                self.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))?;
-                info!("saved contacts");
-                return Ok(());
-            }
-        }
-        Ok(())
-    }
-
     async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
         let messages = self.receive_messages_stream(true).await?;
         pin_mut!(messages);
@@ -660,12 +638,11 @@ impl<C: Store> Manager<C, Registered> {
 
         info!("waiting for contacts sync for up to 60 seconds");
 
-        tokio::time::timeout(
-            Duration::from_secs(60),
-            self.wait_for_contacts_sync(messages),
-        )
+        tokio::time::timeout(Duration::from_secs(60), async move {
+            while messages.next().await.is_some() {}
+        })
         .await
-        .map_err(Error::from)??;
+        .map_err(Error::from)?;
 
         Ok(())
     }
@@ -876,22 +853,24 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_stream(
         &mut self,
-        include_internal_events: bool,
+        stop_on_contacts_sync: bool,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
+            message_receiver: MessageReceiver<HyperPushService>,
             service_cipher: ServiceCipher<C>,
             config_store: C,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
-            include_internal_events: bool,
+            stop_on_contacts_sync: bool,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
+            message_receiver: MessageReceiver::new(self.push_service()?),
             service_cipher: self.new_service_cipher()?,
             config_store: self.config_store.clone(),
             groups_manager: self.groups_manager()?,
-            include_internal_events,
+            stop_on_contacts_sync,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
@@ -902,12 +881,33 @@ impl<C: Store> Manager<C, Registered> {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                 if let ContentBody::SynchronizeMessage(SyncMessage {
-                                    contacts: Some(_),
+                                    contacts: Some(contacts),
                                     ..
                                 }) = &content.body
                                 {
-                                    if state.include_internal_events {
-                                        return Some((content, state));
+                                    match state.message_receiver.retrieve_contacts(&contacts).await
+                                    {
+                                        Ok(contacts) => {
+                                            let _ = state.config_store.clear_contacts();
+                                            match state
+                                                .config_store
+                                                .save_contacts(contacts.filter_map(Result::ok))
+                                            {
+                                                Ok(()) => {
+                                                    info!("saved contacts");
+                                                }
+                                                Err(e) => {
+                                                    warn!("failed to save contacts: {e}");
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            warn!("failed to retrieve contacts: {e}");
+                                        }
+                                    }
+
+                                    if state.stop_on_contacts_sync {
+                                        return None;
                                     } else {
                                         continue;
                                     }
