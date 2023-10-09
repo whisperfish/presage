@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-37bb7f1c041fc50a/out/signalservice.rs`."><title>signalservice.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../../../../../../../../../../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../../../../../../../../../../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../../../../../../../../../../../source-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../../../../../../../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../../../../../../../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../../../../../../../../../libsignal_service/index.html"><img class="rust-logo" src="../../../../../../../../../../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../../../../../../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../../../../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../../../../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-7058e39f6b8d114d/out/signalservice.rs`."><title>signalservice.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../../../../../../../../../../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../../../../../../../../../../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../../../../../../../../../../../source-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../../../../../../../../../../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../../../../../../../../../../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../../../../../../../../../../../libsignal_service/index.html"><img class="rust-logo" src="../../../../../../../../../../../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../../../../../../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../../../../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../../../../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1423,6 +1423,22 @@
 <a href="#1423" id="1423">1423</a>
 <a href="#1424" id="1424">1424</a>
 <a href="#1425" id="1425">1425</a>
+<a href="#1426" id="1426">1426</a>
+<a href="#1427" id="1427">1427</a>
+<a href="#1428" id="1428">1428</a>
+<a href="#1429" id="1429">1429</a>
+<a href="#1430" id="1430">1430</a>
+<a href="#1431" id="1431">1431</a>
+<a href="#1432" id="1432">1432</a>
+<a href="#1433" id="1433">1433</a>
+<a href="#1434" id="1434">1434</a>
+<a href="#1435" id="1435">1435</a>
+<a href="#1436" id="1436">1436</a>
+<a href="#1437" id="1437">1437</a>
+<a href="#1438" id="1438">1438</a>
+<a href="#1439" id="1439">1439</a>
+<a href="#1440" id="1440">1440</a>
+<a href="#1441" id="1441">1441</a>
 </pre></div><pre class="rust"><code><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>DeviceName {
     <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
@@ -1597,11 +1613,11 @@
     <span class="attr">#[prost(enumeration=<span class="string">&quot;envelope::Type&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
     </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;11&quot;</span>)]
-    </span><span class="kw">pub </span>source_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    </span><span class="kw">pub </span>source_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(uint32, optional, tag=<span class="string">&quot;7&quot;</span>)]
     </span><span class="kw">pub </span>source_device: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;13&quot;</span>)]
-    </span><span class="kw">pub </span>destination_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    </span><span class="kw">pub </span>destination_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;5&quot;</span>)]
     </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     <span class="doccomment">/// Contains an encrypted Content
@@ -1613,9 +1629,11 @@
     </span><span class="kw">pub </span>server_timestamp: ::core::option::Option&lt;u64&gt;,
     <span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;14&quot;</span>, default=<span class="string">&quot;true&quot;</span>)]
     </span><span class="kw">pub </span>urgent: ::core::option::Option&lt;bool&gt;,
-    <span class="doccomment">/// NEXT ID: 17
-    </span><span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;16&quot;</span>)]
+    <span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;16&quot;</span>)]
     </span><span class="kw">pub </span>story: ::core::option::Option&lt;bool&gt;,
+    <span class="doccomment">/// NEXT ID: 18
+    </span><span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;17&quot;</span>)]
+    </span><span class="kw">pub </span>reporting_token: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `Envelope`.
 </span><span class="kw">pub mod </span>envelope {
@@ -1653,6 +1671,8 @@
     </span><span class="kw">pub </span>story_message: ::core::option::Option&lt;StoryMessage&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;10&quot;</span>)]
     </span><span class="kw">pub </span>pni_signature_message: ::core::option::Option&lt;PniSignatureMessage&gt;,
+    <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;11&quot;</span>)]
+    </span><span class="kw">pub </span>edit_message: ::core::option::Option&lt;EditMessage&gt;,
 }
 <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>CallMessage {
@@ -1668,8 +1688,6 @@
     </span><span class="kw">pub </span>busy: ::core::option::Option&lt;call_message::Busy&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;7&quot;</span>)]
     </span><span class="kw">pub </span>hangup: ::core::option::Option&lt;call_message::Hangup&gt;,
-    <span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;8&quot;</span>)]
-    </span><span class="kw">pub </span>multi_ring: ::core::option::Option&lt;bool&gt;,
     <span class="attr">#[prost(uint32, optional, tag=<span class="string">&quot;9&quot;</span>)]
     </span><span class="kw">pub </span>destination_device_id: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;10&quot;</span>)]
@@ -1791,7 +1809,7 @@
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>AssociatedValue {
         <span class="attr">#[prost(string, tag=<span class="string">&quot;3&quot;</span>)]
-        </span>MentionUuid(::prost::alloc::string::String),
+        </span>MentionAci(::prost::alloc::string::String),
         <span class="attr">#[prost(enumeration=<span class="string">&quot;Style&quot;</span>, tag=<span class="string">&quot;4&quot;</span>)]
         </span>Style(i32),
     }
@@ -1846,7 +1864,7 @@
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;1&quot;</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;5&quot;</span>)]
-        </span><span class="kw">pub </span>author_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>author_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;3&quot;</span>)]
         </span><span class="kw">pub </span>text: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(message, repeated, tag=<span class="string">&quot;4&quot;</span>)]
@@ -2005,7 +2023,7 @@
         <span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>remove: ::core::option::Option&lt;bool&gt;,
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;4&quot;</span>)]
-        </span><span class="kw">pub </span>target_author_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>target_author_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;5&quot;</span>)]
         </span><span class="kw">pub </span>target_sent_timestamp: ::core::option::Option&lt;u64&gt;,
     }
@@ -2022,7 +2040,7 @@
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>StoryContext {
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;1&quot;</span>)]
-        </span><span class="kw">pub </span>author_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>author_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>sent_timestamp: ::core::option::Option&lt;u64&gt;,
     }
@@ -2033,24 +2051,6 @@
     }
     <span class="doccomment">/// Nested message and enum types in `Payment`.
     </span><span class="kw">pub mod </span>payment {
-        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-        </span><span class="kw">pub struct </span>Address {
-            <span class="attr">#[prost(oneof=<span class="string">&quot;address::Address&quot;</span>, tags=<span class="string">&quot;1&quot;</span>)]
-            </span><span class="kw">pub </span>address: ::core::option::Option&lt;address::Address&gt;,
-        }
-        <span class="doccomment">/// Nested message and enum types in `Address`.
-        </span><span class="kw">pub mod </span>address {
-            <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-            </span><span class="kw">pub struct </span>MobileCoin {
-                <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
-                </span><span class="kw">pub </span>address: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-            }
-            <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
-            </span><span class="kw">pub enum </span>Address {
-                <span class="attr">#[prost(message, tag=<span class="string">&quot;1&quot;</span>)]
-                </span>MobileCoin(MobileCoin),
-            }
-        }
         <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Amount {
             <span class="attr">#[prost(oneof=<span class="string">&quot;amount::Amount&quot;</span>, tags=<span class="string">&quot;1&quot;</span>)]
@@ -2268,7 +2268,7 @@
 <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Verified {
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;5&quot;</span>)]
-    </span><span class="kw">pub </span>destination_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    </span><span class="kw">pub </span>destination_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;2&quot;</span>)]
     </span><span class="kw">pub </span>identity_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(enumeration=<span class="string">&quot;verified::State&quot;</span>, optional, tag=<span class="string">&quot;3&quot;</span>)]
@@ -2292,8 +2292,6 @@
     </span><span class="kw">pub </span>sent: ::core::option::Option&lt;sync_message::Sent&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;2&quot;</span>)]
     </span><span class="kw">pub </span>contacts: ::core::option::Option&lt;sync_message::Contacts&gt;,
-    <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;3&quot;</span>)]
-    </span><span class="kw">pub </span>groups: ::core::option::Option&lt;sync_message::Groups&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;4&quot;</span>)]
     </span><span class="kw">pub </span>request: ::core::option::Option&lt;sync_message::Request&gt;,
     <span class="attr">#[prost(message, repeated, tag=<span class="string">&quot;5&quot;</span>)]
@@ -2320,12 +2318,14 @@
     </span><span class="kw">pub </span>outgoing_payment: ::core::option::Option&lt;sync_message::OutgoingPayment&gt;,
     <span class="attr">#[prost(message, repeated, tag=<span class="string">&quot;16&quot;</span>)]
     </span><span class="kw">pub </span>viewed: ::prost::alloc::vec::Vec&lt;sync_message::Viewed&gt;,
-    <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;17&quot;</span>)]
-    </span><span class="kw">pub </span>pni_identity: ::core::option::Option&lt;sync_message::PniIdentity&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;18&quot;</span>)]
     </span><span class="kw">pub </span>pni_change_number: ::core::option::Option&lt;sync_message::PniChangeNumber&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;19&quot;</span>)]
     </span><span class="kw">pub </span>call_event: ::core::option::Option&lt;sync_message::CallEvent&gt;,
+    <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;20&quot;</span>)]
+    </span><span class="kw">pub </span>call_link_update: ::core::option::Option&lt;sync_message::CallLinkUpdate&gt;,
+    <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;21&quot;</span>)]
+    </span><span class="kw">pub </span>call_log_event: ::core::option::Option&lt;sync_message::CallLogEvent&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `SyncMessage`.
 </span><span class="kw">pub mod </span>sync_message {
@@ -2334,7 +2334,7 @@
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;1&quot;</span>)]
         </span><span class="kw">pub </span>destination_e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;7&quot;</span>)]
-        </span><span class="kw">pub </span>destination_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>destination_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
         <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;3&quot;</span>)]
@@ -2349,20 +2349,22 @@
         </span><span class="kw">pub </span>story_message: ::core::option::Option&lt;<span class="kw">super</span>::StoryMessage&gt;,
         <span class="attr">#[prost(message, repeated, tag=<span class="string">&quot;9&quot;</span>)]
         </span><span class="kw">pub </span>story_message_recipients: ::prost::alloc::vec::Vec&lt;sent::StoryMessageRecipient&gt;,
+        <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;10&quot;</span>)]
+        </span><span class="kw">pub </span>edit_message: ::core::option::Option&lt;<span class="kw">super</span>::EditMessage&gt;,
     }
     <span class="doccomment">/// Nested message and enum types in `Sent`.
     </span><span class="kw">pub mod </span>sent {
         <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>UnidentifiedDeliveryStatus {
             <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;3&quot;</span>)]
-            </span><span class="kw">pub </span>destination_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+            </span><span class="kw">pub </span>destination_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
             <span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;2&quot;</span>)]
             </span><span class="kw">pub </span>unidentified: ::core::option::Option&lt;bool&gt;,
         }
         <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>StoryMessageRecipient {
             <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;1&quot;</span>)]
-            </span><span class="kw">pub </span>destination_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+            </span><span class="kw">pub </span>destination_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
             <span class="attr">#[prost(string, repeated, tag=<span class="string">&quot;2&quot;</span>)]
             </span><span class="kw">pub </span>distribution_list_ids: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
             <span class="attr">#[prost(bool, optional, tag=<span class="string">&quot;3&quot;</span>)]
@@ -2377,16 +2379,11 @@
         </span><span class="kw">pub </span>complete: ::core::option::Option&lt;bool&gt;,
     }
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-    </span><span class="kw">pub struct </span>Groups {
-        <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;1&quot;</span>)]
-        </span><span class="kw">pub </span>blob: ::core::option::Option&lt;<span class="kw">super</span>::AttachmentPointer&gt;,
-    }
-    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Blocked {
         <span class="attr">#[prost(string, repeated, tag=<span class="string">&quot;1&quot;</span>)]
         </span><span class="kw">pub </span>numbers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(string, repeated, tag=<span class="string">&quot;3&quot;</span>)]
-        </span><span class="kw">pub </span>uuids: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>acis: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, repeated, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>group_ids: ::prost::alloc::vec::Vec&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
@@ -2402,8 +2399,8 @@
         </span><span class="kw">pub enum </span>Type {
             Unknown = <span class="number">0</span>,
             Contacts = <span class="number">1</span>,
-            Groups = <span class="number">2</span>,
-            Blocked = <span class="number">3</span>,
+            <span class="doccomment">///      GROUPS        = 2;
+            </span>Blocked = <span class="number">3</span>,
             Configuration = <span class="number">4</span>,
             Keys = <span class="number">5</span>,
             PniIdentity = <span class="number">6</span>,
@@ -2412,14 +2409,14 @@
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Read {
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;3&quot;</span>)]
-        </span><span class="kw">pub </span>sender_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>sender_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     }
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Viewed {
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;3&quot;</span>)]
-        </span><span class="kw">pub </span>sender_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>sender_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     }
@@ -2457,7 +2454,7 @@
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>ViewOnceOpen {
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;3&quot;</span>)]
-        </span><span class="kw">pub </span>sender_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>sender_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     }
@@ -2483,16 +2480,9 @@
         </span><span class="kw">pub </span>storage_service: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-    </span><span class="kw">pub struct </span>PniIdentity {
-        <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
-        </span><span class="kw">pub </span>public_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-        <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;2&quot;</span>)]
-        </span><span class="kw">pub </span>private_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    }
-    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>MessageRequestResponse {
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;2&quot;</span>)]
-        </span><span class="kw">pub </span>thread_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>thread_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;3&quot;</span>)]
         </span><span class="kw">pub </span>group_id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
         <span class="attr">#[prost(enumeration=<span class="string">&quot;message_request_response::Type&quot;</span>, optional, tag=<span class="string">&quot;4&quot;</span>)]
@@ -2513,7 +2503,7 @@
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>OutgoingPayment {
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;1&quot;</span>)]
-        </span><span class="kw">pub </span>recipient_uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        </span><span class="kw">pub </span>recipient_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>note: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(oneof=<span class="string">&quot;outgoing_payment::PaymentDetail&quot;</span>, tags=<span class="string">&quot;3&quot;</span>)]
@@ -2557,13 +2547,19 @@
         <span class="doccomment">/// Serialized libsignal-client SignedPreKeyRecord
         </span><span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>signed_pre_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+        <span class="doccomment">/// Serialized libsignal-client KyberPreKeyRecord
+        </span><span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;5&quot;</span>)]
+        </span><span class="kw">pub </span>last_resort_kyber_pre_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
         <span class="attr">#[prost(uint32, optional, tag=<span class="string">&quot;3&quot;</span>)]
         </span><span class="kw">pub </span>registration_id: ::core::option::Option&lt;u32&gt;,
+        <span class="doccomment">/// The e164 we have changed our number to
+        </span><span class="attr">#[prost(string, optional, tag=<span class="string">&quot;4&quot;</span>)]
+        </span><span class="kw">pub </span>new_e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     }
     <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>CallEvent {
         <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
-        </span><span class="kw">pub </span>peer_uuid: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+        </span><span class="kw">pub </span>conversation_id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
         <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;3&quot;</span>)]
@@ -2583,6 +2579,8 @@
             UnknownType = <span class="number">0</span>,
             AudioCall = <span class="number">1</span>,
             VideoCall = <span class="number">2</span>,
+            GroupCall = <span class="number">3</span>,
+            AdHocCall = <span class="number">4</span>,
         }
         <span class="attr">#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
         #[repr(i32)]
@@ -2597,6 +2595,29 @@
             UnknownAction = <span class="number">0</span>,
             Accepted = <span class="number">1</span>,
             NotAccepted = <span class="number">2</span>,
+            Delete = <span class="number">3</span>,
+        }
+    }
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+    </span><span class="kw">pub struct </span>CallLinkUpdate {
+        <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
+        </span><span class="kw">pub </span>root_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+        <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;2&quot;</span>)]
+        </span><span class="kw">pub </span>admin_pass_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    }
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+    </span><span class="kw">pub struct </span>CallLogEvent {
+        <span class="attr">#[prost(enumeration=<span class="string">&quot;call_log_event::Type&quot;</span>, optional, tag=<span class="string">&quot;1&quot;</span>)]
+        </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
+        <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;2&quot;</span>)]
+        </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
+    }
+    <span class="doccomment">/// Nested message and enum types in `CallLogEvent`.
+    </span><span class="kw">pub mod </span>call_log_event {
+        <span class="attr">#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+        #[repr(i32)]
+        </span><span class="kw">pub enum </span>Type {
+            Clear = <span class="number">0</span>,
         }
     }
 }
@@ -2612,6 +2633,10 @@
     </span><span class="kw">pub </span>thumbnail: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;6&quot;</span>)]
     </span><span class="kw">pub </span>digest: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;16&quot;</span>)]
+    </span><span class="kw">pub </span>incremental_digest: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(uint32, optional, tag=<span class="string">&quot;17&quot;</span>)]
+    </span><span class="kw">pub </span>incremental_mac_chunk_size: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;7&quot;</span>)]
     </span><span class="kw">pub </span>file_name: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(uint32, optional, tag=<span class="string">&quot;8&quot;</span>)]
@@ -2626,7 +2651,7 @@
     </span><span class="kw">pub </span>blur_hash: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;13&quot;</span>)]
     </span><span class="kw">pub </span>upload_timestamp: ::core::option::Option&lt;u64&gt;,
-    <span class="doccomment">/// Next ID: 16
+    <span class="doccomment">/// Next ID: 18
     </span><span class="attr">#[prost(uint32, optional, tag=<span class="string">&quot;14&quot;</span>)]
     </span><span class="kw">pub </span>cdn_number: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(oneof=<span class="string">&quot;attachment_pointer::AttachmentIdentifier&quot;</span>, tags=<span class="string">&quot;1, 15&quot;</span>)]
@@ -2695,7 +2720,7 @@
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;1&quot;</span>)]
     </span><span class="kw">pub </span>number: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;9&quot;</span>)]
-    </span><span class="kw">pub </span>uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    </span><span class="kw">pub </span>aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(string, optional, tag=<span class="string">&quot;2&quot;</span>)]
     </span><span class="kw">pub </span>name: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;3&quot;</span>)]
@@ -2800,6 +2825,13 @@
     </span><span class="kw">pub </span>pni: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(bytes=<span class="string">&quot;vec&quot;</span>, optional, tag=<span class="string">&quot;2&quot;</span>)]
     </span><span class="kw">pub </span>signature: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>EditMessage {
+    <span class="attr">#[prost(uint64, optional, tag=<span class="string">&quot;1&quot;</span>)]
+    </span><span class="kw">pub </span>target_sent_timestamp: ::core::option::Option&lt;u64&gt;,
+    <span class="attr">#[prost(message, optional, tag=<span class="string">&quot;2&quot;</span>)]
+    </span><span class="kw">pub </span>data_message: ::core::option::Option&lt;DataMessage&gt;,
 }
 <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ProvisioningUuid {

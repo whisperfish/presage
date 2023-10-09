@@ -1466,6 +1466,54 @@
 <a href="#1466" id="1466">1466</a>
 <a href="#1467" id="1467">1467</a>
 <a href="#1468" id="1468">1468</a>
+<a href="#1469" id="1469">1469</a>
+<a href="#1470" id="1470">1470</a>
+<a href="#1471" id="1471">1471</a>
+<a href="#1472" id="1472">1472</a>
+<a href="#1473" id="1473">1473</a>
+<a href="#1474" id="1474">1474</a>
+<a href="#1475" id="1475">1475</a>
+<a href="#1476" id="1476">1476</a>
+<a href="#1477" id="1477">1477</a>
+<a href="#1478" id="1478">1478</a>
+<a href="#1479" id="1479">1479</a>
+<a href="#1480" id="1480">1480</a>
+<a href="#1481" id="1481">1481</a>
+<a href="#1482" id="1482">1482</a>
+<a href="#1483" id="1483">1483</a>
+<a href="#1484" id="1484">1484</a>
+<a href="#1485" id="1485">1485</a>
+<a href="#1486" id="1486">1486</a>
+<a href="#1487" id="1487">1487</a>
+<a href="#1488" id="1488">1488</a>
+<a href="#1489" id="1489">1489</a>
+<a href="#1490" id="1490">1490</a>
+<a href="#1491" id="1491">1491</a>
+<a href="#1492" id="1492">1492</a>
+<a href="#1493" id="1493">1493</a>
+<a href="#1494" id="1494">1494</a>
+<a href="#1495" id="1495">1495</a>
+<a href="#1496" id="1496">1496</a>
+<a href="#1497" id="1497">1497</a>
+<a href="#1498" id="1498">1498</a>
+<a href="#1499" id="1499">1499</a>
+<a href="#1500" id="1500">1500</a>
+<a href="#1501" id="1501">1501</a>
+<a href="#1502" id="1502">1502</a>
+<a href="#1503" id="1503">1503</a>
+<a href="#1504" id="1504">1504</a>
+<a href="#1505" id="1505">1505</a>
+<a href="#1506" id="1506">1506</a>
+<a href="#1507" id="1507">1507</a>
+<a href="#1508" id="1508">1508</a>
+<a href="#1509" id="1509">1509</a>
+<a href="#1510" id="1510">1510</a>
+<a href="#1511" id="1511">1511</a>
+<a href="#1512" id="1512">1512</a>
+<a href="#1513" id="1513">1513</a>
+<a href="#1514" id="1514">1514</a>
+<a href="#1515" id="1515">1515</a>
+<a href="#1516" id="1516">1516</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{
     fmt,
     ops::RangeBounds,
@@ -1484,6 +1532,7 @@
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>url::Url;
 
+<span class="kw">use </span>libsignal_service::proto::EditMessage;
 <span class="kw">use </span>libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 <span class="kw">use </span>libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -2511,8 +2560,7 @@
             body: content_body,
         };
 
-        <span class="kw">let </span>thread = Thread::Contact(recipient.uuid);
-        save_message_with_thread(<span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store, content, thread)<span class="question-mark">?</span>;
+        save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>.config_store, content)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -2814,11 +2862,10 @@
     <span class="prelude-val">Ok</span>(config_store.group(master_key_bytes.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>)
 }
 
-<span class="kw">fn </span>save_message_with_thread&lt;C: Store&gt;(
-    config_store: <span class="kw-2">&amp;mut </span>C,
-    message: Content,
-    thread: Thread,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
+<span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
+    <span class="comment">// derive the thread from the message type
+    </span><span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
+
     <span class="comment">// update recipient profile keys
     </span><span class="kw">if let </span>ContentBody::DataMessage(DataMessage {
         profile_key: <span class="prelude-val">Some</span>(profile_key_bytes),
@@ -2834,15 +2881,17 @@
     }
 
     <span class="comment">// only save DataMessage and SynchronizeMessage (sent)
-    </span><span class="kw">match </span><span class="kw-2">&amp;</span>message.body {
-        ContentBody::NullMessage(<span class="kw">_</span>) =&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
-        ContentBody::DataMessage(d)
+    </span><span class="kw">let </span>message = <span class="kw">match </span>message.body {
+        ContentBody::NullMessage(<span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(message),
+        ContentBody::DataMessage(<span class="kw-2">ref </span>data_message)
         | ContentBody::SynchronizeMessage(SyncMessage {
-            sent: <span class="prelude-val">Some</span>(sync_message::Sent {
-                message: <span class="prelude-val">Some</span>(d), ..
-            }),
+            sent:
+                <span class="prelude-val">Some</span>(sync_message::Sent {
+                    message: <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>data_message),
+                    ..
+                }),
             ..
-        }) =&gt; <span class="kw">match </span>d {
+        }) =&gt; <span class="kw">match </span>data_message {
             DataMessage {
                 delete:
                     <span class="prelude-val">Some</span>(Delete {
@@ -2856,30 +2905,77 @@
                     existing_msg.body = NullMessage::default().into();
                     config_store.save_message(<span class="kw-2">&amp;</span>thread, existing_msg)<span class="question-mark">?</span>;
                     <span class="macro">debug!</span>(<span class="string">&quot;message in thread {thread} @ {ts} deleted&quot;</span>);
-                }
+                    <span class="prelude-val">None
+                </span>} <span class="kw">else </span>{
+                    <span class="macro">warn!</span>(<span class="string">&quot;could not find message to delete in thread {thread} @ {ts}&quot;</span>);
+                    <span class="prelude-val">None
+                </span>}
             }
-            <span class="kw">_ </span>=&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">Some</span>(message),
         },
+        ContentBody::EditMessage(EditMessage {
+            target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
+            data_message: <span class="prelude-val">Some</span>(data_message),
+        })
+        | ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                <span class="prelude-val">Some</span>(sync_message::Sent {
+                    edit_message:
+                        <span class="prelude-val">Some</span>(EditMessage {
+                            target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
+                            data_message: <span class="prelude-val">Some</span>(data_message),
+                        }),
+                    ..
+                }),
+            ..
+        }) =&gt; {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) = config_store.message(<span class="kw-2">&amp;</span>thread, ts)<span class="question-mark">? </span>{
+                existing_msg.metadata = message.metadata;
+                existing_msg.body = ContentBody::DataMessage(data_message);
+                <span class="comment">// TODO: find a way to mark the message as edited (so that it&#39;s visible in a client)
+                </span><span class="macro">trace!</span>(<span class="string">&quot;message in thread {thread} @ {ts} edited&quot;</span>);
+                <span class="prelude-val">Some</span>(existing_msg)
+            } <span class="kw">else </span>{
+                <span class="macro">warn!</span>(<span class="string">&quot;could not find edited message {thread} @ {ts}&quot;</span>);
+                <span class="prelude-val">None
+            </span>}
+        }
         ContentBody::CallMessage(<span class="kw">_</span>)
         | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: <span class="prelude-val">Some</span>(<span class="kw">_</span>),
             ..
-        }) =&gt; config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>,
-        ContentBody::SynchronizeMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving sync message without interesting fields&quot;</span>)
-        }
-        ContentBody::ReceiptMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving receipt message&quot;</span>),
-        ContentBody::TypingMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping saving typing message&quot;</span>),
-        ContentBody::StoryMessage(<span class="kw">_</span>) =&gt; <span class="macro">debug!</span>(<span class="string">&quot;skipping story message&quot;</span>),
-        ContentBody::PniSignatureMessage(<span class="kw">_</span>) =&gt; <span class="macro">todo!</span>(),
+        }) =&gt; <span class="prelude-val">Some</span>(message),
+        ContentBody::SynchronizeMessage(s) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving sync message without interesting fields: {s:?}&quot;</span>);
+            <span class="prelude-val">None
+        </span>}
+        ContentBody::ReceiptMessage(<span class="kw">_</span>) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving receipt message&quot;</span>);
+            <span class="prelude-val">None
+        </span>}
+        ContentBody::TypingMessage(<span class="kw">_</span>) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving typing message&quot;</span>);
+            <span class="prelude-val">None
+        </span>}
+        ContentBody::StoryMessage(<span class="kw">_</span>) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;skipping story message&quot;</span>);
+            <span class="prelude-val">None
+        </span>}
+        ContentBody::PniSignatureMessage(<span class="kw">_</span>) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;skipping PNI signature message&quot;</span>);
+            <span class="prelude-val">None
+        </span>}
+        ContentBody::EditMessage(<span class="kw">_</span>) =&gt; {
+            <span class="macro">debug!</span>(<span class="string">&quot;invalid edited&quot;</span>);
+            <span class="prelude-val">None
+        </span>}
+    };
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(message) = message {
+        config_store.save_message(<span class="kw-2">&amp;</span>thread, message)<span class="question-mark">?</span>;
     }
 
     <span class="prelude-val">Ok</span>(())
-}
-
-<span class="kw">fn </span>save_message&lt;C: Store&gt;(config_store: <span class="kw-2">&amp;mut </span>C, message: Content) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;C::Error&gt;&gt; {
-    <span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
-    save_message_with_thread(config_store, message, thread)
 }
 
 <span class="attr">#[cfg(test)]
