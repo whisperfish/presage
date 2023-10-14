@@ -978,7 +978,7 @@ impl<C: Store> Manager<C, Registered> {
                                                 verified: Verified {
                                                     identity_key: None,
                                                     state: None,
-                                                    destination_uuid: None,
+                                                    destination_aci: None,
                                                     null_message: None,
                                                 },
                                                 blocked: false,
@@ -1006,14 +1006,11 @@ impl<C: Store> Manager<C, Registered> {
 
                                 let thread = Thread::try_from(&content).unwrap();
 
-                                let store = &mut state.config_store;
-
-                                match store.thread_metadata(&thread) {
-                                    Ok(metadata) => {
-                                        if metadata.is_none() {
+                                match state.config_store.thread_metadata(&thread) {
+                                    Ok(Some(_)) => {},
+                                    Ok(None) => {
                                             // Create a new thread metadata and save it
-                                            create_thread_metadata(store, &thread).ok()?;
-                                        }
+                                            create_thread_metadata(&mut state.config_store, &thread).ok()?;
                                     }
                                     Err(e) => {
                                         log::error!("Error getting thread metadata: {}", e);
@@ -1713,11 +1710,6 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
     }
 
     Ok(())
-}
-
-fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
-    let thread = Thread::try_from(&message)?;
-    save_message_with_thread(config_store, message, thread)
 }
 pub fn save_thread_metadata<C: Store>(
     config_store: &mut C,

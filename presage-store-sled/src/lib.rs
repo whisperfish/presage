@@ -31,7 +31,7 @@ use protobuf::ContentProto;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
-
+use presage_store_cipher::StoreCipher;
 use presage::{GroupMasterKeyBytes, Registered, Store, Thread, ThreadMetadata};
 
 mod error;
