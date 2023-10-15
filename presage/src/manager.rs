@@ -16,7 +16,7 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use libsignal_service::proto::EditMessage;
+use libsignal_service::{proto::EditMessage, messagepipe::Incoming};
 use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -28,7 +28,7 @@ use libsignal_service::{
     models::Contact,
     prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
     proto::{
-        data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
+        data_message::Delete, sync_message, AttachmentPointer, GroupContextV2,
         NullMessage,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
@@ -630,9 +630,22 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
+    async fn wait_for_initial_sync(&mut self) -> Result<(), Error<C::Error>> {
+        let messages = self.receive_messages_stream(true).await?;
+        pin_mut!(messages);
+        while let Some(msg) = messages.next().await {
+            debug!("{msg:?}");
+        }
+        Ok(())
+    }
+
     async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
-        let _messages = self.receive_messages_stream(true).await?;
+        self.wait_for_initial_sync().await?;
         self.request_contacts_sync().await?;
+
+        // XXX: this will not work, too fast for the primary phone to send contacts
+        self.wait_for_initial_sync().await?;
+
         Ok(())
     }
 
@@ -792,7 +805,7 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_encrypted(
         &mut self,
-    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<C::Error>> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let allow_stories = false;
         let pipe = MessageReceiver::new(self.push_service()?)
@@ -842,7 +855,7 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_stream(
         &mut self,
-        stop_on_contacts_sync: bool,
+        initial_sync: bool,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
@@ -850,7 +863,7 @@ impl<C: Store> Manager<C, Registered> {
             service_cipher: ServiceCipher<C>,
             config_store: C,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
-            stop_on_contacts_sync: bool,
+            initial_sync: bool,
         }
 
         let init = StreamState {
@@ -859,13 +872,13 @@ impl<C: Store> Manager<C, Registered> {
             service_cipher: self.new_service_cipher()?,
             config_store: self.config_store.clone(),
             groups_manager: self.groups_manager()?,
-            stop_on_contacts_sync,
+            initial_sync,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
             loop {
                 match state.encrypted_messages.next().await {
-                    Some(Ok(envelope)) => {
+                    Some(Ok(Incoming::Envelope(envelope))) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
@@ -895,11 +908,7 @@ impl<C: Store> Manager<C, Registered> {
                                         }
                                     }
 
-                                    if state.stop_on_contacts_sync {
-                                        return None;
-                                    } else {
-                                        continue;
-                                    }
+                                    continue;
                                 }
 
                                 if let ContentBody::DataMessage(DataMessage {
@@ -959,6 +968,10 @@ impl<C: Store> Manager<C, Registered> {
                                 error!("Error opening envelope: {:?}, message will be skipped!", e);
                             }
                         }
+                    }
+                    Some(Ok(Incoming::QueueEmpty)) => {
+                        debug!("empty queue");
+                        if state.initial_sync { return None; }
                     }
                     Some(Err(e)) => error!("Error: {}", e),
                     None => return None,
