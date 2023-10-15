@@ -5,7 +5,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
+use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt, stream};
 use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
 use rand::{
@@ -16,7 +16,7 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use libsignal_service::proto::EditMessage;
+use libsignal_service::{proto::EditMessage, messagepipe::Incoming};
 use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -28,7 +28,7 @@ use libsignal_service::{
     models::Contact,
     prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
     proto::{
-        data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
+        data_message::Delete, sync_message, AttachmentPointer, GroupContextV2,
         NullMessage,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
@@ -127,6 +127,8 @@ pub struct Registered {
     #[serde(with = "serde_profile_key")]
     profile_key: ProfileKey,
 }
+
+pub struct Synced { inner: Registered }
 
 impl fmt::Debug for Registered {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -532,6 +534,16 @@ impl<C: Store> Manager<C, Confirmation> {
     }
 }
 
+pub enum SyncItem<C> {
+    InProgress(Content),
+    Finished(Manager<C, Synced>),
+}
+
+pub enum ReceivedMessage {
+    Content(Content),
+    EmptyQueue,
+}
+
 impl<C: Store> Manager<C, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
@@ -553,6 +565,25 @@ impl<C: Store> Manager<C, Registered> {
 
         Ok(manager)
     }
+
+    pub async fn initial_sync(mut self) -> Result<impl Stream<Item = SyncItem<C>>, Error<C::Error>> {
+        Ok(self.receive_messages_stream(true).await?.take_while(|received| {
+            future::ready(match received {
+                ReceivedMessage::Content(_) => true,
+                ReceivedMessage::EmptyQueue => false,
+            })
+        }).map(|received| {
+            match received {
+                ReceivedMessage::Content(content) => SyncItem::InProgress(content),
+                ReceivedMessage::EmptyQueue => unreachable!("logic error"),
+            }
+        }).chain(stream::once(async move {
+            SyncItem::Finished(Manager {
+            rng: self.rng,
+            config_store: self.config_store,
+           state: Synced { inner: self.state } 
+        })})))
+    } 
 
     async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
         trace!("registering pre keys");
@@ -632,10 +663,10 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn wait_for_contacts_sync(
         &mut self,
-        mut messages: impl Stream<Item = Content> + Unpin,
+        mut messages: impl Stream<Item = ReceivedMessage> + Unpin,
     ) -> Result<(), Error<C::Error>> {
         let mut message_receiver = MessageReceiver::new(self.push_service()?);
-        while let Some(Content { body, .. }) = messages.next().await {
+        while let Some(ReceivedMessage::Content(Content { body, .. })) = messages.next().await {
             if let ContentBody::SynchronizeMessage(SyncMessage {
                 contacts: Some(contacts),
                 ..
@@ -826,7 +857,7 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_encrypted(
         &mut self,
-    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<C::Error>> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let allow_stories = false;
         let pipe = MessageReceiver::new(self.push_service()?)
@@ -846,15 +877,6 @@ impl<C: Store> Manager<C, Registered> {
             .replace(unidentified_ws);
 
         Ok(pipe.stream())
-    }
-
-    /// Starts receiving and storing messages.
-    ///
-    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
-    pub async fn receive_messages(
-        &mut self,
-    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
-        self.receive_messages_stream(false).await
     }
 
     fn groups_manager(
@@ -877,7 +899,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn receive_messages_stream(
         &mut self,
         include_internal_events: bool,
-    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = ReceivedMessage>, Error<C::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             service_cipher: ServiceCipher<C>,
@@ -897,7 +919,8 @@ impl<C: Store> Manager<C, Registered> {
         Ok(futures::stream::unfold(init, |mut state| async move {
             loop {
                 match state.encrypted_messages.next().await {
-                    Some(Ok(envelope)) => {
+                    Some(Ok(Incoming::QueueEmpty)) => return Some((ReceivedMessage::EmptyQueue, state)),
+                    Some(Ok(Incoming::Envelope(envelope))) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
@@ -907,7 +930,7 @@ impl<C: Store> Manager<C, Registered> {
                                 }) = &content.body
                                 {
                                     if state.include_internal_events {
-                                        return Some((content, state));
+                                        return Some((ReceivedMessage::Content(content), state));
                                     } else {
                                         continue;
                                     }
@@ -961,7 +984,7 @@ impl<C: Store> Manager<C, Registered> {
                                     log::error!("Error saving message to store: {}", e);
                                 }
 
-                                return Some((content, state));
+                                return Some((ReceivedMessage::Content(content), state));
                             }
                             Ok(None) => {
                                 debug!("Empty envelope..., message will be skipped!")
@@ -1308,6 +1331,19 @@ impl<C: Store> Manager<C, Registered> {
     pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
         self.group(master_key_bytes)
     }
+}
+
+impl<C: Store> Manager<C, Synced> {
+    /// Starts receiving and storing messages.
+    ///
+    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
+    pub async fn receive_messages(
+        &mut self,
+    ) -> Result<impl Stream<Item = ReceivedMessage>, Error<C::Error>> {
+        let mut hacked_manager = Manager { config_store: self.config_store.clone(), rng: self.rng.clone(), state: self.state.inner.clone() };
+        hacked_manager.receive_messages_stream(false).await
+    }
+
 }
 
 async fn upsert_group<C: Store>(

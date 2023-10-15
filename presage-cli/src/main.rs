@@ -10,10 +10,14 @@ use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
 use env_logger::Env;
+use futures::Future;
+use futures::Stream;
 use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
+use presage::SyncItem;
+use presage::Synced;
 use presage::libsignal_service::content::Reaction;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
@@ -251,8 +255,9 @@ async fn process_incoming_message<C: Store>(
     manager: &mut Manager<C, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
-    content: &Content,
+    content: Content,
 ) {
+    let content = &content;
     print_message(manager, notifications, content);
 
     let sender = content.metadata.sender.uuid;
@@ -445,18 +450,30 @@ async fn receive<C: Store>(
         attachments_tmp_dir.path().display()
     );
 
-    let messages = manager
-        .receive_messages()
-        .await
-        .context("failed to initialize messages stream")?;
-    pin_mut!(messages);
+    let initial_messages_stream = manager.initial_sync().await
+    .context("failed to initialize messages stream")?;
 
-    while let Some(content) = messages.next().await {
-        process_incoming_message(manager, attachments_tmp_dir.path(), notifications, &content)
-            .await;
-    }
+
+    let manager = run_initial_sync(initial_messages_stream, |content| {
+        process_incoming_message(manager, attachments_tmp_dir.path(), notifications, content)
+    }).await;
+
+    // receive
 
     Ok(())
+}
+
+async fn run_initial_sync<C: Store, F: Future<Output = ()>>(initial_messages: impl Stream<Item=SyncItem<C>>, process: impl Fn(Content) -> F)  -> anyhow::Result<Manager<C, Synced>> {
+    pin_mut!(initial_messages);    
+
+    while let Some(content) = initial_messages.next().await {
+        match content {
+            SyncItem::InProgress(content) => process(content).await,
+            SyncItem::Finished(inner_manager) => return Ok(inner_manager),
+       }
+    };
+
+    unreachable!()    
 }
 
 async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {

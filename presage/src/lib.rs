@@ -5,7 +5,7 @@ mod serde;
 mod store;
 
 pub use errors::Error;
-pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
+pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions, SyncItem, Synced};
 pub use store::{ContentTimestamp, Store, StoreError, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
