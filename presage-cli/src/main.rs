@@ -208,7 +208,6 @@ async fn send<C: Store + 'static>(
     manager: &mut Manager<C, Registered>,
     uuid: &Uuid,
     content_body: impl Into<ContentBody>,
-    timestamp: u64,
 ) -> anyhow::Result<()> {
     let local = task::LocalSet::new();
 
@@ -224,7 +223,7 @@ async fn send<C: Store + 'static>(
             sleep(Duration::from_secs(5)).await;
 
             manager
-                .send_message(*uuid, content_body, timestamp)
+                .send_message(*uuid, content_body)
                 .await
                 .unwrap();
 
@@ -526,7 +525,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 timestamp: Some(timestamp),
                 ..Default::default()
             };
-            send(&mut manager, &uuid, message, timestamp).await?;
+            send(&mut manager, &uuid, message).await?;
         }
         Cmd::SendToGroup {
             message,
