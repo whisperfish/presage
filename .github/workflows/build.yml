@@ -51,7 +51,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --docs ${{ matrix.cargo_flags }}
+          args: --doc ${{ matrix.cargo_flags }}
 
   rustfmt:
     name: rustfmt
