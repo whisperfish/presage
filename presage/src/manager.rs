@@ -850,7 +850,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Starts receiving and storing messages.
     ///
-    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
+    /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
@@ -982,7 +982,7 @@ impl<C: Store> Manager<C, Registered> {
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
     ///
-    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message(
         &mut self,
@@ -1067,7 +1067,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
     ///
-    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message_to_group(
         &mut self,
