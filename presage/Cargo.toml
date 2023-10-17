@@ -23,3 +23,4 @@ tokio = { version = "1.0", default-features = false, features = ["time"] }
 [dev-dependencies]
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
+presage-store-sled = { path = "../presage-store-sled" }

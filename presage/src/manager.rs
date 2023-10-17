@@ -149,14 +149,16 @@ impl<C: Store> Manager<C, Registration> {
     /// have to use to send the confirmation code.
     ///
     /// ```no_run
-    /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
-    ///     use std::str::FromStr;
+    /// use std::str::FromStr;
     ///
-    ///     use presage::{
-    ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, MigrationConflictStrategy, RegistrationOptions, SledStore,
-    ///     };
+    /// use presage::{
+    ///     prelude::{phonenumber::PhoneNumber, SignalServers},
+    ///     Manager, RegistrationOptions,
+    /// };
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
@@ -264,10 +266,11 @@ impl<C: Store> Manager<C, Linking> {
     ///
     /// ```no_run
     /// use futures::{channel::oneshot, future, StreamExt};
-    /// use presage::{prelude::SignalServers, Manager, MigrationConflictStrategy, SledStore};
+    /// use presage::{prelude::SignalServers, Manager};
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
