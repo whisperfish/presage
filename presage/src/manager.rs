@@ -1464,6 +1464,8 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
+    use base64::engine::general_purpose;
+    use base64::Engine;
     use libsignal_service::prelude::ProfileKey;
     use libsignal_service::protocol::KeyPair;
     use rand::RngCore;
@@ -1500,12 +1502,12 @@ mod tests {
           },
           "uuid": "ff9a89d9-8052-4af0-a91d-2a0dfa0c6b95",
           "password": "HelloWorldOfPasswords",
-          "signaling_key": base64::encode(signaling_key),
+          "signaling_key": general_purpose::STANDARD.encode(signaling_key),
           "device_id": 42,
           "registration_id": 64,
-          "private_key": base64::encode(key_pair.private_key.serialize()),
-          "public_key": base64::encode(key_pair.public_key.serialize()),
-          "profile_key": base64::encode(profile_key.get_bytes()),
+          "private_key": general_purpose::STANDARD.encode(key_pair.private_key.serialize()),
+          "public_key": general_purpose::STANDARD.encode(key_pair.public_key.serialize()),
+          "profile_key": general_purpose::STANDARD.encode(profile_key.get_bytes()),
         });
 
         let state: Registered = serde_json::from_value(previous_state).expect("should deserialize");
