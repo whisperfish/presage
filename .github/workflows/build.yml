@@ -26,12 +26,12 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      
+
       - name: Setup Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
-      
+
       - name: Configure CI cache
         uses: Swatinem/rust-cache@v2
 
@@ -40,12 +40,18 @@ jobs:
         with:
           command: build
           args: --all-targets ${{ matrix.cargo_flags }}
-      
+
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-targets ${{ matrix.cargo_flags }}
+
+      - name: Run doc tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --doc ${{ matrix.cargo_flags }}
 
   rustfmt:
     name: rustfmt
@@ -60,7 +66,7 @@ jobs:
           profile: minimal
           toolchain: stable
           components: rustfmt
-      
+
       - name: Check code format
         uses: actions-rs/cargo@v1
         with:
@@ -73,14 +79,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-      
+
       - name: Setup Rust toolchain
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           components: clippy
-      
+
       - name: Setup CI cache
         uses: Swatinem/rust-cache@v2
 
