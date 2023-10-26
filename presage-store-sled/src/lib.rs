@@ -24,15 +24,13 @@ use presage::{
         session_store::SessionStoreExt,
         Profile, ServiceAddress,
     },
-    ContentTimestamp,
+    ContentTimestamp, GroupMasterKeyBytes, RegisteredData, Store, Thread,
 };
 use prost::Message;
 use protobuf::ContentProto;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
-
-use presage::{GroupMasterKeyBytes, Registered, Store, Thread};
 
 mod error;
 mod protobuf;
@@ -373,11 +371,11 @@ impl Store for SledStore {
 
     /// State
 
-    fn load_state(&self) -> Result<std::option::Option<Registered<Self>>, SledStoreError> {
+    fn load_state(&self) -> Result<Option<RegisteredData>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered<Self>) -> Result<(), SledStoreError> {
+    fn save_state(&mut self, state: &RegisteredData) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }

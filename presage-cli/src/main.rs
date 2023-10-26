@@ -206,7 +206,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn send<C: Store + 'static>(
-    manager: &mut Manager<C, Registered>,
+    manager: &mut Manager<C, Registered<C>>,
     uuid: &Uuid,
     content_body: impl Into<ContentBody>,
 ) -> anyhow::Result<()> {
@@ -235,7 +235,7 @@ async fn send<C: Store + 'static>(
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
 async fn process_incoming_message<C: Store>(
-    manager: &mut Manager<C, Registered>,
+    manager: &mut Manager<C, Registered<C>>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
@@ -274,7 +274,7 @@ async fn process_incoming_message<C: Store>(
 }
 
 fn print_message<C: Store>(
-    manager: &Manager<C, Registered>,
+    manager: &Manager<C, Registered<C>>,
     notifications: bool,
     content: &Content,
 ) {
@@ -423,7 +423,7 @@ fn print_message<C: Store>(
 }
 
 async fn receive<C: Store>(
-    manager: &mut Manager<C, Registered>,
+    manager: &mut Manager<C, Registered<C>>,
     notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;

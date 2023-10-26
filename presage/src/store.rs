@@ -1,9 +1,6 @@
 use std::{fmt, ops::RangeBounds};
 
-use crate::{
-    manager::{Registered, RegisteredData},
-    GroupMasterKeyBytes,
-};
+use crate::{manager::RegisteredData, GroupMasterKeyBytes};
 use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,

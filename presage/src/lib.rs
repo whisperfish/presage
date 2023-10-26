@@ -6,7 +6,8 @@ mod store;
 
 pub use errors::Error;
 pub use manager::{
-    Confirmation, Linking, Manager, ReceivingMode, Registered, Registration, RegistrationOptions,
+    Confirmation, Linking, Manager, ReceivingMode, Registered, RegisteredData, Registration,
+    RegistrationOptions,
 };
 pub use store::{ContentTimestamp, Store, StoreError, Thread};
 

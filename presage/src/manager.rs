@@ -24,10 +24,7 @@ use libsignal_service::{
     groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::ServiceCredentials,
     models::Contact,
-    prelude::{
-        phonenumber::{country::Id::DE, PhoneNumber},
-        Content, ProfileKey, PushService, Uuid,
-    },
+    prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
     proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2, NullMessage},
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
     provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
@@ -150,8 +147,19 @@ pub enum ReceivingMode {
 }
 
 impl<C: Store> Registered<C> {
+    fn with_data(inner: RegisteredData) -> Self {
+        Self {
+            identified_push_service_cache: CacheCell::default(),
+            unidentified_push_service_cache: CacheCell::default(),
+            identified_websocket: Default::default(),
+            message_sender: Default::default(),
+            unidentified_sender_certificate: Default::default(),
+            inner,
+        }
+    }
+
     pub fn device_id(&self) -> u32 {
-        self.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+        self.inner.device_id.unwrap_or(DEFAULT_DEVICE_ID)
     }
 }
 
@@ -360,7 +368,7 @@ impl<C: Store> Manager<C, Linking> {
                 }) = rx.next().await
                 {
                     log::info!("successfully registered device {}", &service_ids);
-                    Ok(Registered {
+                    Ok(Registered::with_data(RegisteredData {
                         signal_servers,
                         device_name: Some(device_name),
                         phone_number,
@@ -377,7 +385,7 @@ impl<C: Store> Manager<C, Linking> {
                         profile_key: ProfileKey::create(
                             profile_key.try_into().expect("32 bytes for profile key"),
                         ),
-                    })
+                    }))
                 } else {
                     Err(Error::NoProvisioningMessageReceived)
                 }
@@ -393,7 +401,7 @@ impl<C: Store> Manager<C, Linking> {
             state: registration?,
         };
 
-        manager.config_store.save_state(&manager.state)?;
+        manager.config_store.save_state(&manager.state.inner)?;
 
         match (
             manager.set_account_attributes().await,
@@ -507,35 +515,28 @@ impl<C: Store> Manager<C, Confirmation> {
         let mut manager = Manager {
             rng,
             config_store: self.config_store,
-            state: Registered {
-                identified_push_service_cache: CacheCell::default(),
-                unidentified_push_service_cache: CacheCell::default(),
-                identified_websocket: Default::default(),
-                message_sender: Default::default(),
-                unidentified_sender_certificate: Default::default(),
-                inner: RegisteredData {
-                    signal_servers: self.state.signal_servers,
-                    device_name: None,
-                    phone_number,
-                    service_ids: ServiceIds {
-                        aci: registered.uuid,
-                        pni: registered.pni,
-                    },
-                    password,
-                    signaling_key,
-                    device_id: None,
-                    registration_id,
-                    pni_registration_id: Some(pni_registration_id),
-                    aci_private_key: aci_identity_key_pair.private_key,
-                    aci_public_key: aci_identity_key_pair.public_key,
-                    pni_private_key: Some(pni_identity_key_pair.private_key),
-                    pni_public_key: Some(pni_identity_key_pair.public_key),
-                    profile_key,
+            state: Registered::with_data(RegisteredData {
+                signal_servers: self.state.signal_servers,
+                device_name: None,
+                phone_number,
+                service_ids: ServiceIds {
+                    aci: registered.uuid,
+                    pni: registered.pni,
                 },
-            },
+                password,
+                signaling_key,
+                device_id: None,
+                registration_id,
+                pni_registration_id: Some(pni_registration_id),
+                aci_private_key: aci_identity_key_pair.private_key,
+                aci_public_key: aci_identity_key_pair.public_key,
+                pni_private_key: Some(pni_identity_key_pair.private_key),
+                pni_public_key: Some(pni_identity_key_pair.public_key),
+                profile_key,
+            }),
         };
 
-        manager.config_store.save_state(&manager.state)?;
+        manager.config_store.save_state(&manager.state.inner)?;
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
@@ -587,7 +588,7 @@ impl<C: Store> Manager<C, Registered<C>> {
         trace!("registering pre keys");
         let mut account_manager = AccountManager::new(
             self.identified_push_service()?,
-            Some(self.state.profile_key),
+            Some(self.state.inner.profile_key),
         );
 
         let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
@@ -616,24 +617,24 @@ impl<C: Store> Manager<C, Registered<C>> {
         trace!("setting account attributes");
         let mut account_manager = AccountManager::new(
             self.identified_push_service()?,
-            Some(self.state.profile_key),
+            Some(self.state.inner.profile_key),
         );
 
-        let pni_registration_id = if let Some(pni_registration_id) = self.state.pni_registration_id
-        {
-            pni_registration_id
-        } else {
-            info!("migrating to PNI");
-            let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
-            self.state.pni_registration_id = Some(pni_registration_id);
-            self.config_store.save_state(&self.state)?;
-            pni_registration_id
-        };
+        let pni_registration_id =
+            if let Some(pni_registration_id) = self.state.inner.pni_registration_id {
+                pni_registration_id
+            } else {
+                info!("migrating to PNI");
+                let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
+                self.state.inner.pni_registration_id = Some(pni_registration_id);
+                self.config_store.save_state(&self.state.inner)?;
+                pni_registration_id
+            };
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: self.state.device_name.clone(),
-                registration_id: self.state.registration_id,
+                name: self.state.inner.device_name.clone(),
+                registration_id: self.state.inner.registration_id,
                 pni_registration_id,
                 signaling_key: None,
                 voice: false,
@@ -641,7 +642,9 @@ impl<C: Store> Manager<C, Registered<C>> {
                 fetches_messages: true,
                 pin: None,
                 registration_lock: None,
-                unidentified_access_key: Some(self.state.profile_key.derive_access_key().to_vec()),
+                unidentified_access_key: Some(
+                    self.state.inner.profile_key.derive_access_key().to_vec(),
+                ),
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
@@ -652,11 +655,11 @@ impl<C: Store> Manager<C, Registered<C>> {
             })
             .await?;
 
-        if self.state.pni_registration_id.is_none() {
+        if self.state.inner.pni_registration_id.is_none() {
             debug!("fetching PNI UUID and updating state");
             let whoami = self.whoami().await?;
-            self.state.service_ids.pni = whoami.pni;
-            self.config_store.save_state(&self.state)?;
+            self.state.inner.service_ids.pni = whoami.pni;
+            self.config_store.save_state(&self.state.inner)?;
         }
 
         trace!("done setting account attributes");
@@ -686,24 +689,33 @@ impl<C: Store> Manager<C, Registered<C>> {
     /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&mut self) -> Result<(), Error<C::Error>> {
         trace!("requesting contacts sync");
-        self.send_message(self.state.service_ids.aci, SyncMessage::request_contacts())
-            .await?;
+        self.send_message(
+            self.state.inner.service_ids.aci,
+            SyncMessage::request_contacts(),
+        )
+        .await?;
 
         Ok(())
     }
 
     async fn request_keys_sync(&mut self) -> Result<(), Error<C::Error>> {
         trace!("requesting keys sync");
-        self.send_message(self.state.service_ids.aci, SyncMessage::request_keys())
-            .await?;
+        self.send_message(
+            self.state.inner.service_ids.aci,
+            SyncMessage::request_keys(),
+        )
+        .await?;
 
         Ok(())
     }
 
     async fn request_block_sync(&mut self) -> Result<(), Error<C::Error>> {
         trace!("requesting blocked sync");
-        self.send_message(self.state.service_ids.aci, SyncMessage::request_blocked())
-            .await?;
+        self.send_message(
+            self.state.inner.service_ids.aci,
+            SyncMessage::request_blocked(),
+        )
+        .await?;
 
         Ok(())
     }
@@ -758,7 +770,7 @@ impl<C: Store> Manager<C, Registered<C>> {
 
     /// Returns a handle on the registered state
     pub fn state(&self) -> &RegisteredData {
-        &self.state
+        &self.state.inner
     }
 
     /// Fetches basic information on the registered device.
@@ -768,8 +780,11 @@ impl<C: Store> Manager<C, Registered<C>> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<C::Error>> {
-        self.retrieve_profile_by_uuid(self.state.service_ids.aci, self.state.profile_key)
-            .await
+        self.retrieve_profile_by_uuid(
+            self.state.inner.service_ids.aci,
+            self.state.inner.profile_key,
+        )
+        .await
     }
 
     /// Fetches the profile of the provided user by UUID and profile key.
@@ -861,12 +876,12 @@ impl<C: Store> Manager<C, Registered<C>> {
     fn groups_manager(
         &self,
     ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error<C::Error>> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let service_configuration: ServiceConfiguration = self.state.inner.signal_servers.into();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
         let groups_credentials_cache = InMemoryCredentialsCache::default();
         let groups_manager = GroupsManager::new(
-            self.state.service_ids.clone(),
+            self.state.inner.service_ids.clone(),
             self.identified_push_service()?,
             groups_credentials_cache,
             server_public_params,
@@ -1068,7 +1083,7 @@ impl<C: Store> Manager<C, Registered<C>> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: self.state.service_ids.aci.into(),
+                sender: self.state.inner.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false,
@@ -1147,7 +1162,7 @@ impl<C: Store> Manager<C, Registered<C>> {
         for member in group
             .members
             .into_iter()
-            .filter(|m| m.uuid != self.state.service_ids.aci)
+            .filter(|m| m.uuid != self.state.inner.service_ids.aci)
         {
             let unidentified_access =
                 self.config_store
@@ -1169,7 +1184,7 @@ impl<C: Store> Manager<C, Registered<C>> {
 
         let content = Content {
             metadata: Metadata {
-                sender: self.state.service_ids.aci.into(),
+                sender: self.state.inner.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
@@ -1226,11 +1241,11 @@ impl<C: Store> Manager<C, Registered<C>> {
 
     fn credentials(&self) -> Result<ServiceCredentials, Error<C::Error>> {
         Ok(ServiceCredentials {
-            uuid: Some(self.state.service_ids.aci),
-            phonenumber: self.state.phone_number.clone(),
-            password: Some(self.state.password.clone()),
-            signaling_key: Some(self.state.signaling_key),
-            device_id: self.state.device_id,
+            uuid: Some(self.state.inner.service_ids.aci),
+            phonenumber: self.state.inner.phone_number.clone(),
+            password: Some(self.state.inner.password.clone()),
+            signaling_key: Some(self.state.inner.signaling_key),
+            device_id: self.state.inner.device_id,
         })
     }
 
@@ -1238,7 +1253,8 @@ impl<C: Store> Manager<C, Registered<C>> {
     fn identified_push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
         self.state.identified_push_service_cache.get(|| {
             let credentials = self.credentials()?;
-            let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+            let service_configuration: ServiceConfiguration =
+                self.state.inner.signal_servers.into();
             Ok(HyperPushService::new(
                 service_configuration,
                 Some(credentials),
@@ -1250,7 +1266,8 @@ impl<C: Store> Manager<C, Registered<C>> {
     /// Create or return a clone of a cached unidentified (no credentials) push service.
     fn unidentified_push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
         self.state.unidentified_push_service_cache.get(|| {
-            let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+            let service_configuration: ServiceConfiguration =
+                self.state.inner.signal_servers.into();
             Ok(HyperPushService::new(
                 service_configuration,
                 None,
@@ -1281,7 +1298,7 @@ impl<C: Store> Manager<C, Registered<C>> {
         }
 
         let local_addr = ServiceAddress {
-            uuid: self.state.service_ids.aci,
+            uuid: self.state.inner.service_ids.aci,
         };
 
         let unidentified_ws: SignalWebSocket = self
@@ -1297,7 +1314,11 @@ impl<C: Store> Manager<C, Registered<C>> {
             self.rng.clone(),
             self.config_store.clone(),
             local_addr,
-            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
+            self.state
+                .inner
+                .device_id
+                .unwrap_or(DEFAULT_DEVICE_ID)
+                .into(),
         );
 
         self.state
@@ -1310,13 +1331,13 @@ impl<C: Store> Manager<C, Registered<C>> {
 
     /// Creates a new service cipher.
     fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error<C::Error>> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let service_configuration: ServiceConfiguration = self.state.inner.signal_servers.into();
         let service_cipher = ServiceCipher::new(
             self.config_store.clone(),
             self.rng.clone(),
             service_configuration.unidentified_sender_trust_root,
-            self.state.service_ids.aci,
-            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
+            self.state.inner.service_ids.aci,
+            self.state.inner.device_id.unwrap_or(DEFAULT_DEVICE_ID),
         );
 
         Ok(service_cipher)
