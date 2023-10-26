@@ -153,14 +153,16 @@ impl<C: Store> Manager<C, Registration> {
     /// have to use to send the confirmation code.
     ///
     /// ```no_run
-    /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
-    ///     use std::str::FromStr;
+    /// use std::str::FromStr;
     ///
-    ///     use presage::{
-    ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, MigrationConflictStrategy, RegistrationOptions, SledStore,
-    ///     };
+    /// use presage::{
+    ///     prelude::{phonenumber::PhoneNumber, SignalServers},
+    ///     Manager, RegistrationOptions,
+    /// };
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
@@ -268,10 +270,11 @@ impl<C: Store> Manager<C, Linking> {
     ///
     /// ```no_run
     /// use futures::{channel::oneshot, future, StreamExt};
-    /// use presage::{prelude::SignalServers, Manager, MigrationConflictStrategy, SledStore};
+    /// use presage::{prelude::SignalServers, Manager};
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
@@ -867,7 +870,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Starts receiving and storing messages.
     ///
-    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
+    /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
@@ -1028,7 +1031,7 @@ impl<C: Store> Manager<C, Registered> {
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
     ///
-    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message(
         &mut self,
@@ -1116,7 +1119,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
     ///
-    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message_to_group(
         &mut self,
@@ -1512,6 +1515,8 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
 
 #[cfg(test)]
 mod tests {
+    use base64::engine::general_purpose;
+    use base64::Engine;
     use libsignal_service::prelude::ProfileKey;
     use libsignal_service::protocol::KeyPair;
     use rand::RngCore;
@@ -1548,12 +1553,12 @@ mod tests {
           },
           "uuid": "ff9a89d9-8052-4af0-a91d-2a0dfa0c6b95",
           "password": "HelloWorldOfPasswords",
-          "signaling_key": base64::encode(signaling_key),
+          "signaling_key": general_purpose::STANDARD.encode(signaling_key),
           "device_id": 42,
           "registration_id": 64,
-          "private_key": base64::encode(key_pair.private_key.serialize()),
-          "public_key": base64::encode(key_pair.public_key.serialize()),
-          "profile_key": base64::encode(profile_key.get_bytes()),
+          "private_key": general_purpose::STANDARD.encode(key_pair.private_key.serialize()),
+          "public_key": general_purpose::STANDARD.encode(key_pair.public_key.serialize()),
+          "profile_key": general_purpose::STANDARD.encode(profile_key.get_bytes()),
         });
 
         let state: Registered = serde_json::from_value(previous_state).expect("should deserialize");
