@@ -134,7 +134,7 @@ impl fmt::Debug for Registered {
 }
 
 #[derive(PartialEq, Eq)]
-enum ReceivingMode {
+pub enum ReceivingMode {
     InitialSync,
     WaitForContacts,
     Forever,
@@ -642,9 +642,7 @@ impl<C: Store> Manager<C, Registered> {
             .receive_messages_stream(ReceivingMode::InitialSync)
             .await?;
         pin_mut!(messages);
-        while let Some(_msg) = messages.next().await {
-            // debug!("{msg:?}");
-        }
+        while let Some(_msg) = messages.next().await {}
 
         self.request_configuration_sync().await?;
         self.request_block_sync().await?;
@@ -656,9 +654,7 @@ impl<C: Store> Manager<C, Registered> {
         pin_mut!(messages);
         while let Ok(Some(_msg)) =
             tokio::time::timeout(Duration::from_secs(60), messages.next()).await
-        {
-            // debug!("{msg:?}");
-        }
+        {}
 
         Ok(())
     }
@@ -677,7 +673,6 @@ impl<C: Store> Manager<C, Registered> {
             ..Default::default()
         };
 
-        // first request the sync
         self.send_message(self.state.service_ids.aci, sync_message)
             .await?;
 
@@ -693,7 +688,6 @@ impl<C: Store> Manager<C, Registered> {
             ..Default::default()
         };
 
-        // first request the sync
         self.send_message(self.state.service_ids.aci, sync_message)
             .await?;
 
@@ -709,7 +703,6 @@ impl<C: Store> Manager<C, Registered> {
             ..Default::default()
         };
 
-        // first request the sync
         self.send_message(self.state.service_ids.aci, sync_message)
             .await?;
 
@@ -870,11 +863,15 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Starts receiving and storing messages.
     ///
+    /// * `stop_on_initial_sync` [unstable API] - receive messages until the initial sync is over, or forever.
+    ///    It is essential to synchronize the client once before you try to send, to make sure you have all the updated keys and sessions.
+    ///
     /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
         &mut self,
+        receiving_mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
-        self.receive_messages_stream(ReceivingMode::Forever).await
+        self.receive_messages_stream(receiving_mode).await
     }
 
     fn groups_manager(

@@ -21,6 +21,7 @@ use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use presage::prelude::proto::EditMessage;
 use presage::prelude::SyncMessage;
 use presage::ContentTimestamp;
+use presage::ReceivingMode;
 use presage::{
     prelude::{
         content::{Content, ContentBody, DataMessage, GroupContextV2},
@@ -222,10 +223,7 @@ async fn send<C: Store + 'static>(
 
             sleep(Duration::from_secs(5)).await;
 
-            manager
-                .send_message(*uuid, content_body)
-                .await
-                .unwrap();
+            manager.send_message(*uuid, content_body).await.unwrap();
 
             sleep(Duration::from_secs(5)).await;
         })
@@ -435,7 +433,7 @@ async fn receive<C: Store>(
     );
 
     let messages = manager
-        .receive_messages()
+        .receive_messages(ReceivingMode::Forever)
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
@@ -656,17 +654,13 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
 
             let mut manager = Manager::load_registered(config_store).await?;
             let uuid = manager.state().service_ids.aci;
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as u64;
             let sync_message = SyncMessage {
                 request: Some(sync_message::Request {
                     r#type: Some(sync_message::request::Type::Contacts as i32),
                 }),
                 ..Default::default()
             };
-            send(&mut manager, &uuid, sync_message, timestamp).await?;
+            send(&mut manager, &uuid, sync_message).await?;
         }
         Cmd::ListMessages {
             group_master_key,
