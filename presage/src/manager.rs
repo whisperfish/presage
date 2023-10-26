@@ -96,7 +96,9 @@ pub struct Confirmation {
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    push_service_cache: CacheCell<HyperPushService>,
+    identified_push_service_cache: CacheCell<HyperPushService>,
+    #[serde(skip)]
+    unidentified_push_service_cache: CacheCell<HyperPushService>,
     #[serde(skip)]
     identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     #[serde(skip)]
@@ -355,7 +357,8 @@ impl<C: Store> Manager<C, Linking> {
                 {
                     log::info!("successfully registered device {}", &service_ids);
                     Ok(Registered {
-                        push_service_cache: CacheCell::default(),
+                        identified_push_service_cache: CacheCell::default(),
+                        unidentified_push_service_cache: CacheCell::default(),
                         identified_websocket: Default::default(),
                         unidentified_websocket: Default::default(),
                         unidentified_sender_certificate: Default::default(),
@@ -506,7 +509,8 @@ impl<C: Store> Manager<C, Confirmation> {
             rng,
             config_store: self.config_store,
             state: Registered {
-                push_service_cache: CacheCell::default(),
+                identified_push_service_cache: CacheCell::default(),
+                unidentified_push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
                 unidentified_websocket: Default::default(),
                 unidentified_sender_certificate: Default::default(),
@@ -1223,11 +1227,9 @@ impl<C: Store> Manager<C, Registered> {
         })
     }
 
-    /// Returns a clone of a cached push service.
-    ///
-    /// If no service is yet cached, it will create and cache one.
+    /// Create or return a clone of a cached identified (with credentials) push service.
     fn identified_push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
-        self.state.push_service_cache.get(|| {
+        self.state.identified_push_service_cache.get(|| {
             let credentials = self.credentials()?;
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
             Ok(HyperPushService::new(
@@ -1238,9 +1240,16 @@ impl<C: Store> Manager<C, Registered> {
         })
     }
 
-    fn unidentified_push_service(&self) -> HyperPushService {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string())
+    /// Create or return a clone of a cached unidentified (no credentials) push service.
+    fn unidentified_push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
+        self.state.unidentified_push_service_cache.get(|| {
+            let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+            Ok(HyperPushService::new(
+                service_configuration,
+                None,
+                crate::USER_AGENT.to_string(),
+            ))
+        })
     }
 
     async fn identified_websocket(&mut self) -> Result<SignalWebSocket, Error<C::Error>> {
@@ -1263,8 +1272,8 @@ impl<C: Store> Manager<C, Registered> {
         if let Some(unidentified_ws) = lock.as_ref() {
             Ok(unidentified_ws.clone())
         } else {
-            let ws = self
-                .unidentified_push_service()
+            let ws: SignalWebSocket = self
+                .unidentified_push_service()?
                 .ws("/v1/websocket/", &[], None, true)
                 .await?;
             lock.replace(ws.clone());
