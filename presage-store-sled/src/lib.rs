@@ -373,11 +373,11 @@ impl Store for SledStore {
 
     /// State
 
-    fn load_state(&self) -> Result<Option<Registered>, SledStoreError> {
+    fn load_state(&self) -> Result<std::option::Option<Registered<Self>>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered) -> Result<(), SledStoreError> {
+    fn save_state(&mut self, state: &Registered<Self>) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }

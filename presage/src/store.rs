@@ -1,6 +1,9 @@
 use std::{fmt, ops::RangeBounds};
 
-use crate::{manager::Registered, GroupMasterKeyBytes};
+use crate::{
+    manager::{Registered, RegisteredData},
+    GroupMasterKeyBytes,
+};
 use libsignal_service::{
     content::ContentBody,
     groups_v2::Group,
@@ -28,10 +31,10 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
     /// State
 
     /// Load registered (or linked) state
-    fn load_state(&self) -> Result<Option<Registered>, Self::Error>;
+    fn load_state(&self) -> Result<Option<RegisteredData>, Self::Error>;
 
     /// Save registered (or linked) state
-    fn save_state(&mut self, state: &Registered) -> Result<(), Self::Error>;
+    fn save_state(&mut self, state: &RegisteredData) -> Result<(), Self::Error>;
 
     /// Returns whether this store contains registration data or not
     fn is_registered(&self) -> bool;
