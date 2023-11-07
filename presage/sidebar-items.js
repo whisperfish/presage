@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error","Thread"],"mod":["prelude"],"struct":["Confirmation","Linking","Manager","Registered","Registration","RegistrationOptions"],"trait":["ContentTimestamp","Store","StoreError"],"type":["GroupMasterKeyBytes"]};
+window.SIDEBAR_ITEMS = {"enum":["Error","ReceivingMode","Thread"],"mod":["prelude"],"struct":["Confirmation","Linking","Manager","Registered","Registration","RegistrationOptions"],"trait":["ContentTimestamp","Store","StoreError"],"type":["GroupMasterKeyBytes"]};
