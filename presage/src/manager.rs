@@ -16,7 +16,6 @@ use rand::{
 use serde::{Deserialize, Serialize};
 use url::Url;
 
-use libsignal_service::proto::EditMessage;
 use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
@@ -29,7 +28,7 @@ use libsignal_service::{
     prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
     profile_name::ProfileName,
     proto::{
-        data_message::Delete, sync_message, AttachmentPointer, Envelope, GroupContextV2,
+        data_message::Delete, sync_message, AttachmentPointer, GroupContextV2,
         NullMessage, Verified,
     },
     protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
@@ -48,6 +47,7 @@ use libsignal_service::{
     websocket::SignalWebSocket,
     AccountManager, Profile, ServiceAddress,
 };
+use libsignal_service::{messagepipe::Incoming, proto::EditMessage};
 use libsignal_service_hyper::push_service::HyperPushService;
 
 use crate::cache::CacheCell;
@@ -150,14 +150,16 @@ impl<C: Store> Manager<C, Registration> {
     /// have to use to send the confirmation code.
     ///
     /// ```no_run
-    /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
-    ///     use std::str::FromStr;
+    /// use std::str::FromStr;
     ///
-    ///     use presage::{
-    ///         prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///         Manager, MigrationConflictStrategy, RegistrationOptions, SledStore,
-    ///     };
+    /// use presage::{
+    ///     prelude::{phonenumber::PhoneNumber, SignalServers},
+    ///     Manager, RegistrationOptions,
+    /// };
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
+    ///
+    /// #[tokio::main]
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
@@ -265,10 +267,11 @@ impl<C: Store> Manager<C, Linking> {
     ///
     /// ```no_run
     /// use futures::{channel::oneshot, future, StreamExt};
-    /// use presage::{prelude::SignalServers, Manager, MigrationConflictStrategy, SledStore};
+    /// use presage::{prelude::SignalServers, Manager};
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
-    /// async fn main() -> anyhow::Result<()> {
+    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
@@ -654,13 +657,14 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
-        let messages = self.receive_messages_stream(true).await?;
-        pin_mut!(messages);
-
+        let messages = self
+            .receive_messages_stream(ReceivingMode::WaitForContacts)
+            .await?;
         self.request_contacts_sync().await?;
 
         info!("waiting for contacts sync for up to 60 seconds");
 
+        pin_mut!(messages);
         tokio::time::timeout(
             Duration::from_secs(60),
             self.wait_for_contacts_sync(messages),
@@ -690,7 +694,6 @@ impl<C: Store> Manager<C, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        // first request the sync
         self.send_message(self.state.service_ids.aci, sync_message, timestamp)
             .await?;
 
@@ -832,7 +835,7 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_encrypted(
         &mut self,
-    ) -> Result<impl Stream<Item = Result<Envelope, ServiceError>>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<C::Error>> {
         let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
         let allow_stories = false;
         let pipe = MessageReceiver::new(self.push_service()?)
@@ -856,11 +859,18 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Starts receiving and storing messages.
     ///
-    /// Returns a [Stream] of messages to consume. Messages will also be stored by the implementation of the [MessageStore].
+    /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
-        self.receive_messages_stream(false).await
+        self.receive_messages_stream(ReceivingMode::Forever).await
+    }
+
+    pub async fn receive_messages_with_mode(
+        &mut self,
+        mode: ReceivingMode,
+    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
+        self.receive_messages_stream(mode).await
     }
 
     fn groups_manager(
@@ -882,40 +892,60 @@ impl<C: Store> Manager<C, Registered> {
 
     async fn receive_messages_stream(
         &mut self,
-        include_internal_events: bool,
+        mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
+            message_receiver: MessageReceiver<HyperPushService>,
             service_cipher: ServiceCipher<C>,
             config_store: C,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
-            include_internal_events: bool,
+            mode: ReceivingMode,
         }
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
+            message_receiver: MessageReceiver::new(self.push_service()?),
             service_cipher: self.new_service_cipher()?,
             config_store: self.config_store.clone(),
             groups_manager: self.groups_manager()?,
-            include_internal_events,
+            mode,
         };
 
         Ok(futures::stream::unfold(init, |mut state| async move {
             loop {
                 match state.encrypted_messages.next().await {
-                    Some(Ok(envelope)) => {
+                    Some(Ok(Incoming::Envelope(envelope))) => {
                         match state.service_cipher.open_envelope(envelope).await {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                 if let ContentBody::SynchronizeMessage(SyncMessage {
-                                    contacts: Some(_),
+                                    contacts: Some(contacts),
                                     ..
                                 }) = &content.body
                                 {
-                                    if state.include_internal_events {
-                                        return Some((content, state));
-                                    } else {
-                                        continue;
+                                    match state.message_receiver.retrieve_contacts(contacts).await {
+                                        Ok(contacts) => {
+                                            let _ = state.config_store.clear_contacts();
+                                            match state
+                                                .config_store
+                                                .save_contacts(contacts.filter_map(Result::ok))
+                                            {
+                                                Ok(()) => {
+                                                    info!("saved contacts");
+                                                }
+                                                Err(e) => {
+                                                    warn!("failed to save contacts: {e}");
+                                                }
+                                            }
+                                        }
+                                        Err(e) => {
+                                            warn!("failed to retrieve contacts: {e}");
+                                        }
+                                    }
+
+                                    if let ReceivingMode::WaitForContacts = state.mode {
+                                        return None;
                                     }
                                 }
 
@@ -1033,6 +1063,12 @@ impl<C: Store> Manager<C, Registered> {
                             }
                         }
                     }
+                    Some(Ok(Incoming::QueueEmpty)) => {
+                        debug!("empty queue");
+                        if let ReceivingMode::InitialSync = state.mode {
+                            return None;
+                        }
+                    }
                     Some(Err(e)) => error!("Error: {}", e),
                     None => return None,
                 }
@@ -1044,7 +1080,7 @@ impl<C: Store> Manager<C, Registered> {
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
     ///
-    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message(
         &mut self,
@@ -1129,7 +1165,7 @@ impl<C: Store> Manager<C, Registered> {
 
     /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
     ///
-    /// This method will automatically update the [DataMessage::expiration_timer] if it is set to
+    /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer.
     pub async fn send_message_to_group(
         &mut self,
@@ -1560,6 +1596,20 @@ impl<C: Store> Manager<C, Registered> {
     }
 }
 
+/// The mode receiving messages stream
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum ReceivingMode {
+    /// Don't stop the stream
+    #[default]
+    Forever,
+    /// Stop the stream after the initial sync
+    ///
+    /// That is, when the Signal's message queue becomes empty.
+    InitialSync,
+    /// Stop the stream after contacts are synced
+    WaitForContacts,
+}
+
 async fn upsert_group<C: Store>(
     config_store: &C,
     groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
@@ -1757,6 +1807,8 @@ pub fn create_thread_metadata<C: Store>(
 
 #[cfg(test)]
 mod tests {
+    use base64::engine::general_purpose;
+    use base64::Engine;
     use libsignal_service::prelude::ProfileKey;
     use libsignal_service::protocol::KeyPair;
     use rand::RngCore;
@@ -1793,12 +1845,12 @@ mod tests {
           },
           "uuid": "ff9a89d9-8052-4af0-a91d-2a0dfa0c6b95",
           "password": "HelloWorldOfPasswords",
-          "signaling_key": base64::encode(signaling_key),
+          "signaling_key": general_purpose::STANDARD.encode(signaling_key),
           "device_id": 42,
           "registration_id": 64,
-          "private_key": base64::encode(key_pair.private_key.serialize()),
-          "public_key": base64::encode(key_pair.public_key.serialize()),
-          "profile_key": base64::encode(profile_key.get_bytes()),
+          "private_key": general_purpose::STANDARD.encode(key_pair.private_key.serialize()),
+          "public_key": general_purpose::STANDARD.encode(key_pair.public_key.serialize()),
+          "profile_key": general_purpose::STANDARD.encode(profile_key.get_bytes()),
         });
 
         let state: Registered = serde_json::from_value(previous_state).expect("should deserialize");

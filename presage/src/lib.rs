@@ -6,7 +6,9 @@ use serde::{Deserialize, Serialize};
 mod store;
 
 pub use errors::Error;
-pub use manager::{Confirmation, Linking, Manager, Registered, Registration, RegistrationOptions};
+pub use manager::{
+    Confirmation, Linking, Manager, ReceivingMode, Registered, Registration, RegistrationOptions,
+};
 pub use store::{ContentTimestamp, Store, StoreError, Thread};
 
 #[deprecated(note = "Please help use improve the prelude module instead")]
