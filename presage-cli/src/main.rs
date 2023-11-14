@@ -1,11 +1,13 @@
 use core::fmt;
 use std::convert::TryInto;
-use std::path::Path;
 use std::path::PathBuf;
 use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
+use axum::extract::Path;
+use axum::routing::post;
+use axum::Router;
 use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
@@ -119,6 +121,9 @@ enum Cmd {
     Receive {
         #[clap(long = "notifications", short = 'n')]
         notifications: bool,
+        /// Start a webserver to be able to send messages, useful for testing
+        #[clap(long)]
+        webserver: bool,
     },
     #[clap(about = "List groups")]
     ListGroups,
@@ -181,7 +186,7 @@ fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
         .map_err(|_| anyhow::format_err!("master key should be 32 bytes long"))
 }
 
-#[tokio::main(flavor = "multi_thread")]
+#[tokio::main(flavor = "current_thread")]
 async fn main() -> anyhow::Result<()> {
     env_logger::from_env(
         Env::default().default_filter_or(format!("{}=warn", env!("CARGO_PKG_NAME"))),
@@ -232,11 +237,30 @@ async fn send<C: Store + 'static>(
     Ok(())
 }
 
+async fn process_incoming_messages<C: Store>(
+    mut manager: Manager<C, Registered<C>>,
+    attachments_tmp_dir: &std::path::Path,
+    notifications: bool,
+) -> anyhow::Result<()> {
+    let messages = manager
+        .receive_messages(ReceivingMode::Forever)
+        .await
+        .context("failed to initialize messages stream")?;
+
+    pin_mut!(messages);
+
+    while let Some(content) = messages.next().await {
+        process_incoming_message(&mut manager, attachments_tmp_dir, notifications, &content).await;
+    }
+
+    Ok(())
+}
+
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
 async fn process_incoming_message<C: Store>(
     manager: &mut Manager<C, Registered<C>>,
-    attachments_tmp_dir: &Path,
+    attachments_tmp_dir: &std::path::Path,
     notifications: bool,
     content: &Content,
 ) {
@@ -423,8 +447,9 @@ fn print_message<C: Store>(
 }
 
 async fn receive<C: Store>(
-    manager: &mut Manager<C, Registered<C>>,
+    manager: Manager<C, Registered<C>>,
     notifications: bool,
+    webserver: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
@@ -432,18 +457,33 @@ async fn receive<C: Store>(
         attachments_tmp_dir.path().display()
     );
 
-    let messages = manager
-        .receive_messages(ReceivingMode::Forever)
-        .await
-        .context("failed to initialize messages stream")?;
-    pin_mut!(messages);
+    if webserver {
+        let app = Router::new()
+            .with_state(manager)
+            .route("/message", post(web_send_message));
 
-    while let Some(content) = messages.next().await {
-        process_incoming_message(manager, attachments_tmp_dir.path(), notifications, &content)
-            .await;
+        // run our app with hyper, listening globally on port 3000
+        let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
+        let webserver =
+            axum::Server::bind(&"0.0.0.0:3000".parse().unwrap()).serve(app.into_make_service());
+
+        future::join(
+            webserver,
+            process_incoming_messages(manager, attachments_tmp_dir.path(), notifications),
+        )
+        .await;
+    } else {
+        process_incoming_messages(manager, attachments_tmp_dir.path(), notifications).await;
     }
 
     Ok(())
+}
+
+async fn web_send_message<C: Store>(
+    manager: Manager<C, Registered<C>>,
+    Path(recipient): Path<Uuid>,
+    Path(message): Path<String>,
+) {
 }
 
 async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
@@ -499,7 +539,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             .await;
 
             match manager {
-                (Ok(manager), _) => {
+                (Ok(mut manager), _) => {
                     let uuid = manager.whoami().await.unwrap().uuid;
                     println!("{uuid:?}");
                 }
@@ -508,9 +548,12 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 }
             }
         }
-        Cmd::Receive { notifications } => {
-            let mut manager = Manager::load_registered(config_store).await?;
-            receive(&mut manager, notifications).await?;
+        Cmd::Receive {
+            notifications,
+            webserver,
+        } => {
+            let manager = Manager::load_registered(config_store).await?;
+            receive(manager, notifications, webserver).await?;
         }
         Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store).await?;
@@ -622,8 +665,8 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             }
         }
         Cmd::Whoami => {
-            let manager = Manager::load_registered(config_store).await?;
-            println!("{:?}", &manager.whoami().await?);
+            let mut manager = Manager::load_registered(config_store).await?;
+            println!("{:?}", manager.whoami().await?);
         }
         Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store).await?;
