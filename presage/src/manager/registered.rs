@@ -1,132 +1,75 @@
-//! Signal manager and its states
+use std::fmt;
+use std::ops::RangeBounds;
+use std::pin::pin;
+use std::sync::Arc;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
-use std::{
-    fmt,
-    ops::RangeBounds,
-    sync::Arc,
-    time::{Duration, SystemTime, UNIX_EPOCH},
+use futures::{future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::attachment_cipher::decrypt_in_place;
+use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
+use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
+use libsignal_service::groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache};
+use libsignal_service::messagepipe::{Incoming, ServiceCredentials};
+use libsignal_service::models::Contact;
+use libsignal_service::prelude::phonenumber::PhoneNumber;
+use libsignal_service::prelude::Uuid;
+use libsignal_service::proto::data_message::Delete;
+use libsignal_service::proto::{
+    sync_message, AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage,
+    SyncMessage,
 };
-
-use futures::{channel::mpsc, channel::oneshot, future, pin_mut, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::protocol::SenderCertificate;
+use libsignal_service::protocol::{PrivateKey, PublicKey};
+use libsignal_service::provisioning::generate_registration_id;
+use libsignal_service::push_service::{
+    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIds, WhoAmIResponse,
+    DEFAULT_DEVICE_ID,
+};
+use libsignal_service::receiver::MessageReceiver;
+use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
+use libsignal_service::unidentified_access::UnidentifiedAccess;
+use libsignal_service::utils::{
+    serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
+    serde_signaling_key,
+};
+use libsignal_service::websocket::SignalWebSocket;
+use libsignal_service::zkgroup::profiles::ProfileKey;
+use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
+use libsignal_service_hyper::push_service::HyperPushService;
 use log::{debug, error, info, trace, warn};
 use parking_lot::Mutex;
-use rand::{
-    distributions::{Alphanumeric, DistString},
-    rngs::StdRng,
-    RngCore, SeedableRng,
-};
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
-use url::Url;
 
-use libsignal_service::push_service::{RegistrationMethod, VerificationTransport};
-use libsignal_service::{
-    attachment_cipher::decrypt_in_place,
-    cipher,
-    configuration::{ServiceConfiguration, SignalServers, SignalingKey},
-    content::{ContentBody, DataMessage, DataMessageFlags, Metadata, SyncMessage},
-    groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache},
-    messagepipe::ServiceCredentials,
-    models::Contact,
-    prelude::{phonenumber::PhoneNumber, Content, ProfileKey, PushService, Uuid},
-    proto::{data_message::Delete, sync_message, AttachmentPointer, GroupContextV2, NullMessage},
-    protocol::{KeyPair, PrivateKey, PublicKey, SenderCertificate},
-    provisioning::{generate_registration_id, LinkingManager, SecondaryDeviceProvisioning},
-    push_service::{
-        AccountAttributes, DeviceCapabilities, DeviceId, ServiceError, ServiceIds, WhoAmIResponse,
-        DEFAULT_DEVICE_ID,
-    },
-    receiver::MessageReceiver,
-    sender::{AttachmentSpec, AttachmentUploadError},
-    unidentified_access::UnidentifiedAccess,
-    utils::{
-        serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
-        serde_signaling_key,
-    },
-    websocket::SignalWebSocket,
-    AccountManager, Profile, ServiceAddress,
-};
-use libsignal_service::{messagepipe::Incoming, proto::EditMessage};
-use libsignal_service_hyper::push_service::HyperPushService;
-
+use crate::cache::CacheCell;
 use crate::serde::serde_profile_key;
 use crate::store::{Store, Thread};
-use crate::Error;
-use crate::{cache::CacheCell, store::StateStore};
+use crate::{Error, Manager};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
 type MessageSender<C> = libsignal_service::prelude::MessageSender<HyperPushService, C, StdRng>;
-
-/// Signal manager
-///
-/// The manager is parametrized over the [`Store`] which stores the configuration, keys and
-/// optionally messages; and over the type state which describes what is the current state of the
-/// manager: in registration, linking, TODO
-///
-/// Depending on the state specific methods are available or not.
-#[derive(Clone)]
-pub struct Manager<Store, State> {
-    /// Implementation of a config-store to give to libsignal
-    config_store: Store,
-    /// Part of the manager which is persisted in the store.
-    state: State,
-    /// Random number generator
-    rng: StdRng,
-}
-
-impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Manager")
-            .field("state", &self.state)
-            .finish_non_exhaustive()
-    }
-}
-
-/// Options when registering a new main device
-#[derive(Debug)]
-pub struct RegistrationOptions<'a> {
-    pub signal_servers: SignalServers,
-    pub phone_number: PhoneNumber,
-    pub use_voice_call: bool,
-    pub captcha: Option<&'a str>,
-    pub force: bool,
-}
-
-/// Manager state where it is possible to register a new main device
-pub struct Registration;
-
-/// Manager state where it is possible to link a new secondary device
-pub struct Linking;
-
-/// Manager state after a successful registration of new main device
-///
-/// In this state, the user has to confirm the new registration via a validation code.
-pub struct Confirmation {
-    signal_servers: SignalServers,
-    phone_number: PhoneNumber,
-    password: String,
-    session_id: String,
-}
 
 /// Manager state where Signal can be used
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
-    push_service_cache: CacheCell<HyperPushService>,
+    pub(crate) push_service_cache: CacheCell<HyperPushService>,
     #[serde(skip)]
-    identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     #[serde(skip)]
-    unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     #[serde(skip)]
-    unidentified_sender_certificate: Option<SenderCertificate>,
+    pub(crate) unidentified_sender_certificate: Option<SenderCertificate>,
 
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
     #[serde(flatten)]
     pub service_ids: ServiceIds,
-    password: String,
+    pub(crate) password: String,
     #[serde(with = "serde_signaling_key")]
-    signaling_key: SignalingKey,
+    pub(crate) signaling_key: SignalingKey,
     pub device_id: Option<u32>,
     pub registration_id: u32,
     #[serde(default)]
@@ -140,7 +83,7 @@ pub struct Registered {
     #[serde(with = "serde_optional_public_key", default)]
     pub pni_public_key: Option<PublicKey>,
     #[serde(with = "serde_profile_key")]
-    profile_key: ProfileKey,
+    pub(crate) profile_key: ProfileKey,
 }
 
 impl fmt::Debug for Registered {
@@ -152,400 +95,6 @@ impl fmt::Debug for Registered {
 impl Registered {
     pub fn device_id(&self) -> u32 {
         self.device_id.unwrap_or(DEFAULT_DEVICE_ID)
-    }
-}
-
-impl<C: Store> Manager<C, Registration> {
-    /// Registers a new account with a phone number (and some options).
-    ///
-    /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
-    /// have to use to send the confirmation code.
-    ///
-    /// ```no_run
-    /// use std::str::FromStr;
-    ///
-    /// use presage::libsignal_service::{
-    ///     configuration::SignalServers, prelude::phonenumber::PhoneNumber,
-    /// };
-    /// use presage::manager::RegistrationOptions;
-    /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let config_store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
-    ///
-    ///     let manager = Manager::register(
-    ///         config_store,
-    ///         RegistrationOptions {
-    ///             signal_servers: SignalServers::Production,
-    ///             phone_number: PhoneNumber::from_str("+16137827274")?,
-    ///             use_voice_call: false,
-    ///             captcha: None,
-    ///             force: false,
-    ///         },
-    ///     )
-    ///     .await?;
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
-    pub async fn register(
-        mut config_store: C,
-        registration_options: RegistrationOptions<'_>,
-    ) -> Result<Manager<C, Confirmation>, Error<C::Error>> {
-        let RegistrationOptions {
-            signal_servers,
-            phone_number,
-            use_voice_call,
-            captcha,
-            force,
-        } = registration_options;
-
-        // check if we are already registered
-        if !force && config_store.is_registered() {
-            return Err(Error::AlreadyRegisteredError);
-        }
-
-        config_store.clear_registration()?;
-
-        // generate a random alphanumeric 24 chars password
-        let mut rng = StdRng::from_entropy();
-        let password = Alphanumeric.sample_string(&mut rng, 24);
-
-        let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
-
-        trace!("creating registration verification session");
-
-        let phone_number_string = phone_number.to_string();
-        let mut session = push_service
-            .create_verification_session(&phone_number_string, None, None, None)
-            .await?;
-
-        if !session.allowed_to_request_code {
-            if session.captcha_required() {
-                trace!("captcha required");
-                if captcha.is_none() {
-                    return Err(Error::CaptchaRequired);
-                }
-                session = push_service
-                    .patch_verification_session(&session.id, None, None, None, captcha, None)
-                    .await?
-            }
-            if session.push_challenge_required() {
-                return Err(Error::PushChallengeRequired);
-            }
-        }
-
-        if !session.allowed_to_request_code {
-            return Err(Error::RequestingCodeForbidden(session));
-        }
-
-        trace!("requesting verification code");
-
-        session = push_service
-            .request_verification_code(
-                &session.id,
-                crate::USER_AGENT,
-                if use_voice_call {
-                    VerificationTransport::Voice
-                } else {
-                    VerificationTransport::Sms
-                },
-            )
-            .await?;
-
-        let manager = Manager {
-            config_store,
-            state: Confirmation {
-                signal_servers,
-                phone_number,
-                password,
-                session_id: session.id,
-            },
-            rng,
-        };
-
-        Ok(manager)
-    }
-}
-
-impl<C: Store> Manager<C, Linking> {
-    /// Links this client as a secondary device from the device used to register the account (usually a phone).
-    /// The URL to present to the user will be sent in the channel given as the argument.
-    ///
-    /// ```no_run
-    /// use futures::{channel::oneshot, future, StreamExt};
-    /// use presage::libsignal_service::configuration::SignalServers;
-    /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
-    ///
-    /// #[tokio::main]
-    /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let config_store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
-    ///
-    ///     let (mut tx, mut rx) = oneshot::channel();
-    ///     let (manager, err) = future::join(
-    ///         Manager::link_secondary_device(
-    ///             config_store,
-    ///             SignalServers::Production,
-    ///             "my-linked-client".into(),
-    ///             tx,
-    ///         ),
-    ///         async move {
-    ///             match rx.await {
-    ///                 Ok(url) => println!("Show URL {} as QR code to user", url),
-    ///                 Err(e) => println!("Error linking device: {}", e),
-    ///             }
-    ///         },
-    ///     )
-    ///     .await;
-    ///
-    ///     Ok(())
-    /// }
-    /// ```
-    pub async fn link_secondary_device(
-        mut config_store: C,
-        signal_servers: SignalServers,
-        device_name: String,
-        provisioning_link_channel: oneshot::Sender<Url>,
-    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
-        // clear the database: the moment we start the process, old API credentials are invalidated
-        // and you won't be able to use this client anyways
-        config_store.clear_registration()?;
-
-        // generate a random alphanumeric 24 chars password
-        let mut rng = StdRng::from_entropy();
-        let password = Alphanumeric.sample_string(&mut rng, 24);
-
-        // generate a 52 bytes signaling key
-        let mut signaling_key = [0u8; 52];
-        rng.fill_bytes(&mut signaling_key);
-
-        let service_configuration: ServiceConfiguration = signal_servers.into();
-        let push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
-
-        let mut linking_manager: LinkingManager<HyperPushService> =
-            LinkingManager::new(push_service, password.clone());
-
-        let (tx, mut rx) = mpsc::channel(1);
-
-        let (wait_for_qrcode_scan, registration) = future::join(
-            linking_manager.provision_secondary_device(&mut rng, signaling_key, tx),
-            async move {
-                if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
-                    log::info!("generating qrcode from provisioning link: {}", &url);
-                    if provisioning_link_channel.send(url).is_err() {
-                        return Err(Error::LinkError);
-                    }
-                } else {
-                    return Err(Error::LinkError);
-                }
-
-                if let Some(SecondaryDeviceProvisioning::NewDeviceRegistration {
-                    phone_number,
-                    device_id: DeviceId { device_id },
-                    registration_id,
-                    pni_registration_id,
-                    profile_key,
-                    service_ids,
-                    aci_private_key,
-                    aci_public_key,
-                    pni_private_key,
-                    pni_public_key,
-                }) = rx.next().await
-                {
-                    log::info!("successfully registered device {}", &service_ids);
-                    Ok(Registered {
-                        push_service_cache: CacheCell::default(),
-                        identified_websocket: Default::default(),
-                        unidentified_websocket: Default::default(),
-                        unidentified_sender_certificate: Default::default(),
-                        signal_servers,
-                        device_name: Some(device_name),
-                        phone_number,
-                        service_ids,
-                        signaling_key,
-                        password,
-                        device_id: Some(device_id),
-                        registration_id,
-                        pni_registration_id: Some(pni_registration_id),
-                        aci_public_key,
-                        aci_private_key,
-                        pni_public_key: Some(pni_public_key),
-                        pni_private_key: Some(pni_private_key),
-                        profile_key: ProfileKey::create(
-                            profile_key.try_into().expect("32 bytes for profile key"),
-                        ),
-                    })
-                } else {
-                    Err(Error::NoProvisioningMessageReceived)
-                }
-            },
-        )
-        .await;
-
-        wait_for_qrcode_scan?;
-
-        let mut manager = Manager {
-            rng,
-            config_store,
-            state: registration?,
-        };
-
-        manager.config_store.save_state(&manager.state)?;
-
-        match (
-            manager.register_pre_keys().await,
-            manager.set_account_attributes().await,
-            manager.sync_contacts().await,
-        ) {
-            (Err(e), _, _) | (_, Err(e), _) => {
-                // clear the entire store on any error, there's no possible recovery here
-                manager.config_store.clear_registration()?;
-                Err(e)
-            }
-            (_, _, Err(e)) => {
-                warn!("failed to synchronize contacts: {e}");
-                Ok(manager)
-            }
-            _ => Ok(manager),
-        }
-    }
-}
-
-impl<C: Store> Manager<C, Confirmation> {
-    /// Confirm a newly registered account using the code you
-    /// received by SMS or phone call.
-    ///
-    /// Returns a [registered manager](Manager::load_registered) that you can use
-    /// to send and receive messages.
-    pub async fn confirm_verification_code(
-        self,
-        confirmation_code: impl AsRef<str>,
-    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
-        trace!("confirming verification code");
-
-        let registration_id = generate_registration_id(&mut StdRng::from_entropy());
-        let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
-
-        let Confirmation {
-            signal_servers,
-            phone_number,
-            password,
-            session_id,
-        } = self.state;
-
-        let credentials = ServiceCredentials {
-            uuid: None,
-            phonenumber: phone_number.clone(),
-            password: Some(password.clone()),
-            signaling_key: None,
-            device_id: None,
-        };
-
-        let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut push_service = HyperPushService::new(
-            service_configuration,
-            Some(credentials),
-            crate::USER_AGENT.to_string(),
-        );
-
-        let session = push_service
-            .submit_verification_code(&session_id, confirmation_code.as_ref())
-            .await?;
-
-        trace!("verification code submitted");
-
-        if !session.verified {
-            return Err(Error::UnverifiedRegistrationSession);
-        }
-
-        let mut rng = StdRng::from_entropy();
-
-        // generate a 52 bytes signaling key
-        let mut signaling_key = [0u8; 52];
-        rng.fill_bytes(&mut signaling_key);
-
-        let mut profile_key = [0u8; 32];
-        rng.fill_bytes(&mut profile_key);
-
-        let profile_key = ProfileKey::generate(profile_key);
-
-        let skip_device_transfer = false;
-        let registered = push_service
-            .submit_registration_request(
-                RegistrationMethod::SessionId(&session_id),
-                AccountAttributes {
-                    name: None,
-                    signaling_key: Some(signaling_key.to_vec()),
-                    registration_id,
-                    pni_registration_id,
-                    voice: false,
-                    video: false,
-                    fetches_messages: true,
-                    pin: None,
-                    registration_lock: None,
-                    unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
-                    unrestricted_unidentified_access: false, // TODO: make this configurable?
-                    discoverable_by_phone_number: true,
-                    capabilities: DeviceCapabilities {
-                        gv2: true,
-                        gv1_migration: true,
-                        ..Default::default()
-                    },
-                },
-                skip_device_transfer,
-            )
-            .await?;
-
-        let aci_identity_key_pair = KeyPair::generate(&mut rng);
-        let pni_identity_key_pair = KeyPair::generate(&mut rng);
-
-        trace!("confirmed! (and registered)");
-
-        let mut manager = Manager {
-            rng,
-            config_store: self.config_store,
-            state: Registered {
-                push_service_cache: CacheCell::default(),
-                identified_websocket: Default::default(),
-                unidentified_websocket: Default::default(),
-                unidentified_sender_certificate: Default::default(),
-                signal_servers: self.state.signal_servers,
-                device_name: None,
-                phone_number,
-                service_ids: ServiceIds {
-                    aci: registered.uuid,
-                    pni: registered.pni,
-                },
-                password,
-                signaling_key,
-                device_id: None,
-                registration_id,
-                pni_registration_id: Some(pni_registration_id),
-                aci_private_key: aci_identity_key_pair.private_key,
-                aci_public_key: aci_identity_key_pair.public_key,
-                pni_private_key: Some(pni_identity_key_pair.private_key),
-                pni_public_key: Some(pni_identity_key_pair.public_key),
-                profile_key,
-            },
-        };
-
-        manager.config_store.save_state(&manager.state)?;
-
-        if let Err(e) = manager.register_pre_keys().await {
-            // clear the entire store on any error, there's no possible recovery here
-            manager.config_store.clear_registration()?;
-            Err(e)
-        } else {
-            Ok(manager)
-        }
     }
 }
 
@@ -571,7 +120,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(manager)
     }
 
-    async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
+    pub(crate) async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
         trace!("registering pre keys");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -598,9 +147,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn set_account_attributes(
-        &mut self,
-    ) -> Result<(), Error<<C as StateStore>::StateStoreError>> {
+    pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<C::Error>> {
         trace!("setting account attributes");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -671,15 +218,15 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
-        let messages = self
-            .receive_messages_stream(ReceivingMode::WaitForContacts)
-            .await?;
+    pub(crate) async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
+        let messages = pin!(
+            self.receive_messages_stream(ReceivingMode::WaitForContacts)
+                .await?
+        );
         self.request_contacts_sync().await?;
 
         info!("waiting for contacts sync for up to 60 seconds");
 
-        pin_mut!(messages);
         tokio::time::timeout(
             Duration::from_secs(60),
             self.wait_for_contacts_sync(messages),
@@ -697,14 +244,15 @@ impl<C: Store> Manager<C, Registered> {
     /// processed when they're received using the `MessageReceiver`.
     pub async fn request_contacts_sync(&mut self) -> Result<(), Error<C::Error>> {
         trace!("requesting contacts sync");
+        let var_name = sync_message::request::Type::Contacts as i32;
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
-                r#type: Some(sync_message::request::Type::Contacts as i32),
+                r#type: Some(var_name),
             }),
             ..Default::default()
         };
 
-        let timestamp = std::time::SystemTime::now()
+        let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis() as u64;
@@ -1526,59 +1074,4 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use base64::engine::general_purpose;
-    use base64::Engine;
-    use libsignal_service::prelude::ProfileKey;
-    use libsignal_service::protocol::KeyPair;
-    use rand::RngCore;
-    use serde_json::json;
-
-    use crate::manager::Registered;
-
-    #[test]
-    fn test_state_before_pni() {
-        let mut rng = rand::thread_rng();
-        let key_pair = KeyPair::generate(&mut rng);
-        let mut profile_key = [0u8; 32];
-        rng.fill_bytes(&mut profile_key);
-        let profile_key = ProfileKey::generate(profile_key);
-        let mut signaling_key = [0u8; 52];
-        rng.fill_bytes(&mut signaling_key);
-
-        // this is before public_key and private_key were renamed to aci_public_key and aci_private_key
-        // and pni_public_key + pni_private_key were added
-        let previous_state = json!({
-          "signal_servers": "Production",
-          "device_name": "Test",
-          "phone_number": {
-            "code": {
-              "value": 1,
-              "source": "plus"
-            },
-            "national": {
-              "value": 5550199,
-              "zeros": 0
-            },
-            "extension": null,
-            "carrier": null
-          },
-          "uuid": "ff9a89d9-8052-4af0-a91d-2a0dfa0c6b95",
-          "password": "HelloWorldOfPasswords",
-          "signaling_key": general_purpose::STANDARD.encode(signaling_key),
-          "device_id": 42,
-          "registration_id": 64,
-          "private_key": general_purpose::STANDARD.encode(key_pair.private_key.serialize()),
-          "public_key": general_purpose::STANDARD.encode(key_pair.public_key.serialize()),
-          "profile_key": general_purpose::STANDARD.encode(profile_key.get_bytes()),
-        });
-
-        let state: Registered = serde_json::from_value(previous_state).expect("should deserialize");
-        assert_eq!(state.aci_public_key, key_pair.public_key);
-        assert!(state.aci_private_key == key_pair.private_key);
-        assert!(state.pni_public_key.is_none());
-    }
 }
