@@ -545,14 +545,14 @@ impl<C: Store> Manager<C, Registered> {
                                     )
                                     .await
                                     {
-                                        log::trace!("{group:?}");
+                                        trace!("{group:?}");
                                     }
                                 }
 
                                 if let Err(e) =
                                     save_message(&mut state.config_store, content.clone())
                                 {
-                                    log::error!("Error saving message to store: {}", e);
+                                    error!("Error saving message to store: {}", e);
                                 }
 
                                 return Some((content, state));
@@ -781,7 +781,7 @@ impl<C: Store> Manager<C, Registered> {
         recipient: &ServiceAddress,
         timestamp: u64,
     ) -> Result<(), Error<C::Error>> {
-        log::trace!("Resetting session for address: {}", recipient.uuid);
+        trace!("Resetting session for address: {}", recipient.uuid);
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
             ..Default::default()
@@ -871,7 +871,7 @@ impl<C: Store> Manager<C, Registered> {
                 let contact = match self.contact_by_id(uuid) {
                     Ok(contact) => contact,
                     Err(e) => {
-                        log::info!("Error getting contact by id: {}, {:?}", e, uuid);
+                        info!("Error getting contact by id: {}, {:?}", e, uuid);
                         None
                     }
                 };
@@ -932,27 +932,27 @@ async fn upsert_group<C: Store>(
 ) -> Result<Option<Group>, Error<C::Error>> {
     let upsert_group = match config_store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
-            log::debug!("loaded group from local db {}", group.title);
+            debug!("loaded group from local db {}", group.title);
             group.revision < *revision
         }
         Ok(None) => true,
         Err(e) => {
-            log::warn!("failed to retrieve group from local db {}", e);
+            warn!("failed to retrieve group from local db {}", e);
             true
         }
     };
 
     if upsert_group {
-        log::debug!("fetching and saving group");
+        debug!("fetching and saving group");
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
                 if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
-                    log::error!("failed to save group {master_key_bytes:?}: {e}",);
+                    error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
             Err(e) => {
-                log::warn!("failed to fetch encrypted group: {e}")
+                warn!("failed to fetch encrypted group: {e}")
             }
         }
     }
@@ -973,7 +973,7 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
         if let Ok(profile_key_bytes) = profile_key_bytes.clone().try_into() {
             let sender_uuid = message.metadata.sender.uuid;
             let profile_key = ProfileKey::create(profile_key_bytes);
-            log::debug!("inserting profile key for {sender_uuid}");
+            debug!("inserting profile key for {sender_uuid}");
             config_store.upsert_profile_key(&sender_uuid, profile_key)?;
         }
     }

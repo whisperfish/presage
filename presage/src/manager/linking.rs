@@ -5,7 +5,7 @@ use libsignal_service::provisioning::{LinkingManager, SecondaryDeviceProvisionin
 use libsignal_service::push_service::DeviceId;
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service_hyper::push_service::HyperPushService;
-use log::warn;
+use log::{info, warn};
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
 use rand::{RngCore, SeedableRng};
@@ -86,7 +86,7 @@ impl<C: Store> Manager<C, Linking> {
             linking_manager.provision_secondary_device(&mut rng, signaling_key, tx),
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
-                    log::info!("generating qrcode from provisioning link: {}", &url);
+                    info!("generating qrcode from provisioning link: {}", &url);
                     if provisioning_link_channel.send(url).is_err() {
                         return Err(Error::LinkError);
                     }
@@ -107,7 +107,7 @@ impl<C: Store> Manager<C, Linking> {
                     pni_public_key,
                 }) = rx.next().await
                 {
-                    log::info!("successfully registered device {}", &service_ids);
+                    info!("successfully registered device {}", &service_ids);
                     Ok(Registered {
                         push_service_cache: CacheCell::default(),
                         identified_websocket: Default::default(),
