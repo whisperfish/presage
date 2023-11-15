@@ -1,3 +1,5 @@
+//! Signal manager and its states
+
 use std::{
     fmt,
     ops::RangeBounds,
@@ -46,13 +48,21 @@ use libsignal_service::{
 use libsignal_service::{messagepipe::Incoming, proto::EditMessage};
 use libsignal_service_hyper::push_service::HyperPushService;
 
-use crate::cache::CacheCell;
-use crate::{serde::serde_profile_key, Thread};
-use crate::{store::Store, Error};
+use crate::serde::serde_profile_key;
+use crate::store::{Store, Thread};
+use crate::Error;
+use crate::{cache::CacheCell, store::StateStore};
 
 type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
 type MessageSender<C> = libsignal_service::prelude::MessageSender<HyperPushService, C, StdRng>;
 
+/// Signal manager
+///
+/// The manager is parametrized over the [`Store`] which stores the configuration, keys and
+/// optionally messages; and over the type state which describes what is the current state of the
+/// manager: in registration, linking, TODO
+///
+/// Depending on the state specific methods are available or not.
 #[derive(Clone)]
 pub struct Manager<Store, State> {
     /// Implementation of a config-store to give to libsignal
@@ -71,7 +81,8 @@ impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize)]
+/// Options when registering a new main device
+#[derive(Debug)]
 pub struct RegistrationOptions<'a> {
     pub signal_servers: SignalServers,
     pub phone_number: PhoneNumber,
@@ -80,9 +91,15 @@ pub struct RegistrationOptions<'a> {
     pub force: bool,
 }
 
+/// Manager state where it is possible to register a new main device
 pub struct Registration;
+
+/// Manager state where it is possible to link a new secondary device
 pub struct Linking;
 
+/// Manager state after a successful registration of new main device
+///
+/// In this state, the user has to confirm the new registration via a validation code.
 pub struct Confirmation {
     signal_servers: SignalServers,
     phone_number: PhoneNumber,
@@ -90,6 +107,7 @@ pub struct Confirmation {
     session_id: String,
 }
 
+/// Manager state where Signal can be used
 #[derive(Clone, Serialize, Deserialize)]
 pub struct Registered {
     #[serde(skip)]
@@ -127,9 +145,7 @@ pub struct Registered {
 
 impl fmt::Debug for Registered {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Registered")
-            .field("websocket", &self.identified_websocket.lock().is_some())
-            .finish_non_exhaustive()
+        f.debug_struct("Registered").finish_non_exhaustive()
     }
 }
 
@@ -148,15 +164,15 @@ impl<C: Store> Manager<C, Registration> {
     /// ```no_run
     /// use std::str::FromStr;
     ///
-    /// use presage::{
-    ///     prelude::{phonenumber::PhoneNumber, SignalServers},
-    ///     Manager, RegistrationOptions,
+    /// use presage::libsignal_service::{
+    ///     configuration::SignalServers, prelude::phonenumber::PhoneNumber,
     /// };
+    /// use presage::manager::RegistrationOptions;
+    /// use presage::Manager;
     /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///
     ///     let config_store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
@@ -263,7 +279,8 @@ impl<C: Store> Manager<C, Linking> {
     ///
     /// ```no_run
     /// use futures::{channel::oneshot, future, StreamExt};
-    /// use presage::{prelude::SignalServers, Manager};
+    /// use presage::libsignal_service::configuration::SignalServers;
+    /// use presage::Manager;
     /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
@@ -581,7 +598,9 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn set_account_attributes(&mut self) -> Result<(), Error<C::Error>> {
+    async fn set_account_attributes(
+        &mut self,
+    ) -> Result<(), Error<<C as StateStore>::StateStoreError>> {
         trace!("setting account attributes");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -827,7 +846,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn receive_messages_encrypted(
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<C::Error>> {
-        let credentials = self.credentials()?.ok_or(Error::NotYetRegisteredError)?;
+        let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
         let allow_stories = false;
         let pipe = MessageReceiver::new(self.push_service()?)
             .create_message_pipe(credentials, allow_stories)
@@ -1225,14 +1244,14 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    fn credentials(&self) -> Result<Option<ServiceCredentials>, Error<C::Error>> {
-        Ok(Some(ServiceCredentials {
+    fn credentials(&self) -> Option<ServiceCredentials> {
+        Some(ServiceCredentials {
             uuid: Some(self.state.service_ids.aci),
             phonenumber: self.state.phone_number.clone(),
             password: Some(self.state.password.clone()),
             signaling_key: Some(self.state.signaling_key),
             device_id: self.state.device_id,
-        }))
+        })
     }
 
     /// Returns a clone of a cached push service.
@@ -1240,7 +1259,7 @@ impl<C: Store> Manager<C, Registered> {
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
         self.state.push_service_cache.get(|| {
-            let credentials = self.credentials()?;
+            let credentials = self.credentials();
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
 
             Ok(HyperPushService::new(
@@ -1518,7 +1537,7 @@ mod tests {
     use rand::RngCore;
     use serde_json::json;
 
-    use crate::Registered;
+    use crate::manager::Registered;
 
     #[test]
     fn test_state_before_pni() {

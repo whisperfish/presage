@@ -4,15 +4,16 @@ mod textsecure {
     include!(concat!(env!("OUT_DIR"), "/textsecure.rs"));
 }
 
+use presage::libsignal_service::content::Content;
+use presage::libsignal_service::content::ContentBody;
+use presage::libsignal_service::content::Metadata;
+use presage::libsignal_service::proto;
+use presage::libsignal_service::ServiceAddress;
+
 use crate::SledStoreError;
 
 use self::textsecure::AddressProto;
 use self::textsecure::MetadataProto;
-use presage::prelude::content::ContentBody;
-use presage::prelude::content::Metadata;
-use presage::prelude::proto;
-use presage::prelude::Content;
-use presage::prelude::ServiceAddress;
 
 impl From<ServiceAddress> for AddressProto {
     fn from(s: ServiceAddress) -> Self {

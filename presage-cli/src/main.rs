@@ -14,20 +14,23 @@ use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
+use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
+use presage::libsignal_service::models::Contact;
+use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
+use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
-use presage::prelude::proto::EditMessage;
-use presage::prelude::SyncMessage;
-use presage::ContentTimestamp;
+use presage::proto::EditMessage;
+use presage::proto::SyncMessage;
+use presage::store::ContentExt;
 use presage::{
-    prelude::{
-        content::{Content, ContentBody, DataMessage, GroupContextV2},
-        Contact, SignalServers,
-    },
-    prelude::{phonenumber::PhoneNumber, Uuid},
-    GroupMasterKeyBytes, Manager, Registered, RegistrationOptions, Store, Thread,
+    libsignal_service::content::{Content, ContentBody, DataMessage, GroupContextV2},
+    manager::{Registered, RegistrationOptions},
+    store::{Store, Thread},
+    Manager,
 };
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
