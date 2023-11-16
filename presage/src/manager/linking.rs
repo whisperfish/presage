@@ -5,7 +5,7 @@ use libsignal_service::provisioning::{LinkingManager, SecondaryDeviceProvisionin
 use libsignal_service::push_service::DeviceId;
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service_hyper::push_service::HyperPushService;
-use log::{info, warn};
+use log::info;
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
 use rand::{RngCore, SeedableRng};
@@ -146,16 +146,11 @@ impl<S: Store> Manager<S, Linking> {
         match (
             manager.register_pre_keys().await,
             manager.set_account_attributes().await,
-            manager.sync_contacts().await,
         ) {
-            (Err(e), _, _) | (_, Err(e), _) => {
+            (Err(e), _) | (_, Err(e)) => {
                 // clear the entire store on any error, there's no possible recovery here
                 manager.store.clear_registration()?;
                 Err(e)
-            }
-            (_, _, Err(e)) => {
-                warn!("failed to synchronize contacts: {e}");
-                Ok(manager)
             }
             _ => Ok(manager),
         }

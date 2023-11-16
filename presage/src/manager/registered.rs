@@ -1,8 +1,7 @@
 use std::fmt;
 use std::ops::RangeBounds;
-use std::pin::pin;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
@@ -314,46 +313,6 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         trace!("done setting account attributes");
-        Ok(())
-    }
-
-    async fn wait_for_contacts_sync(
-        &mut self,
-        mut messages: impl Stream<Item = Content> + Unpin,
-    ) -> Result<(), Error<S::Error>> {
-        let mut message_receiver = MessageReceiver::new(self.identified_push_service());
-        while let Some(Content { body, .. }) = messages.next().await {
-            if let ContentBody::SynchronizeMessage(SyncMessage {
-                contacts: Some(contacts),
-                ..
-            }) = body
-            {
-                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
-                let _ = self.store.clear_contacts();
-                self.store.save_contacts(contacts.filter_map(Result::ok))?;
-                info!("saved contacts");
-                return Ok(());
-            }
-        }
-        Ok(())
-    }
-
-    pub(crate) async fn sync_contacts(&mut self) -> Result<(), Error<S::Error>> {
-        let messages = pin!(
-            self.receive_messages_stream(ReceivingMode::WaitForContacts)
-                .await?
-        );
-        self.request_contacts_sync().await?;
-
-        info!("waiting for contacts sync for up to 60 seconds");
-
-        tokio::time::timeout(
-            Duration::from_secs(60),
-            self.wait_for_contacts_sync(messages),
-        )
-        .await
-        .map_err(Error::from)??;
-
         Ok(())
     }
 
