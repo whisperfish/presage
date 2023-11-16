@@ -12,7 +12,6 @@ use log::trace;
 use rand::rngs::StdRng;
 use rand::{RngCore, SeedableRng};
 
-use crate::cache::CacheCell;
 use crate::manager::registered::RegistrationData;
 use crate::store::Store;
 use crate::{Error, Manager};
@@ -122,31 +121,25 @@ impl<S: Store> Manager<S, Confirmation> {
         let mut manager = Manager {
             rng,
             store: self.store,
-            state: Registered {
-                push_service_cache: CacheCell::default(),
-                identified_websocket: Default::default(),
-                unidentified_websocket: Default::default(),
-                unidentified_sender_certificate: Default::default(),
-                data: RegistrationData {
-                    signal_servers: self.state.signal_servers,
-                    device_name: None,
-                    phone_number,
-                    service_ids: ServiceIds {
-                        aci: registered.uuid,
-                        pni: registered.pni,
-                    },
-                    password,
-                    signaling_key,
-                    device_id: None,
-                    registration_id,
-                    pni_registration_id: Some(pni_registration_id),
-                    aci_private_key: aci_identity_key_pair.private_key,
-                    aci_public_key: aci_identity_key_pair.public_key,
-                    pni_private_key: Some(pni_identity_key_pair.private_key),
-                    pni_public_key: Some(pni_identity_key_pair.public_key),
-                    profile_key,
+            state: Registered::with_data(RegistrationData {
+                signal_servers: self.state.signal_servers,
+                device_name: None,
+                phone_number,
+                service_ids: ServiceIds {
+                    aci: registered.uuid,
+                    pni: registered.pni,
                 },
-            },
+                password,
+                signaling_key,
+                device_id: None,
+                registration_id,
+                pni_registration_id: Some(pni_registration_id),
+                aci_private_key: aci_identity_key_pair.private_key,
+                aci_public_key: aci_identity_key_pair.public_key,
+                pni_private_key: Some(pni_identity_key_pair.private_key),
+                pni_public_key: Some(pni_identity_key_pair.public_key),
+                profile_key,
+            }),
         };
 
         manager.store.save_registration_data(&manager.state.data)?;

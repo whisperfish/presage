@@ -9,7 +9,7 @@ use libsignal_service::attachment_cipher::decrypt_in_place;
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
 use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
 use libsignal_service::groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache};
-use libsignal_service::messagepipe::{Incoming, ServiceCredentials};
+use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
 use libsignal_service::models::Contact;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::Uuid;
@@ -53,7 +53,8 @@ type MessageSender<S> = libsignal_service::prelude::MessageSender<HyperPushServi
 /// Manager state when the client is registered and can send and receive messages from Signal
 #[derive(Clone)]
 pub struct Registered {
-    pub(crate) push_service_cache: CacheCell<HyperPushService>,
+    pub(crate) identified_push_service: CacheCell<HyperPushService>,
+    pub(crate) unidentified_push_service: CacheCell<HyperPushService>,
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_sender_certificate: Option<SenderCertificate>,
@@ -70,7 +71,8 @@ impl fmt::Debug for Registered {
 impl Registered {
     pub(crate) fn with_data(data: RegistrationData) -> Self {
         Self {
-            push_service_cache: CacheCell::default(),
+            identified_push_service: CacheCell::default(),
+            unidentified_push_service: CacheCell::default(),
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
@@ -172,10 +174,76 @@ impl<S: Store> Manager<S, Registered> {
         &self.state.data
     }
 
+    /// Returns a clone of a cached push service (with credentials).
+    ///
+    /// If no service is yet cached, it will create and cache one.
+    fn identified_push_service(&self) -> HyperPushService {
+        self.state.identified_push_service.get(|| {
+            HyperPushService::new(
+                self.state.service_configuration(),
+                self.credentials(),
+                crate::USER_AGENT.to_string(),
+            )
+        })
+    }
+
+    /// Returns a clone of a cached push service (without credentials).
+    ///
+    /// If no service is yet cached, it will create and cache one.
+    fn unidentified_push_service(&self) -> HyperPushService {
+        self.state.unidentified_push_service.get(|| {
+            HyperPushService::new(
+                self.state.service_configuration(),
+                None,
+                crate::USER_AGENT.to_string(),
+            )
+        })
+    }
+
+    /// Returns the current identified websocket, or creates a new one
+    async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
+        let mut identified_ws = self.state.identified_websocket.lock();
+        match identified_ws.clone() {
+            Some(ws) => Ok(ws),
+            None => {
+                let keep_alive = true;
+                let headers = &[("X-Signal-Receive-Stories", "false")];
+                let ws = self
+                    .identified_push_service()
+                    .ws("/v1/websocket/", headers, self.credentials(), keep_alive)
+                    .await?;
+                identified_ws.replace(ws.clone());
+                debug!("initialized identified websocket");
+
+                Ok(ws)
+            }
+        }
+    }
+
+    async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
+        let mut unidentified_ws = self.state.unidentified_websocket.lock();
+        match unidentified_ws.clone() {
+            Some(ws) => Ok(ws),
+            None => {
+                let keep_alive = true;
+                let ws = self
+                    .unidentified_push_service()
+                    .ws("/v1/websocket/", &[], None, keep_alive)
+                    .await?;
+                unidentified_ws.replace(ws.clone());
+                debug!("initialized unidentified websocket");
+
+                Ok(ws)
+            }
+        }
+    }
+
     pub(crate) async fn register_pre_keys(&mut self) -> Result<(), Error<S::Error>> {
         trace!("registering pre keys");
-        let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(self.state.data.profile_key));
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            Some(self.state.data.profile_key),
+        );
 
         let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -199,8 +267,10 @@ impl<S: Store> Manager<S, Registered> {
 
     pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<S::Error>> {
         trace!("setting account attributes");
-        let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(self.state.data.profile_key));
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            Some(self.state.data.profile_key),
+        );
 
         let pni_registration_id =
             if let Some(pni_registration_id) = self.state.data.pni_registration_id {
@@ -251,7 +321,7 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         mut messages: impl Stream<Item = Content> + Unpin,
     ) -> Result<(), Error<S::Error>> {
-        let mut message_receiver = MessageReceiver::new(self.push_service()?);
+        let mut message_receiver = MessageReceiver::new(self.identified_push_service());
         while let Some(Content { body, .. }) = messages.next().await {
             if let ContentBody::SynchronizeMessage(SyncMessage {
                 contacts: Some(contacts),
@@ -333,7 +403,7 @@ impl<S: Store> Manager<S, Registered> {
 
         if needs_renewal(self.state.unidentified_sender_certificate.as_ref()) {
             let sender_certificate = self
-                .push_service()?
+                .identified_push_service()
                 .get_uuid_only_sender_certificate()
                 .await?;
 
@@ -354,7 +424,7 @@ impl<S: Store> Manager<S, Registered> {
         token: &str,
         captcha: &str,
     ) -> Result<(), Error<S::Error>> {
-        let mut account_manager = AccountManager::new(self.push_service()?, None);
+        let mut account_manager = AccountManager::new(self.identified_push_service(), None);
         account_manager
             .submit_recaptcha_challenge(token, captcha)
             .await?;
@@ -363,7 +433,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<S::Error>> {
-        Ok(self.push_service()?.whoami().await?)
+        Ok(self.identified_push_service().whoami().await?)
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
@@ -383,7 +453,8 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(profile);
         }
 
-        let mut account_manager = AccountManager::new(self.push_service()?, Some(profile_key));
+        let mut account_manager =
+            AccountManager::new(self.identified_push_service(), Some(profile_key));
 
         let profile = account_manager.retrieve_profile(uuid.into()).await?;
 
@@ -404,23 +475,8 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
         let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
-        let allow_stories = false;
-        let pipe = MessageReceiver::new(self.push_service()?)
-            .create_message_pipe(credentials, allow_stories)
-            .await?;
-
-        let service_configuration = self.state.service_configuration();
-        let mut unidentified_push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
-        let unidentified_ws = unidentified_push_service
-            .ws("/v1/websocket/", &[], None, false)
-            .await?;
-        self.state.identified_websocket.lock().replace(pipe.ws());
-        self.state
-            .unidentified_websocket
-            .lock()
-            .replace(unidentified_ws);
-
+        let ws = self.identified_websocket().await?;
+        let pipe = MessagePipe::from_socket(ws, credentials);
         Ok(pipe.stream())
     }
 
@@ -449,7 +505,7 @@ impl<S: Store> Manager<S, Registered> {
         let groups_credentials_cache = InMemoryCredentialsCache::default();
         let groups_manager = GroupsManager::new(
             self.state.data.service_ids.clone(),
-            self.push_service()?,
+            self.identified_push_service(),
             groups_credentials_cache,
             server_public_params,
         );
@@ -472,12 +528,14 @@ impl<S: Store> Manager<S, Registered> {
 
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
-            message_receiver: MessageReceiver::new(self.push_service()?),
+            message_receiver: MessageReceiver::new(self.identified_push_service()),
             service_cipher: self.new_service_cipher()?,
             store: self.store.clone(),
             groups_manager: self.groups_manager()?,
             mode,
         };
+
+        debug!("starting to consume incoming message stream");
 
         Ok(futures::stream::unfold(init, |mut state| async move {
             loop {
@@ -763,7 +821,7 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error<S::Error>> {
-        let mut service = self.push_service()?;
+        let mut service = self.identified_push_service();
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
         // We need the whole file for the crypto to check out
@@ -804,45 +862,19 @@ impl<S: Store> Manager<S, Registered> {
         })
     }
 
-    /// Returns a clone of a cached push service.
-    ///
-    /// If no service is yet cached, it will create and cache one.
-    fn push_service(&self) -> Result<HyperPushService, Error<S::Error>> {
-        self.state.push_service_cache.get(|| {
-            Ok(HyperPushService::new(
-                self.state.service_configuration(),
-                self.credentials(),
-                crate::USER_AGENT.to_string(),
-            ))
-        })
-    }
-
     /// Creates a new message sender.
     async fn new_message_sender(&self) -> Result<MessageSender<S>, Error<S::Error>> {
         let local_addr = ServiceAddress {
             uuid: self.state.data.service_ids.aci,
         };
 
-        let identified_websocket = self
-            .state
-            .identified_websocket
-            .lock()
-            .clone()
-            .ok_or(Error::MessagePipeNotStarted)?;
-
-        let mut unidentified_push_service = HyperPushService::new(
-            self.state.service_configuration(),
-            None,
-            crate::USER_AGENT.to_string(),
-        );
-        let unidentified_websocket = unidentified_push_service
-            .ws("/v1/websocket/", &[], None, false)
-            .await?;
+        let identified_websocket = self.identified_websocket().await?;
+        let unidentified_websocket = self.unidentified_websocket().await?;
 
         Ok(MessageSender::new(
             identified_websocket,
             unidentified_websocket,
-            self.push_service()?,
+            self.identified_push_service(),
             self.new_service_cipher()?,
             self.rng.clone(),
             self.store.clone(),
