@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ReceivingMode"],"struct":["Confirmation","Linking","Manager","Registered","Registration","RegistrationData","RegistrationOptions"]};

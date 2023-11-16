@@ -73,6 +73,7 @@
 <a href="#73" id="73">73</a>
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 
 <span class="kw">use </span>libsignal_service::{
@@ -81,7 +82,8 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::store::StoreError;
 
-<span class="attr">#[derive(thiserror::Error, Debug)]
+<span class="doccomment">/// The error type of Signal manager
+</span><span class="attr">#[derive(thiserror::Error, Debug)]
 </span><span class="kw">pub enum </span>Error&lt;S: std::error::Error&gt; {
     <span class="attr">#[error(<span class="string">&quot;captcha from https://signalcaptchas.org/registration/generate.html required&quot;</span>)]
     </span>CaptchaRequired,
