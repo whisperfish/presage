@@ -705,13 +705,8 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
-        let Some(group) = upsert_group(
-            &self.store,
-            &mut groups_manager,
-            master_key_bytes,
-            &0,
-        )
-        .await?
+        let Some(group) =
+            upsert_group(&self.store, &mut groups_manager, master_key_bytes, &0).await?
         else {
             return Err(Error::UnknownGroup);
         };
