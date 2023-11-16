@@ -21,12 +21,12 @@ The URL to present to the user will be sent in the channel given as the argument
 <div class="example-wrap"><pre class="rust rust-example-rendered"><code><span class="kw">use </span>futures::{channel::oneshot, future, StreamExt};
 <span class="kw">use </span>presage::libsignal_service::configuration::SignalServers;
 <span class="kw">use </span>presage::Manager;
-<span class="kw">use </span>presage_store_sled::{MigrationConflictStrategy, SledStore};
+<span class="kw">use </span>presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
 
 <span class="attr">#[tokio::main]
 </span><span class="kw">async fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="kw">let </span>store =
-        SledStore::open(<span class="string">&quot;/tmp/presage-example&quot;</span>, MigrationConflictStrategy::Drop)<span class="question-mark">?</span>;
+        SledStore::open(<span class="string">&quot;/tmp/presage-example&quot;</span>, MigrationConflictStrategy::Drop, OnNewIdentity::Trust)<span class="question-mark">?</span>;
 
     <span class="kw">let </span>(<span class="kw-2">mut </span>tx, <span class="kw-2">mut </span>rx) = oneshot::channel();
     <span class="kw">let </span>(manager, err) = future::join(
@@ -149,12 +149,12 @@ have to use to send the confirmation code.</p>
 };
 <span class="kw">use </span>presage::manager::RegistrationOptions;
 <span class="kw">use </span>presage::Manager;
-<span class="kw">use </span>presage_store_sled::{MigrationConflictStrategy, SledStore};
+<span class="kw">use </span>presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
 
 <span class="attr">#[tokio::main]
 </span><span class="kw">async fn </span>main() -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="kw">let </span>store =
-        SledStore::open(<span class="string">&quot;/tmp/presage-example&quot;</span>, MigrationConflictStrategy::Drop)<span class="question-mark">?</span>;
+        SledStore::open(<span class="string">&quot;/tmp/presage-example&quot;</span>, MigrationConflictStrategy::Drop, OnNewIdentity::Trust)<span class="question-mark">?</span>;
 
     <span class="kw">let </span>manager = Manager::register(
         store,

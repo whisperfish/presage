@@ -186,12 +186,12 @@
     /// use futures::{channel::oneshot, future, StreamExt};
     /// use presage::libsignal_service::configuration::SignalServers;
     /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
+    /// use presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     ///     let store =
-    ///         SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop)?;
+    ///         SledStore::open(&quot;/tmp/presage-example&quot;, MigrationConflictStrategy::Drop, OnNewIdentity::Trust)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
