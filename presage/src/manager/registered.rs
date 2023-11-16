@@ -886,28 +886,6 @@ impl<C: Store> Manager<C, Registered> {
             },
         }
     }
-
-    #[deprecated = "use Manager::contact_by_id"]
-    pub fn get_contacts(
-        &self,
-    ) -> Result<impl Iterator<Item = Result<Contact, Error<C::Error>>>, Error<C::Error>> {
-        self.contacts()
-    }
-
-    #[deprecated = "use Manager::contact_by_id"]
-    pub fn get_contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Error<C::Error>> {
-        self.contact_by_id(&id)
-    }
-
-    #[deprecated = "use Manager::groups"]
-    pub fn get_groups(&self) -> Result<C::GroupsIter, Error<C::Error>> {
-        self.groups()
-    }
-
-    #[deprecated = "use Manager::group"]
-    pub fn get_group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
-        self.group(master_key_bytes)
-    }
 }
 
 /// The mode receiving messages stream
