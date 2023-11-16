@@ -39,12 +39,12 @@ impl<S: Store> Manager<S, Registration> {
     /// };
     /// use presage::manager::RegistrationOptions;
     /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
+    /// use presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
     ///     let store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust)?;
     ///
     ///     let manager = Manager::register(
     ///         store,
