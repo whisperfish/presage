@@ -25,7 +25,7 @@ use presage::libsignal_service::{
     Profile, ServiceAddress,
 };
 use presage::manager::Registered;
-use presage::store::{ContentExt, ContentsStore, PrekeysStore, StateStore, Store, Thread};
+use presage::store::{ContentExt, ContentsStore, PreKeyStoreExt, StateStore, Store, Thread};
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -590,8 +590,8 @@ impl ContentsStore for SledStore {
     }
 }
 
-impl PrekeysStore for SledStore {
-    type PrekeysStoreError = SledStoreError;
+impl PreKeyStoreExt for SledStore {
+    type PreKeyStoreExtError = SledStoreError;
 
     fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
         Ok(self

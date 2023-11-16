@@ -43,20 +43,20 @@ pub trait StateStore {
 /// Stores the keys published ahead of time, pre-keys
 ///
 /// <https://signal.org/docs/specifications/x3dh/>
-pub trait PrekeysStore {
-    type PrekeysStoreError: StoreError;
+pub trait PreKeyStoreExt {
+    type PreKeyStoreExtError: StoreError;
 
-    fn pre_keys_offset_id(&self) -> Result<u32, Self::PrekeysStoreError>;
+    fn pre_keys_offset_id(&self) -> Result<u32, Self::PreKeyStoreExtError>;
 
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Self::PrekeysStoreError>;
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Self::PreKeyStoreExtError>;
 
-    fn next_signed_pre_key_id(&self) -> Result<u32, Self::PrekeysStoreError>;
+    fn next_signed_pre_key_id(&self) -> Result<u32, Self::PreKeyStoreExtError>;
 
-    fn next_pq_pre_key_id(&self) -> Result<u32, Self::PrekeysStoreError>;
+    fn next_pq_pre_key_id(&self) -> Result<u32, Self::PreKeyStoreExtError>;
 
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::PrekeysStoreError>;
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::PreKeyStoreExtError>;
 
-    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), Self::PrekeysStoreError>;
+    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), Self::PreKeyStoreExtError>;
 }
 
 /// Stores messages, contacts, groups and profiles
@@ -190,7 +190,7 @@ pub trait ContentsStore {
 /// The manager store trait combining all other stores into a single one
 pub trait Store:
     StateStore<StateStoreError = Self::Error>
-    + PrekeysStore<PrekeysStoreError = Self::Error>
+    + PreKeyStoreExt<PreKeyStoreExtError = Self::Error>
     + ContentsStore<ContentsStoreError = Self::Error>
     + ProtocolStore
     + SenderKeyStore
