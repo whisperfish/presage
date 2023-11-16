@@ -1096,6 +1096,38 @@
 <a href="#1096" id="1096">1096</a>
 <a href="#1097" id="1097">1097</a>
 <a href="#1098" id="1098">1098</a>
+<a href="#1099" id="1099">1099</a>
+<a href="#1100" id="1100">1100</a>
+<a href="#1101" id="1101">1101</a>
+<a href="#1102" id="1102">1102</a>
+<a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
+<a href="#1123" id="1123">1123</a>
+<a href="#1124" id="1124">1124</a>
+<a href="#1125" id="1125">1125</a>
+<a href="#1126" id="1126">1126</a>
+<a href="#1127" id="1127">1127</a>
+<a href="#1128" id="1128">1128</a>
+<a href="#1129" id="1129">1129</a>
+<a href="#1130" id="1130">1130</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1107,7 +1139,7 @@
 <span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
 <span class="kw">use </span>libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
 <span class="kw">use </span>libsignal_service::groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache};
-<span class="kw">use </span>libsignal_service::messagepipe::{Incoming, ServiceCredentials};
+<span class="kw">use </span>libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
 <span class="kw">use </span>libsignal_service::models::Contact;
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
 <span class="kw">use </span>libsignal_service::prelude::Uuid;
@@ -1151,7 +1183,8 @@
 <span class="doccomment">/// Manager state when the client is registered and can send and receive messages from Signal
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>Registered {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) push_service_cache: CacheCell&lt;HyperPushService&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) identified_push_service: CacheCell&lt;HyperPushService&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_push_service: CacheCell&lt;HyperPushService&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) identified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_sender_certificate: <span class="prelude-ty">Option</span>&lt;SenderCertificate&gt;,
@@ -1168,7 +1201,8 @@
 <span class="kw">impl </span>Registered {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>with_data(data: RegistrationData) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            push_service_cache: CacheCell::default(),
+            identified_push_service: CacheCell::default(),
+            unidentified_push_service: CacheCell::default(),
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
@@ -1270,10 +1304,76 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>.state.data
     }
 
+    <span class="doccomment">/// Returns a clone of a cached push service (with credentials).
+    ///
+    /// If no service is yet cached, it will create and cache one.
+    </span><span class="kw">fn </span>identified_push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HyperPushService {
+        <span class="self">self</span>.state.identified_push_service.get(|| {
+            HyperPushService::new(
+                <span class="self">self</span>.state.service_configuration(),
+                <span class="self">self</span>.credentials(),
+                <span class="kw">crate</span>::USER_AGENT.to_string(),
+            )
+        })
+    }
+
+    <span class="doccomment">/// Returns a clone of a cached push service (without credentials).
+    ///
+    /// If no service is yet cached, it will create and cache one.
+    </span><span class="kw">fn </span>unidentified_push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HyperPushService {
+        <span class="self">self</span>.state.unidentified_push_service.get(|| {
+            HyperPushService::new(
+                <span class="self">self</span>.state.service_configuration(),
+                <span class="prelude-val">None</span>,
+                <span class="kw">crate</span>::USER_AGENT.to_string(),
+            )
+        })
+    }
+
+    <span class="doccomment">/// Returns the current identified websocket, or creates a new one
+    </span><span class="kw">async fn </span>identified_websocket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>identified_ws = <span class="self">self</span>.state.identified_websocket.lock();
+        <span class="kw">match </span>identified_ws.clone() {
+            <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws),
+            <span class="prelude-val">None </span>=&gt; {
+                <span class="kw">let </span>keep_alive = <span class="bool-val">true</span>;
+                <span class="kw">let </span>headers = <span class="kw-2">&amp;</span>[(<span class="string">&quot;X-Signal-Receive-Stories&quot;</span>, <span class="string">&quot;false&quot;</span>)];
+                <span class="kw">let </span>ws = <span class="self">self
+                    </span>.identified_push_service()
+                    .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, headers, <span class="self">self</span>.credentials(), keep_alive)
+                    .<span class="kw">await</span><span class="question-mark">?</span>;
+                identified_ws.replace(ws.clone());
+                <span class="macro">debug!</span>(<span class="string">&quot;initialized identified websocket&quot;</span>);
+
+                <span class="prelude-val">Ok</span>(ws)
+            }
+        }
+    }
+
+    <span class="kw">async fn </span>unidentified_websocket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>unidentified_ws = <span class="self">self</span>.state.unidentified_websocket.lock();
+        <span class="kw">match </span>unidentified_ws.clone() {
+            <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws),
+            <span class="prelude-val">None </span>=&gt; {
+                <span class="kw">let </span>keep_alive = <span class="bool-val">true</span>;
+                <span class="kw">let </span>ws = <span class="self">self
+                    </span>.unidentified_push_service()
+                    .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>, keep_alive)
+                    .<span class="kw">await</span><span class="question-mark">?</span>;
+                unidentified_ws.replace(ws.clone());
+                <span class="macro">debug!</span>(<span class="string">&quot;initialized unidentified websocket&quot;</span>);
+
+                <span class="prelude-val">Ok</span>(ws)
+            }
+        }
+    }
+
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>register_pre_keys(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;registering pre keys&quot;</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
-            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key));
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(
+            <span class="self">self</span>.identified_push_service(),
+            <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
+        );
 
         <span class="kw">let </span>(pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -1297,8 +1397,10 @@
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>set_account_attributes(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;setting account attributes&quot;</span>);
-        <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
-            AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key));
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(
+            <span class="self">self</span>.identified_push_service(),
+            <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
+        );
 
         <span class="kw">let </span>pni_registration_id =
             <span class="kw">if let </span><span class="prelude-val">Some</span>(pni_registration_id) = <span class="self">self</span>.state.data.pni_registration_id {
@@ -1349,7 +1451,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         <span class="kw-2">mut </span>messages: <span class="kw">impl </span>Stream&lt;Item = Content&gt; + Unpin,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>message_receiver = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>message_receiver = MessageReceiver::new(<span class="self">self</span>.identified_push_service());
         <span class="kw">while let </span><span class="prelude-val">Some</span>(Content { body, .. }) = messages.next().<span class="kw">await </span>{
             <span class="kw">if let </span>ContentBody::SynchronizeMessage(SyncMessage {
                 contacts: <span class="prelude-val">Some</span>(contacts),
@@ -1431,8 +1533,8 @@
 
         <span class="kw">if </span>needs_renewal(<span class="self">self</span>.state.unidentified_sender_certificate.as_ref()) {
             <span class="kw">let </span>sender_certificate = <span class="self">self
-                </span>.push_service()<span class="question-mark">?
-                </span>.get_uuid_only_sender_certificate()
+                </span>.identified_push_service()
+                .get_uuid_only_sender_certificate()
                 .<span class="kw">await</span><span class="question-mark">?</span>;
 
             <span class="self">self</span>.state
@@ -1452,7 +1554,7 @@
         token: <span class="kw-2">&amp;</span>str,
         captcha: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">None</span>);
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.identified_push_service(), <span class="prelude-val">None</span>);
         account_manager
             .submit_recaptcha_challenge(token, captcha)
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1461,7 +1563,7 @@
 
     <span class="doccomment">/// Fetches basic information on the registered device.
     </span><span class="kw">pub async fn </span>whoami(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, Error&lt;S::Error&gt;&gt; {
-        <span class="prelude-val">Ok</span>(<span class="self">self</span>.push_service()<span class="question-mark">?</span>.whoami().<span class="kw">await</span><span class="question-mark">?</span>)
+        <span class="prelude-val">Ok</span>(<span class="self">self</span>.identified_push_service().whoami().<span class="kw">await</span><span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.
@@ -1481,7 +1583,8 @@
             <span class="kw">return </span><span class="prelude-val">Ok</span>(profile);
         }
 
-        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>, <span class="prelude-val">Some</span>(profile_key));
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
+            AccountManager::new(<span class="self">self</span>.identified_push_service(), <span class="prelude-val">Some</span>(profile_key));
 
         <span class="kw">let </span>profile = account_manager.retrieve_profile(uuid.into()).<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1502,23 +1605,8 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Incoming, ServiceError&gt;&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span>credentials = <span class="self">self</span>.credentials().ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
-        <span class="kw">let </span>allow_stories = <span class="bool-val">false</span>;
-        <span class="kw">let </span>pipe = MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>)
-            .create_message_pipe(credentials, allow_stories)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="kw">let </span>service_configuration = <span class="self">self</span>.state.service_configuration();
-        <span class="kw">let </span><span class="kw-2">mut </span>unidentified_push_service =
-            HyperPushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
-        <span class="kw">let </span>unidentified_ws = unidentified_push_service
-            .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="self">self</span>.state.identified_websocket.lock().replace(pipe.ws());
-        <span class="self">self</span>.state
-            .unidentified_websocket
-            .lock()
-            .replace(unidentified_ws);
-
+        <span class="kw">let </span>ws = <span class="self">self</span>.identified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>pipe = MessagePipe::from_socket(ws, credentials);
         <span class="prelude-val">Ok</span>(pipe.stream())
     }
 
@@ -1547,7 +1635,7 @@
         <span class="kw">let </span>groups_credentials_cache = InMemoryCredentialsCache::default();
         <span class="kw">let </span>groups_manager = GroupsManager::new(
             <span class="self">self</span>.state.data.service_ids.clone(),
-            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            <span class="self">self</span>.identified_push_service(),
             groups_credentials_cache,
             server_public_params,
         );
@@ -1570,12 +1658,14 @@
 
         <span class="kw">let </span>init = StreamState {
             encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
-            message_receiver: MessageReceiver::new(<span class="self">self</span>.push_service()<span class="question-mark">?</span>),
+            message_receiver: MessageReceiver::new(<span class="self">self</span>.identified_push_service()),
             service_cipher: <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
             store: <span class="self">self</span>.store.clone(),
             groups_manager: <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>,
             mode,
         };
+
+        <span class="macro">debug!</span>(<span class="string">&quot;starting to consume incoming message stream&quot;</span>);
 
         <span class="prelude-val">Ok</span>(futures::stream::unfold(init, |<span class="kw-2">mut </span>state| <span class="kw">async move </span>{
             <span class="kw">loop </span>{
@@ -1861,7 +1951,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         attachment_pointer: <span class="kw-2">&amp;</span>AttachmentPointer,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>service = <span class="self">self</span>.push_service()<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>service = <span class="self">self</span>.identified_push_service();
         <span class="kw">let </span><span class="kw-2">mut </span>attachment_stream = service.get_attachment(attachment_pointer).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// We need the whole file for the crypto to check out
@@ -1902,45 +1992,19 @@
         })
     }
 
-    <span class="doccomment">/// Returns a clone of a cached push service.
-    ///
-    /// If no service is yet cached, it will create and cache one.
-    </span><span class="kw">fn </span>push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;HyperPushService, Error&lt;S::Error&gt;&gt; {
-        <span class="self">self</span>.state.push_service_cache.get(|| {
-            <span class="prelude-val">Ok</span>(HyperPushService::new(
-                <span class="self">self</span>.state.service_configuration(),
-                <span class="self">self</span>.credentials(),
-                <span class="kw">crate</span>::USER_AGENT.to_string(),
-            ))
-        })
-    }
-
     <span class="doccomment">/// Creates a new message sender.
     </span><span class="kw">async fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;S&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span>local_addr = ServiceAddress {
             uuid: <span class="self">self</span>.state.data.service_ids.aci,
         };
 
-        <span class="kw">let </span>identified_websocket = <span class="self">self
-            </span>.state
-            .identified_websocket
-            .lock()
-            .clone()
-            .ok_or(Error::MessagePipeNotStarted)<span class="question-mark">?</span>;
-
-        <span class="kw">let </span><span class="kw-2">mut </span>unidentified_push_service = HyperPushService::new(
-            <span class="self">self</span>.state.service_configuration(),
-            <span class="prelude-val">None</span>,
-            <span class="kw">crate</span>::USER_AGENT.to_string(),
-        );
-        <span class="kw">let </span>unidentified_websocket = unidentified_push_service
-            .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>, <span class="bool-val">false</span>)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>identified_websocket = <span class="self">self</span>.identified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>unidentified_websocket = <span class="self">self</span>.unidentified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(MessageSender::new(
             identified_websocket,
             unidentified_websocket,
-            <span class="self">self</span>.push_service()<span class="question-mark">?</span>,
+            <span class="self">self</span>.identified_push_service(),
             <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
             <span class="self">self</span>.rng.clone(),
             <span class="self">self</span>.store.clone(),
