@@ -50,18 +50,46 @@ use crate::{Error, Manager};
 type ServiceCipher<S> = cipher::ServiceCipher<S, StdRng>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<HyperPushService, S, StdRng>;
 
-/// Manager state where Signal can be used
-#[derive(Clone, Serialize, Deserialize)]
+/// Manager state when the client is registered and can send and receive messages from Signal
+#[derive(Clone)]
 pub struct Registered {
-    #[serde(skip)]
     pub(crate) push_service_cache: CacheCell<HyperPushService>,
-    #[serde(skip)]
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
-    #[serde(skip)]
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
-    #[serde(skip)]
     pub(crate) unidentified_sender_certificate: Option<SenderCertificate>,
 
+    pub(crate) data: RegistrationData,
+}
+
+impl fmt::Debug for Registered {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Registered").finish_non_exhaustive()
+    }
+}
+
+impl Registered {
+    pub(crate) fn with_data(data: RegistrationData) -> Self {
+        Self {
+            push_service_cache: CacheCell::default(),
+            identified_websocket: Default::default(),
+            unidentified_websocket: Default::default(),
+            unidentified_sender_certificate: Default::default(),
+            data,
+        }
+    }
+
+    fn service_configuration(&self) -> ServiceConfiguration {
+        self.data.signal_servers.into()
+    }
+
+    pub fn device_id(&self) -> u32 {
+        self.data.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    }
+}
+
+/// Registration data like device name, and credentials to connect to Signal
+#[derive(Serialize, Deserialize, Clone)]
+pub struct RegistrationData {
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
@@ -75,26 +103,40 @@ pub struct Registered {
     #[serde(default)]
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_private_key", rename = "private_key")]
-    pub aci_private_key: PrivateKey,
+    pub(crate) aci_private_key: PrivateKey,
     #[serde(with = "serde_public_key", rename = "public_key")]
-    pub aci_public_key: PublicKey,
+    pub(crate) aci_public_key: PublicKey,
     #[serde(with = "serde_optional_private_key", default)]
-    pub pni_private_key: Option<PrivateKey>,
+    pub(crate) pni_private_key: Option<PrivateKey>,
     #[serde(with = "serde_optional_public_key", default)]
-    pub pni_public_key: Option<PublicKey>,
+    pub(crate) pni_public_key: Option<PublicKey>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
 }
 
-impl fmt::Debug for Registered {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Registered").finish_non_exhaustive()
+impl RegistrationData {
+    pub fn registration_id(&self) -> u32 {
+        self.registration_id
     }
-}
 
-impl Registered {
-    pub fn device_id(&self) -> u32 {
-        self.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    pub fn service_ids(&self) -> &ServiceIds {
+        &self.service_ids
+    }
+
+    pub fn profile_key(&self) -> ProfileKey {
+        self.profile_key
+    }
+
+    pub fn device_name(&self) -> Option<&String> {
+        self.device_name.as_ref()
+    }
+
+    pub fn aci_public_key(&self) -> PublicKey {
+        self.aci_public_key
+    }
+
+    pub fn aci_private_key(&self) -> PrivateKey {
+        self.aci_private_key
     }
 }
 
@@ -103,25 +145,37 @@ impl<S: Store> Manager<S, Registered> {
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
     pub async fn load_registered(store: S) -> Result<Self, Error<S::Error>> {
-        let state = store.load_state()?.ok_or(Error::NotYetRegisteredError)?;
+        let registration_data = store
+            .load_registration_data()?
+            .ok_or(Error::NotYetRegisteredError)?;
 
         let mut manager = Self {
             rng: StdRng::from_entropy(),
             store,
-            state,
+            state: Registered::with_data(registration_data),
         };
 
-        if manager.state.pni_registration_id.is_none() {
+        if manager.state.data.pni_registration_id.is_none() {
             manager.set_account_attributes().await?;
         }
 
         Ok(manager)
     }
 
+    /// Returns a handle to the [Store] implementation.
+    pub fn store(&self) -> &S {
+        &self.store
+    }
+
+    /// Returns a handle on the [RegistrationData].
+    pub fn registration_data(&self) -> &RegistrationData {
+        &self.state.data
+    }
+
     pub(crate) async fn register_pre_keys(&mut self) -> Result<(), Error<S::Error>> {
         trace!("registering pre keys");
         let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(self.state.profile_key));
+            AccountManager::new(self.push_service()?, Some(self.state.data.profile_key));
 
         let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
@@ -146,23 +200,22 @@ impl<S: Store> Manager<S, Registered> {
     pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<S::Error>> {
         trace!("setting account attributes");
         let mut account_manager =
-            AccountManager::new(self.push_service()?, Some(self.state.profile_key));
+            AccountManager::new(self.push_service()?, Some(self.state.data.profile_key));
 
-        let pni_registration_id = if let Some(pni_registration_id) = self.state.pni_registration_id
-        {
-            pni_registration_id
-        } else {
-            info!("migrating to PNI");
-            let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
-            self.state.pni_registration_id = Some(pni_registration_id);
-            self.store.save_state(&self.state)?;
-            pni_registration_id
-        };
+        let pni_registration_id =
+            if let Some(pni_registration_id) = self.state.data.pni_registration_id {
+                pni_registration_id
+            } else {
+                info!("migrating to PNI");
+                let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
+                self.store.save_registration_data(&self.state.data)?;
+                pni_registration_id
+            };
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: self.state.device_name.clone(),
-                registration_id: self.state.registration_id,
+                name: self.state.data.device_name().cloned(),
+                registration_id: self.state.data.registration_id,
                 pni_registration_id,
                 signaling_key: None,
                 voice: false,
@@ -170,7 +223,9 @@ impl<S: Store> Manager<S, Registered> {
                 fetches_messages: true,
                 pin: None,
                 registration_lock: None,
-                unidentified_access_key: Some(self.state.profile_key.derive_access_key().to_vec()),
+                unidentified_access_key: Some(
+                    self.state.data.profile_key.derive_access_key().to_vec(),
+                ),
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
@@ -181,11 +236,11 @@ impl<S: Store> Manager<S, Registered> {
             })
             .await?;
 
-        if self.state.pni_registration_id.is_none() {
+        if self.state.data.pni_registration_id.is_none() {
             debug!("fetching PNI UUID and updating state");
             let whoami = self.whoami().await?;
-            self.state.service_ids.pni = whoami.pni;
-            self.store.save_state(&self.state)?;
+            self.state.data.service_ids.pni = whoami.pni;
+            self.store.save_registration_data(&self.state.data)?;
         }
 
         trace!("done setting account attributes");
@@ -252,7 +307,7 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(self.state.service_ids.aci, sync_message, timestamp)
+        self.send_message(self.state.data.service_ids.aci, sync_message, timestamp)
             .await?;
 
         Ok(())
@@ -306,11 +361,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    /// Returns a handle on the registered state
-    pub fn state(&self) -> &Registered {
-        &self.state
-    }
-
     /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<S::Error>> {
         Ok(self.push_service()?.whoami().await?)
@@ -318,7 +368,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
-        self.retrieve_profile_by_uuid(self.state.service_ids.aci, self.state.profile_key)
+        self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.data.profile_key)
             .await
     }
 
@@ -341,40 +391,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(profile)
     }
 
-    /// Get a single contact by its UUID
-    ///
-    /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<S::Error>> {
-        Ok(self.store.contact_by_id(*id)?)
-    }
-
-    /// Returns an iterator on contacts stored in the [Store].
-    pub fn contacts(
-        &self,
-    ) -> Result<impl Iterator<Item = Result<Contact, Error<S::Error>>>, Error<S::Error>> {
-        let iter = self.store.contacts()?;
-        Ok(iter.map(|r| r.map_err(Into::into)))
-    }
-
-    /// Get a group (either from the local cache, or fetch it remotely) using its master key
-    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<S::Error>> {
-        Ok(self.store.group(master_key_bytes.try_into()?)?)
-    }
-
-    /// Returns an iterator on groups stored in the [Store].
-    pub fn groups(&self) -> Result<S::GroupsIter, Error<S::Error>> {
-        Ok(self.store.groups()?)
-    }
-
-    /// Get a single message in a thread (identified by its server-side sent timestamp)
-    pub fn message(
-        &self,
-        thread: &Thread,
-        timestamp: u64,
-    ) -> Result<Option<Content>, Error<S::Error>> {
-        Ok(self.store.message(thread, timestamp)?)
-    }
-
     /// Get an iterator of messages in a thread, optionally starting from a point in time.
     pub fn messages(
         &self,
@@ -393,7 +409,7 @@ impl<S: Store> Manager<S, Registered> {
             .create_message_pipe(credentials, allow_stories)
             .await?;
 
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let service_configuration = self.state.service_configuration();
         let mut unidentified_push_service =
             HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
         let unidentified_ws = unidentified_push_service
@@ -427,12 +443,12 @@ impl<S: Store> Manager<S, Registered> {
     fn groups_manager(
         &self,
     ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error<S::Error>> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
+        let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
         let groups_credentials_cache = InMemoryCredentialsCache::default();
         let groups_manager = GroupsManager::new(
-            self.state.service_ids.clone(),
+            self.state.data.service_ids.clone(),
             self.push_service()?,
             groups_credentials_cache,
             server_public_params,
@@ -626,7 +642,7 @@ impl<S: Store> Manager<S, Registered> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: self.state.service_ids.aci.into(),
+                sender: self.state.data.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false,
@@ -705,7 +721,7 @@ impl<S: Store> Manager<S, Registered> {
         for member in group
             .members
             .into_iter()
-            .filter(|m| m.uuid != self.state.service_ids.aci)
+            .filter(|m| m.uuid != self.state.data.service_ids.aci)
         {
             let unidentified_access =
                 self.store
@@ -727,7 +743,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let content = Content {
             metadata: Metadata {
-                sender: self.state.service_ids.aci.into(),
+                sender: self.state.data.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
@@ -785,11 +801,11 @@ impl<S: Store> Manager<S, Registered> {
 
     fn credentials(&self) -> Option<ServiceCredentials> {
         Some(ServiceCredentials {
-            uuid: Some(self.state.service_ids.aci),
-            phonenumber: self.state.phone_number.clone(),
-            password: Some(self.state.password.clone()),
-            signaling_key: Some(self.state.signaling_key),
-            device_id: self.state.device_id,
+            uuid: Some(self.state.data.service_ids.aci),
+            phonenumber: self.state.data.phone_number.clone(),
+            password: Some(self.state.data.password.clone()),
+            signaling_key: Some(self.state.data.signaling_key),
+            device_id: self.state.data.device_id,
         })
     }
 
@@ -798,12 +814,9 @@ impl<S: Store> Manager<S, Registered> {
     /// If no service is yet cached, it will create and cache one.
     fn push_service(&self) -> Result<HyperPushService, Error<S::Error>> {
         self.state.push_service_cache.get(|| {
-            let credentials = self.credentials();
-            let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-
             Ok(HyperPushService::new(
-                service_configuration,
-                credentials,
+                self.state.service_configuration(),
+                self.credentials(),
                 crate::USER_AGENT.to_string(),
             ))
         })
@@ -812,7 +825,7 @@ impl<S: Store> Manager<S, Registered> {
     /// Creates a new message sender.
     async fn new_message_sender(&self) -> Result<MessageSender<S>, Error<S::Error>> {
         let local_addr = ServiceAddress {
-            uuid: self.state.service_ids.aci,
+            uuid: self.state.data.service_ids.aci,
         };
 
         let identified_websocket = self
@@ -822,9 +835,11 @@ impl<S: Store> Manager<S, Registered> {
             .clone()
             .ok_or(Error::MessagePipeNotStarted)?;
 
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
-        let mut unidentified_push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+        let mut unidentified_push_service = HyperPushService::new(
+            self.state.service_configuration(),
+            None,
+            crate::USER_AGENT.to_string(),
+        );
         let unidentified_websocket = unidentified_push_service
             .ws("/v1/websocket/", &[], None, false)
             .await?;
@@ -837,19 +852,20 @@ impl<S: Store> Manager<S, Registered> {
             self.rng.clone(),
             self.store.clone(),
             local_addr,
-            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
+            self.state.device_id().into(),
         ))
     }
 
     /// Creates a new service cipher.
     fn new_service_cipher(&self) -> Result<ServiceCipher<S>, Error<S::Error>> {
-        let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let service_cipher = ServiceCipher::new(
             self.store.clone(),
             self.rng.clone(),
-            service_configuration.unidentified_sender_trust_root,
-            self.state.service_ids.aci,
-            self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID),
+            self.state
+                .service_configuration()
+                .unidentified_sender_trust_root,
+            self.state.data.service_ids.aci,
+            self.state.device_id(),
         );
 
         Ok(service_cipher)
@@ -859,7 +875,7 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<S::Error>> {
         match thread {
             Thread::Contact(uuid) => {
-                let contact = match self.contact_by_id(uuid) {
+                let contact = match self.store.contact_by_id(*uuid) {
                     Ok(contact) => contact,
                     Err(e) => {
                         info!("Error getting contact by id: {}, {:?}", e, uuid);
@@ -871,11 +887,52 @@ impl<S: Store> Manager<S, Registered> {
                     None => uuid.to_string(),
                 })
             }
-            Thread::Group(id) => match self.group(id)? {
+            Thread::Group(id) => match self.store.group(*id)? {
                 Some(group) => Ok(group.title),
                 None => Ok("".to_string()),
             },
         }
+    }
+
+    /// Deprecated methods
+
+    /// Get a single contact by its UUID
+    ///
+    /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
+    #[deprecated = "use the store handle directly"]
+    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<S::Error>> {
+        Ok(self.store.contact_by_id(*id)?)
+    }
+
+    /// Returns an iterator on contacts stored in the [Store].
+    #[deprecated = "use the store handle directly"]
+    pub fn contacts(
+        &self,
+    ) -> Result<impl Iterator<Item = Result<Contact, Error<S::Error>>>, Error<S::Error>> {
+        let iter = self.store.contacts()?;
+        Ok(iter.map(|r| r.map_err(Into::into)))
+    }
+
+    /// Get a group (either from the local cache, or fetch it remotely) using its master key
+    #[deprecated = "use the store handle directly"]
+    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<S::Error>> {
+        Ok(self.store.group(master_key_bytes.try_into()?)?)
+    }
+
+    /// Returns an iterator on groups stored in the [Store].
+    #[deprecated = "use the store handle directly"]
+    pub fn groups(&self) -> Result<S::GroupsIter, Error<S::Error>> {
+        Ok(self.store.groups()?)
+    }
+
+    /// Get a single message in a thread (identified by its server-side sent timestamp)
+    #[deprecated = "use the store handle directly"]
+    pub fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<Content>, Error<S::Error>> {
+        Ok(self.store.message(thread, timestamp)?)
     }
 }
 

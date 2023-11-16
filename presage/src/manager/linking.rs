@@ -11,7 +11,7 @@ use rand::rngs::StdRng;
 use rand::{RngCore, SeedableRng};
 use url::Url;
 
-use crate::cache::CacheCell;
+use crate::manager::registered::RegistrationData;
 use crate::store::Store;
 use crate::{Error, Manager};
 
@@ -108,11 +108,7 @@ impl<S: Store> Manager<S, Linking> {
                 }) = rx.next().await
                 {
                     info!("successfully registered device {}", &service_ids);
-                    Ok(Registered {
-                        push_service_cache: CacheCell::default(),
-                        identified_websocket: Default::default(),
-                        unidentified_websocket: Default::default(),
-                        unidentified_sender_certificate: Default::default(),
+                    Ok(Registered::with_data(RegistrationData {
                         signal_servers,
                         device_name: Some(device_name),
                         phone_number,
@@ -129,7 +125,7 @@ impl<S: Store> Manager<S, Linking> {
                         profile_key: ProfileKey::create(
                             profile_key.try_into().expect("32 bytes for profile key"),
                         ),
-                    })
+                    }))
                 } else {
                     Err(Error::NoProvisioningMessageReceived)
                 }
@@ -145,7 +141,7 @@ impl<S: Store> Manager<S, Linking> {
             state: registration?,
         };
 
-        manager.store.save_state(&manager.state)?;
+        manager.store.save_registration_data(&manager.state.data)?;
 
         match (
             manager.register_pre_keys().await,

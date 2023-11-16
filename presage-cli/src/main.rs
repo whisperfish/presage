@@ -318,7 +318,7 @@ fn print_message<S: Store>(
                 }),
             ..
         } => {
-            let Ok(Some(message)) = manager.message(thread, *timestamp) else {
+            let Ok(Some(message)) = manager.store().message(thread, *timestamp) else {
                 log::warn!("no message in {thread} sent at {timestamp}");
                 return None;
             };
@@ -341,6 +341,7 @@ fn print_message<S: Store>(
 
     let format_contact = |uuid| {
         manager
+            .store()
             .contact_by_id(uuid)
             .ok()
             .flatten()
@@ -351,6 +352,7 @@ fn print_message<S: Store>(
 
     let format_group = |key| {
         manager
+            .store()
             .group(key)
             .ok()
             .flatten()
@@ -405,20 +407,20 @@ fn print_message<S: Store>(
         let ts = content.timestamp();
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
-                let contact = format_contact(sender);
+                let contact = format_contact(*sender);
                 (format!("From {contact} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Contact(recipient), body) => {
-                let contact = format_contact(recipient);
+                let contact = format_contact(*recipient);
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = format_contact(&content.metadata.sender.uuid);
-                let group = format_group(key);
+                let sender = format_contact(content.metadata.sender.uuid);
+                let group = format_group(*key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Group(key), body) => {
-                let group = format_group(key);
+                let group = format_group(*key);
                 (format!("To group {group} @ {ts}"), body)
             }
         };
@@ -566,6 +568,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
             let mut manager = Manager::load_registered(config_store).await?;
             if profile_key.is_none() {
                 for contact in manager
+                    .store()
                     .contacts()?
                     .filter_map(Result::ok)
                     .filter(|c| c.uuid == uuid)
@@ -592,7 +595,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store).await?;
-            for group in manager.groups()? {
+            for group in manager.store().groups()? {
                 match group {
                     Ok((
                         group_master_key,
@@ -623,7 +626,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
                 uuid,
                 phone_number,
                 ..
-            } in manager.contacts()?.flatten()
+            } in manager.store().contacts()?.flatten()
             {
                 println!("{uuid} / {phone_number:?} / {name}");
             }
@@ -634,7 +637,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
         }
         Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store).await?;
-            match manager.contact_by_id(uuid)? {
+            match manager.store().contact_by_id(*uuid)? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
             }
@@ -646,6 +649,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
         } => {
             let manager = Manager::load_registered(config_store).await?;
             for contact in manager
+                .store()
                 .contacts()?
                 .filter_map(Result::ok)
                 .filter(|c| uuid.map_or_else(|| true, |u| c.uuid == u))

@@ -24,7 +24,7 @@ use presage::libsignal_service::{
     session_store::SessionStoreExt,
     Profile, ServiceAddress,
 };
-use presage::manager::Registered;
+use presage::manager::RegistrationData;
 use presage::store::{ContentExt, ContentsStore, PreKeyStoreExt, StateStore, Store, Thread};
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -313,7 +313,7 @@ fn migrate(
                         let state = serde_json::from_slice(&data).map_err(SledStoreError::from)?;
 
                         // save it the new school way
-                        store.save_state(&state)?;
+                        store.save_registration_data(&state)?;
 
                         // remove old data
                         let db = store.write();
@@ -366,17 +366,17 @@ impl ProtocolStore for SledStore {}
 impl StateStore for SledStore {
     type StateStoreError = SledStoreError;
 
-    fn load_state(&self) -> Result<Option<Registered>, SledStoreError> {
+    fn load_registration_data(&self) -> Result<Option<RegistrationData>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered) -> Result<(), SledStoreError> {
+    fn save_registration_data(&mut self, state: &RegistrationData) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
 
     fn is_registered(&self) -> bool {
-        self.load_state().unwrap_or_default().is_some()
+        self.load_registration_data().unwrap_or_default().is_some()
     }
 
     fn clear_registration(&mut self) -> Result<(), SledStoreError> {
@@ -937,28 +937,29 @@ impl SessionStoreExt for SledStore {
 impl IdentityKeyStore for SledStore {
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let state = self
-            .load_state()
+        let data = self
+            .load_registration_data()
             .map_err(SledStoreError::into_signal_error)?
             .ok_or(SignalProtocolError::InvalidState(
                 "failed to load identity key pair",
                 "no registration data".into(),
             ))?;
+
         Ok(IdentityKeyPair::new(
-            IdentityKey::new(state.aci_public_key),
-            state.aci_private_key,
+            IdentityKey::new(data.aci_public_key()),
+            data.aci_private_key(),
         ))
     }
 
     async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
-        let state = self
-            .load_state()
+        let data = self
+            .load_registration_data()
             .map_err(SledStoreError::into_signal_error)?
             .ok_or(SignalProtocolError::InvalidState(
-                "failed to load identity key pair",
+                "failed to load registration ID",
                 "no registration data".into(),
             ))?;
-        Ok(state.registration_id)
+        Ok(data.registration_id())
     }
 
     async fn save_identity(

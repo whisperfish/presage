@@ -18,7 +18,7 @@ use libsignal_service::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::manager::Registered;
+use crate::manager::RegistrationData;
 
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send + 'static {}
@@ -28,10 +28,13 @@ pub trait StateStore {
     type StateStoreError: StoreError;
 
     /// Load registered (or linked) state
-    fn load_state(&self) -> Result<Option<Registered>, Self::StateStoreError>;
+    fn load_registration_data(&self) -> Result<Option<RegistrationData>, Self::StateStoreError>;
 
     /// Save registered (or linked) state
-    fn save_state(&mut self, state: &Registered) -> Result<(), Self::StateStoreError>;
+    fn save_registration_data(
+        &mut self,
+        state: &RegistrationData,
+    ) -> Result<(), Self::StateStoreError>;
 
     /// Returns whether this store contains registration data or not
     fn is_registered(&self) -> bool;

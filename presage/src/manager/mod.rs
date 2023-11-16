@@ -11,7 +11,7 @@ use rand::rngs::StdRng;
 
 pub use self::confirmation::Confirmation;
 pub use self::linking::Linking;
-pub use self::registered::{ReceivingMode, Registered};
+pub use self::registered::{ReceivingMode, Registered, RegistrationData};
 pub use self::registration::{Registration, RegistrationOptions};
 
 /// Signal manager
@@ -48,7 +48,7 @@ mod tests {
     use rand::RngCore;
     use serde_json::json;
 
-    use crate::manager::Registered;
+    use crate::manager::RegistrationData;
 
     #[test]
     fn test_state_before_pni() {
@@ -87,9 +87,10 @@ mod tests {
           "profile_key": general_purpose::STANDARD.encode(profile_key.get_bytes()),
         });
 
-        let state: Registered = serde_json::from_value(previous_state).expect("should deserialize");
-        assert_eq!(state.aci_public_key, key_pair.public_key);
-        assert!(state.aci_private_key == key_pair.private_key);
-        assert!(state.pni_public_key.is_none());
+        let data: RegistrationData =
+            serde_json::from_value(previous_state).expect("should deserialize");
+        assert_eq!(data.aci_public_key, key_pair.public_key);
+        assert!(data.aci_private_key == key_pair.private_key);
+        assert!(data.pni_public_key.is_none());
     }
 }
