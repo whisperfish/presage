@@ -1,8 +1,7 @@
 use std::fmt;
 use std::ops::RangeBounds;
-use std::pin::pin;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
@@ -37,10 +36,10 @@ use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
 use libsignal_service_hyper::push_service::HyperPushService;
 use log::{debug, error, info, trace, warn};
-use parking_lot::Mutex;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
+use tokio::sync::Mutex;
 
 use crate::cache::CacheCell;
 use crate::serde::serde_profile_key;
@@ -202,7 +201,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Returns the current identified websocket, or creates a new one
     async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
-        let mut identified_ws = self.state.identified_websocket.lock();
+        let mut identified_ws = self.state.identified_websocket.lock().await;
         match identified_ws.clone() {
             Some(ws) => Ok(ws),
             None => {
@@ -221,7 +220,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
-        let mut unidentified_ws = self.state.unidentified_websocket.lock();
+        let mut unidentified_ws = self.state.unidentified_websocket.lock().await;
         match unidentified_ws.clone() {
             Some(ws) => Ok(ws),
             None => {
@@ -314,46 +313,6 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         trace!("done setting account attributes");
-        Ok(())
-    }
-
-    async fn wait_for_contacts_sync(
-        &mut self,
-        mut messages: impl Stream<Item = Content> + Unpin,
-    ) -> Result<(), Error<S::Error>> {
-        let mut message_receiver = MessageReceiver::new(self.identified_push_service());
-        while let Some(Content { body, .. }) = messages.next().await {
-            if let ContentBody::SynchronizeMessage(SyncMessage {
-                contacts: Some(contacts),
-                ..
-            }) = body
-            {
-                let contacts = message_receiver.retrieve_contacts(&contacts).await?;
-                let _ = self.store.clear_contacts();
-                self.store.save_contacts(contacts.filter_map(Result::ok))?;
-                info!("saved contacts");
-                return Ok(());
-            }
-        }
-        Ok(())
-    }
-
-    pub(crate) async fn sync_contacts(&mut self) -> Result<(), Error<S::Error>> {
-        let messages = pin!(
-            self.receive_messages_stream(ReceivingMode::WaitForContacts)
-                .await?
-        );
-        self.request_contacts_sync().await?;
-
-        info!("waiting for contacts sync for up to 60 seconds");
-
-        tokio::time::timeout(
-            Duration::from_secs(60),
-            self.wait_for_contacts_sync(messages),
-        )
-        .await
-        .map_err(Error::from)??;
-
         Ok(())
     }
 
