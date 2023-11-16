@@ -1087,52 +1087,10 @@
 <a href="#1087" id="1087">1087</a>
 <a href="#1088" id="1088">1088</a>
 <a href="#1089" id="1089">1089</a>
-<a href="#1090" id="1090">1090</a>
-<a href="#1091" id="1091">1091</a>
-<a href="#1092" id="1092">1092</a>
-<a href="#1093" id="1093">1093</a>
-<a href="#1094" id="1094">1094</a>
-<a href="#1095" id="1095">1095</a>
-<a href="#1096" id="1096">1096</a>
-<a href="#1097" id="1097">1097</a>
-<a href="#1098" id="1098">1098</a>
-<a href="#1099" id="1099">1099</a>
-<a href="#1100" id="1100">1100</a>
-<a href="#1101" id="1101">1101</a>
-<a href="#1102" id="1102">1102</a>
-<a href="#1103" id="1103">1103</a>
-<a href="#1104" id="1104">1104</a>
-<a href="#1105" id="1105">1105</a>
-<a href="#1106" id="1106">1106</a>
-<a href="#1107" id="1107">1107</a>
-<a href="#1108" id="1108">1108</a>
-<a href="#1109" id="1109">1109</a>
-<a href="#1110" id="1110">1110</a>
-<a href="#1111" id="1111">1111</a>
-<a href="#1112" id="1112">1112</a>
-<a href="#1113" id="1113">1113</a>
-<a href="#1114" id="1114">1114</a>
-<a href="#1115" id="1115">1115</a>
-<a href="#1116" id="1116">1116</a>
-<a href="#1117" id="1117">1117</a>
-<a href="#1118" id="1118">1118</a>
-<a href="#1119" id="1119">1119</a>
-<a href="#1120" id="1120">1120</a>
-<a href="#1121" id="1121">1121</a>
-<a href="#1122" id="1122">1122</a>
-<a href="#1123" id="1123">1123</a>
-<a href="#1124" id="1124">1124</a>
-<a href="#1125" id="1125">1125</a>
-<a href="#1126" id="1126">1126</a>
-<a href="#1127" id="1127">1127</a>
-<a href="#1128" id="1128">1128</a>
-<a href="#1129" id="1129">1129</a>
-<a href="#1130" id="1130">1130</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
-<span class="kw">use </span>std::pin::pin;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>std::time::{Duration, SystemTime, UNIX_EPOCH};
+<span class="kw">use </span>std::time::{SystemTime, UNIX_EPOCH};
 
 <span class="kw">use </span>futures::{future, AsyncReadExt, Stream, StreamExt};
 <span class="kw">use </span>libsignal_service::attachment_cipher::decrypt_in_place;
@@ -1444,46 +1402,6 @@
         }
 
         <span class="macro">trace!</span>(<span class="string">&quot;done setting account attributes&quot;</span>);
-        <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="kw">async fn </span>wait_for_contacts_sync(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        <span class="kw-2">mut </span>messages: <span class="kw">impl </span>Stream&lt;Item = Content&gt; + Unpin,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>message_receiver = MessageReceiver::new(<span class="self">self</span>.identified_push_service());
-        <span class="kw">while let </span><span class="prelude-val">Some</span>(Content { body, .. }) = messages.next().<span class="kw">await </span>{
-            <span class="kw">if let </span>ContentBody::SynchronizeMessage(SyncMessage {
-                contacts: <span class="prelude-val">Some</span>(contacts),
-                ..
-            }) = body
-            {
-                <span class="kw">let </span>contacts = message_receiver.retrieve_contacts(<span class="kw-2">&amp;</span>contacts).<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="kw">let _ </span>= <span class="self">self</span>.store.clear_contacts();
-                <span class="self">self</span>.store.save_contacts(contacts.filter_map(Result::ok))<span class="question-mark">?</span>;
-                <span class="macro">info!</span>(<span class="string">&quot;saved contacts&quot;</span>);
-                <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-            }
-        }
-        <span class="prelude-val">Ok</span>(())
-    }
-
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>sync_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="kw">let </span>messages = <span class="macro">pin!</span>(
-            <span class="self">self</span>.receive_messages_stream(ReceivingMode::WaitForContacts)
-                .<span class="kw">await</span><span class="question-mark">?
-        </span>);
-        <span class="self">self</span>.request_contacts_sync().<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="macro">info!</span>(<span class="string">&quot;waiting for contacts sync for up to 60 seconds&quot;</span>);
-
-        tokio::time::timeout(
-            Duration::from_secs(<span class="number">60</span>),
-            <span class="self">self</span>.wait_for_contacts_sync(messages),
-        )
-        .<span class="kw">await
-        </span>.map_err(Error::from)<span class="question-mark">??</span>;
-
         <span class="prelude-val">Ok</span>(())
     }
 
