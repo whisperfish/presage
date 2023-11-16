@@ -33,6 +33,7 @@ use presage::{
     Manager,
 };
 use presage_store_sled::MigrationConflictStrategy;
+use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;
@@ -203,6 +204,7 @@ async fn main() -> anyhow::Result<()> {
         db_path,
         args.passphrase,
         MigrationConflictStrategy::Raise,
+        OnNewIdentity::Trust,
     )?;
     run(args.subcommand, config_store).await
 }

@@ -24,8 +24,8 @@ use presage::libsignal_service::{
     session_store::SessionStoreExt,
     Profile, ServiceAddress,
 };
-use presage::manager::RegistrationData;
 use presage::store::{ContentExt, ContentsStore, PreKeyStoreExt, StateStore, Store, Thread};
+use presage::{manager::RegistrationData, proto::verified};
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -64,6 +64,8 @@ pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
     #[cfg(feature = "encryption")]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
+    /// Whether to trust new identities automatically (for instance, when a somebody's phone has changed)
+    trust_new_identities: OnNewIdentity,
 }
 
 /// Sometimes Migrations can't proceed without having to drop existing
@@ -111,11 +113,18 @@ impl SchemaVersion {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum OnNewIdentity {
+    Reject,
+    Trust,
+}
+
 impl SledStore {
     #[allow(unused_variables)]
     fn new(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
         let database = sled::open(db_path)?;
 
@@ -133,25 +142,33 @@ impl SledStore {
             db: Arc::new(RwLock::new(database)),
             #[cfg(feature = "encryption")]
             cipher: cipher.map(Arc::new),
+            trust_new_identities,
         })
     }
 
     pub fn open(
         db_path: impl AsRef<Path>,
         migration_conflict_strategy: MigrationConflictStrategy,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
-        Self::open_with_passphrase(db_path, None::<&str>, migration_conflict_strategy)
+        Self::open_with_passphrase(
+            db_path,
+            None::<&str>,
+            migration_conflict_strategy,
+            trust_new_identities,
+        )
     }
 
     pub fn open_with_passphrase(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
         migration_conflict_strategy: MigrationConflictStrategy,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
         let passphrase = passphrase.as_ref();
 
         migrate(&db_path, passphrase, migration_conflict_strategy)?;
-        Self::new(db_path, passphrase)
+        Self::new(db_path, passphrase, trust_new_identities)
     }
 
     #[cfg(feature = "encryption")]
@@ -182,6 +199,7 @@ impl SledStore {
             #[cfg(feature = "encryption")]
             // use store cipher with a random key
             cipher: Some(Arc::new(presage_store_cipher::StoreCipher::new())),
+            trust_new_identities: OnNewIdentity::Reject
         })
     }
 
@@ -297,7 +315,7 @@ fn migrate(
     let passphrase = passphrase.as_ref();
 
     let run_migrations = move || {
-        let mut store = SledStore::new(db_path, passphrase)?;
+        let mut store = SledStore::new(db_path, passphrase, OnNewIdentity::Reject)?;
         let schema_version = store.schema_version();
         for step in schema_version.steps() {
             match &step {
@@ -492,7 +510,7 @@ impl ContentsStore for SledStore {
         Ok(())
     }
 
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
+    fn save_message(&self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
         let ts = message.timestamp();
         log::trace!("storing a message with thread: {thread}, timestamp: {ts}",);
 
@@ -968,17 +986,30 @@ impl IdentityKeyStore for SledStore {
         identity_key: &IdentityKey,
     ) -> Result<bool, SignalProtocolError> {
         trace!("saving identity");
-        self.insert(
-            SLED_TREE_IDENTITIES,
-            address.to_string(),
-            identity_key.serialize(),
-        )
-        .map_err(|e| {
-            error!("error saving identity for {:?}: {}", address, e);
-            e.into_signal_error()
-        })?;
+        let existed_before = self
+            .insert(
+                SLED_TREE_IDENTITIES,
+                address.to_string(),
+                identity_key.serialize(),
+            )
+            .map_err(|e| {
+                error!("error saving identity for {:?}: {}", address, e);
+                e.into_signal_error()
+            })?;
 
-        Ok(false)
+        if let Ok(uuid) = address.name().parse() {
+            self.save_trusted_identity_message(
+                uuid,
+                *identity_key,
+                if existed_before {
+                    verified::State::Unverified
+                } else {
+                    verified::State::Default
+                },
+            );
+        };
+
+        Ok(true)
     }
 
     async fn is_trusted_identity(
@@ -998,7 +1029,17 @@ impl IdentityKeyStore for SledStore {
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(left_identity_key) => Ok(left_identity_key == *right_identity_key),
+            // when we encounter some identity we know, we need to decide whether we trust it or not
+            Some(left_identity_key) => {
+                if left_identity_key == *right_identity_key {
+                    Ok(true)
+                } else {
+                    match self.trust_new_identities {
+                        OnNewIdentity::Trust => Ok(true),
+                        OnNewIdentity::Reject => Ok(false),
+                    }
+                }
+            }
         }
     }
 

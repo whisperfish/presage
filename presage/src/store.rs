@@ -1,21 +1,22 @@
 //! Traits that are used by the manager for storing the data.
 
-use std::{fmt, ops::RangeBounds};
+use std::{fmt, ops::RangeBounds, time::SystemTime};
 
 use libsignal_service::{
-    content::ContentBody,
+    content::{ContentBody, Metadata},
     groups_v2::Group,
     models::Contact,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{self, Sent},
-        DataMessage, EditMessage, GroupContextV2, SyncMessage,
+        verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{ProtocolStore, SenderKeyStore},
+    protocol::{IdentityKey, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
     Profile,
 };
+use log::error;
 use serde::{Deserialize, Serialize};
 
 use crate::manager::RegistrationData;
@@ -87,10 +88,47 @@ pub trait ContentsStore {
 
     /// Save a message in a [Thread] identified by a timestamp.
     fn save_message(
-        &mut self,
+        &self,
         thread: &Thread,
         message: Content,
     ) -> Result<(), Self::ContentsStoreError>;
+
+    /// Saves a message to mark an identity as trusted or not
+    fn save_trusted_identity_message(
+        &self,
+        contact: Uuid,
+        right_identity_key: IdentityKey,
+        verified_state: verified::State,
+    ) {
+        // TODO: this is a hack to save a message showing that the verification status changed
+        // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
+        let thread = Thread::Contact(contact);
+        let verified_sync_message = Content {
+            metadata: Metadata {
+                sender: contact.into(),
+                sender_device: 0,
+                timestamp: SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs(),
+                needs_receipt: false,
+                unidentified_sender: false,
+            },
+            body: SyncMessage {
+                verified: Some(Verified {
+                    destination_aci: Some(contact.to_string()),
+                    identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
+                    state: Some(verified_state.into()),
+                    null_message: None,
+                }),
+                ..Default::default()
+            }
+            .into(),
+        };
+        if let Err(error) = self.save_message(&thread, verified_sync_message) {
+            error!("failed to save the verified session message in thread: {error}");
+        }
+    }
 
     /// Delete a single message, identified by its received timestamp from a thread.
     /// Useful when you want to delete a message locally only.
