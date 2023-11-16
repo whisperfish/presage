@@ -41,13 +41,13 @@ jobs:
           command: build
           args: --all-targets ${{ matrix.cargo_flags }}
 
-      - name: Run tests
+      - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-targets ${{ matrix.cargo_flags }}
 
-      - name: Run doc tests
+      - name: Test docs
         uses: actions-rs/cargo@v1
         with:
           command: test
