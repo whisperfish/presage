@@ -120,7 +120,7 @@ impl<C: Store> Manager<C, Confirmation> {
 
         let mut manager = Manager {
             rng,
-            config_store: self.config_store,
+            store: self.store,
             state: Registered {
                 push_service_cache: CacheCell::default(),
                 identified_websocket: Default::default(),
@@ -146,11 +146,11 @@ impl<C: Store> Manager<C, Confirmation> {
             },
         };
 
-        manager.config_store.save_state(&manager.state)?;
+        manager.store.save_state(&manager.state)?;
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
-            manager.config_store.clear_registration()?;
+            manager.store.clear_registration()?;
             Err(e)
         } else {
             Ok(manager)

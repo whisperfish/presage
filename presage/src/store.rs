@@ -89,6 +89,14 @@ pub trait ContentsStore {
         message: Content,
     ) -> Result<(), Self::ContentsStoreError>;
 
+    /// Delete a single message, identified by its received timestamp from a thread.
+    /// Useful when you want to delete a message locally only.
+    fn delete_message(
+        &mut self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<bool, Self::ContentsStoreError>;
+
     /// Retrieve a message from a [Thread] by its timestamp.
     fn message(
         &self,

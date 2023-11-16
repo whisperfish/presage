@@ -102,14 +102,12 @@ impl<C: Store> Manager<C, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
-    pub async fn load_registered(config_store: C) -> Result<Self, Error<C::Error>> {
-        let state = config_store
-            .load_state()?
-            .ok_or(Error::NotYetRegisteredError)?;
+    pub async fn load_registered(store: C) -> Result<Self, Error<C::Error>> {
+        let state = store.load_state()?.ok_or(Error::NotYetRegisteredError)?;
 
         let mut manager = Self {
             rng: StdRng::from_entropy(),
-            config_store,
+            store,
             state,
         };
 
@@ -127,21 +125,19 @@ impl<C: Store> Manager<C, Registered> {
 
         let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
-                &mut self.config_store.clone(),
+                &mut self.store.clone(),
                 &mut self.rng,
-                self.config_store.pre_keys_offset_id()?,
-                self.config_store.next_signed_pre_key_id()?,
-                self.config_store.next_pq_pre_key_id()?,
+                self.store.pre_keys_offset_id()?,
+                self.store.next_signed_pre_key_id()?,
+                self.store.next_pq_pre_key_id()?,
                 true,
             )
             .await?;
 
-        self.config_store
-            .set_pre_keys_offset_id(pre_keys_offset_id)?;
-        self.config_store
+        self.store.set_pre_keys_offset_id(pre_keys_offset_id)?;
+        self.store
             .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
-        self.config_store
-            .set_next_pq_pre_key_id(next_pq_pre_key_id)?;
+        self.store.set_next_pq_pre_key_id(next_pq_pre_key_id)?;
 
         trace!("registered pre keys");
         Ok(())
@@ -159,7 +155,7 @@ impl<C: Store> Manager<C, Registered> {
             info!("migrating to PNI");
             let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
             self.state.pni_registration_id = Some(pni_registration_id);
-            self.config_store.save_state(&self.state)?;
+            self.store.save_state(&self.state)?;
             pni_registration_id
         };
 
@@ -189,7 +185,7 @@ impl<C: Store> Manager<C, Registered> {
             debug!("fetching PNI UUID and updating state");
             let whoami = self.whoami().await?;
             self.state.service_ids.pni = whoami.pni;
-            self.config_store.save_state(&self.state)?;
+            self.store.save_state(&self.state)?;
         }
 
         trace!("done setting account attributes");
@@ -208,9 +204,8 @@ impl<C: Store> Manager<C, Registered> {
             }) = body
             {
                 let contacts = message_receiver.retrieve_contacts(&contacts).await?;
-                let _ = self.config_store.clear_contacts();
-                self.config_store
-                    .save_contacts(contacts.filter_map(Result::ok))?;
+                let _ = self.store.clear_contacts();
+                self.store.save_contacts(contacts.filter_map(Result::ok))?;
                 info!("saved contacts");
                 return Ok(());
             }
@@ -334,7 +329,7 @@ impl<C: Store> Manager<C, Registered> {
         profile_key: ProfileKey,
     ) -> Result<Profile, Error<C::Error>> {
         // Check if profile is cached.
-        if let Some(profile) = self.config_store.profile(uuid, profile_key).ok().flatten() {
+        if let Some(profile) = self.store.profile(uuid, profile_key).ok().flatten() {
             return Ok(profile);
         }
 
@@ -342,9 +337,7 @@ impl<C: Store> Manager<C, Registered> {
 
         let profile = account_manager.retrieve_profile(uuid.into()).await?;
 
-        let _ = self
-            .config_store
-            .save_profile(uuid, profile_key, profile.clone());
+        let _ = self.store.save_profile(uuid, profile_key, profile.clone());
         Ok(profile)
     }
 
@@ -352,25 +345,25 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
     pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<C::Error>> {
-        Ok(self.config_store.contact_by_id(*id)?)
+        Ok(self.store.contact_by_id(*id)?)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
     pub fn contacts(
         &self,
     ) -> Result<impl Iterator<Item = Result<Contact, Error<C::Error>>>, Error<C::Error>> {
-        let iter = self.config_store.contacts()?;
+        let iter = self.store.contacts()?;
         Ok(iter.map(|r| r.map_err(Into::into)))
     }
 
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
     pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
-        Ok(self.config_store.group(master_key_bytes.try_into()?)?)
+        Ok(self.store.group(master_key_bytes.try_into()?)?)
     }
 
     /// Returns an iterator on groups stored in the [Store].
     pub fn groups(&self) -> Result<C::GroupsIter, Error<C::Error>> {
-        Ok(self.config_store.groups()?)
+        Ok(self.store.groups()?)
     }
 
     /// Get a single message in a thread (identified by its server-side sent timestamp)
@@ -379,7 +372,7 @@ impl<C: Store> Manager<C, Registered> {
         thread: &Thread,
         timestamp: u64,
     ) -> Result<Option<Content>, Error<C::Error>> {
-        Ok(self.config_store.message(thread, timestamp)?)
+        Ok(self.store.message(thread, timestamp)?)
     }
 
     /// Get an iterator of messages in a thread, optionally starting from a point in time.
@@ -388,7 +381,7 @@ impl<C: Store> Manager<C, Registered> {
         thread: &Thread,
         range: impl RangeBounds<u64>,
     ) -> Result<C::MessagesIter, Error<C::Error>> {
-        Ok(self.config_store.messages(thread, range)?)
+        Ok(self.store.messages(thread, range)?)
     }
 
     async fn receive_messages_encrypted(
@@ -456,7 +449,7 @@ impl<C: Store> Manager<C, Registered> {
             encrypted_messages: S,
             message_receiver: MessageReceiver<HyperPushService>,
             service_cipher: ServiceCipher<C>,
-            config_store: C,
+            store: C,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
             mode: ReceivingMode,
         }
@@ -465,7 +458,7 @@ impl<C: Store> Manager<C, Registered> {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(self.push_service()?),
             service_cipher: self.new_service_cipher()?,
-            config_store: self.config_store.clone(),
+            store: self.store.clone(),
             groups_manager: self.groups_manager()?,
             mode,
         };
@@ -484,9 +477,9 @@ impl<C: Store> Manager<C, Registered> {
                                 {
                                     match state.message_receiver.retrieve_contacts(contacts).await {
                                         Ok(contacts) => {
-                                            let _ = state.config_store.clear_contacts();
+                                            let _ = state.store.clear_contacts();
                                             match state
-                                                .config_store
+                                                .store
                                                 .save_contacts(contacts.filter_map(Result::ok))
                                             {
                                                 Ok(()) => {
@@ -538,7 +531,7 @@ impl<C: Store> Manager<C, Registered> {
                                     // and the group changes, which are part of the protobuf messages
                                     // this means we kinda need our own internal representation of groups inside of presage?
                                     if let Ok(Some(group)) = upsert_group(
-                                        &state.config_store,
+                                        &state.store,
                                         &mut state.groups_manager,
                                         master_key_bytes,
                                         revision,
@@ -549,9 +542,7 @@ impl<C: Store> Manager<C, Registered> {
                                     }
                                 }
 
-                                if let Err(e) =
-                                    save_message(&mut state.config_store, content.clone())
-                                {
+                                if let Err(e) = save_message(&mut state.store, content.clone()) {
                                     error!("Error saving message to store: {}", e);
                                 }
 
@@ -604,7 +595,7 @@ impl<C: Store> Manager<C, Registered> {
             }) if timer.is_none() => {
                 // Set the expire timer to None for errors.
                 let store_expire_timer = self
-                    .config_store
+                    .store
                     .expire_timer(&Thread::Contact(recipient.uuid))
                     .unwrap_or_default();
 
@@ -615,7 +606,7 @@ impl<C: Store> Manager<C, Registered> {
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
-            self.config_store
+            self.store
                 .profile_key(&recipient.uuid)?
                 .map(|profile_key| UnidentifiedAccess {
                     key: profile_key.derive_access_key().to_vec(),
@@ -644,7 +635,7 @@ impl<C: Store> Manager<C, Registered> {
             body: content_body,
         };
 
-        save_message(&mut self.config_store, content)?;
+        save_message(&mut self.store, content)?;
 
         Ok(())
     }
@@ -683,7 +674,7 @@ impl<C: Store> Manager<C, Registered> {
             } if timer.is_none() => {
                 // Set the expire timer to None for errors.
                 let store_expire_timer = self
-                    .config_store
+                    .store
                     .expire_timer(&Thread::Group(
                         master_key_bytes
                             .try_into()
@@ -699,7 +690,7 @@ impl<C: Store> Manager<C, Registered> {
 
         let mut groups_manager = self.groups_manager()?;
         let Some(group) = upsert_group(
-            &self.config_store,
+            &self.store,
             &mut groups_manager,
             master_key_bytes,
             &0,
@@ -717,7 +708,7 @@ impl<C: Store> Manager<C, Registered> {
             .filter(|m| m.uuid != self.state.service_ids.aci)
         {
             let unidentified_access =
-                self.config_store
+                self.store
                     .profile_key(&member.uuid)?
                     .map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key().to_vec(),
@@ -745,14 +736,14 @@ impl<C: Store> Manager<C, Registered> {
             body: message.into(),
         };
 
-        save_message(&mut self.config_store, content)?;
+        save_message(&mut self.store, content)?;
 
         Ok(())
     }
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
     pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<C::Error>> {
-        self.config_store.delete_all_sessions(recipient).await?;
+        self.store.delete_all_sessions(recipient).await?;
         Ok(())
     }
 
@@ -844,7 +835,7 @@ impl<C: Store> Manager<C, Registered> {
             self.push_service()?,
             self.new_service_cipher()?,
             self.rng.clone(),
-            self.config_store.clone(),
+            self.store.clone(),
             local_addr,
             self.state.device_id.unwrap_or(DEFAULT_DEVICE_ID).into(),
         ))
@@ -854,7 +845,7 @@ impl<C: Store> Manager<C, Registered> {
     fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error<C::Error>> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let service_cipher = ServiceCipher::new(
-            self.config_store.clone(),
+            self.store.clone(),
             self.rng.clone(),
             service_configuration.unidentified_sender_trust_root,
             self.state.service_ids.aci,
@@ -903,12 +894,12 @@ pub enum ReceivingMode {
 }
 
 async fn upsert_group<C: Store>(
-    config_store: &C,
+    store: &C,
     groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<C::Error>> {
-    let upsert_group = match config_store.group(master_key_bytes.try_into()?) {
+    let upsert_group = match store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             debug!("loaded group from local db {}", group.title);
             group.revision < *revision
@@ -925,7 +916,7 @@ async fn upsert_group<C: Store>(
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(e) = config_store.save_group(master_key_bytes.try_into()?, &group) {
+                if let Err(e) = store.save_group(master_key_bytes.try_into()?, &group) {
                     error!("failed to save group {master_key_bytes:?}: {e}",);
                 }
             }
@@ -935,10 +926,10 @@ async fn upsert_group<C: Store>(
         }
     }
 
-    Ok(config_store.group(master_key_bytes.try_into()?)?)
+    Ok(store.group(master_key_bytes.try_into()?)?)
 }
 
-fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
+fn save_message<C: Store>(store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
     // derive the thread from the message type
     let thread = Thread::try_from(&message)?;
 
@@ -952,7 +943,7 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
             let sender_uuid = message.metadata.sender.uuid;
             let profile_key = ProfileKey::create(profile_key_bytes);
             debug!("inserting profile key for {sender_uuid}");
-            config_store.upsert_profile_key(&sender_uuid, profile_key)?;
+            store.upsert_profile_key(&sender_uuid, profile_key)?;
         }
     }
 
@@ -976,10 +967,10 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
                 ..
             } => {
                 // replace an existing message by an empty NullMessage
-                if let Some(mut existing_msg) = config_store.message(&thread, *ts)? {
+                if let Some(mut existing_msg) = store.message(&thread, *ts)? {
                     existing_msg.metadata.sender.uuid = Uuid::nil();
                     existing_msg.body = NullMessage::default().into();
-                    config_store.save_message(&thread, existing_msg)?;
+                    store.save_message(&thread, existing_msg)?;
                     debug!("message in thread {thread} @ {ts} deleted");
                     None
                 } else {
@@ -1005,7 +996,7 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
                 }),
             ..
         }) => {
-            if let Some(mut existing_msg) = config_store.message(&thread, ts)? {
+            if let Some(mut existing_msg) = store.message(&thread, ts)? {
                 existing_msg.metadata = message.metadata;
                 existing_msg.body = ContentBody::DataMessage(data_message);
                 // TODO: find a way to mark the message as edited (so that it's visible in a client)
@@ -1048,7 +1039,7 @@ fn save_message<C: Store>(config_store: &mut C, message: Content) -> Result<(), 
     };
 
     if let Some(message) = message {
-        config_store.save_message(&thread, message)?;
+        store.save_message(&thread, message)?;
     }
 
     Ok(())

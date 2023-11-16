@@ -23,8 +23,8 @@ pub use self::registration::{Registration, RegistrationOptions};
 /// Depending on the state specific methods are available or not.
 #[derive(Clone)]
 pub struct Manager<Store, State> {
-    /// Implementation of a config-store to give to libsignal
-    config_store: Store,
+    /// Implementation of a metadata and messages store
+    store: Store,
     /// Part of the manager which is persisted in the store.
     state: State,
     /// Random number generator

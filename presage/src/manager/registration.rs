@@ -43,11 +43,11 @@ impl<C: Store> Manager<C, Registration> {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let config_store =
+    ///     let store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let manager = Manager::register(
-    ///         config_store,
+    ///         store,
     ///         RegistrationOptions {
     ///             signal_servers: SignalServers::Production,
     ///             phone_number: PhoneNumber::from_str("+16137827274")?,
@@ -62,7 +62,7 @@ impl<C: Store> Manager<C, Registration> {
     /// }
     /// ```
     pub async fn register(
-        mut config_store: C,
+        mut store: C,
         registration_options: RegistrationOptions<'_>,
     ) -> Result<Manager<C, Confirmation>, Error<C::Error>> {
         let RegistrationOptions {
@@ -74,11 +74,11 @@ impl<C: Store> Manager<C, Registration> {
         } = registration_options;
 
         // check if we are already registered
-        if !force && config_store.is_registered() {
+        if !force && store.is_registered() {
             return Err(Error::AlreadyRegisteredError);
         }
 
-        config_store.clear_registration()?;
+        store.clear_registration()?;
 
         // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
@@ -129,7 +129,7 @@ impl<C: Store> Manager<C, Registration> {
             .await?;
 
         let manager = Manager {
-            config_store,
+            store,
             state: Confirmation {
                 signal_servers,
                 phone_number,

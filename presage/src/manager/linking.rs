@@ -32,13 +32,13 @@ impl<C: Store> Manager<C, Linking> {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let config_store =
+    ///     let store =
     ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop)?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
     ///         Manager::link_secondary_device(
-    ///             config_store,
+    ///             store,
     ///             SignalServers::Production,
     ///             "my-linked-client".into(),
     ///             tx,
@@ -56,14 +56,14 @@ impl<C: Store> Manager<C, Linking> {
     /// }
     /// ```
     pub async fn link_secondary_device(
-        mut config_store: C,
+        mut store: C,
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
     ) -> Result<Manager<C, Registered>, Error<C::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        config_store.clear_registration()?;
+        store.clear_registration()?;
 
         // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
@@ -141,11 +141,11 @@ impl<C: Store> Manager<C, Linking> {
 
         let mut manager = Manager {
             rng,
-            config_store,
+            store,
             state: registration?,
         };
 
-        manager.config_store.save_state(&manager.state)?;
+        manager.store.save_state(&manager.state)?;
 
         match (
             manager.register_pre_keys().await,
@@ -154,7 +154,7 @@ impl<C: Store> Manager<C, Linking> {
         ) {
             (Err(e), _, _) | (_, Err(e), _) => {
                 // clear the entire store on any error, there's no possible recovery here
-                manager.config_store.clear_registration()?;
+                manager.store.clear_registration()?;
                 Err(e)
             }
             (_, _, Err(e)) => {
