@@ -11,7 +11,7 @@ use libsignal_service::{
         sync_message::{self, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{IdentityKey, ProtocolStore, SenderKeyStore},
+    protocol::{IdentityKey, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
     Profile,
@@ -93,19 +93,24 @@ pub trait ContentsStore {
         message: Content,
     ) -> Result<(), Self::ContentsStoreError>;
 
-    /// Saves a message to mark an identity as trusted or not
+    /// Saves a message that can show users when the identity of a contact has changed
+    /// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
     fn save_trusted_identity_message(
         &self,
-        contact: Uuid,
+        protocol_address: &ProtocolAddress,
         right_identity_key: IdentityKey,
         verified_state: verified::State,
     ) {
+        let Ok(sender) = protocol_address.name().parse() else {
+            return;
+        };
+
         // TODO: this is a hack to save a message showing that the verification status changed
         // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
-        let thread = Thread::Contact(contact);
+        let thread = Thread::Contact(sender);
         let verified_sync_message = Content {
             metadata: Metadata {
-                sender: contact.into(),
+                sender: sender.into(),
                 sender_device: 0,
                 timestamp: SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
@@ -116,7 +121,7 @@ pub trait ContentsStore {
             },
             body: SyncMessage {
                 verified: Some(Verified {
-                    destination_aci: Some(contact.to_string()),
+                    destination_aci: None,
                     identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
                     state: Some(verified_state.into()),
                     null_message: None,
@@ -125,6 +130,7 @@ pub trait ContentsStore {
             }
             .into(),
         };
+
         if let Err(error) = self.save_message(&thread, verified_sync_message) {
             error!("failed to save the verified session message in thread: {error}");
         }

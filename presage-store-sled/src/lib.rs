@@ -997,17 +997,15 @@ impl IdentityKeyStore for SledStore {
                 e.into_signal_error()
             })?;
 
-        if let Ok(uuid) = address.name().parse() {
-            self.save_trusted_identity_message(
-                uuid,
-                *identity_key,
-                if existed_before {
-                    verified::State::Unverified
-                } else {
-                    verified::State::Default
-                },
-            );
-        };
+        self.save_trusted_identity_message(
+            address,
+            *identity_key,
+            if existed_before {
+                verified::State::Unverified
+            } else {
+                verified::State::Default
+            },
+        );
 
         Ok(true)
     }
@@ -1310,7 +1308,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
-        let mut db = SledStore::temporary()?;
+        let db = SledStore::temporary()?;
         let thread = thread.0;
         db.save_message(&thread, content_with_timestamp(&content, 1678295210))?;
         db.save_message(&thread, content_with_timestamp(&content, 1678295220))?;
