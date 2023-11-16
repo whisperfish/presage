@@ -20,7 +20,7 @@ use super::Registered;
 /// Manager state where it is possible to link a new secondary device
 pub struct Linking;
 
-impl<C: Store> Manager<C, Linking> {
+impl<S: Store> Manager<S, Linking> {
     /// Links this client as a secondary device from the device used to register the account (usually a phone).
     /// The URL to present to the user will be sent in the channel given as the argument.
     ///
@@ -56,11 +56,11 @@ impl<C: Store> Manager<C, Linking> {
     /// }
     /// ```
     pub async fn link_secondary_device(
-        mut store: C,
+        mut store: S,
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
-    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
+    ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
         store.clear_registration()?;

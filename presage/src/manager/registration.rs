@@ -25,7 +25,7 @@ pub struct RegistrationOptions<'a> {
 /// Manager state where it is possible to register a new main device
 pub struct Registration;
 
-impl<C: Store> Manager<C, Registration> {
+impl<S: Store> Manager<S, Registration> {
     /// Registers a new account with a phone number (and some options).
     ///
     /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
@@ -62,9 +62,9 @@ impl<C: Store> Manager<C, Registration> {
     /// }
     /// ```
     pub async fn register(
-        mut store: C,
+        mut store: S,
         registration_options: RegistrationOptions<'_>,
-    ) -> Result<Manager<C, Confirmation>, Error<C::Error>> {
+    ) -> Result<Manager<S, Confirmation>, Error<S::Error>> {
         let RegistrationOptions {
             signal_servers,
             phone_number,

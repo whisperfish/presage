@@ -28,7 +28,7 @@ pub struct Confirmation {
     pub(crate) session_id: String,
 }
 
-impl<C: Store> Manager<C, Confirmation> {
+impl<S: Store> Manager<S, Confirmation> {
     /// Confirm a newly registered account using the code you
     /// received by SMS or phone call.
     ///
@@ -37,7 +37,7 @@ impl<C: Store> Manager<C, Confirmation> {
     pub async fn confirm_verification_code(
         self,
         confirmation_code: impl AsRef<str>,
-    ) -> Result<Manager<C, Registered>, Error<C::Error>> {
+    ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
 
         let registration_id = generate_registration_id(&mut StdRng::from_entropy());

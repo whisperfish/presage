@@ -47,8 +47,8 @@ use crate::serde::serde_profile_key;
 use crate::store::{Store, Thread};
 use crate::{Error, Manager};
 
-type ServiceCipher<C> = cipher::ServiceCipher<C, StdRng>;
-type MessageSender<C> = libsignal_service::prelude::MessageSender<HyperPushService, C, StdRng>;
+type ServiceCipher<S> = cipher::ServiceCipher<S, StdRng>;
+type MessageSender<S> = libsignal_service::prelude::MessageSender<HyperPushService, S, StdRng>;
 
 /// Manager state where Signal can be used
 #[derive(Clone, Serialize, Deserialize)]
@@ -98,11 +98,11 @@ impl Registered {
     }
 }
 
-impl<C: Store> Manager<C, Registered> {
+impl<S: Store> Manager<S, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
-    pub async fn load_registered(store: C) -> Result<Self, Error<C::Error>> {
+    pub async fn load_registered(store: S) -> Result<Self, Error<S::Error>> {
         let state = store.load_state()?.ok_or(Error::NotYetRegisteredError)?;
 
         let mut manager = Self {
@@ -118,7 +118,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(manager)
     }
 
-    pub(crate) async fn register_pre_keys(&mut self) -> Result<(), Error<C::Error>> {
+    pub(crate) async fn register_pre_keys(&mut self) -> Result<(), Error<S::Error>> {
         trace!("registering pre keys");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -143,7 +143,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<C::Error>> {
+    pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<S::Error>> {
         trace!("setting account attributes");
         let mut account_manager =
             AccountManager::new(self.push_service()?, Some(self.state.profile_key));
@@ -195,7 +195,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn wait_for_contacts_sync(
         &mut self,
         mut messages: impl Stream<Item = Content> + Unpin,
-    ) -> Result<(), Error<C::Error>> {
+    ) -> Result<(), Error<S::Error>> {
         let mut message_receiver = MessageReceiver::new(self.push_service()?);
         while let Some(Content { body, .. }) = messages.next().await {
             if let ContentBody::SynchronizeMessage(SyncMessage {
@@ -213,7 +213,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    pub(crate) async fn sync_contacts(&mut self) -> Result<(), Error<C::Error>> {
+    pub(crate) async fn sync_contacts(&mut self) -> Result<(), Error<S::Error>> {
         let messages = pin!(
             self.receive_messages_stream(ReceivingMode::WaitForContacts)
                 .await?
@@ -237,7 +237,7 @@ impl<C: Store> Manager<C, Registered> {
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
     /// processed when they're received using the `MessageReceiver`.
-    pub async fn request_contacts_sync(&mut self) -> Result<(), Error<C::Error>> {
+    pub async fn request_contacts_sync(&mut self) -> Result<(), Error<S::Error>> {
         trace!("requesting contacts sync");
         let var_name = sync_message::request::Type::Contacts as i32;
         let sync_message = SyncMessage {
@@ -258,7 +258,7 @@ impl<C: Store> Manager<C, Registered> {
         Ok(())
     }
 
-    async fn sender_certificate(&mut self) -> Result<SenderCertificate, Error<C::Error>> {
+    async fn sender_certificate(&mut self) -> Result<SenderCertificate, Error<S::Error>> {
         let needs_renewal = |sender_certificate: Option<&SenderCertificate>| -> bool {
             if sender_certificate.is_none() {
                 return true;
@@ -298,7 +298,7 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         token: &str,
         captcha: &str,
-    ) -> Result<(), Error<C::Error>> {
+    ) -> Result<(), Error<S::Error>> {
         let mut account_manager = AccountManager::new(self.push_service()?, None);
         account_manager
             .submit_recaptcha_challenge(token, captcha)
@@ -312,12 +312,12 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Fetches basic information on the registered device.
-    pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<C::Error>> {
+    pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<S::Error>> {
         Ok(self.push_service()?.whoami().await?)
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
-    pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<C::Error>> {
+    pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
         self.retrieve_profile_by_uuid(self.state.service_ids.aci, self.state.profile_key)
             .await
     }
@@ -327,7 +327,7 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
         uuid: Uuid,
         profile_key: ProfileKey,
-    ) -> Result<Profile, Error<C::Error>> {
+    ) -> Result<Profile, Error<S::Error>> {
         // Check if profile is cached.
         if let Some(profile) = self.store.profile(uuid, profile_key).ok().flatten() {
             return Ok(profile);
@@ -344,25 +344,25 @@ impl<C: Store> Manager<C, Registered> {
     /// Get a single contact by its UUID
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<C::Error>> {
+    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<S::Error>> {
         Ok(self.store.contact_by_id(*id)?)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
     pub fn contacts(
         &self,
-    ) -> Result<impl Iterator<Item = Result<Contact, Error<C::Error>>>, Error<C::Error>> {
+    ) -> Result<impl Iterator<Item = Result<Contact, Error<S::Error>>>, Error<S::Error>> {
         let iter = self.store.contacts()?;
         Ok(iter.map(|r| r.map_err(Into::into)))
     }
 
     /// Get a group (either from the local cache, or fetch it remotely) using its master key
-    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<C::Error>> {
+    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<S::Error>> {
         Ok(self.store.group(master_key_bytes.try_into()?)?)
     }
 
     /// Returns an iterator on groups stored in the [Store].
-    pub fn groups(&self) -> Result<C::GroupsIter, Error<C::Error>> {
+    pub fn groups(&self) -> Result<S::GroupsIter, Error<S::Error>> {
         Ok(self.store.groups()?)
     }
 
@@ -371,7 +371,7 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         thread: &Thread,
         timestamp: u64,
-    ) -> Result<Option<Content>, Error<C::Error>> {
+    ) -> Result<Option<Content>, Error<S::Error>> {
         Ok(self.store.message(thread, timestamp)?)
     }
 
@@ -380,13 +380,13 @@ impl<C: Store> Manager<C, Registered> {
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
-    ) -> Result<C::MessagesIter, Error<C::Error>> {
+    ) -> Result<S::MessagesIter, Error<S::Error>> {
         Ok(self.store.messages(thread, range)?)
     }
 
     async fn receive_messages_encrypted(
         &mut self,
-    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
         let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
         let allow_stories = false;
         let pipe = MessageReceiver::new(self.push_service()?)
@@ -413,20 +413,20 @@ impl<C: Store> Manager<C, Registered> {
     /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
         &mut self,
-    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
         self.receive_messages_stream(ReceivingMode::Forever).await
     }
 
     pub async fn receive_messages_with_mode(
         &mut self,
         mode: ReceivingMode,
-    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
         self.receive_messages_stream(mode).await
     }
 
     fn groups_manager(
         &self,
-    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error<C::Error>> {
+    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error<S::Error>> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
@@ -444,7 +444,7 @@ impl<C: Store> Manager<C, Registered> {
     async fn receive_messages_stream(
         &mut self,
         mode: ReceivingMode,
-    ) -> Result<impl Stream<Item = Content>, Error<C::Error>> {
+    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
         struct StreamState<S, C> {
             encrypted_messages: S,
             message_receiver: MessageReceiver<HyperPushService>,
@@ -580,7 +580,7 @@ impl<C: Store> Manager<C, Registered> {
         recipient_addr: impl Into<ServiceAddress>,
         message: impl Into<ContentBody>,
         timestamp: u64,
-    ) -> Result<(), Error<C::Error>> {
+    ) -> Result<(), Error<S::Error>> {
         let mut sender = self.new_message_sender().await?;
 
         let online_only = false;
@@ -644,7 +644,7 @@ impl<C: Store> Manager<C, Registered> {
     pub async fn upload_attachments(
         &self,
         attachments: Vec<(AttachmentSpec, Vec<u8>)>,
-    ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<C::Error>> {
+    ) -> Result<Vec<Result<AttachmentPointer, AttachmentUploadError>>, Error<S::Error>> {
         if attachments.is_empty() {
             return Ok(Vec::new());
         }
@@ -665,7 +665,7 @@ impl<C: Store> Manager<C, Registered> {
         master_key_bytes: &[u8],
         mut message: DataMessage,
         timestamp: u64,
-    ) -> Result<(), Error<C::Error>> {
+    ) -> Result<(), Error<S::Error>> {
         // Only update the expiration timer if it is not set.
         match message {
             DataMessage {
@@ -742,7 +742,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
-    pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<C::Error>> {
+    pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<S::Error>> {
         self.store.delete_all_sessions(recipient).await?;
         Ok(())
     }
@@ -751,7 +751,7 @@ impl<C: Store> Manager<C, Registered> {
     pub async fn get_attachment(
         &self,
         attachment_pointer: &AttachmentPointer,
-    ) -> Result<Vec<u8>, Error<C::Error>> {
+    ) -> Result<Vec<u8>, Error<S::Error>> {
         let mut service = self.push_service()?;
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
@@ -771,7 +771,7 @@ impl<C: Store> Manager<C, Registered> {
         &mut self,
         recipient: &ServiceAddress,
         timestamp: u64,
-    ) -> Result<(), Error<C::Error>> {
+    ) -> Result<(), Error<S::Error>> {
         trace!("Resetting session for address: {}", recipient.uuid);
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
@@ -796,7 +796,7 @@ impl<C: Store> Manager<C, Registered> {
     /// Returns a clone of a cached push service.
     ///
     /// If no service is yet cached, it will create and cache one.
-    fn push_service(&self) -> Result<HyperPushService, Error<C::Error>> {
+    fn push_service(&self) -> Result<HyperPushService, Error<S::Error>> {
         self.state.push_service_cache.get(|| {
             let credentials = self.credentials();
             let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
@@ -810,7 +810,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Creates a new message sender.
-    async fn new_message_sender(&self) -> Result<MessageSender<C>, Error<C::Error>> {
+    async fn new_message_sender(&self) -> Result<MessageSender<S>, Error<S::Error>> {
         let local_addr = ServiceAddress {
             uuid: self.state.service_ids.aci,
         };
@@ -842,7 +842,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Creates a new service cipher.
-    fn new_service_cipher(&self) -> Result<ServiceCipher<C>, Error<C::Error>> {
+    fn new_service_cipher(&self) -> Result<ServiceCipher<S>, Error<S::Error>> {
         let service_configuration: ServiceConfiguration = self.state.signal_servers.into();
         let service_cipher = ServiceCipher::new(
             self.store.clone(),
@@ -856,7 +856,7 @@ impl<C: Store> Manager<C, Registered> {
     }
 
     /// Returns the title of a thread (contact or group).
-    pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<C::Error>> {
+    pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<S::Error>> {
         match thread {
             Thread::Contact(uuid) => {
                 let contact = match self.contact_by_id(uuid) {
@@ -893,12 +893,12 @@ pub enum ReceivingMode {
     WaitForContacts,
 }
 
-async fn upsert_group<C: Store>(
-    store: &C,
+async fn upsert_group<S: Store>(
+    store: &S,
     groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
     revision: &u32,
-) -> Result<Option<Group>, Error<C::Error>> {
+) -> Result<Option<Group>, Error<S::Error>> {
     let upsert_group = match store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
             debug!("loaded group from local db {}", group.title);
@@ -929,7 +929,7 @@ async fn upsert_group<C: Store>(
     Ok(store.group(master_key_bytes.try_into()?)?)
 }
 
-fn save_message<C: Store>(store: &mut C, message: Content) -> Result<(), Error<C::Error>> {
+fn save_message<S: Store>(store: &mut S, message: Content) -> Result<(), Error<S::Error>> {
     // derive the thread from the message type
     let thread = Thread::try_from(&message)?;
 

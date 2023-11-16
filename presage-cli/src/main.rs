@@ -207,10 +207,10 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: Store + 'static>(
+async fn send<S: Store + 'static>(
     msg: &str,
     uuid: &Uuid,
-    manager: &mut Manager<C, Registered>,
+    manager: &mut Manager<S, Registered>,
 ) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -250,8 +250,8 @@ async fn send<C: Store + 'static>(
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
-async fn process_incoming_message<C: Store>(
-    manager: &mut Manager<C, Registered>,
+async fn process_incoming_message<S: Store>(
+    manager: &mut Manager<S, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
@@ -289,8 +289,8 @@ async fn process_incoming_message<C: Store>(
     }
 }
 
-fn print_message<C: Store>(
-    manager: &Manager<C, Registered>,
+fn print_message<S: Store>(
+    manager: &Manager<S, Registered>,
     notifications: bool,
     content: &Content,
 ) {
@@ -438,8 +438,8 @@ fn print_message<C: Store>(
     }
 }
 
-async fn receive<C: Store>(
-    manager: &mut Manager<C, Registered>,
+async fn receive<S: Store>(
+    manager: &mut Manager<S, Registered>,
     notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
@@ -462,7 +462,7 @@ async fn receive<C: Store>(
     Ok(())
 }
 
-async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
