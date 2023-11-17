@@ -14,22 +14,26 @@ use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
+use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
+use presage::libsignal_service::models::Contact;
+use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
+use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
-use presage::prelude::proto::EditMessage;
-use presage::prelude::SyncMessage;
-use presage::ContentTimestamp;
+use presage::proto::EditMessage;
+use presage::proto::SyncMessage;
+use presage::store::ContentExt;
 use presage::{
-    prelude::{
-        content::{Content, ContentBody, DataMessage, GroupContextV2},
-        Contact, SignalServers,
-    },
-    prelude::{phonenumber::PhoneNumber, Uuid},
-    GroupMasterKeyBytes, Manager, Registered, RegistrationOptions, Store, Thread,
+    libsignal_service::content::{Content, ContentBody, DataMessage, GroupContextV2},
+    manager::{Registered, RegistrationOptions},
+    store::{Store, Thread},
+    Manager,
 };
 use presage_store_sled::MigrationConflictStrategy;
+use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;
@@ -200,14 +204,15 @@ async fn main() -> anyhow::Result<()> {
         db_path,
         args.passphrase,
         MigrationConflictStrategy::Raise,
+        OnNewIdentity::Trust,
     )?;
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: Store + 'static>(
+async fn send<S: Store + 'static>(
     msg: &str,
     uuid: &Uuid,
-    manager: &mut Manager<C, Registered>,
+    manager: &mut Manager<S, Registered>,
 ) -> anyhow::Result<()> {
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -247,8 +252,8 @@ async fn send<C: Store + 'static>(
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
-async fn process_incoming_message<C: Store>(
-    manager: &mut Manager<C, Registered>,
+async fn process_incoming_message<S: Store>(
+    manager: &mut Manager<S, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
@@ -286,8 +291,8 @@ async fn process_incoming_message<C: Store>(
     }
 }
 
-fn print_message<C: Store>(
-    manager: &Manager<C, Registered>,
+fn print_message<S: Store>(
+    manager: &Manager<S, Registered>,
     notifications: bool,
     content: &Content,
 ) {
@@ -315,7 +320,7 @@ fn print_message<C: Store>(
                 }),
             ..
         } => {
-            let Ok(Some(message)) = manager.message(thread, *timestamp) else {
+            let Ok(Some(message)) = manager.store().message(thread, *timestamp) else {
                 log::warn!("no message in {thread} sent at {timestamp}");
                 return None;
             };
@@ -338,6 +343,7 @@ fn print_message<C: Store>(
 
     let format_contact = |uuid| {
         manager
+            .store()
             .contact_by_id(uuid)
             .ok()
             .flatten()
@@ -348,6 +354,7 @@ fn print_message<C: Store>(
 
     let format_group = |key| {
         manager
+            .store()
             .group(key)
             .ok()
             .flatten()
@@ -402,20 +409,20 @@ fn print_message<C: Store>(
         let ts = content.timestamp();
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
-                let contact = format_contact(sender);
+                let contact = format_contact(*sender);
                 (format!("From {contact} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Contact(recipient), body) => {
-                let contact = format_contact(recipient);
+                let contact = format_contact(*recipient);
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = format_contact(&content.metadata.sender.uuid);
-                let group = format_group(key);
+                let sender = format_contact(content.metadata.sender.uuid);
+                let group = format_group(*key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Group(key), body) => {
-                let group = format_group(key);
+                let group = format_group(*key);
                 (format!("To group {group} @ {ts}"), body)
             }
         };
@@ -435,8 +442,8 @@ fn print_message<C: Store>(
     }
 }
 
-async fn receive<C: Store>(
-    manager: &mut Manager<C, Registered>,
+async fn receive<S: Store>(
+    manager: &mut Manager<S, Registered>,
     notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
@@ -459,7 +466,7 @@ async fn receive<C: Store>(
     Ok(())
 }
 
-async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -563,6 +570,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             let mut manager = Manager::load_registered(config_store).await?;
             if profile_key.is_none() {
                 for contact in manager
+                    .store()
                     .contacts()?
                     .filter_map(Result::ok)
                     .filter(|c| c.uuid == uuid)
@@ -589,7 +597,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store).await?;
-            for group in manager.groups()? {
+            for group in manager.store().groups()? {
                 match group {
                     Ok((
                         group_master_key,
@@ -620,7 +628,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 uuid,
                 phone_number,
                 ..
-            } in manager.contacts()?.flatten()
+            } in manager.store().contacts()?.flatten()
             {
                 println!("{uuid} / {phone_number:?} / {name}");
             }
@@ -631,7 +639,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store).await?;
-            match manager.contact_by_id(uuid)? {
+            match manager.store().contact_by_id(*uuid)? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
             }
@@ -643,6 +651,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         } => {
             let manager = Manager::load_registered(config_store).await?;
             for contact in manager
+                .store()
                 .contacts()?
                 .filter_map(Result::ok)
                 .filter(|c| uuid.map_or_else(|| true, |u| c.uuid == u))

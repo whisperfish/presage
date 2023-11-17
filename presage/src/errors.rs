@@ -6,6 +6,7 @@ use libsignal_service::{
 
 use crate::store::StoreError;
 
+/// The error type of Signal manager
 #[derive(thiserror::Error, Debug)]
 pub enum Error<S: std::error::Error> {
     #[error("captcha from https://signalcaptchas.org/registration/generate.html required")]

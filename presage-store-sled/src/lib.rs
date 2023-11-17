@@ -7,32 +7,32 @@ use std::{
 
 use async_trait::async_trait;
 use log::{debug, error, trace, warn};
-use presage::{
-    libsignal_service::{
-        self,
-        groups_v2::Group,
-        models::Contact,
-        prelude::{Content, ProfileKey, Uuid},
-        protocol::{
-            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
-            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
-        },
-        push_service::DEFAULT_DEVICE_ID,
-        session_store::SessionStoreExt,
-        Profile, ServiceAddress,
+use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
+use presage::libsignal_service::{
+    self,
+    content::Content,
+    groups_v2::Group,
+    models::Contact,
+    prelude::{ProfileKey, Uuid},
+    protocol::{
+        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+        KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
+        ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
+        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
     },
-    ContentTimestamp,
+    push_service::DEFAULT_DEVICE_ID,
+    session_store::SessionStoreExt,
+    Profile, ServiceAddress,
 };
+use presage::store::{ContentExt, ContentsStore, PreKeyStoreExt, StateStore, Store, Thread};
+use presage::{manager::RegistrationData, proto::verified};
 use prost::Message;
-use protobuf::ContentProto;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 use presage_store_cipher::StoreCipher;
-use presage::{GroupMasterKeyBytes, Registered, Store, Thread, ThreadMetadata};
+use presage::{ThreadMetadata};
+use crate::protobuf::ContentProto;
 
 mod error;
 mod protobuf;
@@ -66,6 +66,8 @@ pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
     #[cfg(feature = "encryption")]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
+    /// Whether to trust new identities automatically (for instance, when a somebody's phone has changed)
+    trust_new_identities: OnNewIdentity,
 }
 
 /// Sometimes Migrations can't proceed without having to drop existing
@@ -113,11 +115,18 @@ impl SchemaVersion {
     }
 }
 
+#[derive(Debug, Clone)]
+pub enum OnNewIdentity {
+    Reject,
+    Trust,
+}
+
 impl SledStore {
     #[allow(unused_variables)]
     fn new(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
         let database = sled::open(db_path)?;
 
@@ -135,25 +144,33 @@ impl SledStore {
             db: Arc::new(RwLock::new(database)),
             #[cfg(feature = "encryption")]
             cipher: cipher.map(Arc::new),
+            trust_new_identities,
         })
     }
 
     pub fn open(
         db_path: impl AsRef<Path>,
         migration_conflict_strategy: MigrationConflictStrategy,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
-        Self::open_with_passphrase(db_path, None::<&str>, migration_conflict_strategy)
+        Self::open_with_passphrase(
+            db_path,
+            None::<&str>,
+            migration_conflict_strategy,
+            trust_new_identities,
+        )
     }
 
     pub fn open_with_passphrase(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
         migration_conflict_strategy: MigrationConflictStrategy,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
         let passphrase = passphrase.as_ref();
 
         migrate(&db_path, passphrase, migration_conflict_strategy)?;
-        Self::new(db_path, passphrase)
+        Self::new(db_path, passphrase, trust_new_identities)
     }
 
     #[cfg(feature = "encryption")]
@@ -184,6 +201,7 @@ impl SledStore {
             #[cfg(feature = "encryption")]
             // use store cipher with a random key
             cipher: Some(Arc::new(presage_store_cipher::StoreCipher::new())),
+            trust_new_identities: OnNewIdentity::Reject
         })
     }
 
@@ -306,7 +324,7 @@ fn migrate(
     let passphrase = passphrase.as_ref();
 
     let run_migrations = move || {
-        let mut store = SledStore::new(db_path, passphrase)?;
+        let mut store = SledStore::new(db_path, passphrase, OnNewIdentity::Reject)?;
         let schema_version = store.schema_version();
         for step in schema_version.steps() {
             match &step {
@@ -322,7 +340,7 @@ fn migrate(
                         let state = serde_json::from_slice(&data).map_err(SledStoreError::from)?;
 
                         // save it the new school way
-                        store.save_state(&state)?;
+                        store.save_registration_data(&state)?;
 
                         // remove old data
                         let db = store.write();
@@ -372,27 +390,22 @@ fn migrate(
 
 impl ProtocolStore for SledStore {}
 
-impl Store for SledStore {
-    type Error = SledStoreError;
-
-    type ContactsIter = SledContactsIter;
-    type GroupsIter = SledGroupsIter;
-    type MessagesIter = SledMessagesIter;
-    type ThreadMetadataIter = SledThreadMetadataIter;
+impl StateStore for SledStore {
+    type StateStoreError = SledStoreError;
 
     /// State
 
-    fn load_state(&self) -> Result<Option<Registered>, SledStoreError> {
+    fn load_registration_data(&self) -> Result<Option<RegistrationData>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered) -> Result<(), SledStoreError> {
+    fn save_registration_data(&mut self, state: &RegistrationData) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
 
     fn is_registered(&self) -> bool {
-        self.load_state().unwrap_or_default().is_some()
+        self.load_registration_data().unwrap_or_default().is_some()
     }
 
     fn clear_registration(&mut self) -> Result<(), SledStoreError> {
@@ -412,63 +425,15 @@ impl Store for SledStore {
 
         Ok(())
     }
+}
 
-    fn clear(&mut self) -> Result<(), SledStoreError> {
-        self.clear_registration()?;
+impl ContentsStore for SledStore {
+    type ContentsStoreError = SledStoreError;
 
-        let db = self.write();
-        db.drop_tree(SLED_TREE_CONTACTS)?;
-        db.drop_tree(SLED_TREE_GROUPS)?;
-
-        for tree in db
-            .tree_names()
-            .into_iter()
-            .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
-        {
-            db.drop_tree(tree)?;
-        }
-
-        db.flush()?;
-
-        Ok(())
-    }
-
-    /// Pre-keys
-
-    fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
-            .unwrap_or(0))
-    }
-
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
-        Ok(())
-    }
-
-    fn next_signed_pre_key_id(&self) -> Result<u32, SledStoreError> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
-            .unwrap_or(0))
-    }
-
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
-        Ok(())
-    }
-
-    fn next_pq_pre_key_id(&self) -> Result<u32, SledStoreError> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)?
-            .unwrap_or(0))
-    }
-
-    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)?;
-        Ok(())
-    }
-
-    /// Contacts
+    type ContactsIter = SledContactsIter;
+    type GroupsIter = SledGroupsIter;
+    type MessagesIter = SledMessagesIter;
+    type ThreadMetadataIter = SledThreadMetadataIter;
 
     fn clear_contacts(&mut self) -> Result<(), SledStoreError> {
         self.write().drop_tree(SLED_TREE_CONTACTS)?;
@@ -486,7 +451,7 @@ impl Store for SledStore {
         Ok(())
     }
 
-    fn save_contact(&mut self, contact: Contact) -> Result<(), Self::Error> {
+    fn save_contact(&mut self, contact: Contact) -> Result<(), Self::ContentsStoreError> {
         self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
         debug!("saved contact");
         Ok(())
@@ -563,7 +528,7 @@ impl Store for SledStore {
         Ok(())
     }
 
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
+    fn save_message(&self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
         let ts = message.timestamp();
         log::trace!("storing a message with thread: {thread}, timestamp: {ts}",);
 
@@ -661,26 +626,87 @@ impl Store for SledStore {
     }
     /// Thread metadata
 
-    fn save_thread_metadata(&mut self, metadata: ThreadMetadata) -> Result<(), Self::Error> {
+    fn save_thread_metadata(&mut self, metadata: ThreadMetadata) -> Result<(), Self::ContentsStoreError> {
         let key = self.thread_metadata_key(&metadata.thread);
         self.insert(SLED_TREE_THREADS_METADATA, key, metadata)?;
         Ok(())
     }
 
-    fn thread_metadata(&self, thread: &Thread) -> Result<Option<ThreadMetadata>, Self::Error> {
+    fn thread_metadata(&self, thread: &Thread) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError> {
         let key = self.thread_metadata_key(thread);
         self.get(SLED_TREE_THREADS_METADATA, key)
     }
 
     fn thread_metadatas(
         &self,
-    ) -> Result<<Self as presage::Store>::ThreadMetadataIter, <Self as presage::Store>::Error> {
+    ) -> Result<Self::ThreadMetadataIter, SledStoreError> {
         let tree = self.read().open_tree(SLED_TREE_THREADS_METADATA)?;
         let iter = tree.iter();
         Ok(SledThreadMetadataIter {
             cipher: self.cipher.clone(),
             iter,
         })
+    }
+}
+
+impl PreKeyStoreExt for SledStore {
+    type PreKeyStoreExtError = SledStoreError;
+
+    fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
+            .unwrap_or(0))
+    }
+
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
+        Ok(())
+    }
+
+    fn next_signed_pre_key_id(&self) -> Result<u32, SledStoreError> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
+            .unwrap_or(0))
+    }
+
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
+        Ok(())
+    }
+
+    fn next_pq_pre_key_id(&self) -> Result<u32, SledStoreError> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)?
+            .unwrap_or(0))
+    }
+
+    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)?;
+        Ok(())
+    }
+}
+
+impl Store for SledStore {
+    type Error = SledStoreError;
+
+    fn clear(&mut self) -> Result<(), SledStoreError> {
+        self.clear_registration()?;
+
+        let db = self.write();
+        db.drop_tree(SLED_TREE_CONTACTS)?;
+        db.drop_tree(SLED_TREE_GROUPS)?;
+
+        for tree in db
+            .tree_names()
+            .into_iter()
+            .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
+        {
+            db.drop_tree(tree)?;
+        }
+
+        db.flush()?;
+
+        Ok(())
     }
 }
 
@@ -970,28 +996,29 @@ impl SessionStoreExt for SledStore {
 impl IdentityKeyStore for SledStore {
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let state = self
-            .load_state()
+        let data = self
+            .load_registration_data()
             .map_err(SledStoreError::into_signal_error)?
             .ok_or(SignalProtocolError::InvalidState(
                 "failed to load identity key pair",
                 "no registration data".into(),
             ))?;
+
         Ok(IdentityKeyPair::new(
-            IdentityKey::new(state.aci_public_key),
-            state.aci_private_key,
+            IdentityKey::new(data.aci_public_key()),
+            data.aci_private_key(),
         ))
     }
 
     async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
-        let state = self
-            .load_state()
+        let data = self
+            .load_registration_data()
             .map_err(SledStoreError::into_signal_error)?
             .ok_or(SignalProtocolError::InvalidState(
-                "failed to load identity key pair",
+                "failed to load registration ID",
                 "no registration data".into(),
             ))?;
-        Ok(state.registration_id)
+        Ok(data.registration_id())
     }
 
     async fn save_identity(
@@ -1000,17 +1027,28 @@ impl IdentityKeyStore for SledStore {
         identity_key: &IdentityKey,
     ) -> Result<bool, SignalProtocolError> {
         trace!("saving identity");
-        self.insert(
-            SLED_TREE_IDENTITIES,
-            address.to_string(),
-            identity_key.serialize(),
-        )
-        .map_err(|e| {
-            error!("error saving identity for {:?}: {}", address, e);
-            e.into_signal_error()
-        })?;
+        let existed_before = self
+            .insert(
+                SLED_TREE_IDENTITIES,
+                address.to_string(),
+                identity_key.serialize(),
+            )
+            .map_err(|e| {
+                error!("error saving identity for {:?}: {}", address, e);
+                e.into_signal_error()
+            })?;
 
-        Ok(false)
+        self.save_trusted_identity_message(
+            address,
+            *identity_key,
+            if existed_before {
+                verified::State::Unverified
+            } else {
+                verified::State::Default
+            },
+        );
+
+        Ok(true)
     }
 
     async fn is_trusted_identity(
@@ -1030,7 +1068,17 @@ impl IdentityKeyStore for SledStore {
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(left_identity_key) => Ok(left_identity_key == *right_identity_key),
+            // when we encounter some identity we know, we need to decide whether we trust it or not
+            Some(left_identity_key) => {
+                if left_identity_key == *right_identity_key {
+                    Ok(true)
+                } else {
+                    match self.trust_new_identities {
+                        OnNewIdentity::Trust => Ok(true),
+                        OnNewIdentity::Reject => Ok(false),
+                    }
+                }
+            }
         }
     }
 
@@ -1158,19 +1206,17 @@ impl Iterator for SledThreadMetadataIter {
 mod tests {
     use core::fmt;
 
-    use presage::{
-        libsignal_service::{
-            content::{ContentBody, Metadata},
-            prelude::Uuid,
-            proto::DataMessage,
-            protocol::{
-                self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
-                SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
-            },
-            ServiceAddress,
+    use presage::libsignal_service::{
+        content::{ContentBody, Metadata},
+        prelude::Uuid,
+        proto::DataMessage,
+        protocol::{
+            self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
+            SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Store,
+        ServiceAddress,
     };
+    use presage::store::ContentsStore;
     use quickcheck::{Arbitrary, Gen};
 
     use super::SledStore;
@@ -1182,10 +1228,10 @@ mod tests {
     struct KeyPair(protocol::KeyPair);
 
     #[derive(Debug, Clone)]
-    struct Thread(presage::Thread);
+    struct Thread(presage::store::Thread);
 
     #[derive(Debug, Clone)]
-    struct Content(presage::prelude::Content);
+    struct Content(presage::libsignal_service::content::Content);
 
     impl fmt::Debug for KeyPair {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -1230,13 +1276,16 @@ mod tests {
                 timestamp: Some(timestamp),
                 ..Default::default()
             });
-            Self(presage::prelude::Content::from_body(content_body, metadata))
+            Self(presage::libsignal_service::content::Content::from_body(
+                content_body,
+                metadata,
+            ))
         }
     }
 
     impl Arbitrary for Thread {
         fn arbitrary(g: &mut Gen) -> Self {
-            Self(presage::Thread::Contact(Uuid::from_u128(
+            Self(presage::store::Thread::Contact(Uuid::from_u128(
                 Arbitrary::arbitrary(g),
             )))
         }
@@ -1307,8 +1356,11 @@ mod tests {
             == signed_pre_key_record.serialize().unwrap()
     }
 
-    fn content_with_timestamp(content: &Content, ts: u64) -> presage::prelude::Content {
-        presage::prelude::Content {
+    fn content_with_timestamp(
+        content: &Content,
+        ts: u64,
+    ) -> presage::libsignal_service::content::Content {
+        presage::libsignal_service::content::Content {
             metadata: Metadata {
                 timestamp: ts,
                 ..content.0.metadata.clone()
@@ -1319,7 +1371,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
-        let mut db = SledStore::temporary()?;
+        let db = SledStore::temporary()?;
         let thread = thread.0;
         db.save_message(&thread, content_with_timestamp(&content, 1678295210))?;
         db.save_message(&thread, content_with_timestamp(&content, 1678295220))?;

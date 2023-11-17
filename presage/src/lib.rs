@@ -1,37 +1,18 @@
 mod cache;
 mod errors;
-mod manager;
 mod serializers;
 use serde::{Deserialize, Serialize};
-mod store;
+pub mod manager;
+pub mod store;
+
+pub use libsignal_service;
+/// Protobufs used in Signal protocol and service communication
+pub use libsignal_service::proto;
 
 pub use errors::Error;
-pub use manager::{
-    Confirmation, Linking, Manager, ReceivingMode, Registered, Registration, RegistrationOptions,
-};
-pub use store::{ContentTimestamp, Store, StoreError, Thread};
-
-#[deprecated(note = "Please help use improve the prelude module instead")]
-pub use libsignal_service;
-
-pub mod prelude {
-    pub use libsignal_service::{
-        configuration::SignalServers,
-        content::{
-            self, Content, ContentBody, DataMessage, GroupContext, GroupContextV2, GroupType,
-            Metadata, SyncMessage,
-        },
-        groups_v2::{AccessControl, Group, GroupChange, PendingMember, RequestingMember, Timer},
-        models::Contact,
-        prelude::{
-            phonenumber::{self, PhoneNumber},
-            GroupMasterKey, GroupSecretParams, Uuid,
-        },
-        proto,
-        sender::AttachmentSpec,
-        ParseServiceAddressError, ServiceAddress,
-    };
-}
+pub use manager::Manager;
+pub use store::Thread;
+pub use crate::libsignal_service::prelude;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-rs-", env!("CARGO_PKG_VERSION"));
 
