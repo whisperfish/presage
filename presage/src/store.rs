@@ -2,7 +2,7 @@
 
 use std::{fmt, ops::RangeBounds, time::SystemTime};
 
-use crate::{GroupMasterKeyBytes, ThreadMetadata, manager::RegistrationData};
+use crate::{manager::RegistrationData, GroupMasterKeyBytes, ThreadMetadata};
 use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Group,
@@ -23,14 +23,14 @@ use serde::{Deserialize, Serialize};
 pub trait StoreError: std::error::Error + Sync + Send + 'static {}
 
 // pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone {
-    // type Error: StoreError;
-// 
-    // type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
-    // type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
-    // type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
-    // type ThreadMetadataIter: Iterator<Item = Result<ThreadMetadata, Self::Error>>;
-// 
-    /// State
+// type Error: StoreError;
+//
+// type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
+// type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
+// type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
+// type ThreadMetadataIter: Iterator<Item = Result<ThreadMetadata, Self::Error>>;
+//
+/// State
 /// Stores the registered state of the manager
 pub trait StateStore {
     type StateStoreError: StoreError;
@@ -83,7 +83,7 @@ pub trait ContentsStore {
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>;
 
     /// Iterator over all stored thread metadata
-    /// 
+    ///
     /// Each item is a tuple consisting of the thread and its corresponding metadata.
     type ThreadMetadataIter: Iterator<Item = Result<ThreadMetadata, Self::ContentsStoreError>>;
 
@@ -245,13 +245,17 @@ pub trait ContentsStore {
     fn thread_metadatas(&self) -> Result<Self::ThreadMetadataIter, Self::ContentsStoreError>;
 
     /// Retrieve ThereadMetadata for a single thread.
-    fn thread_metadata(&self, thread: &Thread) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError>;
+    fn thread_metadata(
+        &self,
+        thread: &Thread,
+    ) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError>;
 
     /// Save ThereadMetadata for a single thread.
     /// This will overwrite any existing metadata for the thread.
-    /// 
-    fn save_thread_metadata(&mut self, metadata: ThreadMetadata) -> Result<(), Self::ContentsStoreError>;
-
+    fn save_thread_metadata(
+        &mut self,
+        metadata: ThreadMetadata,
+    ) -> Result<(), Self::ContentsStoreError>;
 
     fn profile(
         &self,

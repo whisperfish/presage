@@ -5,6 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use crate::protobuf::ContentProto;
 use async_trait::async_trait;
 use log::{debug, error, trace, warn};
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
@@ -25,14 +26,13 @@ use presage::libsignal_service::{
     Profile, ServiceAddress,
 };
 use presage::store::{ContentExt, ContentsStore, PreKeyStoreExt, StateStore, Store, Thread};
+use presage::ThreadMetadata;
 use presage::{manager::RegistrationData, proto::verified};
+use presage_store_cipher::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
-use presage_store_cipher::StoreCipher;
-use presage::{ThreadMetadata};
-use crate::protobuf::ContentProto;
 
 mod error;
 mod protobuf;
@@ -626,20 +626,24 @@ impl ContentsStore for SledStore {
     }
     /// Thread metadata
 
-    fn save_thread_metadata(&mut self, metadata: ThreadMetadata) -> Result<(), Self::ContentsStoreError> {
+    fn save_thread_metadata(
+        &mut self,
+        metadata: ThreadMetadata,
+    ) -> Result<(), Self::ContentsStoreError> {
         let key = self.thread_metadata_key(&metadata.thread);
         self.insert(SLED_TREE_THREADS_METADATA, key, metadata)?;
         Ok(())
     }
 
-    fn thread_metadata(&self, thread: &Thread) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError> {
+    fn thread_metadata(
+        &self,
+        thread: &Thread,
+    ) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError> {
         let key = self.thread_metadata_key(thread);
         self.get(SLED_TREE_THREADS_METADATA, key)
     }
 
-    fn thread_metadatas(
-        &self,
-    ) -> Result<Self::ThreadMetadataIter, SledStoreError> {
+    fn thread_metadatas(&self) -> Result<Self::ThreadMetadataIter, SledStoreError> {
         let tree = self.read().open_tree(SLED_TREE_THREADS_METADATA)?;
         let iter = tree.iter();
         Ok(SledThreadMetadataIter {

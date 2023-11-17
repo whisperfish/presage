@@ -43,8 +43,11 @@ impl<S: Store> Manager<S, Registration> {
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust)?;
+    ///     let store = SledStore::open(
+    ///         "/tmp/presage-example",
+    ///         MigrationConflictStrategy::Drop,
+    ///         OnNewIdentity::Trust,
+    ///     )?;
     ///
     ///     let manager = Manager::register(
     ///         store,
