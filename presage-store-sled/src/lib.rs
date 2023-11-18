@@ -307,7 +307,7 @@ impl SledStore {
         format!("{:x}", hasher.finalize())
     }
 
-    fn thread_metadata_key(&self, thread: &Thread) -> Vec<u8> {
+    fn thread_metadata_key(&self, thread: Thread) -> Vec<u8> {
         match thread {
             Thread::Contact(contact) => contact.to_string().into_bytes(),
             Thread::Group(group) => group.to_vec(),
@@ -630,14 +630,14 @@ impl ContentsStore for SledStore {
         &mut self,
         metadata: ThreadMetadata,
     ) -> Result<(), Self::ContentsStoreError> {
-        let key = self.thread_metadata_key(&metadata.thread);
+        let key = self.thread_metadata_key(metadata.thread.clone());
         self.insert(SLED_TREE_THREADS_METADATA, key, metadata)?;
         Ok(())
     }
 
     fn thread_metadata(
         &self,
-        thread: &Thread,
+        thread: Thread,
     ) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError> {
         let key = self.thread_metadata_key(thread);
         self.get(SLED_TREE_THREADS_METADATA, key)

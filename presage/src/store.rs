@@ -247,7 +247,7 @@ pub trait ContentsStore {
     /// Retrieve ThereadMetadata for a single thread.
     fn thread_metadata(
         &self,
-        thread: &Thread,
+        thread: Thread,
     ) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError>;
 
     /// Save ThereadMetadata for a single thread.
