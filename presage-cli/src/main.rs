@@ -2,7 +2,6 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -37,7 +36,6 @@ use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;
-use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -149,7 +147,9 @@ enum Cmd {
         from: Option<u64>,
     },
     #[clap(about = "Get a single contact by UUID")]
-    GetContact { uuid: Uuid },
+    GetContact {
+        uuid: Uuid,
+    },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -173,7 +173,6 @@ enum Cmd {
         #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
         master_key: GroupMasterKeyBytes,
     },
-    #[cfg(feature = "quirks")]
     RequestSyncContacts,
 }
 
@@ -236,14 +235,10 @@ async fn send<S: Store + 'static>(
                 }
             });
 
-            sleep(Duration::from_secs(5)).await;
-
             manager
                 .send_message(*uuid, message, timestamp)
                 .await
                 .unwrap();
-
-            sleep(Duration::from_secs(5)).await;
         })
         .await;
 
@@ -661,7 +656,6 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
                 println!("{contact:#?}");
             }
         }
-        #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
             manager.request_contacts_sync().await?;

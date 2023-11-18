@@ -23,6 +23,3 @@ tokio = { version = "1.0", features = ["macros", "rt-multi-thread", "io-std", "i
 qr2term = { version = "0.2.2" }
 notify-rust = "4.6.0"
 url = "2.2"
-
-[features]
-quirks = []

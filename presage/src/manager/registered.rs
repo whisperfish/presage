@@ -646,6 +646,14 @@ impl<S: Store> Manager<S, Registered> {
                     certificate: sender_certificate.clone(),
                 });
 
+        // we need to put our profile key in DataMessage
+        if let ContentBody::DataMessage(message) = &mut content_body {
+            message
+                .profile_key
+                .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
+            message.required_protocol_version = Some(0);
+        }
+
         sender
             .send_message(
                 &recipient,
@@ -976,20 +984,6 @@ fn save_message<S: Store>(store: &mut S, message: Content) -> Result<(), Error<S
     // derive the thread from the message type
     let thread = Thread::try_from(&message)?;
 
-    // update recipient profile keys
-    if let ContentBody::DataMessage(DataMessage {
-        profile_key: Some(profile_key_bytes),
-        ..
-    }) = &message.body
-    {
-        if let Ok(profile_key_bytes) = profile_key_bytes.clone().try_into() {
-            let sender_uuid = message.metadata.sender.uuid;
-            let profile_key = ProfileKey::create(profile_key_bytes);
-            debug!("inserting profile key for {sender_uuid}");
-            store.upsert_profile_key(&sender_uuid, profile_key)?;
-        }
-    }
-
     // only save DataMessage and SynchronizeMessage (sent)
     let message = match message.body {
         ContentBody::NullMessage(_) => Some(message),
@@ -1003,12 +997,21 @@ fn save_message<S: Store>(store: &mut S, message: Content) -> Result<(), Error<S
             ..
         }) => match data_message {
             DataMessage {
+                profile_key: Some(profile_key_bytes),
                 delete:
                     Some(Delete {
                         target_sent_timestamp: Some(ts),
                     }),
                 ..
             } => {
+                // update recipient profile key
+                if let Ok(profile_key_bytes) = profile_key_bytes.clone().try_into() {
+                    let sender_uuid = message.metadata.sender.uuid;
+                    let profile_key = ProfileKey::create(profile_key_bytes);
+                    debug!("inserting profile key for {sender_uuid}");
+                    store.upsert_profile_key(&sender_uuid, profile_key)?;
+                }
+
                 // replace an existing message by an empty NullMessage
                 if let Some(mut existing_msg) = store.message(&thread, *ts)? {
                     existing_msg.metadata.sender.uuid = Uuid::nil();
