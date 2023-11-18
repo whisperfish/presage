@@ -1268,6 +1268,11 @@ impl<S: Store> Manager<S, Registered> {
         Ok(self.identified_push_service().devices().await?)
     }
 
+    /// Return the ACI of the registered account.
+    pub fn aci(&self) -> Uuid {
+        self.state.data.service_ids.aci
+    }
+
     /// Deprecated methods
 
     /// Get a single contact by its UUID
