@@ -1087,6 +1087,9 @@
 <a href="#1087" id="1087">1087</a>
 <a href="#1088" id="1088">1088</a>
 <a href="#1089" id="1089">1089</a>
+<a href="#1090" id="1090">1090</a>
+<a href="#1091" id="1091">1091</a>
+<a href="#1092" id="1092">1092</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::sync::Arc;
@@ -1735,6 +1738,14 @@
                     certificate: sender_certificate.clone(),
                 });
 
+        <span class="comment">// we need to put our profile key in DataMessage
+        </span><span class="kw">if let </span>ContentBody::DataMessage(message) = <span class="kw-2">&amp;mut </span>content_body {
+            message
+                .profile_key
+                .get_or_insert(<span class="self">self</span>.state.data.profile_key().get_bytes().to_vec());
+            message.required_protocol_version = <span class="prelude-val">Some</span>(<span class="number">0</span>);
+        }
+
         sender
             .send_message(
                 <span class="kw-2">&amp;</span>recipient,
@@ -2065,20 +2076,6 @@
     <span class="comment">// derive the thread from the message type
     </span><span class="kw">let </span>thread = Thread::try_from(<span class="kw-2">&amp;</span>message)<span class="question-mark">?</span>;
 
-    <span class="comment">// update recipient profile keys
-    </span><span class="kw">if let </span>ContentBody::DataMessage(DataMessage {
-        profile_key: <span class="prelude-val">Some</span>(profile_key_bytes),
-        ..
-    }) = <span class="kw-2">&amp;</span>message.body
-    {
-        <span class="kw">if let </span><span class="prelude-val">Ok</span>(profile_key_bytes) = profile_key_bytes.clone().try_into() {
-            <span class="kw">let </span>sender_uuid = message.metadata.sender.uuid;
-            <span class="kw">let </span>profile_key = ProfileKey::create(profile_key_bytes);
-            <span class="macro">debug!</span>(<span class="string">&quot;inserting profile key for {sender_uuid}&quot;</span>);
-            store.upsert_profile_key(<span class="kw-2">&amp;</span>sender_uuid, profile_key)<span class="question-mark">?</span>;
-        }
-    }
-
     <span class="comment">// only save DataMessage and SynchronizeMessage (sent)
     </span><span class="kw">let </span>message = <span class="kw">match </span>message.body {
         ContentBody::NullMessage(<span class="kw">_</span>) =&gt; <span class="prelude-val">Some</span>(message),
@@ -2092,12 +2089,21 @@
             ..
         }) =&gt; <span class="kw">match </span>data_message {
             DataMessage {
+                profile_key: <span class="prelude-val">Some</span>(profile_key_bytes),
                 delete:
                     <span class="prelude-val">Some</span>(Delete {
                         target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
                     }),
                 ..
             } =&gt; {
+                <span class="comment">// update recipient profile key
+                </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(profile_key_bytes) = profile_key_bytes.clone().try_into() {
+                    <span class="kw">let </span>sender_uuid = message.metadata.sender.uuid;
+                    <span class="kw">let </span>profile_key = ProfileKey::create(profile_key_bytes);
+                    <span class="macro">debug!</span>(<span class="string">&quot;inserting profile key for {sender_uuid}&quot;</span>);
+                    store.upsert_profile_key(<span class="kw-2">&amp;</span>sender_uuid, profile_key)<span class="question-mark">?</span>;
+                }
+
                 <span class="comment">// replace an existing message by an empty NullMessage
                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) = store.message(<span class="kw-2">&amp;</span>thread, <span class="kw-2">*</span>ts)<span class="question-mark">? </span>{
                     existing_msg.metadata.sender.uuid = Uuid::nil();
