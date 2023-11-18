@@ -2,7 +2,6 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -37,7 +36,6 @@ use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;
-use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -236,14 +234,10 @@ async fn send<S: Store + 'static>(
                 }
             });
 
-            sleep(Duration::from_secs(5)).await;
-
             manager
                 .send_message(*uuid, message, timestamp)
                 .await
                 .unwrap();
-
-            sleep(Duration::from_secs(5)).await;
         })
         .await;
 
