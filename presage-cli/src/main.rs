@@ -147,7 +147,9 @@ enum Cmd {
         from: Option<u64>,
     },
     #[clap(about = "Get a single contact by UUID")]
-    GetContact { uuid: Uuid },
+    GetContact {
+        uuid: Uuid,
+    },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -171,7 +173,6 @@ enum Cmd {
         #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
         master_key: GroupMasterKeyBytes,
     },
-    #[cfg(feature = "quirks")]
     RequestSyncContacts,
 }
 
@@ -655,7 +656,6 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
                 println!("{contact:#?}");
             }
         }
-        #[cfg(feature = "quirks")]
         Cmd::RequestSyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
             manager.request_contacts_sync().await?;
