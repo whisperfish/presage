@@ -1090,10 +1090,41 @@
 <a href="#1090" id="1090">1090</a>
 <a href="#1091" id="1091">1091</a>
 <a href="#1092" id="1092">1092</a>
+<a href="#1093" id="1093">1093</a>
+<a href="#1094" id="1094">1094</a>
+<a href="#1095" id="1095">1095</a>
+<a href="#1096" id="1096">1096</a>
+<a href="#1097" id="1097">1097</a>
+<a href="#1098" id="1098">1098</a>
+<a href="#1099" id="1099">1099</a>
+<a href="#1100" id="1100">1100</a>
+<a href="#1101" id="1101">1101</a>
+<a href="#1102" id="1102">1102</a>
+<a href="#1103" id="1103">1103</a>
+<a href="#1104" id="1104">1104</a>
+<a href="#1105" id="1105">1105</a>
+<a href="#1106" id="1106">1106</a>
+<a href="#1107" id="1107">1107</a>
+<a href="#1108" id="1108">1108</a>
+<a href="#1109" id="1109">1109</a>
+<a href="#1110" id="1110">1110</a>
+<a href="#1111" id="1111">1111</a>
+<a href="#1112" id="1112">1112</a>
+<a href="#1113" id="1113">1113</a>
+<a href="#1114" id="1114">1114</a>
+<a href="#1115" id="1115">1115</a>
+<a href="#1116" id="1116">1116</a>
+<a href="#1117" id="1117">1117</a>
+<a href="#1118" id="1118">1118</a>
+<a href="#1119" id="1119">1119</a>
+<a href="#1120" id="1120">1120</a>
+<a href="#1121" id="1121">1121</a>
+<a href="#1122" id="1122">1122</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
+<span class="kw">use </span>std::pin::pin;
 <span class="kw">use </span>std::sync::Arc;
-<span class="kw">use </span>std::time::{SystemTime, UNIX_EPOCH};
+<span class="kw">use </span>std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 <span class="kw">use </span>futures::{future, AsyncReadExt, Stream, StreamExt};
 <span class="kw">use </span>libsignal_service::attachment_cipher::decrypt_in_place;
@@ -1208,27 +1239,33 @@
 }
 
 <span class="kw">impl </span>RegistrationData {
-    <span class="kw">pub fn </span>registration_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
-        <span class="self">self</span>.registration_id
+    <span class="doccomment">/// Account identity
+    </span><span class="kw">pub fn </span>aci(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Uuid {
+        <span class="self">self</span>.service_ids.aci
     }
 
-    <span class="kw">pub fn </span>service_ids(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>ServiceIds {
-        <span class="kw-2">&amp;</span><span class="self">self</span>.service_ids
+    <span class="doccomment">/// Phone number identity
+    </span><span class="kw">pub fn </span>pni(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Uuid {
+        <span class="self">self</span>.service_ids.pni
     }
 
-    <span class="kw">pub fn </span>profile_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProfileKey {
+    <span class="doccomment">/// Our own profile key
+    </span><span class="kw">pub fn </span>profile_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProfileKey {
         <span class="self">self</span>.profile_key
     }
 
-    <span class="kw">pub fn </span>device_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>String&gt; {
-        <span class="self">self</span>.device_name.as_ref()
+    <span class="doccomment">/// The name of the device (if linked as secondary)
+    </span><span class="kw">pub fn </span>device_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
+        <span class="self">self</span>.device_name.as_deref()
     }
 
-    <span class="kw">pub fn </span>aci_public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PublicKey {
+    <span class="doccomment">/// Account identity public key
+    </span><span class="kw">pub fn </span>aci_public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PublicKey {
         <span class="self">self</span>.aci_public_key
     }
 
-    <span class="kw">pub fn </span>aci_private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PrivateKey {
+    <span class="doccomment">/// Account identity private key
+    </span><span class="kw">pub fn </span>aci_private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PrivateKey {
         <span class="self">self</span>.aci_private_key
     }
 }
@@ -1375,7 +1412,7 @@
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: <span class="self">self</span>.state.data.device_name().cloned(),
+                name: <span class="self">self</span>.state.data.device_name().map(|d| d.to_string()),
                 registration_id: <span class="self">self</span>.state.data.registration_id,
                 pni_registration_id,
                 signaling_key: <span class="prelude-val">None</span>,
@@ -1408,19 +1445,40 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Request that the primary device to encrypt &amp; send all of its contacts as a message to ourselves
-    /// which can be then received, decrypted and stored in the message receiving loop.
+    <span class="doccomment">/// Requests contacts synchronization and waits until the primary device sends them
+    ///
+    /// Note: DO NOT call this function if you&#39;re already running a receiving loop
+    </span><span class="kw">pub async fn </span>sync_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
+        <span class="macro">debug!</span>(<span class="string">&quot;synchronizing contacts&quot;</span>);
+
+        <span class="kw">let </span><span class="kw-2">mut </span>messages = <span class="macro">pin!</span>(
+            <span class="self">self</span>.receive_messages_with_mode(ReceivingMode::WaitForContacts)
+                .<span class="kw">await</span><span class="question-mark">?
+        </span>);
+
+        <span class="self">self</span>.request_contacts().<span class="kw">await</span><span class="question-mark">?</span>;
+
+        tokio::time::timeout(Duration::from_secs(<span class="number">60</span>), <span class="kw">async move </span>{
+            <span class="kw">while let </span><span class="prelude-val">Some</span>(msg) = messages.next().<span class="kw">await </span>{
+                <span class="macro">log::trace!</span>(<span class="string">&quot;got message while waiting for contacts sync: {msg:?}&quot;</span>);
+            }
+        })
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="doccomment">/// Request the primary device to encrypt &amp; send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
-    /// processed when they&#39;re received using the `MessageReceiver`.
-    </span><span class="kw">pub async fn </span>request_contacts_sync(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
+    /// processed when they&#39;re received after polling on the
+    </span><span class="kw">pub async fn </span>request_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">&quot;requesting contacts sync&quot;</span>);
-        <span class="kw">let </span>var_name = sync_message::request::Type::Contacts <span class="kw">as </span>i32;
         <span class="kw">let </span>sync_message = SyncMessage {
             request: <span class="prelude-val">Some</span>(sync_message::Request {
-                r#type: <span class="prelude-val">Some</span>(var_name),
+                r#type: <span class="prelude-val">Some</span>(sync_message::request::Type::Contacts.into()),
             }),
-            ..Default::default()
+            ..SyncMessage::with_padding()
         };
 
         <span class="kw">let </span>timestamp = SystemTime::now()
@@ -1796,15 +1854,17 @@
     </span><span class="kw">pub async fn </span>send_message_to_group(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         master_key_bytes: <span class="kw-2">&amp;</span>[u8],
-        <span class="kw-2">mut </span>message: DataMessage,
+        message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>content_body = message.into();
+
         <span class="comment">// Only update the expiration timer if it is not set.
-        </span><span class="kw">match </span>message {
-            DataMessage {
+        </span><span class="kw">match </span>content_body {
+            ContentBody::DataMessage(DataMessage {
                 expire_timer: <span class="kw-2">ref mut </span>timer,
                 ..
-            } <span class="kw">if </span>timer.is_none() =&gt; {
+            }) <span class="kw">if </span>timer.is_none() =&gt; {
                 <span class="comment">// Set the expire timer to None for errors.
                 </span><span class="kw">let </span>store_expire_timer = <span class="self">self
                     </span>.store
@@ -1847,7 +1907,7 @@
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
         <span class="kw">let </span>results = sender
-            .send_message_to_group(recipients, message.clone(), timestamp, online_only)
+            .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .<span class="kw">await</span>;
 
         <span class="comment">// return first error if any
@@ -1861,7 +1921,7 @@
                 needs_receipt: <span class="bool-val">false</span>, <span class="comment">// TODO: this is just wrong
                 </span>unidentified_sender: <span class="bool-val">false</span>,
             },
-            body: message.into(),
+            body: content_body,
         };
 
         save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>.store, content)<span class="question-mark">?</span>;
