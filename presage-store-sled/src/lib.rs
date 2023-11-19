@@ -977,7 +977,7 @@ impl IdentityKeyStore for SledStore {
                 "failed to load registration ID",
                 "no registration data".into(),
             ))?;
-        Ok(data.registration_id())
+        Ok(data.registration_id)
     }
 
     async fn save_identity(

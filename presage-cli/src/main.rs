@@ -173,7 +173,12 @@ enum Cmd {
         #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
         master_key: GroupMasterKeyBytes,
     },
-    RequestSyncContacts,
+    RequestContactsSync,
+}
+
+enum Recipient {
+    Contact(Uuid),
+    Group(GroupMasterKeyBytes),
 }
 
 fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
@@ -209,22 +214,21 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn send<S: Store + 'static>(
-    msg: &str,
-    uuid: &Uuid,
     manager: &mut Manager<S, Registered>,
+    recipient: Recipient,
+    msg: impl Into<ContentBody>,
 ) -> anyhow::Result<()> {
+    let local = task::LocalSet::new();
+
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_millis() as u64;
 
-    let message = ContentBody::DataMessage(DataMessage {
-        body: Some(msg.to_string()),
-        timestamp: Some(timestamp),
-        ..Default::default()
-    });
-
-    let local = task::LocalSet::new();
+    let mut content_body = msg.into();
+    if let ContentBody::DataMessage(d) = &mut content_body {
+        d.timestamp = Some(timestamp);
+    }
 
     local
         .run_until(async move {
@@ -235,10 +239,22 @@ async fn send<S: Store + 'static>(
                 }
             });
 
-            manager
-                .send_message(*uuid, message, timestamp)
-                .await
-                .unwrap();
+            match recipient {
+                Recipient::Contact(uuid) => {
+                    info!("sending message to contact");
+                    manager
+                        .send_message(uuid, content_body, timestamp)
+                        .await
+                        .expect("failed to send message");
+                }
+                Recipient::Group(master_key) => {
+                    info!("sending message to group");
+                    manager
+                        .send_message_to_group(&master_key, content_body, timestamp)
+                        .await
+                        .expect("failed to send message");
+                }
+            }
         })
         .await;
 
@@ -529,7 +545,13 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
         }
         Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store).await?;
-            send(&message, &uuid, &mut manager).await?;
+
+            let data_message = DataMessage {
+                body: Some(message),
+                ..Default::default()
+            };
+
+            send(&mut manager, Recipient::Contact(uuid), data_message).await?;
         }
         Cmd::SendToGroup {
             message,
@@ -537,14 +559,8 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
         } => {
             let mut manager = Manager::load_registered(config_store).await?;
 
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as u64;
-
             let data_message = DataMessage {
                 body: Some(message),
-                timestamp: Some(timestamp),
                 group_v2: Some(GroupContextV2 {
                     master_key: Some(master_key.to_vec()),
                     revision: Some(0),
@@ -553,9 +569,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
                 ..Default::default()
             };
 
-            manager
-                .send_message_to_group(&master_key, data_message, timestamp)
-                .await?;
+            send(&mut manager, Recipient::Group(master_key), data_message).await?;
         }
         Cmd::Unregister => unimplemented!(),
         Cmd::RetrieveProfile {
@@ -656,9 +670,9 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
                 println!("{contact:#?}");
             }
         }
-        Cmd::RequestSyncContacts => {
+        Cmd::RequestContactsSync => {
             let mut manager = Manager::load_registered(config_store).await?;
-            manager.request_contacts_sync().await?;
+            manager.sync_contacts().await?;
         }
         Cmd::ListMessages {
             group_master_key,

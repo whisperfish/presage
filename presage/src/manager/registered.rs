@@ -1,7 +1,8 @@
 use std::fmt;
 use std::ops::RangeBounds;
+use std::pin::pin;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
@@ -116,26 +117,32 @@ pub struct RegistrationData {
 }
 
 impl RegistrationData {
-    pub fn registration_id(&self) -> u32 {
-        self.registration_id
+    /// Account identity
+    pub fn aci(&self) -> Uuid {
+        self.service_ids.aci
     }
 
-    pub fn service_ids(&self) -> &ServiceIds {
-        &self.service_ids
+    /// Phone number identity
+    pub fn pni(&self) -> Uuid {
+        self.service_ids.pni
     }
 
+    /// Our own profile key
     pub fn profile_key(&self) -> ProfileKey {
         self.profile_key
     }
 
-    pub fn device_name(&self) -> Option<&String> {
-        self.device_name.as_ref()
+    /// The name of the device (if linked as secondary)
+    pub fn device_name(&self) -> Option<&str> {
+        self.device_name.as_deref()
     }
 
+    /// Account identity public key
     pub fn aci_public_key(&self) -> PublicKey {
         self.aci_public_key
     }
 
+    /// Account identity private key
     pub fn aci_private_key(&self) -> PrivateKey {
         self.aci_private_key
     }
@@ -283,7 +290,7 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: self.state.data.device_name().cloned(),
+                name: self.state.data.device_name().map(|d| d.to_string()),
                 registration_id: self.state.data.registration_id,
                 pni_registration_id,
                 signaling_key: None,
@@ -316,19 +323,40 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
-    /// which can be then received, decrypted and stored in the message receiving loop.
+    /// Requests contacts synchronization and waits until the primary device sends them
+    ///
+    /// Note: DO NOT call this function if you're already running a receiving loop
+    pub async fn sync_contacts(&mut self) -> Result<(), Error<S::Error>> {
+        debug!("synchronizing contacts");
+
+        let mut messages = pin!(
+            self.receive_messages_with_mode(ReceivingMode::WaitForContacts)
+                .await?
+        );
+
+        self.request_contacts().await?;
+
+        tokio::time::timeout(Duration::from_secs(60), async move {
+            while let Some(msg) = messages.next().await {
+                log::trace!("got message while waiting for contacts sync: {msg:?}");
+            }
+        })
+        .await?;
+
+        Ok(())
+    }
+
+    /// Request the primary device to encrypt & send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
-    /// processed when they're received using the `MessageReceiver`.
-    pub async fn request_contacts_sync(&mut self) -> Result<(), Error<S::Error>> {
+    /// processed when they're received after polling on the
+    pub async fn request_contacts(&mut self) -> Result<(), Error<S::Error>> {
         trace!("requesting contacts sync");
-        let var_name = sync_message::request::Type::Contacts as i32;
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
-                r#type: Some(var_name),
+                r#type: Some(sync_message::request::Type::Contacts.into()),
             }),
-            ..Default::default()
+            ..SyncMessage::with_padding()
         };
 
         let timestamp = SystemTime::now()
@@ -704,15 +732,17 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn send_message_to_group(
         &mut self,
         master_key_bytes: &[u8],
-        mut message: DataMessage,
+        message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error<S::Error>> {
+        let mut content_body = message.into();
+
         // Only update the expiration timer if it is not set.
-        match message {
-            DataMessage {
+        match content_body {
+            ContentBody::DataMessage(DataMessage {
                 expire_timer: ref mut timer,
                 ..
-            } if timer.is_none() => {
+            }) if timer.is_none() => {
                 // Set the expire timer to None for errors.
                 let store_expire_timer = self
                     .store
@@ -755,7 +785,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let online_only = false;
         let results = sender
-            .send_message_to_group(recipients, message.clone(), timestamp, online_only)
+            .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
 
         // return first error if any
@@ -769,7 +799,7 @@ impl<S: Store> Manager<S, Registered> {
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
             },
-            body: message.into(),
+            body: content_body,
         };
 
         save_message(&mut self.store, content)?;
