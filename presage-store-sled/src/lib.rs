@@ -428,14 +428,9 @@ impl ContentsStore for SledStore {
         Ok(())
     }
 
-    fn save_contacts(
-        &mut self,
-        contacts: impl Iterator<Item = Contact>,
-    ) -> Result<(), SledStoreError> {
-        for contact in contacts {
-            self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
-        }
-        debug!("saved contacts");
+    fn save_contact(&mut self, contact: &Contact) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
+        debug!("saved contact");
         Ok(())
     }
 
@@ -447,7 +442,7 @@ impl ContentsStore for SledStore {
         })
     }
 
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, SledStoreError> {
+    fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, SledStoreError> {
         self.get(SLED_TREE_CONTACTS, id)
     }
 
