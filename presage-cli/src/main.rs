@@ -78,11 +78,6 @@ enum Cmd {
         #[clap(long, help = "Force to register again if already registered")]
         force: bool,
     },
-    #[clap(about = "Unregister from Signal")]
-    Unregister,
-    #[clap(
-        about = "Generate a QR code to scan with Signal for iOS or Android to link this client as secondary device"
-    )]
     LinkDevice {
         /// Possible values: staging, production
         #[clap(long, short = 's', default_value = "production")]
@@ -106,16 +101,6 @@ enum Cmd {
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
     },
-    #[clap(about = "Set a name, status and avatar")]
-    UpdateProfile,
-    #[clap(about = "Check if a user is registered on Signal")]
-    GetUserStatus,
-    #[clap(about = "Block contacts or groups")]
-    Block,
-    #[clap(about = "Unblock contacts or groups")]
-    Unblock,
-    #[clap(about = "Update the details of a contact")]
-    UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive {
         #[clap(long = "notifications", short = 'n')]
@@ -420,15 +405,15 @@ fn print_message<S: Store>(
         let ts = content.timestamp();
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
-                let contact = format_contact(*sender);
+                let contact = format_contact(sender);
                 (format!("From {contact} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Contact(recipient), body) => {
-                let contact = format_contact(*recipient);
+                let contact = format_contact(recipient);
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = format_contact(content.metadata.sender.uuid);
+                let sender = format_contact(&content.metadata.sender.uuid);
                 let group = format_group(*key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
@@ -571,7 +556,6 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
 
             send(&mut manager, Recipient::Group(master_key), data_message).await?;
         }
-        Cmd::Unregister => unimplemented!(),
         Cmd::RetrieveProfile {
             uuid,
             mut profile_key,
@@ -599,11 +583,6 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
             };
             println!("{profile:#?}");
         }
-        Cmd::UpdateProfile => unimplemented!(),
-        Cmd::GetUserStatus => unimplemented!(),
-        Cmd::Block => unimplemented!(),
-        Cmd::Unblock => unimplemented!(),
-        Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store).await?;
             for group in manager.store().groups()? {
@@ -648,7 +627,7 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
         }
         Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store).await?;
-            match manager.store().contact_by_id(*uuid)? {
+            match manager.store().contact_by_id(uuid)? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
             }
