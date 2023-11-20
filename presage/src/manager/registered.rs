@@ -1028,86 +1028,96 @@ async fn save_message<S: Store>(
     // only save DataMessage and SynchronizeMessage (sent)
     let message = match message.body {
         ContentBody::NullMessage(_) => Some(message),
-        ContentBody::DataMessage(ref data_message)
+        ContentBody::DataMessage(
+            ref data_message @ DataMessage {
+                ref profile_key, ..
+            },
+        )
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent:
                 Some(sync_message::Sent {
-                    message: Some(ref data_message),
+                    message:
+                        Some(
+                            ref data_message @ DataMessage {
+                                ref profile_key, ..
+                            },
+                        ),
                     ..
                 }),
             ..
-        }) => match data_message {
-            DataMessage {
-                profile_key: Some(profile_key_bytes),
-                delete:
-                    Some(Delete {
-                        target_sent_timestamp: Some(ts),
-                    }),
-                ..
-            } => {
-                // update recipient profile key
-                if let Ok(profile_key_bytes) = profile_key_bytes.clone().try_into() {
-                    let sender_uuid = message.metadata.sender.uuid;
-                    let profile_key = ProfileKey::create(profile_key_bytes);
-                    debug!("inserting profile key for {sender_uuid}");
+        }) => {
+            // update recipient profile key if changed
+            if let Some(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
+                let sender_uuid = message.metadata.sender.uuid;
+                let profile_key = ProfileKey::create(profile_key_bytes);
+                debug!("inserting profile key for {sender_uuid}");
+                store.upsert_profile_key(&sender_uuid, profile_key)?;
 
-                    // insert a new contact with the profile information if we don't have
-                    // a contact for this recipient already.
-                    if store.contact_by_id(&sender_uuid)?.is_none()
-                        && !store
-                            .profile_key(&sender_uuid)?
-                            .is_some_and(|p| p.bytes == profile_key.bytes)
-                    {
-                        let encrypted_profile = push_service
-                            .retrieve_profile_by_id(sender_uuid.into(), Some(profile_key))
-                            .await?;
-                        let profile_cipher = ProfileCipher::from(profile_key);
-                        let decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
+                // insert a new contact with the profile information if we don't have
+                // a contact for this recipient already.
+                if store.contact_by_id(&sender_uuid)?.is_none()
+                    && !store
+                        .profile_key(&sender_uuid)?
+                        .is_some_and(|p| p.bytes == profile_key.bytes)
+                {
+                    let encrypted_profile = push_service
+                        .retrieve_profile_by_id(sender_uuid.into(), Some(profile_key))
+                        .await?;
+                    let profile_cipher = ProfileCipher::from(profile_key);
+                    let decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
 
-                        let contact = Contact {
-                            uuid: sender_uuid,
-                            phone_number: None,
-                            name: decrypted_profile
-                                .name
-                                // FIXME: this assumes [firstname] [lastname]
-                                .map(|pn| {
-                                    if let Some(family_name) = pn.family_name {
-                                        format!("{} {}", pn.given_name, family_name)
-                                    } else {
-                                        pn.given_name
-                                    }
-                                })
-                                .unwrap_or_default(),
-                            profile_key: profile_key.bytes.to_vec(),
-                            color: None,
-                            blocked: false,
-                            expire_timer: 0,
-                            inbox_position: 0,
-                            archived: false,
-                            avatar: None,
-                            verified: Verified::default(),
-                        };
+                    let contact = Contact {
+                        uuid: sender_uuid,
+                        phone_number: None,
+                        name: decrypted_profile
+                            .name
+                            // FIXME: this assumes [firstname] [lastname]
+                            .map(|pn| {
+                                if let Some(family_name) = pn.family_name {
+                                    format!("{} {}", pn.given_name, family_name)
+                                } else {
+                                    pn.given_name
+                                }
+                            })
+                            .unwrap_or_default(),
+                        profile_key: profile_key.bytes.to_vec(),
+                        color: None,
+                        blocked: false,
+                        expire_timer: 0,
+                        inbox_position: 0,
+                        archived: false,
+                        avatar: None,
+                        verified: Verified::default(),
+                    };
 
-                        info!("saved contact after seeing {sender_uuid} for the first time");
-                        store.save_contact(&contact)?;
-                    }
-                    store.upsert_profile_key(&sender_uuid, profile_key)?;
-                }
-
-                // replace an existing message by an empty NullMessage
-                if let Some(mut existing_msg) = store.message(&thread, *ts)? {
-                    existing_msg.metadata.sender.uuid = Uuid::nil();
-                    existing_msg.body = NullMessage::default().into();
-                    store.save_message(&thread, existing_msg)?;
-                    debug!("message in thread {thread} @ {ts} deleted");
-                    None
-                } else {
-                    warn!("could not find message to delete in thread {thread} @ {ts}");
-                    None
+                    info!("saved contact after seeing {sender_uuid} for the first time");
+                    store.save_contact(&contact)?;
                 }
             }
-            _ => Some(message),
-        },
+
+            match data_message {
+                DataMessage {
+                    delete:
+                        Some(Delete {
+                            target_sent_timestamp: Some(ts),
+                        }),
+                    ..
+                } => {
+                    // replace an existing message by an empty NullMessage
+                    if let Some(mut existing_msg) = store.message(&thread, *ts)? {
+                        existing_msg.metadata.sender.uuid = Uuid::nil();
+                        existing_msg.body = NullMessage::default().into();
+                        store.save_message(&thread, existing_msg)?;
+                        debug!("message in thread {thread} @ {ts} deleted");
+                        None
+                    } else {
+                        warn!("could not find message to delete in thread {thread} @ {ts}");
+                        None
+                    }
+                }
+                _ => Some(message),
+            }
+        }
         ContentBody::EditMessage(EditMessage {
             target_sent_timestamp: Some(ts),
             data_message: Some(data_message),
@@ -1140,8 +1150,8 @@ async fn save_message<S: Store>(
             call_event: Some(_),
             ..
         }) => Some(message),
-        ContentBody::SynchronizeMessage(s) => {
-            debug!("skipping saving sync message without interesting fields: {s:?}");
+        ContentBody::SynchronizeMessage(_) => {
+            debug!("skipping saving sync message without interesting fields");
             None
         }
         ContentBody::ReceiptMessage(_) => {
