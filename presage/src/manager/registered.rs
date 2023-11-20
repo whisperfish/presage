@@ -1051,12 +1051,13 @@ async fn save_message<S: Store>(
                 let sender_uuid = message.metadata.sender.uuid;
                 let profile_key = ProfileKey::create(profile_key_bytes);
                 debug!("inserting profile key for {sender_uuid}");
-                store.upsert_profile_key(&sender_uuid, profile_key)?;
 
-                // insert a new contact with the profile information if we don't have
-                // a contact for this recipient already.
+                // Either:
+                // - insert a new contact with the profile information
+                // - update the contact if the profile key has changed
+                // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
                 if store.contact_by_id(&sender_uuid)?.is_none()
-                    && !store
+                    || !store
                         .profile_key(&sender_uuid)?
                         .is_some_and(|p| p.bytes == profile_key.bytes)
                 {
@@ -1093,6 +1094,8 @@ async fn save_message<S: Store>(
                     info!("saved contact after seeing {sender_uuid} for the first time");
                     store.save_contact(&contact)?;
                 }
+
+                store.upsert_profile_key(&sender_uuid, profile_key)?;
             }
 
             match data_message {
