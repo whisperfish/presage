@@ -392,9 +392,6 @@
 <a href="#392" id="392">392</a>
 <a href="#393" id="393">393</a>
 <a href="#394" id="394">394</a>
-<a href="#395" id="395">395</a>
-<a href="#396" id="396">396</a>
-<a href="#397" id="397">397</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, ops::RangeBounds, time::SystemTime};
@@ -559,7 +556,7 @@
     /// or [Group::disappearing_messages_timer].
     </span><span class="kw">fn </span>expire_timer(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;u32&gt;, <span class="self">Self</span>::ContentsStoreError&gt; {
         <span class="kw">match </span>thread {
-            Thread::Contact(uuid) =&gt; <span class="prelude-val">Ok</span>(<span class="self">self</span>.contact_by_id(<span class="kw-2">*</span>uuid)<span class="question-mark">?</span>.map(|c| c.expire_timer)),
+            Thread::Contact(uuid) =&gt; <span class="prelude-val">Ok</span>(<span class="self">self</span>.contact_by_id(uuid)<span class="question-mark">?</span>.map(|c| c.expire_timer)),
             Thread::Group(key) =&gt; <span class="prelude-val">Ok</span>(<span class="self">self
                 </span>.group(<span class="kw-2">*</span>key)<span class="question-mark">?
                 </span>.and_then(|g| g.disappearing_messages_timer)
@@ -572,17 +569,14 @@
     </span><span class="doccomment">/// Clear all saved synchronized contact data
     </span><span class="kw">fn </span>clear_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::ContentsStoreError&gt;;
 
-    <span class="doccomment">/// Replace all contact data
-    </span><span class="kw">fn </span>save_contacts(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        contacts: <span class="kw">impl </span>Iterator&lt;Item = Contact&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::ContentsStoreError&gt;;
+    <span class="doccomment">/// Save a contact
+    </span><span class="kw">fn </span>save_contact(<span class="kw-2">&amp;mut </span><span class="self">self</span>, contacts: <span class="kw-2">&amp;</span>Contact) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::ContentsStoreError&gt;;
 
     <span class="doccomment">/// Get an iterator on all stored (synchronized) contacts
     </span><span class="kw">fn </span>contacts(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ContactsIter, <span class="self">Self</span>::ContentsStoreError&gt;;
 
     <span class="doccomment">/// Get contact data for a single user by its [Uuid].
-    </span><span class="kw">fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, <span class="self">Self</span>::ContentsStoreError&gt;;
+    </span><span class="kw">fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, <span class="self">Self</span>::ContentsStoreError&gt;;
 
     <span class="doccomment">/// Delete all cached group data
     </span><span class="kw">fn </span>clear_groups(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::ContentsStoreError&gt;;
