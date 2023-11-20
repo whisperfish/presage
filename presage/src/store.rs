@@ -162,7 +162,7 @@ pub trait ContentsStore {
     /// or [Group::disappearing_messages_timer].
     fn expire_timer(&self, thread: &Thread) -> Result<Option<u32>, Self::ContentsStoreError> {
         match thread {
-            Thread::Contact(uuid) => Ok(self.contact_by_id(*uuid)?.map(|c| c.expire_timer)),
+            Thread::Contact(uuid) => Ok(self.contact_by_id(uuid)?.map(|c| c.expire_timer)),
             Thread::Group(key) => Ok(self
                 .group(*key)?
                 .and_then(|g| g.disappearing_messages_timer)
@@ -175,17 +175,14 @@ pub trait ContentsStore {
     /// Clear all saved synchronized contact data
     fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError>;
 
-    /// Replace all contact data
-    fn save_contacts(
-        &mut self,
-        contacts: impl Iterator<Item = Contact>,
-    ) -> Result<(), Self::ContentsStoreError>;
+    /// Save a contact
+    fn save_contact(&mut self, contacts: &Contact) -> Result<(), Self::ContentsStoreError>;
 
     /// Get an iterator on all stored (synchronized) contacts
     fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError>;
 
     /// Get contact data for a single user by its [Uuid].
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Self::ContentsStoreError>;
+    fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Self::ContentsStoreError>;
 
     /// Delete all cached group data
     fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError>;
