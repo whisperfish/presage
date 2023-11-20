@@ -22,6 +22,7 @@ use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
+use presage::manager::ReceivingMode;
 use presage::proto::EditMessage;
 use presage::proto::SyncMessage;
 use presage::store::ContentExt;
@@ -449,7 +450,7 @@ async fn receive<S: Store>(
     );
 
     let messages = manager
-        .receive_messages()
+        .receive_messages(ReceivingMode::Forever)
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);

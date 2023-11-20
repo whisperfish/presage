@@ -331,7 +331,7 @@ impl<S: Store> Manager<S, Registered> {
         debug!("synchronizing contacts");
 
         let mut messages = pin!(
-            self.receive_messages_with_mode(ReceivingMode::WaitForContacts)
+            self.receive_messages(ReceivingMode::WaitForContacts)
                 .await?
         );
 
@@ -470,14 +470,12 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Starts receiving and storing messages.
     ///
+    /// As a client, it is heavily recommended to run this once in `ReceivingMode::InitialSync` once
+    /// before enabling the possiblity of sending messages. That way, all possible updates (sessions, profile keys, sender keys)
+    /// are processed _before_ trying to encrypt and send messages which might fail otherwise.
+    ///
     /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
-        &mut self,
-    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        self.receive_messages_stream(ReceivingMode::Forever).await
-    }
-
-    pub async fn receive_messages_with_mode(
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
