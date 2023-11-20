@@ -1183,8 +1183,6 @@
 <a href="#1183" id="1183">1183</a>
 <a href="#1184" id="1184">1184</a>
 <a href="#1185" id="1185">1185</a>
-<a href="#1186" id="1186">1186</a>
-<a href="#1187" id="1187">1187</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1518,7 +1516,7 @@
         <span class="macro">debug!</span>(<span class="string">&quot;synchronizing contacts&quot;</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>messages = <span class="macro">pin!</span>(
-            <span class="self">self</span>.receive_messages_with_mode(ReceivingMode::WaitForContacts)
+            <span class="self">self</span>.receive_messages(ReceivingMode::WaitForContacts)
                 .<span class="kw">await</span><span class="question-mark">?
         </span>);
 
@@ -1657,14 +1655,12 @@
 
     <span class="doccomment">/// Starts receiving and storing messages.
     ///
+    /// As a client, it is heavily recommended to run this once in `ReceivingMode::InitialSync` once
+    /// before enabling the possiblity of sending messages. That way, all possible updates (sessions, profile keys, sender keys)
+    /// are processed _before_ trying to encrypt and send messages which might fail otherwise.
+    ///
     /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     </span><span class="kw">pub async fn </span>receive_messages(
-        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="self">self</span>.receive_messages_stream(ReceivingMode::Forever).<span class="kw">await
-    </span>}
-
-    <span class="kw">pub async fn </span>receive_messages_with_mode(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         mode: ReceivingMode,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;S::Error&gt;&gt; {
