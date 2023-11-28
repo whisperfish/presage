@@ -604,6 +604,7 @@ impl<S: Store> Manager<S, Registered> {
                                     &mut state.store,
                                     &mut state.push_service,
                                     content.clone(),
+                                    None,
                                 )
                                 .await
                                 {
@@ -708,7 +709,13 @@ impl<S: Store> Manager<S, Registered> {
         };
 
         let mut push_service = self.identified_push_service();
-        save_message(&mut self.store, &mut push_service, content).await?;
+        save_message(
+            &mut self.store,
+            &mut push_service,
+            content,
+            Some(Thread::Contact(recipient.uuid)),
+        )
+        .await?;
 
         Ok(())
     }
@@ -740,6 +747,9 @@ impl<S: Store> Manager<S, Registered> {
         timestamp: u64,
     ) -> Result<(), Error<S::Error>> {
         let mut content_body = message.into();
+        let master_key_bytes = master_key_bytes
+            .try_into()
+            .expect("Master key bytes to be of size 32.");
 
         // Only update the expiration timer if it is not set.
         match content_body {
@@ -750,11 +760,7 @@ impl<S: Store> Manager<S, Registered> {
                 // Set the expire timer to None for errors.
                 let store_expire_timer = self
                     .store
-                    .expire_timer(&Thread::Group(
-                        master_key_bytes
-                            .try_into()
-                            .expect("Master key bytes to be of size 32."),
-                    ))
+                    .expire_timer(&Thread::Group(master_key_bytes))
                     .unwrap_or_default();
 
                 *timer = store_expire_timer;
@@ -765,7 +771,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut groups_manager = self.groups_manager()?;
         let Some(group) =
-            upsert_group(&self.store, &mut groups_manager, master_key_bytes, &0).await?
+            upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
         else {
             return Err(Error::UnknownGroup);
         };
@@ -807,7 +813,13 @@ impl<S: Store> Manager<S, Registered> {
         };
 
         let mut push_service = self.identified_push_service();
-        save_message(&mut self.store, &mut push_service, content).await?;
+        save_message(
+            &mut self.store,
+            &mut push_service,
+            content,
+            Some(Thread::Group(master_key_bytes)),
+        )
+        .await?;
 
         Ok(())
     }
@@ -1015,13 +1027,17 @@ async fn upsert_group<S: Store>(
     Ok(store.group(master_key_bytes.try_into()?)?)
 }
 
+/// Save a message into the store.
+/// Note that `override_thread` can be used to specify the thread the message will be stored in.
+/// This is required when storing outgoing messages, as in this case the appropriate storage place cannot be derived from the message itself.
 async fn save_message<S: Store>(
     store: &mut S,
     push_service: &mut HyperPushService,
     message: Content,
+    override_thread: Option<Thread>,
 ) -> Result<(), Error<S::Error>> {
     // derive the thread from the message type
-    let thread = Thread::try_from(&message)?;
+    let thread = override_thread.unwrap_or(Thread::try_from(&message)?);
 
     // only save DataMessage and SynchronizeMessage (sent)
     let message = match message.body {

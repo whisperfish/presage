@@ -115,7 +115,7 @@ pub trait ContentsStore {
                 timestamp: SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap_or_default()
-                    .as_secs(),
+                    .as_millis() as u64,
                 needs_receipt: false,
                 unidentified_sender: false,
             },
