@@ -4,7 +4,7 @@ use std::{fmt, ops::RangeBounds, time::SystemTime};
 
 use libsignal_service::{
     content::{ContentBody, Metadata},
-    groups_v2::Group,
+    groups_v2::{Group, Timer},
     models::Contact,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
@@ -167,6 +167,34 @@ pub trait ContentsStore {
                 .group(*key)?
                 .and_then(|g| g.disappearing_messages_timer)
                 .map(|t| t.duration)),
+        }
+    }
+
+    /// Update the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
+    /// or [Group::disappearing_messages_timer].
+    fn update_expire_timer(
+        &mut self,
+        thread: &Thread,
+        timer: u32,
+    ) -> Result<(), Self::ContentsStoreError> {
+        log::trace!("update expire timer of {:?} to {}", thread, timer);
+        match thread {
+            Thread::Contact(uuid) => {
+                let contact = self.contact_by_id(uuid)?;
+                if let Some(mut contact) = contact {
+                    contact.expire_timer = timer;
+                    self.save_contact(&contact)?;
+                }
+                Ok(())
+            }
+            Thread::Group(key) => {
+                let group = self.group(*key)?;
+                if let Some(mut g) = group {
+                    g.disappearing_messages_timer = Some(Timer { duration: timer });
+                    self.save_group(*key, &g)?;
+                }
+                Ok(())
+            }
         }
     }
 
