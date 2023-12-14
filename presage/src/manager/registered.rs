@@ -1098,7 +1098,7 @@ async fn save_message<S: Store>(
                         profile_key: profile_key.bytes.to_vec(),
                         color: None,
                         blocked: false,
-                        expire_timer: 0,
+                        expire_timer: data_message.expire_timer.unwrap_or_default(),
                         inbox_position: 0,
                         archived: false,
                         avatar: None,
@@ -1111,6 +1111,8 @@ async fn save_message<S: Store>(
 
                 store.upsert_profile_key(&sender_uuid, profile_key)?;
             }
+
+            store.update_expire_timer(&thread, data_message.expire_timer.unwrap_or_default())?;
 
             match data_message {
                 DataMessage {
