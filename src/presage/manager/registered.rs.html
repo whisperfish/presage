@@ -1201,6 +1201,9 @@
 <a href="#1201" id="1201">1201</a>
 <a href="#1202" id="1202">1202</a>
 <a href="#1203" id="1203">1203</a>
+<a href="#1204" id="1204">1204</a>
+<a href="#1205" id="1205">1205</a>
+<a href="#1206" id="1206">1206</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1416,11 +1419,15 @@
         <span class="kw">match </span>identified_ws.clone() {
             <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws),
             <span class="prelude-val">None </span>=&gt; {
-                <span class="kw">let </span>keep_alive = <span class="bool-val">true</span>;
                 <span class="kw">let </span>headers = <span class="kw-2">&amp;</span>[(<span class="string">&quot;X-Signal-Receive-Stories&quot;</span>, <span class="string">&quot;false&quot;</span>)];
                 <span class="kw">let </span>ws = <span class="self">self
                     </span>.identified_push_service()
-                    .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, headers, <span class="self">self</span>.credentials(), keep_alive)
+                    .ws(
+                        <span class="string">&quot;/v1/websocket/&quot;</span>,
+                        <span class="string">&quot;/v1/keepalive&quot;</span>,
+                        headers,
+                        <span class="self">self</span>.credentials(),
+                    )
                     .<span class="kw">await</span><span class="question-mark">?</span>;
                 identified_ws.replace(ws.clone());
                 <span class="macro">debug!</span>(<span class="string">&quot;initialized identified websocket&quot;</span>);
@@ -1435,10 +1442,9 @@
         <span class="kw">match </span>unidentified_ws.clone() {
             <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws),
             <span class="prelude-val">None </span>=&gt; {
-                <span class="kw">let </span>keep_alive = <span class="bool-val">true</span>;
                 <span class="kw">let </span>ws = <span class="self">self
                     </span>.unidentified_push_service()
-                    .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>, keep_alive)
+                    .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="string">&quot;/v1/keepalive&quot;</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>)
                     .<span class="kw">await</span><span class="question-mark">?</span>;
                 unidentified_ws.replace(ws.clone());
                 <span class="macro">debug!</span>(<span class="string">&quot;initialized unidentified websocket&quot;</span>);

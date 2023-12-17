@@ -402,24 +402,6 @@
 <a href="#402" id="402">402</a>
 <a href="#403" id="403">403</a>
 <a href="#404" id="404">404</a>
-<a href="#405" id="405">405</a>
-<a href="#406" id="406">406</a>
-<a href="#407" id="407">407</a>
-<a href="#408" id="408">408</a>
-<a href="#409" id="409">409</a>
-<a href="#410" id="410">410</a>
-<a href="#411" id="411">411</a>
-<a href="#412" id="412">412</a>
-<a href="#413" id="413">413</a>
-<a href="#414" id="414">414</a>
-<a href="#415" id="415">415</a>
-<a href="#416" id="416">416</a>
-<a href="#417" id="417">417</a>
-<a href="#418" id="418">418</a>
-<a href="#419" id="419">419</a>
-<a href="#420" id="420">420</a>
-<a href="#421" id="421">421</a>
-<a href="#422" id="422">422</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, ops::RangeBounds, time::SystemTime};
@@ -428,6 +410,7 @@
     content::{ContentBody, Metadata},
     groups_v2::{Group, Timer},
     models::Contact,
+    pre_keys::PreKeysStore,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{<span class="self">self</span>, Sent},
@@ -464,25 +447,6 @@
 
     <span class="doccomment">/// Clear registration data (including keys), but keep received messages, groups and contacts.
     </span><span class="kw">fn </span>clear_registration(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::StateStoreError&gt;;
-}
-
-<span class="doccomment">/// Stores the keys published ahead of time, pre-keys
-///
-/// &lt;https://signal.org/docs/specifications/x3dh/&gt;
-</span><span class="kw">pub trait </span>PreKeyStoreExt {
-    <span class="kw">type </span>PreKeyStoreExtError: StoreError;
-
-    <span class="kw">fn </span>pre_keys_offset_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, <span class="self">Self</span>::PreKeyStoreExtError&gt;;
-
-    <span class="kw">fn </span>set_pre_keys_offset_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::PreKeyStoreExtError&gt;;
-
-    <span class="kw">fn </span>next_signed_pre_key_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, <span class="self">Self</span>::PreKeyStoreExtError&gt;;
-
-    <span class="kw">fn </span>next_pq_pre_key_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;u32, <span class="self">Self</span>::PreKeyStoreExtError&gt;;
-
-    <span class="kw">fn </span>set_next_signed_pre_key_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::PreKeyStoreExtError&gt;;
-
-    <span class="kw">fn </span>set_next_pq_pre_key_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: u32) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::PreKeyStoreExtError&gt;;
 }
 
 <span class="doccomment">/// Stores messages, contacts, groups and profiles
@@ -684,7 +648,7 @@
 <span class="doccomment">/// The manager store trait combining all other stores into a single one
 </span><span class="kw">pub trait </span>Store:
     StateStore&lt;StateStoreError = <span class="self">Self</span>::Error&gt;
-    + PreKeyStoreExt&lt;PreKeyStoreExtError = <span class="self">Self</span>::Error&gt;
+    + PreKeysStore
     + ContentsStore&lt;ContentsStoreError = <span class="self">Self</span>::Error&gt;
     + ProtocolStore
     + SenderKeyStore

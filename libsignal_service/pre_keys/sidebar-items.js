@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["KyberPreKeyEntity","PreKeyEntity","PreKeyState","SignedPreKey","SignedPreKeyEntity"]};
+window.SIDEBAR_ITEMS = {"struct":["KyberPreKeyEntity","PreKeyEntity","PreKeyState","SignedPreKey","SignedPreKeyEntity"],"trait":["PreKeysStore"]};

@@ -150,18 +150,10 @@
 <a href="#150" id="150">150</a>
 <a href="#151" id="151">151</a>
 <a href="#152" id="152">152</a>
-<a href="#153" id="153">153</a>
-<a href="#154" id="154">154</a>
-<a href="#155" id="155">155</a>
-<a href="#156" id="156">156</a>
-<a href="#157" id="157">157</a>
-<a href="#158" id="158">158</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>futures::channel::{mpsc, oneshot};
 <span class="kw">use </span>futures::{future, StreamExt};
 <span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
-<span class="kw">use </span>libsignal_service::provisioning::{LinkingManager, SecondaryDeviceProvisioning};
-<span class="kw">use </span>libsignal_service::push_service::DeviceId;
-<span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
+<span class="kw">use </span>libsignal_service::provisioning::{link_device, SecondaryDeviceProvisioning};
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
 <span class="kw">use </span>log::info;
 <span class="kw">use </span>rand::distributions::{Alphanumeric, DistString};
@@ -235,13 +227,21 @@
         <span class="kw">let </span>push_service =
             HyperPushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
 
-        <span class="kw">let </span><span class="kw-2">mut </span>linking_manager: LinkingManager&lt;HyperPushService&gt; =
-            LinkingManager::new(push_service, password.clone());
-
         <span class="kw">let </span>(tx, <span class="kw-2">mut </span>rx) = mpsc::channel(<span class="number">1</span>);
 
-        <span class="kw">let </span>(wait_for_qrcode_scan, registration) = future::join(
-            linking_manager.provision_secondary_device(<span class="kw-2">&amp;mut </span>rng, signaling_key, tx),
+        <span class="comment">// XXX: this is obviously wrong
+        </span><span class="kw">let </span><span class="kw-2">mut </span>pni_store = store.clone();
+
+        <span class="kw">let </span>(wait_for_qrcode_scan, registration_data) = future::join(
+            link_device(
+                <span class="kw-2">&amp;mut </span>store,
+                <span class="kw-2">&amp;mut </span>pni_store,
+                <span class="kw-2">&amp;mut </span>rng,
+                push_service,
+                <span class="kw-2">&amp;</span>password,
+                <span class="kw-2">&amp;</span>device_name,
+                tx,
+            ),
             <span class="kw">async move </span>{
                 <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::Url(url)) = rx.next().<span class="kw">await </span>{
                     <span class="macro">info!</span>(<span class="string">&quot;generating qrcode from provisioning link: {}&quot;</span>, <span class="kw-2">&amp;</span>url);
@@ -251,39 +251,10 @@
                 } <span class="kw">else </span>{
                     <span class="kw">return </span><span class="prelude-val">Err</span>(Error::LinkError);
                 }
-
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::NewDeviceRegistration {
-                    phone_number,
-                    device_id: DeviceId { device_id },
-                    registration_id,
-                    pni_registration_id,
-                    profile_key,
-                    service_ids,
-                    aci_private_key,
-                    aci_public_key,
-                    pni_private_key,
-                    pni_public_key,
-                }) = rx.next().<span class="kw">await
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::NewDeviceRegistration(data)) =
+                    rx.next().<span class="kw">await
                 </span>{
-                    <span class="macro">info!</span>(<span class="string">&quot;successfully registered device {}&quot;</span>, <span class="kw-2">&amp;</span>service_ids);
-                    <span class="prelude-val">Ok</span>(Registered::with_data(RegistrationData {
-                        signal_servers,
-                        device_name: <span class="prelude-val">Some</span>(device_name),
-                        phone_number,
-                        service_ids,
-                        signaling_key,
-                        password,
-                        device_id: <span class="prelude-val">Some</span>(device_id),
-                        registration_id,
-                        pni_registration_id: <span class="prelude-val">Some</span>(pni_registration_id),
-                        aci_public_key,
-                        aci_private_key,
-                        pni_public_key: <span class="prelude-val">Some</span>(pni_public_key),
-                        pni_private_key: <span class="prelude-val">Some</span>(pni_private_key),
-                        profile_key: ProfileKey::create(
-                            profile_key.try_into().expect(<span class="string">&quot;32 bytes for profile key&quot;</span>),
-                        ),
-                    }))
+                    <span class="prelude-val">Ok</span>(data)
                 } <span class="kw">else </span>{
                     <span class="prelude-val">Err</span>(Error::NoProvisioningMessageReceived)
                 }
@@ -293,24 +264,41 @@
 
         wait_for_qrcode_scan<span class="question-mark">?</span>;
 
-        <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
-            rng,
-            store,
-            state: registration<span class="question-mark">?</span>,
-        };
+        <span class="kw">match </span>registration_data {
+            <span class="prelude-val">Ok</span>(d) =&gt; {
+                <span class="kw">let </span>registration_data = RegistrationData {
+                    signal_servers,
+                    device_name: <span class="prelude-val">Some</span>(device_name),
+                    phone_number: d.phone_number,
+                    service_ids: d.service_ids,
+                    password,
+                    signaling_key,
+                    device_id: <span class="prelude-val">Some</span>(d.device_id.into()),
+                    registration_id: d.registration_id,
+                    pni_registration_id: <span class="prelude-val">Some</span>(d.pni_registration_id),
+                    aci_public_key: d.aci_public_key,
+                    aci_private_key: d.aci_private_key,
+                    pni_public_key: <span class="prelude-val">Some</span>(d.pni_public_key),
+                    pni_private_key: <span class="prelude-val">Some</span>(d.pni_private_key),
+                    profile_key: d.profile_key,
+                };
 
-        manager.store.save_registration_data(<span class="kw-2">&amp;</span>manager.state.data)<span class="question-mark">?</span>;
+                store.save_registration_data(<span class="kw-2">&amp;</span>registration_data)<span class="question-mark">?</span>;
+                <span class="macro">info!</span>(
+                    <span class="string">&quot;successfully registered device {}&quot;</span>,
+                    <span class="kw-2">&amp;</span>registration_data.service_ids
+                );
 
-        <span class="kw">match </span>(
-            manager.register_pre_keys().<span class="kw">await</span>,
-            manager.set_account_attributes().<span class="kw">await</span>,
-        ) {
-            (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>) | (<span class="kw">_</span>, <span class="prelude-val">Err</span>(e)) =&gt; {
-                <span class="comment">// clear the entire store on any error, there&#39;s no possible recovery here
-                </span>manager.store.clear_registration()<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(Manager {
+                    rng,
+                    store,
+                    state: Registered::with_data(registration_data),
+                })
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                store.clear_registration()<span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(e)
             }
-            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(manager),
         }
     }
 }
