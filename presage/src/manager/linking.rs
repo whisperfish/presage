@@ -104,7 +104,7 @@ impl<S: Store> Manager<S, Linking> {
                 {
                     Ok(data)
                 } else {
-                    return Err(Error::NoProvisioningMessageReceived);
+                    Err(Error::NoProvisioningMessageReceived)
                 }
             },
         )
