@@ -1,7 +1,7 @@
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
-use libsignal_service::provisioning::{LinkingManager, SecondaryDeviceProvisioning};
+use libsignal_service::provisioning::{link_device, SecondaryDeviceProvisioning};
 use libsignal_service_hyper::push_service::HyperPushService;
 use log::info;
 use rand::distributions::{Alphanumeric, DistString};
@@ -75,19 +75,18 @@ impl<S: Store> Manager<S, Linking> {
         let push_service =
             HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
 
-        let mut linking_manager: LinkingManager<HyperPushService> =
-            LinkingManager::new(push_service.clone(), password.clone());
-
         let (tx, mut rx) = mpsc::channel(1);
 
         // XXX: this is obviously wrong
         let mut pni_store = store.clone();
 
         let (wait_for_qrcode_scan, registration_data) = future::join(
-            linking_manager.provision_secondary_device(
+            link_device(
                 &mut store,
                 &mut pni_store,
                 &mut rng,
+                push_service,
+                &password,
                 &device_name,
                 tx,
             ),
