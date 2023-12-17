@@ -213,11 +213,15 @@ impl<S: Store> Manager<S, Registered> {
         match identified_ws.clone() {
             Some(ws) => Ok(ws),
             None => {
-                let keep_alive = true;
                 let headers = &[("X-Signal-Receive-Stories", "false")];
                 let ws = self
                     .identified_push_service()
-                    .ws("/v1/websocket/", headers, self.credentials(), keep_alive)
+                    .ws(
+                        "/v1/websocket/",
+                        "/v1/keepalive",
+                        headers,
+                        self.credentials(),
+                    )
                     .await?;
                 identified_ws.replace(ws.clone());
                 debug!("initialized identified websocket");
@@ -232,10 +236,9 @@ impl<S: Store> Manager<S, Registered> {
         match unidentified_ws.clone() {
             Some(ws) => Ok(ws),
             None => {
-                let keep_alive = true;
                 let ws = self
                     .unidentified_push_service()
-                    .ws("/v1/websocket/", &[], None, keep_alive)
+                    .ws("/v1/websocket/", "/v1/keepalive", &[], None)
                     .await?;
                 unidentified_ws.replace(ws.clone());
                 debug!("initialized unidentified websocket");
