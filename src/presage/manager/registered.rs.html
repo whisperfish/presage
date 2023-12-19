@@ -1204,6 +1204,13 @@
 <a href="#1204" id="1204">1204</a>
 <a href="#1205" id="1205">1205</a>
 <a href="#1206" id="1206">1206</a>
+<a href="#1207" id="1207">1207</a>
+<a href="#1208" id="1208">1208</a>
+<a href="#1209" id="1209">1209</a>
+<a href="#1210" id="1210">1210</a>
+<a href="#1211" id="1211">1211</a>
+<a href="#1212" id="1212">1212</a>
+<a href="#1213" id="1213">1213</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1414,10 +1421,12 @@
     }
 
     <span class="doccomment">/// Returns the current identified websocket, or creates a new one
+    ///
+    /// A new one is created if the current websocket is closed, or if there is none yet.
     </span><span class="kw">async fn </span>identified_websocket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>identified_ws = <span class="self">self</span>.state.identified_websocket.lock().<span class="kw">await</span>;
-        <span class="kw">match </span>identified_ws.clone() {
-            <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws),
+        <span class="kw">match </span>identified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+            <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws.clone()),
             <span class="prelude-val">None </span>=&gt; {
                 <span class="kw">let </span>headers = <span class="kw-2">&amp;</span>[(<span class="string">&quot;X-Signal-Receive-Stories&quot;</span>, <span class="string">&quot;false&quot;</span>)];
                 <span class="kw">let </span>ws = <span class="self">self
@@ -1437,10 +1446,13 @@
         }
     }
 
-    <span class="kw">async fn </span>unidentified_websocket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
+    <span class="doccomment">/// Returns the current unidentified websocket, or creates a new one
+    ///
+    /// A new one is created if the current websocket is closed, or if there is none yet.
+    </span><span class="kw">async fn </span>unidentified_websocket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>unidentified_ws = <span class="self">self</span>.state.unidentified_websocket.lock().<span class="kw">await</span>;
-        <span class="kw">match </span>unidentified_ws.clone() {
-            <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws),
+        <span class="kw">match </span>unidentified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+            <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws.clone()),
             <span class="prelude-val">None </span>=&gt; {
                 <span class="kw">let </span>ws = <span class="self">self
                     </span>.unidentified_push_service()
@@ -1722,11 +1734,13 @@
             mode: ReceivingMode,
         }
 
+        <span class="kw">let </span>push_service = <span class="self">self</span>.identified_push_service();
+
         <span class="kw">let </span>init = StreamState {
             encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
-            message_receiver: MessageReceiver::new(<span class="self">self</span>.identified_push_service()),
+            message_receiver: MessageReceiver::new(push_service.clone()),
             service_cipher: <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
-            push_service: <span class="self">self</span>.identified_push_service(),
+            push_service,
             store: <span class="self">self</span>.store.clone(),
             groups_manager: <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>,
             mode,
