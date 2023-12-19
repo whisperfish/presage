@@ -407,6 +407,7 @@ impl StateStore for SledStore {
         db.drop_tree(SLED_TREE_SENDER_KEYS)?;
         db.drop_tree(SLED_TREE_SESSIONS)?;
         db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_KYBER_PRE_KEYS)?;
         db.drop_tree(SLED_TREE_STATE)?;
         db.drop_tree(SLED_TREE_PROFILES)?;
         db.drop_tree(SLED_TREE_PROFILE_KEYS)?;
