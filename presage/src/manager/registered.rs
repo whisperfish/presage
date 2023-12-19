@@ -208,10 +208,12 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Returns the current identified websocket, or creates a new one
+    ///
+    /// A new one is created if the current websocket is closed, or if there is none yet.
     async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
         let mut identified_ws = self.state.identified_websocket.lock().await;
-        match identified_ws.clone() {
-            Some(ws) => Ok(ws),
+        match identified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+            Some(ws) => Ok(ws.clone()),
             None => {
                 let headers = &[("X-Signal-Receive-Stories", "false")];
                 let ws = self
@@ -231,10 +233,13 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
+    /// Returns the current unidentified websocket, or creates a new one
+    ///
+    /// A new one is created if the current websocket is closed, or if there is none yet.
     async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
         let mut unidentified_ws = self.state.unidentified_websocket.lock().await;
-        match unidentified_ws.clone() {
-            Some(ws) => Ok(ws),
+        match unidentified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+            Some(ws) => Ok(ws.clone()),
             None => {
                 let ws = self
                     .unidentified_push_service()
@@ -516,11 +521,13 @@ impl<S: Store> Manager<S, Registered> {
             mode: ReceivingMode,
         }
 
+        let push_service = self.identified_push_service();
+
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
-            message_receiver: MessageReceiver::new(self.identified_push_service()),
+            message_receiver: MessageReceiver::new(push_service.clone()),
             service_cipher: self.new_service_cipher()?,
-            push_service: self.identified_push_service(),
+            push_service,
             store: self.store.clone(),
             groups_manager: self.groups_manager()?,
             mode,
