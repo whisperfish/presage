@@ -8,6 +8,7 @@ use crate::store::StoreError;
 
 /// The error type of Signal manager
 #[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 pub enum Error<S: std::error::Error> {
     #[error("captcha from https://signalcaptchas.org/registration/generate.html required")]
     CaptchaRequired,
@@ -65,6 +66,8 @@ pub enum Error<S: std::error::Error> {
     PushChallengeRequired,
     #[error("Not allowed to request verification code, reason unknown: {0:?}")]
     RequestingCodeForbidden(libsignal_service::push_service::RegistrationSessionMetadataResponse),
+    #[error("attachment sha256 checksum did not match")]
+    UnexpectedAttachmentChecksum,
     #[error("Unverified registration session (i.e. wrong verification code)")]
     UnverifiedRegistrationSession,
 }

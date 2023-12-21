@@ -41,6 +41,7 @@ use log::{debug, error, info, trace, warn};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use tokio::sync::Mutex;
 
 use crate::cache::CacheCell;
@@ -845,14 +846,23 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error<S::Error>> {
+        let expected_digest = attachment_pointer
+            .digest
+            .as_ref()
+            .ok_or_else(|| Error::UnexpectedAttachmentChecksum)?;
+
         let mut service = self.identified_push_service();
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
         // We need the whole file for the crypto to check out
         let mut ciphertext = Vec::new();
         let len = attachment_stream.read_to_end(&mut ciphertext).await?;
-
         trace!("downloaded encrypted attachment of {} bytes", len);
+
+        let digest = sha2::Sha256::digest(&ciphertext);
+        if &digest[..] != expected_digest {
+            return Err(Error::UnexpectedAttachmentChecksum);
+        }
 
         let key: [u8; 64] = attachment_pointer.key().try_into()?;
         decrypt_in_place(key, &mut ciphertext)?;
