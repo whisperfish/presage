@@ -74,6 +74,9 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::borrow::Cow;
 
 <span class="kw">use </span>libsignal_service::{
@@ -84,6 +87,7 @@
 
 <span class="doccomment">/// The error type of Signal manager
 </span><span class="attr">#[derive(thiserror::Error, Debug)]
+#[non_exhaustive]
 </span><span class="kw">pub enum </span>Error&lt;S: std::error::Error&gt; {
     <span class="attr">#[error(<span class="string">&quot;captcha from https://signalcaptchas.org/registration/generate.html required&quot;</span>)]
     </span>CaptchaRequired,
@@ -141,6 +145,8 @@
     </span>PushChallengeRequired,
     <span class="attr">#[error(<span class="string">&quot;Not allowed to request verification code, reason unknown: {0:?}&quot;</span>)]
     </span>RequestingCodeForbidden(libsignal_service::push_service::RegistrationSessionMetadataResponse),
+    <span class="attr">#[error(<span class="string">&quot;attachment sha256 checksum did not match&quot;</span>)]
+    </span>UnexpectedAttachmentChecksum,
     <span class="attr">#[error(<span class="string">&quot;Unverified registration session (i.e. wrong verification code)&quot;</span>)]
     </span>UnverifiedRegistrationSession,
 }
