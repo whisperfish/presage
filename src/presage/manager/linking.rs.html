@@ -150,6 +150,14 @@
 <a href="#150" id="150">150</a>
 <a href="#151" id="151">151</a>
 <a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>futures::channel::{mpsc, oneshot};
 <span class="kw">use </span>futures::{future, StreamExt};
 <span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
@@ -289,11 +297,19 @@
                     <span class="kw-2">&amp;</span>registration_data.service_ids
                 );
 
-                <span class="prelude-val">Ok</span>(Manager {
+                <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
                     rng,
-                    store,
+                    store: store.clone(),
                     state: Registered::with_data(registration_data),
-                })
+                };
+
+                <span class="comment">// Register pre-keys with the server. If this fails, this can lead to issues receiving, in that case clear the registration and propagate the error.
+                </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
+                    store.clear_registration()<span class="question-mark">?</span>;
+                    <span class="prelude-val">Err</span>(e)
+                } <span class="kw">else </span>{
+                    <span class="prelude-val">Ok</span>(manager)
+                }
             }
             <span class="prelude-val">Err</span>(e) =&gt; {
                 store.clear_registration()<span class="question-mark">?</span>;
