@@ -14,6 +14,7 @@ use presage::libsignal_service::{
     content::Content,
     groups_v2::Group,
     models::Contact,
+    pre_keys::PreKeysStore,
     prelude::{ProfileKey, Uuid},
     protocol::{
         Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
@@ -417,6 +418,7 @@ impl StateStore for SledStore {
         db.drop_tree(SLED_TREE_SENDER_KEYS)?;
         db.drop_tree(SLED_TREE_SESSIONS)?;
         db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_KYBER_PRE_KEYS)?;
         db.drop_tree(SLED_TREE_STATE)?;
         db.drop_tree(SLED_TREE_PROFILES)?;
         db.drop_tree(SLED_TREE_PROFILE_KEYS)?;
@@ -440,14 +442,9 @@ impl ContentsStore for SledStore {
         Ok(())
     }
 
-    fn save_contacts(
-        &mut self,
-        contacts: impl Iterator<Item = Contact>,
-    ) -> Result<(), SledStoreError> {
-        for contact in contacts {
-            self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
-        }
-        debug!("saved contacts");
+    fn save_contact(&mut self, contact: &Contact) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
+        debug!("saved contact");
         Ok(())
     }
 
@@ -465,7 +462,7 @@ impl ContentsStore for SledStore {
         })
     }
 
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, SledStoreError> {
+    fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, SledStoreError> {
         self.get(SLED_TREE_CONTACTS, id)
     }
 
@@ -653,39 +650,43 @@ impl ContentsStore for SledStore {
     }
 }
 
-impl PreKeyStoreExt for SledStore {
-    type PreKeyStoreExtError = SledStoreError;
-
-    fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
+impl PreKeysStore for SledStore {
+    fn pre_keys_offset_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
+            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)
+            .map_err(|_| SignalProtocolError::InvalidPreKeyId)?
             .unwrap_or(0))
     }
 
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
+    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+            .map_err(|_| SignalProtocolError::InvalidPreKeyId)?;
         Ok(())
     }
 
-    fn next_signed_pre_key_id(&self) -> Result<u32, SledStoreError> {
+    fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)
+            .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?
             .unwrap_or(0))
     }
 
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
+    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
+            .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?;
         Ok(())
     }
 
-    fn next_pq_pre_key_id(&self) -> Result<u32, SledStoreError> {
+    fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)?
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)
+            .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?
             .unwrap_or(0))
     }
 
-    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)?;
+    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)
+            .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?;
         Ok(())
     }
 }
@@ -1022,7 +1023,7 @@ impl IdentityKeyStore for SledStore {
                 "failed to load registration ID",
                 "no registration data".into(),
             ))?;
-        Ok(data.registration_id())
+        Ok(data.registration_id)
     }
 
     async fn save_identity(

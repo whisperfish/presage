@@ -1,9 +1,7 @@
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
-use libsignal_service::provisioning::{LinkingManager, SecondaryDeviceProvisioning};
-use libsignal_service::push_service::DeviceId;
-use libsignal_service::zkgroup::profiles::ProfileKey;
+use libsignal_service::provisioning::{link_device, SecondaryDeviceProvisioning};
 use libsignal_service_hyper::push_service::HyperPushService;
 use log::info;
 use rand::distributions::{Alphanumeric, DistString};
@@ -80,13 +78,21 @@ impl<S: Store> Manager<S, Linking> {
         let push_service =
             HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
 
-        let mut linking_manager: LinkingManager<HyperPushService> =
-            LinkingManager::new(push_service, password.clone());
-
         let (tx, mut rx) = mpsc::channel(1);
 
-        let (wait_for_qrcode_scan, registration) = future::join(
-            linking_manager.provision_secondary_device(&mut rng, signaling_key, tx),
+        // XXX: this is obviously wrong
+        let mut pni_store = store.clone();
+
+        let (wait_for_qrcode_scan, registration_data) = future::join(
+            link_device(
+                &mut store,
+                &mut pni_store,
+                &mut rng,
+                push_service,
+                &password,
+                &device_name,
+                tx,
+            ),
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
                     info!("generating qrcode from provisioning link: {}", &url);
@@ -96,39 +102,10 @@ impl<S: Store> Manager<S, Linking> {
                 } else {
                     return Err(Error::LinkError);
                 }
-
-                if let Some(SecondaryDeviceProvisioning::NewDeviceRegistration {
-                    phone_number,
-                    device_id: DeviceId { device_id },
-                    registration_id,
-                    pni_registration_id,
-                    profile_key,
-                    service_ids,
-                    aci_private_key,
-                    aci_public_key,
-                    pni_private_key,
-                    pni_public_key,
-                }) = rx.next().await
+                if let Some(SecondaryDeviceProvisioning::NewDeviceRegistration(data)) =
+                    rx.next().await
                 {
-                    info!("successfully registered device {}", &service_ids);
-                    Ok(Registered::with_data(RegistrationData {
-                        signal_servers,
-                        device_name: Some(device_name),
-                        phone_number,
-                        service_ids,
-                        signaling_key,
-                        password,
-                        device_id: Some(device_id),
-                        registration_id,
-                        pni_registration_id: Some(pni_registration_id),
-                        aci_public_key,
-                        aci_private_key,
-                        pni_public_key: Some(pni_public_key),
-                        pni_private_key: Some(pni_private_key),
-                        profile_key: ProfileKey::create(
-                            profile_key.try_into().expect("32 bytes for profile key"),
-                        ),
-                    }))
+                    Ok(data)
                 } else {
                     Err(Error::NoProvisioningMessageReceived)
                 }
@@ -138,24 +115,41 @@ impl<S: Store> Manager<S, Linking> {
 
         wait_for_qrcode_scan?;
 
-        let mut manager = Manager {
-            rng,
-            store,
-            state: registration?,
-        };
+        match registration_data {
+            Ok(d) => {
+                let registration_data = RegistrationData {
+                    signal_servers,
+                    device_name: Some(device_name),
+                    phone_number: d.phone_number,
+                    service_ids: d.service_ids,
+                    password,
+                    signaling_key,
+                    device_id: Some(d.device_id.into()),
+                    registration_id: d.registration_id,
+                    pni_registration_id: Some(d.pni_registration_id),
+                    aci_public_key: d.aci_public_key,
+                    aci_private_key: d.aci_private_key,
+                    pni_public_key: Some(d.pni_public_key),
+                    pni_private_key: Some(d.pni_private_key),
+                    profile_key: d.profile_key,
+                };
 
-        manager.store.save_registration_data(&manager.state.data)?;
+                store.save_registration_data(&registration_data)?;
+                info!(
+                    "successfully registered device {}",
+                    &registration_data.service_ids
+                );
 
-        match (
-            manager.register_pre_keys().await,
-            manager.set_account_attributes().await,
-        ) {
-            (Err(e), _) | (_, Err(e)) => {
-                // clear the entire store on any error, there's no possible recovery here
-                manager.store.clear_registration()?;
+                Ok(Manager {
+                    rng,
+                    store,
+                    state: Registered::with_data(registration_data),
+                })
+            }
+            Err(e) => {
+                store.clear_registration()?;
                 Err(e)
             }
-            _ => Ok(manager),
         }
     }
 }

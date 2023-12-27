@@ -1,7 +1,8 @@
 use std::fmt;
 use std::ops::RangeBounds;
+use std::pin::pin;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
@@ -12,10 +13,11 @@ use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
 use libsignal_service::models::Contact;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::Uuid;
+use libsignal_service::profile_cipher::ProfileCipher;
 use libsignal_service::proto::data_message::Delete;
 use libsignal_service::proto::{
     sync_message, AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage,
-    SyncMessage,
+    SyncMessage, Verified,
 };
 use libsignal_service::protocol::SenderCertificate;
 use libsignal_service::protocol::{PrivateKey, PublicKey};
@@ -39,6 +41,7 @@ use log::{debug, error, info, trace, warn};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
+use sha2::Digest;
 use tokio::sync::Mutex;
 
 use crate::cache::CacheCell;
@@ -116,26 +119,32 @@ pub struct RegistrationData {
 }
 
 impl RegistrationData {
-    pub fn registration_id(&self) -> u32 {
-        self.registration_id
+    /// Account identity
+    pub fn aci(&self) -> Uuid {
+        self.service_ids.aci
     }
 
-    pub fn service_ids(&self) -> &ServiceIds {
-        &self.service_ids
+    /// Phone number identity
+    pub fn pni(&self) -> Uuid {
+        self.service_ids.pni
     }
 
+    /// Our own profile key
     pub fn profile_key(&self) -> ProfileKey {
         self.profile_key
     }
 
-    pub fn device_name(&self) -> Option<&String> {
-        self.device_name.as_ref()
+    /// The name of the device (if linked as secondary)
+    pub fn device_name(&self) -> Option<&str> {
+        self.device_name.as_deref()
     }
 
+    /// Account identity public key
     pub fn aci_public_key(&self) -> PublicKey {
         self.aci_public_key
     }
 
+    /// Account identity private key
     pub fn aci_private_key(&self) -> PrivateKey {
         self.aci_private_key
     }
@@ -200,16 +209,22 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Returns the current identified websocket, or creates a new one
+    ///
+    /// A new one is created if the current websocket is closed, or if there is none yet.
     async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
         let mut identified_ws = self.state.identified_websocket.lock().await;
-        match identified_ws.clone() {
-            Some(ws) => Ok(ws),
+        match identified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+            Some(ws) => Ok(ws.clone()),
             None => {
-                let keep_alive = true;
                 let headers = &[("X-Signal-Receive-Stories", "false")];
                 let ws = self
                     .identified_push_service()
-                    .ws("/v1/websocket/", headers, self.credentials(), keep_alive)
+                    .ws(
+                        "/v1/websocket/",
+                        "/v1/keepalive",
+                        headers,
+                        self.credentials(),
+                    )
                     .await?;
                 identified_ws.replace(ws.clone());
                 debug!("initialized identified websocket");
@@ -219,15 +234,17 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
+    /// Returns the current unidentified websocket, or creates a new one
+    ///
+    /// A new one is created if the current websocket is closed, or if there is none yet.
     async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
         let mut unidentified_ws = self.state.unidentified_websocket.lock().await;
-        match unidentified_ws.clone() {
-            Some(ws) => Ok(ws),
+        match unidentified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+            Some(ws) => Ok(ws.clone()),
             None => {
-                let keep_alive = true;
                 let ws = self
                     .unidentified_push_service()
-                    .ws("/v1/websocket/", &[], None, keep_alive)
+                    .ws("/v1/websocket/", "/v1/keepalive", &[], None)
                     .await?;
                 unidentified_ws.replace(ws.clone());
                 debug!("initialized unidentified websocket");
@@ -283,7 +300,7 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: self.state.data.device_name().cloned(),
+                name: self.state.data.device_name().map(|d| d.to_string()),
                 registration_id: self.state.data.registration_id,
                 pni_registration_id,
                 signaling_key: None,
@@ -316,19 +333,40 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    /// Request that the primary device to encrypt & send all of its contacts as a message to ourselves
-    /// which can be then received, decrypted and stored in the message receiving loop.
+    /// Requests contacts synchronization and waits until the primary device sends them
+    ///
+    /// Note: DO NOT call this function if you're already running a receiving loop
+    pub async fn sync_contacts(&mut self) -> Result<(), Error<S::Error>> {
+        debug!("synchronizing contacts");
+
+        let mut messages = pin!(
+            self.receive_messages(ReceivingMode::WaitForContacts)
+                .await?
+        );
+
+        self.request_contacts().await?;
+
+        tokio::time::timeout(Duration::from_secs(60), async move {
+            while let Some(msg) = messages.next().await {
+                log::trace!("got message while waiting for contacts sync: {msg:?}");
+            }
+        })
+        .await?;
+
+        Ok(())
+    }
+
+    /// Request the primary device to encrypt & send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
-    /// processed when they're received using the `MessageReceiver`.
-    pub async fn request_contacts_sync(&mut self) -> Result<(), Error<S::Error>> {
+    /// processed when they're received after polling on the
+    pub async fn request_contacts(&mut self) -> Result<(), Error<S::Error>> {
         trace!("requesting contacts sync");
-        let var_name = sync_message::request::Type::Contacts as i32;
         let sync_message = SyncMessage {
             request: Some(sync_message::Request {
-                r#type: Some(var_name),
+                r#type: Some(sync_message::request::Type::Contacts.into()),
             }),
-            ..Default::default()
+            ..SyncMessage::with_padding()
         };
 
         let timestamp = SystemTime::now()
@@ -441,14 +479,12 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Starts receiving and storing messages.
     ///
+    /// As a client, it is heavily recommended to run this once in `ReceivingMode::InitialSync` once
+    /// before enabling the possiblity of sending messages. That way, all possible updates (sessions, profile keys, sender keys)
+    /// are processed _before_ trying to encrypt and send messages which might fail otherwise.
+    ///
     /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
     pub async fn receive_messages(
-        &mut self,
-    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        self.receive_messages_stream(ReceivingMode::Forever).await
-    }
-
-    pub async fn receive_messages_with_mode(
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
@@ -480,15 +516,19 @@ impl<S: Store> Manager<S, Registered> {
             encrypted_messages: S,
             message_receiver: MessageReceiver<HyperPushService>,
             service_cipher: ServiceCipher<C>,
+            push_service: HyperPushService,
             store: C,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
             mode: ReceivingMode,
         }
 
+        let push_service = self.identified_push_service();
+
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
-            message_receiver: MessageReceiver::new(self.identified_push_service()),
+            message_receiver: MessageReceiver::new(push_service.clone()),
             service_cipher: self.new_service_cipher()?,
+            push_service,
             store: self.store.clone(),
             groups_manager: self.groups_manager()?,
             mode,
@@ -511,15 +551,11 @@ impl<S: Store> Manager<S, Registered> {
                                     match state.message_receiver.retrieve_contacts(contacts).await {
                                         Ok(contacts) => {
                                             let _ = state.store.clear_contacts();
-                                            match state
-                                                .store
-                                                .save_contacts(contacts.filter_map(Result::ok))
-                                            {
-                                                Ok(()) => {
-                                                    info!("saved contacts");
-                                                }
-                                                Err(e) => {
+                                            info!("saving contacts");
+                                            for contact in contacts.filter_map(Result::ok) {
+                                                if let Err(e) = state.store.save_contact(&contact) {
                                                     warn!("failed to save contacts: {e}");
+                                                    break;
                                                 }
                                             }
                                         }
@@ -575,7 +611,14 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                 }
 
-                                if let Err(e) = save_message(&mut state.store, content.clone()) {
+                                if let Err(e) = save_message(
+                                    &mut state.store,
+                                    &mut state.push_service,
+                                    content.clone(),
+                                    None,
+                                )
+                                .await
+                                {
                                     error!("Error saving message to store: {}", e);
                                 }
 
@@ -676,7 +719,14 @@ impl<S: Store> Manager<S, Registered> {
             body: content_body,
         };
 
-        save_message(&mut self.store, content)?;
+        let mut push_service = self.identified_push_service();
+        save_message(
+            &mut self.store,
+            &mut push_service,
+            content,
+            Some(Thread::Contact(recipient.uuid)),
+        )
+        .await?;
 
         Ok(())
     }
@@ -704,23 +754,24 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn send_message_to_group(
         &mut self,
         master_key_bytes: &[u8],
-        mut message: DataMessage,
+        message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error<S::Error>> {
+        let mut content_body = message.into();
+        let master_key_bytes = master_key_bytes
+            .try_into()
+            .expect("Master key bytes to be of size 32.");
+
         // Only update the expiration timer if it is not set.
-        match message {
-            DataMessage {
+        match content_body {
+            ContentBody::DataMessage(DataMessage {
                 expire_timer: ref mut timer,
                 ..
-            } if timer.is_none() => {
+            }) if timer.is_none() => {
                 // Set the expire timer to None for errors.
                 let store_expire_timer = self
                     .store
-                    .expire_timer(&Thread::Group(
-                        master_key_bytes
-                            .try_into()
-                            .expect("Master key bytes to be of size 32."),
-                    ))
+                    .expire_timer(&Thread::Group(master_key_bytes))
                     .unwrap_or_default();
 
                 *timer = store_expire_timer;
@@ -731,7 +782,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut groups_manager = self.groups_manager()?;
         let Some(group) =
-            upsert_group(&self.store, &mut groups_manager, master_key_bytes, &0).await?
+            upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
         else {
             return Err(Error::UnknownGroup);
         };
@@ -755,7 +806,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let online_only = false;
         let results = sender
-            .send_message_to_group(recipients, message.clone(), timestamp, online_only)
+            .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
 
         // return first error if any
@@ -769,10 +820,17 @@ impl<S: Store> Manager<S, Registered> {
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
             },
-            body: message.into(),
+            body: content_body,
         };
 
-        save_message(&mut self.store, content)?;
+        let mut push_service = self.identified_push_service();
+        save_message(
+            &mut self.store,
+            &mut push_service,
+            content,
+            Some(Thread::Group(master_key_bytes)),
+        )
+        .await?;
 
         Ok(())
     }
@@ -788,14 +846,23 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error<S::Error>> {
+        let expected_digest = attachment_pointer
+            .digest
+            .as_ref()
+            .ok_or_else(|| Error::UnexpectedAttachmentChecksum)?;
+
         let mut service = self.identified_push_service();
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
         // We need the whole file for the crypto to check out
         let mut ciphertext = Vec::new();
         let len = attachment_stream.read_to_end(&mut ciphertext).await?;
-
         trace!("downloaded encrypted attachment of {} bytes", len);
+
+        let digest = sha2::Sha256::digest(&ciphertext);
+        if &digest[..] != expected_digest {
+            return Err(Error::UnexpectedAttachmentChecksum);
+        }
 
         let key: [u8; 64] = attachment_pointer.key().try_into()?;
         decrypt_in_place(key, &mut ciphertext)?;
@@ -869,7 +936,7 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<S::Error>> {
         match thread {
             Thread::Contact(uuid) => {
-                let contact = match self.store.contact_by_id(*uuid) {
+                let contact = match self.store.contact_by_id(uuid) {
                     Ok(contact) => contact,
                     Err(e) => {
                         info!("Error getting contact by id: {}, {:?}", e, uuid);
@@ -895,7 +962,7 @@ impl<S: Store> Manager<S, Registered> {
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
     #[deprecated = "use the store handle directly"]
     pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<S::Error>> {
-        Ok(self.store.contact_by_id(*id)?)
+        Ok(self.store.contact_by_id(id)?)
     }
 
     /// Returns an iterator on contacts stored in the [Store].
@@ -980,52 +1047,116 @@ async fn upsert_group<S: Store>(
     Ok(store.group(master_key_bytes.try_into()?)?)
 }
 
-fn save_message<S: Store>(store: &mut S, message: Content) -> Result<(), Error<S::Error>> {
+/// Save a message into the store.
+/// Note that `override_thread` can be used to specify the thread the message will be stored in.
+/// This is required when storing outgoing messages, as in this case the appropriate storage place cannot be derived from the message itself.
+async fn save_message<S: Store>(
+    store: &mut S,
+    push_service: &mut HyperPushService,
+    message: Content,
+    override_thread: Option<Thread>,
+) -> Result<(), Error<S::Error>> {
     // derive the thread from the message type
-    let thread = Thread::try_from(&message)?;
+    let thread = override_thread.unwrap_or(Thread::try_from(&message)?);
 
     // only save DataMessage and SynchronizeMessage (sent)
     let message = match message.body {
         ContentBody::NullMessage(_) => Some(message),
-        ContentBody::DataMessage(ref data_message)
+        ContentBody::DataMessage(
+            ref data_message @ DataMessage {
+                ref profile_key, ..
+            },
+        )
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent:
                 Some(sync_message::Sent {
-                    message: Some(ref data_message),
+                    message:
+                        Some(
+                            ref data_message @ DataMessage {
+                                ref profile_key, ..
+                            },
+                        ),
                     ..
                 }),
             ..
-        }) => match data_message {
-            DataMessage {
-                profile_key: Some(profile_key_bytes),
-                delete:
-                    Some(Delete {
-                        target_sent_timestamp: Some(ts),
-                    }),
-                ..
-            } => {
-                // update recipient profile key
-                if let Ok(profile_key_bytes) = profile_key_bytes.clone().try_into() {
-                    let sender_uuid = message.metadata.sender.uuid;
-                    let profile_key = ProfileKey::create(profile_key_bytes);
-                    debug!("inserting profile key for {sender_uuid}");
-                    store.upsert_profile_key(&sender_uuid, profile_key)?;
+        }) => {
+            // update recipient profile key if changed
+            if let Some(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
+                let sender_uuid = message.metadata.sender.uuid;
+                let profile_key = ProfileKey::create(profile_key_bytes);
+                debug!("inserting profile key for {sender_uuid}");
+
+                // Either:
+                // - insert a new contact with the profile information
+                // - update the contact if the profile key has changed
+                // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
+                if store.contact_by_id(&sender_uuid)?.is_none()
+                    || !store
+                        .profile_key(&sender_uuid)?
+                        .is_some_and(|p| p.bytes == profile_key.bytes)
+                {
+                    let encrypted_profile = push_service
+                        .retrieve_profile_by_id(sender_uuid.into(), Some(profile_key))
+                        .await?;
+                    let profile_cipher = ProfileCipher::from(profile_key);
+                    let decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
+
+                    let contact = Contact {
+                        uuid: sender_uuid,
+                        phone_number: None,
+                        name: decrypted_profile
+                            .name
+                            // FIXME: this assumes [firstname] [lastname]
+                            .map(|pn| {
+                                if let Some(family_name) = pn.family_name {
+                                    format!("{} {}", pn.given_name, family_name)
+                                } else {
+                                    pn.given_name
+                                }
+                            })
+                            .unwrap_or_default(),
+                        profile_key: profile_key.bytes.to_vec(),
+                        color: None,
+                        blocked: false,
+                        expire_timer: data_message.expire_timer.unwrap_or_default(),
+                        inbox_position: 0,
+                        archived: false,
+                        avatar: None,
+                        verified: Verified::default(),
+                    };
+
+                    info!("saved contact after seeing {sender_uuid} for the first time");
+                    store.save_contact(&contact)?;
                 }
 
-                // replace an existing message by an empty NullMessage
-                if let Some(mut existing_msg) = store.message(&thread, *ts)? {
-                    existing_msg.metadata.sender.uuid = Uuid::nil();
-                    existing_msg.body = NullMessage::default().into();
-                    store.save_message(&thread, existing_msg)?;
-                    debug!("message in thread {thread} @ {ts} deleted");
-                    None
-                } else {
-                    warn!("could not find message to delete in thread {thread} @ {ts}");
-                    None
-                }
+                store.upsert_profile_key(&sender_uuid, profile_key)?;
             }
-            _ => Some(message),
-        },
+
+            store.update_expire_timer(&thread, data_message.expire_timer.unwrap_or_default())?;
+
+            match data_message {
+                DataMessage {
+                    delete:
+                        Some(Delete {
+                            target_sent_timestamp: Some(ts),
+                        }),
+                    ..
+                } => {
+                    // replace an existing message by an empty NullMessage
+                    if let Some(mut existing_msg) = store.message(&thread, *ts)? {
+                        existing_msg.metadata.sender.uuid = Uuid::nil();
+                        existing_msg.body = NullMessage::default().into();
+                        store.save_message(&thread, existing_msg)?;
+                        debug!("message in thread {thread} @ {ts} deleted");
+                        None
+                    } else {
+                        warn!("could not find message to delete in thread {thread} @ {ts}");
+                        None
+                    }
+                }
+                _ => Some(message),
+            }
+        }
         ContentBody::EditMessage(EditMessage {
             target_sent_timestamp: Some(ts),
             data_message: Some(data_message),
@@ -1058,8 +1189,8 @@ fn save_message<S: Store>(store: &mut S, message: Content) -> Result<(), Error<S
             call_event: Some(_),
             ..
         }) => Some(message),
-        ContentBody::SynchronizeMessage(s) => {
-            debug!("skipping saving sync message without interesting fields: {s:?}");
+        ContentBody::SynchronizeMessage(_) => {
+            debug!("skipping saving sync message without interesting fields");
             None
         }
         ContentBody::ReceiptMessage(_) => {
