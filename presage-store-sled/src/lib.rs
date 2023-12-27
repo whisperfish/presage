@@ -26,7 +26,7 @@ use presage::libsignal_service::{
     session_store::SessionStoreExt,
     Profile, ServiceAddress,
 };
-use presage::store::{ContentExt, ContentsStore, PreKeyStoreExt, StateStore, Store, Thread};
+use presage::store::{ContentExt, ContentsStore, StateStore, Store, Thread};
 use presage::ThreadMetadata;
 use presage::{manager::RegistrationData, proto::verified};
 use presage_store_cipher::StoreCipher;
@@ -443,12 +443,6 @@ impl ContentsStore for SledStore {
     }
 
     fn save_contact(&mut self, contact: &Contact) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
-        debug!("saved contact");
-        Ok(())
-    }
-
-    fn save_contact(&mut self, contact: Contact) -> Result<(), Self::ContentsStoreError> {
         self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
         debug!("saved contact");
         Ok(())

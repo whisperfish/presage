@@ -200,9 +200,6 @@ pub trait ContentsStore {
     /// Save a contact
     fn save_contact(&mut self, contacts: &Contact) -> Result<(), Self::ContentsStoreError>;
 
-    /// Save a single contact
-    fn save_contact(&mut self, contact: Contact) -> Result<(), Self::ContentsStoreError>;
-
     /// Get an iterator on all stored (synchronized) contacts
     fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError>;
 
