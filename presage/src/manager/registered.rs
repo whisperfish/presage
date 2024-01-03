@@ -1132,7 +1132,9 @@ async fn save_message<S: Store>(
                 store.upsert_profile_key(&sender_uuid, profile_key)?;
             }
 
-            store.update_expire_timer(&thread, data_message.expire_timer.unwrap_or_default())?;
+            if let Some(expire_timer) = data_message.expire_timer {
+                store.update_expire_timer(&thread, expire_timer)?;
+            }
 
             match data_message {
                 DataMessage {
