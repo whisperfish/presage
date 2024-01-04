@@ -1221,6 +1221,13 @@
 <a href="#1221" id="1221">1221</a>
 <a href="#1222" id="1222">1222</a>
 <a href="#1223" id="1223">1223</a>
+<a href="#1224" id="1224">1224</a>
+<a href="#1225" id="1225">1225</a>
+<a href="#1226" id="1226">1226</a>
+<a href="#1227" id="1227">1227</a>
+<a href="#1228" id="1228">1228</a>
+<a href="#1229" id="1229">1229</a>
+<a href="#1230" id="1230">1230</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1434,9 +1441,16 @@
     <span class="doccomment">/// Returns the current identified websocket, or creates a new one
     ///
     /// A new one is created if the current websocket is closed, or if there is none yet.
-    </span><span class="kw">async fn </span>identified_websocket(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
+    </span><span class="kw">async fn </span>identified_websocket(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        require_unused: bool,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>identified_ws = <span class="self">self</span>.state.identified_websocket.lock().<span class="kw">await</span>;
-        <span class="kw">match </span>identified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+        <span class="kw">match </span>identified_ws
+            .as_ref()
+            .filter(|ws| !ws.is_closed())
+            .filter(|ws| !(require_unused &amp;&amp; ws.is_used()))
+        {
             <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws.clone()),
             <span class="prelude-val">None </span>=&gt; {
                 <span class="kw">let </span>headers = <span class="kw-2">&amp;</span>[(<span class="string">&quot;X-Signal-Receive-Stories&quot;</span>, <span class="string">&quot;false&quot;</span>)];
@@ -1695,7 +1709,7 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = <span class="prelude-ty">Result</span>&lt;Incoming, ServiceError&gt;&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span>credentials = <span class="self">self</span>.credentials().ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
-        <span class="kw">let </span>ws = <span class="self">self</span>.identified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>ws = <span class="self">self</span>.identified_websocket(<span class="bool-val">true</span>).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>pipe = MessagePipe::from_socket(ws, credentials);
         <span class="prelude-val">Ok</span>(pipe.stream())
     }
@@ -2125,7 +2139,7 @@
             uuid: <span class="self">self</span>.state.data.service_ids.aci,
         };
 
-        <span class="kw">let </span>identified_websocket = <span class="self">self</span>.identified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>identified_websocket = <span class="self">self</span>.identified_websocket(<span class="bool-val">false</span>).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>unidentified_websocket = <span class="self">self</span>.unidentified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(MessageSender::new(
