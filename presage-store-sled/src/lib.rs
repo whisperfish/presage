@@ -355,7 +355,7 @@ fn migrate(
         Ok(())
     };
 
-    if let Err(error) = run_migrations() {
+    if let Err(SledStoreError::MigrationConflict) = run_migrations() {
         match migration_conflict_strategy {
             MigrationConflictStrategy::BackupAndDrop => {
                 let mut new_db_path = db_path.to_path_buf();
@@ -373,7 +373,7 @@ fn migrate(
             MigrationConflictStrategy::Drop => {
                 fs_extra::dir::remove(db_path)?;
             }
-            MigrationConflictStrategy::Raise => return Err(error),
+            MigrationConflictStrategy::Raise => return Err(SledStoreError::MigrationConflict),
         }
     }
 
