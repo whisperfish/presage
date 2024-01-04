@@ -211,9 +211,16 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns the current identified websocket, or creates a new one
     ///
     /// A new one is created if the current websocket is closed, or if there is none yet.
-    async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
+    async fn identified_websocket(
+        &self,
+        require_unused: bool,
+    ) -> Result<SignalWebSocket, Error<S::Error>> {
         let mut identified_ws = self.state.identified_websocket.lock().await;
-        match identified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+        match identified_ws
+            .as_ref()
+            .filter(|ws| !ws.is_closed())
+            .filter(|ws| !(require_unused && ws.is_used()))
+        {
             Some(ws) => Ok(ws.clone()),
             None => {
                 let headers = &[("X-Signal-Receive-Stories", "false")];
@@ -472,7 +479,7 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
         let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
-        let ws = self.identified_websocket().await?;
+        let ws = self.identified_websocket(true).await?;
         let pipe = MessagePipe::from_socket(ws, credentials);
         Ok(pipe.stream())
     }
@@ -902,7 +909,7 @@ impl<S: Store> Manager<S, Registered> {
             uuid: self.state.data.service_ids.aci,
         };
 
-        let identified_websocket = self.identified_websocket().await?;
+        let identified_websocket = self.identified_websocket(false).await?;
         let unidentified_websocket = self.unidentified_websocket().await?;
 
         Ok(MessageSender::new(
