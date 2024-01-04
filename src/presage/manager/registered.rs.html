@@ -1228,6 +1228,8 @@
 <a href="#1228" id="1228">1228</a>
 <a href="#1229" id="1229">1229</a>
 <a href="#1230" id="1230">1230</a>
+<a href="#1231" id="1231">1231</a>
+<a href="#1232" id="1232">1232</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -2369,7 +2371,9 @@
                 store.upsert_profile_key(<span class="kw-2">&amp;</span>sender_uuid, profile_key)<span class="question-mark">?</span>;
             }
 
-            store.update_expire_timer(<span class="kw-2">&amp;</span>thread, data_message.expire_timer.unwrap_or_default())<span class="question-mark">?</span>;
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(expire_timer) = data_message.expire_timer {
+                store.update_expire_timer(<span class="kw-2">&amp;</span>thread, expire_timer)<span class="question-mark">?</span>;
+            }
 
             <span class="kw">match </span>data_message {
                 DataMessage {
