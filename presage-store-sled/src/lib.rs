@@ -605,41 +605,42 @@ impl ContentsStore for SledStore {
     }
 }
 
+#[async_trait(?Send)]
 impl PreKeysStore for SledStore {
-    fn pre_keys_offset_id(&self) -> Result<u32, SignalProtocolError> {
+    async fn next_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
             .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)
             .map_err(|_| SignalProtocolError::InvalidPreKeyId)?
             .unwrap_or(0))
     }
 
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+    async fn set_next_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
             .map_err(|_| SignalProtocolError::InvalidPreKeyId)?;
         Ok(())
     }
 
-    fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
+    async fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
             .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)
             .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?
             .unwrap_or(0))
     }
 
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+    async fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
             .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?;
         Ok(())
     }
 
-    fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
+    async fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
             .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)
             .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?
             .unwrap_or(0))
     }
 
-    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+    async fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)
             .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?;
         Ok(())
@@ -1205,6 +1206,7 @@ mod tests {
                     uuid: *g.choose(&contacts).unwrap(),
                 },
                 sender_device: Arbitrary::arbitrary(g),
+                server_guid: None,
                 timestamp,
                 needs_receipt: Arbitrary::arbitrary(g),
                 unidentified_sender: Arbitrary::arbitrary(g),

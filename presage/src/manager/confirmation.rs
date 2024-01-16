@@ -51,7 +51,8 @@ impl<S: Store> Manager<S, Confirmation> {
         } = self.state;
 
         let credentials = ServiceCredentials {
-            uuid: None,
+            aci: None,
+            pni: None,
             phonenumber: phone_number.clone(),
             password: Some(password.clone()),
             signaling_key: None,
