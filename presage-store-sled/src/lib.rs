@@ -6,6 +6,7 @@ use std::{
 };
 
 use async_trait::async_trait;
+use base64::prelude::*;
 use log::{debug, error, trace, warn};
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::{
@@ -290,7 +291,7 @@ impl SledStore {
             }
             Thread::Group(group_id) => format!(
                 "{SLED_TREE_THREADS_PREFIX}:group:{}",
-                base64::encode(group_id)
+                BASE64_STANDARD.encode(group_id)
             ),
         };
         let mut hasher = Sha256::new();
@@ -1145,6 +1146,7 @@ impl DoubleEndedIterator for SledMessagesIter {
 mod tests {
     use core::fmt;
 
+    use base64::prelude::*;
     use presage::libsignal_service::{
         content::{ContentBody, Metadata},
         prelude::Uuid,
@@ -1174,7 +1176,11 @@ mod tests {
 
     impl fmt::Debug for KeyPair {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            writeln!(f, "{}", base64::encode(self.0.public_key.serialize()))
+            writeln!(
+                f,
+                "{}",
+                BASE64_STANDARD.encode(self.0.public_key.serialize())
+            )
         }
     }
 
