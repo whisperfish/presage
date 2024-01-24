@@ -5,6 +5,7 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use crate::protobuf::ContentProto;
 use async_trait::async_trait;
 use base64::prelude::*;
 use log::{debug, error, trace, warn};
@@ -27,13 +28,13 @@ use presage::libsignal_service::{
     Profile, ServiceAddress,
 };
 use presage::store::{ContentExt, ContentsStore, StateStore, Store, Thread};
+use presage::ThreadMetadata;
 use presage::{manager::RegistrationData, proto::verified};
+use presage_store_cipher::StoreCipher;
 use prost::Message;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
-
-use crate::protobuf::ContentProto;
 
 mod error;
 mod protobuf;
@@ -50,6 +51,7 @@ const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_KYBER_PRE_KEYS: &str = "kyber_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
+const SLED_TREE_THREADS_METADATA: &str = "threads_metadata";
 const SLED_TREE_PROFILES: &str = "profiles";
 const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
 
@@ -306,6 +308,13 @@ impl SledStore {
         hasher.update(key.collect::<Vec<_>>());
         format!("{:x}", hasher.finalize())
     }
+
+    fn thread_metadata_key(&self, thread: Thread) -> Vec<u8> {
+        match thread {
+            Thread::Contact(contact) => contact.to_string().into_bytes(),
+            Thread::Group(group) => group.to_vec(),
+        }
+    }
 }
 
 fn migrate(
@@ -386,6 +395,8 @@ impl ProtocolStore for SledStore {}
 impl StateStore for SledStore {
     type StateStoreError = SledStoreError;
 
+    /// State
+
     fn load_registration_data(&self) -> Result<Option<RegistrationData>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
@@ -425,6 +436,7 @@ impl ContentsStore for SledStore {
     type ContactsIter = SledContactsIter;
     type GroupsIter = SledGroupsIter;
     type MessagesIter = SledMessagesIter;
+    type ThreadMetadataIter = SledThreadMetadataIter;
 
     fn clear_contacts(&mut self) -> Result<(), SledStoreError> {
         self.write().drop_tree(SLED_TREE_CONTACTS)?;
@@ -603,6 +615,33 @@ impl ContentsStore for SledStore {
     fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, SledStoreError> {
         let key = self.profile_key_for_uuid(uuid, key);
         self.get(SLED_TREE_PROFILES, key)
+    }
+    /// Thread metadata
+
+    fn save_thread_metadata(
+        &mut self,
+        metadata: ThreadMetadata,
+    ) -> Result<(), Self::ContentsStoreError> {
+        let key = self.thread_metadata_key(metadata.thread.clone());
+        self.insert(SLED_TREE_THREADS_METADATA, key, metadata)?;
+        Ok(())
+    }
+
+    fn thread_metadata(
+        &self,
+        thread: Thread,
+    ) -> Result<Option<ThreadMetadata>, Self::ContentsStoreError> {
+        let key = self.thread_metadata_key(thread);
+        self.get(SLED_TREE_THREADS_METADATA, key)
+    }
+
+    fn thread_metadatas(&self) -> Result<Self::ThreadMetadataIter, SledStoreError> {
+        let tree = self.read().open_tree(SLED_TREE_THREADS_METADATA)?;
+        let iter = tree.iter();
+        Ok(SledThreadMetadataIter {
+            cipher: self.cipher.clone(),
+            iter,
+        })
     }
 }
 
@@ -1139,6 +1178,28 @@ impl DoubleEndedIterator for SledMessagesIter {
     fn next_back(&mut self) -> Option<Self::Item> {
         let elem = self.iter.next_back()?;
         self.decode(elem)
+    }
+}
+
+pub struct SledThreadMetadataIter {
+    cipher: Option<Arc<StoreCipher>>,
+    iter: sled::Iter,
+}
+
+impl Iterator for SledThreadMetadataIter {
+    type Item = Result<ThreadMetadata, SledStoreError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()?
+            .map_err(SledStoreError::from)
+            .and_then(|(_key, value)| {
+                self.cipher.as_ref().map_or_else(
+                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
+                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
+                )
+            })
+            .into()
     }
 }
 

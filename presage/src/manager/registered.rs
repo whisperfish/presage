@@ -45,7 +45,7 @@ use sha2::Digest;
 use tokio::sync::Mutex;
 
 use crate::cache::CacheCell;
-use crate::serde::serde_profile_key;
+use crate::serializers::serde_profile_key;
 use crate::store::{Store, Thread};
 use crate::{Error, Manager};
 
