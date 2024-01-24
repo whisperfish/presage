@@ -4,6 +4,8 @@ mod textsecure {
     include!(concat!(env!("OUT_DIR"), "/textsecure.rs"));
 }
 
+use std::str::FromStr;
+
 use presage::libsignal_service::content::Content;
 use presage::libsignal_service::content::ContentBody;
 use presage::libsignal_service::content::Metadata;
@@ -61,6 +63,9 @@ impl TryFrom<MetadataProto> for Metadata {
                 .sender_device
                 .and_then(|m| m.try_into().ok())
                 .unwrap_or_default(),
+            server_guid: metadata
+                .server_guid
+                .and_then(|u| crate::Uuid::from_str(&u).ok()),
             timestamp: metadata
                 .timestamp
                 .and_then(|m| m.try_into().ok())

@@ -94,6 +94,7 @@ pub trait ContentsStore {
             metadata: Metadata {
                 sender: sender.into(),
                 sender_device: 0,
+                server_guid: None,
                 timestamp: SystemTime::now()
                     .duration_since(SystemTime::UNIX_EPOCH)
                     .unwrap_or_default()
