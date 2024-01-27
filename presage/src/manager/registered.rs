@@ -23,8 +23,8 @@ use libsignal_service::protocol::SenderCertificate;
 use libsignal_service::protocol::{PrivateKey, PublicKey};
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIds, WhoAmIResponse,
-    DEFAULT_DEVICE_ID,
+    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
+    WhoAmIResponse, DEFAULT_DEVICE_ID,
 };
 use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
@@ -211,9 +211,16 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns the current identified websocket, or creates a new one
     ///
     /// A new one is created if the current websocket is closed, or if there is none yet.
-    async fn identified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
+    async fn identified_websocket(
+        &self,
+        require_unused: bool,
+    ) -> Result<SignalWebSocket, Error<S::Error>> {
         let mut identified_ws = self.state.identified_websocket.lock().await;
-        match identified_ws.as_ref().filter(|ws| !ws.is_closed()) {
+        match identified_ws
+            .as_ref()
+            .filter(|ws| !ws.is_closed())
+            .filter(|ws| !(require_unused && ws.is_used()))
+        {
             Some(ws) => Ok(ws.clone()),
             None => {
                 let headers = &[("X-Signal-Receive-Stories", "false")];
@@ -261,21 +268,23 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
+        // TODO: Do the same for PNI once implemented upstream.
         let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
                 &mut self.store.clone(),
+                ServiceIdType::AccountIdentity,
                 &mut self.rng,
-                self.store.pre_keys_offset_id()?,
-                self.store.next_signed_pre_key_id()?,
-                self.store.next_pq_pre_key_id()?,
                 true,
             )
             .await?;
 
-        self.store.set_pre_keys_offset_id(pre_keys_offset_id)?;
+        self.store.set_next_pre_key_id(pre_keys_offset_id).await?;
         self.store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
-        self.store.set_next_pq_pre_key_id(next_pq_pre_key_id)?;
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)
+            .await?;
+        self.store
+            .set_next_pq_pre_key_id(next_pq_pre_key_id)
+            .await?;
 
         trace!("registered pre keys");
         Ok(())
@@ -472,7 +481,7 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
         let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
-        let ws = self.identified_websocket().await?;
+        let ws = self.identified_websocket(true).await?;
         let pipe = MessagePipe::from_socket(ws, credentials);
         Ok(pipe.stream())
     }
@@ -712,6 +721,7 @@ impl<S: Store> Manager<S, Registered> {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
+                server_guid: None,
                 timestamp,
                 needs_receipt: false,
                 unidentified_sender: false,
@@ -816,6 +826,7 @@ impl<S: Store> Manager<S, Registered> {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
+                server_guid: None,
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
@@ -888,7 +899,8 @@ impl<S: Store> Manager<S, Registered> {
 
     fn credentials(&self) -> Option<ServiceCredentials> {
         Some(ServiceCredentials {
-            uuid: Some(self.state.data.service_ids.aci),
+            aci: Some(self.state.data.service_ids.aci),
+            pni: Some(self.state.data.service_ids.pni),
             phonenumber: self.state.data.phone_number.clone(),
             password: Some(self.state.data.password.clone()),
             signaling_key: Some(self.state.data.signaling_key),
@@ -902,7 +914,7 @@ impl<S: Store> Manager<S, Registered> {
             uuid: self.state.data.service_ids.aci,
         };
 
-        let identified_websocket = self.identified_websocket().await?;
+        let identified_websocket = self.identified_websocket(false).await?;
         let unidentified_websocket = self.unidentified_websocket().await?;
 
         Ok(MessageSender::new(
@@ -1132,7 +1144,9 @@ async fn save_message<S: Store>(
                 store.upsert_profile_key(&sender_uuid, profile_key)?;
             }
 
-            store.update_expire_timer(&thread, data_message.expire_timer.unwrap_or_default())?;
+            if let Some(expire_timer) = data_message.expire_timer {
+                store.update_expire_timer(&thread, expire_timer)?;
+            }
 
             match data_message {
                 DataMessage {
