@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/9d55add/libsignal-service/src/websocket.rs`."><title>websocket.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.1 (a28077b28 2023-12-04)" data-channel="1.74.1" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/0ad842f/libsignal-service/src/websocket.rs`."><title>websocket.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -500,6 +500,44 @@
 <a href="#500" id="500">500</a>
 <a href="#501" id="501">501</a>
 <a href="#502" id="502">502</a>
+<a href="#503" id="503">503</a>
+<a href="#504" id="504">504</a>
+<a href="#505" id="505">505</a>
+<a href="#506" id="506">506</a>
+<a href="#507" id="507">507</a>
+<a href="#508" id="508">508</a>
+<a href="#509" id="509">509</a>
+<a href="#510" id="510">510</a>
+<a href="#511" id="511">511</a>
+<a href="#512" id="512">512</a>
+<a href="#513" id="513">513</a>
+<a href="#514" id="514">514</a>
+<a href="#515" id="515">515</a>
+<a href="#516" id="516">516</a>
+<a href="#517" id="517">517</a>
+<a href="#518" id="518">518</a>
+<a href="#519" id="519">519</a>
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
+<a href="#524" id="524">524</a>
+<a href="#525" id="525">525</a>
+<a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::sync::{Arc, Mutex, MutexGuard};
 
@@ -597,7 +635,29 @@
         frame: Bytes,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
         <span class="kw">let </span>msg = WebSocketMessage::decode(frame)<span class="question-mark">?</span>;
-        <span class="macro">log::trace!</span>(<span class="string">&quot;decoded {:?}&quot;</span>, msg);
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(request) = <span class="kw-2">&amp;</span>msg.request {
+            <span class="macro">tracing::trace!</span>(
+                <span class="string">&quot;decoded WebSocketMessage request {{ r#type: {:?}, verb: {:?}, path: {:?}, body: {} bytes, headers: {:?}, id: {:?} }}&quot;</span>,
+                msg.r#type(),
+                request.verb,
+                request.path,
+                request.body.as_ref().map(|x| x.len()).unwrap_or(<span class="number">0</span>),
+                request.headers,
+                request.id,
+            );
+        } <span class="kw">else if let </span><span class="prelude-val">Some</span>(response) = <span class="kw-2">&amp;</span>msg.response {
+            <span class="macro">tracing::trace!</span>(
+                <span class="string">&quot;decoded WebSocketMessage response {{ r#type: {:?}, status: {:?}, message: {:?}, body: {} bytes, headers: {:?}, id: {:?} }}&quot;</span>,
+                msg.r#type(),
+                response.status,
+                response.message,
+                response.body.as_ref().map(|x| x.len()).unwrap_or(<span class="number">0</span>),
+                response.headers,
+                response.id,
+            );
+        } <span class="kw">else </span>{
+            <span class="macro">tracing::debug!</span>(<span class="string">&quot;decoded {msg:?}&quot;</span>);
+        }
 
         <span class="kw">use </span>web_socket_message::Type;
         <span class="kw">match </span>(msg.r#type(), msg.request, msg.response) {
@@ -606,7 +666,7 @@
             }),
             (Type::Request, <span class="prelude-val">Some</span>(request), <span class="kw">_</span>) =&gt; {
                 <span class="kw">let </span>(sink, recv) = oneshot::channel();
-                <span class="macro">log::trace!</span>(<span class="string">&quot;sending request with body&quot;</span>);
+                <span class="macro">tracing::trace!</span>(<span class="string">&quot;sending request with body&quot;</span>);
                 <span class="self">self</span>.request_sink.send((request, sink)).<span class="kw">await</span>.map_err(
                     |<span class="kw">_</span>| ServiceError::WsError {
                         reason: <span class="string">&quot;request handler failed&quot;</span>.into(),
@@ -626,7 +686,7 @@
                         <span class="self">self</span>.outgoing_request_map.remove(<span class="kw-2">&amp;</span>id)
                     {
                         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = responder.send(<span class="prelude-val">Ok</span>(response)) {
-                            <span class="macro">log::warn!</span>(
+                            <span class="macro">tracing::warn!</span>(
                                 <span class="string">&quot;Could not deliver response for id {}: {:?}&quot;</span>,
                                 id,
                                 e
@@ -636,7 +696,7 @@
                         <span class="self">self</span>.outgoing_keep_alive_set.take(<span class="kw-2">&amp;</span>id)
                     {
                         <span class="kw">if </span>response.status() != <span class="number">200 </span>{
-                            <span class="macro">log::warn!</span>(
+                            <span class="macro">tracing::warn!</span>(
                                 <span class="string">&quot;Response code for keep-alive is not 200: {:?}&quot;</span>,
                                 response
                             );
@@ -645,7 +705,7 @@
                             });
                         }
                     } <span class="kw">else </span>{
-                        <span class="macro">log::warn!</span>(
+                        <span class="macro">tracing::warn!</span>(
                             <span class="string">&quot;Response for non existing request: {:?}&quot;</span>,
                             response
                         );
@@ -686,7 +746,14 @@
                                     .filter(|x| !<span class="self">self</span>.outgoing_request_map.contains_key(x))
                                     .unwrap_or_else(|| <span class="self">self</span>.next_request_id()),
                             );
-                            <span class="macro">log::trace!</span>(<span class="string">&quot;sending request {:?}&quot;</span>, request);
+                            <span class="macro">tracing::trace!</span>(
+                                <span class="string">&quot;sending WebSocketRequestMessage {{ verb: {:?}, path: {:?}, body (bytes): {:?}, headers: {:?}, id: {:?} }}&quot;</span>,
+                                request.verb,
+                                request.path,
+                                request.body.as_ref().map(|x| x.len()),
+                                request.headers,
+                                request.id,
+                            );
 
                             <span class="self">self</span>.outgoing_request_map.insert(request.id.unwrap(), responder);
                             <span class="kw">let </span>msg = WebSocketMessage {
@@ -712,7 +779,7 @@
                         <span class="prelude-val">Some</span>(WebSocketStreamItem::KeepAliveRequest) =&gt; {
                             <span class="comment">// XXX: would be nicer if we could drop this request into the request
                             // queue above.
-                            </span><span class="macro">log::debug!</span>(<span class="string">&quot;Sending keep alive upon request&quot;</span>);
+                            </span><span class="macro">tracing::debug!</span>(<span class="string">&quot;Sending keep alive upon request&quot;</span>);
                             <span class="kw">let </span>request = WebSocketRequestMessage {
                                 id: <span class="prelude-val">Some</span>(<span class="self">self</span>.next_request_id()),
                                 path: <span class="prelude-val">Some</span>(<span class="self">self</span>.keep_alive_path.clone()),
@@ -738,7 +805,7 @@
                 response = <span class="self">self</span>.outgoing_responses.next() =&gt; {
                     <span class="kw">match </span>response {
                         <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(response)) =&gt; {
-                            <span class="macro">log::trace!</span>(<span class="string">&quot;sending response {:?}&quot;</span>, response);
+                            <span class="macro">tracing::trace!</span>(<span class="string">&quot;sending response {:?}&quot;</span>, response);
 
                             <span class="kw">let </span>msg = WebSocketMessage {
                                 r#type: <span class="prelude-val">Some</span>(web_socket_message::Type::Response.into()),
@@ -749,7 +816,7 @@
                             <span class="self">self</span>.ws.send_message(buffer.into()).<span class="kw">await</span><span class="question-mark">?</span>;
                         }
                         <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)) =&gt; {
-                            <span class="macro">log::error!</span>(<span class="string">&quot;could not generate response to a Signal request; responder was canceled: {}. Continuing.&quot;</span>, e);
+                            <span class="macro">tracing::error!</span>(<span class="string">&quot;could not generate response to a Signal request; responder was canceled: {}. Continuing.&quot;</span>, e);
                         }
                         <span class="prelude-val">None </span>=&gt; {
                             <span class="macro">unreachable!</span>(<span class="string">&quot;outgoing responses should never fuse&quot;</span>)
@@ -794,7 +861,7 @@
         <span class="kw">let </span>process = process.run().map(|x| <span class="kw">match </span>x {
             <span class="prelude-val">Ok</span>(()) =&gt; (),
             <span class="prelude-val">Err</span>(e) =&gt; {
-                <span class="macro">log::error!</span>(<span class="string">&quot;SignalWebSocket: {}&quot;</span>, e);
+                <span class="macro">tracing::error!</span>(<span class="string">&quot;SignalWebSocket: {}&quot;</span>, e);
             },
         });
 
@@ -885,7 +952,7 @@
     {
         <span class="kw">let </span>response = <span class="self">self</span>.request(r).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">if </span>response.status() != <span class="number">200 </span>{
-            <span class="macro">log::debug!</span>(
+            <span class="macro">tracing::debug!</span>(
                 <span class="string">&quot;request_json with non-200 status code. message: {}&quot;</span>,
                 response.message()
             );
@@ -910,7 +977,7 @@
             <span class="number">409 </span><span class="comment">/* CONFLICT */ </span>=&gt; {
                 <span class="kw">let </span>mismatched_devices: MismatchedDevices =
                     json(response.body()).map_err(|e| {
-                        <span class="macro">log::error!</span>(
+                        <span class="macro">tracing::error!</span>(
                             <span class="string">&quot;Failed to decode HTTP 409 response: {}&quot;</span>,
                             e
                         );
@@ -925,7 +992,7 @@
             <span class="number">410 </span><span class="comment">/* GONE */ </span>=&gt; {
                 <span class="kw">let </span>stale_devices =
                     json(response.body()).map_err(|e| {
-                        <span class="macro">log::error!</span>(
+                        <span class="macro">tracing::error!</span>(
                             <span class="string">&quot;Failed to decode HTTP 410 response: {}&quot;</span>,
                             e
                         );
@@ -935,9 +1002,18 @@
                     })<span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(ServiceError::StaleDevices(stale_devices))
             },
+            <span class="number">423 </span><span class="comment">/* LOCKED */ </span>=&gt; {
+                <span class="kw">let </span>locked = json(response.body()).map_err(|e| {
+                    <span class="macro">tracing::error!</span>(<span class="string">&quot;Failed to decode HTTP 423 response: {}&quot;</span>, e);
+                    ServiceError::UnhandledResponseCode {
+                        http_code: <span class="number">423</span>,
+                    }
+                })<span class="question-mark">?</span>;
+                <span class="prelude-val">Err</span>(ServiceError::Locked(locked))
+            },
             <span class="number">428 </span><span class="comment">/* PRECONDITION_REQUIRED */ </span>=&gt; {
                 <span class="kw">let </span>proof_required = json(response.body()).map_err(|e| {
-                    <span class="macro">log::error!</span>(<span class="string">&quot;Failed to decode HTTP 428 response: {}&quot;</span>, e);
+                    <span class="macro">tracing::error!</span>(<span class="string">&quot;Failed to decode HTTP 428 response: {}&quot;</span>, e);
                     ServiceError::UnhandledResponseCode {
                         http_code: <span class="number">428</span>,
                     }

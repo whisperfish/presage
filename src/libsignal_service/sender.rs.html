@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/9d55add/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-fa3bb1812debf86c.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.74.1 (a28077b28 2023-12-04)" data-channel="1.74.1" data-search-js="search-8be46b629f5f14a8.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-c5bd66d33317d69f.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../libsignal_service/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/0ad842f/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -775,6 +775,84 @@
 <a href="#775" id="775">775</a>
 <a href="#776" id="776">776</a>
 <a href="#777" id="777">777</a>
+<a href="#778" id="778">778</a>
+<a href="#779" id="779">779</a>
+<a href="#780" id="780">780</a>
+<a href="#781" id="781">781</a>
+<a href="#782" id="782">782</a>
+<a href="#783" id="783">783</a>
+<a href="#784" id="784">784</a>
+<a href="#785" id="785">785</a>
+<a href="#786" id="786">786</a>
+<a href="#787" id="787">787</a>
+<a href="#788" id="788">788</a>
+<a href="#789" id="789">789</a>
+<a href="#790" id="790">790</a>
+<a href="#791" id="791">791</a>
+<a href="#792" id="792">792</a>
+<a href="#793" id="793">793</a>
+<a href="#794" id="794">794</a>
+<a href="#795" id="795">795</a>
+<a href="#796" id="796">796</a>
+<a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
+<a href="#807" id="807">807</a>
+<a href="#808" id="808">808</a>
+<a href="#809" id="809">809</a>
+<a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
+<a href="#829" id="829">829</a>
+<a href="#830" id="830">830</a>
+<a href="#831" id="831">831</a>
+<a href="#832" id="832">832</a>
+<a href="#833" id="833">833</a>
+<a href="#834" id="834">834</a>
+<a href="#835" id="835">835</a>
+<a href="#836" id="836">836</a>
+<a href="#837" id="837">837</a>
+<a href="#838" id="838">838</a>
+<a href="#839" id="839">839</a>
+<a href="#840" id="840">840</a>
+<a href="#841" id="841">841</a>
+<a href="#842" id="842">842</a>
+<a href="#843" id="843">843</a>
+<a href="#844" id="844">844</a>
+<a href="#845" id="845">845</a>
+<a href="#846" id="846">846</a>
+<a href="#847" id="847">847</a>
+<a href="#848" id="848">848</a>
+<a href="#849" id="849">849</a>
+<a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+<a href="#852" id="852">852</a>
+<a href="#853" id="853">853</a>
+<a href="#854" id="854">854</a>
+<a href="#855" id="855">855</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
@@ -782,8 +860,9 @@
     process_prekey_bundle, DeviceId, ProtocolStore, SenderCertificate,
     SenderKeyStore, SignalProtocolError,
 };
-<span class="kw">use </span>log::{debug, info, trace};
 <span class="kw">use </span>rand::{CryptoRng, Rng};
+<span class="kw">use </span>tracing::{info, trace};
+<span class="kw">use </span>tracing_futures::Instrument;
 <span class="kw">use </span>uuid::Uuid;
 
 <span class="kw">use crate</span>::{
@@ -838,6 +917,7 @@
 <span class="doccomment">/// Attachment specification to be used for uploading.
 ///
 /// Loose equivalent of Java&#39;s `SignalServiceAttachmentStream`.
+</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>AttachmentSpec {
     <span class="kw">pub </span>content_type: String,
     <span class="kw">pub </span>length: usize,
@@ -927,6 +1007,7 @@
     <span class="doccomment">/// Encrypts and uploads an attachment
     ///
     /// Contents are accepted as an owned, plain text Vec, because encryption happens in-place.
+    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, contents), fields(size = contents.len()))]
     </span><span class="kw">pub async fn </span>upload_attachment(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         spec: AttachmentSpec,
@@ -956,7 +1037,7 @@
             )
         };
         <span class="kw">if </span>padded_len &lt; len {
-            <span class="macro">log::error!</span>(
+            <span class="macro">tracing::error!</span>(
                 <span class="string">&quot;Padded len {} &lt; len {}. Continuing with a privacy risk.&quot;</span>,
                 padded_len,
                 len
@@ -965,19 +1046,20 @@
             contents.resize(padded_len, <span class="number">0</span>);
         }
 
-        <span class="kw">crate</span>::attachment_cipher::encrypt_in_place(iv, key, <span class="kw-2">&amp;mut </span>contents);
+        <span class="macro">tracing::trace_span!</span>(<span class="string">&quot;encrypting attachment&quot;</span>).in_scope(|| {
+            <span class="kw">crate</span>::attachment_cipher::encrypt_in_place(iv, key, <span class="kw-2">&amp;mut </span>contents)
+        });
 
         <span class="comment">// Request upload attributes
-        </span><span class="macro">log::trace!</span>(<span class="string">&quot;Requesting upload attributes&quot;</span>);
-        <span class="kw">let </span>attrs = <span class="self">self
+        </span><span class="kw">let </span>attrs = <span class="self">self
             </span>.identified_ws
             .get_attachment_v2_upload_attributes()
+            .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">&quot;requesting upload attributes&quot;</span>))
             .<span class="kw">await</span><span class="question-mark">?</span>;
-
-        <span class="macro">log::trace!</span>(<span class="string">&quot;Uploading attachment&quot;</span>);
         <span class="kw">let </span>(id, digest) = <span class="self">self
             </span>.service
             .upload_attachment(<span class="kw-2">&amp;</span>attrs, <span class="kw-2">&amp;mut </span>std::io::Cursor::new(<span class="kw-2">&amp;</span>contents))
+            .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">&quot;Uploading attachment&quot;</span>))
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(AttachmentPointer {
@@ -1017,6 +1099,7 @@
     <span class="doccomment">/// Upload contact details to the CDN
     ///
     /// Returns attachment ID and the attachment digest
+    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, contacts))]
     </span><span class="kw">async fn </span>upload_contact_details&lt;Contacts&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         contacts: Contacts,
@@ -1064,6 +1147,10 @@
     }
 
     <span class="doccomment">/// Send a message `content` to a single `recipient`.
+    </span><span class="attr">#[tracing::instrument(
+        skip(<span class="self">self</span>, unidentified_access, message),
+        fields(unidentified_access = unidentified_access.is_some()),
+    )]
     </span><span class="kw">pub async fn </span>send_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
@@ -1106,7 +1193,7 @@
                 ContentBody::DataMessage(message),
                 <span class="prelude-val">Ok</span>(SentMessage { needs_sync, .. }),
             ) <span class="kw">if </span><span class="kw-2">*</span>needs_sync || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>=&gt; {
-                <span class="macro">log::debug!</span>(<span class="string">&quot;sending multi-device sync message&quot;</span>);
+                <span class="macro">tracing::debug!</span>(<span class="string">&quot;sending multi-device sync message&quot;</span>);
                 <span class="kw">let </span>sync_message = <span class="self">self
                     </span>.create_multi_device_sent_transcript_content(
                         <span class="prelude-val">Some</span>(recipient),
@@ -1128,13 +1215,17 @@
 
         <span class="kw">if </span>end_session {
             <span class="kw">let </span>n = <span class="self">self</span>.protocol_store.delete_all_sessions(recipient).<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="macro">log::debug!</span>(<span class="string">&quot;ended {} sessions with {}&quot;</span>, n, recipient.uuid);
+            <span class="macro">tracing::debug!</span>(<span class="string">&quot;ended {} sessions with {}&quot;</span>, n, recipient.uuid);
         }
 
         results.remove(<span class="number">0</span>)
     }
 
     <span class="doccomment">/// Send a message to the recipients in a group.
+    </span><span class="attr">#[tracing::instrument(
+        skip(<span class="self">self</span>, recipients, message),
+        fields(recipients = recipients.as_ref().len()),
+    )]
     </span><span class="kw">pub async fn </span>send_message_to_group(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipients: <span class="kw">impl </span>AsRef&lt;[(ServiceAddress, <span class="prelude-ty">Option</span>&lt;UnidentifiedAccess&gt;)]&gt;,
@@ -1175,7 +1266,9 @@
 
         <span class="kw">if </span>needs_sync_in_results &amp;&amp; message.is_none() {
             <span class="comment">// XXX: does this happen?
-            </span><span class="macro">log::warn!</span>(<span class="string">&quot;Server claims need sync, but not sending datamessage.&quot;</span>);
+            </span><span class="macro">tracing::warn!</span>(
+                <span class="string">&quot;Server claims need sync, but not sending datamessage.&quot;
+            </span>);
         }
 
         <span class="comment">// we only need to send a synchronization message once
@@ -1207,6 +1300,11 @@
     }
 
     <span class="doccomment">/// Send a message (`content`) to an address (`recipient`).
+    </span><span class="attr">#[tracing::instrument(
+        level = <span class="string">&quot;trace&quot;</span>,
+        skip(<span class="self">self</span>, unidentified_access, content_body),
+        fields(unidentified_access = unidentified_access.is_some()),
+    )]
     </span><span class="kw">async fn </span>try_send_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: ServiceAddress,
@@ -1238,18 +1336,18 @@
             };
 
             <span class="kw">let </span>send = <span class="kw">if let </span><span class="prelude-val">Some</span>(unidentified) = <span class="kw-2">&amp;</span>unidentified_access {
-                <span class="macro">log::debug!</span>(<span class="string">&quot;sending via unidentified&quot;</span>);
+                <span class="macro">tracing::debug!</span>(<span class="string">&quot;sending via unidentified&quot;</span>);
                 <span class="self">self</span>.unidentified_ws
                     .send_messages_unidentified(messages, unidentified)
                     .<span class="kw">await
             </span>} <span class="kw">else </span>{
-                <span class="macro">log::debug!</span>(<span class="string">&quot;sending identified&quot;</span>);
+                <span class="macro">tracing::debug!</span>(<span class="string">&quot;sending identified&quot;</span>);
                 <span class="self">self</span>.identified_ws.send_messages(messages).<span class="kw">await
             </span>};
 
             <span class="kw">match </span>send {
                 <span class="prelude-val">Ok</span>(SendMessageResponse { needs_sync }) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;message sent!&quot;</span>);
+                    <span class="macro">tracing::debug!</span>(<span class="string">&quot;message sent!&quot;</span>);
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(SentMessage {
                         recipient,
                         unidentified: unidentified_access.is_some(),
@@ -1259,13 +1357,13 @@
                 <span class="prelude-val">Err</span>(ServiceError::Unauthorized)
                     <span class="kw">if </span>unidentified_access.is_some() =&gt;
                 {
-                    <span class="macro">log::trace!</span>(<span class="string">&quot;unauthorized error using unidentified; retry over identified&quot;</span>);
+                    <span class="macro">tracing::trace!</span>(<span class="string">&quot;unauthorized error using unidentified; retry over identified&quot;</span>);
                     unidentified_access = <span class="prelude-val">None</span>;
                 },
                 <span class="prelude-val">Err</span>(ServiceError::MismatchedDevicesException(<span class="kw-2">ref </span>m)) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, m);
+                    <span class="macro">tracing::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, m);
                     <span class="kw">for </span>extra_device_id <span class="kw">in </span><span class="kw-2">&amp;</span>m.extra_devices {
-                        <span class="macro">log::debug!</span>(
+                        <span class="macro">tracing::debug!</span>(
                             <span class="string">&quot;dropping session with device {}&quot;</span>,
                             extra_device_id
                         );
@@ -1278,7 +1376,7 @@
                     }
 
                     <span class="kw">for </span>missing_device_id <span class="kw">in </span><span class="kw-2">&amp;</span>m.missing_devices {
-                        <span class="macro">log::debug!</span>(
+                        <span class="macro">tracing::debug!</span>(
                             <span class="string">&quot;creating session with missing device {}&quot;</span>,
                             missing_device_id
                         );
@@ -1299,7 +1397,7 @@
                         )
                         .<span class="kw">await
                         </span>.map_err(|e| {
-                            <span class="macro">log::error!</span>(<span class="string">&quot;failed to create session: {}&quot;</span>, e);
+                            <span class="macro">tracing::error!</span>(<span class="string">&quot;failed to create session: {}&quot;</span>, e);
                             MessageSenderError::UntrustedIdentity {
                                 address: recipient,
                             }
@@ -1307,9 +1405,9 @@
                     }
                 },
                 <span class="prelude-val">Err</span>(ServiceError::StaleDevices(<span class="kw-2">ref </span>m)) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, m);
+                    <span class="macro">tracing::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, m);
                     <span class="kw">for </span>extra_device_id <span class="kw">in </span><span class="kw-2">&amp;</span>m.stale_devices {
-                        <span class="macro">log::debug!</span>(
+                        <span class="macro">tracing::debug!</span>(
                             <span class="string">&quot;dropping session with device {}&quot;</span>,
                             extra_device_id
                         );
@@ -1322,20 +1420,20 @@
                     }
                 },
                 <span class="prelude-val">Err</span>(ServiceError::ProofRequiredError(<span class="kw-2">ref </span>p)) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, p);
+                    <span class="macro">tracing::debug!</span>(<span class="string">&quot;{:?}&quot;</span>, p);
                     <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::ProofRequired {
                         token: p.token.clone(),
                         options: p.options.clone(),
                     });
                 },
                 <span class="prelude-val">Err</span>(ServiceError::NotFoundError) =&gt; {
-                    <span class="macro">log::debug!</span>(<span class="string">&quot;Not found when sending a message&quot;</span>);
+                    <span class="macro">tracing::debug!</span>(<span class="string">&quot;Not found when sending a message&quot;</span>);
                     <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::NotFound {
                         uuid: recipient.uuid,
                     });
                 },
                 <span class="prelude-val">Err</span>(e) =&gt; {
-                    <span class="macro">log::debug!</span>(
+                    <span class="macro">tracing::debug!</span>(
                         <span class="string">&quot;Default error handler for ws.send_messages: {}&quot;</span>,
                         e
                     );
@@ -1348,6 +1446,10 @@
     }
 
     <span class="doccomment">/// Upload contact details to the CDN and send a sync message
+    </span><span class="attr">#[tracing::instrument(
+        skip(<span class="self">self</span>, unidentified_access, contacts),
+        fields(unidentified_access = unidentified_access.is_some()),
+    )]
     </span><span class="kw">pub async fn </span>send_contact_details&lt;Contacts&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
@@ -1385,6 +1487,11 @@
     }
 
     <span class="comment">// Equivalent with `getEncryptedMessages`
+    </span><span class="attr">#[tracing::instrument(
+        level = <span class="string">&quot;trace&quot;</span>,
+        skip(<span class="self">self</span>, unidentified_access, content),
+        fields(unidentified_access = unidentified_access.is_some()),
+    )]
     </span><span class="kw">async fn </span>create_encrypted_messages(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
@@ -1410,16 +1517,56 @@
         }
 
         <span class="kw">for </span>device_id <span class="kw">in </span>devices {
-            <span class="macro">debug!</span>(<span class="string">&quot;sending message to device {}&quot;</span>, device_id);
-            messages.push(
-                <span class="self">self</span>.create_encrypted_message(
-                    recipient,
-                    unidentified_access,
-                    device_id,
-                    content,
-                )
-                .<span class="kw">await</span><span class="question-mark">?</span>,
-            )
+            <span class="macro">trace!</span>(<span class="string">&quot;sending message to device {}&quot;</span>, device_id);
+            <span class="comment">// `create_encrypted_message` may fail with `SessionNotFound` if the session is corrupted;
+            // see https://github.com/whisperfish/libsignal-client/commit/601454d20.
+            // If this happens, delete the session and retry.
+            </span><span class="kw">for </span>_attempt <span class="kw">in </span><span class="number">0</span>..<span class="number">2 </span>{
+                <span class="kw">match </span><span class="self">self
+                    </span>.create_encrypted_message(
+                        recipient,
+                        unidentified_access,
+                        device_id,
+                        content,
+                    )
+                    .<span class="kw">await
+                </span>{
+                    <span class="prelude-val">Ok</span>(message) =&gt; {
+                        messages.push(message);
+                        <span class="kw">break</span>;
+                    },
+                    <span class="prelude-val">Err</span>(
+                        e @ MessageSenderError::ServiceError(
+                            ServiceError::SignalProtocolError(
+                                SignalProtocolError::SessionNotFound(<span class="kw">_</span>),
+                            ),
+                        ),
+                    ) =&gt; {
+                        <span class="kw">let </span>MessageSenderError::ServiceError(
+                            ServiceError::SignalProtocolError(
+                                SignalProtocolError::SessionNotFound(addr),
+                            ),
+                        ) = <span class="kw-2">&amp;</span>e
+                        <span class="kw">else </span>{
+                            <span class="comment">// We can&#39;t bind to addr above, because we move into `e`.
+                            </span><span class="macro">unreachable!</span>()
+                        };
+                        <span class="comment">// SessionNotFound is returned on certain session corruption.
+                        // Since delete_session *creates* a session if it doesn&#39;t exist,
+                        // the NotFound error is an indicator of session corruption.
+                        // Try to delete this session, if it gets succesfully deleted, retry.  Otherwise, fail.
+                        </span><span class="macro">tracing::warn!</span>(<span class="string">&quot;Potential session corruption for {}, deleting session&quot;</span>, addr);
+                        <span class="kw">match </span><span class="self">self</span>.protocol_store.delete_session(addr).<span class="kw">await </span>{
+                            <span class="prelude-val">Ok</span>(()) =&gt; <span class="kw">continue</span>,
+                            <span class="prelude-val">Err</span>(_e) =&gt; {
+                                <span class="macro">tracing::warn!</span>(<span class="string">&quot;Failed to delete session for {}, failing message. {}&quot;</span>, addr, _e);
+                                <span class="kw">return </span><span class="prelude-val">Err</span>(e);
+                            },
+                        }
+                    },
+                    <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e),
+                }
+            }
         }
 
         <span class="prelude-val">Ok</span>(messages)
@@ -1428,6 +1575,11 @@
     <span class="doccomment">/// Equivalent to `getEncryptedMessage`
     ///
     /// When no session with the recipient exists, we need to create one.
+    </span><span class="attr">#[tracing::instrument(
+        level = <span class="string">&quot;trace&quot;</span>,
+        skip(<span class="self">self</span>, unidentified_access, content),
+        fields(unidentified_access = unidentified_access.is_some()),
+    )]
     </span><span class="kw">async fn </span>create_encrypted_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
@@ -1438,7 +1590,10 @@
         <span class="kw">let </span>recipient_protocol_address =
             recipient.to_protocol_address(device_id);
 
-        <span class="macro">log::debug!</span>(<span class="string">&quot;encrypting message for {}&quot;</span>, recipient_protocol_address);
+        <span class="macro">tracing::trace!</span>(
+            <span class="string">&quot;encrypting message for {}&quot;</span>,
+            recipient_protocol_address
+        );
 
         <span class="comment">// establish a session with the recipient/device if necessary
         // no need to establish a session with ourselves (and our own current device)
@@ -1458,7 +1613,7 @@
                 .<span class="kw">await
             </span>{
                 <span class="prelude-val">Ok</span>(ok) =&gt; {
-                    <span class="macro">log::trace!</span>(<span class="string">&quot;Get prekeys OK&quot;</span>);
+                    <span class="macro">tracing::trace!</span>(<span class="string">&quot;Get prekeys OK&quot;</span>);
                     ok
                 },
                 <span class="prelude-val">Err</span>(ServiceError::NotFoundError) =&gt; {
@@ -1499,6 +1654,7 @@
         <span class="kw">let </span>message = <span class="self">self
             </span>.cipher
             .encrypt(<span class="kw-2">&amp;</span>recipient_protocol_address, unidentified_access, content)
+            .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">&quot;encrypting message&quot;</span>))
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(message)
