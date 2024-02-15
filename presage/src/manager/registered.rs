@@ -34,6 +34,7 @@ use libsignal_service::utils::{
     serde_signaling_key,
 };
 use libsignal_service::websocket::SignalWebSocket;
+use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -47,7 +48,7 @@ use tokio::sync::Mutex;
 use crate::cache::CacheCell;
 use crate::serde::serde_profile_key;
 use crate::store::{Store, Thread};
-use crate::{Error, Manager};
+use crate::{AvatarBytes, Error, Manager};
 
 type ServiceCipher<S> = cipher::ServiceCipher<S, StdRng>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<HyperPushService, S, StdRng>;
@@ -455,6 +456,8 @@ impl<S: Store> Manager<S, Registered> {
         profile_key: ProfileKey,
     ) -> Result<Profile, Error<S::Error>> {
         // Check if profile is cached.
+        // TODO: Create a migration in the store removing all profiles.
+        // TODO: Is there some way to know if this is outdated?
         if let Some(profile) = self.store.profile(uuid, profile_key).ok().flatten() {
             return Ok(profile);
         }
@@ -466,6 +469,88 @@ impl<S: Store> Manager<S, Registered> {
 
         let _ = self.store.save_profile(uuid, profile_key, profile.clone());
         Ok(profile)
+    }
+
+    pub async fn retrieve_group_avatar(
+        &mut self,
+        context: GroupContextV2,
+    ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
+        let master_key_bytes = context
+            .master_key()
+            .try_into()
+            .expect("Master key bytes to be of size 32.");
+
+        // Check if group avatar is cached.
+        // TODO: Is there some way to know if this is outdated?
+        if let Some(avatar) = self.store.group_avatar(master_key_bytes).ok().flatten() {
+            return Ok(Some(avatar));
+        }
+
+        let mut gm = self.groups_manager()?;
+        let Some(group) = upsert_group(
+            self.store(),
+            &mut gm,
+            &context.master_key(),
+            &context.revision(),
+        )
+        .await?
+        else {
+            return Ok(None);
+        };
+
+        // Empty path means no avatar was set.
+        if group.avatar.is_empty() {
+            return Ok(None);
+        }
+
+        let avatar = gm
+            .retrieve_avatar(
+                &group.avatar,
+                GroupSecretParams::derive_from_master_key(GroupMasterKey::new(
+                    master_key_bytes.clone(),
+                )),
+            )
+            .await?;
+        if let Some(avatar) = &avatar {
+            let _ = self.store.save_group_avatar(master_key_bytes, avatar);
+        }
+        Ok(avatar)
+    }
+
+    pub async fn retrieve_profile_avatar_by_uuid(
+        &mut self,
+        uuid: Uuid,
+        profile_key: ProfileKey,
+    ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
+        // Check if profile avatar is cached.
+        // TODO: Is there some way to know if this is outdated?
+        if let Some(avatar) = self.store.profile_avatar(uuid, profile_key).ok().flatten() {
+            return Ok(Some(avatar));
+        }
+
+        let profile = if let Some(profile) = self.store.profile(uuid, profile_key).ok().flatten() {
+            profile
+        } else {
+            self.retrieve_profile_by_uuid(uuid, profile_key).await?
+        };
+
+        let Some(avatar) = profile.avatar.as_ref() else {
+            return Ok(None);
+        };
+
+        let mut service = self.unidentified_push_service();
+
+        let mut avatar_stream = service.retrieve_profile_avatar(avatar).await?;
+        // 10MB is what Signal Android allocates
+        let mut contents = Vec::with_capacity(10 * 1024 * 1024);
+        let len = avatar_stream.read_to_end(&mut contents).await?;
+        contents.truncate(len);
+
+        let cipher = ProfileCipher::from(profile_key);
+
+        let avatar = cipher.decrypt_avatar(&contents)?;
+        let _ = self.store.save_profile_avatar(uuid, profile_key, &avatar);
+        Ok(Some(avatar))
     }
 
     /// Get an iterator of messages in a thread, optionally starting from a point in time.

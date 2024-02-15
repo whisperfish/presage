@@ -20,7 +20,7 @@ use libsignal_service::{
 use log::error;
 use serde::{Deserialize, Serialize};
 
-use crate::manager::RegistrationData;
+use crate::{manager::RegistrationData, AvatarBytes};
 
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send + 'static {}
@@ -214,6 +214,19 @@ pub trait ContentsStore {
         master_key: GroupMasterKeyBytes,
     ) -> Result<Option<Group>, Self::ContentsStoreError>;
 
+    /// Save a group avatar in the cache
+    fn save_group_avatar(
+        &self,
+        master_key: GroupMasterKeyBytes,
+        avatar: &AvatarBytes,
+    ) -> Result<(), Self::ContentsStoreError>;
+
+    /// Retrieve a group avatar from the cache.
+    fn group_avatar(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
+
     // Profiles
 
     /// Insert or update the profile key of a contact
@@ -240,6 +253,21 @@ pub trait ContentsStore {
         uuid: Uuid,
         key: ProfileKey,
     ) -> Result<Option<Profile>, Self::ContentsStoreError>;
+
+    /// Save a profile avatar by [Uuid] and [ProfileKey].
+    fn save_profile_avatar(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        profile: &AvatarBytes,
+    ) -> Result<(), Self::ContentsStoreError>;
+
+    /// Retrieve a profile avatar by [Uuid] and [ProfileKey].
+    fn profile_avatar(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
 }
 
 /// The manager store trait combining all other stores into a single one
