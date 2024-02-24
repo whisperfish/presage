@@ -23,8 +23,8 @@ use libsignal_service::protocol::SenderCertificate;
 use libsignal_service::protocol::{PrivateKey, PublicKey};
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIds, WhoAmIResponse,
-    DEFAULT_DEVICE_ID,
+    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
+    WhoAmIResponse, DEFAULT_DEVICE_ID,
 };
 use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
@@ -268,21 +268,23 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
+        // TODO: Do the same for PNI once implemented upstream.
         let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
             .update_pre_key_bundle(
                 &mut self.store.clone(),
+                ServiceIdType::AccountIdentity,
                 &mut self.rng,
-                self.store.pre_keys_offset_id()?,
-                self.store.next_signed_pre_key_id()?,
-                self.store.next_pq_pre_key_id()?,
                 true,
             )
             .await?;
 
-        self.store.set_pre_keys_offset_id(pre_keys_offset_id)?;
+        self.store.set_next_pre_key_id(pre_keys_offset_id).await?;
         self.store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)?;
-        self.store.set_next_pq_pre_key_id(next_pq_pre_key_id)?;
+            .set_next_signed_pre_key_id(next_signed_pre_key_id)
+            .await?;
+        self.store
+            .set_next_pq_pre_key_id(next_pq_pre_key_id)
+            .await?;
 
         trace!("registered pre keys");
         Ok(())
@@ -719,6 +721,7 @@ impl<S: Store> Manager<S, Registered> {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
+                server_guid: None,
                 timestamp,
                 needs_receipt: false,
                 unidentified_sender: false,
@@ -823,6 +826,7 @@ impl<S: Store> Manager<S, Registered> {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci.into(),
                 sender_device: self.state.device_id(),
+                server_guid: None,
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
@@ -895,7 +899,8 @@ impl<S: Store> Manager<S, Registered> {
 
     fn credentials(&self) -> Option<ServiceCredentials> {
         Some(ServiceCredentials {
-            uuid: Some(self.state.data.service_ids.aci),
+            aci: Some(self.state.data.service_ids.aci),
+            pni: Some(self.state.data.service_ids.pni),
             phonenumber: self.state.data.phone_number.clone(),
             password: Some(self.state.data.password.clone()),
             signaling_key: Some(self.state.data.signaling_key),

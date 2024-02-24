@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
+use base64::prelude::*;
 use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
@@ -677,7 +678,8 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
 }
 
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
-    let bytes = base64::decode(s)?
+    let bytes = BASE64_STANDARD
+        .decode(s)?
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
     Ok(ProfileKey::create(bytes))
