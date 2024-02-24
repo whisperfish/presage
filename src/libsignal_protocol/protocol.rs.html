@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/protocol.rs`."><title>protocol.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/protocol.rs`."><title>protocol.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1225,7 +1226,7 @@
         serialized.push(((message_version &amp; <span class="number">0xF</span>) &lt;&lt; <span class="number">4</span>) | CIPHERTEXT_MESSAGE_CURRENT_VERSION);
         message
             .encode(<span class="kw-2">&amp;mut </span>serialized)
-            .expect(<span class="string">&quot;can always append to a buffer&quot;</span>);
+            .expect(<span class="string">"can always append to a buffer"</span>);
         <span class="kw">let </span>mac = <span class="self">Self</span>::compute_mac(
             sender_identity_key,
             receiver_identity_key,
@@ -1286,7 +1287,7 @@
         <span class="kw">if </span>!result {
             <span class="comment">// A warning instead of an error because we try multiple sessions.
             </span><span class="macro">log::warn!</span>(
-                <span class="string">&quot;Bad Mac! Their Mac: {} Our Mac: {}&quot;</span>,
+                <span class="string">"Bad Mac! Their Mac: {} Our Mac: {}"</span>,
                 hex::encode(their_mac),
                 hex::encode(our_mac)
             );
@@ -1304,7 +1305,7 @@
             <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMacKeyLength(mac_key.len()));
         }
         <span class="kw">let </span><span class="kw-2">mut </span>mac = Hmac::&lt;Sha256&gt;::new_from_slice(mac_key)
-            .expect(<span class="string">&quot;HMAC-SHA256 should accept any size key&quot;</span>);
+            .expect(<span class="string">"HMAC-SHA256 should accept any size key"</span>);
 
         mac.update(sender_identity_key.public_key().serialize().as_ref());
         mac.update(receiver_identity_key.public_key().serialize().as_ref());
@@ -1425,7 +1426,7 @@
         serialized.push(((message_version &amp; <span class="number">0xF</span>) &lt;&lt; <span class="number">4</span>) | CIPHERTEXT_MESSAGE_CURRENT_VERSION);
         proto_message
             .encode(<span class="kw-2">&amp;mut </span>serialized)
-            .expect(<span class="string">&quot;can always append to a Vec&quot;</span>);
+            .expect(<span class="string">"can always append to a Vec"</span>);
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             message_version,
             registration_id,
@@ -1543,13 +1544,13 @@
             (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
                     CiphertextMessageType::PreKey,
-                    <span class="string">&quot;Kyber pre key must be present for this session version&quot;</span>,
+                    <span class="string">"Kyber pre key must be present for this session version"</span>,
                 ));
             }
             <span class="kw">_ </span>=&gt; {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
                     CiphertextMessageType::PreKey,
-                    <span class="string">&quot;Both or neither kyber pre_key_id and kyber_ciphertext can be present&quot;</span>,
+                    <span class="string">"Both or neither kyber pre_key_id and kyber_ciphertext can be present"</span>,
                 ));
             }
         };
@@ -1602,7 +1603,7 @@
         serialized.push(((message_version &amp; <span class="number">0xF</span>) &lt;&lt; <span class="number">4</span>) | SENDERKEY_MESSAGE_CURRENT_VERSION);
         proto_message
             .encode(<span class="kw-2">&amp;mut </span>serialized)
-            .expect(<span class="string">&quot;can always append to a buffer&quot;</span>);
+            .expect(<span class="string">"can always append to a buffer"</span>);
         <span class="kw">let </span>signature = signature_key.calculate_signature(<span class="kw-2">&amp;</span>serialized, csprng)<span class="question-mark">?</span>;
         serialized.extend_from_slice(<span class="kw-2">&amp;</span>signature[..]);
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
@@ -1741,7 +1742,7 @@
         serialized.push(((message_version &amp; <span class="number">0xF</span>) &lt;&lt; <span class="number">4</span>) | SENDERKEY_MESSAGE_CURRENT_VERSION);
         proto_message
             .encode(<span class="kw-2">&amp;mut </span>serialized)
-            .expect(<span class="string">&quot;can always append to a buffer&quot;</span>);
+            .expect(<span class="string">"can always append to a buffer"</span>);
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             message_version,
@@ -1864,14 +1865,14 @@
 <span class="kw">impl </span>PlaintextContent {
     <span class="doccomment">/// Identifies a serialized PlaintextContent.
     ///
-    /// This ensures someone doesn&#39;t try to serialize an arbitrary Content message as
+    /// This ensures someone doesn't try to serialize an arbitrary Content message as
     /// PlaintextContent; only messages that are okay to send as plaintext should be allowed.
     </span><span class="kw">const </span>PLAINTEXT_CONTEXT_IDENTIFIER_BYTE: u8 = <span class="number">0xC0</span>;
 
     <span class="doccomment">/// Marks the end of a message and the start of any padding.
     ///
     /// Usually messages are padded to avoid exposing patterns,
-    /// but PlaintextContent messages are all fixed-length anyway, so there won&#39;t be any padding.
+    /// but PlaintextContent messages are all fixed-length anyway, so there won't be any padding.
     </span><span class="kw">const </span>PADDING_BOUNDARY_BYTE: u8 = <span class="number">0x80</span>;
 
     <span class="attr">#[inline]
@@ -1894,7 +1895,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>serialized = <span class="macro">vec!</span>[<span class="self">Self</span>::PLAINTEXT_CONTEXT_IDENTIFIER_BYTE];
         proto_structure
             .encode(<span class="kw-2">&amp;mut </span>serialized)
-            .expect(<span class="string">&quot;can always encode to a Vec&quot;</span>);
+            .expect(<span class="string">"can always encode to a Vec"</span>);
         serialized.push(<span class="self">Self</span>::PADDING_BOUNDARY_BYTE);
         <span class="self">Self </span>{
             serialized: Box::from(serialized),
@@ -1947,7 +1948,7 @@
             CiphertextMessageType::SenderKey =&gt; <span class="prelude-val">None</span>,
             CiphertextMessageType::Plaintext =&gt; {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidArgument(
-                    <span class="string">&quot;cannot create a DecryptionErrorMessage for plaintext content; it is not encrypted&quot;</span>.to_string()
+                    <span class="string">"cannot create a DecryptionErrorMessage for plaintext content; it is not encrypted"</span>.to_string()
                 ));
             }
         };
@@ -2018,14 +2019,14 @@
     <span class="kw">if </span>bytes.last() != <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>PlaintextContent::PADDING_BOUNDARY_BYTE) {
         <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidProtobufEncoding);
     }
-    <span class="kw">let </span>content = proto::service::Content::decode(bytes.split_last().expect(<span class="string">&quot;checked above&quot;</span>).<span class="number">1</span>)
+    <span class="kw">let </span>content = proto::service::Content::decode(bytes.split_last().expect(<span class="string">"checked above"</span>).<span class="number">1</span>)
         .map_err(|<span class="kw">_</span>| SignalProtocolError::InvalidProtobufEncoding)<span class="question-mark">?</span>;
     content
         .decryption_error_message
         .as_deref()
         .ok_or_else(|| {
             SignalProtocolError::InvalidArgument(
-                <span class="string">&quot;Content does not contain DecryptionErrorMessage&quot;</span>.to_owned(),
+                <span class="string">"Content does not contain DecryptionErrorMessage"</span>.to_owned(),
             )
         })
         .and_then(DecryptionErrorMessage::try_from)
@@ -2081,7 +2082,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>csprng = OsRng;
         <span class="kw">let </span>message = create_signal_message(<span class="kw-2">&amp;mut </span>csprng)<span class="question-mark">?</span>;
         <span class="kw">let </span>deser_message =
-            SignalMessage::try_from(message.as_ref()).expect(<span class="string">&quot;should deserialize without error&quot;</span>);
+            SignalMessage::try_from(message.as_ref()).expect(<span class="string">"should deserialize without error"</span>);
         assert_signal_message_equals(<span class="kw-2">&amp;</span>message, <span class="kw-2">&amp;</span>deser_message);
         <span class="prelude-val">Ok</span>(())
     }
@@ -2104,7 +2105,7 @@
         )<span class="question-mark">?</span>;
         <span class="kw">let </span>deser_pre_key_signal_message =
             PreKeySignalMessage::try_from(pre_key_signal_message.as_ref())
-                .expect(<span class="string">&quot;should deserialize without error&quot;</span>);
+                .expect(<span class="string">"should deserialize without error"</span>);
         <span class="macro">assert_eq!</span>(
             pre_key_signal_message.message_version,
             deser_pre_key_signal_message.message_version
@@ -2154,7 +2155,7 @@
             <span class="kw-2">&amp;</span>signature_key_pair.private_key,
         )<span class="question-mark">?</span>;
         <span class="kw">let </span>deser_sender_key_message = SenderKeyMessage::try_from(sender_key_message.as_ref())
-            .expect(<span class="string">&quot;should deserialize without error&quot;</span>);
+            .expect(<span class="string">"should deserialize without error"</span>);
         <span class="macro">assert_eq!</span>(
             sender_key_message.message_version,
             deser_sender_key_message.message_version
@@ -2235,7 +2236,7 @@
             Uuid::nil(),
             <span class="number">1</span>,
             <span class="number">2</span>,
-            Box::from(<span class="string">b&quot;test&quot;</span>.to_owned()),
+            Box::from(<span class="string">b"test"</span>.to_owned()),
             <span class="kw-2">&amp;mut </span>csprng,
             <span class="kw-2">&amp;</span>base_key_pair.private_key,
         )<span class="question-mark">?</span>;

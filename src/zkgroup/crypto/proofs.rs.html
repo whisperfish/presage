@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/crypto/proofs.rs`."><title>proofs.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/crypto/proofs.rs`."><title>proofs.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1475,7 +1476,7 @@
 <span class="doccomment">/// Deprecated; use [ExpiringProfileKeyCredentialPresentationProof] instead.
 ///
 /// Kept around so that v1 ProfileKeyCredentialPresentations can still be deserialized,
-/// even though they can&#39;t be verified.
+/// even though they can't be verified.
 </span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
 </span><span class="kw">pub struct </span>ProfileKeyCredentialPresentationProofV1 {
     C_x0: RistrettoPoint,
@@ -1492,7 +1493,7 @@
 <span class="doccomment">/// Deprecated; use [ExpiringProfileKeyCredentialPresentationProof] instead.
 ///
 /// Kept around so that v2 ProfileKeyCredentialPresentations can still be deserialized,
-/// even though they can&#39;t be verified.
+/// even though they can't be verified.
 </span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
 </span><span class="kw">pub struct </span>ProfileKeyCredentialPresentationProofV2 {
     C_x0: RistrettoPoint,
@@ -1532,26 +1533,26 @@
 <span class="kw">impl </span>AuthCredentialIssuanceProof {
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
-        st.add(<span class="string">&quot;C_W&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>), (<span class="string">&quot;wprime&quot;</span>, <span class="string">&quot;G_wprime&quot;</span>)]);
+        st.add(<span class="string">"C_W"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"w"</span>, <span class="string">"G_w"</span>), (<span class="string">"wprime"</span>, <span class="string">"G_wprime"</span>)]);
         st.add(
-            <span class="string">&quot;G_V-I&quot;</span>,
+            <span class="string">"G_V-I"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;G_x1&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;G_y1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;G_y2&quot;</span>),
-                (<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;G_y3&quot;</span>),
+                (<span class="string">"x0"</span>, <span class="string">"G_x0"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"G_x1"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"G_y1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"G_y2"</span>),
+                (<span class="string">"y3"</span>, <span class="string">"G_y3"</span>),
             ],
         );
         st.add(
-            <span class="string">&quot;V&quot;</span>,
+            <span class="string">"V"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>),
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;U&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;tU&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;M1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;M2&quot;</span>),
-                (<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;M3&quot;</span>),
+                (<span class="string">"w"</span>, <span class="string">"G_w"</span>),
+                (<span class="string">"x0"</span>, <span class="string">"U"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"tU"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"M1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"M2"</span>),
+                (<span class="string">"y3"</span>, <span class="string">"M3"</span>),
             ],
         );
         st
@@ -1569,30 +1570,30 @@
         <span class="kw">let </span>M = credentials::convert_to_points_uid_struct(uid, redemption_time);
 
         <span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;w&quot;</span>, key_pair.w);
-        scalar_args.add(<span class="string">&quot;wprime&quot;</span>, key_pair.wprime);
-        scalar_args.add(<span class="string">&quot;x0&quot;</span>, key_pair.x0);
-        scalar_args.add(<span class="string">&quot;x1&quot;</span>, key_pair.x1);
-        scalar_args.add(<span class="string">&quot;y1&quot;</span>, key_pair.y[<span class="number">1</span>]);
-        scalar_args.add(<span class="string">&quot;y2&quot;</span>, key_pair.y[<span class="number">2</span>]);
-        scalar_args.add(<span class="string">&quot;y3&quot;</span>, key_pair.y[<span class="number">3</span>]);
+        scalar_args.add(<span class="string">"w"</span>, key_pair.w);
+        scalar_args.add(<span class="string">"wprime"</span>, key_pair.wprime);
+        scalar_args.add(<span class="string">"x0"</span>, key_pair.x0);
+        scalar_args.add(<span class="string">"x1"</span>, key_pair.x1);
+        scalar_args.add(<span class="string">"y1"</span>, key_pair.y[<span class="number">1</span>]);
+        scalar_args.add(<span class="string">"y2"</span>, key_pair.y[<span class="number">2</span>]);
+        scalar_args.add(<span class="string">"y3"</span>, key_pair.y[<span class="number">3</span>]);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, key_pair.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, system.G_V - key_pair.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;V&quot;</span>, credential.V);
-        point_args.add(<span class="string">&quot;U&quot;</span>, credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, credential.t * credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, M[<span class="number">0</span>]);
-        point_args.add(<span class="string">&quot;M2&quot;</span>, M[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;M3&quot;</span>, M[<span class="number">2</span>]);
+        point_args.add(<span class="string">"C_W"</span>, key_pair.C_W);
+        point_args.add(<span class="string">"G_w"</span>, system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, system.G_V - key_pair.I);
+        point_args.add(<span class="string">"G_x0"</span>, system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"G_y3"</span>, system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"V"</span>, credential.V);
+        point_args.add(<span class="string">"U"</span>, credential.U);
+        point_args.add(<span class="string">"tU"</span>, credential.t * credential.U);
+        point_args.add(<span class="string">"M1"</span>, M[<span class="number">0</span>]);
+        point_args.add(<span class="string">"M2"</span>, M[<span class="number">1</span>]);
+        point_args.add(<span class="string">"M3"</span>, M[<span class="number">2</span>]);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -1617,21 +1618,21 @@
         <span class="kw">let </span>M = credentials::convert_to_points_uid_struct(uid_struct, redemption_time);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, public_key.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, system.G_V - public_key.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;V&quot;</span>, credential.V);
-        point_args.add(<span class="string">&quot;U&quot;</span>, credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, credential.t * credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, M[<span class="number">0</span>]);
-        point_args.add(<span class="string">&quot;M2&quot;</span>, M[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;M3&quot;</span>, M[<span class="number">2</span>]);
+        point_args.add(<span class="string">"C_W"</span>, public_key.C_W);
+        point_args.add(<span class="string">"G_w"</span>, system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, system.G_V - public_key.I);
+        point_args.add(<span class="string">"G_x0"</span>, system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"G_y3"</span>, system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"V"</span>, credential.V);
+        point_args.add(<span class="string">"U"</span>, credential.U);
+        point_args.add(<span class="string">"tU"</span>, credential.t * credential.U);
+        point_args.add(<span class="string">"M1"</span>, M[<span class="number">0</span>]);
+        point_args.add(<span class="string">"M2"</span>, M[<span class="number">1</span>]);
+        point_args.add(<span class="string">"M3"</span>, M[<span class="number">2</span>]);
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(<span class="kw-2">&amp;</span><span class="self">self</span>.poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -1643,30 +1644,30 @@
 <span class="kw">impl </span>AuthCredentialWithPniIssuanceProof {
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
-        st.add(<span class="string">&quot;C_W&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>), (<span class="string">&quot;wprime&quot;</span>, <span class="string">&quot;G_wprime&quot;</span>)]);
+        st.add(<span class="string">"C_W"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"w"</span>, <span class="string">"G_w"</span>), (<span class="string">"wprime"</span>, <span class="string">"G_wprime"</span>)]);
         st.add(
-            <span class="string">&quot;G_V-I&quot;</span>,
+            <span class="string">"G_V-I"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;G_x1&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;G_y1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;G_y2&quot;</span>),
-                (<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;G_y3&quot;</span>),
-                (<span class="string">&quot;y4&quot;</span>, <span class="string">&quot;G_y4&quot;</span>),
-                (<span class="string">&quot;y5&quot;</span>, <span class="string">&quot;G_y5&quot;</span>),
+                (<span class="string">"x0"</span>, <span class="string">"G_x0"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"G_x1"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"G_y1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"G_y2"</span>),
+                (<span class="string">"y3"</span>, <span class="string">"G_y3"</span>),
+                (<span class="string">"y4"</span>, <span class="string">"G_y4"</span>),
+                (<span class="string">"y5"</span>, <span class="string">"G_y5"</span>),
             ],
         );
         st.add(
-            <span class="string">&quot;V&quot;</span>,
+            <span class="string">"V"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>),
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;U&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;tU&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;M1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;M2&quot;</span>),
-                (<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;M3&quot;</span>),
-                (<span class="string">&quot;y4&quot;</span>, <span class="string">&quot;M4&quot;</span>),
-                (<span class="string">&quot;y5&quot;</span>, <span class="string">&quot;M5&quot;</span>),
+                (<span class="string">"w"</span>, <span class="string">"G_w"</span>),
+                (<span class="string">"x0"</span>, <span class="string">"U"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"tU"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"M1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"M2"</span>),
+                (<span class="string">"y3"</span>, <span class="string">"M3"</span>),
+                (<span class="string">"y4"</span>, <span class="string">"M4"</span>),
+                (<span class="string">"y5"</span>, <span class="string">"M5"</span>),
             ],
         );
         st
@@ -1689,36 +1690,36 @@
         ));
 
         <span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;w&quot;</span>, key_pair.w);
-        scalar_args.add(<span class="string">&quot;wprime&quot;</span>, key_pair.wprime);
-        scalar_args.add(<span class="string">&quot;x0&quot;</span>, key_pair.x0);
-        scalar_args.add(<span class="string">&quot;x1&quot;</span>, key_pair.x1);
-        scalar_args.add(<span class="string">&quot;y1&quot;</span>, key_pair.y[<span class="number">1</span>]);
-        scalar_args.add(<span class="string">&quot;y2&quot;</span>, key_pair.y[<span class="number">2</span>]);
-        scalar_args.add(<span class="string">&quot;y3&quot;</span>, key_pair.y[<span class="number">3</span>]);
-        scalar_args.add(<span class="string">&quot;y4&quot;</span>, key_pair.y[<span class="number">4</span>]);
-        scalar_args.add(<span class="string">&quot;y5&quot;</span>, key_pair.y[<span class="number">5</span>]);
+        scalar_args.add(<span class="string">"w"</span>, key_pair.w);
+        scalar_args.add(<span class="string">"wprime"</span>, key_pair.wprime);
+        scalar_args.add(<span class="string">"x0"</span>, key_pair.x0);
+        scalar_args.add(<span class="string">"x1"</span>, key_pair.x1);
+        scalar_args.add(<span class="string">"y1"</span>, key_pair.y[<span class="number">1</span>]);
+        scalar_args.add(<span class="string">"y2"</span>, key_pair.y[<span class="number">2</span>]);
+        scalar_args.add(<span class="string">"y3"</span>, key_pair.y[<span class="number">3</span>]);
+        scalar_args.add(<span class="string">"y4"</span>, key_pair.y[<span class="number">4</span>]);
+        scalar_args.add(<span class="string">"y5"</span>, key_pair.y[<span class="number">5</span>]);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, key_pair.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, system.G_V - key_pair.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;G_y5&quot;</span>, system.G_y[<span class="number">5</span>]);
-        point_args.add(<span class="string">&quot;V&quot;</span>, credential.V);
-        point_args.add(<span class="string">&quot;U&quot;</span>, credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, credential.t * credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, M[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;M2&quot;</span>, M[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;M3&quot;</span>, M[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;M4&quot;</span>, M[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;M5&quot;</span>, M[<span class="number">5</span>]);
+        point_args.add(<span class="string">"C_W"</span>, key_pair.C_W);
+        point_args.add(<span class="string">"G_w"</span>, system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, system.G_V - key_pair.I);
+        point_args.add(<span class="string">"G_x0"</span>, system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"G_y3"</span>, system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"G_y4"</span>, system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"G_y5"</span>, system.G_y[<span class="number">5</span>]);
+        point_args.add(<span class="string">"V"</span>, credential.V);
+        point_args.add(<span class="string">"U"</span>, credential.U);
+        point_args.add(<span class="string">"tU"</span>, credential.t * credential.U);
+        point_args.add(<span class="string">"M1"</span>, M[<span class="number">1</span>]);
+        point_args.add(<span class="string">"M2"</span>, M[<span class="number">2</span>]);
+        point_args.add(<span class="string">"M3"</span>, M[<span class="number">3</span>]);
+        point_args.add(<span class="string">"M4"</span>, M[<span class="number">4</span>]);
+        point_args.add(<span class="string">"M5"</span>, M[<span class="number">5</span>]);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -1748,25 +1749,25 @@
         ));
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, public_key.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, system.G_V - public_key.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;G_y5&quot;</span>, system.G_y[<span class="number">5</span>]);
-        point_args.add(<span class="string">&quot;V&quot;</span>, credential.V);
-        point_args.add(<span class="string">&quot;U&quot;</span>, credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, credential.t * credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, M[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;M2&quot;</span>, M[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;M3&quot;</span>, M[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;M4&quot;</span>, M[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;M5&quot;</span>, M[<span class="number">5</span>]);
+        point_args.add(<span class="string">"C_W"</span>, public_key.C_W);
+        point_args.add(<span class="string">"G_w"</span>, system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, system.G_V - public_key.I);
+        point_args.add(<span class="string">"G_x0"</span>, system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"G_y3"</span>, system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"G_y4"</span>, system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"G_y5"</span>, system.G_y[<span class="number">5</span>]);
+        point_args.add(<span class="string">"V"</span>, credential.V);
+        point_args.add(<span class="string">"U"</span>, credential.U);
+        point_args.add(<span class="string">"tU"</span>, credential.t * credential.U);
+        point_args.add(<span class="string">"M1"</span>, M[<span class="number">1</span>]);
+        point_args.add(<span class="string">"M2"</span>, M[<span class="number">2</span>]);
+        point_args.add(<span class="string">"M3"</span>, M[<span class="number">3</span>]);
+        point_args.add(<span class="string">"M4"</span>, M[<span class="number">4</span>]);
+        point_args.add(<span class="string">"M5"</span>, M[<span class="number">5</span>]);
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(<span class="kw-2">&amp;</span><span class="self">self</span>.poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -1778,12 +1779,12 @@
 <span class="kw">impl </span>ProfileKeyCredentialRequestProof {
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
-        st.add(<span class="string">&quot;Y&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;y&quot;</span>, <span class="string">&quot;G&quot;</span>)]);
-        st.add(<span class="string">&quot;D1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;r1&quot;</span>, <span class="string">&quot;G&quot;</span>)]);
-        st.add(<span class="string">&quot;E1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;r2&quot;</span>, <span class="string">&quot;G&quot;</span>)]);
-        st.add(<span class="string">&quot;J3&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;j3&quot;</span>, <span class="string">&quot;G_j3&quot;</span>)]);
-        st.add(<span class="string">&quot;D2-J1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;r1&quot;</span>, <span class="string">&quot;Y&quot;</span>), (<span class="string">&quot;j3&quot;</span>, <span class="string">&quot;-G_j1&quot;</span>)]);
-        st.add(<span class="string">&quot;E2-J2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;r2&quot;</span>, <span class="string">&quot;Y&quot;</span>), (<span class="string">&quot;j3&quot;</span>, <span class="string">&quot;-G_j2&quot;</span>)]);
+        st.add(<span class="string">"Y"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"y"</span>, <span class="string">"G"</span>)]);
+        st.add(<span class="string">"D1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"r1"</span>, <span class="string">"G"</span>)]);
+        st.add(<span class="string">"E1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"r2"</span>, <span class="string">"G"</span>)]);
+        st.add(<span class="string">"J3"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"j3"</span>, <span class="string">"G_j3"</span>)]);
+        st.add(<span class="string">"D2-J1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"r1"</span>, <span class="string">"Y"</span>), (<span class="string">"j3"</span>, <span class="string">"-G_j1"</span>)]);
+        st.add(<span class="string">"E2-J2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"r2"</span>, <span class="string">"Y"</span>), (<span class="string">"j3"</span>, <span class="string">"-G_j2"</span>)]);
         st
     }
 
@@ -1796,21 +1797,21 @@
         <span class="kw">let </span>commitment_system = profile_key_commitment::SystemParams::get_hardcoded();
 
         <span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;y&quot;</span>, key_pair.y);
-        scalar_args.add(<span class="string">&quot;r1&quot;</span>, ciphertext.r1);
-        scalar_args.add(<span class="string">&quot;r2&quot;</span>, ciphertext.r2);
-        scalar_args.add(<span class="string">&quot;j3&quot;</span>, commitment.j3);
+        scalar_args.add(<span class="string">"y"</span>, key_pair.y);
+        scalar_args.add(<span class="string">"r1"</span>, ciphertext.r1);
+        scalar_args.add(<span class="string">"r2"</span>, ciphertext.r2);
+        scalar_args.add(<span class="string">"j3"</span>, commitment.j3);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Y&quot;</span>, key_pair.Y);
-        point_args.add(<span class="string">&quot;D1&quot;</span>, ciphertext.D1);
-        point_args.add(<span class="string">&quot;E1&quot;</span>, ciphertext.E1);
-        point_args.add(<span class="string">&quot;J3&quot;</span>, commitment.J3);
-        point_args.add(<span class="string">&quot;G_j3&quot;</span>, commitment_system.G_j3);
-        point_args.add(<span class="string">&quot;D2-J1&quot;</span>, ciphertext.D2 - commitment.J1);
-        point_args.add(<span class="string">&quot;-G_j1&quot;</span>, -commitment_system.G_j1);
-        point_args.add(<span class="string">&quot;E2-J2&quot;</span>, ciphertext.E2 - commitment.J2);
-        point_args.add(<span class="string">&quot;-G_j2&quot;</span>, -commitment_system.G_j2);
+        point_args.add(<span class="string">"Y"</span>, key_pair.Y);
+        point_args.add(<span class="string">"D1"</span>, ciphertext.D1);
+        point_args.add(<span class="string">"E1"</span>, ciphertext.E1);
+        point_args.add(<span class="string">"J3"</span>, commitment.J3);
+        point_args.add(<span class="string">"G_j3"</span>, commitment_system.G_j3);
+        point_args.add(<span class="string">"D2-J1"</span>, ciphertext.D2 - commitment.J1);
+        point_args.add(<span class="string">"-G_j1"</span>, -commitment_system.G_j1);
+        point_args.add(<span class="string">"E2-J2"</span>, ciphertext.E2 - commitment.J2);
+        point_args.add(<span class="string">"-G_j2"</span>, -commitment_system.G_j2);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -1832,15 +1833,15 @@
         <span class="kw">let </span>commitment_system = profile_key_commitment::SystemParams::get_hardcoded();
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Y&quot;</span>, public_key.Y);
-        point_args.add(<span class="string">&quot;D1&quot;</span>, ciphertext.D1);
-        point_args.add(<span class="string">&quot;E1&quot;</span>, ciphertext.E1);
-        point_args.add(<span class="string">&quot;J3&quot;</span>, commitment.J3);
-        point_args.add(<span class="string">&quot;G_j3&quot;</span>, commitment_system.G_j3);
-        point_args.add(<span class="string">&quot;D2-J1&quot;</span>, ciphertext.D2 - commitment.J1);
-        point_args.add(<span class="string">&quot;-G_j1&quot;</span>, -commitment_system.G_j1);
-        point_args.add(<span class="string">&quot;E2-J2&quot;</span>, ciphertext.E2 - commitment.J2);
-        point_args.add(<span class="string">&quot;-G_j2&quot;</span>, -commitment_system.G_j2);
+        point_args.add(<span class="string">"Y"</span>, public_key.Y);
+        point_args.add(<span class="string">"D1"</span>, ciphertext.D1);
+        point_args.add(<span class="string">"E1"</span>, ciphertext.E1);
+        point_args.add(<span class="string">"J3"</span>, commitment.J3);
+        point_args.add(<span class="string">"G_j3"</span>, commitment_system.G_j3);
+        point_args.add(<span class="string">"D2-J1"</span>, ciphertext.D2 - commitment.J1);
+        point_args.add(<span class="string">"-G_j1"</span>, -commitment_system.G_j1);
+        point_args.add(<span class="string">"E2-J2"</span>, ciphertext.E2 - commitment.J2);
+        point_args.add(<span class="string">"-G_j2"</span>, -commitment_system.G_j2);
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(<span class="kw-2">&amp;</span><span class="self">self</span>.poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -1852,32 +1853,32 @@
 <span class="kw">impl </span>ExpiringProfileKeyCredentialIssuanceProof {
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
-        st.add(<span class="string">&quot;C_W&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>), (<span class="string">&quot;wprime&quot;</span>, <span class="string">&quot;G_wprime&quot;</span>)]);
+        st.add(<span class="string">"C_W"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"w"</span>, <span class="string">"G_w"</span>), (<span class="string">"wprime"</span>, <span class="string">"G_wprime"</span>)]);
         st.add(
-            <span class="string">&quot;G_V-I&quot;</span>,
+            <span class="string">"G_V-I"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;G_x1&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;G_y1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;G_y2&quot;</span>),
-                (<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;G_y3&quot;</span>),
-                (<span class="string">&quot;y4&quot;</span>, <span class="string">&quot;G_y4&quot;</span>),
-                (<span class="string">&quot;y5&quot;</span>, <span class="string">&quot;G_y5&quot;</span>),
+                (<span class="string">"x0"</span>, <span class="string">"G_x0"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"G_x1"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"G_y1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"G_y2"</span>),
+                (<span class="string">"y3"</span>, <span class="string">"G_y3"</span>),
+                (<span class="string">"y4"</span>, <span class="string">"G_y4"</span>),
+                (<span class="string">"y5"</span>, <span class="string">"G_y5"</span>),
             ],
         );
-        st.add(<span class="string">&quot;S1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;D1&quot;</span>), (<span class="string">&quot;y4&quot;</span>, <span class="string">&quot;E1&quot;</span>), (<span class="string">&quot;rprime&quot;</span>, <span class="string">&quot;G&quot;</span>)]);
+        st.add(<span class="string">"S1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"y3"</span>, <span class="string">"D1"</span>), (<span class="string">"y4"</span>, <span class="string">"E1"</span>), (<span class="string">"rprime"</span>, <span class="string">"G"</span>)]);
         st.add(
-            <span class="string">&quot;S2&quot;</span>,
+            <span class="string">"S2"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;y3&quot;</span>, <span class="string">&quot;D2&quot;</span>),
-                (<span class="string">&quot;y4&quot;</span>, <span class="string">&quot;E2&quot;</span>),
-                (<span class="string">&quot;rprime&quot;</span>, <span class="string">&quot;Y&quot;</span>),
-                (<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>),
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;U&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;tU&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;M1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;M2&quot;</span>),
-                (<span class="string">&quot;y5&quot;</span>, <span class="string">&quot;M5&quot;</span>),
+                (<span class="string">"y3"</span>, <span class="string">"D2"</span>),
+                (<span class="string">"y4"</span>, <span class="string">"E2"</span>),
+                (<span class="string">"rprime"</span>, <span class="string">"Y"</span>),
+                (<span class="string">"w"</span>, <span class="string">"G_w"</span>),
+                (<span class="string">"x0"</span>, <span class="string">"U"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"tU"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"M1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"M2"</span>),
+                (<span class="string">"y5"</span>, <span class="string">"M5"</span>),
             ],
         );
         st
@@ -1898,41 +1899,41 @@
         <span class="kw">let </span>M5 = m5 * credentials_system.G_m5;
 
         <span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;w&quot;</span>, key_pair.w);
-        scalar_args.add(<span class="string">&quot;wprime&quot;</span>, key_pair.wprime);
-        scalar_args.add(<span class="string">&quot;x0&quot;</span>, key_pair.x0);
-        scalar_args.add(<span class="string">&quot;x1&quot;</span>, key_pair.x1);
-        scalar_args.add(<span class="string">&quot;y1&quot;</span>, key_pair.y[<span class="number">1</span>]);
-        scalar_args.add(<span class="string">&quot;y2&quot;</span>, key_pair.y[<span class="number">2</span>]);
-        scalar_args.add(<span class="string">&quot;y3&quot;</span>, key_pair.y[<span class="number">3</span>]);
-        scalar_args.add(<span class="string">&quot;y4&quot;</span>, key_pair.y[<span class="number">4</span>]);
-        scalar_args.add(<span class="string">&quot;y5&quot;</span>, key_pair.y[<span class="number">5</span>]);
-        scalar_args.add(<span class="string">&quot;rprime&quot;</span>, blinded_credential.rprime);
+        scalar_args.add(<span class="string">"w"</span>, key_pair.w);
+        scalar_args.add(<span class="string">"wprime"</span>, key_pair.wprime);
+        scalar_args.add(<span class="string">"x0"</span>, key_pair.x0);
+        scalar_args.add(<span class="string">"x1"</span>, key_pair.x1);
+        scalar_args.add(<span class="string">"y1"</span>, key_pair.y[<span class="number">1</span>]);
+        scalar_args.add(<span class="string">"y2"</span>, key_pair.y[<span class="number">2</span>]);
+        scalar_args.add(<span class="string">"y3"</span>, key_pair.y[<span class="number">3</span>]);
+        scalar_args.add(<span class="string">"y4"</span>, key_pair.y[<span class="number">4</span>]);
+        scalar_args.add(<span class="string">"y5"</span>, key_pair.y[<span class="number">5</span>]);
+        scalar_args.add(<span class="string">"rprime"</span>, blinded_credential.rprime);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, key_pair.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, credentials_system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, credentials_system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, credentials_system.G_V - key_pair.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;G_y5&quot;</span>, credentials_system.G_y[<span class="number">5</span>]);
-        point_args.add(<span class="string">&quot;S1&quot;</span>, blinded_credential.S1);
-        point_args.add(<span class="string">&quot;D1&quot;</span>, request.D1);
-        point_args.add(<span class="string">&quot;E1&quot;</span>, request.E1);
-        point_args.add(<span class="string">&quot;S2&quot;</span>, blinded_credential.S2);
-        point_args.add(<span class="string">&quot;D2&quot;</span>, request.D2);
-        point_args.add(<span class="string">&quot;E2&quot;</span>, request.E2);
-        point_args.add(<span class="string">&quot;Y&quot;</span>, request_public_key.Y);
-        point_args.add(<span class="string">&quot;U&quot;</span>, blinded_credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, blinded_credential.t * blinded_credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, uid.M1);
-        point_args.add(<span class="string">&quot;M2&quot;</span>, uid.M2);
-        point_args.add(<span class="string">&quot;M5&quot;</span>, M5);
+        point_args.add(<span class="string">"C_W"</span>, key_pair.C_W);
+        point_args.add(<span class="string">"G_w"</span>, credentials_system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, credentials_system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, credentials_system.G_V - key_pair.I);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"G_y5"</span>, credentials_system.G_y[<span class="number">5</span>]);
+        point_args.add(<span class="string">"S1"</span>, blinded_credential.S1);
+        point_args.add(<span class="string">"D1"</span>, request.D1);
+        point_args.add(<span class="string">"E1"</span>, request.E1);
+        point_args.add(<span class="string">"S2"</span>, blinded_credential.S2);
+        point_args.add(<span class="string">"D2"</span>, request.D2);
+        point_args.add(<span class="string">"E2"</span>, request.E2);
+        point_args.add(<span class="string">"Y"</span>, request_public_key.Y);
+        point_args.add(<span class="string">"U"</span>, blinded_credential.U);
+        point_args.add(<span class="string">"tU"</span>, blinded_credential.t * blinded_credential.U);
+        point_args.add(<span class="string">"M1"</span>, uid.M1);
+        point_args.add(<span class="string">"M2"</span>, uid.M2);
+        point_args.add(<span class="string">"M5"</span>, M5);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -1962,29 +1963,29 @@
         <span class="kw">let </span>M5 = m5 * credentials_system.G_m5;
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, credentials_public_key.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, credentials_system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, credentials_system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, credentials_system.G_V - credentials_public_key.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;G_y5&quot;</span>, credentials_system.G_y[<span class="number">5</span>]);
-        point_args.add(<span class="string">&quot;S1&quot;</span>, blinded_credential.S1);
-        point_args.add(<span class="string">&quot;D1&quot;</span>, request.D1);
-        point_args.add(<span class="string">&quot;E1&quot;</span>, request.E1);
-        point_args.add(<span class="string">&quot;S2&quot;</span>, blinded_credential.S2);
-        point_args.add(<span class="string">&quot;D2&quot;</span>, request.D2);
-        point_args.add(<span class="string">&quot;E2&quot;</span>, request.E2);
-        point_args.add(<span class="string">&quot;Y&quot;</span>, request_public_key.Y);
-        point_args.add(<span class="string">&quot;U&quot;</span>, blinded_credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, blinded_credential.t * blinded_credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, uid.M1);
-        point_args.add(<span class="string">&quot;M2&quot;</span>, uid.M2);
-        point_args.add(<span class="string">&quot;M5&quot;</span>, M5);
+        point_args.add(<span class="string">"C_W"</span>, credentials_public_key.C_W);
+        point_args.add(<span class="string">"G_w"</span>, credentials_system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, credentials_system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, credentials_system.G_V - credentials_public_key.I);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"G_y5"</span>, credentials_system.G_y[<span class="number">5</span>]);
+        point_args.add(<span class="string">"S1"</span>, blinded_credential.S1);
+        point_args.add(<span class="string">"D1"</span>, request.D1);
+        point_args.add(<span class="string">"E1"</span>, request.E1);
+        point_args.add(<span class="string">"S2"</span>, blinded_credential.S2);
+        point_args.add(<span class="string">"D2"</span>, request.D2);
+        point_args.add(<span class="string">"E2"</span>, request.E2);
+        point_args.add(<span class="string">"Y"</span>, request_public_key.Y);
+        point_args.add(<span class="string">"U"</span>, blinded_credential.U);
+        point_args.add(<span class="string">"tU"</span>, blinded_credential.t * blinded_credential.U);
+        point_args.add(<span class="string">"M1"</span>, uid.M1);
+        point_args.add(<span class="string">"M2"</span>, uid.M2);
+        point_args.add(<span class="string">"M5"</span>, M5);
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(<span class="kw-2">&amp;</span><span class="self">self</span>.poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -1997,26 +1998,26 @@
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
 
-        st.add(<span class="string">&quot;C_W&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>), (<span class="string">&quot;wprime&quot;</span>, <span class="string">&quot;G_wprime&quot;</span>)]);
+        st.add(<span class="string">"C_W"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"w"</span>, <span class="string">"G_w"</span>), (<span class="string">"wprime"</span>, <span class="string">"G_wprime"</span>)]);
         st.add(
-            <span class="string">&quot;G_V-I&quot;</span>,
+            <span class="string">"G_V-I"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;G_x1&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;G_y1&quot;</span>),
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;G_y2&quot;</span>),
+                (<span class="string">"x0"</span>, <span class="string">"G_x0"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"G_x1"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"G_y1"</span>),
+                (<span class="string">"y2"</span>, <span class="string">"G_y2"</span>),
             ],
         );
-        st.add(<span class="string">&quot;S1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;D1&quot;</span>), (<span class="string">&quot;rprime&quot;</span>, <span class="string">&quot;G&quot;</span>)]);
+        st.add(<span class="string">"S1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"y2"</span>, <span class="string">"D1"</span>), (<span class="string">"rprime"</span>, <span class="string">"G"</span>)]);
         st.add(
-            <span class="string">&quot;S2&quot;</span>,
+            <span class="string">"S2"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;y2&quot;</span>, <span class="string">&quot;D2&quot;</span>),
-                (<span class="string">&quot;rprime&quot;</span>, <span class="string">&quot;Y&quot;</span>),
-                (<span class="string">&quot;w&quot;</span>, <span class="string">&quot;G_w&quot;</span>),
-                (<span class="string">&quot;x0&quot;</span>, <span class="string">&quot;U&quot;</span>),
-                (<span class="string">&quot;x1&quot;</span>, <span class="string">&quot;tU&quot;</span>),
-                (<span class="string">&quot;y1&quot;</span>, <span class="string">&quot;M1&quot;</span>),
+                (<span class="string">"y2"</span>, <span class="string">"D2"</span>),
+                (<span class="string">"rprime"</span>, <span class="string">"Y"</span>),
+                (<span class="string">"w"</span>, <span class="string">"G_w"</span>),
+                (<span class="string">"x0"</span>, <span class="string">"U"</span>),
+                (<span class="string">"x1"</span>, <span class="string">"tU"</span>),
+                (<span class="string">"y1"</span>, <span class="string">"M1"</span>),
             ],
         );
         st
@@ -2036,31 +2037,31 @@
         <span class="kw">let </span>m1 = ReceiptStruct::calc_m1_from(receipt_expiration_time, receipt_level);
 
         <span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;w&quot;</span>, key_pair.w);
-        scalar_args.add(<span class="string">&quot;wprime&quot;</span>, key_pair.wprime);
-        scalar_args.add(<span class="string">&quot;x0&quot;</span>, key_pair.x0);
-        scalar_args.add(<span class="string">&quot;x1&quot;</span>, key_pair.x1);
-        scalar_args.add(<span class="string">&quot;y1&quot;</span>, key_pair.y[<span class="number">1</span>]);
-        scalar_args.add(<span class="string">&quot;y2&quot;</span>, key_pair.y[<span class="number">2</span>]);
-        scalar_args.add(<span class="string">&quot;rprime&quot;</span>, blinded_credential.rprime);
+        scalar_args.add(<span class="string">"w"</span>, key_pair.w);
+        scalar_args.add(<span class="string">"wprime"</span>, key_pair.wprime);
+        scalar_args.add(<span class="string">"x0"</span>, key_pair.x0);
+        scalar_args.add(<span class="string">"x1"</span>, key_pair.x1);
+        scalar_args.add(<span class="string">"y1"</span>, key_pair.y[<span class="number">1</span>]);
+        scalar_args.add(<span class="string">"y2"</span>, key_pair.y[<span class="number">2</span>]);
+        scalar_args.add(<span class="string">"rprime"</span>, blinded_credential.rprime);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, key_pair.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, credentials_system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, credentials_system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, credentials_system.G_V - key_pair.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;S1&quot;</span>, blinded_credential.S1);
-        point_args.add(<span class="string">&quot;D1&quot;</span>, request.D1);
-        point_args.add(<span class="string">&quot;S2&quot;</span>, blinded_credential.S2);
-        point_args.add(<span class="string">&quot;D2&quot;</span>, request.D2);
-        point_args.add(<span class="string">&quot;Y&quot;</span>, request_public_key.Y);
-        point_args.add(<span class="string">&quot;U&quot;</span>, blinded_credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, blinded_credential.t * blinded_credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, m1 * credentials_system.G_m1);
+        point_args.add(<span class="string">"C_W"</span>, key_pair.C_W);
+        point_args.add(<span class="string">"G_w"</span>, credentials_system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, credentials_system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, credentials_system.G_V - key_pair.I);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"S1"</span>, blinded_credential.S1);
+        point_args.add(<span class="string">"D1"</span>, request.D1);
+        point_args.add(<span class="string">"S2"</span>, blinded_credential.S2);
+        point_args.add(<span class="string">"D2"</span>, request.D2);
+        point_args.add(<span class="string">"Y"</span>, request_public_key.Y);
+        point_args.add(<span class="string">"U"</span>, blinded_credential.U);
+        point_args.add(<span class="string">"tU"</span>, blinded_credential.t * blinded_credential.U);
+        point_args.add(<span class="string">"M1"</span>, m1 * credentials_system.G_m1);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -2086,22 +2087,22 @@
         <span class="kw">let </span>M = credentials::convert_to_points_receipt_struct(receipt_struct);
 
         <span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;C_W&quot;</span>, credentials_public_key.C_W);
-        point_args.add(<span class="string">&quot;G_w&quot;</span>, credentials_system.G_w);
-        point_args.add(<span class="string">&quot;G_wprime&quot;</span>, credentials_system.G_wprime);
-        point_args.add(<span class="string">&quot;G_V-I&quot;</span>, credentials_system.G_V - credentials_public_key.I);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;S1&quot;</span>, blinded_credential.S1);
-        point_args.add(<span class="string">&quot;D1&quot;</span>, request.D1);
-        point_args.add(<span class="string">&quot;S2&quot;</span>, blinded_credential.S2);
-        point_args.add(<span class="string">&quot;D2&quot;</span>, request.D2);
-        point_args.add(<span class="string">&quot;Y&quot;</span>, request_public_key.Y);
-        point_args.add(<span class="string">&quot;U&quot;</span>, blinded_credential.U);
-        point_args.add(<span class="string">&quot;tU&quot;</span>, blinded_credential.t * blinded_credential.U);
-        point_args.add(<span class="string">&quot;M1&quot;</span>, M[<span class="number">0</span>]);
+        point_args.add(<span class="string">"C_W"</span>, credentials_public_key.C_W);
+        point_args.add(<span class="string">"G_w"</span>, credentials_system.G_w);
+        point_args.add(<span class="string">"G_wprime"</span>, credentials_system.G_wprime);
+        point_args.add(<span class="string">"G_V-I"</span>, credentials_system.G_V - credentials_public_key.I);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"S1"</span>, blinded_credential.S1);
+        point_args.add(<span class="string">"D1"</span>, request.D1);
+        point_args.add(<span class="string">"S2"</span>, blinded_credential.S2);
+        point_args.add(<span class="string">"D2"</span>, request.D2);
+        point_args.add(<span class="string">"Y"</span>, request_public_key.Y);
+        point_args.add(<span class="string">"U"</span>, blinded_credential.U);
+        point_args.add(<span class="string">"tU"</span>, blinded_credential.t * blinded_credential.U);
+        point_args.add(<span class="string">"M1"</span>, M[<span class="number">0</span>]);
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(<span class="kw-2">&amp;</span><span class="self">self</span>.poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -2114,11 +2115,11 @@
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
 
-        st.add(<span class="string">&quot;Z&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;I&quot;</span>)]);
-        st.add(<span class="string">&quot;C_x1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;t&quot;</span>, <span class="string">&quot;C_x0&quot;</span>), (<span class="string">&quot;z0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>), (<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_x1&quot;</span>)]);
-        st.add(<span class="string">&quot;A&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;G_a1&quot;</span>), (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;G_a2&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y2&quot;</span>), (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;-E_A1&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y3&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y3&quot;</span>)]);
+        st.add(<span class="string">"Z"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"I"</span>)]);
+        st.add(<span class="string">"C_x1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"t"</span>, <span class="string">"C_x0"</span>), (<span class="string">"z0"</span>, <span class="string">"G_x0"</span>), (<span class="string">"z"</span>, <span class="string">"G_x1"</span>)]);
+        st.add(<span class="string">"A"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"a1"</span>, <span class="string">"G_a1"</span>), (<span class="string">"a2"</span>, <span class="string">"G_a2"</span>)]);
+        st.add(<span class="string">"C_y2-E_A2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y2"</span>), (<span class="string">"a2"</span>, <span class="string">"-E_A1"</span>)]);
+        st.add(<span class="string">"C_y3"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y3"</span>)]);
         st
     }
 
@@ -2153,29 +2154,29 @@
 
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;z&quot;</span>, z);
-        scalar_args.add(<span class="string">&quot;t&quot;</span>, credential.t);
-        scalar_args.add(<span class="string">&quot;z0&quot;</span>, z0);
-        scalar_args.add(<span class="string">&quot;a1&quot;</span>, uid_enc_key_pair.a1);
-        scalar_args.add(<span class="string">&quot;a2&quot;</span>, uid_enc_key_pair.a2);
-        <span class="comment">//scalar_args.add(&quot;z1&quot;, z1);
+        scalar_args.add(<span class="string">"z"</span>, z);
+        scalar_args.add(<span class="string">"t"</span>, credential.t);
+        scalar_args.add(<span class="string">"z0"</span>, z0);
+        scalar_args.add(<span class="string">"a1"</span>, uid_enc_key_pair.a1);
+        scalar_args.add(<span class="string">"a2"</span>, uid_enc_key_pair.a2);
+        <span class="comment">//scalar_args.add("z1", z1);
 
         // Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;A&quot;</span>, uid_enc_key_pair.A);
-        point_args.add(<span class="string">&quot;G_a1&quot;</span>, uid_system.G_a1);
-        point_args.add(<span class="string">&quot;G_a2&quot;</span>, uid_system.G_a2);
-        point_args.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, C_y2 - uid_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;-E_A1&quot;</span>, -uid_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y3&quot;</span>, C_y3);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"A"</span>, uid_enc_key_pair.A);
+        point_args.add(<span class="string">"G_a1"</span>, uid_system.G_a1);
+        point_args.add(<span class="string">"G_a2"</span>, uid_system.G_a2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y3"</span>, C_y3);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -2234,24 +2235,24 @@
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;A&quot;</span>, uid_enc_public_key.A);
-        point_args.add(<span class="string">&quot;G_a1&quot;</span>, enc_system.G_a1);
-        point_args.add(<span class="string">&quot;G_a2&quot;</span>, enc_system.G_a2);
-        point_args.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, C_y2 - uid_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;-E_A1&quot;</span>, -uid_ciphertext.E_A1);
-        <span class="comment">//point_args.add(&quot;E_A1&quot;, uid_ciphertext.E_A1);
-        //point_args.add(&quot;C_y1&quot;, C_y1);
-        //point_args.add(&quot;G_y1&quot;, credentials_system.G_y[1]);
-        </span>point_args.add(<span class="string">&quot;C_y3&quot;</span>, C_y3);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        <span class="comment">//point_args.add(&quot;0&quot;, RistrettoPoint::identity());
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"A"</span>, uid_enc_public_key.A);
+        point_args.add(<span class="string">"G_a1"</span>, enc_system.G_a1);
+        point_args.add(<span class="string">"G_a2"</span>, enc_system.G_a2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
+        <span class="comment">//point_args.add("E_A1", uid_ciphertext.E_A1);
+        //point_args.add("C_y1", C_y1);
+        //point_args.add("G_y1", credentials_system.G_y[1]);
+        </span>point_args.add(<span class="string">"C_y3"</span>, C_y3);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        <span class="comment">//point_args.add("0", RistrettoPoint::identity());
 
         </span><span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -2263,14 +2264,14 @@
 <span class="kw">impl </span>AuthCredentialWithPniPresentationProof {
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
-        st.add(<span class="string">&quot;Z&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;I&quot;</span>)]);
-        st.add(<span class="string">&quot;C_x1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;t&quot;</span>, <span class="string">&quot;C_x0&quot;</span>), (<span class="string">&quot;z0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>), (<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_x1&quot;</span>)]);
-        st.add(<span class="string">&quot;A&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;G_a1&quot;</span>), (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;G_a2&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y2&quot;</span>), (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;-E_A1&quot;</span>)]);
-        st.add(<span class="string">&quot;E_A1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;C_y1&quot;</span>), (<span class="string">&quot;z1&quot;</span>, <span class="string">&quot;G_y1&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y4-E_B2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y4&quot;</span>), (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;-E_B1&quot;</span>)]);
-        st.add(<span class="string">&quot;E_B1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;C_y3&quot;</span>), (<span class="string">&quot;z1&quot;</span>, <span class="string">&quot;G_y3&quot;</span>)]);
-        st.add(<span class="string">&quot;0&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z1&quot;</span>, <span class="string">&quot;I&quot;</span>), (<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;Z&quot;</span>)]);
+        st.add(<span class="string">"Z"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"I"</span>)]);
+        st.add(<span class="string">"C_x1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"t"</span>, <span class="string">"C_x0"</span>), (<span class="string">"z0"</span>, <span class="string">"G_x0"</span>), (<span class="string">"z"</span>, <span class="string">"G_x1"</span>)]);
+        st.add(<span class="string">"A"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"a1"</span>, <span class="string">"G_a1"</span>), (<span class="string">"a2"</span>, <span class="string">"G_a2"</span>)]);
+        st.add(<span class="string">"C_y2-E_A2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y2"</span>), (<span class="string">"a2"</span>, <span class="string">"-E_A1"</span>)]);
+        st.add(<span class="string">"E_A1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"a1"</span>, <span class="string">"C_y1"</span>), (<span class="string">"z1"</span>, <span class="string">"G_y1"</span>)]);
+        st.add(<span class="string">"C_y4-E_B2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y4"</span>), (<span class="string">"a2"</span>, <span class="string">"-E_B1"</span>)]);
+        st.add(<span class="string">"E_B1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"a1"</span>, <span class="string">"C_y3"</span>), (<span class="string">"z1"</span>, <span class="string">"G_y3"</span>)]);
+        st.add(<span class="string">"0"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z1"</span>, <span class="string">"I"</span>), (<span class="string">"a1"</span>, <span class="string">"Z"</span>)]);
         st
     }
 
@@ -2314,41 +2315,41 @@
 
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;z&quot;</span>, z);
-        scalar_args.add(<span class="string">&quot;t&quot;</span>, credential.t);
-        scalar_args.add(<span class="string">&quot;z0&quot;</span>, z0);
-        scalar_args.add(<span class="string">&quot;a1&quot;</span>, uid_enc_key_pair.a1);
-        scalar_args.add(<span class="string">&quot;a2&quot;</span>, uid_enc_key_pair.a2);
-        scalar_args.add(<span class="string">&quot;z1&quot;</span>, z1);
+        scalar_args.add(<span class="string">"z"</span>, z);
+        scalar_args.add(<span class="string">"t"</span>, credential.t);
+        scalar_args.add(<span class="string">"z0"</span>, z0);
+        scalar_args.add(<span class="string">"a1"</span>, uid_enc_key_pair.a1);
+        scalar_args.add(<span class="string">"a2"</span>, uid_enc_key_pair.a2);
+        scalar_args.add(<span class="string">"z1"</span>, z1);
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
 
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">&quot;A&quot;</span>, uid_enc_key_pair.A);
-        point_args.add(<span class="string">&quot;G_a1&quot;</span>, uid_system.G_a1);
-        point_args.add(<span class="string">&quot;G_a2&quot;</span>, uid_system.G_a2);
+        point_args.add(<span class="string">"A"</span>, uid_enc_key_pair.A);
+        point_args.add(<span class="string">"G_a1"</span>, uid_system.G_a1);
+        point_args.add(<span class="string">"G_a2"</span>, uid_system.G_a2);
 
-        point_args.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, C_y2 - aci_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;-E_A1&quot;</span>, -aci_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;E_A1&quot;</span>, aci_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y1&quot;</span>, C_y1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - aci_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"-E_A1"</span>, -aci_ciphertext.E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, aci_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y1"</span>, C_y1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">&quot;C_y4-E_B2&quot;</span>, C_y4 - pni_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;-E_B1&quot;</span>, -pni_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;E_B1&quot;</span>, pni_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y3&quot;</span>, C_y3);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;0&quot;</span>, RistrettoPoint::identity());
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - pni_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"-E_B1"</span>, -pni_ciphertext.E_A1);
+        point_args.add(<span class="string">"E_B1"</span>, pni_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y3"</span>, C_y3);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -2421,31 +2422,31 @@
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">&quot;A&quot;</span>, uid_enc_public_key.A);
-        point_args.add(<span class="string">&quot;G_a1&quot;</span>, uid_enc_system.G_a1);
-        point_args.add(<span class="string">&quot;G_a2&quot;</span>, uid_enc_system.G_a2);
+        point_args.add(<span class="string">"A"</span>, uid_enc_public_key.A);
+        point_args.add(<span class="string">"G_a1"</span>, uid_enc_system.G_a1);
+        point_args.add(<span class="string">"G_a2"</span>, uid_enc_system.G_a2);
 
-        point_args.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, C_y2 - aci_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;-E_A1&quot;</span>, -aci_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;E_A1&quot;</span>, aci_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y1&quot;</span>, C_y1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - aci_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"-E_A1"</span>, -aci_ciphertext.E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, aci_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y1"</span>, C_y1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">&quot;C_y4-E_B2&quot;</span>, C_y4 - pni_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;-E_B1&quot;</span>, -pni_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;E_B1&quot;</span>, pni_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y3&quot;</span>, C_y3);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;0&quot;</span>, RistrettoPoint::identity());
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - pni_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"-E_B1"</span>, -pni_ciphertext.E_A1);
+        point_args.add(<span class="string">"E_B1"</span>, pni_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y3"</span>, C_y3);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -2473,23 +2474,23 @@
 <span class="kw">impl </span>ExpiringProfileKeyCredentialPresentationProof {
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
-        st.add(<span class="string">&quot;Z&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;I&quot;</span>)]);
-        st.add(<span class="string">&quot;C_x1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;t&quot;</span>, <span class="string">&quot;C_x0&quot;</span>), (<span class="string">&quot;z0&quot;</span>, <span class="string">&quot;G_x0&quot;</span>), (<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_x1&quot;</span>)]);
+        st.add(<span class="string">"Z"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"I"</span>)]);
+        st.add(<span class="string">"C_x1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"t"</span>, <span class="string">"C_x0"</span>), (<span class="string">"z0"</span>, <span class="string">"G_x0"</span>), (<span class="string">"z"</span>, <span class="string">"G_x1"</span>)]);
         st.add(
-            <span class="string">&quot;A+B&quot;</span>,
+            <span class="string">"A+B"</span>,
             <span class="kw-2">&amp;</span>[
-                (<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;G_a1&quot;</span>),
-                (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;G_a2&quot;</span>),
-                (<span class="string">&quot;b1&quot;</span>, <span class="string">&quot;G_b1&quot;</span>),
-                (<span class="string">&quot;b2&quot;</span>, <span class="string">&quot;G_b2&quot;</span>),
+                (<span class="string">"a1"</span>, <span class="string">"G_a1"</span>),
+                (<span class="string">"a2"</span>, <span class="string">"G_a2"</span>),
+                (<span class="string">"b1"</span>, <span class="string">"G_b1"</span>),
+                (<span class="string">"b2"</span>, <span class="string">"G_b2"</span>),
             ],
         );
-        st.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y2&quot;</span>), (<span class="string">&quot;a2&quot;</span>, <span class="string">&quot;-E_A1&quot;</span>)]);
-        st.add(<span class="string">&quot;E_A1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;C_y1&quot;</span>), (<span class="string">&quot;z1&quot;</span>, <span class="string">&quot;G_y1&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y4-E_B2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y4&quot;</span>), (<span class="string">&quot;b2&quot;</span>, <span class="string">&quot;-E_B1&quot;</span>)]);
-        st.add(<span class="string">&quot;E_B1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;b1&quot;</span>, <span class="string">&quot;C_y3&quot;</span>), (<span class="string">&quot;z2&quot;</span>, <span class="string">&quot;G_y3&quot;</span>)]);
-        st.add(<span class="string">&quot;0&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z1&quot;</span>, <span class="string">&quot;I&quot;</span>), (<span class="string">&quot;a1&quot;</span>, <span class="string">&quot;Z&quot;</span>)]);
-        st.add(<span class="string">&quot;0&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z2&quot;</span>, <span class="string">&quot;I&quot;</span>), (<span class="string">&quot;b1&quot;</span>, <span class="string">&quot;Z&quot;</span>)]);
+        st.add(<span class="string">"C_y2-E_A2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y2"</span>), (<span class="string">"a2"</span>, <span class="string">"-E_A1"</span>)]);
+        st.add(<span class="string">"E_A1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"a1"</span>, <span class="string">"C_y1"</span>), (<span class="string">"z1"</span>, <span class="string">"G_y1"</span>)]);
+        st.add(<span class="string">"C_y4-E_B2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y4"</span>), (<span class="string">"b2"</span>, <span class="string">"-E_B1"</span>)]);
+        st.add(<span class="string">"E_B1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"b1"</span>, <span class="string">"C_y3"</span>), (<span class="string">"z2"</span>, <span class="string">"G_y3"</span>)]);
+        st.add(<span class="string">"0"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z1"</span>, <span class="string">"I"</span>), (<span class="string">"a1"</span>, <span class="string">"Z"</span>)]);
+        st.add(<span class="string">"0"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z2"</span>, <span class="string">"I"</span>), (<span class="string">"b1"</span>, <span class="string">"Z"</span>)]);
         st
     }
 
@@ -2533,46 +2534,46 @@
 
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;z&quot;</span>, z);
-        scalar_args.add(<span class="string">&quot;t&quot;</span>, credential.t);
-        scalar_args.add(<span class="string">&quot;z0&quot;</span>, z0);
-        scalar_args.add(<span class="string">&quot;a1&quot;</span>, uid_enc_key_pair.a1);
-        scalar_args.add(<span class="string">&quot;a2&quot;</span>, uid_enc_key_pair.a2);
-        scalar_args.add(<span class="string">&quot;b1&quot;</span>, profile_key_enc_key_pair.b1);
-        scalar_args.add(<span class="string">&quot;b2&quot;</span>, profile_key_enc_key_pair.b2);
-        scalar_args.add(<span class="string">&quot;z1&quot;</span>, z1);
-        scalar_args.add(<span class="string">&quot;z2&quot;</span>, z2);
+        scalar_args.add(<span class="string">"z"</span>, z);
+        scalar_args.add(<span class="string">"t"</span>, credential.t);
+        scalar_args.add(<span class="string">"z0"</span>, z0);
+        scalar_args.add(<span class="string">"a1"</span>, uid_enc_key_pair.a1);
+        scalar_args.add(<span class="string">"a2"</span>, uid_enc_key_pair.a2);
+        scalar_args.add(<span class="string">"b1"</span>, profile_key_enc_key_pair.b1);
+        scalar_args.add(<span class="string">"b2"</span>, profile_key_enc_key_pair.b2);
+        scalar_args.add(<span class="string">"z1"</span>, z1);
+        scalar_args.add(<span class="string">"z2"</span>, z2);
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
 
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">&quot;A+B&quot;</span>, uid_enc_key_pair.A + profile_key_enc_key_pair.B);
-        point_args.add(<span class="string">&quot;G_a1&quot;</span>, uid_system.G_a1);
-        point_args.add(<span class="string">&quot;G_a2&quot;</span>, uid_system.G_a2);
-        point_args.add(<span class="string">&quot;G_b1&quot;</span>, profile_key_system.G_b1);
-        point_args.add(<span class="string">&quot;G_b2&quot;</span>, profile_key_system.G_b2);
+        point_args.add(<span class="string">"A+B"</span>, uid_enc_key_pair.A + profile_key_enc_key_pair.B);
+        point_args.add(<span class="string">"G_a1"</span>, uid_system.G_a1);
+        point_args.add(<span class="string">"G_a2"</span>, uid_system.G_a2);
+        point_args.add(<span class="string">"G_b1"</span>, profile_key_system.G_b1);
+        point_args.add(<span class="string">"G_b2"</span>, profile_key_system.G_b2);
 
-        point_args.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, C_y2 - uid_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;-E_A1&quot;</span>, -uid_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;E_A1&quot;</span>, uid_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y1&quot;</span>, C_y1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y1"</span>, C_y1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">&quot;C_y4-E_B2&quot;</span>, C_y4 - profile_key_ciphertext.E_B2);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;-E_B1&quot;</span>, -profile_key_ciphertext.E_B1);
-        point_args.add(<span class="string">&quot;E_B1&quot;</span>, profile_key_ciphertext.E_B1);
-        point_args.add(<span class="string">&quot;C_y3&quot;</span>, C_y3);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;0&quot;</span>, RistrettoPoint::identity());
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - profile_key_ciphertext.E_B2);
+        point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"-E_B1"</span>, -profile_key_ciphertext.E_B1);
+        point_args.add(<span class="string">"E_B1"</span>, profile_key_ciphertext.E_B1);
+        point_args.add(<span class="string">"C_y3"</span>, C_y3);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -2648,33 +2649,33 @@
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">&quot;A+B&quot;</span>, uid_enc_public_key.A + profile_key_enc_public_key.B);
-        point_args.add(<span class="string">&quot;G_a1&quot;</span>, uid_enc_system.G_a1);
-        point_args.add(<span class="string">&quot;G_a2&quot;</span>, uid_enc_system.G_a2);
-        point_args.add(<span class="string">&quot;G_b1&quot;</span>, profile_key_enc_system.G_b1);
-        point_args.add(<span class="string">&quot;G_b2&quot;</span>, profile_key_enc_system.G_b2);
+        point_args.add(<span class="string">"A+B"</span>, uid_enc_public_key.A + profile_key_enc_public_key.B);
+        point_args.add(<span class="string">"G_a1"</span>, uid_enc_system.G_a1);
+        point_args.add(<span class="string">"G_a2"</span>, uid_enc_system.G_a2);
+        point_args.add(<span class="string">"G_b1"</span>, profile_key_enc_system.G_b1);
+        point_args.add(<span class="string">"G_b2"</span>, profile_key_enc_system.G_b2);
 
-        point_args.add(<span class="string">&quot;C_y2-E_A2&quot;</span>, C_y2 - uid_ciphertext.E_A2);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">&quot;-E_A1&quot;</span>, -uid_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;E_A1&quot;</span>, uid_ciphertext.E_A1);
-        point_args.add(<span class="string">&quot;C_y1&quot;</span>, C_y1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"C_y1"</span>, C_y1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">&quot;C_y4-E_B2&quot;</span>, C_y4 - profile_key_ciphertext.E_B2);
-        point_args.add(<span class="string">&quot;G_y4&quot;</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">&quot;-E_B1&quot;</span>, -profile_key_ciphertext.E_B1);
-        point_args.add(<span class="string">&quot;E_B1&quot;</span>, profile_key_ciphertext.E_B1);
-        point_args.add(<span class="string">&quot;C_y3&quot;</span>, C_y3);
-        point_args.add(<span class="string">&quot;G_y3&quot;</span>, credentials_system.G_y[<span class="number">3</span>]);
-        point_args.add(<span class="string">&quot;0&quot;</span>, RistrettoPoint::identity());
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - profile_key_ciphertext.E_B2);
+        point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
+        point_args.add(<span class="string">"-E_B1"</span>, -profile_key_ciphertext.E_B1);
+        point_args.add(<span class="string">"E_B1"</span>, profile_key_ciphertext.E_B1);
+        point_args.add(<span class="string">"C_y3"</span>, C_y3);
+        point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
+        point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
@@ -2687,10 +2688,10 @@
     <span class="kw">pub fn </span>get_poksho_statement() -&gt; poksho::Statement {
         <span class="kw">let </span><span class="kw-2">mut </span>st = poksho::Statement::new();
 
-        st.add(<span class="string">&quot;Z&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;I&quot;</span>)]);
-        st.add(<span class="string">&quot;C_x1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;t&quot;</span>, <span class="string">&quot;C_x0&quot;</span>), (<span class="string">&quot;-zt&quot;</span>, <span class="string">&quot;G_x0&quot;</span>), (<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_x1&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y1&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y1&quot;</span>)]);
-        st.add(<span class="string">&quot;C_y2&quot;</span>, <span class="kw-2">&amp;</span>[(<span class="string">&quot;z&quot;</span>, <span class="string">&quot;G_y2&quot;</span>)]);
+        st.add(<span class="string">"Z"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"I"</span>)]);
+        st.add(<span class="string">"C_x1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"t"</span>, <span class="string">"C_x0"</span>), (<span class="string">"-zt"</span>, <span class="string">"G_x0"</span>), (<span class="string">"z"</span>, <span class="string">"G_x1"</span>)]);
+        st.add(<span class="string">"C_y1"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y1"</span>)]);
+        st.add(<span class="string">"C_y2"</span>, <span class="kw-2">&amp;</span>[(<span class="string">"z"</span>, <span class="string">"G_y2"</span>)]);
         st
     }
 
@@ -2714,22 +2715,22 @@
 
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
-        scalar_args.add(<span class="string">&quot;z&quot;</span>, z);
-        scalar_args.add(<span class="string">&quot;t&quot;</span>, credential.t);
-        scalar_args.add(<span class="string">&quot;-zt&quot;</span>, -z * credential.t);
+        scalar_args.add(<span class="string">"z"</span>, z);
+        scalar_args.add(<span class="string">"t"</span>, credential.t);
+        scalar_args.add(<span class="string">"-zt"</span>, -z * credential.t);
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_y1&quot;</span>, C_y1);
-        point_args.add(<span class="string">&quot;C_y2&quot;</span>, C_y2);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_y1"</span>, C_y1);
+        point_args.add(<span class="string">"C_y2"</span>, C_y2);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
 
         <span class="kw">let </span>poksho_proof = <span class="self">Self</span>::get_poksho_statement()
             .prove(
@@ -2781,16 +2782,16 @@
 
         <span class="comment">// Points listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>point_args = poksho::PointArgs::new();
-        point_args.add(<span class="string">&quot;Z&quot;</span>, Z);
-        point_args.add(<span class="string">&quot;I&quot;</span>, I);
-        point_args.add(<span class="string">&quot;C_x0&quot;</span>, C_x0);
-        point_args.add(<span class="string">&quot;C_x1&quot;</span>, C_x1);
-        point_args.add(<span class="string">&quot;C_y1&quot;</span>, C_y1);
-        point_args.add(<span class="string">&quot;C_y2&quot;</span>, C_y2);
-        point_args.add(<span class="string">&quot;G_x0&quot;</span>, credentials_system.G_x0);
-        point_args.add(<span class="string">&quot;G_x1&quot;</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">&quot;G_y1&quot;</span>, credentials_system.G_y[<span class="number">1</span>]);
-        point_args.add(<span class="string">&quot;G_y2&quot;</span>, credentials_system.G_y[<span class="number">2</span>]);
+        point_args.add(<span class="string">"Z"</span>, Z);
+        point_args.add(<span class="string">"I"</span>, I);
+        point_args.add(<span class="string">"C_x0"</span>, C_x0);
+        point_args.add(<span class="string">"C_x1"</span>, C_x1);
+        point_args.add(<span class="string">"C_y1"</span>, C_y1);
+        point_args.add(<span class="string">"C_y2"</span>, C_y2);
+        point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
+        point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
+        point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
+        point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
 
         <span class="kw">match </span><span class="self">Self</span>::get_poksho_statement().verify_proof(poksho_proof, <span class="kw-2">&amp;</span>point_args, <span class="kw-2">&amp;</span>[]) {
             <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),

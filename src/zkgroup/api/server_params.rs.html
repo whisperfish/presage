@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/api/server_params.rs`."><title>server_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/api/server_params.rs`."><title>server_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -852,7 +853,7 @@
 <span class="kw">impl </span>ServerSecretParams {
     <span class="kw">pub fn </span>generate(randomness: RandomnessBytes) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_Generate&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20200424_Random_ServerSecretParams_Generate"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -898,7 +899,7 @@
 
     <span class="kw">pub fn </span>sign(<span class="kw-2">&amp;</span><span class="self">self</span>, randomness: RandomnessBytes, message: <span class="kw-2">&amp;</span>[u8]) -&gt; NotarySignatureBytes {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_Sign&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20200424_Random_ServerSecretParams_Sign"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
         <span class="self">self</span>.sig_key_pair.sign(message, <span class="kw-2">&amp;mut </span>sho)
@@ -911,7 +912,7 @@
         redemption_time: CoarseRedemptionTime,
     ) -&gt; api::auth::AuthCredentialResponse {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerSecretParams_IssueAuthCredential&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20200424_Random_ServerSecretParams_IssueAuthCredential"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -942,7 +943,7 @@
         encode_pni_as_aci_for_backward_compatibility: bool,
     ) -&gt; api::auth::AuthCredentialWithPniResponse {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20220617_Random_ServerSecretParams_IssueAuthCredentialWithPni&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20220617_Random_ServerSecretParams_IssueAuthCredentialWithPni"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -995,7 +996,7 @@
     /// `redemption_time_in_seconds`.
     ///
     /// All times are relative to SystemTime::UNIX_EPOCH,
-    /// but we don&#39;t actually use SystemTime because it&#39;s too small on 32-bit Linux.
+    /// but we don't actually use SystemTime because it's too small on 32-bit Linux.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>check_auth_credential_redemption_time(
         redemption_time_in_seconds: Timestamp,
         current_time_in_seconds: Timestamp,
@@ -1140,7 +1141,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ExpiringProfileKeyCredentialResponse, ZkGroupVerificationFailure&gt;
     {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20220508_Random_ServerSecretParams_IssueExpiringProfileKeyCredential&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20220508_Random_ServerSecretParams_IssueExpiringProfileKeyCredential"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -1188,7 +1189,7 @@
         receipt_level: ReceiptLevel,
     ) -&gt; api::receipts::ReceiptCredentialResponse {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20210919_Random_ServerSecretParams_IssueReceiptCredential&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20210919_Random_ServerSecretParams_IssueReceiptCredential"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -1275,7 +1276,7 @@
         <span class="kw">let </span>aci_struct = crypto::uid_struct::UidStruct::from_service_id(aci.into());
         <span class="kw">let </span>pni_struct = <span class="kw">if </span>encode_pni_as_aci_for_backward_compatibility {
             <span class="comment">// Older AuthCredentialWithPnis used the same encoding for PNIs as ACIs.
-            // This won&#39;t match up with UuidCiphertexts that hold correctly-encoded PNIs,
+            // This won't match up with UuidCiphertexts that hold correctly-encoded PNIs,
             // but can still be used as a valid ACI credential.
             </span><span class="kw">let </span>pni_as_aci = libsignal_protocol::Aci::from(uuid::Uuid::from(pni));
             crypto::uid_struct::UidStruct::from_service_id(pni_as_aci.into())
@@ -1340,7 +1341,7 @@
         auth_credential: api::auth::AuthCredential,
     ) -&gt; api::auth::AuthCredentialPresentationV2 {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20220120_Random_ServerPublicParams_CreateAuthCredentialPresentationV2&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20220120_Random_ServerPublicParams_CreateAuthCredentialPresentationV2"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -1371,7 +1372,7 @@
         auth_credential: api::auth::AuthCredentialWithPni,
     ) -&gt; api::auth::AuthCredentialWithPniPresentation {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20220617_Random_ServerPublicParams_CreateAuthCredentialWithPniPresentation&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20220617_Random_ServerPublicParams_CreateAuthCredentialWithPniPresentation"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -1406,7 +1407,7 @@
         profile_key: api::profiles::ProfileKey,
     ) -&gt; api::profiles::ProfileKeyCredentialRequestContext {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20200424_Random_ServerPublicParams_CreateProfileKeyCredentialRequestContext&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20200424_Random_ServerPublicParams_CreateProfileKeyCredentialRequestContext"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
         <span class="kw">let </span>uid_bytes = uuid::Uuid::from(aci).into_bytes();
@@ -1485,7 +1486,7 @@
         expiring_profile_key_credential: api::profiles::ExpiringProfileKeyCredential,
     ) -&gt; api::profiles::ExpiringProfileKeyCredentialPresentation {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20220508_Random_ServerPublicParams_CreateExpiringProfileKeyCredentialPresentation&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20220508_Random_ServerPublicParams_CreateExpiringProfileKeyCredentialPresentation"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -1525,7 +1526,7 @@
         receipt_serial_bytes: ReceiptSerialBytes,
     ) -&gt; api::receipts::ReceiptCredentialRequestContext {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20210919_Random_ServerPublicParams_CreateReceiptCredentialRequestContext&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20210919_Random_ServerPublicParams_CreateReceiptCredentialRequestContext"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
 
@@ -1575,7 +1576,7 @@
         receipt_credential: <span class="kw-2">&amp;</span>api::receipts::ReceiptCredential,
     ) -&gt; api::receipts::ReceiptCredentialPresentation {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20210919_Random_ServerPublicParams_CreateReceiptCredentialPresentation&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20210919_Random_ServerPublicParams_CreateReceiptCredentialPresentation"</span>,
             <span class="kw-2">&amp;</span>randomness,
         );
         <span class="kw">let </span>proof = crypto::proofs::ReceiptCredentialPresentationProof::new(

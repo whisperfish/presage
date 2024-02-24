@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-4804bdd7c377f48d/out/signal.rs`."><title>signal.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../../../../../../../../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../../../../../../../../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../../../../../../../../../../src-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../../../../../../../../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../../../../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../../../../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-9925e96170132c12/out/signal.rs`."><title>signal.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../../../../../../../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../../../../../../../../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../../../../../../../../../../src-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../../../../../../../../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../../../../../../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../../../../../../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -551,33 +552,33 @@
 </pre></div><pre class="rust"><code><span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>AvatarUploadAttributes {
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>key: ::prost::alloc::string::String,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>credential: ::prost::alloc::string::String,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>acl: ::prost::alloc::string::String,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;4&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>algorithm: ::prost::alloc::string::String,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;5&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>date: ::prost::alloc::string::String,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;6&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"6"</span>)]
     </span><span class="kw">pub </span>policy: ::prost::alloc::string::String,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;7&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"7"</span>)]
     </span><span class="kw">pub </span>signature: ::prost::alloc::string::String,
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Member {
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(enumeration = <span class="string">&quot;member::Role&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(enumeration = <span class="string">"member::Role"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>role: i32,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>profile_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;4&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>presentation: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(uint32, tag = <span class="string">&quot;5&quot;</span>)]
+    <span class="attr">#[prost(uint32, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>joined_at_revision: u32,
 }
 <span class="doccomment">/// Nested message and enum types in `Member`.
@@ -604,19 +605,19 @@
         ///
         /// The values are not transformed in any way and thus are considered stable
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Role::Unknown =&gt; <span class="string">&quot;UNKNOWN&quot;</span>,
-                Role::Default =&gt; <span class="string">&quot;DEFAULT&quot;</span>,
-                Role::Administrator =&gt; <span class="string">&quot;ADMINISTRATOR&quot;</span>,
+                Role::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                Role::Default =&gt; <span class="string">"DEFAULT"</span>,
+                Role::Administrator =&gt; <span class="string">"ADMINISTRATOR"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
         </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
             <span class="kw">match </span>value {
-                <span class="string">&quot;UNKNOWN&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
-                <span class="string">&quot;DEFAULT&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Default),
-                <span class="string">&quot;ADMINISTRATOR&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Administrator),
+                <span class="string">"UNKNOWN" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
+                <span class="string">"DEFAULT" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Default),
+                <span class="string">"ADMINISTRATOR" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Administrator),
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
             }
         }
@@ -625,41 +626,41 @@
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>PendingMember {
-    <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>member: ::core::option::Option&lt;Member&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>added_by_user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(uint64, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(uint64, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>timestamp: u64,
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>RequestingMember {
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>profile_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>presentation: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(uint64, tag = <span class="string">&quot;4&quot;</span>)]
+    <span class="attr">#[prost(uint64, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>timestamp: u64,
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>BannedMember {
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(uint64, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(uint64, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>timestamp: u64,
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>AccessControl {
-    <span class="attr">#[prost(enumeration = <span class="string">&quot;access_control::AccessRequired&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(enumeration = <span class="string">"access_control::AccessRequired"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>attributes: i32,
-    <span class="attr">#[prost(enumeration = <span class="string">&quot;access_control::AccessRequired&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(enumeration = <span class="string">"access_control::AccessRequired"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>members: i32,
-    <span class="attr">#[prost(enumeration = <span class="string">&quot;access_control::AccessRequired&quot;</span>, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(enumeration = <span class="string">"access_control::AccessRequired"</span>, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>add_from_invite_link: i32,
 }
 <span class="doccomment">/// Nested message and enum types in `AccessControl`.
@@ -688,23 +689,23 @@
         ///
         /// The values are not transformed in any way and thus are considered stable
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                AccessRequired::Unknown =&gt; <span class="string">&quot;UNKNOWN&quot;</span>,
-                AccessRequired::Any =&gt; <span class="string">&quot;ANY&quot;</span>,
-                AccessRequired::Member =&gt; <span class="string">&quot;MEMBER&quot;</span>,
-                AccessRequired::Administrator =&gt; <span class="string">&quot;ADMINISTRATOR&quot;</span>,
-                AccessRequired::Unsatisfiable =&gt; <span class="string">&quot;UNSATISFIABLE&quot;</span>,
+                AccessRequired::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                AccessRequired::Any =&gt; <span class="string">"ANY"</span>,
+                AccessRequired::Member =&gt; <span class="string">"MEMBER"</span>,
+                AccessRequired::Administrator =&gt; <span class="string">"ADMINISTRATOR"</span>,
+                AccessRequired::Unsatisfiable =&gt; <span class="string">"UNSATISFIABLE"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
         </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
             <span class="kw">match </span>value {
-                <span class="string">&quot;UNKNOWN&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
-                <span class="string">&quot;ANY&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Any),
-                <span class="string">&quot;MEMBER&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Member),
-                <span class="string">&quot;ADMINISTRATOR&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Administrator),
-                <span class="string">&quot;UNSATISFIABLE&quot; </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unsatisfiable),
+                <span class="string">"UNKNOWN" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
+                <span class="string">"ANY" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Any),
+                <span class="string">"MEMBER" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Member),
+                <span class="string">"ADMINISTRATOR" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Administrator),
+                <span class="string">"UNSATISFIABLE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unsatisfiable),
                 <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
             }
         }
@@ -713,41 +714,41 @@
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Group {
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>public_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>title: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>avatar: ::prost::alloc::string::String,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;4&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>disappearing_messages_timer: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;5&quot;</span>)]
+    <span class="attr">#[prost(message, optional, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>access_control: ::core::option::Option&lt;AccessControl&gt;,
-    <span class="attr">#[prost(uint32, tag = <span class="string">&quot;6&quot;</span>)]
+    <span class="attr">#[prost(uint32, tag = <span class="string">"6"</span>)]
     </span><span class="kw">pub </span>revision: u32,
-    <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;7&quot;</span>)]
+    <span class="attr">#[prost(message, repeated, tag = <span class="string">"7"</span>)]
     </span><span class="kw">pub </span>members: ::prost::alloc::vec::Vec&lt;Member&gt;,
-    <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;8&quot;</span>)]
+    <span class="attr">#[prost(message, repeated, tag = <span class="string">"8"</span>)]
     </span><span class="kw">pub </span>pending_members: ::prost::alloc::vec::Vec&lt;PendingMember&gt;,
-    <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;9&quot;</span>)]
+    <span class="attr">#[prost(message, repeated, tag = <span class="string">"9"</span>)]
     </span><span class="kw">pub </span>requesting_members: ::prost::alloc::vec::Vec&lt;RequestingMember&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;10&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"10"</span>)]
     </span><span class="kw">pub </span>invite_link_password: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;11&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"11"</span>)]
     </span><span class="kw">pub </span>description: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bool, tag = <span class="string">&quot;12&quot;</span>)]
+    <span class="attr">#[prost(bool, tag = <span class="string">"12"</span>)]
     </span><span class="kw">pub </span>announcements_only: bool,
-    <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;13&quot;</span>)]
+    <span class="attr">#[prost(message, repeated, tag = <span class="string">"13"</span>)]
     </span><span class="kw">pub </span>banned_members: ::prost::alloc::vec::Vec&lt;BannedMember&gt;,
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupChange {
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>actions: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>server_signature: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(uint32, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(uint32, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>change_epoch: u32,
 }
 <span class="doccomment">/// Nested message and enum types in `GroupChange`.
@@ -755,83 +756,83 @@
     <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Actions {
-        <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+        <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>source_service_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-        <span class="attr">#[prost(uint32, tag = <span class="string">&quot;2&quot;</span>)]
+        <span class="attr">#[prost(uint32, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>revision: u32,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;3&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"3"</span>)]
         </span><span class="kw">pub </span>add_members: ::prost::alloc::vec::Vec&lt;actions::AddMemberAction&gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;4&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"4"</span>)]
         </span><span class="kw">pub </span>delete_members: ::prost::alloc::vec::Vec&lt;actions::DeleteMemberAction&gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;5&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"5"</span>)]
         </span><span class="kw">pub </span>modify_member_roles: ::prost::alloc::vec::Vec&lt;
             actions::ModifyMemberRoleAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;6&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"6"</span>)]
         </span><span class="kw">pub </span>modify_member_profile_keys: ::prost::alloc::vec::Vec&lt;
             actions::ModifyMemberProfileKeyAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;7&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"7"</span>)]
         </span><span class="kw">pub </span>add_pending_members: ::prost::alloc::vec::Vec&lt;
             actions::AddPendingMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;8&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"8"</span>)]
         </span><span class="kw">pub </span>delete_pending_members: ::prost::alloc::vec::Vec&lt;
             actions::DeletePendingMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;9&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"9"</span>)]
         </span><span class="kw">pub </span>promote_pending_members: ::prost::alloc::vec::Vec&lt;
             actions::PromotePendingMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;10&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"10"</span>)]
         </span><span class="kw">pub </span>modify_title: ::core::option::Option&lt;actions::ModifyTitleAction&gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;11&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"11"</span>)]
         </span><span class="kw">pub </span>modify_avatar: ::core::option::Option&lt;actions::ModifyAvatarAction&gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;12&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"12"</span>)]
         </span><span class="kw">pub </span>modify_disappearing_messages_timer: ::core::option::Option&lt;
             actions::ModifyDisappearingMessagesTimerAction,
         &gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;13&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"13"</span>)]
         </span><span class="kw">pub </span>modify_attributes_access: ::core::option::Option&lt;
             actions::ModifyAttributesAccessControlAction,
         &gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;14&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"14"</span>)]
         </span><span class="kw">pub </span>modify_member_access: ::core::option::Option&lt;
             actions::ModifyMembersAccessControlAction,
         &gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;15&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"15"</span>)]
         </span><span class="kw">pub </span>modify_add_from_invite_link_access: ::core::option::Option&lt;
             actions::ModifyAddFromInviteLinkAccessControlAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;16&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"16"</span>)]
         </span><span class="kw">pub </span>add_requesting_members: ::prost::alloc::vec::Vec&lt;
             actions::AddRequestingMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;17&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"17"</span>)]
         </span><span class="kw">pub </span>delete_requesting_members: ::prost::alloc::vec::Vec&lt;
             actions::DeleteRequestingMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;18&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"18"</span>)]
         </span><span class="kw">pub </span>promote_requesting_members: ::prost::alloc::vec::Vec&lt;
             actions::PromoteRequestingMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;19&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"19"</span>)]
         </span><span class="kw">pub </span>modify_invite_link_password: ::core::option::Option&lt;
             actions::ModifyInviteLinkPasswordAction,
         &gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;20&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"20"</span>)]
         </span><span class="kw">pub </span>modify_description: ::core::option::Option&lt;actions::ModifyDescriptionAction&gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;21&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"21"</span>)]
         </span><span class="kw">pub </span>modify_announcements_only: ::core::option::Option&lt;
             actions::ModifyAnnouncementsOnlyAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;22&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"22"</span>)]
         </span><span class="kw">pub </span>add_banned_members: ::prost::alloc::vec::Vec&lt;actions::AddBannedMemberAction&gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;23&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"23"</span>)]
         </span><span class="kw">pub </span>delete_banned_members: ::prost::alloc::vec::Vec&lt;
             actions::DeleteBannedMemberAction,
         &gt;,
-        <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;24&quot;</span>)]
+        <span class="attr">#[prost(message, repeated, tag = <span class="string">"24"</span>)]
         </span><span class="kw">pub </span>promote_pending_pni_aci_members: ::prost::alloc::vec::Vec&lt;
             actions::PromotePendingPniAciMemberProfileKeyAction,
         &gt;,
@@ -841,141 +842,141 @@
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>AddMemberAction {
-            <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>added: ::core::option::Option&lt;<span class="kw">super</span>::<span class="kw">super</span>::Member&gt;,
-            <span class="attr">#[prost(bool, tag = <span class="string">&quot;2&quot;</span>)]
+            <span class="attr">#[prost(bool, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>join_from_invite_link: bool,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>DeleteMemberAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>deleted_user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyMemberRoleAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-            <span class="attr">#[prost(enumeration = <span class="string">&quot;super::super::member::Role&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+            <span class="attr">#[prost(enumeration = <span class="string">"super::super::member::Role"</span>, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>role: i32,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyMemberProfileKeyAction {
             <span class="doccomment">/// Only set when sending to server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>presentation: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;3&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"3"</span>)]
             </span><span class="kw">pub </span>profile_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>AddPendingMemberAction {
-            <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>added: ::core::option::Option&lt;<span class="kw">super</span>::<span class="kw">super</span>::PendingMember&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>DeletePendingMemberAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>deleted_user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>PromotePendingMemberAction {
             <span class="doccomment">/// Only set when sending to server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>presentation: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;3&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"3"</span>)]
             </span><span class="kw">pub </span>profile_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>PromotePendingPniAciMemberProfileKeyAction {
             <span class="doccomment">/// Only set when sending to server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>presentation: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;3&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"3"</span>)]
             </span><span class="kw">pub </span>pni: ::prost::alloc::vec::Vec&lt;u8&gt;,
             <span class="doccomment">/// Only set when receiving from server
-            </span><span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;4&quot;</span>)]
+            </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"4"</span>)]
             </span><span class="kw">pub </span>profile_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>AddRequestingMemberAction {
-            <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>added: ::core::option::Option&lt;<span class="kw">super</span>::<span class="kw">super</span>::RequestingMember&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>DeleteRequestingMemberAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>deleted_user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>PromoteRequestingMemberAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
-            <span class="attr">#[prost(enumeration = <span class="string">&quot;super::super::member::Role&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+            <span class="attr">#[prost(enumeration = <span class="string">"super::super::member::Role"</span>, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>role: i32,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>AddBannedMemberAction {
-            <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>added: ::core::option::Option&lt;<span class="kw">super</span>::<span class="kw">super</span>::BannedMember&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>DeleteBannedMemberAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>deleted_user_id: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyTitleAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>title: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyDescriptionAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>description: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyAvatarAction {
-            <span class="attr">#[prost(string, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(string, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>avatar: ::prost::alloc::string::String,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyDisappearingMessagesTimerAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>timer: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyAttributesAccessControlAction {
             <span class="attr">#[prost(
-                enumeration = <span class="string">&quot;super::super::access_control::AccessRequired&quot;</span>,
-                tag = <span class="string">&quot;1&quot;
+                enumeration = <span class="string">"super::super::access_control::AccessRequired"</span>,
+                tag = <span class="string">"1"
             </span>)]
             </span><span class="kw">pub </span>attributes_access: i32,
         }
@@ -983,8 +984,8 @@
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyMembersAccessControlAction {
             <span class="attr">#[prost(
-                enumeration = <span class="string">&quot;super::super::access_control::AccessRequired&quot;</span>,
-                tag = <span class="string">&quot;1&quot;
+                enumeration = <span class="string">"super::super::access_control::AccessRequired"</span>,
+                tag = <span class="string">"1"
             </span>)]
             </span><span class="kw">pub </span>members_access: i32,
         }
@@ -992,21 +993,21 @@
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyAddFromInviteLinkAccessControlAction {
             <span class="attr">#[prost(
-                enumeration = <span class="string">&quot;super::super::access_control::AccessRequired&quot;</span>,
-                tag = <span class="string">&quot;1&quot;
+                enumeration = <span class="string">"super::super::access_control::AccessRequired"</span>,
+                tag = <span class="string">"1"
             </span>)]
             </span><span class="kw">pub </span>add_from_invite_link_access: i32,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyInviteLinkPasswordAction {
-            <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>invite_link_password: ::prost::alloc::vec::Vec&lt;u8&gt;,
         }
         <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ModifyAnnouncementsOnlyAction {
-            <span class="attr">#[prost(bool, tag = <span class="string">&quot;1&quot;</span>)]
+            <span class="attr">#[prost(bool, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>announcements_only: bool,
         }
     }
@@ -1014,7 +1015,7 @@
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupChanges {
-    <span class="attr">#[prost(message, repeated, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(message, repeated, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>group_changes: ::prost::alloc::vec::Vec&lt;group_changes::GroupChangeState&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `GroupChanges`.
@@ -1022,16 +1023,16 @@
     <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>GroupChangeState {
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;1&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>group_change: ::core::option::Option&lt;<span class="kw">super</span>::GroupChange&gt;,
-        <span class="attr">#[prost(message, optional, tag = <span class="string">&quot;2&quot;</span>)]
+        <span class="attr">#[prost(message, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>group_state: ::core::option::Option&lt;<span class="kw">super</span>::Group&gt;,
     }
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupAttributeBlob {
-    <span class="attr">#[prost(oneof = <span class="string">&quot;group_attribute_blob::Content&quot;</span>, tags = <span class="string">&quot;1, 2, 3, 4&quot;</span>)]
+    <span class="attr">#[prost(oneof = <span class="string">"group_attribute_blob::Content"</span>, tags = <span class="string">"1, 2, 3, 4"</span>)]
     </span><span class="kw">pub </span>content: ::core::option::Option&lt;group_attribute_blob::Content&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `GroupAttributeBlob`.
@@ -1039,20 +1040,20 @@
     <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>Content {
-        <span class="attr">#[prost(string, tag = <span class="string">&quot;1&quot;</span>)]
+        <span class="attr">#[prost(string, tag = <span class="string">"1"</span>)]
         </span>Title(::prost::alloc::string::String),
-        <span class="attr">#[prost(bytes, tag = <span class="string">&quot;2&quot;</span>)]
+        <span class="attr">#[prost(bytes, tag = <span class="string">"2"</span>)]
         </span>Avatar(::prost::alloc::vec::Vec&lt;u8&gt;),
-        <span class="attr">#[prost(uint32, tag = <span class="string">&quot;3&quot;</span>)]
+        <span class="attr">#[prost(uint32, tag = <span class="string">"3"</span>)]
         </span>DisappearingMessagesDuration(u32),
-        <span class="attr">#[prost(string, tag = <span class="string">&quot;4&quot;</span>)]
+        <span class="attr">#[prost(string, tag = <span class="string">"4"</span>)]
         </span>Description(::prost::alloc::string::String),
     }
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupInviteLink {
-    <span class="attr">#[prost(oneof = <span class="string">&quot;group_invite_link::Contents&quot;</span>, tags = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(oneof = <span class="string">"group_invite_link::Contents"</span>, tags = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>contents: ::core::option::Option&lt;group_invite_link::Contents&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `GroupInviteLink`.
@@ -1060,42 +1061,42 @@
     <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>GroupInviteLinkContentsV1 {
-        <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+        <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>group_master_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
-        <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+        <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>invite_link_password: ::prost::alloc::vec::Vec&lt;u8&gt;,
     }
     <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>Contents {
-        <span class="attr">#[prost(message, tag = <span class="string">&quot;1&quot;</span>)]
+        <span class="attr">#[prost(message, tag = <span class="string">"1"</span>)]
         </span>V1Contents(GroupInviteLinkContentsV1),
     }
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupJoinInfo {
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>public_key: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;2&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>title: ::prost::alloc::vec::Vec&lt;u8&gt;,
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;3&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>avatar: ::prost::alloc::string::String,
-    <span class="attr">#[prost(uint32, tag = <span class="string">&quot;4&quot;</span>)]
+    <span class="attr">#[prost(uint32, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>member_count: u32,
-    <span class="attr">#[prost(enumeration = <span class="string">&quot;access_control::AccessRequired&quot;</span>, tag = <span class="string">&quot;5&quot;</span>)]
+    <span class="attr">#[prost(enumeration = <span class="string">"access_control::AccessRequired"</span>, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>add_from_invite_link: i32,
-    <span class="attr">#[prost(uint32, tag = <span class="string">&quot;6&quot;</span>)]
+    <span class="attr">#[prost(uint32, tag = <span class="string">"6"</span>)]
     </span><span class="kw">pub </span>revision: u32,
-    <span class="attr">#[prost(bool, tag = <span class="string">&quot;7&quot;</span>)]
+    <span class="attr">#[prost(bool, tag = <span class="string">"7"</span>)]
     </span><span class="kw">pub </span>pending_admin_approval: bool,
-    <span class="attr">#[prost(bytes = <span class="string">&quot;vec&quot;</span>, tag = <span class="string">&quot;8&quot;</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, tag = <span class="string">"8"</span>)]
     </span><span class="kw">pub </span>description: ::prost::alloc::vec::Vec&lt;u8&gt;,
 }
 <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupExternalCredential {
-    <span class="attr">#[prost(string, tag = <span class="string">&quot;1&quot;</span>)]
+    <span class="attr">#[prost(string, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>token: ::prost::alloc::string::String,
 }
 </code></pre></div></section></main></body></html>

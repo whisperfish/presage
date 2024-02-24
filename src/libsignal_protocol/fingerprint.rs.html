@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/fingerprint.rs`."><title>fingerprint.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/fingerprint.rs`."><title>fingerprint.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -565,9 +566,9 @@
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>DisplayableFingerprint {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter) -&gt; fmt::Result {
         <span class="kw">if </span><span class="self">self</span>.local &lt; <span class="self">self</span>.remote {
-            <span class="macro">write!</span>(f, <span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.local, <span class="self">self</span>.remote)
+            <span class="macro">write!</span>(f, <span class="string">"{}{}"</span>, <span class="self">self</span>.local, <span class="self">self</span>.remote)
         } <span class="kw">else </span>{
-            <span class="macro">write!</span>(f, <span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.remote, <span class="self">self</span>.local)
+            <span class="macro">write!</span>(f, <span class="string">"{}{}"</span>, <span class="self">self</span>.remote, <span class="self">self</span>.local)
         }
     }
 }
@@ -575,7 +576,7 @@
 <span class="kw">fn </span>get_encoded_string(fprint: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
     <span class="kw">if </span>fprint.len() &lt; <span class="number">30 </span>{
         <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidArgument(
-            <span class="string">&quot;DisplayableFingerprint created with short encoding&quot;</span>.to_string(),
+            <span class="string">"DisplayableFingerprint created with short encoding"</span>.to_string(),
         ));
     }
 
@@ -588,7 +589,7 @@
     <span class="kw">let </span>s = fprint.chunks_exact(<span class="number">5</span>).take(<span class="number">6</span>).map(read5_mod_100k).fold(
         String::with_capacity(<span class="number">5 </span>* <span class="number">6</span>),
         |<span class="kw-2">mut </span>s, n| {
-            <span class="macro">write!</span>(s, <span class="string">&quot;{:05}&quot;</span>, n).expect(<span class="string">&quot;can always write to a String&quot;</span>);
+            <span class="macro">write!</span>(s, <span class="string">"{:05}"</span>, n).expect(<span class="string">"can always write to a String"</span>);
             s
         },
     );
@@ -704,7 +705,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt; {
         <span class="kw">if </span>iterations &lt;= <span class="number">1 </span>|| iterations &gt; <span class="number">1000000 </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidArgument(<span class="macro">format!</span>(
-                <span class="string">&quot;Invalid fingerprint iterations {}&quot;</span>,
+                <span class="string">"Invalid fingerprint iterations {}"</span>,
                 iterations
             )));
         }
@@ -751,7 +752,7 @@
     }
 
     <span class="kw">pub fn </span>display_string(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;String&gt; {
-        <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="self">self</span>.display))
+        <span class="prelude-val">Ok</span>(<span class="macro">format!</span>(<span class="string">"{}"</span>, <span class="self">self</span>.display))
     }
 }
 
@@ -760,19 +761,19 @@
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
     <span class="kw">const </span>ALICE_IDENTITY: <span class="kw-2">&amp;</span>str =
-        <span class="string">&quot;0506863bc66d02b40d27b8d49ca7c09e9239236f9d7d25d6fcca5ce13c7064d868&quot;</span>;
-    <span class="kw">const </span>BOB_IDENTITY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;05f781b6fb32fed9ba1cf2de978d4d5da28dc34046ae814402b5c0dbd96fda907b&quot;</span>;
+        <span class="string">"0506863bc66d02b40d27b8d49ca7c09e9239236f9d7d25d6fcca5ce13c7064d868"</span>;
+    <span class="kw">const </span>BOB_IDENTITY: <span class="kw-2">&amp;</span>str = <span class="string">"05f781b6fb32fed9ba1cf2de978d4d5da28dc34046ae814402b5c0dbd96fda907b"</span>;
 
     <span class="kw">const </span>DISPLAYABLE_FINGERPRINT_V1: <span class="kw-2">&amp;</span>str =
-        <span class="string">&quot;300354477692869396892869876765458257569162576843440918079131&quot;</span>;
-    <span class="kw">const </span>ALICE_SCANNABLE_FINGERPRINT_V1 : <span class="kw-2">&amp;</span>str = <span class="string">&quot;080112220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d&quot;</span>;
-    <span class="kw">const </span>BOB_SCANNABLE_FINGERPRINT_V1   : <span class="kw-2">&amp;</span>str = <span class="string">&quot;080112220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df&quot;</span>;
+        <span class="string">"300354477692869396892869876765458257569162576843440918079131"</span>;
+    <span class="kw">const </span>ALICE_SCANNABLE_FINGERPRINT_V1 : <span class="kw-2">&amp;</span>str = <span class="string">"080112220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d"</span>;
+    <span class="kw">const </span>BOB_SCANNABLE_FINGERPRINT_V1   : <span class="kw-2">&amp;</span>str = <span class="string">"080112220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df"</span>;
 
-    <span class="kw">const </span>ALICE_SCANNABLE_FINGERPRINT_V2 : <span class="kw-2">&amp;</span>str = <span class="string">&quot;080212220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d&quot;</span>;
-    <span class="kw">const </span>BOB_SCANNABLE_FINGERPRINT_V2   : &amp; str = <span class="string">&quot;080212220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df&quot;</span>;
+    <span class="kw">const </span>ALICE_SCANNABLE_FINGERPRINT_V2 : <span class="kw-2">&amp;</span>str = <span class="string">"080212220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df1a220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d"</span>;
+    <span class="kw">const </span>BOB_SCANNABLE_FINGERPRINT_V2   : &amp; str = <span class="string">"080212220a20d62cbf73a11592015b6b9f1682ac306fea3aaf3885b84d12bca631e9d4fb3a4d1a220a201e301a0353dce3dbe7684cb8336e85136cdc0ee96219494ada305d62a7bd61df"</span>;
 
-    <span class="kw">const </span>ALICE_STABLE_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;+14152222222&quot;</span>;
-    <span class="kw">const </span>BOB_STABLE_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;+14153333333&quot;</span>;
+    <span class="kw">const </span>ALICE_STABLE_ID: <span class="kw-2">&amp;</span>str = <span class="string">"+14152222222"</span>;
+    <span class="kw">const </span>BOB_STABLE_ID: <span class="kw-2">&amp;</span>str = <span class="string">"+14153333333"</span>;
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>fingerprint_encodings() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
@@ -783,7 +784,7 @@
         <span class="kw">let </span>proto2 = fprint2.serialize()<span class="question-mark">?</span>;
 
         <span class="kw">let </span>expected2_encoding =
-            <span class="string">&quot;080212220a20&quot;</span>.to_owned() + <span class="kw-2">&amp;</span><span class="string">&quot;12&quot;</span>.repeat(<span class="number">32</span>) + <span class="string">&quot;1a220a20&quot; </span>+ <span class="kw-2">&amp;</span><span class="string">&quot;ba&quot;</span>.repeat(<span class="number">32</span>);
+            <span class="string">"080212220a20"</span>.to_owned() + <span class="kw-2">&amp;</span><span class="string">"12"</span>.repeat(<span class="number">32</span>) + <span class="string">"1a220a20" </span>+ <span class="kw-2">&amp;</span><span class="string">"ba"</span>.repeat(<span class="number">32</span>);
         <span class="macro">assert_eq!</span>(hex::encode(proto2), expected2_encoding);
 
         <span class="prelude-val">Ok</span>(())
@@ -793,8 +794,8 @@
     </span><span class="kw">fn </span>fingerprint_test_v1() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="comment">// testVectorsVersion1 in Java
 
-        </span><span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        </span><span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">"valid hex"</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">"valid hex"</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>version = <span class="number">1</span>;
         <span class="kw">let </span>iterations = <span class="number">5200</span>;
@@ -826,8 +827,8 @@
             BOB_SCANNABLE_FINGERPRINT_V1
         );
 
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">"{}"</span>, b_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
 
         <span class="macro">assert_eq!</span>(
             hex::encode(a_fprint.scannable.serialize()<span class="question-mark">?</span>),
@@ -845,8 +846,8 @@
     </span><span class="kw">fn </span>fingerprint_test_v2() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="comment">// testVectorsVersion2 in Java
 
-        </span><span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        </span><span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">"valid hex"</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">"valid hex"</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>version = <span class="number">2</span>;
         <span class="kw">let </span>iterations = <span class="number">5200</span>;
@@ -879,8 +880,8 @@
         );
 
         <span class="comment">// unchanged vs v1
-        </span><span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
+        </span><span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">"{}"</span>, b_fprint.display), DISPLAYABLE_FINGERPRINT_V1);
 
         <span class="macro">assert_eq!</span>(
             hex::encode(a_fprint.scannable.serialize()<span class="question-mark">?</span>),
@@ -929,10 +930,10 @@
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_eq!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display)
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint.display),
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, b_fprint.display)
         );
-        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display).len(), <span class="number">60</span>);
+        <span class="macro">assert_eq!</span>(<span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint.display).len(), <span class="number">60</span>);
 
         <span class="macro">assert!</span>(a_fprint
             .scannable
@@ -987,8 +988,8 @@
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_ne!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display)
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint.display),
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, b_fprint.display)
         );
 
         <span class="macro">assert!</span>(!a_fprint
@@ -1018,7 +1019,7 @@
         <span class="kw">let </span>a_fprint = Fingerprint::new(
             version,
             iterations,
-            <span class="string">&quot;+141512222222&quot;</span>.as_bytes(),
+            <span class="string">"+141512222222"</span>.as_bytes(),
             a_key,
             BOB_STABLE_ID.as_bytes(),
             b_key,
@@ -1034,8 +1035,8 @@
         )<span class="question-mark">?</span>;
 
         <span class="macro">assert_ne!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint.display),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, b_fprint.display)
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint.display),
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, b_fprint.display)
         );
 
         <span class="macro">assert!</span>(!a_fprint
@@ -1050,8 +1051,8 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>fingerprint_mismatching_versions() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
-        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">&quot;valid hex&quot;</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>a_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(ALICE_IDENTITY).expect(<span class="string">"valid hex"</span>))<span class="question-mark">?</span>;
+        <span class="kw">let </span>b_key = IdentityKey::decode(<span class="kw-2">&amp;</span>hex::decode(BOB_IDENTITY).expect(<span class="string">"valid hex"</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>iterations = <span class="number">5200</span>;
 
@@ -1073,10 +1074,10 @@
             <span class="kw-2">&amp;</span>a_key,
         )<span class="question-mark">?</span>;
 
-        <span class="comment">// Display fingerprint doesn&#39;t change
+        <span class="comment">// Display fingerprint doesn't change
         </span><span class="macro">assert_eq!</span>(
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint_v1.display),
-            <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, a_fprint_v2.display)
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint_v1.display),
+            <span class="macro">format!</span>(<span class="string">"{}"</span>, a_fprint_v2.display)
         );
 
         <span class="comment">// Scannable fingerprint does

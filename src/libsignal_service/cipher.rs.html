@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/cipher.rs`."><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/cipher.rs`."><title>cipher.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -621,33 +622,33 @@
 }
 
 <span class="kw">impl</span>&lt;S, R&gt; fmt::Debug <span class="kw">for </span>ServiceCipher&lt;S, R&gt; {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        f.debug_struct(<span class="string">&quot;ServiceCipher&quot;</span>)
-            .field(<span class="string">&quot;protocol_store&quot;</span>, <span class="kw-2">&amp;</span><span class="string">&quot;...&quot;</span>)
-            .field(<span class="string">&quot;csprng&quot;</span>, <span class="kw-2">&amp;</span><span class="string">&quot;...&quot;</span>)
-            .field(<span class="string">&quot;trust_root&quot;</span>, <span class="kw-2">&amp;</span><span class="string">&quot;...&quot;</span>)
-            .field(<span class="string">&quot;local_uuid&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.local_uuid)
-            .field(<span class="string">&quot;local_device_id&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.local_device_id)
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+        f.debug_struct(<span class="string">"ServiceCipher"</span>)
+            .field(<span class="string">"protocol_store"</span>, <span class="kw-2">&amp;</span><span class="string">"..."</span>)
+            .field(<span class="string">"csprng"</span>, <span class="kw-2">&amp;</span><span class="string">"..."</span>)
+            .field(<span class="string">"trust_root"</span>, <span class="kw-2">&amp;</span><span class="string">"..."</span>)
+            .field(<span class="string">"local_uuid"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.local_uuid)
+            .field(<span class="string">"local_device_id"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.local_device_id)
             .finish()
     }
 }
 
 <span class="kw">fn </span>debug_envelope(envelope: <span class="kw-2">&amp;</span>Envelope) -&gt; String {
     <span class="kw">if </span>envelope.content.is_none() {
-        <span class="string">&quot;Envelope { empty }&quot;</span>.to_string()
+        <span class="string">"Envelope { empty }"</span>.to_string()
     } <span class="kw">else </span>{
         <span class="macro">format!</span>(
-            <span class="string">&quot;Envelope {{ \
+            <span class="string">"Envelope {{ \
                  source_address: {}, \
                  source_device: {:?}, \
                  server_guid: {:?}, \
                  timestamp: {:?}, \
                  content: {} bytes, \
-             }}&quot;</span>,
+             }}"</span>,
             <span class="kw">if </span>envelope.source_service_id.is_some() {
-                <span class="macro">format!</span>(<span class="string">&quot;{:?}&quot;</span>, envelope.source_address())
+                <span class="macro">format!</span>(<span class="string">"{:?}"</span>, envelope.source_address())
             } <span class="kw">else </span>{
-                <span class="string">&quot;unknown&quot;</span>.to_string()
+                <span class="string">"unknown"</span>.to_string()
             },
             envelope.source_device(),
             envelope.server_guid(),
@@ -678,7 +679,7 @@
         }
     }
 
-    <span class="doccomment">/// Opens (&quot;decrypts&quot;) an envelope.
+    <span class="doccomment">/// Opens ("decrypts") an envelope.
     ///
     /// Envelopes may be empty, in which case this method returns `Ok(None)`
     </span><span class="attr">#[tracing::instrument(skip(envelope), fields(envelope = debug_envelope(<span class="kw-2">&amp;</span>envelope)))]
@@ -723,7 +724,7 @@
         } <span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
                 reason:
-                    <span class="string">&quot;Envelope should have either a legacy message or content.&quot;
+                    <span class="string">"Envelope should have either a legacy message or content."
                         </span>.into(),
             });
         };
@@ -734,7 +735,7 @@
                 <span class="prelude-val">Err</span>(e) =&gt; {
                     <span class="macro">tracing::error!</span>(
                         <span class="question-mark">?</span>envelope,
-                        <span class="string">&quot;Unparseable server_guid ({})&quot;</span>,
+                        <span class="string">"Unparseable server_guid ({})"</span>,
                         e
                     );
                     <span class="prelude-val">None
@@ -786,7 +787,7 @@
                 Plaintext { metadata, data }
             },
             Type::PlaintextContent =&gt; {
-                <span class="macro">tracing::warn!</span>(<span class="question-mark">?</span>envelope, <span class="string">&quot;Envelope with plaintext content.  This usually indicates a decryption retry.&quot;</span>);
+                <span class="macro">tracing::warn!</span>(<span class="question-mark">?</span>envelope, <span class="string">"Envelope with plaintext content.  This usually indicates a decryption retry."</span>);
                 <span class="kw">let </span>metadata = Metadata {
                     sender: envelope.source_address(),
                     sender_device: envelope.source_device(),
@@ -864,13 +865,13 @@
                 <span class="kw">let </span>sender = ServiceAddress {
                     uuid: Uuid::parse_str(<span class="kw-2">&amp;</span>sender_uuid).map_err(|<span class="kw">_</span>| {
                         SignalProtocolError::InvalidSealedSenderMessage(
-                            <span class="string">&quot;invalid sender UUID&quot;</span>.to_string(),
+                            <span class="string">"invalid sender UUID"</span>.to_string(),
                         )
                     })<span class="question-mark">?</span>,
                 };
 
                 <span class="kw">let </span>needs_receipt = <span class="kw">if </span>envelope.source_service_id.is_some() {
-                    <span class="macro">tracing::warn!</span>(<span class="question-mark">?</span>envelope, <span class="string">&quot;Received an unidentified delivery over an identified channel.  Marking needs_receipt=false&quot;</span>);
+                    <span class="macro">tracing::warn!</span>(<span class="question-mark">?</span>envelope, <span class="string">"Received an unidentified delivery over an identified channel.  Marking needs_receipt=false"</span>);
                     <span class="bool-val">false
                 </span>} <span class="kw">else </span>{
                     <span class="bool-val">true
@@ -896,7 +897,7 @@
                 <span class="comment">// else
                 </span><span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
                     reason: <span class="macro">format!</span>(
-                        <span class="string">&quot;Envelope has unknown type {:?}.&quot;</span>,
+                        <span class="string">"Envelope has unknown type {:?}."</span>,
                         envelope.r#type()
                     ),
                 });
@@ -971,7 +972,7 @@
             <span class="kw">let </span>message_type = <span class="kw">match </span>message.message_type() {
                 CiphertextMessageType::PreKey =&gt; Type::PrekeyBundle,
                 CiphertextMessageType::Whisper =&gt; Type::Ciphertext,
-                t =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Bad type: {:?}&quot;</span>, t),
+                t =&gt; <span class="macro">panic!</span>(<span class="string">"Bad type: {:?}"</span>, t),
             } <span class="kw">as </span>u32;
             <span class="prelude-val">Ok</span>(OutgoingPushMessage {
                 r#type: message_type,
@@ -992,7 +993,7 @@
 </span><span class="kw">fn </span>add_padding(version: u32, contents: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, ServiceError&gt; {
     <span class="kw">if </span>version &lt; <span class="number">2 </span>{
         <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
-            reason: <span class="macro">format!</span>(<span class="string">&quot;Unknown version {}&quot;</span>, version),
+            reason: <span class="macro">format!</span>(<span class="string">"Unknown version {}"</span>, version),
         })
     } <span class="kw">else if </span>version == <span class="number">2 </span>{
         <span class="prelude-val">Ok</span>(contents.to_vec())
@@ -1020,7 +1021,7 @@
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
     <span class="kw">if </span>version &lt; <span class="number">2 </span>{
         <span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
-            reason: <span class="macro">format!</span>(<span class="string">&quot;Unknown version {}&quot;</span>, version),
+            reason: <span class="macro">format!</span>(<span class="string">"Unknown version {}"</span>, version),
         })
     } <span class="kw">else if </span>version == <span class="number">2 </span>{
         <span class="prelude-val">Ok</span>(())
@@ -1034,7 +1035,7 @@
 </span><span class="kw">fn </span>strip_padding(contents: <span class="kw-2">&amp;mut </span>Vec&lt;u8&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
     <span class="kw">let </span>new_length = Iso7816::raw_unpad(contents)
         .map_err(|e| ServiceError::InvalidFrameError {
-            reason: <span class="macro">format!</span>(<span class="string">&quot;Invalid message padding: {:?}&quot;</span>, e),
+            reason: <span class="macro">format!</span>(<span class="string">"Invalid message padding: {:?}"</span>, e),
         })<span class="question-mark">?
         </span>.len();
     contents.resize(new_length, <span class="number">0</span>);
@@ -1060,7 +1061,7 @@
 ///
 /// This method calls [`sealed_sender_decrypt_to_usmc`] to extract the sender information, including
 /// the embedded [`SenderCertificate`]. The sender certificate (signed by the [`ServerCertificate`])
-/// is then validated against the `trust_root` baked into the client to ensure that the sender&#39;s
+/// is then validated against the `trust_root` baked into the client to ensure that the sender's
 /// identity was not forged.
 </span><span class="attr">#[allow(clippy::too_many_arguments)]
 #[tracing::instrument(
@@ -1097,7 +1098,7 @@
 
     <span class="kw">if </span>!usmc.sender()<span class="question-mark">?</span>.validate(trust_root, timestamp)<span class="question-mark">? </span>{
         <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidSealedSenderMessage(
-            <span class="string">&quot;trust root validation failed&quot;</span>.to_string(),
+            <span class="string">"trust root validation failed"</span>.to_string(),
         ));
     }
 
@@ -1154,7 +1155,7 @@
         msg_type =&gt; {
             <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidMessage(
                 msg_type,
-                <span class="string">&quot;unexpected message type for sealed_sender_decrypt&quot;</span>,
+                <span class="string">"unexpected message type for sealed_sender_decrypt"</span>,
             ));
         },
     };

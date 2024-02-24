@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/crypto/uid_encryption.rs`."><title>uid_encryption.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/crypto/uid_encryption.rs`."><title>uid_encryption.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -295,8 +296,8 @@
 <span class="kw">impl </span>SystemParams {
     <span class="kw">pub fn </span>generate() -&gt; <span class="self">Self </span>{
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b&quot;Signal_ZKGroup_20200424_Constant_UidEncryption_SystemParams_Generate&quot;</span>,
-            <span class="string">b&quot;&quot;</span>,
+            <span class="string">b"Signal_ZKGroup_20200424_Constant_UidEncryption_SystemParams_Generate"</span>,
+            <span class="string">b""</span>,
         );
         <span class="kw">let </span>G_a1 = sho.get_point();
         <span class="kw">let </span>G_a2 = sho.get_point();
@@ -346,9 +347,9 @@
             <span class="prelude-val">Some</span>(bytes) =&gt; {
                 <span class="comment">// We want to do a constant-time choice between the ACI and the PNI possibilities.
                 // Only at the end do we do a normal branch to see if decryption succeeded,
-                // and even then we don&#39;t want to expose whether we picked the ACI or the PNI.
+                // and even then we don't want to expose whether we picked the ACI or the PNI.
                 // So we store them both in an array, and index into it at the very end.
-                // This isn&#39;t fully &quot;data-oblivious&quot;; only one service ID gets loaded from memory at
+                // This isn't fully "data-oblivious"; only one service ID gets loaded from memory at
                 // the end, and which one is data-dependent. But it is constant-time.
                 </span><span class="kw">let </span>decoded_uuid = uuid::Uuid::from_bytes(bytes);
                 <span class="kw">let </span>decoded_service_ids = [
@@ -377,7 +378,7 @@
     }
 }
 
-<span class="kw">const </span>UID_ENCRYPTION_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;Signal_ZKGroup_20230419_UidEncryption&quot;</span>;
+<span class="kw">const </span>UID_ENCRYPTION_ID: <span class="kw-2">&amp;</span>str = <span class="string">"Signal_ZKGroup_20230419_UidEncryption"</span>;
 
 <span class="kw">impl </span>zkcredential::attributes::PublicKey <span class="kw">for </span>KeyPair {
     <span class="kw">fn </span>A(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RistrettoPoint {
@@ -389,7 +390,7 @@
         [system.G_a1, system.G_a2]
     }
 
-    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
         UID_ENCRYPTION_ID
     }
 }
@@ -410,7 +411,7 @@
         [system.G_a1, system.G_a2]
     }
 
-    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
+    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
         UID_ENCRYPTION_ID
     }
 }
@@ -429,10 +430,10 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_uid_encryption() {
         <span class="kw">let </span>master_key = TEST_ARRAY_32;
-        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b&quot;Test_Uid_Encryption&quot;</span>, <span class="kw-2">&amp;</span>master_key);
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b"Test_Uid_Encryption"</span>, <span class="kw-2">&amp;</span>master_key);
 
         <span class="comment">//let system = SystemParams::generate();
-        //println!(&quot;PARAMS = {:#x?}&quot;, bincode::serialize(&amp;system));
+        //println!("PARAMS = {:#x?}", bincode::serialize(&amp;system));
         </span><span class="macro">assert!</span>(SystemParams::generate() == SystemParams::get_hardcoded());
 
         <span class="kw">let </span>key_pair = KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
@@ -455,7 +456,7 @@
         <span class="macro">assert!</span>(ciphertext_bytes.len() == <span class="number">64</span>);
         <span class="kw">let </span>ciphertext2: Ciphertext = bincode::deserialize(<span class="kw-2">&amp;</span>ciphertext_bytes).unwrap();
         <span class="macro">assert!</span>(ciphertext == ciphertext2);
-        <span class="comment">//println!(&quot;ciphertext_bytes = {:#x?}&quot;, ciphertext_bytes);
+        <span class="comment">//println!("ciphertext_bytes = {:#x?}", ciphertext_bytes);
         </span><span class="macro">assert!</span>(
             ciphertext_bytes
                 == <span class="macro">vec!</span>[
@@ -474,7 +475,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_pni_encryption() {
-        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b&quot;Test_Pni_Encryption&quot;</span>, <span class="kw-2">&amp;</span>[]);
+        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b"Test_Pni_Encryption"</span>, <span class="kw-2">&amp;</span>[]);
         <span class="kw">let </span>key_pair = KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
 
         <span class="kw">let </span>pni = libsignal_protocol::Pni::from_uuid_bytes(TEST_ARRAY_16);

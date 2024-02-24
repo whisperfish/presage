@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service-hyper/src/push_service.rs`."><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service_hyper" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service-hyper/src/push_service.rs`."><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service_hyper" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -727,7 +728,7 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>root_certs = rustls::RootCertStore::empty();
         root_certs.add_parsable_certificates(
-            roots.map(|c| c.expect(<span class="string">&quot;parsable PEM files&quot;</span>)),
+            roots.map(|c| c.expect(<span class="string">"parsable PEM files"</span>)),
         );
 
         rustls::ClientConfig::builder()
@@ -813,7 +814,7 @@
                 <span class="kw">let </span>mismatched_devices =
                     <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span>.map_err(|e| {
                         <span class="macro">tracing::error!</span>(
-                            <span class="string">&quot;Failed to decode HTTP 409 response: {}&quot;</span>,
+                            <span class="string">"Failed to decode HTTP 409 response: {}"</span>,
                             e
                         );
                         ServiceError::UnhandledResponseCode {
@@ -828,7 +829,7 @@
                 <span class="kw">let </span>stale_devices =
                     <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span>.map_err(|e| {
                         <span class="macro">tracing::error!</span>(
-                            <span class="string">&quot;Failed to decode HTTP 410 response: {}&quot;</span>,
+                            <span class="string">"Failed to decode HTTP 410 response: {}"</span>,
                             e
                         );
                         ServiceError::UnhandledResponseCode {
@@ -841,7 +842,7 @@
                 <span class="kw">let </span>proof_required =
                     <span class="self">Self</span>::json(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span>.map_err(|e| {
                         <span class="macro">tracing::error!</span>(
-                            <span class="string">&quot;Failed to decode HTTP 428 response: {}&quot;</span>,
+                            <span class="string">"Failed to decode HTTP 428 response: {}"</span>,
                             e
                         );
                         ServiceError::UnhandledResponseCode {
@@ -854,7 +855,7 @@
             <span class="comment">// XXX: fill in rest from PushServiceSocket
             </span>code =&gt; {
                 <span class="macro">tracing::trace!</span>(
-                    <span class="string">&quot;Unhandled response {} with body: {}&quot;</span>,
+                    <span class="string">"Unhandled response {} with body: {}"</span>,
                     code.as_u16(),
                     <span class="self">Self</span>::text(<span class="kw-2">&amp;mut </span>response).<span class="kw">await</span><span class="question-mark">?</span>,
                 );
@@ -868,12 +869,12 @@
     <span class="attr">#[tracing::instrument(skip(response), fields(status = %response.status()))]
     </span><span class="kw">async fn </span>json&lt;T&gt;(response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; T: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
     {
         <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
             ServiceError::ResponseError {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;failed to aggregate HTTP response body: {}&quot;</span>,
+                    <span class="string">"failed to aggregate HTTP response body: {}"</span>,
                     e
                 ),
             }
@@ -899,7 +900,7 @@
         <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
             ServiceError::ResponseError {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;failed to aggregate HTTP response body: {}&quot;</span>,
+                    <span class="string">"failed to aggregate HTTP response body: {}"</span>,
                     e
                 ),
             }
@@ -915,7 +916,7 @@
         <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
             ServiceError::ResponseError {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;failed to aggregate HTTP response body: {}&quot;</span>,
+                    <span class="string">"failed to aggregate HTTP response body: {}"</span>,
                     e
                 ),
             }
@@ -923,15 +924,15 @@
         <span class="kw">let </span><span class="kw-2">mut </span>text = String::new();
         body.reader().read_to_string(<span class="kw-2">&amp;mut </span>text).map_err(|e| {
             ServiceError::ResponseError {
-                reason: <span class="macro">format!</span>(<span class="string">&quot;failed to read HTTP response body: {}&quot;</span>, e),
+                reason: <span class="macro">format!</span>(<span class="string">"failed to read HTTP response body: {}"</span>, e),
             }
         })<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(text)
     }
 }
 
-<span class="attr">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
-#[cfg_attr(not(feature = <span class="string">&quot;unsend-futures&quot;</span>), async_trait::async_trait)]
+<span class="attr">#[cfg_attr(feature = <span class="string">"unsend-futures"</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
+#[cfg_attr(not(feature = <span class="string">"unsend-futures"</span>), async_trait::async_trait)]
 </span><span class="kw">impl </span>PushService <span class="kw">for </span>HyperPushService {
     <span class="comment">// This is in principle known at compile time, but long to write out.
     </span><span class="kw">type </span>ByteStream = Box&lt;<span class="kw">dyn </span>futures::io::AsyncRead + Unpin&gt;;
@@ -945,7 +946,7 @@
         credentials_override: HttpAuthOverride,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; T: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
     {
         <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
             </span>.request(
@@ -969,7 +970,7 @@
         additional_headers: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
     ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; T: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
     {
         <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self
             </span>.request(
@@ -995,7 +996,7 @@
         value: S,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; D: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
         S: MaybeSend + Serialize,
     {
         <span class="kw">let </span>json = serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(|e| {
@@ -1013,7 +1014,7 @@
                 credentials_override,
                 <span class="prelude-val">Some</span>(RequestBody {
                     contents: json,
-                    content_type: <span class="string">&quot;application/json&quot;</span>.into(),
+                    content_type: <span class="string">"application/json"</span>.into(),
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1031,7 +1032,7 @@
         value: S,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; D: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
         S: MaybeSend + Serialize,
     {
         <span class="kw">let </span>json = serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(|e| {
@@ -1049,7 +1050,7 @@
                 credentials_override,
                 <span class="prelude-val">Some</span>(RequestBody {
                     contents: json,
-                    content_type: <span class="string">&quot;application/json&quot;</span>.into(),
+                    content_type: <span class="string">"application/json"</span>.into(),
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1067,7 +1068,7 @@
         value: S,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; D: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
         S: MaybeSend + Serialize,
     {
         <span class="kw">let </span>json = serde_json::to_vec(<span class="kw-2">&amp;</span>value).map_err(|e| {
@@ -1085,7 +1086,7 @@
                 credentials_override,
                 <span class="prelude-val">Some</span>(RequestBody {
                     contents: json,
-                    content_type: <span class="string">&quot;application/json&quot;</span>.into(),
+                    content_type: <span class="string">"application/json"</span>.into(),
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1141,7 +1142,7 @@
                 HttpAuthOverride::NoOverride,
                 <span class="prelude-val">Some</span>(RequestBody {
                     contents: protobuf,
-                    content_type: <span class="string">&quot;application/x-protobuf&quot;</span>.into(),
+                    content_type: <span class="string">"application/x-protobuf"</span>.into(),
                 }),
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1174,12 +1175,12 @@
         ))
     }
 
-    <span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, value, file), fields(file = file.as_ref().map(|<span class="kw">_</span>| <span class="string">&quot;&quot;</span>)))]
-    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>&gt;(
+    <span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, value, file), fields(file = file.as_ref().map(|<span class="kw">_</span>| <span class="string">""</span>)))]
+    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">'s</span>, C: std::io::Read + Send + <span class="lifetime">'s</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         path: <span class="kw-2">&amp;</span>str,
         value: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
-        file: <span class="prelude-ty">Option</span>&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span><span class="kw-2">mut </span>C)&gt;,
+        file: <span class="prelude-ty">Option</span>&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span><span class="lifetime">'s </span><span class="kw-2">mut </span>C)&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>form = mpart_async::client::MultipartRequest::default();
 
@@ -1196,23 +1197,23 @@
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>((filename, file)) = file {
-            <span class="comment">// XXX Actix doesn&#39;t cope with none-&#39;static lifetimes
+            <span class="comment">// XXX Actix doesn't cope with none-'static lifetimes
             // https://docs.rs/actix-web/3.2.0/actix_web/body/enum.Body.html
             </span><span class="kw">let </span><span class="kw-2">mut </span>buf = Vec::new();
             file.read_to_end(<span class="kw-2">&amp;mut </span>buf)
-                .expect(<span class="string">&quot;infallible Read instance&quot;</span>);
+                .expect(<span class="string">"infallible Read instance"</span>);
             form.add_stream(
-                <span class="string">&quot;file&quot;</span>,
+                <span class="string">"file"</span>,
                 filename,
-                <span class="string">&quot;application/octet-stream&quot;</span>,
+                <span class="string">"application/octet-stream"</span>,
                 futures::future::ok::&lt;<span class="kw">_</span>, ()&gt;(Bytes::from(buf)).into_stream(),
             );
         }
 
         <span class="kw">let </span>content_type =
-            <span class="macro">format!</span>(<span class="string">&quot;multipart/form-data; boundary={}&quot;</span>, form.get_boundary());
+            <span class="macro">format!</span>(<span class="string">"multipart/form-data; boundary={}"</span>, form.get_boundary());
 
-        <span class="comment">// XXX Amazon S3 needs the Content-Length, but we don&#39;t know it without depleting the whole
+        <span class="comment">// XXX Amazon S3 needs the Content-Length, but we don't know it without depleting the whole
         // stream. Sadly, Content-Length != contents.len(), but should include the whole form.
         </span><span class="kw">let </span><span class="kw-2">mut </span>body_contents = <span class="macro">vec!</span>[];
         <span class="kw">while let </span><span class="prelude-val">Some</span>(b) = form.next().<span class="kw">await </span>{
@@ -1220,7 +1221,7 @@
             </span>body_contents.extend(b.unwrap());
         }
         <span class="macro">tracing::trace!</span>(
-            <span class="string">&quot;Sending PUT with Content-Type={} and length {}&quot;</span>,
+            <span class="string">"Sending PUT with Content-Type={} and length {}"</span>,
             content_type,
             body_contents.len()
         );
@@ -1239,7 +1240,7 @@
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="macro">tracing::debug!</span>(<span class="string">&quot;HyperPushService::PUT response: {:?}&quot;</span>, response);
+        <span class="macro">tracing::debug!</span>(<span class="string">"HyperPushService::PUT response: {:?}"</span>, response);
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1251,7 +1252,7 @@
         additional_headers: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
         credentials: <span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, ServiceError&gt; {
-        <span class="kw">let </span>span = <span class="macro">tracing::debug_span!</span>(<span class="string">&quot;websocket&quot;</span>);
+        <span class="kw">let </span>span = <span class="macro">tracing::debug_span!</span>(<span class="string">"websocket"</span>);
         <span class="kw">let </span>(ws, stream) = TungsteniteWebSocket::with_tls_config(
             <span class="self">Self</span>::tls_config(<span class="kw-2">&amp;</span><span class="self">self</span>.cfg),
             <span class="self">self</span>.cfg.base_url(Endpoint::Service),
@@ -1264,9 +1265,9 @@
         <span class="kw">let </span>(ws, task) =
             SignalWebSocket::from_socket(ws, stream, keepalive_path.to_owned());
         <span class="kw">let </span>task = task.instrument(span);
-        <span class="attr">#[cfg(feature = <span class="string">&quot;unsend-futures&quot;</span>)]
+        <span class="attr">#[cfg(feature = <span class="string">"unsend-futures"</span>)]
         </span>tokio::task::spawn_local(task);
-        <span class="attr">#[cfg(not(feature = <span class="string">&quot;unsend-futures&quot;</span>))]
+        <span class="attr">#[cfg(not(feature = <span class="string">"unsend-futures"</span>))]
         </span>tokio::task::spawn(task);
         <span class="prelude-val">Ok</span>(ws)
     }
@@ -1285,7 +1286,7 @@
             <span class="kw">let _ </span>= <span class="kw">super</span>::HyperPushService::new(
                 cfg,
                 <span class="prelude-val">None</span>,
-                <span class="string">&quot;libsignal-service test&quot;</span>.to_string(),
+                <span class="string">"libsignal-service test"</span>.to_string(),
             );
         }
     }
@@ -1293,7 +1294,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>serde_json_from_empty_reader() {
         <span class="comment">// This fails, so we have handle empty response body separately in HyperPushService::json()
-        </span><span class="kw">let </span>bytes: Bytes = <span class="string">&quot;&quot;</span>.into();
+        </span><span class="kw">let </span>bytes: Bytes = <span class="string">""</span>.into();
         <span class="macro">assert!</span>(
             serde_json::from_reader::&lt;bytes::buf::Reader&lt;Bytes&gt;, String&gt;(
                 bytes.reader()
@@ -1304,8 +1305,8 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>serde_json_form_empty_vec() {
-        <span class="comment">// If we&#39;re trying to send and empty payload, serde_json must be able to make a Vec out of it
-        </span><span class="macro">assert!</span>(serde_json::to_vec(<span class="string">b&quot;&quot;</span>).is_ok());
+        <span class="comment">// If we're trying to send and empty payload, serde_json must be able to make a Vec out of it
+        </span><span class="macro">assert!</span>(serde_json::to_vec(<span class="string">b""</span>).is_ok());
     }
 }
 </code></pre></div></section></main></body></html>

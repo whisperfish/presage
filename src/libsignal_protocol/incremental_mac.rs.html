@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/incremental_mac.rs`."><title>incremental_mac.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/incremental_mac.rs`."><title>incremental_mac.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -468,7 +469,7 @@
 
 <span class="kw">impl</span>&lt;M: Mac + Clone&gt; Incremental&lt;M&gt; {
     <span class="kw">pub fn </span>new(mac: M, chunk_size: usize) -&gt; <span class="self">Self </span>{
-        <span class="macro">assert!</span>(chunk_size &gt; <span class="number">0</span>, <span class="string">&quot;chunk size must be positive&quot;</span>);
+        <span class="macro">assert!</span>(chunk_size &gt; <span class="number">0</span>, <span class="string">"chunk size must be positive"</span>);
         <span class="self">Self </span>{
             mac,
             chunk_size,
@@ -493,7 +494,7 @@
         }
     }
 
-    <span class="kw">pub fn </span>update&lt;<span class="lifetime">&#39;a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="kw-2">mut </span><span class="self">self</span>, bytes: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]) -&gt; <span class="kw">impl </span>Iterator&lt;Item = Output&lt;M&gt;&gt; + <span class="lifetime">&#39;a </span>{
+    <span class="kw">pub fn </span>update&lt;<span class="lifetime">'a</span>&gt;(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="kw-2">mut </span><span class="self">self</span>, bytes: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]) -&gt; <span class="kw">impl </span>Iterator&lt;Item = Output&lt;M&gt;&gt; + <span class="lifetime">'a </span>{
         <span class="kw">let </span>split_point = std::cmp::min(bytes.len(), <span class="self">self</span>.unused_length);
         <span class="kw">let </span>(to_write, overflow) = bytes.split_at(split_point);
 
@@ -569,24 +570,24 @@
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
     <span class="kw">const </span>TEST_HMAC_KEY_HEX: <span class="kw-2">&amp;</span>str =
-        <span class="string">&quot;a83481457efecc69ad1342e21d9c0297f71debbf5c9304b4c1b2e433c1a78f98&quot;</span>;
+        <span class="string">"a83481457efecc69ad1342e21d9c0297f71debbf5c9304b4c1b2e433c1a78f98"</span>;
 
     <span class="kw">const </span>TEST_CHUNK_SIZE: usize = <span class="number">32</span>;
 
     <span class="kw">fn </span>new_incremental(key: <span class="kw-2">&amp;</span>[u8], chunk_size: usize) -&gt; Incremental&lt;Hmac&lt;Sha256&gt;&gt; {
         <span class="kw">let </span>hmac = Hmac::&lt;Sha256&gt;::new_from_slice(key)
-            .expect(<span class="string">&quot;Should be able to create a new HMAC instance&quot;</span>);
+            .expect(<span class="string">"Should be able to create a new HMAC instance"</span>);
         Incremental::new(hmac, chunk_size)
     }
 
     <span class="kw">fn </span>test_key() -&gt; Vec&lt;u8&gt; {
-        hex::decode(TEST_HMAC_KEY_HEX).expect(<span class="string">&quot;Should be able to decode the key from a hex string&quot;</span>)
+        hex::decode(TEST_HMAC_KEY_HEX).expect(<span class="string">"Should be able to decode the key from a hex string"</span>)
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>simple_test() {
         <span class="kw">let </span>key = test_key();
-        <span class="kw">let </span>input = <span class="string">&quot;this is a simple test input string which is longer than the chunk&quot;</span>;
+        <span class="kw">let </span>input = <span class="string">"this is a simple test input string which is longer than the chunk"</span>;
 
         <span class="kw">let </span>bytes = input.as_bytes();
         <span class="kw">let </span>expected = hmac_sha256(<span class="kw-2">&amp;</span>key, bytes);
@@ -600,7 +601,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>final_result_should_be_equal_to_non_incremental_hmac() {
         <span class="kw">let </span>key = test_key();
-        <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">&quot;.{0,100}&quot;</span>)| {
+        <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">".{0,100}"</span>)| {
             <span class="kw">let </span>bytes = input.as_bytes();
             <span class="kw">let </span>expected = hmac_sha256(<span class="kw-2">&amp;</span>key, bytes);
             <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
@@ -614,7 +615,7 @@
     </span><span class="kw">fn </span>incremental_macs_are_valid() {
         <span class="kw">let </span>key = test_key();
 
-        <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">&quot;.{50,100}&quot;</span>)| {
+        <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">".{50,100}"</span>)| {
             <span class="kw">let </span>bytes = input.as_bytes();
             <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
 
@@ -647,7 +648,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>validating_simple_test() {
         <span class="kw">let </span>key = test_key();
-        <span class="kw">let </span>input = <span class="string">&quot;this is a simple test input string&quot;</span>;
+        <span class="kw">let </span>input = <span class="string">"this is a simple test input string"</span>;
 
         <span class="kw">let </span>bytes = input.as_bytes();
         <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
@@ -662,46 +663,46 @@
                 new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(expected_bytes.clone());
             validating
                 .update(bytes)
-                .expect(<span class="string">&quot;update: validation should succeed&quot;</span>);
+                .expect(<span class="string">"update: validation should succeed"</span>);
             validating
                 .finalize()
-                .expect(<span class="string">&quot;finalize: validation should succeed&quot;</span>);
+                .expect(<span class="string">"finalize: validation should succeed"</span>);
         }
 
         {
             <span class="kw">let </span><span class="kw-2">mut </span>failing_first_update = expected_bytes.clone();
             failing_first_update
                 .first_mut()
-                .expect(<span class="string">&quot;there must be at least one mac&quot;</span>)[<span class="number">0</span>] ^= <span class="number">0xff</span>;
+                .expect(<span class="string">"there must be at least one mac"</span>)[<span class="number">0</span>] ^= <span class="number">0xff</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
                 new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(failing_first_update);
-            validating.update(bytes).expect_err(<span class="string">&quot;MacError&quot;</span>);
+            validating.update(bytes).expect_err(<span class="string">"MacError"</span>);
         }
 
         {
             <span class="kw">let </span><span class="kw-2">mut </span>failing_finalize = expected_bytes.clone();
             failing_finalize
                 .last_mut()
-                .expect(<span class="string">&quot;there must be at least one mac&quot;</span>)[<span class="number">0</span>] ^= <span class="number">0xff</span>;
+                .expect(<span class="string">"there must be at least one mac"</span>)[<span class="number">0</span>] ^= <span class="number">0xff</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
                 new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(failing_finalize);
-            validating.update(bytes).expect(<span class="string">&quot;update should succeed&quot;</span>);
-            validating.finalize().expect_err(<span class="string">&quot;MacError&quot;</span>);
+            validating.update(bytes).expect(<span class="string">"update should succeed"</span>);
+            validating.finalize().expect_err(<span class="string">"MacError"</span>);
         }
 
         {
             <span class="kw">let </span>missing_last_mac = <span class="kw-2">&amp;</span>expected_bytes[<span class="number">0</span>..expected_bytes.len() - <span class="number">1</span>];
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
                 new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(missing_last_mac);
-            validating.update(bytes).expect(<span class="string">&quot;update should succeed&quot;</span>);
-            validating.finalize().expect_err(<span class="string">&quot;MacError&quot;</span>);
+            validating.update(bytes).expect(<span class="string">"update should succeed"</span>);
+            validating.finalize().expect_err(<span class="string">"MacError"</span>);
         }
 
         {
             <span class="kw">let </span>missing_first_mac: Vec&lt;<span class="kw">_</span>&gt; = expected_bytes.clone().into_iter().skip(<span class="number">1</span>).collect();
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
                 new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(missing_first_mac);
-            validating.update(bytes).expect_err(<span class="string">&quot;MacError&quot;</span>);
+            validating.update(bytes).expect_err(<span class="string">"MacError"</span>);
         }
         <span class="comment">// To make clippy happy and allow extending the test in the future
         </span>std::hint::black_box(expected_bytes);
@@ -710,7 +711,7 @@
     <span class="attr">#[test]
     </span><span class="kw">fn </span>validating_returns_right_size() {
         <span class="kw">let </span>key = test_key();
-        <span class="kw">let </span>input = <span class="string">&quot;this is a simple test input string&quot;</span>;
+        <span class="kw">let </span>input = <span class="string">"this is a simple test input string"</span>;
 
         <span class="kw">let </span>bytes = input.as_bytes();
         <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
@@ -733,14 +734,14 @@
                 expected_size,
                 validating
                     .update(input)
-                    .expect(<span class="string">&quot;update: validation should succeed&quot;</span>)
+                    .expect(<span class="string">"update: validation should succeed"</span>)
             );
         }
         <span class="macro">assert_eq!</span>(
             expected_remainder,
             validating
                 .finalize()
-                .expect(<span class="string">&quot;finalize: validation should succeed&quot;</span>)
+                .expect(<span class="string">"finalize: validation should succeed"</span>)
         );
     }
 
@@ -748,7 +749,7 @@
     </span><span class="kw">fn </span>produce_and_validate() {
         <span class="kw">let </span>key = test_key();
 
-        <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">&quot;.{0,100}&quot;</span>)| {
+        <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">".{0,100}"</span>)| {
             <span class="kw">let </span>bytes = input.as_bytes();
             <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
             <span class="kw">let </span>input_chunks = bytes.random_chunks(incremental.chunk_size<span class="kw-2">*</span><span class="number">2</span>);
@@ -761,9 +762,9 @@
 
             <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(produced);
             <span class="kw">for </span>chunk <span class="kw">in </span>input_chunks.clone() {
-                validating.update(chunk).expect(<span class="string">&quot;update: validation should succeed&quot;</span>);
+                validating.update(chunk).expect(<span class="string">"update: validation should succeed"</span>);
             }
-            validating.finalize().expect(<span class="string">&quot;finalize: validation should succeed&quot;</span>);
+            validating.finalize().expect(<span class="string">"finalize: validation should succeed"</span>);
         });
     }
 
@@ -809,14 +810,14 @@
     }
 
     <span class="attr">#[derive(Clone)]
-    </span><span class="kw">struct </span>RandomChunks&lt;<span class="lifetime">&#39;a</span>, T, R: Rng&gt; {
-        base: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[T],
+    </span><span class="kw">struct </span>RandomChunks&lt;<span class="lifetime">'a</span>, T, R: Rng&gt; {
+        base: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[T],
         distribution: Uniform&lt;usize&gt;,
         rng: R,
     }
 
-    <span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>, T, R: Rng&gt; Iterator <span class="kw">for </span>RandomChunks&lt;<span class="lifetime">&#39;a</span>, T, R&gt; {
-        <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[T];
+    <span class="kw">impl</span>&lt;<span class="lifetime">'a</span>, T, R: Rng&gt; Iterator <span class="kw">for </span>RandomChunks&lt;<span class="lifetime">'a</span>, T, R&gt; {
+        <span class="kw">type </span>Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[T];
 
         <span class="kw">fn </span>next(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="self">Self</span>::Item&gt; {
             <span class="kw">if </span><span class="self">self</span>.base.is_empty() {
@@ -837,7 +838,7 @@
 
     <span class="kw">impl</span>&lt;T&gt; RandomChunksIterator&lt;T&gt; <span class="kw">for </span>[T] {
         <span class="kw">fn </span>random_chunks(<span class="kw-2">&amp;</span><span class="self">self</span>, max_size: usize) -&gt; RandomChunks&lt;T, ThreadRng&gt; {
-            <span class="macro">assert!</span>(max_size &gt; <span class="number">0</span>, <span class="string">&quot;Maximal chunk size should be positive&quot;</span>);
+            <span class="macro">assert!</span>(max_size &gt; <span class="number">0</span>, <span class="string">"Maximal chunk size should be positive"</span>);
             RandomChunks {
                 base: <span class="self">self</span>,
                 distribution: Uniform::new(<span class="number">0</span>, max_size + <span class="number">1</span>),

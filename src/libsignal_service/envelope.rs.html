@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/envelope.rs`."><title>envelope.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/envelope.rs`."><title>envelope.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -280,15 +281,15 @@
         is_signaling_key_encrypted: bool,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, ServiceError&gt; {
         <span class="kw">if </span>!is_signaling_key_encrypted {
-            <span class="macro">tracing::trace!</span>(<span class="string">&quot;Envelope::decrypt: not encrypted&quot;</span>);
+            <span class="macro">tracing::trace!</span>(<span class="string">"Envelope::decrypt: not encrypted"</span>);
             <span class="prelude-val">Ok</span>(Envelope::decode(input)<span class="question-mark">?</span>)
         } <span class="kw">else </span>{
-            <span class="macro">tracing::trace!</span>(<span class="string">&quot;Envelope::decrypt: decrypting&quot;</span>);
+            <span class="macro">tracing::trace!</span>(<span class="string">"Envelope::decrypt: decrypting"</span>);
             <span class="kw">if </span>input.len() &lt; VERSION_LENGTH
                 || input[VERSION_OFFSET] != SUPPORTED_VERSION
             {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(ServiceError::InvalidFrameError {
-                    reason: <span class="string">&quot;Unsupported signaling cryptogram version&quot;</span>.into(),
+                    reason: <span class="string">"Unsupported signaling cryptogram version"</span>.into(),
                 });
             }
 
@@ -305,7 +306,7 @@
             </span><span class="kw">use </span>hmac::{Hmac, Mac};
             <span class="kw">use </span>sha2::Sha256;
             <span class="kw">let </span><span class="kw-2">mut </span>verifier = Hmac::&lt;Sha256&gt;::new_from_slice(mac_key)
-                .expect(<span class="string">&quot;Hmac can take any size key&quot;</span>);
+                .expect(<span class="string">"Hmac can take any size key"</span>);
             verifier.update(input_for_mac);
             <span class="comment">// XXX: possible timing attack, but we need the bytes for a
             // truncated view...
@@ -322,9 +323,9 @@
             <span class="kw">let </span>input = <span class="kw-2">&amp;</span>input[CIPHERTEXT_OFFSET..(input.len() - MAC_SIZE)];
             <span class="kw">let </span>input = cipher
                 .decrypt_padded_vec_mut::&lt;Pkcs7&gt;(input)
-                .expect(<span class="string">&quot;decryption&quot;</span>);
+                .expect(<span class="string">"decryption"</span>);
 
-            <span class="macro">tracing::trace!</span>(<span class="string">&quot;Envelope::decrypt: decrypted, decoding&quot;</span>);
+            <span class="macro">tracing::trace!</span>(<span class="string">"Envelope::decrypt: decrypted, decoding"</span>);
 
             <span class="prelude-val">Ok</span>(Envelope::decode(<span class="kw-2">&amp;</span>input <span class="kw">as </span><span class="kw-2">&amp;</span>[u8])<span class="question-mark">?</span>)
         }
@@ -384,15 +385,15 @@
             .as_deref()
             .map(Uuid::parse_str)
             .transpose()
-            .expect(<span class="string">&quot;valid uuid checked in constructor&quot;</span>)
-            .expect(<span class="string">&quot;source_service_id is set&quot;</span>);
+            .expect(<span class="string">"valid uuid checked in constructor"</span>)
+            .expect(<span class="string">"source_service_id is set"</span>);
 
         ServiceAddress { uuid }
     }
 }
 
 <span class="attr">#[derive(serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>EnvelopeEntity {
     <span class="kw">pub </span>r#type: i32,
     <span class="kw">pub </span>timestamp: u64,
@@ -401,15 +402,15 @@
     <span class="kw">pub </span>source_device: u32,
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>destination_uuid: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>content: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
     <span class="kw">pub </span>server_timestamp: u64,
     <span class="kw">pub </span>guid: String,
-    <span class="attr">#[serde(default = <span class="string">&quot;default_true&quot;</span>)]
+    <span class="attr">#[serde(default = <span class="string">"default_true"</span>)]
     </span><span class="kw">pub </span>urgent: bool,
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>story: bool,
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>report_spam_token: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
 }
 

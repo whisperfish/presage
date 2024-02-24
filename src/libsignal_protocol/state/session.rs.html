@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/state/session.rs`."><title>session.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/state/session.rs`."><title>session.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -826,10 +827,10 @@
 
 <span class="doccomment">/// A distinct error type to keep from accidentally propagating deserialization errors.
 </span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>InvalidSessionError(<span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str);
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>InvalidSessionError(<span class="kw-2">&amp;</span><span class="lifetime">'static </span>str);
 
 <span class="kw">impl </span>std::fmt::Display <span class="kw">for </span>InvalidSessionError {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
         <span class="self">self</span>.<span class="number">0</span>.fmt(f)
     }
 }
@@ -841,21 +842,21 @@
 }
 
 <span class="attr">#[derive(Debug, Clone)]
-</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>UnacknowledgedPreKeyMessageItems&lt;<span class="lifetime">&#39;a</span>&gt; {
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>UnacknowledgedPreKeyMessageItems&lt;<span class="lifetime">'a</span>&gt; {
     pre_key_id: <span class="prelude-ty">Option</span>&lt;PreKeyId&gt;,
     signed_pre_key_id: SignedPreKeyId,
     base_key: PublicKey,
     kyber_pre_key_id: <span class="prelude-ty">Option</span>&lt;KyberPreKeyId&gt;,
-    kyber_ciphertext: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]&gt;,
+    kyber_ciphertext: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]&gt;,
     timestamp: SystemTime,
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; UnacknowledgedPreKeyMessageItems&lt;<span class="lifetime">&#39;a</span>&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; UnacknowledgedPreKeyMessageItems&lt;<span class="lifetime">'a</span>&gt; {
     <span class="kw">fn </span>new(
         pre_key_id: <span class="prelude-ty">Option</span>&lt;PreKeyId&gt;,
         signed_pre_key_id: SignedPreKeyId,
         base_key: PublicKey,
-        pending_kyber_pre_key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>session_structure::PendingKyberPreKey&gt;,
+        pending_kyber_pre_key: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>session_structure::PendingKyberPreKey&gt;,
         timestamp: SystemTime,
     ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>(kyber_pre_key_id, kyber_ciphertext) = pending_kyber_pre_key
@@ -887,7 +888,7 @@
         <span class="self">self</span>.kyber_pre_key_id
     }
 
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>kyber_ciphertext(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>[u8]&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>kyber_ciphertext(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>[u8]&gt; {
         <span class="self">self</span>.kyber_ciphertext
     }
 
@@ -948,7 +949,7 @@
             <span class="number">0 </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
             <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(
                 IdentityKey::decode(<span class="kw-2">&amp;</span><span class="self">self</span>.session.remote_identity_public)
-                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid remote identity key&quot;</span>))<span class="question-mark">?</span>,
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid remote identity key"</span>))<span class="question-mark">?</span>,
             )),
         }
     }
@@ -959,7 +960,7 @@
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>local_identity_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;IdentityKey, InvalidSessionError&gt; {
         IdentityKey::decode(<span class="kw-2">&amp;</span><span class="self">self</span>.session.local_identity_public)
-            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid local identity key&quot;</span>))
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid local identity key"</span>))
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>local_identity_key_bytes(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;, InvalidSessionError&gt; {
@@ -972,7 +973,7 @@
             <span class="kw">return </span><span class="prelude-val">Ok</span>(remote_id == local_id);
         }
 
-        <span class="comment">// If remote ID is not set then we can&#39;t be sure but treat as non-self
+        <span class="comment">// If remote ID is not set then we can't be sure but treat as non-self
         </span><span class="prelude-val">Ok</span>(<span class="bool-val">false</span>)
     }
 
@@ -987,7 +988,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>root_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;RootKey, InvalidSessionError&gt; {
         <span class="kw">let </span>root_key_bytes = <span class="self">self</span>.session.root_key[..]
             .try_into()
-            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid root key&quot;</span>))<span class="question-mark">?</span>;
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid root key"</span>))<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(RootKey::new(root_key_bytes))
     }
 
@@ -997,9 +998,9 @@
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sender_ratchet_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PublicKey, InvalidSessionError&gt; {
         <span class="kw">match </span><span class="self">self</span>.session.sender_chain {
-            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">&quot;missing sender chain&quot;</span>)),
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">"missing sender chain"</span>)),
             <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>c) =&gt; PublicKey::deserialize(<span class="kw-2">&amp;</span>c.sender_ratchet_key)
-                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid sender chain ratchet key&quot;</span>)),
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid sender chain ratchet key"</span>)),
         }
     }
 
@@ -1007,15 +1008,15 @@
         <span class="prelude-val">Ok</span>(hex::encode(
             <span class="self">self</span>.sender_ratchet_key()<span class="question-mark">?
                 </span>.public_key_bytes()
-                .expect(<span class="string">&quot;no invalid public keys&quot;</span>),
+                .expect(<span class="string">"no invalid public keys"</span>),
         ))
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sender_ratchet_private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;PrivateKey, InvalidSessionError&gt; {
         <span class="kw">match </span><span class="self">self</span>.session.sender_chain {
-            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">&quot;missing sender chain&quot;</span>)),
+            <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">"missing sender chain"</span>)),
             <span class="prelude-val">Some</span>(<span class="kw-2">ref </span>c) =&gt; PrivateKey::deserialize(<span class="kw-2">&amp;</span>c.sender_ratchet_key_private)
-                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid sender chain private ratchet key&quot;</span>)),
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid sender chain private ratchet key"</span>)),
         }
     }
 
@@ -1051,9 +1052,9 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(session_structure::Chain, usize)&gt;, InvalidSessionError&gt; {
         <span class="kw">for </span>(idx, chain) <span class="kw">in </span><span class="self">self</span>.session.receiver_chains.iter().enumerate() {
             <span class="comment">// If we compared bytes directly it would be faster, but may miss non-canonical points.
-            // It&#39;s unclear if supporting such points is desirable.
+            // It's unclear if supporting such points is desirable.
             </span><span class="kw">let </span>chain_ratchet_key = PublicKey::deserialize(<span class="kw-2">&amp;</span>chain.sender_ratchet_key)
-                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid receiver chain ratchet key&quot;</span>))<span class="question-mark">?</span>;
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid receiver chain ratchet key"</span>))<span class="question-mark">?</span>;
 
             <span class="kw">if </span><span class="kw-2">&amp;</span>chain_ratchet_key == sender {
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((chain.clone(), idx)));
@@ -1070,11 +1071,11 @@
         <span class="kw">match </span><span class="self">self</span>.get_receiver_chain(sender)<span class="question-mark">? </span>{
             <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
             <span class="prelude-val">Some</span>((chain, <span class="kw">_</span>)) =&gt; <span class="kw">match </span>chain.chain_key {
-                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">&quot;missing receiver chain key&quot;</span>)),
+                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(InvalidSessionError(<span class="string">"missing receiver chain key"</span>)),
                 <span class="prelude-val">Some</span>(c) =&gt; {
                     <span class="kw">let </span>chain_key_bytes = c.key[..]
                         .try_into()
-                        .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid receiver chain key&quot;</span>))<span class="question-mark">?</span>;
+                        .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid receiver chain key"</span>))<span class="question-mark">?</span>;
                     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(ChainKey::new(chain_key_bytes, c.index)))
                 }
             },
@@ -1098,9 +1099,9 @@
 
         <span class="kw">if </span><span class="self">self</span>.session.receiver_chains.len() &gt; consts::MAX_RECEIVER_CHAINS {
             <span class="macro">log::info!</span>(
-                <span class="string">&quot;Trimming excessive receiver_chain for session with base key {}, chain count: {}&quot;</span>,
+                <span class="string">"Trimming excessive receiver_chain for session with base key {}, chain count: {}"</span>,
                 <span class="self">self</span>.sender_ratchet_key_for_logging()
-                    .unwrap_or_else(|e| <span class="macro">format!</span>(<span class="string">&quot;&lt;error: {}&gt;&quot;</span>, e.<span class="number">0</span>)),
+                    .unwrap_or_else(|e| <span class="macro">format!</span>(<span class="string">"&lt;error: {}&gt;"</span>, e.<span class="number">0</span>)),
                 <span class="self">self</span>.session.receiver_chains.len()
             );
             <span class="self">self</span>.session.receiver_chains.remove(<span class="number">0</span>);
@@ -1138,16 +1139,16 @@
             </span>.session
             .sender_chain
             .as_ref()
-            .ok_or(InvalidSessionError(<span class="string">&quot;missing sender chain&quot;</span>))<span class="question-mark">?</span>;
+            .ok_or(InvalidSessionError(<span class="string">"missing sender chain"</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>chain_key = sender_chain
             .chain_key
             .as_ref()
-            .ok_or(InvalidSessionError(<span class="string">&quot;missing sender chain key&quot;</span>))<span class="question-mark">?</span>;
+            .ok_or(InvalidSessionError(<span class="string">"missing sender chain key"</span>))<span class="question-mark">?</span>;
 
         <span class="kw">let </span>chain_key_bytes = chain_key.key[..]
             .try_into()
-            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid sender chain key&quot;</span>))<span class="question-mark">?</span>;
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid sender chain key"</span>))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(ChainKey::new(chain_key_bytes, chain_key.index))
     }
@@ -1198,15 +1199,15 @@
                 <span class="kw">let </span>cipher_key_bytes = message_key
                     .cipher_key
                     .try_into()
-                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid message cipher key&quot;</span>))<span class="question-mark">?</span>;
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid message cipher key"</span>))<span class="question-mark">?</span>;
                 <span class="kw">let </span>mac_key_bytes = message_key
                     .mac_key
                     .try_into()
-                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid message MAC key&quot;</span>))<span class="question-mark">?</span>;
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid message MAC key"</span>))<span class="question-mark">?</span>;
                 <span class="kw">let </span>iv_bytes = message_key
                     .iv
                     .try_into()
-                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid message IV&quot;</span>))<span class="question-mark">?</span>;
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid message IV"</span>))<span class="question-mark">?</span>;
 
                 <span class="kw">let </span>keys = MessageKeys::new(cipher_key_bytes, mac_key_bytes, iv_bytes, counter);
 
@@ -1233,7 +1234,7 @@
 
         <span class="kw">let </span>chain_and_index = <span class="self">self
             </span>.get_receiver_chain(sender)<span class="question-mark">?
-            </span>.expect(<span class="string">&quot;called set_message_keys for a non-existent chain&quot;</span>);
+            </span>.expect(<span class="string">"called set_message_keys for a non-existent chain"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>updated_chain = chain_and_index.<span class="number">0</span>;
         updated_chain.message_keys.insert(<span class="number">0</span>, new_keys);
 
@@ -1253,7 +1254,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), InvalidSessionError&gt; {
         <span class="kw">let </span>chain_and_index = <span class="self">self
             </span>.get_receiver_chain(sender)<span class="question-mark">?
-            </span>.expect(<span class="string">&quot;called set_receiver_chain_key for a non-existent chain&quot;</span>);
+            </span>.expect(<span class="string">"called set_receiver_chain_key for a non-existent chain"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>updated_chain = chain_and_index.<span class="number">0</span>;
         updated_chain.chain_key = <span class="prelude-val">Some</span>(session_structure::chain::ChainKey {
             index: chain_key.index(),
@@ -1302,7 +1303,7 @@
             </span>.session
             .pending_kyber_pre_key
             .as_mut()
-            .expect(<span class="string">&quot;must have been set if kyber pre key is present&quot;</span>);
+            .expect(<span class="string">"must have been set if kyber pre key is present"</span>);
         pending.pre_key_id = signed_kyber_pre_key_id.into();
     }
 
@@ -1314,7 +1315,7 @@
                 pending_pre_key.pre_key_id.map(Into::into),
                 (pending_pre_key.signed_pre_key_id <span class="kw">as </span>u32).into(),
                 PublicKey::deserialize(<span class="kw-2">&amp;</span>pending_pre_key.base_key)
-                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;invalid pending PreKey message base key&quot;</span>))<span class="question-mark">?</span>,
+                    .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"invalid pending PreKey message base key"</span>))<span class="question-mark">?</span>,
                 <span class="self">self</span>.session.pending_kyber_pre_key.as_ref(),
                 SystemTime::UNIX_EPOCH + Duration::from_secs(pending_pre_key.timestamp),
             )))
@@ -1392,7 +1393,7 @@
 
     <span class="kw">pub fn </span>deserialize(bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, SignalProtocolError&gt; {
         <span class="kw">let </span>record = RecordStructure::decode(bytes)
-            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;failed to decode session record protobuf&quot;</span>))<span class="question-mark">?</span>;
+            .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"failed to decode session record protobuf"</span>))<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             current_session: record.current_session.map(|s| s.into()),
@@ -1441,10 +1442,10 @@
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>previous_session_states(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-    ) -&gt; <span class="kw">impl </span>ExactSizeIterator&lt;Item = <span class="prelude-ty">Result</span>&lt;SessionState, InvalidSessionError&gt;&gt; + <span class="lifetime">&#39;_ </span>{
+    ) -&gt; <span class="kw">impl </span>ExactSizeIterator&lt;Item = <span class="prelude-ty">Result</span>&lt;SessionState, InvalidSessionError&gt;&gt; + <span class="lifetime">'_ </span>{
         <span class="self">self</span>.previous_sessions.iter().map(|bytes| {
             <span class="prelude-val">Ok</span>(SessionStructure::decode(<span class="kw-2">&amp;</span>bytes[..])
-                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">&quot;failed to decode previous session protobuf&quot;</span>))<span class="question-mark">?
+                .map_err(|<span class="kw">_</span>| InvalidSessionError(<span class="string">"failed to decode previous session protobuf"</span>))<span class="question-mark">?
                 </span>.into())
         })
     }
@@ -1472,7 +1473,7 @@
             <span class="self">self</span>.previous_sessions
                 .insert(<span class="number">0</span>, current_session.session.encode_to_vec());
         } <span class="kw">else </span>{
-            <span class="macro">log::info!</span>(<span class="string">&quot;Skipping archive, current session state is fresh&quot;</span>,);
+            <span class="macro">log::info!</span>(<span class="string">"Skipping archive, current session state is fresh"</span>,);
         }
     }
 
@@ -1494,8 +1495,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;remote_registration_id&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"remote_registration_id"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.remote_registration_id())
@@ -1506,8 +1507,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;local_registration_id&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"local_registration_id"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.local_registration_id())
@@ -1517,7 +1518,7 @@
         <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.session_state()
             .ok_or_else(|| {
-                SignalProtocolError::InvalidState(<span class="string">&quot;session_version&quot;</span>, <span class="string">&quot;No current session&quot;</span>.into())
+                SignalProtocolError::InvalidState(<span class="string">"session_version"</span>, <span class="string">"No current session"</span>.into())
             })<span class="question-mark">?
             </span>.session_version()<span class="question-mark">?</span>)
     }
@@ -1527,8 +1528,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;local_identity_key_bytes&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"local_identity_key_bytes"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.local_identity_key_bytes()<span class="question-mark">?</span>)
@@ -1539,8 +1540,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;remote_identity_key_bytes&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"remote_identity_key_bytes"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.remote_identity_key_bytes()<span class="question-mark">?</span>)
@@ -1557,7 +1558,7 @@
         <span class="prelude-val">Ok</span>(<span class="self">self
             </span>.session_state()
             .ok_or_else(|| {
-                SignalProtocolError::InvalidState(<span class="string">&quot;alice_base_key&quot;</span>, <span class="string">&quot;No current session&quot;</span>.into())
+                SignalProtocolError::InvalidState(<span class="string">"alice_base_key"</span>, <span class="string">"No current session"</span>.into())
             })<span class="question-mark">?
             </span>.alice_base_key())
     }
@@ -1570,8 +1571,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;get_receiver_chain_key&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"get_receiver_chain_key"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.get_receiver_chain_key(sender)<span class="question-mark">?
@@ -1583,8 +1584,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;get_sender_chain_key_bytes&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"get_sender_chain_key_bytes"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.get_sender_chain_key_bytes()<span class="question-mark">?</span>)
@@ -1605,8 +1606,8 @@
             </span>.session_state()
             .ok_or_else(|| {
                 SignalProtocolError::InvalidState(
-                    <span class="string">&quot;get_kyber_ciphertext&quot;</span>,
-                    <span class="string">&quot;No current session&quot;</span>.into(),
+                    <span class="string">"get_kyber_ciphertext"</span>,
+                    <span class="string">"No current session"</span>.into(),
                 )
             })<span class="question-mark">?
             </span>.get_kyber_ciphertext())

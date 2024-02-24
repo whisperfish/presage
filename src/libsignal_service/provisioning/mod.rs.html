@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/provisioning/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/provisioning/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -332,21 +333,21 @@
 
 <span class="attr">#[derive(thiserror::Error, Debug)]
 </span><span class="kw">pub enum </span>ProvisioningError {
-    <span class="attr">#[error(<span class="string">&quot;Invalid provisioning data: {reason}&quot;</span>)]
-    </span>InvalidData { reason: Cow&lt;<span class="lifetime">&#39;static</span>, str&gt; },
-    <span class="attr">#[error(<span class="string">&quot;Protobuf decoding error: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Invalid provisioning data: {reason}"</span>)]
+    </span>InvalidData { reason: Cow&lt;<span class="lifetime">'static</span>, str&gt; },
+    <span class="attr">#[error(<span class="string">"Protobuf decoding error: {0}"</span>)]
     </span>DecodeError(<span class="attr">#[from] </span>prost::DecodeError),
-    <span class="attr">#[error(<span class="string">&quot;Websocket error: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Websocket error: {reason}"</span>)]
     </span>WsError { reason: String },
-    <span class="attr">#[error(<span class="string">&quot;Websocket closing: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Websocket closing: {reason}"</span>)]
     </span>WsClosing { reason: String },
-    <span class="attr">#[error(<span class="string">&quot;Service error: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Service error: {0}"</span>)]
     </span>ServiceError(<span class="attr">#[from] </span>ServiceError),
-    <span class="attr">#[error(<span class="string">&quot;libsignal-protocol error: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"libsignal-protocol error: {0}"</span>)]
     </span>ProtocolError(<span class="attr">#[from] </span>libsignal_protocol::error::SignalProtocolError),
-    <span class="attr">#[error(<span class="string">&quot;ProvisioningCipher in encrypt-only mode&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"ProvisioningCipher in encrypt-only mode"</span>)]
     </span>EncryptOnlyProvisioningCipher,
-    <span class="attr">#[error(<span class="string">&quot;invalid profile key bytes&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"invalid profile key bytes"</span>)]
     </span>InvalidProfileKey(TryFromSliceError),
 }
 
@@ -358,20 +359,20 @@
 
 <span class="doccomment">/// Message received when linking a new secondary device.
 </span><span class="attr">#[derive(Debug, Serialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>ConfirmDeviceMessage {
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
     </span><span class="kw">pub </span>signaling_key: Vec&lt;u8&gt;,
     <span class="kw">pub </span>supports_sms: bool,
     <span class="kw">pub </span>fetches_messages: bool,
     <span class="kw">pub </span>registration_id: u32,
     <span class="kw">pub </span>pni_registration_id: u32,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>, skip_serializing_if = <span class="string">&quot;Vec::is_empty&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>, skip_serializing_if = <span class="string">"Vec::is_empty"</span>)]
     </span><span class="kw">pub </span>name: Vec&lt;u8&gt;,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>ConfirmCodeResponse {
     <span class="kw">pub </span>uuid: Uuid,
     <span class="kw">pub </span>storage_capable: bool,
@@ -391,13 +392,13 @@
     <span class="kw">pub </span>registration_id: u32,
     <span class="kw">pub </span>pni_registration_id: u32,
     <span class="kw">pub </span>service_ids: ServiceIds,
-    <span class="attr">#[derivative(Debug = <span class="string">&quot;ignore&quot;</span>)]
+    <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>aci_private_key: PrivateKey,
     <span class="kw">pub </span>aci_public_key: PublicKey,
-    <span class="attr">#[derivative(Debug = <span class="string">&quot;ignore&quot;</span>)]
+    <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>pni_private_key: PrivateKey,
     <span class="kw">pub </span>pni_public_key: PublicKey,
-    <span class="attr">#[derivative(Debug = <span class="string">&quot;ignore&quot;</span>)]
+    <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>profile_key: ProfileKey,
 }
 
@@ -418,8 +419,8 @@
     <span class="comment">// open a websocket without authentication, to receive a tsurl://
     </span><span class="kw">let </span>ws = push_service
         .ws(
-            <span class="string">&quot;/v1/websocket/provisioning/&quot;</span>,
-            <span class="string">&quot;/v1/keepalive/provisioning&quot;</span>,
+            <span class="string">"/v1/websocket/provisioning/"</span>,
+            <span class="string">"/v1/keepalive/provisioning"</span>,
             <span class="kw-2">&amp;</span>[],
             <span class="prelude-val">None</span>,
         )
@@ -434,73 +435,73 @@
 
     <span class="kw">if let </span>ProvisioningStep::Url(url) = provision_stream.next().<span class="kw">await</span>.ok_or(
         ProvisioningError::InvalidData {
-            reason: <span class="string">&quot;no provisioning URL received&quot;</span>.into(),
+            reason: <span class="string">"no provisioning URL received"</span>.into(),
         },
     )<span class="question-mark">?? </span>{
         tx.send(SecondaryDeviceProvisioning::Url(url))
             .<span class="kw">await
-            </span>.expect(<span class="string">&quot;failed to send provisioning Url in channel&quot;</span>);
+            </span>.expect(<span class="string">"failed to send provisioning Url in channel"</span>);
     } <span class="kw">else </span>{
         <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidData {
-            reason: <span class="string">&quot;wrong provisioning step received&quot;</span>.into(),
+            reason: <span class="string">"wrong provisioning step received"</span>.into(),
         });
     }
 
     <span class="kw">if let </span>ProvisioningStep::Message(message) =
         provision_stream.next().<span class="kw">await</span>.ok_or(
             ProvisioningError::InvalidData {
-                reason: <span class="string">&quot;no provisioning message received&quot;</span>.into(),
+                reason: <span class="string">"no provisioning message received"</span>.into(),
             },
         )<span class="question-mark">??
     </span>{
         <span class="kw">let </span>aci_public_key =
             PublicKey::deserialize(<span class="kw-2">&amp;</span>message.aci_identity_key_public.ok_or(
                 ProvisioningError::InvalidData {
-                    reason: <span class="string">&quot;missing public key&quot;</span>.into(),
+                    reason: <span class="string">"missing public key"</span>.into(),
                 },
             )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>aci_private_key =
             PrivateKey::deserialize(<span class="kw-2">&amp;</span>message.aci_identity_key_private.ok_or(
                 ProvisioningError::InvalidData {
-                    reason: <span class="string">&quot;missing public key&quot;</span>.into(),
+                    reason: <span class="string">"missing public key"</span>.into(),
                 },
             )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>pni_public_key =
             PublicKey::deserialize(<span class="kw-2">&amp;</span>message.pni_identity_key_public.ok_or(
                 ProvisioningError::InvalidData {
-                    reason: <span class="string">&quot;missing public key&quot;</span>.into(),
+                    reason: <span class="string">"missing public key"</span>.into(),
                 },
             )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>pni_private_key =
             PrivateKey::deserialize(<span class="kw-2">&amp;</span>message.pni_identity_key_private.ok_or(
                 ProvisioningError::InvalidData {
-                    reason: <span class="string">&quot;missing public key&quot;</span>.into(),
+                    reason: <span class="string">"missing public key"</span>.into(),
                 },
             )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>profile_key =
             message.profile_key.ok_or(ProvisioningError::InvalidData {
-                reason: <span class="string">&quot;missing profile key&quot;</span>.into(),
+                reason: <span class="string">"missing profile key"</span>.into(),
             })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>phone_number =
             message.number.ok_or(ProvisioningError::InvalidData {
-                reason: <span class="string">&quot;missing phone number&quot;</span>.into(),
+                reason: <span class="string">"missing phone number"</span>.into(),
             })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>phone_number =
             phonenumber::parse(<span class="prelude-val">None</span>, phone_number).map_err(|e| {
                 ProvisioningError::InvalidData {
-                    reason: <span class="macro">format!</span>(<span class="string">&quot;invalid phone number ({})&quot;</span>, e).into(),
+                    reason: <span class="macro">format!</span>(<span class="string">"invalid phone number ({})"</span>, e).into(),
                 }
             })<span class="question-mark">?</span>;
 
         <span class="kw">let </span>provisioning_code = message.provisioning_code.ok_or(
             ProvisioningError::InvalidData {
-                reason: <span class="string">&quot;no provisioning confirmation code&quot;</span>.into(),
+                reason: <span class="string">"no provisioning confirmation code"</span>.into(),
             },
         )<span class="question-mark">?</span>;
 
@@ -575,10 +576,10 @@
             },
         ))
         .<span class="kw">await
-        </span>.expect(<span class="string">&quot;failed to send provisioning message in rx channel&quot;</span>);
+        </span>.expect(<span class="string">"failed to send provisioning message in rx channel"</span>);
     } <span class="kw">else </span>{
         <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidData {
-            reason: <span class="string">&quot;wrong provisioning step received&quot;</span>.into(),
+            reason: <span class="string">"wrong provisioning step received"</span>.into(),
         });
     }
 

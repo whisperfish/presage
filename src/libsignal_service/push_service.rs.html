@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/push_service.rs`."><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/a2e7540/libsignal-service/src/push_service.rs`."><title>push_service.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1345,44 +1346,44 @@
 <span class="kw">use </span>zkgroup::profiles::{ProfileKeyCommitment, ProfileKeyVersion};
 
 <span class="doccomment">/**
-Since we can&#39;t use format!() with constants, the URLs here are just for reference purposes
-pub const REGISTER_GCM_PATH: &amp;str = &quot;/v1/accounts/gcm/&quot;;
-pub const TURN_SERVER_INFO: &amp;str = &quot;/v1/accounts/turn&quot;;
-pub const SET_ACCOUNT_ATTRIBUTES: &amp;str = &quot;/v1/accounts/attributes/&quot;;
-pub const PIN_PATH: &amp;str = &quot;/v1/accounts/pin/&quot;;
-pub const REQUEST_PUSH_CHALLENGE: &amp;str = &quot;/v1/accounts/fcm/preauth/%s/%s&quot;;
-pub const WHO_AM_I: &amp;str = &quot;/v1/accounts/whoami&quot;;
+Since we can't use format!() with constants, the URLs here are just for reference purposes
+pub const REGISTER_GCM_PATH: &amp;str = "/v1/accounts/gcm/";
+pub const TURN_SERVER_INFO: &amp;str = "/v1/accounts/turn";
+pub const SET_ACCOUNT_ATTRIBUTES: &amp;str = "/v1/accounts/attributes/";
+pub const PIN_PATH: &amp;str = "/v1/accounts/pin/";
+pub const REQUEST_PUSH_CHALLENGE: &amp;str = "/v1/accounts/fcm/preauth/%s/%s";
+pub const WHO_AM_I: &amp;str = "/v1/accounts/whoami";
 
-pub const PREKEY_PATH: &amp;str = &quot;/v2/keys/%s&quot;;
-pub const PREKEY_DEVICE_PATH: &amp;str = &quot;/v2/keys/%s/%s&quot;;
-pub const SIGNED_PREKEY_PATH: &amp;str = &quot;/v2/keys/signed&quot;;
+pub const PREKEY_PATH: &amp;str = "/v2/keys/%s";
+pub const PREKEY_DEVICE_PATH: &amp;str = "/v2/keys/%s/%s";
+pub const SIGNED_PREKEY_PATH: &amp;str = "/v2/keys/signed";
 
-pub const PROVISIONING_CODE_PATH: &amp;str = &quot;/v1/devices/provisioning/code&quot;;
-pub const PROVISIONING_MESSAGE_PATH: &amp;str = &quot;/v1/provisioning/%s&quot;;
+pub const PROVISIONING_CODE_PATH: &amp;str = "/v1/devices/provisioning/code";
+pub const PROVISIONING_MESSAGE_PATH: &amp;str = "/v1/provisioning/%s";
 
-pub const DIRECTORY_TOKENS_PATH: &amp;str = &quot;/v1/directory/tokens&quot;;
-pub const DIRECTORY_VERIFY_PATH: &amp;str = &quot;/v1/directory/%s&quot;;
-pub const DIRECTORY_AUTH_PATH: &amp;str = &quot;/v1/directory/auth&quot;;
-pub const DIRECTORY_FEEDBACK_PATH: &amp;str = &quot;/v1/directory/feedback-v3/%s&quot;;
-pub const SENDER_ACK_MESSAGE_PATH: &amp;str = &quot;/v1/messages/%s/%d&quot;;
-pub const UUID_ACK_MESSAGE_PATH: &amp;str = &quot;/v1/messages/uuid/%s&quot;;
-pub const ATTACHMENT_PATH: &amp;str = &quot;/v2/attachments/form/upload&quot;;
+pub const DIRECTORY_TOKENS_PATH: &amp;str = "/v1/directory/tokens";
+pub const DIRECTORY_VERIFY_PATH: &amp;str = "/v1/directory/%s";
+pub const DIRECTORY_AUTH_PATH: &amp;str = "/v1/directory/auth";
+pub const DIRECTORY_FEEDBACK_PATH: &amp;str = "/v1/directory/feedback-v3/%s";
+pub const SENDER_ACK_MESSAGE_PATH: &amp;str = "/v1/messages/%s/%d";
+pub const UUID_ACK_MESSAGE_PATH: &amp;str = "/v1/messages/uuid/%s";
+pub const ATTACHMENT_PATH: &amp;str = "/v2/attachments/form/upload";
 
-pub const PROFILE_PATH: &amp;str = &quot;/v1/profile/&quot;;
+pub const PROFILE_PATH: &amp;str = "/v1/profile/";
 
-pub const SENDER_CERTIFICATE_LEGACY_PATH: &amp;str = &quot;/v1/certificate/delivery&quot;;
+pub const SENDER_CERTIFICATE_LEGACY_PATH: &amp;str = "/v1/certificate/delivery";
 pub const SENDER_CERTIFICATE_PATH: &amp;str =
-    &quot;/v1/certificate/delivery?includeUuid=true&quot;;
+    "/v1/certificate/delivery?includeUuid=true";
 
-pub const VERIFICATION_SESSION_PATH: &amp;str = &quot;/v1/verification/session&quot;;
-pub const VERIFICATION_CODE_PATH: &amp;str    = &quot;/v1/verification/session/%s/code&quot;;
+pub const VERIFICATION_SESSION_PATH: &amp;str = "/v1/verification/session";
+pub const VERIFICATION_CODE_PATH: &amp;str    = "/v1/verification/session/%s/code";
 
-pub const REGISTRATION_PATH: &amp;str    = &quot;/v1/registration&quot;;
+pub const REGISTRATION_PATH: &amp;str    = "/v1/registration";
 
-pub const ATTACHMENT_DOWNLOAD_PATH: &amp;str = &quot;attachments/%d&quot;;
+pub const ATTACHMENT_DOWNLOAD_PATH: &amp;str = "attachments/%d";
 
-pub const STICKER_MANIFEST_PATH: &amp;str = &quot;stickers/%s/manifest.proto&quot;;
-pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
+pub const STICKER_MANIFEST_PATH: &amp;str = "stickers/%s/manifest.proto";
+pub const STICKER_PATH: &amp;str = "stickers/%s/full/%d";
 **/
 
 </span><span class="kw">pub const </span>KEEPALIVE_TIMEOUT_SECONDS: Duration = Duration::from_secs(<span class="number">55</span>);
@@ -1401,17 +1402,17 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>ServiceIdType {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
         <span class="kw">match </span><span class="self">self </span>{
-            ServiceIdType::AccountIdentity =&gt; f.write_str(<span class="string">&quot;aci&quot;</span>),
-            ServiceIdType::PhoneNumberIdentity =&gt; f.write_str(<span class="string">&quot;pni&quot;</span>),
+            ServiceIdType::AccountIdentity =&gt; f.write_str(<span class="string">"aci"</span>),
+            ServiceIdType::PhoneNumberIdentity =&gt; f.write_str(<span class="string">"pni"</span>),
         }
     }
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize, Clone)]
 </span><span class="kw">pub struct </span>ServiceIds {
-    <span class="attr">#[serde(rename = <span class="string">&quot;uuid&quot;</span>)]
+    <span class="attr">#[serde(rename = <span class="string">"uuid"</span>)]
     </span><span class="kw">pub </span>aci: Uuid,
     <span class="attr">#[serde(default)] </span><span class="comment">// nil when not present (yet)
     </span><span class="kw">pub </span>pni: Uuid,
@@ -1428,32 +1429,32 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="kw">impl </span>fmt::Display <span class="kw">for </span>ServiceIds {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        <span class="macro">write!</span>(f, <span class="string">&quot;aci={} pni={}&quot;</span>, <span class="self">self</span>.aci, <span class="self">self</span>.pni)
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+        <span class="macro">write!</span>(f, <span class="string">"aci={} pni={}"</span>, <span class="self">self</span>.aci, <span class="self">self</span>.pni)
     }
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>DeviceId {
     <span class="kw">pub </span>device_id: u32,
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>DeviceInfo {
     <span class="kw">pub </span>id: i64,
     <span class="kw">pub </span>name: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="attr">#[serde(with = <span class="string">&quot;chrono::serde::ts_milliseconds&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"chrono::serde::ts_milliseconds"</span>)]
     </span><span class="kw">pub </span>created: DateTime&lt;Utc&gt;,
-    <span class="attr">#[serde(with = <span class="string">&quot;chrono::serde::ts_milliseconds&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"chrono::serde::ts_milliseconds"</span>)]
     </span><span class="kw">pub </span>last_seen: DateTime&lt;Utc&gt;,
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>AccountAttributes {
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>signaling_key: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
     <span class="kw">pub </span>registration_id: u32,
     <span class="kw">pub </span>pni_registration_id: u32,
@@ -1462,7 +1463,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     <span class="kw">pub </span>fetches_messages: bool,
     <span class="kw">pub </span>pin: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>registration_lock: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>unidentified_access_key: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
     <span class="kw">pub </span>unrestricted_unidentified_access: bool,
     <span class="kw">pub </span>discoverable_by_phone_number: bool,
@@ -1471,15 +1472,15 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize, Default, Eq, PartialEq, Clone)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>DeviceCapabilities {
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>announcement_group: bool,
-    <span class="attr">#[serde(rename(serialize = <span class="string">&quot;gv2-3&quot;</span>), alias = <span class="string">&quot;gv2-3&quot;</span>, default)]
+    <span class="attr">#[serde(rename(serialize = <span class="string">"gv2-3"</span>), alias = <span class="string">"gv2-3"</span>, default)]
     </span><span class="kw">pub </span>gv2: bool,
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>storage: bool,
-    <span class="attr">#[serde(rename = <span class="string">&quot;gv1-migration&quot;</span>, default)]
+    <span class="attr">#[serde(rename = <span class="string">"gv1-migration"</span>, default)]
     </span><span class="kw">pub </span>gv1_migration: bool,
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>sender_key: bool,
@@ -1507,7 +1508,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Deserialize, Default)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>PreKeyStatus {
     <span class="kw">pub </span>count: u32,
     <span class="kw">pub </span>pq_count: u32,
@@ -1517,17 +1518,17 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 #[derivative(Debug)]
 </span><span class="kw">pub struct </span>HttpAuth {
     <span class="kw">pub </span>username: String,
-    <span class="attr">#[derivative(Debug = <span class="string">&quot;ignore&quot;</span>)]
+    <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>password: String,
 }
 
 <span class="doccomment">/// This type is used in registration lock handling.
-/// It&#39;s identical with HttpAuth, but used to avoid type confusion.
+/// It's identical with HttpAuth, but used to avoid type confusion.
 </span><span class="attr">#[derive(Derivative, Clone, Serialize, Deserialize)]
 #[derivative(Debug)]
 </span><span class="kw">pub struct </span>AuthCredentials {
     <span class="kw">pub </span>username: String,
-    <span class="attr">#[derivative(Debug = <span class="string">&quot;ignore&quot;</span>)]
+    <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>password: String,
 }
 
@@ -1546,32 +1547,32 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">struct </span>SenderCertificateJson {
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
     </span>certificate: Vec&lt;u8&gt;,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>PreKeyResponse {
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
     </span><span class="kw">pub </span>identity_key: Vec&lt;u8&gt;,
     <span class="kw">pub </span>devices: Vec&lt;PreKeyResponseItem&gt;,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>WhoAmIResponse {
     <span class="kw">pub </span>uuid: Uuid,
     <span class="attr">#[serde(default)] </span><span class="comment">// nil when not present (yet)
     </span><span class="kw">pub </span>pni: Uuid,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_phone_number&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_phone_number"</span>)]
     </span><span class="kw">pub </span>number: PhoneNumber,
 }
 
 <span class="attr">#[derive(Debug, Clone, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>RegistrationSessionMetadataResponse {
     <span class="kw">pub </span>id: String,
     <span class="attr">#[serde(default)]
@@ -1591,29 +1592,29 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="comment">// .contains() requires &amp;String ...
         </span><span class="self">self</span>.requested_information
             .iter()
-            .any(|x| x.as_str() == <span class="string">&quot;pushChallenge&quot;</span>)
+            .any(|x| x.as_str() == <span class="string">"pushChallenge"</span>)
     }
 
     <span class="kw">pub fn </span>captcha_required(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="comment">// .contains() requires &amp;String ...
         </span><span class="self">self</span>.requested_information
             .iter()
-            .any(|x| x.as_str() == <span class="string">&quot;captcha&quot;</span>)
+            .any(|x| x.as_str() == <span class="string">"captcha"</span>)
     }
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>RegistrationLockFailure {
     <span class="kw">pub </span>length: u32,
     <span class="kw">pub </span>time_remaining: u64,
-    <span class="attr">#[serde(rename = <span class="string">&quot;backup_credentials&quot;</span>)]
+    <span class="attr">#[serde(rename = <span class="string">"backup_credentials"</span>)]
     </span><span class="kw">pub </span>svr1_credentials: <span class="prelude-ty">Option</span>&lt;AuthCredentials&gt;,
     <span class="kw">pub </span>svr2_credentials: <span class="prelude-ty">Option</span>&lt;AuthCredentials&gt;,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>VerifyAccountResponse {
     <span class="kw">pub </span>uuid: Uuid,
     <span class="kw">pub </span>pni: Uuid,
@@ -1631,27 +1632,27 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 <span class="kw">impl </span>VerificationTransport {
     <span class="kw">pub fn </span>as_str(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
         <span class="kw">match </span><span class="self">self </span>{
-            <span class="self">Self</span>::Sms =&gt; <span class="string">&quot;sms&quot;</span>,
-            <span class="self">Self</span>::Voice =&gt; <span class="string">&quot;voice&quot;</span>,
+            <span class="self">Self</span>::Sms =&gt; <span class="string">"sms"</span>,
+            <span class="self">Self</span>::Voice =&gt; <span class="string">"voice"</span>,
         }
     }
 }
 
 <span class="attr">#[derive(Clone, Debug)]
-</span><span class="kw">pub enum </span>RegistrationMethod&lt;<span class="lifetime">&#39;a</span>&gt; {
-    SessionId(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str),
-    RecoveryPassword(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str),
+</span><span class="kw">pub enum </span>RegistrationMethod&lt;<span class="lifetime">'a</span>&gt; {
+    SessionId(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
+    RecoveryPassword(<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str),
 }
 
-<span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; RegistrationMethod&lt;<span class="lifetime">&#39;a</span>&gt; {
-    <span class="kw">pub fn </span>session_id(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt; {
+<span class="kw">impl</span>&lt;<span class="lifetime">'a</span>&gt; RegistrationMethod&lt;<span class="lifetime">'a</span>&gt; {
+    <span class="kw">pub fn </span>session_id(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; {
         <span class="kw">match </span><span class="self">self </span>{
             <span class="self">Self</span>::SessionId(x) =&gt; <span class="prelude-val">Some</span>(x),
             <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
         }
     }
 
-    <span class="kw">pub fn </span>recovery_password(<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt; {
+    <span class="kw">pub fn </span>recovery_password(<span class="kw-2">&amp;</span><span class="lifetime">'a </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt; {
         <span class="kw">match </span><span class="self">self </span>{
             <span class="self">Self</span>::RecoveryPassword(x) =&gt; <span class="prelude-val">Some</span>(x),
             <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
@@ -1660,7 +1661,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>PreKeyResponseItem {
     <span class="kw">pub </span>device_id: u32,
     <span class="kw">pub </span>registration_id: u32,
@@ -1705,20 +1706,20 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>MismatchedDevices {
     <span class="kw">pub </span>missing_devices: Vec&lt;u32&gt;,
     <span class="kw">pub </span>extra_devices: Vec&lt;u32&gt;,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>StaleDevices {
     <span class="kw">pub </span>stale_devices: Vec&lt;u32&gt;,
 }
 
 <span class="attr">#[derive(Debug, Serialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>LinkRequest {
     <span class="kw">pub </span>verification_code: String,
     <span class="kw">pub </span>account_attributes: LinkAccountAttributes,
@@ -1729,7 +1730,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Serialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>LinkAccountAttributes {
     <span class="kw">pub </span>fetches_messages: bool,
     <span class="kw">pub </span>name: String,
@@ -1739,34 +1740,34 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, Serialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>LinkCapabilities {
     <span class="kw">pub </span>pni: bool,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>LinkResponse {
-    <span class="attr">#[serde(rename = <span class="string">&quot;uuid&quot;</span>)]
+    <span class="attr">#[serde(rename = <span class="string">"uuid"</span>)]
     </span><span class="kw">pub </span>aci: Uuid,
     <span class="kw">pub </span>pni: Uuid,
     <span class="kw">pub </span>device_id: u32,
 }
 
 <span class="attr">#[derive(Debug, Deserialize)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>SignalServiceProfile {
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>identity_key: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>name: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>about: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[serde(default, with = <span class="string">&quot;serde_optional_base64&quot;</span>)]
+    <span class="attr">#[serde(default, with = <span class="string">"serde_optional_base64"</span>)]
     </span><span class="kw">pub </span>about_emoji: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
 
     <span class="comment">// TODO: not sure whether this is via optional_base64
-    // #[serde(default, with = &quot;serde_optional_base64&quot;)]
+    // #[serde(default, with = "serde_optional_base64")]
     // pub payment_address: Option&lt;Vec&lt;u8&gt;&gt;,
     </span><span class="kw">pub </span>avatar: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>unidentified_access: <span class="prelude-ty">Option</span>&lt;String&gt;,
@@ -1809,7 +1810,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 }
 
 <span class="attr">#[derive(Debug, serde::Deserialize, Default)]
-#[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
+#[serde(rename_all = <span class="string">"camelCase"</span>)]
 </span><span class="kw">pub struct </span>AttachmentV2UploadAttributes {
     key: String,
     credential: String,
@@ -1818,7 +1819,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     date: String,
     policy: String,
     signature: String,
-    <span class="comment">// This is different from Java&#39;s implementation,
+    <span class="comment">// This is different from Java's implementation,
     // and I (Ruben) am unsure why they decide to force-parse at upload-time instead of at registration
     // time.
     </span>attachment_id: u64,
@@ -1826,83 +1827,83 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
 
 <span class="attr">#[derive(thiserror::Error, Debug)]
 </span><span class="kw">pub enum </span>ServiceError {
-    <span class="attr">#[error(<span class="string">&quot;Service request timed out: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Service request timed out: {reason}"</span>)]
     </span>Timeout { reason: String },
 
-    <span class="attr">#[error(<span class="string">&quot;invalid URL: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"invalid URL: {0}"</span>)]
     </span>InvalidUrl(<span class="attr">#[from] </span>url::ParseError),
 
-    <span class="attr">#[error(<span class="string">&quot;Error sending request: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Error sending request: {reason}"</span>)]
     </span>SendError { reason: String },
 
-    <span class="attr">#[error(<span class="string">&quot;Error decoding response: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Error decoding response: {reason}"</span>)]
     </span>ResponseError { reason: String },
 
-    <span class="attr">#[error(<span class="string">&quot;Error decoding JSON response: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Error decoding JSON response: {reason}"</span>)]
     </span>JsonDecodeError { reason: String },
-    <span class="attr">#[error(<span class="string">&quot;Error decoding protobuf frame: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Error decoding protobuf frame: {0}"</span>)]
     </span>ProtobufDecodeError(<span class="attr">#[from] </span>prost::DecodeError),
-    <span class="attr">#[error(<span class="string">&quot;error encoding or decoding bincode: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"error encoding or decoding bincode: {0}"</span>)]
     </span>BincodeError(<span class="attr">#[from] </span>bincode::Error),
-    <span class="attr">#[error(<span class="string">&quot;error decoding base64 string: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"error decoding base64 string: {0}"</span>)]
     </span>Base64DecodeError(<span class="attr">#[from] </span>base64::DecodeError),
 
-    <span class="attr">#[error(<span class="string">&quot;Rate limit exceeded&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Rate limit exceeded"</span>)]
     </span>RateLimitExceeded,
-    <span class="attr">#[error(<span class="string">&quot;Authorization failed&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Authorization failed"</span>)]
     </span>Unauthorized,
-    <span class="attr">#[error(<span class="string">&quot;Registration lock is set: {0:?}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Registration lock is set: {0:?}"</span>)]
     </span>Locked(RegistrationLockFailure),
-    <span class="attr">#[error(<span class="string">&quot;Unexpected response: HTTP {http_code}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Unexpected response: HTTP {http_code}"</span>)]
     </span>UnhandledResponseCode { http_code: u16 },
 
-    <span class="attr">#[error(<span class="string">&quot;Websocket error: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Websocket error: {reason}"</span>)]
     </span>WsError { reason: String },
-    <span class="attr">#[error(<span class="string">&quot;Websocket closing: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Websocket closing: {reason}"</span>)]
     </span>WsClosing { reason: String },
 
-    <span class="attr">#[error(<span class="string">&quot;Invalid frame: {reason}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Invalid frame: {reason}"</span>)]
     </span>InvalidFrameError { reason: String },
 
-    <span class="attr">#[error(<span class="string">&quot;MAC error&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"MAC error"</span>)]
     </span>MacError,
 
-    <span class="attr">#[error(<span class="string">&quot;Protocol error: {0}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Protocol error: {0}"</span>)]
     </span>SignalProtocolError(<span class="attr">#[from] </span>SignalProtocolError),
 
-    <span class="attr">#[error(<span class="string">&quot;Proof required: {0:?}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Proof required: {0:?}"</span>)]
     </span>ProofRequiredError(ProofRequired),
 
-    <span class="attr">#[error(<span class="string">&quot;{0:?}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"{0:?}"</span>)]
     </span>MismatchedDevicesException(MismatchedDevices),
 
-    <span class="attr">#[error(<span class="string">&quot;{0:?}&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"{0:?}"</span>)]
     </span>StaleDevices(StaleDevices),
 
     <span class="attr">#[error(transparent)]
     </span>CredentialsCacheError(<span class="attr">#[from] </span><span class="kw">crate</span>::groups_v2::CredentialsCacheError),
 
-    <span class="attr">#[error(<span class="string">&quot;groups v2 (zero-knowledge) error&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"groups v2 (zero-knowledge) error"</span>)]
     </span>GroupsV2Error,
 
     <span class="attr">#[error(transparent)]
     </span>GroupsV2DecryptionError(<span class="attr">#[from] </span>GroupDecodingError),
 
-    <span class="attr">#[error(<span class="string">&quot;unsupported content&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"unsupported content"</span>)]
     </span>UnsupportedContent,
 
     <span class="attr">#[error(transparent)]
     </span>ParseServiceAddress(<span class="attr">#[from] </span>ParseServiceAddressError),
 
-    <span class="attr">#[error(<span class="string">&quot;Not found.&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"Not found."</span>)]
     </span>NotFoundError,
 
-    <span class="attr">#[error(<span class="string">&quot;invalid device name&quot;</span>)]
+    <span class="attr">#[error(<span class="string">"invalid device name"</span>)]
     </span>InvalidDeviceName,
 }
 
-<span class="attr">#[cfg_attr(feature = <span class="string">&quot;unsend-futures&quot;</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
-#[cfg_attr(not(feature = <span class="string">&quot;unsend-futures&quot;</span>), async_trait::async_trait)]
+<span class="attr">#[cfg_attr(feature = <span class="string">"unsend-futures"</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
+#[cfg_attr(not(feature = <span class="string">"unsend-futures"</span>), async_trait::async_trait)]
 </span><span class="kw">pub trait </span>PushService: MaybeSend {
     <span class="kw">type </span>ByteStream: futures::io::AsyncRead + Unpin;
 
@@ -1914,7 +1915,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         credentials_override: HttpAuthOverride,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;;
+        for</span>&lt;<span class="lifetime">'de</span>&gt; T: Deserialize&lt;<span class="lifetime">'de</span>&gt;;
 
     <span class="kw">async fn </span>delete_json&lt;T&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1923,7 +1924,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         additional_headers: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
     ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; T: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;;
+        for</span>&lt;<span class="lifetime">'de</span>&gt; T: Deserialize&lt;<span class="lifetime">'de</span>&gt;;
 
     <span class="kw">async fn </span>put_json&lt;D, S&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1934,7 +1935,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         value: S,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; D: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
         S: MaybeSend + Serialize;
 
     <span class="kw">async fn </span>patch_json&lt;D, S&gt;(
@@ -1946,7 +1947,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         value: S,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; D: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
         S: MaybeSend + Serialize;
 
     <span class="kw">async fn </span>post_json&lt;D, S&gt;(
@@ -1958,7 +1959,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         value: S,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;D, ServiceError&gt;
     <span class="kw">where
-        for</span>&lt;<span class="lifetime">&#39;de</span>&gt; D: Deserialize&lt;<span class="lifetime">&#39;de</span>&gt;,
+        for</span>&lt;<span class="lifetime">'de</span>&gt; D: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
         S: MaybeSend + Serialize;
 
     <span class="kw">async fn </span>get_protobuf&lt;T&gt;(
@@ -1992,11 +1993,11 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     <span class="doccomment">/// Upload larger file to CDN0 in legacy fashion, e.g. for attachments.
     ///
     /// Implementations are allowed to *panic* when the Read instance throws an IO-Error
-    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>&gt;(
+    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">'s</span>, C: std::io::Read + Send + <span class="lifetime">'s</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         path: <span class="kw-2">&amp;</span>str,
         value: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
-        file: <span class="prelude-ty">Option</span>&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span><span class="kw-2">mut </span>C)&gt;,
+        file: <span class="prelude-ty">Option</span>&lt;(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span><span class="lifetime">'s </span><span class="kw-2">mut </span>C)&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt;;
 
     <span class="kw">async fn </span>ws(
@@ -2019,7 +2020,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>devices: DeviceInfoList = <span class="self">self
             </span>.get_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/devices/&quot;</span>,
+                <span class="string">"/v1/devices/"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
             )
@@ -2029,7 +2030,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     }
 
     <span class="kw">async fn </span>unlink_device(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: i64) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
-        <span class="self">self</span>.delete_json(Endpoint::Service, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/devices/{}&quot;</span>, id), <span class="kw-2">&amp;</span>[])
+        <span class="self">self</span>.delete_json(Endpoint::Service, <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"/v1/devices/{}"</span>, id), <span class="kw-2">&amp;</span>[])
             .<span class="kw">await
     </span>}
 
@@ -2039,7 +2040,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyStatus, ServiceError&gt; {
         <span class="self">self</span>.get_json(
             Endpoint::Service,
-            <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v2/keys?identity={}&quot;</span>, service_id_type),
+            <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"/v2/keys?identity={}"</span>, service_id_type),
             <span class="kw-2">&amp;</span>[],
             HttpAuthOverride::NoOverride,
         )
@@ -2054,7 +2055,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">match </span><span class="self">self
             </span>.put_json(
                 Endpoint::Service,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v2/keys?identity={}&quot;</span>, service_id_type),
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"/v2/keys?identity={}"</span>, service_id_type),
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
                 pre_key_state,
@@ -2071,7 +2072,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         id: <span class="kw-2">&amp;</span>str,
         cdn_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;attachments/{}&quot;</span>, id);
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">"attachments/{}"</span>, id);
         <span class="self">self</span>.get_from_cdn(cdn_id, <span class="kw-2">&amp;</span>path).<span class="kw">await
     </span>}
 
@@ -2084,7 +2085,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
                 <span class="comment">// cdn_number did not exist for this part of the protocol.
                 // cdn_number(), however, returns 0 when the field does not
                 // exist.
-                </span><span class="self">self</span>.get_attachment_by_id(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, id), ptr.cdn_number())
+                </span><span class="self">self</span>.get_attachment_by_id(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"{}"</span>, id), ptr.cdn_number())
                     .<span class="kw">await
             </span>},
             AttachmentIdentifier::CdnKey(key) =&gt; {
@@ -2097,7 +2098,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         id: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/stickers/{}/manifest.proto&quot;</span>, id);
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">"/stickers/{}/manifest.proto"</span>, id);
         <span class="self">self</span>.get_from_cdn(<span class="number">0</span>, <span class="kw-2">&amp;</span>path).<span class="kw">await
     </span>}
 
@@ -2106,7 +2107,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         pack_id: <span class="kw-2">&amp;</span>str,
         sticker_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ByteStream, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/stickers/{}/full/{}&quot;</span>, pack_id, sticker_id);
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">"/stickers/{}/full/{}"</span>, pack_id, sticker_id);
         <span class="self">self</span>.get_from_cdn(<span class="number">0</span>, <span class="kw-2">&amp;</span>path).<span class="kw">await
     </span>}
 
@@ -2114,7 +2115,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         messages: OutgoingPushMessages,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SendMessageResponse, ServiceError&gt; {
-        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">&quot;/v1/messages/{}&quot;</span>, messages.recipient.uuid);
+        <span class="kw">let </span>path = <span class="macro">format!</span>(<span class="string">"/v1/messages/{}"</span>, messages.recipient.uuid);
         <span class="self">self</span>.put_json(
             Endpoint::Service,
             <span class="kw-2">&amp;</span>path,
@@ -2133,7 +2134,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     ) -&gt; <span class="prelude-ty">Result</span>&lt;AttachmentV2UploadAttributes, ServiceError&gt; {
         <span class="self">self</span>.get_json(
             Endpoint::Service,
-            <span class="string">&quot;/v2/attachments/form/upload&quot;</span>,
+            <span class="string">"/v2/attachments/form/upload"</span>,
             <span class="kw-2">&amp;</span>[],
             HttpAuthOverride::NoOverride,
         )
@@ -2143,28 +2144,28 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     <span class="doccomment">/// Upload attachment to CDN
     ///
     /// Returns attachment ID and the attachment digest
-    </span><span class="kw">async fn </span>upload_attachment&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>&gt;(
+    </span><span class="kw">async fn </span>upload_attachment&lt;<span class="lifetime">'s</span>, C: std::io::Read + Send + <span class="lifetime">'s</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         attrs: <span class="kw-2">&amp;</span>AttachmentV2UploadAttributes,
-        content: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span><span class="kw-2">mut </span>C,
+        content: <span class="kw-2">&amp;</span><span class="lifetime">'s </span><span class="kw-2">mut </span>C,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(u64, Vec&lt;u8&gt;), ServiceError&gt; {
         <span class="kw">let </span>values = [
-            (<span class="string">&quot;acl&quot;</span>, <span class="kw-2">&amp;</span>attrs.acl <span class="kw">as </span><span class="kw-2">&amp;</span>str),
-            (<span class="string">&quot;key&quot;</span>, <span class="kw-2">&amp;</span>attrs.key),
-            (<span class="string">&quot;policy&quot;</span>, <span class="kw-2">&amp;</span>attrs.policy),
-            (<span class="string">&quot;Content-Type&quot;</span>, <span class="string">&quot;application/octet-stream&quot;</span>),
-            (<span class="string">&quot;x-amz-algorithm&quot;</span>, <span class="kw-2">&amp;</span>attrs.algorithm),
-            (<span class="string">&quot;x-amz-credential&quot;</span>, <span class="kw-2">&amp;</span>attrs.credential),
-            (<span class="string">&quot;x-amz-date&quot;</span>, <span class="kw-2">&amp;</span>attrs.date),
-            (<span class="string">&quot;x-amz-signature&quot;</span>, <span class="kw-2">&amp;</span>attrs.signature),
+            (<span class="string">"acl"</span>, <span class="kw-2">&amp;</span>attrs.acl <span class="kw">as </span><span class="kw-2">&amp;</span>str),
+            (<span class="string">"key"</span>, <span class="kw-2">&amp;</span>attrs.key),
+            (<span class="string">"policy"</span>, <span class="kw-2">&amp;</span>attrs.policy),
+            (<span class="string">"Content-Type"</span>, <span class="string">"application/octet-stream"</span>),
+            (<span class="string">"x-amz-algorithm"</span>, <span class="kw-2">&amp;</span>attrs.algorithm),
+            (<span class="string">"x-amz-credential"</span>, <span class="kw-2">&amp;</span>attrs.credential),
+            (<span class="string">"x-amz-date"</span>, <span class="kw-2">&amp;</span>attrs.date),
+            (<span class="string">"x-amz-signature"</span>, <span class="kw-2">&amp;</span>attrs.signature),
         ];
 
         <span class="kw">let </span><span class="kw-2">mut </span>digester = <span class="kw">crate</span>::digeststream::DigestingReader::new(content);
 
         <span class="self">self</span>.post_to_cdn0(
-            <span class="string">&quot;attachments/&quot;</span>,
+            <span class="string">"attachments/"</span>,
             <span class="kw-2">&amp;</span>values,
-            <span class="prelude-val">Some</span>((<span class="string">&quot;file&quot;</span>, <span class="kw-2">&amp;mut </span>digester)),
+            <span class="prelude-val">Some</span>((<span class="string">"file"</span>, <span class="kw-2">&amp;mut </span>digester)),
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>((attrs.attachment_id, digester.finalize()))
@@ -2177,10 +2178,10 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>entity_list: EnvelopeEntityList = <span class="self">self
             </span>.get_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/messages/&quot;</span>,
+                <span class="string">"/v1/messages/"</span>,
                 <span class="kw-2">&amp;</span>[(
-                    <span class="string">&quot;X-Signal-Receive-Stories&quot;</span>,
-                    <span class="kw">if </span>allow_stories { <span class="string">&quot;true&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;false&quot; </span>},
+                    <span class="string">"X-Signal-Receive-Stories"</span>,
+                    <span class="kw">if </span>allow_stories { <span class="string">"true" </span>} <span class="kw">else </span>{ <span class="string">"false" </span>},
                 )],
                 HttpAuthOverride::NoOverride,
             )
@@ -2192,7 +2193,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     </span><span class="kw">async fn </span>whoami(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, ServiceError&gt; {
         <span class="self">self</span>.get_json(
             Endpoint::Service,
-            <span class="string">&quot;/v1/accounts/whoami&quot;</span>,
+            <span class="string">"/v1/accounts/whoami"</span>,
             <span class="kw-2">&amp;</span>[],
             HttpAuthOverride::NoOverride,
         )
@@ -2209,10 +2210,10 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
                 <span class="kw-2">&amp;</span>key.get_profile_key_version(address.aci()),
             )<span class="question-mark">?</span>;
             <span class="kw">let </span>version = std::str::from_utf8(<span class="kw-2">&amp;</span>version)
-                .expect(<span class="string">&quot;hex encoded profile key version&quot;</span>);
-            <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}/{}&quot;</span>, address.uuid, version)
+                .expect(<span class="string">"hex encoded profile key version"</span>);
+            <span class="macro">format!</span>(<span class="string">"/v1/profile/{}/{}"</span>, address.uuid, version)
         } <span class="kw">else </span>{
-            <span class="macro">format!</span>(<span class="string">&quot;/v1/profile/{}&quot;</span>, address.uuid)
+            <span class="macro">format!</span>(<span class="string">"/v1/profile/{}"</span>, address.uuid)
         };
         <span class="comment">// TODO: set locale to en_US
         </span><span class="self">self</span>.get_json(
@@ -2244,7 +2245,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         device_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PreKeyBundle, ServiceError&gt; {
         <span class="kw">let </span>path =
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}?pq=true&quot;</span>, destination.uuid, device_id);
+            <span class="macro">format!</span>(<span class="string">"/v2/keys/{}/{}?pq=true"</span>, destination.uuid, device_id);
 
         <span class="kw">let </span><span class="kw-2">mut </span>pre_key_response: PreKeyResponse = <span class="self">self
             </span>.get_json(
@@ -2267,9 +2268,9 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         device_id: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;PreKeyBundle&gt;, ServiceError&gt; {
         <span class="kw">let </span>path = <span class="kw">if </span>device_id == <span class="number">1 </span>{
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/*?pq=true&quot;</span>, destination.uuid)
+            <span class="macro">format!</span>(<span class="string">"/v2/keys/{}/*?pq=true"</span>, destination.uuid)
         } <span class="kw">else </span>{
-            <span class="macro">format!</span>(<span class="string">&quot;/v2/keys/{}/{}?pq=true&quot;</span>, destination.uuid, device_id)
+            <span class="macro">format!</span>(<span class="string">"/v2/keys/{}/{}?pq=true"</span>, destination.uuid, device_id)
         };
         <span class="kw">let </span>pre_key_response: PreKeyResponse = <span class="self">self
             </span>.get_json(
@@ -2293,7 +2294,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::Group, ServiceError&gt; {
         <span class="self">self</span>.get_protobuf(
             Endpoint::Storage,
-            <span class="string">&quot;/v1/groups/&quot;</span>,
+            <span class="string">"/v1/groups/"</span>,
             <span class="kw-2">&amp;</span>[],
             HttpAuthOverride::Identified(credentials),
         )
@@ -2306,7 +2307,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>cert: SenderCertificateJson = <span class="self">self
             </span>.get_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/certificate/delivery&quot;</span>,
+                <span class="string">"/v1/certificate/delivery"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
             )
@@ -2320,7 +2321,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>cert: SenderCertificateJson = <span class="self">self
             </span>.get_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/certificate/delivery?includeE164=false&quot;</span>,
+                <span class="string">"/v1/certificate/delivery?includeE164=false"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
             )
@@ -2335,7 +2336,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     ) -&gt; <span class="prelude-ty">Result</span>&lt;LinkResponse, ServiceError&gt; {
         <span class="self">self</span>.put_json(
             Endpoint::Service,
-            <span class="string">&quot;/v1/devices/link&quot;</span>,
+            <span class="string">"/v1/devices/link"</span>,
             <span class="kw-2">&amp;</span>[],
             HttpAuthOverride::Identified(http_auth),
             link_request,
@@ -2349,13 +2350,13 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ServiceError&gt; {
         <span class="macro">assert!</span>(
             attributes.pin.is_none() || attributes.registration_lock.is_none(),
-            <span class="string">&quot;only one of PIN and registration lock can be set.&quot;
+            <span class="string">"only one of PIN and registration lock can be set."
         </span>);
 
         <span class="kw">match </span><span class="self">self
             </span>.put_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/accounts/attributes/&quot;</span>,
+                <span class="string">"/v1/accounts/attributes/"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
                 attributes,
@@ -2373,7 +2374,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
     /// See [`AccountManager`][struct@crate::AccountManager] for a convenience method.
     ///
     /// Java equivalent: `writeProfile`
-    </span><span class="kw">async fn </span>write_profile&lt;<span class="lifetime">&#39;s</span>, C: std::io::Read + Send + <span class="lifetime">&#39;s</span>, S: AsRef&lt;str&gt;&gt;(
+    </span><span class="kw">async fn </span>write_profile&lt;<span class="lifetime">'s</span>, C: std::io::Read + Send + <span class="lifetime">'s</span>, S: AsRef&lt;str&gt;&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         version: <span class="kw-2">&amp;</span>ProfileKeyVersion,
         name: <span class="kw-2">&amp;</span>[u8],
@@ -2383,26 +2384,26 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         avatar: AvatarWrite&lt;<span class="kw-2">&amp;mut </span>C&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;String&gt;, ServiceError&gt; {
         <span class="attr">#[derive(Debug, Serialize)]
-        #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
-        </span><span class="kw">struct </span>SignalServiceProfileWrite&lt;<span class="lifetime">&#39;s</span>&gt; {
+        #[serde(rename_all = <span class="string">"camelCase"</span>)]
+        </span><span class="kw">struct </span>SignalServiceProfileWrite&lt;<span class="lifetime">'s</span>&gt; {
             <span class="doccomment">/// Hex-encoded
-            </span>version: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>str,
-            <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
-            </span>name: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
-            <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
-            </span>about: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
-            <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
-            </span>about_emoji: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
+            </span>version: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>str,
+            <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
+            </span>name: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>[u8],
+            <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
+            </span>about: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>[u8],
+            <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
+            </span>about_emoji: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>[u8],
             avatar: bool,
             same_avatar: bool,
-            <span class="attr">#[serde(with = <span class="string">&quot;serde_base64&quot;</span>)]
-            </span>commitment: <span class="kw-2">&amp;</span><span class="lifetime">&#39;s </span>[u8],
+            <span class="attr">#[serde(with = <span class="string">"serde_base64"</span>)]
+            </span>commitment: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>[u8],
         }
 
         <span class="comment">// Bincode is transparent and will return a hex-encoded string.
         </span><span class="kw">let </span>version = bincode::serialize(version)<span class="question-mark">?</span>;
         <span class="kw">let </span>version = std::str::from_utf8(<span class="kw-2">&amp;</span>version)
-            .expect(<span class="string">&quot;profile_key_version is hex encoded string&quot;</span>);
+            .expect(<span class="string">"profile_key_version is hex encoded string"</span>);
         <span class="kw">let </span>commitment = bincode::serialize(commitment)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>command = SignalServiceProfileWrite {
@@ -2419,7 +2420,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         </span><span class="kw">let </span>response: <span class="prelude-ty">Result</span>&lt;String, <span class="kw">_</span>&gt; = <span class="self">self
             </span>.put_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/profile&quot;</span>,
+                <span class="string">"/v1/profile"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
                 command,
@@ -2428,7 +2429,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">match </span>(response, avatar) {
             (<span class="prelude-val">Ok</span>(_url), AvatarWrite::NewAvatar(_avatar)) =&gt; {
                 <span class="comment">// FIXME
-                </span><span class="macro">unreachable!</span>(<span class="string">&quot;Uploading avatar unimplemented&quot;</span>);
+                </span><span class="macro">unreachable!</span>(<span class="string">"Uploading avatar unimplemented"</span>);
             },
             <span class="comment">// FIXME cleanup when #54883 is stable and MSRV:
             // or-patterns syntax is experimental
@@ -2441,42 +2442,42 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
                 <span class="prelude-val">Err</span>(ServiceError::JsonDecodeError { .. }),
                 AvatarWrite::NoAvatar,
             ) =&gt; {
-                <span class="comment">// OWS sends an empty string when there&#39;s no attachment
+                <span class="comment">// OWS sends an empty string when there's no attachment
                 </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
             },
             (<span class="prelude-val">Err</span>(e), <span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(e),
             (<span class="prelude-val">Ok</span>(_resp), AvatarWrite::RetainAvatar)
             | (<span class="prelude-val">Ok</span>(_resp), AvatarWrite::NoAvatar) =&gt; {
                 <span class="macro">tracing::warn!</span>(
-                    <span class="string">&quot;No avatar supplied but got avatar upload URL. Ignoring&quot;
+                    <span class="string">"No avatar supplied but got avatar upload URL. Ignoring"
                 </span>);
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
             },
         }
     }
 
-    <span class="comment">// Equivalent of Java&#39;s
+    <span class="comment">// Equivalent of Java's
     // RegistrationSessionMetadataResponse createVerificationSession(@Nullable String pushToken, @Nullable String mcc, @Nullable String mnc)
-    </span><span class="kw">async fn </span>create_verification_session&lt;<span class="lifetime">&#39;a</span>&gt;(
+    </span><span class="kw">async fn </span>create_verification_session&lt;<span class="lifetime">'a</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        number: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
-        push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-        mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-        mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
+        number: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+        push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+        mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+        mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;RegistrationSessionMetadataResponse, ServiceError&gt; {
         <span class="attr">#[derive(serde::Serialize, Debug)]
-        #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
-        </span><span class="kw">struct </span>VerificationSessionMetadataRequestBody&lt;<span class="lifetime">&#39;a</span>&gt; {
-            number: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
-            push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            push_token_type: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
+        #[serde(rename_all = <span class="string">"camelCase"</span>)]
+        </span><span class="kw">struct </span>VerificationSessionMetadataRequestBody&lt;<span class="lifetime">'a</span>&gt; {
+            number: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+            push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            push_token_type: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
         }
 
         <span class="kw">let </span>req = VerificationSessionMetadataRequestBody {
             number,
-            push_token_type: push_token.as_ref().map(|<span class="kw">_</span>| <span class="string">&quot;fcm&quot;</span>),
+            push_token_type: push_token.as_ref().map(|<span class="kw">_</span>| <span class="string">"fcm"</span>),
             push_token,
             mcc,
             mnc,
@@ -2485,7 +2486,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>res: RegistrationSessionMetadataResponse = <span class="self">self
             </span>.post_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/verification/session&quot;</span>,
+                <span class="string">"/v1/verification/session"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::Unidentified,
                 req,
@@ -2494,31 +2495,31 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="prelude-val">Ok</span>(res)
     }
 
-    <span class="comment">// Equivalent of Java&#39;s
+    <span class="comment">// Equivalent of Java's
     // RegistrationSessionMetadataResponse patchVerificationSession(String sessionId, @Nullable String pushToken, @Nullable String mcc, @Nullable String mnc, @Nullable String captchaToken, @Nullable String pushChallengeToken)
-    </span><span class="kw">async fn </span>patch_verification_session&lt;<span class="lifetime">&#39;a</span>&gt;(
+    </span><span class="kw">async fn </span>patch_verification_session&lt;<span class="lifetime">'a</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        session_id: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
-        push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-        mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-        mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-        captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-        push_challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
+        session_id: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>str,
+        push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+        mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+        mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+        captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+        push_challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;RegistrationSessionMetadataResponse, ServiceError&gt; {
         <span class="attr">#[derive(serde::Serialize, Debug)]
-        #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
-        </span><span class="kw">struct </span>UpdateVerificationSessionRequestBody&lt;<span class="lifetime">&#39;a</span>&gt; {
-            captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            push_challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            push_token_type: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
+        #[serde(rename_all = <span class="string">"camelCase"</span>)]
+        </span><span class="kw">struct </span>UpdateVerificationSessionRequestBody&lt;<span class="lifetime">'a</span>&gt; {
+            captcha: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            push_token: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            push_challenge: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            mcc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            mnc: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            push_token_type: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
         }
 
         <span class="kw">let </span>req = UpdateVerificationSessionRequestBody {
             captcha,
-            push_token_type: push_token.as_ref().map(|<span class="kw">_</span>| <span class="string">&quot;fcm&quot;</span>),
+            push_token_type: push_token.as_ref().map(|<span class="kw">_</span>| <span class="string">"fcm"</span>),
             push_token,
             mcc,
             mnc,
@@ -2528,7 +2529,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>res: RegistrationSessionMetadataResponse = <span class="self">self
             </span>.patch_json(
                 Endpoint::Service,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/verification/session/{}&quot;</span>, session_id),
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"/v1/verification/session/{}"</span>, session_id),
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::Unidentified,
                 req,
@@ -2537,33 +2538,33 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="prelude-val">Ok</span>(res)
     }
 
-    <span class="comment">// Equivalent of Java&#39;s
+    <span class="comment">// Equivalent of Java's
     // RegistrationSessionMetadataResponse requestVerificationCode(String sessionId, Locale locale, boolean androidSmsRetriever, VerificationCodeTransport transport)
     </span><span class="doccomment">/// Request a verification code.
     ///
     /// Signal requires a client type, and they use these three strings internally:
-    /// - &quot;android-2021-03&quot;
-    /// - &quot;android&quot;
-    /// - &quot;ios&quot;
-    /// &quot;android-2021-03&quot; allegedly implies FCM support, whereas the other strings don&#39;t.  In
-    /// principle, they will consider any string as &quot;unknown&quot;, so other strings may work too.
+    /// - "android-2021-03"
+    /// - "android"
+    /// - "ios"
+    /// "android-2021-03" allegedly implies FCM support, whereas the other strings don't.  In
+    /// principle, they will consider any string as "unknown", so other strings may work too.
     </span><span class="kw">async fn </span>request_verification_code(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         session_id: <span class="kw-2">&amp;</span>str,
         client: <span class="kw-2">&amp;</span>str,
-        <span class="comment">// XXX: We currently don&#39;t support this, because we need to set some headers in the
+        <span class="comment">// XXX: We currently don't support this, because we need to set some headers in the
         //      post_json() call
         // locale: Option&lt;String&gt;,
         </span>transport: VerificationTransport,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;RegistrationSessionMetadataResponse, ServiceError&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>req = std::collections::HashMap::new();
-        req.insert(<span class="string">&quot;transport&quot;</span>, transport.as_str());
-        req.insert(<span class="string">&quot;client&quot;</span>, client);
+        req.insert(<span class="string">"transport"</span>, transport.as_str());
+        req.insert(<span class="string">"client"</span>, client);
 
         <span class="kw">let </span>res: RegistrationSessionMetadataResponse = <span class="self">self
             </span>.post_json(
                 Endpoint::Service,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/verification/session/{}/code&quot;</span>, session_id),
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"/v1/verification/session/{}/code"</span>, session_id),
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::Unidentified,
                 req,
@@ -2578,12 +2579,12 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         verification_code: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;RegistrationSessionMetadataResponse, ServiceError&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>req = std::collections::HashMap::new();
-        req.insert(<span class="string">&quot;code&quot;</span>, verification_code);
+        req.insert(<span class="string">"code"</span>, verification_code);
 
         <span class="kw">let </span>res: RegistrationSessionMetadataResponse = <span class="self">self
             </span>.put_json(
                 Endpoint::Service,
-                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/v1/verification/session/{}/code&quot;</span>, session_id),
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">"/v1/verification/session/{}/code"</span>, session_id),
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::Unidentified,
                 req,
@@ -2592,19 +2593,19 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="prelude-val">Ok</span>(res)
     }
 
-    <span class="kw">async fn </span>submit_registration_request&lt;<span class="lifetime">&#39;a</span>&gt;(
+    <span class="kw">async fn </span>submit_registration_request&lt;<span class="lifetime">'a</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        registration_method: RegistrationMethod&lt;<span class="lifetime">&#39;a</span>&gt;,
+        registration_method: RegistrationMethod&lt;<span class="lifetime">'a</span>&gt;,
         account_attributes: AccountAttributes,
         skip_device_transfer: bool,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;VerifyAccountResponse, ServiceError&gt; {
         <span class="attr">#[derive(serde::Serialize, Debug)]
-        #[serde(rename_all = <span class="string">&quot;camelCase&quot;</span>)]
-        </span><span class="kw">struct </span>RegistrationSessionRequestBody&lt;<span class="lifetime">&#39;a</span>&gt; {
-            <span class="comment">// TODO: This is an &quot;old&quot; version of the request. The new one includes atomic
-            // registration of prekeys and identities, but I&#39;m to lazy to implement them today.
-            </span>session_id: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
-            recovery_password: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str&gt;,
+        #[serde(rename_all = <span class="string">"camelCase"</span>)]
+        </span><span class="kw">struct </span>RegistrationSessionRequestBody&lt;<span class="lifetime">'a</span>&gt; {
+            <span class="comment">// TODO: This is an "old" version of the request. The new one includes atomic
+            // registration of prekeys and identities, but I'm to lazy to implement them today.
+            </span>session_id: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
+            recovery_password: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span><span class="lifetime">'a </span>str&gt;,
             account_attributes: AccountAttributes,
             skip_device_transfer: bool,
         }
@@ -2619,7 +2620,7 @@ pub const STICKER_PATH: &amp;str = &quot;stickers/%s/full/%d&quot;;
         <span class="kw">let </span>res: VerifyAccountResponse = <span class="self">self
             </span>.post_json(
                 Endpoint::Service,
-                <span class="string">&quot;/v1/registration&quot;</span>,
+                <span class="string">"/v1/registration"</span>,
                 <span class="kw-2">&amp;</span>[],
                 HttpAuthOverride::NoOverride,
                 req,

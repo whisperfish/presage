@@ -1,4 +1,5 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/registered.rs`."><title>registered.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-9ee3a5e31a2afa3e.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.75.0 (82e1608df 2023-12-21)" data-channel="1.75.0" data-search-js="search-8fbf244ebcf71464.js" data-settings-js="settings-74424d7eec62a23e.js" ><script src="../../../static.files/storage-fec3eaa3851e447d.js"></script><script defer src="../../../static.files/src-script-3280b574d94e47b4.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-9dd44ab47b99a0fb.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-5d8b3c7633ad77ba.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/registered.rs`."><title>registered.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+    <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1302,8 +1303,8 @@
 }
 
 <span class="kw">impl </span>fmt::Debug <span class="kw">for </span>Registered {
-    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
-        f.debug_struct(<span class="string">&quot;Registered&quot;</span>).finish_non_exhaustive()
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+        f.debug_struct(<span class="string">"Registered"</span>).finish_non_exhaustive()
     }
 }
 
@@ -1337,21 +1338,21 @@
     <span class="attr">#[serde(flatten)]
     </span><span class="kw">pub </span>service_ids: ServiceIds,
     <span class="kw">pub</span>(<span class="kw">crate</span>) password: String,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_signaling_key&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_signaling_key"</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) signaling_key: SignalingKey,
     <span class="kw">pub </span>device_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
     <span class="kw">pub </span>registration_id: u32,
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>pni_registration_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_private_key&quot;</span>, rename = <span class="string">&quot;private_key&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_private_key"</span>, rename = <span class="string">"private_key"</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) aci_private_key: PrivateKey,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_public_key&quot;</span>, rename = <span class="string">&quot;public_key&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_public_key"</span>, rename = <span class="string">"public_key"</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) aci_public_key: PublicKey,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_optional_private_key&quot;</span>, default)]
+    <span class="attr">#[serde(with = <span class="string">"serde_optional_private_key"</span>, default)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) pni_private_key: <span class="prelude-ty">Option</span>&lt;PrivateKey&gt;,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_optional_public_key&quot;</span>, default)]
+    <span class="attr">#[serde(with = <span class="string">"serde_optional_public_key"</span>, default)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) pni_public_key: <span class="prelude-ty">Option</span>&lt;PublicKey&gt;,
-    <span class="attr">#[serde(with = <span class="string">&quot;serde_profile_key&quot;</span>)]
+    <span class="attr">#[serde(with = <span class="string">"serde_profile_key"</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) profile_key: ProfileKey,
 }
 
@@ -1460,18 +1461,18 @@
         {
             <span class="prelude-val">Some</span>(ws) =&gt; <span class="prelude-val">Ok</span>(ws.clone()),
             <span class="prelude-val">None </span>=&gt; {
-                <span class="kw">let </span>headers = <span class="kw-2">&amp;</span>[(<span class="string">&quot;X-Signal-Receive-Stories&quot;</span>, <span class="string">&quot;false&quot;</span>)];
+                <span class="kw">let </span>headers = <span class="kw-2">&amp;</span>[(<span class="string">"X-Signal-Receive-Stories"</span>, <span class="string">"false"</span>)];
                 <span class="kw">let </span>ws = <span class="self">self
                     </span>.identified_push_service()
                     .ws(
-                        <span class="string">&quot;/v1/websocket/&quot;</span>,
-                        <span class="string">&quot;/v1/keepalive&quot;</span>,
+                        <span class="string">"/v1/websocket/"</span>,
+                        <span class="string">"/v1/keepalive"</span>,
                         headers,
                         <span class="self">self</span>.credentials(),
                     )
                     .<span class="kw">await</span><span class="question-mark">?</span>;
                 identified_ws.replace(ws.clone());
-                <span class="macro">debug!</span>(<span class="string">&quot;initialized identified websocket&quot;</span>);
+                <span class="macro">debug!</span>(<span class="string">"initialized identified websocket"</span>);
 
                 <span class="prelude-val">Ok</span>(ws)
             }
@@ -1488,10 +1489,10 @@
             <span class="prelude-val">None </span>=&gt; {
                 <span class="kw">let </span>ws = <span class="self">self
                     </span>.unidentified_push_service()
-                    .ws(<span class="string">&quot;/v1/websocket/&quot;</span>, <span class="string">&quot;/v1/keepalive&quot;</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>)
+                    .ws(<span class="string">"/v1/websocket/"</span>, <span class="string">"/v1/keepalive"</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>)
                     .<span class="kw">await</span><span class="question-mark">?</span>;
                 unidentified_ws.replace(ws.clone());
-                <span class="macro">debug!</span>(<span class="string">&quot;initialized unidentified websocket&quot;</span>);
+                <span class="macro">debug!</span>(<span class="string">"initialized unidentified websocket"</span>);
 
                 <span class="prelude-val">Ok</span>(ws)
             }
@@ -1499,7 +1500,7 @@
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>register_pre_keys(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">trace!</span>(<span class="string">&quot;registering pre keys&quot;</span>);
+        <span class="macro">trace!</span>(<span class="string">"registering pre keys"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(
             <span class="self">self</span>.identified_push_service(),
             <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
@@ -1523,12 +1524,12 @@
             .set_next_pq_pre_key_id(next_pq_pre_key_id)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="macro">trace!</span>(<span class="string">&quot;registered pre keys&quot;</span>);
+        <span class="macro">trace!</span>(<span class="string">"registered pre keys"</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>set_account_attributes(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">trace!</span>(<span class="string">&quot;setting account attributes&quot;</span>);
+        <span class="macro">trace!</span>(<span class="string">"setting account attributes"</span>);
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(
             <span class="self">self</span>.identified_push_service(),
             <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
@@ -1538,7 +1539,7 @@
             <span class="kw">if let </span><span class="prelude-val">Some</span>(pni_registration_id) = <span class="self">self</span>.state.data.pni_registration_id {
                 pni_registration_id
             } <span class="kw">else </span>{
-                <span class="macro">info!</span>(<span class="string">&quot;migrating to PNI&quot;</span>);
+                <span class="macro">info!</span>(<span class="string">"migrating to PNI"</span>);
                 <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>StdRng::from_entropy());
                 <span class="self">self</span>.store.save_registration_data(<span class="kw-2">&amp;</span><span class="self">self</span>.state.data)<span class="question-mark">?</span>;
                 pni_registration_id
@@ -1569,21 +1570,21 @@
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">if </span><span class="self">self</span>.state.data.pni_registration_id.is_none() {
-            <span class="macro">debug!</span>(<span class="string">&quot;fetching PNI UUID and updating state&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"fetching PNI UUID and updating state"</span>);
             <span class="kw">let </span>whoami = <span class="self">self</span>.whoami().<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="self">self</span>.state.data.service_ids.pni = whoami.pni;
             <span class="self">self</span>.store.save_registration_data(<span class="kw-2">&amp;</span><span class="self">self</span>.state.data)<span class="question-mark">?</span>;
         }
 
-        <span class="macro">trace!</span>(<span class="string">&quot;done setting account attributes&quot;</span>);
+        <span class="macro">trace!</span>(<span class="string">"done setting account attributes"</span>);
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="doccomment">/// Requests contacts synchronization and waits until the primary device sends them
     ///
-    /// Note: DO NOT call this function if you&#39;re already running a receiving loop
+    /// Note: DO NOT call this function if you're already running a receiving loop
     </span><span class="kw">pub async fn </span>sync_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">debug!</span>(<span class="string">&quot;synchronizing contacts&quot;</span>);
+        <span class="macro">debug!</span>(<span class="string">"synchronizing contacts"</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>messages = <span class="macro">pin!</span>(
             <span class="self">self</span>.receive_messages(ReceivingMode::WaitForContacts)
@@ -1594,7 +1595,7 @@
 
         tokio::time::timeout(Duration::from_secs(<span class="number">60</span>), <span class="kw">async move </span>{
             <span class="kw">while let </span><span class="prelude-val">Some</span>(msg) = messages.next().<span class="kw">await </span>{
-                <span class="macro">log::trace!</span>(<span class="string">&quot;got message while waiting for contacts sync: {msg:?}&quot;</span>);
+                <span class="macro">log::trace!</span>(<span class="string">"got message while waiting for contacts sync: {msg:?}"</span>);
             }
         })
         .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1605,9 +1606,9 @@
     <span class="doccomment">/// Request the primary device to encrypt &amp; send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
-    /// processed when they&#39;re received after polling on the
+    /// processed when they're received after polling on the
     </span><span class="kw">pub async fn </span>request_contacts(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">trace!</span>(<span class="string">&quot;requesting contacts sync&quot;</span>);
+        <span class="macro">trace!</span>(<span class="string">"requesting contacts sync"</span>);
         <span class="kw">let </span>sync_message = SyncMessage {
             request: <span class="prelude-val">Some</span>(sync_message::Request {
                 r#type: <span class="prelude-val">Some</span>(sync_message::request::Type::Contacts.into()),
@@ -1617,7 +1618,7 @@
 
         <span class="kw">let </span>timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect(<span class="string">&quot;Time went backwards&quot;</span>)
+            .expect(<span class="string">"Time went backwards"</span>)
             .as_millis() <span class="kw">as </span>u64;
 
         <span class="self">self</span>.send_message(<span class="self">self</span>.state.data.service_ids.aci, sync_message, timestamp)
@@ -1634,7 +1635,7 @@
 
             <span class="kw">let </span>seconds_since_epoch = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
-                .expect(<span class="string">&quot;Time went backwards&quot;</span>)
+                .expect(<span class="string">"Time went backwards"</span>)
                 .as_secs();
 
             <span class="kw">if let </span><span class="prelude-val">Some</span>(expiration) = sender_certificate.and_then(|s| s.expiration().ok()) {
@@ -1659,7 +1660,7 @@
             </span>.state
             .unidentified_sender_certificate
             .clone()
-            .expect(<span class="string">&quot;logic error&quot;</span>))
+            .expect(<span class="string">"logic error"</span>))
     }
 
     <span class="kw">pub async fn </span>submit_recaptcha_challenge(
@@ -1780,7 +1781,7 @@
             mode,
         };
 
-        <span class="macro">debug!</span>(<span class="string">&quot;starting to consume incoming message stream&quot;</span>);
+        <span class="macro">debug!</span>(<span class="string">"starting to consume incoming message stream"</span>);
 
         <span class="prelude-val">Ok</span>(futures::stream::unfold(init, |<span class="kw-2">mut </span>state| <span class="kw">async move </span>{
             <span class="kw">loop </span>{
@@ -1797,16 +1798,16 @@
                                     <span class="kw">match </span>state.message_receiver.retrieve_contacts(contacts).<span class="kw">await </span>{
                                         <span class="prelude-val">Ok</span>(contacts) =&gt; {
                                             <span class="kw">let _ </span>= state.store.clear_contacts();
-                                            <span class="macro">info!</span>(<span class="string">&quot;saving contacts&quot;</span>);
+                                            <span class="macro">info!</span>(<span class="string">"saving contacts"</span>);
                                             <span class="kw">for </span>contact <span class="kw">in </span>contacts.filter_map(Result::ok) {
                                                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = state.store.save_contact(<span class="kw-2">&amp;</span>contact) {
-                                                    <span class="macro">warn!</span>(<span class="string">&quot;failed to save contacts: {e}&quot;</span>);
+                                                    <span class="macro">warn!</span>(<span class="string">"failed to save contacts: {e}"</span>);
                                                     <span class="kw">break</span>;
                                                 }
                                             }
                                         }
                                         <span class="prelude-val">Err</span>(e) =&gt; {
-                                            <span class="macro">warn!</span>(<span class="string">&quot;failed to retrieve contacts: {e}&quot;</span>);
+                                            <span class="macro">warn!</span>(<span class="string">"failed to retrieve contacts: {e}"</span>);
                                         }
                                     }
 
@@ -1842,7 +1843,7 @@
                                     ..
                                 }) = <span class="kw-2">&amp;</span>content.body
                                 {
-                                    <span class="comment">// there&#39;s two things to implement: the group metadata (fetched from HTTP API)
+                                    <span class="comment">// there's two things to implement: the group metadata (fetched from HTTP API)
                                     // and the group changes, which are part of the protobuf messages
                                     // this means we kinda need our own internal representation of groups inside of presage?
                                     </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) = upsert_group(
@@ -1853,7 +1854,7 @@
                                     )
                                     .<span class="kw">await
                                     </span>{
-                                        <span class="macro">trace!</span>(<span class="string">&quot;{group:?}&quot;</span>);
+                                        <span class="macro">trace!</span>(<span class="string">"{group:?}"</span>);
                                     }
                                 }
 
@@ -1865,26 +1866,26 @@
                                 )
                                 .<span class="kw">await
                                 </span>{
-                                    <span class="macro">error!</span>(<span class="string">&quot;Error saving message to store: {}&quot;</span>, e);
+                                    <span class="macro">error!</span>(<span class="string">"Error saving message to store: {}"</span>, e);
                                 }
 
                                 <span class="kw">return </span><span class="prelude-val">Some</span>((content, state));
                             }
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
-                                <span class="macro">debug!</span>(<span class="string">&quot;Empty envelope..., message will be skipped!&quot;</span>)
+                                <span class="macro">debug!</span>(<span class="string">"Empty envelope..., message will be skipped!"</span>)
                             }
                             <span class="prelude-val">Err</span>(e) =&gt; {
-                                <span class="macro">error!</span>(<span class="string">&quot;Error opening envelope: {:?}, message will be skipped!&quot;</span>, e);
+                                <span class="macro">error!</span>(<span class="string">"Error opening envelope: {:?}, message will be skipped!"</span>, e);
                             }
                         }
                     }
                     <span class="prelude-val">Some</span>(<span class="prelude-val">Ok</span>(Incoming::QueueEmpty)) =&gt; {
-                        <span class="macro">debug!</span>(<span class="string">&quot;empty queue&quot;</span>);
+                        <span class="macro">debug!</span>(<span class="string">"empty queue"</span>);
                         <span class="kw">if let </span>ReceivingMode::InitialSync = state.mode {
                             <span class="kw">return </span><span class="prelude-val">None</span>;
                         }
                     }
-                    <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)) =&gt; <span class="macro">error!</span>(<span class="string">&quot;Error: {}&quot;</span>, e),
+                    <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)) =&gt; <span class="macro">error!</span>(<span class="string">"Error: {}"</span>, e),
                     <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
                 }
             }
@@ -2007,7 +2008,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>content_body = message.into();
         <span class="kw">let </span>master_key_bytes = master_key_bytes
             .try_into()
-            .expect(<span class="string">&quot;Master key bytes to be of size 32.&quot;</span>);
+            .expect(<span class="string">"Master key bytes to be of size 32."</span>);
 
         <span class="comment">// Only update the expiration timer if it is not set.
         </span><span class="kw">match </span>content_body {
@@ -2105,7 +2106,7 @@
         <span class="comment">// We need the whole file for the crypto to check out
         </span><span class="kw">let </span><span class="kw-2">mut </span>ciphertext = Vec::new();
         <span class="kw">let </span>len = attachment_stream.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="macro">trace!</span>(<span class="string">&quot;downloaded encrypted attachment of {} bytes&quot;</span>, len);
+        <span class="macro">trace!</span>(<span class="string">"downloaded encrypted attachment of {} bytes"</span>, len);
 
         <span class="kw">let </span>digest = sha2::Sha256::digest(<span class="kw-2">&amp;</span>ciphertext);
         <span class="kw">if </span><span class="kw-2">&amp;</span>digest[..] != expected_digest {
@@ -2123,7 +2124,7 @@
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">trace!</span>(<span class="string">&quot;Resetting session for address: {}&quot;</span>, recipient.uuid);
+        <span class="macro">trace!</span>(<span class="string">"Resetting session for address: {}"</span>, recipient.uuid);
         <span class="kw">let </span>message = DataMessage {
             flags: <span class="prelude-val">Some</span>(DataMessageFlags::EndSession <span class="kw">as </span>u32),
             ..Default::default()
@@ -2188,7 +2189,7 @@
                 <span class="kw">let </span>contact = <span class="kw">match </span><span class="self">self</span>.store.contact_by_id(uuid) {
                     <span class="prelude-val">Ok</span>(contact) =&gt; contact,
                     <span class="prelude-val">Err</span>(e) =&gt; {
-                        <span class="macro">info!</span>(<span class="string">&quot;Error getting contact by id: {}, {:?}&quot;</span>, e, uuid);
+                        <span class="macro">info!</span>(<span class="string">"Error getting contact by id: {}, {:?}"</span>, e, uuid);
                         <span class="prelude-val">None
                     </span>}
                 };
@@ -2199,7 +2200,7 @@
             }
             Thread::Group(id) =&gt; <span class="kw">match </span><span class="self">self</span>.store.group(<span class="kw-2">*</span>id)<span class="question-mark">? </span>{
                 <span class="prelude-val">Some</span>(group) =&gt; <span class="prelude-val">Ok</span>(group.title),
-                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="string">&quot;&quot;</span>.to_string()),
+                <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="string">""</span>.to_string()),
             },
         }
     }
@@ -2209,13 +2210,13 @@
     /// Get a single contact by its UUID
     ///
     /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    </span><span class="attr">#[deprecated = <span class="string">&quot;use the store handle directly&quot;</span>]
+    </span><span class="attr">#[deprecated = <span class="string">"use the store handle directly"</span>]
     </span><span class="kw">pub fn </span>contact_by_id(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>Uuid) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.store.contact_by_id(id)<span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Returns an iterator on contacts stored in the [Store].
-    </span><span class="attr">#[deprecated = <span class="string">&quot;use the store handle directly&quot;</span>]
+    </span><span class="attr">#[deprecated = <span class="string">"use the store handle directly"</span>]
     </span><span class="kw">pub fn </span>contacts(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Contact, Error&lt;S::Error&gt;&gt;&gt;, Error&lt;S::Error&gt;&gt; {
@@ -2224,19 +2225,19 @@
     }
 
     <span class="doccomment">/// Get a group (either from the local cache, or fetch it remotely) using its master key
-    </span><span class="attr">#[deprecated = <span class="string">&quot;use the store handle directly&quot;</span>]
+    </span><span class="attr">#[deprecated = <span class="string">"use the store handle directly"</span>]
     </span><span class="kw">pub fn </span>group(<span class="kw-2">&amp;</span><span class="self">self</span>, master_key_bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.store.group(master_key_bytes.try_into()<span class="question-mark">?</span>)<span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Returns an iterator on groups stored in the [Store].
-    </span><span class="attr">#[deprecated = <span class="string">&quot;use the store handle directly&quot;</span>]
+    </span><span class="attr">#[deprecated = <span class="string">"use the store handle directly"</span>]
     </span><span class="kw">pub fn </span>groups(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;S::GroupsIter, Error&lt;S::Error&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.store.groups()<span class="question-mark">?</span>)
     }
 
     <span class="doccomment">/// Get a single message in a thread (identified by its server-side sent timestamp)
-    </span><span class="attr">#[deprecated = <span class="string">&quot;use the store handle directly&quot;</span>]
+    </span><span class="attr">#[deprecated = <span class="string">"use the store handle directly"</span>]
     </span><span class="kw">pub fn </span>message(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         thread: <span class="kw-2">&amp;</span>Thread,
@@ -2249,12 +2250,12 @@
 <span class="doccomment">/// The mode receiving messages stream
 </span><span class="attr">#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 </span><span class="kw">pub enum </span>ReceivingMode {
-    <span class="doccomment">/// Don&#39;t stop the stream
+    <span class="doccomment">/// Don't stop the stream
     </span><span class="attr">#[default]
     </span>Forever,
     <span class="doccomment">/// Stop the stream after the initial sync
     ///
-    /// That is, when the Signal&#39;s message queue becomes empty.
+    /// That is, when the Signal's message queue becomes empty.
     </span>InitialSync,
     <span class="doccomment">/// Stop the stream after contacts are synced
     </span>WaitForContacts,
@@ -2268,27 +2269,27 @@
 ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;S::Error&gt;&gt; {
     <span class="kw">let </span>upsert_group = <span class="kw">match </span>store.group(master_key_bytes.try_into()<span class="question-mark">?</span>) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;loaded group from local db {}&quot;</span>, group.title);
+            <span class="macro">debug!</span>(<span class="string">"loaded group from local db {}"</span>, group.title);
             group.revision &lt; <span class="kw-2">*</span>revision
         }
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="bool-val">true</span>,
         <span class="prelude-val">Err</span>(e) =&gt; {
-            <span class="macro">warn!</span>(<span class="string">&quot;failed to retrieve group from local db {}&quot;</span>, e);
+            <span class="macro">warn!</span>(<span class="string">"failed to retrieve group from local db {}"</span>, e);
             <span class="bool-val">true
         </span>}
     };
 
     <span class="kw">if </span>upsert_group {
-        <span class="macro">debug!</span>(<span class="string">&quot;fetching and saving group&quot;</span>);
+        <span class="macro">debug!</span>(<span class="string">"fetching and saving group"</span>);
         <span class="kw">match </span>groups_manager.fetch_encrypted_group(master_key_bytes).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(encrypted_group) =&gt; {
                 <span class="kw">let </span>group = decrypt_group(master_key_bytes, encrypted_group)<span class="question-mark">?</span>;
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>group) {
-                    <span class="macro">error!</span>(<span class="string">&quot;failed to save group {master_key_bytes:?}: {e}&quot;</span>,);
+                    <span class="macro">error!</span>(<span class="string">"failed to save group {master_key_bytes:?}: {e}"</span>,);
                 }
             }
             <span class="prelude-val">Err</span>(e) =&gt; {
-                <span class="macro">warn!</span>(<span class="string">&quot;failed to fetch encrypted group: {e}&quot;</span>)
+                <span class="macro">warn!</span>(<span class="string">"failed to fetch encrypted group: {e}"</span>)
             }
         }
     }
@@ -2333,12 +2334,12 @@
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
                 <span class="kw">let </span>sender_uuid = message.metadata.sender.uuid;
                 <span class="kw">let </span>profile_key = ProfileKey::create(profile_key_bytes);
-                <span class="macro">debug!</span>(<span class="string">&quot;inserting profile key for {sender_uuid}&quot;</span>);
+                <span class="macro">debug!</span>(<span class="string">"inserting profile key for {sender_uuid}"</span>);
 
                 <span class="comment">// Either:
                 // - insert a new contact with the profile information
                 // - update the contact if the profile key has changed
-                // TODO: mark this contact as &quot;created by us&quot; maybe to know whether we should update it or not
+                // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
                 </span><span class="kw">if </span>store.contact_by_id(<span class="kw-2">&amp;</span>sender_uuid)<span class="question-mark">?</span>.is_none()
                     || !store
                         .profile_key(<span class="kw-2">&amp;</span>sender_uuid)<span class="question-mark">?
@@ -2358,7 +2359,7 @@
                             <span class="comment">// FIXME: this assumes [firstname] [lastname]
                             </span>.map(|pn| {
                                 <span class="kw">if let </span><span class="prelude-val">Some</span>(family_name) = pn.family_name {
-                                    <span class="macro">format!</span>(<span class="string">&quot;{} {}&quot;</span>, pn.given_name, family_name)
+                                    <span class="macro">format!</span>(<span class="string">"{} {}"</span>, pn.given_name, family_name)
                                 } <span class="kw">else </span>{
                                     pn.given_name
                                 }
@@ -2374,7 +2375,7 @@
                         verified: Verified::default(),
                     };
 
-                    <span class="macro">info!</span>(<span class="string">&quot;saved contact after seeing {sender_uuid} for the first time&quot;</span>);
+                    <span class="macro">info!</span>(<span class="string">"saved contact after seeing {sender_uuid} for the first time"</span>);
                     store.save_contact(<span class="kw-2">&amp;</span>contact)<span class="question-mark">?</span>;
                 }
 
@@ -2398,10 +2399,10 @@
                         existing_msg.metadata.sender.uuid = Uuid::nil();
                         existing_msg.body = NullMessage::default().into();
                         store.save_message(<span class="kw-2">&amp;</span>thread, existing_msg)<span class="question-mark">?</span>;
-                        <span class="macro">debug!</span>(<span class="string">&quot;message in thread {thread} @ {ts} deleted&quot;</span>);
+                        <span class="macro">debug!</span>(<span class="string">"message in thread {thread} @ {ts} deleted"</span>);
                         <span class="prelude-val">None
                     </span>} <span class="kw">else </span>{
-                        <span class="macro">warn!</span>(<span class="string">&quot;could not find message to delete in thread {thread} @ {ts}&quot;</span>);
+                        <span class="macro">warn!</span>(<span class="string">"could not find message to delete in thread {thread} @ {ts}"</span>);
                         <span class="prelude-val">None
                     </span>}
                 }
@@ -2427,11 +2428,11 @@
             <span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) = store.message(<span class="kw-2">&amp;</span>thread, ts)<span class="question-mark">? </span>{
                 existing_msg.metadata = message.metadata;
                 existing_msg.body = ContentBody::DataMessage(data_message);
-                <span class="comment">// TODO: find a way to mark the message as edited (so that it&#39;s visible in a client)
-                </span><span class="macro">trace!</span>(<span class="string">&quot;message in thread {thread} @ {ts} edited&quot;</span>);
+                <span class="comment">// TODO: find a way to mark the message as edited (so that it's visible in a client)
+                </span><span class="macro">trace!</span>(<span class="string">"message in thread {thread} @ {ts} edited"</span>);
                 <span class="prelude-val">Some</span>(existing_msg)
             } <span class="kw">else </span>{
-                <span class="macro">warn!</span>(<span class="string">&quot;could not find edited message {thread} @ {ts}&quot;</span>);
+                <span class="macro">warn!</span>(<span class="string">"could not find edited message {thread} @ {ts}"</span>);
                 <span class="prelude-val">None
             </span>}
         }
@@ -2441,27 +2442,27 @@
             ..
         }) =&gt; <span class="prelude-val">Some</span>(message),
         ContentBody::SynchronizeMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving sync message without interesting fields&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"skipping saving sync message without interesting fields"</span>);
             <span class="prelude-val">None
         </span>}
         ContentBody::ReceiptMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving receipt message&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"skipping saving receipt message"</span>);
             <span class="prelude-val">None
         </span>}
         ContentBody::TypingMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;skipping saving typing message&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"skipping saving typing message"</span>);
             <span class="prelude-val">None
         </span>}
         ContentBody::StoryMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;skipping story message&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"skipping story message"</span>);
             <span class="prelude-val">None
         </span>}
         ContentBody::PniSignatureMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;skipping PNI signature message&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"skipping PNI signature message"</span>);
             <span class="prelude-val">None
         </span>}
         ContentBody::EditMessage(<span class="kw">_</span>) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">&quot;invalid edited&quot;</span>);
+            <span class="macro">debug!</span>(<span class="string">"invalid edited"</span>);
             <span class="prelude-val">None
         </span>}
     };
