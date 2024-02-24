@@ -12,3 +12,5 @@ pub use errors::Error;
 pub use manager::Manager;
 
 const USER_AGENT: &str = concat!(env!("CARGO_PKG_NAME"), "-rs-", env!("CARGO_PKG_VERSION"));
+
+pub type AvatarBytes = Vec<u8>;

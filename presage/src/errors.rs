@@ -70,6 +70,8 @@ pub enum Error<S: std::error::Error> {
     UnexpectedAttachmentChecksum,
     #[error("Unverified registration session (i.e. wrong verification code)")]
     UnverifiedRegistrationSession,
+    #[error("profile cipher error")]
+    ProfileCipherError(#[from] libsignal_service::profile_cipher::ProfileCipherError),
 }
 
 impl<S: StoreError> From<S> for Error<S> {
