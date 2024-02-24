@@ -2,6 +2,7 @@
 name = "presage-store-cipher"
 version = "0.1.0"
 edition = "2021"
+license = "AGPL-3.0-only"
 
 [dependencies]
 blake3 = "1.5.0"

@@ -4,6 +4,7 @@ name = "presage"
 version = "0.6.0-dev"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
+license = "AGPL-3.0-only"
 
 [dependencies]
 libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "1a8cdf81" }
