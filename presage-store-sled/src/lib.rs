@@ -496,7 +496,7 @@ impl ContentsStore for SledStore {
     fn group_avatar(
         &self,
         master_key_bytes: GroupMasterKeyBytes,
-    ) -> Result<Option<Vec<u8>>, SledStoreError> {
+    ) -> Result<Option<AvatarBytes>, SledStoreError> {
         self.get(SLED_TREE_GROUP_AVATARS, master_key_bytes)
     }
 
@@ -647,7 +647,7 @@ impl ContentsStore for SledStore {
         &self,
         uuid: Uuid,
         key: ProfileKey,
-    ) -> Result<Option<Vec<u8>>, SledStoreError> {
+    ) -> Result<Option<AvatarBytes>, SledStoreError> {
         let key = self.profile_key_for_uuid(uuid, key);
         self.get(SLED_TREE_PROFILE_AVATARS, key)
     }

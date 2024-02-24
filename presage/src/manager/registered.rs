@@ -490,7 +490,7 @@ impl<S: Store> Manager<S, Registered> {
         let Some(group) = upsert_group(
             self.store(),
             &mut gm,
-            &context.master_key(),
+            context.master_key(),
             &context.revision(),
         )
         .await?
@@ -506,9 +506,7 @@ impl<S: Store> Manager<S, Registered> {
         let avatar = gm
             .retrieve_avatar(
                 &group.avatar,
-                GroupSecretParams::derive_from_master_key(GroupMasterKey::new(
-                    master_key_bytes.clone(),
-                )),
+                GroupSecretParams::derive_from_master_key(GroupMasterKey::new(master_key_bytes)),
             )
             .await?;
         if let Some(avatar) = &avatar {
