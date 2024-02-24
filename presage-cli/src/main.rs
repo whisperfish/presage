@@ -2,10 +2,10 @@ use core::fmt;
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
+use base64::prelude::*;
 use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
@@ -14,26 +14,30 @@ use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
 use log::{debug, error, info};
 use notify_rust::Notification;
+use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
+use presage::libsignal_service::models::Contact;
+use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
+use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
-use presage::prelude::proto::EditMessage;
-use presage::prelude::SyncMessage;
-use presage::ContentTimestamp;
+use presage::manager::ReceivingMode;
+use presage::proto::EditMessage;
+use presage::proto::SyncMessage;
+use presage::store::ContentExt;
 use presage::{
-    prelude::{
-        content::{Content, ContentBody, DataMessage, GroupContextV2},
-        Contact, SignalServers,
-    },
-    prelude::{phonenumber::PhoneNumber, Uuid},
-    GroupMasterKeyBytes, Manager, Registered, RegistrationOptions, Store, Thread,
+    libsignal_service::content::{Content, ContentBody, DataMessage, GroupContextV2},
+    manager::{Registered, RegistrationOptions},
+    store::{Store, Thread},
+    Manager,
 };
 use presage_store_sled::MigrationConflictStrategy;
+use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;
-use tokio::time::sleep;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -76,11 +80,6 @@ enum Cmd {
         #[clap(long, help = "Force to register again if already registered")]
         force: bool,
     },
-    #[clap(about = "Unregister from Signal")]
-    Unregister,
-    #[clap(
-        about = "Generate a QR code to scan with Signal for iOS or Android to link this client as secondary device"
-    )]
     LinkDevice {
         /// Possible values: staging, production
         #[clap(long, short = 's', default_value = "production")]
@@ -104,16 +103,6 @@ enum Cmd {
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
     },
-    #[clap(about = "Set a name, status and avatar")]
-    UpdateProfile,
-    #[clap(about = "Check if a user is registered on Signal")]
-    GetUserStatus,
-    #[clap(about = "Block contacts or groups")]
-    Block,
-    #[clap(about = "Unblock contacts or groups")]
-    Unblock,
-    #[clap(about = "Update the details of a contact")]
-    UpdateContact,
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Receive {
         #[clap(long = "notifications", short = 'n')]
@@ -144,8 +133,12 @@ enum Cmd {
         #[clap(long, help = "start from the following date (UNIX timestamp)")]
         from: Option<u64>,
     },
+    #[clap(about = "List downloaded sticker packs")]
+    ListStickerPacks,
     #[clap(about = "Get a single contact by UUID")]
-    GetContact { uuid: Uuid },
+    GetContact {
+        uuid: Uuid,
+    },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
         #[clap(long, short = 'u', help = "contact UUID")]
@@ -169,8 +162,12 @@ enum Cmd {
         #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
         master_key: GroupMasterKeyBytes,
     },
-    #[cfg(feature = "quirks")]
-    RequestSyncContacts,
+    RequestContactsSync,
+}
+
+enum Recipient {
+    Contact(Uuid),
+    Group(GroupMasterKeyBytes),
 }
 
 fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
@@ -200,27 +197,27 @@ async fn main() -> anyhow::Result<()> {
         db_path,
         args.passphrase,
         MigrationConflictStrategy::Raise,
+        OnNewIdentity::Trust,
     )?;
     run(args.subcommand, config_store).await
 }
 
-async fn send<C: Store + 'static>(
-    msg: &str,
-    uuid: &Uuid,
-    manager: &mut Manager<C, Registered>,
+async fn send<S: Store + 'static>(
+    manager: &mut Manager<S, Registered>,
+    recipient: Recipient,
+    msg: impl Into<ContentBody>,
 ) -> anyhow::Result<()> {
+    let local = task::LocalSet::new();
+
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
         .as_millis() as u64;
 
-    let message = ContentBody::DataMessage(DataMessage {
-        body: Some(msg.to_string()),
-        timestamp: Some(timestamp),
-        ..Default::default()
-    });
-
-    let local = task::LocalSet::new();
+    let mut content_body = msg.into();
+    if let ContentBody::DataMessage(d) = &mut content_body {
+        d.timestamp = Some(timestamp);
+    }
 
     local
         .run_until(async move {
@@ -231,14 +228,22 @@ async fn send<C: Store + 'static>(
                 }
             });
 
-            sleep(Duration::from_secs(5)).await;
-
-            manager
-                .send_message(*uuid, message, timestamp)
-                .await
-                .unwrap();
-
-            sleep(Duration::from_secs(5)).await;
+            match recipient {
+                Recipient::Contact(uuid) => {
+                    info!("sending message to contact");
+                    manager
+                        .send_message(uuid, content_body, timestamp)
+                        .await
+                        .expect("failed to send message");
+                }
+                Recipient::Group(master_key) => {
+                    info!("sending message to group");
+                    manager
+                        .send_message_to_group(&master_key, content_body, timestamp)
+                        .await
+                        .expect("failed to send message");
+                }
+            }
         })
         .await;
 
@@ -247,8 +252,8 @@ async fn send<C: Store + 'static>(
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
 // to process incoming messages.
-async fn process_incoming_message<C: Store>(
-    manager: &mut Manager<C, Registered>,
+async fn process_incoming_message<S: Store>(
+    manager: &mut Manager<S, Registered>,
     attachments_tmp_dir: &Path,
     notifications: bool,
     content: &Content,
@@ -286,8 +291,8 @@ async fn process_incoming_message<C: Store>(
     }
 }
 
-fn print_message<C: Store>(
-    manager: &Manager<C, Registered>,
+fn print_message<S: Store>(
+    manager: &Manager<S, Registered>,
     notifications: bool,
     content: &Content,
 ) {
@@ -315,7 +320,7 @@ fn print_message<C: Store>(
                 }),
             ..
         } => {
-            let Ok(Some(message)) = manager.message(thread, *timestamp) else {
+            let Ok(Some(message)) = manager.store().message(thread, *timestamp) else {
                 log::warn!("no message in {thread} sent at {timestamp}");
                 return None;
             };
@@ -338,6 +343,7 @@ fn print_message<C: Store>(
 
     let format_contact = |uuid| {
         manager
+            .store()
             .contact_by_id(uuid)
             .ok()
             .flatten()
@@ -348,6 +354,7 @@ fn print_message<C: Store>(
 
     let format_group = |key| {
         manager
+            .store()
             .group(key)
             .ok()
             .flatten()
@@ -411,11 +418,11 @@ fn print_message<C: Store>(
             }
             Msg::Received(Thread::Group(key), body) => {
                 let sender = format_contact(&content.metadata.sender.uuid);
-                let group = format_group(key);
+                let group = format_group(*key);
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Group(key), body) => {
-                let group = format_group(key);
+                let group = format_group(*key);
                 (format!("To group {group} @ {ts}"), body)
             }
         };
@@ -435,8 +442,8 @@ fn print_message<C: Store>(
     }
 }
 
-async fn receive<C: Store>(
-    manager: &mut Manager<C, Registered>,
+async fn receive<S: Store>(
+    manager: &mut Manager<S, Registered>,
     notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
@@ -446,7 +453,7 @@ async fn receive<C: Store>(
     );
 
     let messages = manager
-        .receive_messages()
+        .receive_messages(ReceivingMode::Forever)
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
@@ -459,7 +466,7 @@ async fn receive<C: Store>(
     Ok(())
 }
 
-async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Result<()> {
+async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -527,7 +534,13 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         Cmd::Send { uuid, message } => {
             let mut manager = Manager::load_registered(config_store).await?;
-            send(&message, &uuid, &mut manager).await?;
+
+            let data_message = DataMessage {
+                body: Some(message),
+                ..Default::default()
+            };
+
+            send(&mut manager, Recipient::Contact(uuid), data_message).await?;
         }
         Cmd::SendToGroup {
             message,
@@ -535,14 +548,8 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         } => {
             let mut manager = Manager::load_registered(config_store).await?;
 
-            let timestamp = std::time::SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .expect("Time went backwards")
-                .as_millis() as u64;
-
             let data_message = DataMessage {
                 body: Some(message),
-                timestamp: Some(timestamp),
                 group_v2: Some(GroupContextV2 {
                     master_key: Some(master_key.to_vec()),
                     revision: Some(0),
@@ -551,11 +558,8 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 ..Default::default()
             };
 
-            manager
-                .send_message_to_group(&master_key, data_message, timestamp)
-                .await?;
+            send(&mut manager, Recipient::Group(master_key), data_message).await?;
         }
-        Cmd::Unregister => unimplemented!(),
         Cmd::RetrieveProfile {
             uuid,
             mut profile_key,
@@ -563,6 +567,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             let mut manager = Manager::load_registered(config_store).await?;
             if profile_key.is_none() {
                 for contact in manager
+                    .store()
                     .contacts()?
                     .filter_map(Result::ok)
                     .filter(|c| c.uuid == uuid)
@@ -582,14 +587,9 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
             };
             println!("{profile:#?}");
         }
-        Cmd::UpdateProfile => unimplemented!(),
-        Cmd::GetUserStatus => unimplemented!(),
-        Cmd::Block => unimplemented!(),
-        Cmd::Unblock => unimplemented!(),
-        Cmd::UpdateContact => unimplemented!(),
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store).await?;
-            for group in manager.groups()? {
+            for group in manager.store().groups()? {
                 match group {
                     Ok((
                         group_master_key,
@@ -620,9 +620,18 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 uuid,
                 phone_number,
                 ..
-            } in manager.contacts()?.flatten()
+            } in manager.store().contacts()?.flatten()
             {
                 println!("{uuid} / {phone_number:?} / {name}");
+            }
+        }
+        Cmd::ListStickerPacks => {
+            let manager = Manager::load_registered(config_store).await?;
+            for sticker_pack in manager.sticker_packs().await? {
+                match sticker_pack {
+                    Ok(sticker_pack) => println!("sticker pack: {sticker_pack:#?}"),
+                    Err(error) => error!("error while deserializing sticker pack: {error}"),
+                }
             }
         }
         Cmd::Whoami => {
@@ -631,7 +640,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         }
         Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store).await?;
-            match manager.contact_by_id(uuid)? {
+            match manager.store().contact_by_id(uuid)? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
             }
@@ -643,6 +652,7 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
         } => {
             let manager = Manager::load_registered(config_store).await?;
             for contact in manager
+                .store()
                 .contacts()?
                 .filter_map(Result::ok)
                 .filter(|c| uuid.map_or_else(|| true, |u| c.uuid == u))
@@ -652,10 +662,9 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
                 println!("{contact:#?}");
             }
         }
-        #[cfg(feature = "quirks")]
-        Cmd::RequestSyncContacts => {
+        Cmd::RequestContactsSync => {
             let mut manager = Manager::load_registered(config_store).await?;
-            manager.request_contacts_sync().await?;
+            manager.sync_contacts().await?;
         }
         Cmd::ListMessages {
             group_master_key,
@@ -680,7 +689,8 @@ async fn run<C: Store + 'static>(subcommand: Cmd, config_store: C) -> anyhow::Re
 }
 
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
-    let bytes = base64::decode(s)?
+    let bytes = BASE64_STANDARD
+        .decode(s)?
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
     Ok(ProfileKey::create(bytes))

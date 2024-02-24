@@ -6,33 +6,34 @@ use std::{
 };
 
 use async_trait::async_trait;
+use base64::prelude::*;
 use log::{debug, error, trace, warn};
-use presage::{
-    libsignal_service::{
-        self,
-        groups_v2::Group,
-        models::Contact,
-        prelude::{Content, ProfileKey, Uuid},
-        protocol::{
-            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
-            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
-        },
-        push_service::DEFAULT_DEVICE_ID,
-        session_store::SessionStoreExt,
-        Profile, ServiceAddress,
+use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
+use presage::libsignal_service::{
+    self,
+    content::Content,
+    groups_v2::Group,
+    models::Contact,
+    pre_keys::PreKeysStore,
+    prelude::{ProfileKey, Uuid},
+    protocol::{
+        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
+        KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
+        ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
+        SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
     },
-    ContentTimestamp,
+    push_service::DEFAULT_DEVICE_ID,
+    session_store::SessionStoreExt,
+    Profile, ServiceAddress,
 };
+use presage::store::{ContentExt, ContentsStore, StateStore, StickerPack, Store, Thread};
+use presage::{manager::RegistrationData, proto::verified, AvatarBytes};
 use prost::Message;
-use protobuf::ContentProto;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sled::{Batch, IVec};
 
-use presage::{GroupMasterKeyBytes, Registered, StickerPack, Store, Thread};
+use crate::protobuf::ContentProto;
 
 mod error;
 mod protobuf;
@@ -41,6 +42,7 @@ pub use error::SledStoreError;
 
 const SLED_TREE_CONTACTS: &str = "contacts";
 const SLED_TREE_GROUPS: &str = "groups";
+const SLED_TREE_GROUP_AVATARS: &str = "group_avatars";
 const SLED_TREE_IDENTITIES: &str = "identities";
 const SLED_TREE_PRE_KEYS: &str = "pre_keys";
 const SLED_TREE_SENDER_KEYS: &str = "sender_keys";
@@ -50,8 +52,9 @@ const SLED_TREE_KYBER_PRE_KEYS: &str = "kyber_pre_keys";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
 const SLED_TREE_PROFILES: &str = "profiles";
+const SLED_TREE_PROFILE_AVATARS: &str = "profile_avatars";
 const SLED_TREE_PROFILE_KEYS: &str = "profile_keys";
-const SLED_TREE_STICKER_PACKS: &str = "stickerpacks";
+const SLED_TREE_STICKER_PACKS: &str = "sticker_packs";
 
 const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
 const SLED_KEY_NEXT_PQ_PRE_KEY_ID: &str = "next_pq_pre_key_id";
@@ -60,13 +63,14 @@ const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 #[cfg(feature = "encryption")]
 const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
-const SLED_KEY_STICKER_PACK_QUEUE: &str = "pack_queue";
 
 #[derive(Clone)]
 pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
     #[cfg(feature = "encryption")]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
+    /// Whether to trust new identities automatically (for instance, when a somebody's phone has changed)
+    trust_new_identities: OnNewIdentity,
 }
 
 /// Sometimes Migrations can't proceed without having to drop existing
@@ -92,11 +96,13 @@ pub enum SchemaVersion {
     V1 = 1,
     V2 = 2,
     V3 = 3,
+    // Introduction of avatars, requires dropping all profiles from the cache
+    V4 = 4,
 }
 
 impl SchemaVersion {
     fn current() -> SchemaVersion {
-        Self::V3
+        Self::V4
     }
 
     /// return an iterator on all the necessary migration steps from another version
@@ -109,9 +115,16 @@ impl SchemaVersion {
             1 => SchemaVersion::V1,
             2 => SchemaVersion::V2,
             3 => SchemaVersion::V3,
+            4 => SchemaVersion::V4,
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
+}
+
+#[derive(Debug, Clone)]
+pub enum OnNewIdentity {
+    Reject,
+    Trust,
 }
 
 impl SledStore {
@@ -119,6 +132,7 @@ impl SledStore {
     fn new(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
         let database = sled::open(db_path)?;
 
@@ -136,25 +150,33 @@ impl SledStore {
             db: Arc::new(RwLock::new(database)),
             #[cfg(feature = "encryption")]
             cipher: cipher.map(Arc::new),
+            trust_new_identities,
         })
     }
 
     pub fn open(
         db_path: impl AsRef<Path>,
         migration_conflict_strategy: MigrationConflictStrategy,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
-        Self::open_with_passphrase(db_path, None::<&str>, migration_conflict_strategy)
+        Self::open_with_passphrase(
+            db_path,
+            None::<&str>,
+            migration_conflict_strategy,
+            trust_new_identities,
+        )
     }
 
     pub fn open_with_passphrase(
         db_path: impl AsRef<Path>,
         passphrase: Option<impl AsRef<str>>,
         migration_conflict_strategy: MigrationConflictStrategy,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SledStoreError> {
         let passphrase = passphrase.as_ref();
 
         migrate(&db_path, passphrase, migration_conflict_strategy)?;
-        Self::new(db_path, passphrase)
+        Self::new(db_path, passphrase, trust_new_identities)
     }
 
     #[cfg(feature = "encryption")]
@@ -185,6 +207,7 @@ impl SledStore {
             #[cfg(feature = "encryption")]
             // use store cipher with a random key
             cipher: Some(Arc::new(presage_store_cipher::StoreCipher::new())),
+            trust_new_identities: OnNewIdentity::Reject
         })
     }
 
@@ -274,7 +297,7 @@ impl SledStore {
             }
             Thread::Group(group_id) => format!(
                 "{SLED_TREE_THREADS_PREFIX}:group:{}",
-                base64::encode(group_id)
+                BASE64_STANDARD.encode(group_id)
             ),
         };
         let mut hasher = Sha256::new();
@@ -300,7 +323,7 @@ fn migrate(
     let passphrase = passphrase.as_ref();
 
     let run_migrations = move || {
-        let mut store = SledStore::new(db_path, passphrase)?;
+        let mut store = SledStore::new(db_path, passphrase, OnNewIdentity::Reject)?;
         let schema_version = store.schema_version();
         for step in schema_version.steps() {
             match &step {
@@ -316,7 +339,7 @@ fn migrate(
                         let state = serde_json::from_slice(&data).map_err(SledStoreError::from)?;
 
                         // save it the new school way
-                        store.save_state(&state)?;
+                        store.save_registration_data(&state)?;
 
                         // remove old data
                         let db = store.write();
@@ -330,6 +353,12 @@ fn migrate(
                     db.drop_tree(SLED_TREE_GROUPS)?;
                     db.flush()?;
                 }
+                SchemaVersion::V4 => {
+                    debug!("migrating from schema v3 to v4: dropping profile cache");
+                    let db = store.write();
+                    db.drop_tree(SLED_TREE_PROFILES)?;
+                    db.flush()?;
+                }
                 _ => return Err(SledStoreError::MigrationConflict),
             }
 
@@ -339,7 +368,7 @@ fn migrate(
         Ok(())
     };
 
-    if let Err(error) = run_migrations() {
+    if let Err(SledStoreError::MigrationConflict) = run_migrations() {
         match migration_conflict_strategy {
             MigrationConflictStrategy::BackupAndDrop => {
                 let mut new_db_path = db_path.to_path_buf();
@@ -357,7 +386,7 @@ fn migrate(
             MigrationConflictStrategy::Drop => {
                 fs_extra::dir::remove(db_path)?;
             }
-            MigrationConflictStrategy::Raise => return Err(error),
+            MigrationConflictStrategy::Raise => return Err(SledStoreError::MigrationConflict),
         }
     }
 
@@ -366,27 +395,20 @@ fn migrate(
 
 impl ProtocolStore for SledStore {}
 
-impl Store for SledStore {
-    type Error = SledStoreError;
+impl StateStore for SledStore {
+    type StateStoreError = SledStoreError;
 
-    type ContactsIter = SledContactsIter;
-    type GroupsIter = SledGroupsIter;
-    type MessagesIter = SledMessagesIter;
-    type StickerPacksIter = SledStickerPacksIter;
-
-    /// State
-
-    fn load_state(&self) -> Result<Option<Registered>, SledStoreError> {
+    fn load_registration_data(&self) -> Result<Option<RegistrationData>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
     }
 
-    fn save_state(&mut self, state: &Registered) -> Result<(), SledStoreError> {
+    fn save_registration_data(&mut self, state: &RegistrationData) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
         Ok(())
     }
 
     fn is_registered(&self) -> bool {
-        self.load_state().unwrap_or_default().is_some()
+        self.load_registration_data().unwrap_or_default().is_some()
     }
 
     fn clear_registration(&mut self) -> Result<(), SledStoreError> {
@@ -398,6 +420,7 @@ impl Store for SledStore {
         db.drop_tree(SLED_TREE_SENDER_KEYS)?;
         db.drop_tree(SLED_TREE_SESSIONS)?;
         db.drop_tree(SLED_TREE_SIGNED_PRE_KEYS)?;
+        db.drop_tree(SLED_TREE_KYBER_PRE_KEYS)?;
         db.drop_tree(SLED_TREE_STATE)?;
         db.drop_tree(SLED_TREE_PROFILES)?;
         db.drop_tree(SLED_TREE_PROFILE_KEYS)?;
@@ -406,77 +429,24 @@ impl Store for SledStore {
 
         Ok(())
     }
+}
 
-    fn clear(&mut self) -> Result<(), SledStoreError> {
-        self.clear_registration()?;
+impl ContentsStore for SledStore {
+    type ContentsStoreError = SledStoreError;
 
-        let db = self.write();
-        db.drop_tree(SLED_TREE_CONTACTS)?;
-        db.drop_tree(SLED_TREE_GROUPS)?;
-
-        for tree in db
-            .tree_names()
-            .into_iter()
-            .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
-        {
-            db.drop_tree(tree)?;
-        }
-
-        db.flush()?;
-
-        Ok(())
-    }
-
-    /// Pre-keys
-
-    fn pre_keys_offset_id(&self) -> Result<u32, SledStoreError> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)?
-            .unwrap_or(0))
-    }
-
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)?;
-        Ok(())
-    }
-
-    fn next_signed_pre_key_id(&self) -> Result<u32, SledStoreError> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)?
-            .unwrap_or(0))
-    }
-
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)?;
-        Ok(())
-    }
-
-    fn next_pq_pre_key_id(&self) -> Result<u32, SledStoreError> {
-        Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)?
-            .unwrap_or(0))
-    }
-
-    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)?;
-        Ok(())
-    }
-
-    /// Contacts
+    type ContactsIter = SledContactsIter;
+    type GroupsIter = SledGroupsIter;
+    type MessagesIter = SledMessagesIter;
+    type StickerPacksIter = SledStickerPacksIter;
 
     fn clear_contacts(&mut self) -> Result<(), SledStoreError> {
         self.write().drop_tree(SLED_TREE_CONTACTS)?;
         Ok(())
     }
 
-    fn save_contacts(
-        &mut self,
-        contacts: impl Iterator<Item = Contact>,
-    ) -> Result<(), SledStoreError> {
-        for contact in contacts {
-            self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
-        }
-        debug!("saved contacts");
+    fn save_contact(&mut self, contact: &Contact) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
+        debug!("saved contact");
         Ok(())
     }
 
@@ -488,7 +458,7 @@ impl Store for SledStore {
         })
     }
 
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, SledStoreError> {
+    fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, SledStoreError> {
         self.get(SLED_TREE_CONTACTS, id)
     }
 
@@ -525,6 +495,22 @@ impl Store for SledStore {
         Ok(())
     }
 
+    fn group_avatar(
+        &self,
+        master_key_bytes: GroupMasterKeyBytes,
+    ) -> Result<Option<AvatarBytes>, SledStoreError> {
+        self.get(SLED_TREE_GROUP_AVATARS, master_key_bytes)
+    }
+
+    fn save_group_avatar(
+        &self,
+        master_key: GroupMasterKeyBytes,
+        avatar: &AvatarBytes,
+    ) -> Result<(), SledStoreError> {
+        self.insert(SLED_TREE_GROUP_AVATARS, master_key, avatar)?;
+        Ok(())
+    }
+
     /// Messages
 
     fn clear_messages(&mut self) -> Result<(), SledStoreError> {
@@ -551,7 +537,7 @@ impl Store for SledStore {
         Ok(())
     }
 
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
+    fn save_message(&self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
         let ts = message.timestamp();
         log::trace!("storing a message with thread: {thread}, timestamp: {ts}",);
 
@@ -648,53 +634,112 @@ impl Store for SledStore {
         self.get(SLED_TREE_PROFILES, key)
     }
 
-    fn add_sticker_pack(&mut self, pack: StickerPack) -> Result<(), Self::Error> {
+    fn save_profile_avatar(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        avatar: &AvatarBytes,
+    ) -> Result<(), SledStoreError> {
+        let key = self.profile_key_for_uuid(uuid, key);
+        self.insert(SLED_TREE_PROFILE_AVATARS, key, avatar)?;
+        Ok(())
+    }
+
+    fn profile_avatar(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<AvatarBytes>, SledStoreError> {
+        let key = self.profile_key_for_uuid(uuid, key);
+        self.get(SLED_TREE_PROFILE_AVATARS, key)
+    }
+
+    fn add_sticker_pack(&mut self, pack: &StickerPack) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STICKER_PACKS, pack.id.clone(), pack)?;
         Ok(())
     }
-    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::Error> {
+
+    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, SledStoreError> {
         self.remove(SLED_TREE_STICKER_PACKS, id)
     }
-    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::Error> {
+
+    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, SledStoreError> {
         self.get(SLED_TREE_STICKER_PACKS, id)
     }
-    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::Error> {
+
+    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, SledStoreError> {
         Ok(SledStickerPacksIter {
             cipher: self.cipher.clone(),
             iter: self.read().open_tree(SLED_TREE_STICKER_PACKS)?.iter(),
         })
     }
+}
 
-    fn set_sticker_pack_queue(&mut self, queue: Vec<StickerPack>) -> Result<(), Self::Error> {
-        self.insert(SLED_TREE_STATE, SLED_KEY_STICKER_PACK_QUEUE, queue)?;
+#[async_trait(?Send)]
+impl PreKeysStore for SledStore {
+    async fn next_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID)
+            .map_err(|_| SignalProtocolError::InvalidPreKeyId)?
+            .unwrap_or(0))
+    }
+
+    async fn set_next_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_PRE_KEYS_OFFSET_ID, id)
+            .map_err(|_| SignalProtocolError::InvalidPreKeyId)?;
         Ok(())
     }
 
-    fn sticker_pack_queue(&self) -> Result<Vec<StickerPack>, Self::Error> {
+    async fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         Ok(self
-            .get(SLED_TREE_STATE, SLED_KEY_STICKER_PACK_QUEUE)?
-            .unwrap_or_default())
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)
+            .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?
+            .unwrap_or(0))
+    }
+
+    async fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
+            .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?;
+        Ok(())
+    }
+
+    async fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
+        Ok(self
+            .get(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID)
+            .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?
+            .unwrap_or(0))
+    }
+
+    async fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
+        self.insert(SLED_TREE_STATE, SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)
+            .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?;
+        Ok(())
     }
 }
 
-pub struct SledStickerPacksIter {
-    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
-    iter: sled::Iter,
-}
+impl Store for SledStore {
+    type Error = SledStoreError;
 
-impl Iterator for SledStickerPacksIter {
-    type Item = Result<StickerPack, SledStoreError>;
-    fn next(&mut self) -> Option<Self::Item> {
-        self.iter
-            .next()?
-            .map_err(SledStoreError::from)
-            .and_then(|(_key, value)| {
-                self.cipher.as_ref().map_or_else(
-                    || serde_json::from_slice(&value).map_err(SledStoreError::from),
-                    |c| c.decrypt_value(&value).map_err(SledStoreError::from),
-                )
-            })
-            .into()
+    fn clear(&mut self) -> Result<(), SledStoreError> {
+        self.clear_registration()?;
+
+        let db = self.write();
+        db.drop_tree(SLED_TREE_CONTACTS)?;
+        db.drop_tree(SLED_TREE_GROUPS)?;
+        db.drop_tree(SLED_TREE_PROFILES)?;
+        db.drop_tree(SLED_TREE_PROFILE_AVATARS)?;
+
+        for tree in db
+            .tree_names()
+            .into_iter()
+            .filter(|n| n.starts_with(SLED_TREE_THREADS_PREFIX.as_bytes()))
+        {
+            db.drop_tree(tree)?;
+        }
+
+        db.flush()?;
+
+        Ok(())
     }
 }
 
@@ -770,6 +815,40 @@ impl Iterator for SledGroupsIter {
                 ))
             },
         ))
+    }
+}
+
+pub struct SledStickerPacksIter {
+    #[cfg(feature = "encryption")]
+    cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
+    iter: sled::Iter,
+}
+
+impl Iterator for SledStickerPacksIter {
+    type Item = Result<StickerPack, SledStoreError>;
+
+    #[cfg(feature = "encryption")]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()?
+            .map_err(SledStoreError::from)
+            .and_then(|(_key, value)| {
+                if let Some(cipher) = self.cipher.as_ref() {
+                    cipher.decrypt_value(&value).map_err(SledStoreError::from)
+                } else {
+                    serde_json::from_slice(&value).map_err(SledStoreError::from)
+                }
+            })
+            .into()
+    }
+
+    #[cfg(not(feature = "encryption"))]
+    fn next(&mut self) -> Option<Self::Item> {
+        self.iter
+            .next()?
+            .map_err(SledStoreError::from)
+            .and_then(|(_key, value)| serde_json::from_slice(&value).map_err(SledStoreError::from))
+            .into()
     }
 }
 
@@ -984,28 +1063,29 @@ impl SessionStoreExt for SledStore {
 impl IdentityKeyStore for SledStore {
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let state = self
-            .load_state()
+        let data = self
+            .load_registration_data()
             .map_err(SledStoreError::into_signal_error)?
             .ok_or(SignalProtocolError::InvalidState(
                 "failed to load identity key pair",
                 "no registration data".into(),
             ))?;
+
         Ok(IdentityKeyPair::new(
-            IdentityKey::new(state.aci_public_key),
-            state.aci_private_key,
+            IdentityKey::new(data.aci_public_key()),
+            data.aci_private_key(),
         ))
     }
 
     async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
-        let state = self
-            .load_state()
+        let data = self
+            .load_registration_data()
             .map_err(SledStoreError::into_signal_error)?
             .ok_or(SignalProtocolError::InvalidState(
-                "failed to load identity key pair",
+                "failed to load registration ID",
                 "no registration data".into(),
             ))?;
-        Ok(state.registration_id)
+        Ok(data.registration_id)
     }
 
     async fn save_identity(
@@ -1014,17 +1094,28 @@ impl IdentityKeyStore for SledStore {
         identity_key: &IdentityKey,
     ) -> Result<bool, SignalProtocolError> {
         trace!("saving identity");
-        self.insert(
-            SLED_TREE_IDENTITIES,
-            address.to_string(),
-            identity_key.serialize(),
-        )
-        .map_err(|e| {
-            error!("error saving identity for {:?}: {}", address, e);
-            e.into_signal_error()
-        })?;
+        let existed_before = self
+            .insert(
+                SLED_TREE_IDENTITIES,
+                address.to_string(),
+                identity_key.serialize(),
+            )
+            .map_err(|e| {
+                error!("error saving identity for {:?}: {}", address, e);
+                e.into_signal_error()
+            })?;
 
-        Ok(false)
+        self.save_trusted_identity_message(
+            address,
+            *identity_key,
+            if existed_before {
+                verified::State::Unverified
+            } else {
+                verified::State::Default
+            },
+        );
+
+        Ok(true)
     }
 
     async fn is_trusted_identity(
@@ -1044,7 +1135,17 @@ impl IdentityKeyStore for SledStore {
                 warn!("trusting new identity {:?}", address);
                 Ok(true)
             }
-            Some(left_identity_key) => Ok(left_identity_key == *right_identity_key),
+            // when we encounter some identity we know, we need to decide whether we trust it or not
+            Some(left_identity_key) => {
+                if left_identity_key == *right_identity_key {
+                    Ok(true)
+                } else {
+                    match self.trust_new_identities {
+                        OnNewIdentity::Trust => Ok(true),
+                        OnNewIdentity::Reject => Ok(false),
+                    }
+                }
+            }
         }
     }
 
@@ -1150,19 +1251,18 @@ impl DoubleEndedIterator for SledMessagesIter {
 mod tests {
     use core::fmt;
 
-    use presage::{
-        libsignal_service::{
-            content::{ContentBody, Metadata},
-            prelude::Uuid,
-            proto::DataMessage,
-            protocol::{
-                self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
-                SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
-            },
-            ServiceAddress,
+    use base64::prelude::*;
+    use presage::libsignal_service::{
+        content::{ContentBody, Metadata},
+        prelude::Uuid,
+        proto::DataMessage,
+        protocol::{
+            self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
+            SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
         },
-        Store,
+        ServiceAddress,
     };
+    use presage::store::ContentsStore;
     use quickcheck::{Arbitrary, Gen};
 
     use super::SledStore;
@@ -1174,14 +1274,18 @@ mod tests {
     struct KeyPair(protocol::KeyPair);
 
     #[derive(Debug, Clone)]
-    struct Thread(presage::Thread);
+    struct Thread(presage::store::Thread);
 
     #[derive(Debug, Clone)]
-    struct Content(presage::prelude::Content);
+    struct Content(presage::libsignal_service::content::Content);
 
     impl fmt::Debug for KeyPair {
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-            writeln!(f, "{}", base64::encode(self.0.public_key.serialize()))
+            writeln!(
+                f,
+                "{}",
+                BASE64_STANDARD.encode(self.0.public_key.serialize())
+            )
         }
     }
 
@@ -1213,6 +1317,7 @@ mod tests {
                     uuid: *g.choose(&contacts).unwrap(),
                 },
                 sender_device: Arbitrary::arbitrary(g),
+                server_guid: None,
                 timestamp,
                 needs_receipt: Arbitrary::arbitrary(g),
                 unidentified_sender: Arbitrary::arbitrary(g),
@@ -1222,13 +1327,16 @@ mod tests {
                 timestamp: Some(timestamp),
                 ..Default::default()
             });
-            Self(presage::prelude::Content::from_body(content_body, metadata))
+            Self(presage::libsignal_service::content::Content::from_body(
+                content_body,
+                metadata,
+            ))
         }
     }
 
     impl Arbitrary for Thread {
         fn arbitrary(g: &mut Gen) -> Self {
-            Self(presage::Thread::Contact(Uuid::from_u128(
+            Self(presage::store::Thread::Contact(Uuid::from_u128(
                 Arbitrary::arbitrary(g),
             )))
         }
@@ -1299,8 +1407,11 @@ mod tests {
             == signed_pre_key_record.serialize().unwrap()
     }
 
-    fn content_with_timestamp(content: &Content, ts: u64) -> presage::prelude::Content {
-        presage::prelude::Content {
+    fn content_with_timestamp(
+        content: &Content,
+        ts: u64,
+    ) -> presage::libsignal_service::content::Content {
+        presage::libsignal_service::content::Content {
             metadata: Metadata {
                 timestamp: ts,
                 ..content.0.metadata.clone()
@@ -1311,7 +1422,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
-        let mut db = SledStore::temporary()?;
+        let db = SledStore::temporary()?;
         let thread = thread.0;
         db.save_message(&thread, content_with_timestamp(&content, 1678295210))?;
         db.save_message(&thread, content_with_timestamp(&content, 1678295220))?;

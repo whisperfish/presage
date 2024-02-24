@@ -1,92 +1,154 @@
-use std::{fmt, ops::RangeBounds};
+//! Traits that are used by the manager for storing the data.
 
-use crate::{manager::Registered, GroupMasterKeyBytes};
+use std::{fmt, ops::RangeBounds, time::SystemTime};
+
 use libsignal_service::{
-    content::ContentBody,
-    groups_v2::Group,
+    content::{ContentBody, Metadata},
+    groups_v2::{Group, Timer},
     models::Contact,
+    pre_keys::PreKeysStore,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{self, Sent},
-        DataMessage, EditMessage, GroupContextV2, SyncMessage,
+        verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{ProtocolStore, SenderKeyStore},
+    protocol::{IdentityKey, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
+    zkgroup::GroupMasterKeyBytes,
     Profile,
 };
+use log::error;
 use serde::{Deserialize, Serialize};
 
+use crate::{manager::RegistrationData, AvatarBytes};
+
+/// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send + 'static {}
 
-pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone {
-    type Error: StoreError;
-
-    type ContactsIter: Iterator<Item = Result<Contact, Self::Error>>;
-    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::Error>>;
-    type MessagesIter: Iterator<Item = Result<Content, Self::Error>>;
-    type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::Error>>;
-
-    /// State
+/// Stores the registered state of the manager
+pub trait StateStore {
+    type StateStoreError: StoreError;
 
     /// Load registered (or linked) state
-    fn load_state(&self) -> Result<Option<Registered>, Self::Error>;
+    fn load_registration_data(&self) -> Result<Option<RegistrationData>, Self::StateStoreError>;
 
     /// Save registered (or linked) state
-    fn save_state(&mut self, state: &Registered) -> Result<(), Self::Error>;
+    fn save_registration_data(
+        &mut self,
+        state: &RegistrationData,
+    ) -> Result<(), Self::StateStoreError>;
 
     /// Returns whether this store contains registration data or not
     fn is_registered(&self) -> bool;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
-    fn clear_registration(&mut self) -> Result<(), Self::Error>;
+    fn clear_registration(&mut self) -> Result<(), Self::StateStoreError>;
+}
 
-    /// Clear the entire store: this can be useful when resetting an existing client.
-    fn clear(&mut self) -> Result<(), Self::Error>;
+/// Stores messages, contacts, groups and profiles
+pub trait ContentsStore: Send + Sync {
+    type ContentsStoreError: StoreError;
 
-    /// Pre-keys
+    /// Iterator over the contacts
+    type ContactsIter: Iterator<Item = Result<Contact, Self::ContentsStoreError>>;
 
-    fn pre_keys_offset_id(&self) -> Result<u32, Self::Error>;
+    /// Iterator over all stored groups
+    ///
+    /// Each items is a tuple consisting of the group master key and its corresponding data.
+    type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>;
 
-    fn set_pre_keys_offset_id(&mut self, id: u32) -> Result<(), Self::Error>;
+    /// Iterator over all stored messages
+    type MessagesIter: Iterator<Item = Result<Content, Self::ContentsStoreError>>;
 
-    fn next_signed_pre_key_id(&self) -> Result<u32, Self::Error>;
+    /// Iterator over all stored sticker packs
+    type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
 
-    fn next_pq_pre_key_id(&self) -> Result<u32, Self::Error>;
+    // Messages
 
-    fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
+    /// Clear all stored messages.
+    fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError>;
 
-    fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), Self::Error>;
-
-    /// Messages
-
-    // Clear all stored messages.
-    fn clear_messages(&mut self) -> Result<(), Self::Error>;
-
-    // Clear the messages in a thread.
-    fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::Error>;
+    /// Clear the messages in a thread.
+    fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::ContentsStoreError>;
 
     /// Save a message in a [Thread] identified by a timestamp.
-    fn save_message(&mut self, thread: &Thread, message: Content) -> Result<(), Self::Error>;
+    fn save_message(
+        &self,
+        thread: &Thread,
+        message: Content,
+    ) -> Result<(), Self::ContentsStoreError>;
+
+    /// Saves a message that can show users when the identity of a contact has changed
+    /// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
+    fn save_trusted_identity_message(
+        &self,
+        protocol_address: &ProtocolAddress,
+        right_identity_key: IdentityKey,
+        verified_state: verified::State,
+    ) {
+        let Ok(sender) = protocol_address.name().parse() else {
+            return;
+        };
+
+        // TODO: this is a hack to save a message showing that the verification status changed
+        // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
+        let thread = Thread::Contact(sender);
+        let verified_sync_message = Content {
+            metadata: Metadata {
+                sender: sender.into(),
+                sender_device: 0,
+                server_guid: None,
+                timestamp: SystemTime::now()
+                    .duration_since(SystemTime::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_millis() as u64,
+                needs_receipt: false,
+                unidentified_sender: false,
+            },
+            body: SyncMessage {
+                verified: Some(Verified {
+                    destination_aci: None,
+                    identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
+                    state: Some(verified_state.into()),
+                    null_message: None,
+                }),
+                ..Default::default()
+            }
+            .into(),
+        };
+
+        if let Err(error) = self.save_message(&thread, verified_sync_message) {
+            error!("failed to save the verified session message in thread: {error}");
+        }
+    }
 
     /// Delete a single message, identified by its received timestamp from a thread.
-    #[deprecated = "message deletion is now handled internally"]
-    fn delete_message(&mut self, thread: &Thread, timestamp: u64) -> Result<bool, Self::Error>;
+    /// Useful when you want to delete a message locally only.
+    fn delete_message(
+        &mut self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<bool, Self::ContentsStoreError>;
 
     /// Retrieve a message from a [Thread] by its timestamp.
-    fn message(&self, thread: &Thread, timestamp: u64) -> Result<Option<Content>, Self::Error>;
+    fn message(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> Result<Option<Content>, Self::ContentsStoreError>;
 
     /// Retrieve all messages from a [Thread] within a range in time
     fn messages(
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
-    ) -> Result<Self::MessagesIter, Self::Error>;
+    ) -> Result<Self::MessagesIter, Self::ContentsStoreError>;
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
     /// or [Group::disappearing_messages_timer].
-    fn expire_timer(&self, thread: &Thread) -> Result<Option<u32>, Self::Error> {
+    fn expire_timer(&self, thread: &Thread) -> Result<Option<u32>, Self::ContentsStoreError> {
         match thread {
-            Thread::Contact(uuid) => Ok(self.contact_by_id(*uuid)?.map(|c| c.expire_timer)),
+            Thread::Contact(uuid) => Ok(self.contact_by_id(uuid)?.map(|c| c.expire_timer)),
             Thread::Group(key) => Ok(self
                 .group(*key)?
                 .and_then(|g| g.disappearing_messages_timer)
@@ -94,41 +156,91 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
         }
     }
 
-    /// Contacts
+    /// Update the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
+    /// or [Group::disappearing_messages_timer].
+    fn update_expire_timer(
+        &mut self,
+        thread: &Thread,
+        timer: u32,
+    ) -> Result<(), Self::ContentsStoreError> {
+        log::trace!("update expire timer of {:?} to {}", thread, timer);
+        match thread {
+            Thread::Contact(uuid) => {
+                let contact = self.contact_by_id(uuid)?;
+                if let Some(mut contact) = contact {
+                    contact.expire_timer = timer;
+                    self.save_contact(&contact)?;
+                }
+                Ok(())
+            }
+            Thread::Group(key) => {
+                let group = self.group(*key)?;
+                if let Some(mut g) = group {
+                    g.disappearing_messages_timer = Some(Timer { duration: timer });
+                    self.save_group(*key, &g)?;
+                }
+                Ok(())
+            }
+        }
+    }
+
+    // Contacts
 
     /// Clear all saved synchronized contact data
-    fn clear_contacts(&mut self) -> Result<(), Self::Error>;
+    fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError>;
 
-    /// Replace all contact data
-    fn save_contacts(&mut self, contacts: impl Iterator<Item = Contact>)
-        -> Result<(), Self::Error>;
+    /// Save a contact
+    fn save_contact(&mut self, contacts: &Contact) -> Result<(), Self::ContentsStoreError>;
 
     /// Get an iterator on all stored (synchronized) contacts
-    fn contacts(&self) -> Result<Self::ContactsIter, Self::Error>;
+    fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError>;
 
     /// Get contact data for a single user by its [Uuid].
-    fn contact_by_id(&self, id: Uuid) -> Result<Option<Contact>, Self::Error>;
+    fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Self::ContentsStoreError>;
 
     /// Delete all cached group data
-    fn clear_groups(&mut self) -> Result<(), Self::Error>;
+    fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError>;
 
     /// Save a group in the cache
-    fn save_group(&self, master_key: GroupMasterKeyBytes, group: &Group)
-        -> Result<(), Self::Error>;
+    fn save_group(
+        &self,
+        master_key: GroupMasterKeyBytes,
+        group: &Group,
+    ) -> Result<(), Self::ContentsStoreError>;
 
     /// Get an iterator on all cached groups
-    fn groups(&self) -> Result<Self::GroupsIter, Self::Error>;
+    fn groups(&self) -> Result<Self::GroupsIter, Self::ContentsStoreError>;
 
     /// Retrieve a single unencrypted group indexed by its `[GroupMasterKeyBytes]`
-    fn group(&self, master_key: GroupMasterKeyBytes) -> Result<Option<Group>, Self::Error>;
+    fn group(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<Option<Group>, Self::ContentsStoreError>;
 
-    /// Profiles
+    /// Save a group avatar in the cache
+    fn save_group_avatar(
+        &self,
+        master_key: GroupMasterKeyBytes,
+        avatar: &AvatarBytes,
+    ) -> Result<(), Self::ContentsStoreError>;
+
+    /// Retrieve a group avatar from the cache.
+    fn group_avatar(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
+
+    // Profiles
 
     /// Insert or update the profile key of a contact
-    fn upsert_profile_key(&mut self, uuid: &Uuid, key: ProfileKey) -> Result<bool, Self::Error>;
+    fn upsert_profile_key(
+        &mut self,
+        uuid: &Uuid,
+        key: ProfileKey,
+    ) -> Result<bool, Self::ContentsStoreError>;
 
     /// Get the profile key for a contact
-    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, Self::Error>;
+    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, Self::ContentsStoreError>;
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(
@@ -136,30 +248,62 @@ pub trait Store: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
-    ) -> Result<(), Self::Error>;
+    ) -> Result<(), Self::ContentsStoreError>;
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
-    fn profile(&self, uuid: Uuid, key: ProfileKey) -> Result<Option<Profile>, Self::Error>;
+    fn profile(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<Profile>, Self::ContentsStoreError>;
+
+    /// Save a profile avatar by [Uuid] and [ProfileKey].
+    fn save_profile_avatar(
+        &mut self,
+        uuid: Uuid,
+        key: ProfileKey,
+        profile: &AvatarBytes,
+    ) -> Result<(), Self::ContentsStoreError>;
+
+    /// Retrieve a profile avatar by [Uuid] and [ProfileKey].
+    fn profile_avatar(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
 
     /// Stickers
 
     /// Add a sticker pack
-    fn add_sticker_pack(&mut self, pack: StickerPack) -> Result<(), Self::Error>;
+    fn add_sticker_pack(&mut self, pack: &StickerPack) -> Result<(), Self::ContentsStoreError>;
 
     /// Gets a cached sticker pack
-    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::Error>;
+    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::ContentsStoreError>;
 
     /// Removes a sticker pack
-    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::Error>;
+    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError>;
 
     /// Get an iterator on all installed stickerpacks
-    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::Error>;
+    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::ContentsStoreError>;
+}
 
-    /// Get the manifest-less sticker pack queue
-    fn sticker_pack_queue(&self) -> Result<Vec<StickerPack>, Self::Error>;
+/// The manager store trait combining all other stores into a single one
+pub trait Store:
+    StateStore<StateStoreError = Self::Error>
+    + PreKeysStore
+    + ContentsStore<ContentsStoreError = Self::Error>
+    + ProtocolStore
+    + SenderKeyStore
+    + SessionStoreExt
+    + Sync
+    + Clone
+{
+    type Error: StoreError;
 
-    /// Set the manifest-less sticker pack queue
-    fn set_sticker_pack_queue(&mut self, queue: Vec<StickerPack>) -> Result<(), Self::Error>;
+    /// Clear the entire store
+    ///
+    /// This can be useful when resetting an existing client.
+    fn clear(&mut self) -> Result<(), <Self as StateStore>::StateStoreError>;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
@@ -168,7 +312,7 @@ pub enum Thread {
     /// The message was sent inside a contact-chat.
     Contact(Uuid),
     // Cannot use GroupMasterKey as unable to extract the bytes.
-    /// The message was sent inside a groups-chat with the [GroupMasterKey](crate::prelude::GroupMasterKey) (specified as bytes).
+    /// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
     Group(GroupMasterKeyBytes),
 }
 
@@ -267,11 +411,12 @@ impl TryFrom<&Content> for Thread {
     }
 }
 
-pub trait ContentTimestamp {
+/// Extension trait of [`Content`]
+pub trait ContentExt {
     fn timestamp(&self) -> u64;
 }
 
-impl ContentTimestamp for Content {
+impl ContentExt for Content {
     /// The original timestamp of the message.
     fn timestamp(&self) -> u64 {
         match self.body {
@@ -308,23 +453,24 @@ impl ContentTimestamp for Content {
 pub struct StickerPack {
     pub id: Vec<u8>,
     pub key: Vec<u8>,
-    pub manifest: Option<Pack>,
+    pub manifest: StickerPackManifest,
 }
 
 /// equivalent to [Pack](crate::prelude::proto::Pack)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Pack {
+pub struct StickerPackManifest {
     pub title: String,
     pub author: String,
     pub cover: Option<Sticker>,
     pub stickers: Vec<Sticker>,
 }
-impl From<libsignal_service::proto::Pack> for Pack {
+
+impl From<libsignal_service::proto::Pack> for StickerPackManifest {
     fn from(value: libsignal_service::proto::Pack) -> Self {
         Self {
             title: value.title().to_owned(),
             author: value.author().to_owned(),
-            cover: value.cover.map(|s| s.into()),
+            cover: value.cover.map(Into::into),
             stickers: value.stickers.into_iter().map(|s| s.into()).collect(),
         }
     }
@@ -336,13 +482,16 @@ pub struct Sticker {
     pub id: u32,
     pub emoji: Option<String>,
     pub content_type: Option<String>,
+    pub bytes: Option<Vec<u8>>,
 }
+
 impl From<libsignal_service::proto::pack::Sticker> for Sticker {
     fn from(value: libsignal_service::proto::pack::Sticker) -> Self {
         Self {
             id: value.id(),
             emoji: value.emoji,
             content_type: value.content_type,
+            bytes: None,
         }
     }
 }

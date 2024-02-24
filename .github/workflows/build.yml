@@ -32,6 +32,11 @@ jobs:
         with:
           toolchain: stable
 
+      - name: Install protobuf
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler
+
       - name: Configure CI cache
         uses: Swatinem/rust-cache@v2
 
@@ -41,13 +46,13 @@ jobs:
           command: build
           args: --all-targets ${{ matrix.cargo_flags }}
 
-      - name: Run tests
+      - name: Test
         uses: actions-rs/cargo@v1
         with:
           command: test
           args: --all-targets ${{ matrix.cargo_flags }}
 
-      - name: Run doc tests
+      - name: Test docs
         uses: actions-rs/cargo@v1
         with:
           command: test
@@ -86,6 +91,11 @@ jobs:
           profile: minimal
           toolchain: stable
           components: clippy
+
+      - name: Install protobuf
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler
 
       - name: Setup CI cache
         uses: Swatinem/rust-cache@v2
