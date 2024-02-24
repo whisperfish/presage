@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["manager","proto","store"]};
+window.SIDEBAR_ITEMS = {"enum":["Error"],"mod":["manager","proto","store"],"type":["AvatarBytes"]};
