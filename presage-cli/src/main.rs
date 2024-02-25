@@ -629,7 +629,21 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
             let manager = Manager::load_registered(config_store).await?;
             for sticker_pack in manager.sticker_packs().await? {
                 match sticker_pack {
-                    Ok(sticker_pack) => println!("sticker pack: {sticker_pack:#?}"),
+                    Ok(sticker_pack) => {
+                        println!(
+                            "title={} author={}",
+                            sticker_pack.manifest.title, sticker_pack.manifest.author,
+                        );
+                        for sticker in sticker_pack.manifest.stickers {
+                            println!(
+                                "\tid={} emoji={} content_type={} bytes={}",
+                                sticker.id,
+                                sticker.emoji.unwrap_or_default(),
+                                sticker.content_type.unwrap_or_default(),
+                                sticker.bytes.unwrap_or_default().len(),
+                            )
+                        }
+                    }
                     Err(error) => error!("error while deserializing sticker pack: {error}"),
                 }
             }
