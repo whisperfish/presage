@@ -432,6 +432,72 @@
 <a href="#431" id="431">431</a>
 <a href="#432" id="432">432</a>
 <a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
+<a href="#468" id="468">468</a>
+<a href="#469" id="469">469</a>
+<a href="#470" id="470">470</a>
+<a href="#471" id="471">471</a>
+<a href="#472" id="472">472</a>
+<a href="#473" id="473">473</a>
+<a href="#474" id="474">474</a>
+<a href="#475" id="475">475</a>
+<a href="#476" id="476">476</a>
+<a href="#477" id="477">477</a>
+<a href="#478" id="478">478</a>
+<a href="#479" id="479">479</a>
+<a href="#480" id="480">480</a>
+<a href="#481" id="481">481</a>
+<a href="#482" id="482">482</a>
+<a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
+<a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
+<a href="#488" id="488">488</a>
+<a href="#489" id="489">489</a>
+<a href="#490" id="490">490</a>
+<a href="#491" id="491">491</a>
+<a href="#492" id="492">492</a>
+<a href="#493" id="493">493</a>
+<a href="#494" id="494">494</a>
+<a href="#495" id="495">495</a>
+<a href="#496" id="496">496</a>
+<a href="#497" id="497">497</a>
+<a href="#498" id="498">498</a>
+<a href="#499" id="499">499</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, ops::RangeBounds, time::SystemTime};
@@ -457,7 +523,7 @@
 <span class="kw">use crate</span>::{manager::RegistrationData, AvatarBytes};
 
 <span class="doccomment">/// An error trait implemented by store error types
-</span><span class="kw">pub trait </span>StoreError: std::error::Error + Sync + Send + <span class="lifetime">'static </span>{}
+</span><span class="kw">pub trait </span>StoreError: std::error::Error + Sync + Send {}
 
 <span class="doccomment">/// Stores the registered state of the manager
 </span><span class="kw">pub trait </span>StateStore {
@@ -480,7 +546,7 @@
 }
 
 <span class="doccomment">/// Stores messages, contacts, groups and profiles
-</span><span class="kw">pub trait </span>ContentsStore {
+</span><span class="kw">pub trait </span>ContentsStore: Send + Sync {
     <span class="kw">type </span>ContentsStoreError: StoreError;
 
     <span class="doccomment">/// Iterator over the contacts
@@ -493,6 +559,9 @@
 
     <span class="doccomment">/// Iterator over all stored messages
     </span><span class="kw">type </span>MessagesIter: Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;Content, <span class="self">Self</span>::ContentsStoreError&gt;&gt;;
+
+    <span class="doccomment">/// Iterator over all stored sticker packs
+    </span><span class="kw">type </span>StickerPacksIter: Iterator&lt;Item = <span class="prelude-ty">Result</span>&lt;StickerPack, <span class="self">Self</span>::ContentsStoreError&gt;&gt;;
 
     <span class="comment">// Messages
 
@@ -702,6 +771,20 @@
         uuid: Uuid,
         key: ProfileKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;AvatarBytes&gt;, <span class="self">Self</span>::ContentsStoreError&gt;;
+
+    <span class="doccomment">/// Stickers
+
+    /// Add a sticker pack
+    </span><span class="kw">fn </span>add_sticker_pack(<span class="kw-2">&amp;mut </span><span class="self">self</span>, pack: <span class="kw-2">&amp;</span>StickerPack) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::ContentsStoreError&gt;;
+
+    <span class="doccomment">/// Gets a cached sticker pack
+    </span><span class="kw">fn </span>sticker_pack(<span class="kw-2">&amp;</span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;StickerPack&gt;, <span class="self">Self</span>::ContentsStoreError&gt;;
+
+    <span class="doccomment">/// Removes a sticker pack
+    </span><span class="kw">fn </span>remove_sticker_pack(<span class="kw-2">&amp;mut </span><span class="self">self</span>, id: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;bool, <span class="self">Self</span>::ContentsStoreError&gt;;
+
+    <span class="doccomment">/// Get an iterator on all installed stickerpacks
+    </span><span class="kw">fn </span>sticker_packs(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::StickerPacksIter, <span class="self">Self</span>::ContentsStoreError&gt;;
 }
 
 <span class="doccomment">/// The manager store trait combining all other stores into a single one
@@ -712,9 +795,11 @@
     + ProtocolStore
     + SenderKeyStore
     + SessionStoreExt
+    + Send
     + Sync
     + Clone
-{
+    + <span class="lifetime">'static
+</span>{
     <span class="kw">type </span>Error: StoreError;
 
     <span class="doccomment">/// Clear the entire store
@@ -862,6 +947,53 @@
                 ..
             }) =&gt; ts,
             <span class="kw">_ </span>=&gt; <span class="self">self</span>.metadata.timestamp,
+        }
+    }
+}
+
+<span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>StickerPack {
+    <span class="kw">pub </span>id: Vec&lt;u8&gt;,
+    <span class="kw">pub </span>key: Vec&lt;u8&gt;,
+    <span class="kw">pub </span>manifest: StickerPackManifest,
+}
+
+<span class="doccomment">/// equivalent to [Pack](crate::prelude::proto::Pack)
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>StickerPackManifest {
+    <span class="kw">pub </span>title: String,
+    <span class="kw">pub </span>author: String,
+    <span class="kw">pub </span>cover: <span class="prelude-ty">Option</span>&lt;Sticker&gt;,
+    <span class="kw">pub </span>stickers: Vec&lt;Sticker&gt;,
+}
+
+<span class="kw">impl </span>From&lt;libsignal_service::proto::Pack&gt; <span class="kw">for </span>StickerPackManifest {
+    <span class="kw">fn </span>from(value: libsignal_service::proto::Pack) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            title: value.title().to_owned(),
+            author: value.author().to_owned(),
+            cover: value.cover.map(Into::into),
+            stickers: value.stickers.into_iter().map(|s| s.into()).collect(),
+        }
+    }
+}
+
+<span class="doccomment">/// equivalent to [Sticker](crate::prelude::proto::pack::Sticker)
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+</span><span class="kw">pub struct </span>Sticker {
+    <span class="kw">pub </span>id: u32,
+    <span class="kw">pub </span>emoji: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>content_type: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="kw">pub </span>bytes: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+}
+
+<span class="kw">impl </span>From&lt;libsignal_service::proto::pack::Sticker&gt; <span class="kw">for </span>Sticker {
+    <span class="kw">fn </span>from(value: libsignal_service::proto::pack::Sticker) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            id: value.id(),
+            emoji: value.emoji,
+            content_type: value.content_type,
+            bytes: <span class="prelude-val">None</span>,
         }
     }
 }

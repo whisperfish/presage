@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Thread"],"trait":["ContentExt","ContentsStore","StateStore","Store","StoreError"]};
+window.SIDEBAR_ITEMS = {"enum":["Thread"],"struct":["Sticker","StickerPack","StickerPackManifest"],"trait":["ContentExt","ContentsStore","StateStore","Store","StoreError"]};
