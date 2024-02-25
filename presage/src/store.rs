@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use crate::{manager::RegistrationData, AvatarBytes};
 
 /// An error trait implemented by store error types
-pub trait StoreError: std::error::Error + Sync + Send + 'static {}
+pub trait StoreError: std::error::Error + Sync + Send {}
 
 /// Stores the registered state of the manager
 pub trait StateStore {
@@ -46,7 +46,7 @@ pub trait StateStore {
 }
 
 /// Stores messages, contacts, groups and profiles
-pub trait ContentsStore {
+pub trait ContentsStore: Send + Sync {
     type ContentsStoreError: StoreError;
 
     /// Iterator over the contacts
@@ -59,6 +59,9 @@ pub trait ContentsStore {
 
     /// Iterator over all stored messages
     type MessagesIter: Iterator<Item = Result<Content, Self::ContentsStoreError>>;
+
+    /// Iterator over all stored sticker packs
+    type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
 
     // Messages
 
@@ -268,6 +271,20 @@ pub trait ContentsStore {
         uuid: Uuid,
         key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
+
+    /// Stickers
+
+    /// Add a sticker pack
+    fn add_sticker_pack(&mut self, pack: &StickerPack) -> Result<(), Self::ContentsStoreError>;
+
+    /// Gets a cached sticker pack
+    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::ContentsStoreError>;
+
+    /// Removes a sticker pack
+    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError>;
+
+    /// Get an iterator on all installed stickerpacks
+    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::ContentsStoreError>;
 }
 
 /// The manager store trait combining all other stores into a single one
@@ -278,8 +295,10 @@ pub trait Store:
     + ProtocolStore
     + SenderKeyStore
     + SessionStoreExt
+    + Send
     + Sync
     + Clone
+    + 'static
 {
     type Error: StoreError;
 
@@ -428,6 +447,53 @@ impl ContentExt for Content {
                 ..
             }) => ts,
             _ => self.metadata.timestamp,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StickerPack {
+    pub id: Vec<u8>,
+    pub key: Vec<u8>,
+    pub manifest: StickerPackManifest,
+}
+
+/// equivalent to [Pack](crate::prelude::proto::Pack)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StickerPackManifest {
+    pub title: String,
+    pub author: String,
+    pub cover: Option<Sticker>,
+    pub stickers: Vec<Sticker>,
+}
+
+impl From<libsignal_service::proto::Pack> for StickerPackManifest {
+    fn from(value: libsignal_service::proto::Pack) -> Self {
+        Self {
+            title: value.title().to_owned(),
+            author: value.author().to_owned(),
+            cover: value.cover.map(Into::into),
+            stickers: value.stickers.into_iter().map(|s| s.into()).collect(),
+        }
+    }
+}
+
+/// equivalent to [Sticker](crate::prelude::proto::pack::Sticker)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Sticker {
+    pub id: u32,
+    pub emoji: Option<String>,
+    pub content_type: Option<String>,
+    pub bytes: Option<Vec<u8>>,
+}
+
+impl From<libsignal_service::proto::pack::Sticker> for Sticker {
+    fn from(value: libsignal_service::proto::pack::Sticker) -> Self {
+        Self {
+            id: value.id(),
+            emoji: value.emoji,
+            content_type: value.content_type,
+            bytes: None,
         }
     }
 }

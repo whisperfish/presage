@@ -133,6 +133,8 @@ enum Cmd {
         #[clap(long, help = "start from the following date (UNIX timestamp)")]
         from: Option<u64>,
     },
+    #[clap(about = "List downloaded sticker packs")]
+    ListStickerPacks,
     #[clap(about = "Get a single contact by UUID")]
     GetContact {
         uuid: Uuid,
@@ -200,7 +202,7 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<S: Store + 'static>(
+async fn send<S: Store>(
     manager: &mut Manager<S, Registered>,
     recipient: Recipient,
     msg: impl Into<ContentBody>,
@@ -464,7 +466,7 @@ async fn receive<S: Store>(
     Ok(())
 }
 
-async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
+async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -621,6 +623,29 @@ async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Re
             } in manager.store().contacts()?.flatten()
             {
                 println!("{uuid} / {phone_number:?} / {name}");
+            }
+        }
+        Cmd::ListStickerPacks => {
+            let manager = Manager::load_registered(config_store).await?;
+            for sticker_pack in manager.sticker_packs().await? {
+                match sticker_pack {
+                    Ok(sticker_pack) => {
+                        println!(
+                            "title={} author={}",
+                            sticker_pack.manifest.title, sticker_pack.manifest.author,
+                        );
+                        for sticker in sticker_pack.manifest.stickers {
+                            println!(
+                                "\tid={} emoji={} content_type={} bytes={}",
+                                sticker.id,
+                                sticker.emoji.unwrap_or_default(),
+                                sticker.content_type.unwrap_or_default(),
+                                sticker.bytes.unwrap_or_default().len(),
+                            )
+                        }
+                    }
+                    Err(error) => error!("error while deserializing sticker pack: {error}"),
+                }
             }
         }
         Cmd::Whoami => {
