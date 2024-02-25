@@ -672,27 +672,31 @@ impl<S: Store> Manager<S, Registered> {
                                     for operation in sticker_pack_operation {
                                         match operation.r#type() {
                                             sticker_pack_operation::Type::Install => {
-                                                let mut store = state.store.clone();
-                                                let mut push_service = state.push_service.clone();
+                                                let store = state.store.clone();
+                                                let push_service = state.push_service.clone();
                                                 let operation = operation.clone();
-                                                match download_sticker_pack(
-                                                    &mut store,
-                                                    &mut push_service,
-                                                    &operation,
-                                                )
-                                                .await
-                                                {
-                                                    Ok(sticker_pack) => {
-                                                        debug!(
-                                                                    "downloaded sticker pack: {} made by {}",
-                                                                    sticker_pack.manifest.title,
-                                                                    sticker_pack.manifest.author
-                                                                );
+
+                                                // download stickers in the background
+                                                tokio::spawn(async move {
+                                                    match download_sticker_pack(
+                                                        store,
+                                                        push_service,
+                                                        &operation,
+                                                    )
+                                                    .await
+                                                    {
+                                                        Ok(sticker_pack) => {
+                                                            debug!(
+                                                                "downloaded sticker pack: {} made by {}",
+                                                                sticker_pack.manifest.title,
+                                                                sticker_pack.manifest.author
+                                                            );
+                                                        }
+                                                        Err(error) => error!(
+                                                            "failed to download sticker pack: {error}"
+                                                        ),
                                                     }
-                                                    Err(error) => error!(
-                                                        "failed to download sticker pack: {error}"
-                                                    ),
-                                                }
+                                                });
                                             }
                                             sticker_pack_operation::Type::Remove => {
                                                 match state
@@ -1060,8 +1064,8 @@ impl<S: Store> Manager<S, Registered> {
             r#type: Some(sticker_pack_operation::Type::Install as i32),
         };
 
-        let mut push_service = self.unidentified_push_service();
-        download_sticker_pack(&mut self.store, &mut push_service, &sticker_pack_operation).await?;
+        let push_service = self.unidentified_push_service();
+        download_sticker_pack(self.store.clone(), push_service, &sticker_pack_operation).await?;
 
         // Sync the change with the other devices
         let sync_message = SyncMessage {
@@ -1289,8 +1293,8 @@ async fn upsert_group<S: Store>(
 
 /// Download and decrypt a sticker manifest
 async fn download_sticker_pack<C: ContentsStore>(
-    store: &mut C,
-    push_service: &mut HyperPushService,
+    mut store: C,
+    mut push_service: HyperPushService,
     operation: &StickerPackOperation,
 ) -> Result<StickerPack, Error<C::ContentsStoreError>> {
     debug!("downloading sticker pack");
@@ -1319,7 +1323,15 @@ async fn download_sticker_pack<C: ContentsStore>(
             .into();
 
     for sticker in &mut sticker_pack_manifest.stickers {
-        match download_sticker(store, push_service, &pack_id, &pack_key, sticker.id).await {
+        match download_sticker(
+            &mut store,
+            &mut push_service,
+            &pack_id,
+            &pack_key,
+            sticker.id,
+        )
+        .await
+        {
             Ok(decrypted_sticker_bytes) => {
                 debug!("downloaded sticker {}", sticker.id);
                 sticker.bytes = Some(decrypted_sticker_bytes);

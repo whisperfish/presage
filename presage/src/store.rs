@@ -23,7 +23,7 @@ use serde::{Deserialize, Serialize};
 use crate::{manager::RegistrationData, AvatarBytes};
 
 /// An error trait implemented by store error types
-pub trait StoreError: std::error::Error + Sync + Send + 'static {}
+pub trait StoreError: std::error::Error + Sync + Send {}
 
 /// Stores the registered state of the manager
 pub trait StateStore {
@@ -295,8 +295,10 @@ pub trait Store:
     + ProtocolStore
     + SenderKeyStore
     + SessionStoreExt
+    + Send
     + Sync
     + Clone
+    + 'static
 {
     type Error: StoreError;
 

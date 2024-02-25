@@ -202,7 +202,7 @@ async fn main() -> anyhow::Result<()> {
     run(args.subcommand, config_store).await
 }
 
-async fn send<S: Store + 'static>(
+async fn send<S: Store>(
     manager: &mut Manager<S, Registered>,
     recipient: Recipient,
     msg: impl Into<ContentBody>,
@@ -466,7 +466,7 @@ async fn receive<S: Store>(
     Ok(())
 }
 
-async fn run<S: Store + 'static>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
+async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
