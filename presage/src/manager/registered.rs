@@ -791,7 +791,7 @@ impl<S: Store> Manager<S, Registered> {
                         }
                     }
                     Some(Err(e)) => error!("Error: {}", e),
-                    None => return None,
+                    None => (),
                 }
             }
         }))
