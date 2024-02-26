@@ -13,6 +13,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+## [0.6.0]
+
+### Added
+
+- Add support for post-quantum session keys (#179)
+- Add `Manager::clear_thread` to erase a conversation thread (#157)
+- Add `Manager::thread_title` to get the title of a conversation thread (1-1, group, etc.) (#157)
+- Add `ReceivingMode` to `Manager::receive_messages` to be able to run an initial sync like Signal-Desktop (#202)
+- Verify sha256 checksum after downloading attachments (#224)
+- Add functions to retrieve avatars (#234)
+- Add support for stickers and sticker packs (#178)
+
+### Fixed
+
+- Fix loading state store created with `0.5.1` (#169)
+- Stop incoming message loop from stopping in some cases (#172)
+- Fix a lot of issues related to (re)connecting to websockets (#177, #203, #222, #226)
+- Fix `presage-cli` argument parsing (#182)
+- Trust new identities by default (like the official clients do) (#206)
+- Send own profile key in protobuf messages (#208)
+- Fix outgoing messages stored in the wrong conversation thread (#216)
+- Fix linking as secondary device (#221)
+- Drop kyber keys on relinking and fix various related errors (#223, #225)
+- Fix expire timer being turned off (#226)
+- Avoid dropping database when it cannot be opend (#236)
+
+### Changed
+
+- Store decrypted groups (avoiding wasting CPU resources) (#161)
+- Split code into multiple modules for eased maintenance (#205)
+- Upsert contact information when seeing a contact for the first time (#211)
+
 ## [0.5.2]
 
 ### Added
@@ -66,7 +98,7 @@ and then get the store implementation from the store crate instead when importin
 
 ### Added
 
-- Group storage: group metadata is now stored in a local cache, to avoid issuing an API call whenever 
+- Group storage: group metadata is now stored in a local cache, to avoid issuing an API call whenever
   group details need to be looked up. (#88)
 - Optional desktop notifications in CLI. (#85)
 - Add function to clear messages only. (#115)
