@@ -123,4 +123,5 @@ and then get the store implementation from the store crate instead when importin
 [0.5.0]: https://github.com/whisperfish/presage/compare/0.4.0...0.5.0
 [0.5.1]: https://github.com/whisperfish/presage/compare/0.5.0...0.5.1
 [0.5.2]: https://github.com/whisperfish/presage/compare/0.5.1...0.5.2
-[Unreleased]: https://github.com/whisperfish/presage/compare/0.5.2...main
+[0.6.0]: https://github.com/whisperfish/presage/compare/0.5.2...0.6.0
+[Unreleased]: https://github.com/whisperfish/presage/compare/0.6.0...main
