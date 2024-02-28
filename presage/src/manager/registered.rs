@@ -1048,7 +1048,7 @@ impl<S: Store> Manager<S, Registered> {
                 .stickers
                 .iter()
                 .find(|&x| x.id == sticker_id)
-                .map(|x| x.clone())
+                .cloned()
         }))
     }
 
@@ -1319,19 +1319,11 @@ async fn download_sticker_pack<C: ContentsStore>(
 
     let mut sticker_pack_manifest: StickerPackManifest =
         libsignal_service::proto::Pack::decode(ciphertext.as_slice())
-            .map_err(|e| ProvisioningError::from(e))?
+            .map_err(ProvisioningError::from)?
             .into();
 
     for sticker in &mut sticker_pack_manifest.stickers {
-        match download_sticker(
-            &mut store,
-            &mut push_service,
-            &pack_id,
-            &pack_key,
-            sticker.id,
-        )
-        .await
-        {
+        match download_sticker(&mut store, &mut push_service, pack_id, pack_key, sticker.id).await {
             Ok(decrypted_sticker_bytes) => {
                 debug!("downloaded sticker {}", sticker.id);
                 sticker.bytes = Some(decrypted_sticker_bytes);
@@ -1360,7 +1352,7 @@ async fn download_sticker<C: ContentsStore>(
     pack_key: &[u8],
     sticker_id: u32,
 ) -> Result<Vec<u8>, Error<C::ContentsStoreError>> {
-    let key = derive_key(&pack_key)?;
+    let key = derive_key(pack_key)?;
 
     let mut sticker_stream = push_service
         .get_sticker(&hex::encode(pack_id), sticker_id)
