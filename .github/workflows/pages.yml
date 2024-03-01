@@ -10,17 +10,18 @@ jobs:
     name: Update
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           persist-credentials: false
       - name: Install protobuf
         run: |
           sudo apt-get update
-          sudo apt-get install -y libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler
-      - uses: actions-rs/cargo@v1
+          sudo apt-get install -y protobuf-compiler
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
         with:
-          command: doc
-          args: --all-features --no-deps -p presage -p libsignal-service -p libsignal-service-hyper -p libsignal-protocol -p zkgroup
+          toolchain: stable
+      - run: cargo doc --all-features --no-deps -p presage -p libsignal-service -p libsignal-service-hyper -p libsignal-protocol -p zkgroup
       - uses: JamesIves/github-pages-deploy-action@3.7.1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
