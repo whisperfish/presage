@@ -717,7 +717,6 @@ impl<S: Store> Manager<S, Registered> {
                                             }
                                         }
                                     }
-                                    continue;
                                 }
 
                                 // group update
