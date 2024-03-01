@@ -1,7 +1,7 @@
 [package]
 # be a sign or warning of (an imminent event, typically an unwelcome one).
 name = "presage"
-version = "0.6.1-dev"
+version = "0.6.1"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 license = "AGPL-3.0-only"
