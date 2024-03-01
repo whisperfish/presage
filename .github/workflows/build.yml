@@ -64,9 +64,6 @@ jobs:
 
       - name: Check code format
         run: cargo fmt -- --check
-        with:
-          command: fmt
-          args: -- --check
 
   clippy:
     name: clippy
