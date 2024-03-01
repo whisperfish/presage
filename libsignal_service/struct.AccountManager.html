@@ -13,8 +13,8 @@ signed pre-keys.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.link_device" class="method"><a class="src rightside" href="../src/libsignal_service/account_manager.rs.html#321-384">source</a><h4 class="code-header">pub async fn <a href="#method.link_device" class="fn">link_device</a>(
     &amp;mut self,
     url: <a class="struct" href="https://docs.rs/url/2.5.0/url/struct.Url.html" title="struct url::Url">Url</a>,
-    aci_identity_store: &amp;dyn <a class="trait" href="../libsignal_protocol/storage/traits/trait.IdentityKeyStore.html" title="trait libsignal_protocol::storage::traits::IdentityKeyStore">IdentityKeyStore</a>,
-    pni_identity_store: &amp;dyn <a class="trait" href="../libsignal_protocol/storage/traits/trait.IdentityKeyStore.html" title="trait libsignal_protocol::storage::traits::IdentityKeyStore">IdentityKeyStore</a>,
+    aci_identity_store: &amp;dyn IdentityKeyStore,
+    pni_identity_store: &amp;dyn IdentityKeyStore,
     credentials: <a class="struct" href="configuration/struct.ServiceCredentials.html" title="struct libsignal_service::configuration::ServiceCredentials">ServiceCredentials</a>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.unit.html">()</a>, <a class="enum" href="enum.LinkError.html" title="enum libsignal_service::LinkError">LinkError</a>&gt;</h4></section></summary><div class="docblock"><p>Link a new device, given a tsurl.</p>
 <p>Equivalent of Java’s <code>AccountManager::addDevice()</code></p>
@@ -28,7 +28,7 @@ Cfr.:</p>
 <div class="example-wrap"><pre class="language-java"><code>TextSecurePreferences.setIsUnidentifiedDeliveryEnabled(context, false);
 </code></pre></div></div></details><details class="toggle method-toggle" open><summary><section id="method.upload_versioned_profile_without_avatar" class="method"><a class="src rightside" href="../src/libsignal_service/account_manager.rs.html#396-417">source</a><h4 class="code-header">pub async fn <a href="#method.upload_versioned_profile_without_avatar" class="fn">upload_versioned_profile_without_avatar</a>&lt;S: <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.str.html">str</a>&gt;&gt;(
     &amp;mut self,
-    aci: <a class="type" href="../libsignal_protocol/address/type.Aci.html" title="type libsignal_protocol::address::Aci">Aci</a>,
+    aci: Aci,
     name: <a class="struct" href="profile_name/struct.ProfileName.html" title="struct libsignal_service::profile_name::ProfileName">ProfileName</a>&lt;S&gt;,
     about: <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     about_emoji: <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -45,7 +45,7 @@ currently set avatar.</p>
     address: <a class="struct" href="service_address/struct.ServiceAddress.html" title="struct libsignal_service::service_address::ServiceAddress">ServiceAddress</a>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="struct.Profile.html" title="struct libsignal_service::Profile">Profile</a>, <a class="enum" href="enum.ProfileManagerError.html" title="enum libsignal_service::ProfileManagerError">ProfileManagerError</a>&gt;</h4></section><details class="toggle method-toggle" open><summary><section id="method.upload_versioned_profile" class="method"><a class="src rightside" href="../src/libsignal_service/account_manager.rs.html#440-485">source</a><h4 class="code-header">pub async fn <a href="#method.upload_versioned_profile" class="fn">upload_versioned_profile</a>&lt;'s, C: <a class="trait" href="https://doc.rust-lang.org/1.76.0/std/io/trait.Read.html" title="trait std::io::Read">Read</a> + <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 's, S: <a class="trait" href="https://doc.rust-lang.org/1.76.0/core/convert/trait.AsRef.html" title="trait core::convert::AsRef">AsRef</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.str.html">str</a>&gt;&gt;(
     &amp;mut self,
-    aci: <a class="type" href="../libsignal_protocol/address/type.Aci.html" title="type libsignal_protocol::address::Aci">Aci</a>,
+    aci: Aci,
     name: <a class="struct" href="profile_name/struct.ProfileName.html" title="struct libsignal_service::profile_name::ProfileName">ProfileName</a>&lt;S&gt;,
     about: <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
     about_emoji: <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/option/enum.Option.html" title="enum core::option::Option">Option</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.76.0/alloc/string/struct.String.html" title="struct alloc::string::String">String</a>&gt;,
@@ -61,7 +61,7 @@ currently set avatar.</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.update_device_name" class="method"><a class="src rightside" href="../src/libsignal_service/account_manager.rs.html#498-529">source</a><h4 class="code-header">pub async fn <a href="#method.update_device_name" class="fn">update_device_name</a>(
     &amp;mut self,
     device_name: &amp;<a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.str.html">str</a>,
-    public_key: &amp;<a class="struct" href="../libsignal_protocol/curve/struct.PublicKey.html" title="struct libsignal_protocol::curve::PublicKey">PublicKey</a>
+    public_key: &amp;PublicKey
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="primitive" href="https://doc.rust-lang.org/1.76.0/std/primitive.unit.html">()</a>, <a class="enum" href="push_service/enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;</h4></section></summary><div class="docblock"><p>Update (encrypted) device name</p>
 </div></details><details class="toggle method-toggle" open><summary><section id="method.submit_recaptcha_challenge" class="method"><a class="src rightside" href="../src/libsignal_service/account_manager.rs.html#537-556">source</a><h4 class="code-header">pub async fn <a href="#method.submit_recaptcha_challenge" class="fn">submit_recaptcha_challenge</a>(
     &amp;mut self,
