@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["Ciphertext","KeyPair","PublicKey","SystemParams"]};
+window.SIDEBAR_ITEMS = {"struct":["SystemParams","UidEncryptionDomain"],"type":["Ciphertext","KeyPair","PublicKey"]};

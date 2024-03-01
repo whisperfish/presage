@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/crypto/uid_encryption.rs`."><title>uid_encryption.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/f980fcc/rust/zkgroup/src/crypto/uid_encryption.rs`."><title>uid_encryption.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -179,73 +179,6 @@
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
 <a href="#180" id="180">180</a>
-<a href="#181" id="181">181</a>
-<a href="#182" id="182">182</a>
-<a href="#183" id="183">183</a>
-<a href="#184" id="184">184</a>
-<a href="#185" id="185">185</a>
-<a href="#186" id="186">186</a>
-<a href="#187" id="187">187</a>
-<a href="#188" id="188">188</a>
-<a href="#189" id="189">189</a>
-<a href="#190" id="190">190</a>
-<a href="#191" id="191">191</a>
-<a href="#192" id="192">192</a>
-<a href="#193" id="193">193</a>
-<a href="#194" id="194">194</a>
-<a href="#195" id="195">195</a>
-<a href="#196" id="196">196</a>
-<a href="#197" id="197">197</a>
-<a href="#198" id="198">198</a>
-<a href="#199" id="199">199</a>
-<a href="#200" id="200">200</a>
-<a href="#201" id="201">201</a>
-<a href="#202" id="202">202</a>
-<a href="#203" id="203">203</a>
-<a href="#204" id="204">204</a>
-<a href="#205" id="205">205</a>
-<a href="#206" id="206">206</a>
-<a href="#207" id="207">207</a>
-<a href="#208" id="208">208</a>
-<a href="#209" id="209">209</a>
-<a href="#210" id="210">210</a>
-<a href="#211" id="211">211</a>
-<a href="#212" id="212">212</a>
-<a href="#213" id="213">213</a>
-<a href="#214" id="214">214</a>
-<a href="#215" id="215">215</a>
-<a href="#216" id="216">216</a>
-<a href="#217" id="217">217</a>
-<a href="#218" id="218">218</a>
-<a href="#219" id="219">219</a>
-<a href="#220" id="220">220</a>
-<a href="#221" id="221">221</a>
-<a href="#222" id="222">222</a>
-<a href="#223" id="223">223</a>
-<a href="#224" id="224">224</a>
-<a href="#225" id="225">225</a>
-<a href="#226" id="226">226</a>
-<a href="#227" id="227">227</a>
-<a href="#228" id="228">228</a>
-<a href="#229" id="229">229</a>
-<a href="#230" id="230">230</a>
-<a href="#231" id="231">231</a>
-<a href="#232" id="232">232</a>
-<a href="#233" id="233">233</a>
-<a href="#234" id="234">234</a>
-<a href="#235" id="235">235</a>
-<a href="#236" id="236">236</a>
-<a href="#237" id="237">237</a>
-<a href="#238" id="238">238</a>
-<a href="#239" id="239">239</a>
-<a href="#240" id="240">240</a>
-<a href="#241" id="241">241</a>
-<a href="#242" id="242">242</a>
-<a href="#243" id="243">243</a>
-<a href="#244" id="244">244</a>
-<a href="#245" id="245">245</a>
-<a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
@@ -257,41 +190,27 @@
 <span class="kw">use </span><span class="kw">crate</span>::common::sho::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::crypto::uid_struct;
 
-<span class="kw">use </span>curve25519_dalek::constants::RISTRETTO_BASEPOINT_POINT;
 <span class="kw">use </span>curve25519_dalek::ristretto::RistrettoPoint;
-<span class="kw">use </span>curve25519_dalek::scalar::Scalar;
 <span class="kw">use </span>lazy_static::lazy_static;
+<span class="kw">use </span>partial_default::PartialDefault;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>subtle::{ConditionallySelectable, ConstantTimeEq};
+<span class="kw">use </span>zkcredential::attributes::Attribute;
 
 <span class="macro">lazy_static! </span>{
     <span class="kw">static </span><span class="kw-2">ref </span>SYSTEM_PARAMS: SystemParams =
-        bincode::deserialize::&lt;SystemParams&gt;(<span class="kw-2">&amp;</span>SystemParams::SYSTEM_HARDCODED).unwrap();
+        <span class="kw">crate</span>::deserialize::&lt;SystemParams&gt;(<span class="kw-2">&amp;</span>SystemParams::SYSTEM_HARDCODED).unwrap();
 }
 
-<span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+<span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>SystemParams {
     <span class="kw">pub</span>(<span class="kw">crate</span>) G_a1: RistrettoPoint,
     <span class="kw">pub</span>(<span class="kw">crate</span>) G_a2: RistrettoPoint,
 }
 
-<span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-</span><span class="kw">pub struct </span>KeyPair {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) a1: Scalar,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) a2: Scalar,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) A: RistrettoPoint,
-}
-
-<span class="attr">#[derive(Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-</span><span class="kw">pub struct </span>PublicKey {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) A: RistrettoPoint,
-}
-
-<span class="attr">#[derive(Copy, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-</span><span class="kw">pub struct </span>Ciphertext {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) E_A1: RistrettoPoint,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) E_A2: RistrettoPoint,
-}
+<span class="kw">pub type </span>KeyPair = zkcredential::attributes::KeyPair&lt;UidEncryptionDomain&gt;;
+<span class="kw">pub type </span>PublicKey = zkcredential::attributes::PublicKey&lt;UidEncryptionDomain&gt;;
+<span class="kw">pub type </span>Ciphertext = zkcredential::attributes::Ciphertext&lt;UidEncryptionDomain&gt;;
 
 <span class="kw">impl </span>SystemParams {
     <span class="kw">pub fn </span>generate() -&gt; <span class="self">Self </span>{
@@ -317,31 +236,26 @@
     ];
 }
 
-<span class="kw">impl </span>KeyPair {
-    <span class="kw">pub fn </span>derive_from(sho: <span class="kw-2">&amp;mut </span>Sho) -&gt; <span class="self">Self </span>{
+<span class="kw">pub struct </span>UidEncryptionDomain;
+<span class="kw">impl </span>zkcredential::attributes::Domain <span class="kw">for </span>UidEncryptionDomain {
+    <span class="kw">type </span>Attribute = uid_struct::UidStruct;
+
+    <span class="kw">const </span>ID: <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str = <span class="string">"Signal_ZKGroup_20230419_UidEncryption"</span>;
+
+    <span class="kw">fn </span>G_a() -&gt; [RistrettoPoint; <span class="number">2</span>] {
         <span class="kw">let </span>system = SystemParams::get_hardcoded();
-
-        <span class="kw">let </span>a1 = sho.get_scalar();
-        <span class="kw">let </span>a2 = sho.get_scalar();
-
-        <span class="kw">let </span>A = a1 * system.G_a1 + a2 * system.G_a2;
-        KeyPair { a1, a2, A }
+        [system.G_a1, system.G_a2]
     }
+}
 
-    <span class="kw">pub fn </span>encrypt(<span class="kw-2">&amp;</span><span class="self">self</span>, uid: uid_struct::UidStruct) -&gt; Ciphertext {
-        <span class="kw">let </span>E_A1 = <span class="self">self</span>.a1 * uid.M1;
-        <span class="kw">let </span>E_A2 = (<span class="self">self</span>.a2 * E_A1) + uid.M2;
-        Ciphertext { E_A1, E_A2 }
-    }
-
-    <span class="kw">pub fn </span>decrypt(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        ciphertext: Ciphertext,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;libsignal_protocol::ServiceId, ZkGroupVerificationFailure&gt; {
-        <span class="kw">if </span>ciphertext.E_A1 == RISTRETTO_BASEPOINT_POINT {
-            <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
-        }
-        <span class="kw">let </span>M2 = ciphertext.E_A2 - (<span class="self">self</span>.a2 * ciphertext.E_A1);
+<span class="kw">impl </span>UidEncryptionDomain {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>decrypt(
+        key_pair: <span class="kw-2">&amp;</span>KeyPair,
+        ciphertext: <span class="kw-2">&amp;</span>Ciphertext,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;libsignal_core::ServiceId, ZkGroupVerificationFailure&gt; {
+        <span class="kw">let </span>M2 = key_pair
+            .decrypt_to_second_point(ciphertext)
+            .map_err(|<span class="kw">_</span>| ZkGroupVerificationFailure)<span class="question-mark">?</span>;
         <span class="kw">match </span>M2.lizard_decode::&lt;sha2::Sha256&gt;() {
             <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Err</span>(ZkGroupVerificationFailure),
             <span class="prelude-val">Some</span>(bytes) =&gt; {
@@ -353,15 +267,15 @@
                 // the end, and which one is data-dependent. But it is constant-time.
                 </span><span class="kw">let </span>decoded_uuid = uuid::Uuid::from_bytes(bytes);
                 <span class="kw">let </span>decoded_service_ids = [
-                    libsignal_protocol::Aci::from(decoded_uuid).into(),
-                    libsignal_protocol::Pni::from(decoded_uuid).into(),
+                    libsignal_core::Aci::from(decoded_uuid).into(),
+                    libsignal_core::Pni::from(decoded_uuid).into(),
                 ];
                 <span class="kw">let </span>decoded_aci = <span class="kw-2">&amp;</span>decoded_service_ids[<span class="number">0</span>];
                 <span class="kw">let </span>decoded_pni = <span class="kw-2">&amp;</span>decoded_service_ids[<span class="number">1</span>];
                 <span class="kw">let </span>aci_M1 = uid_struct::UidStruct::calc_M1(<span class="kw-2">*</span>decoded_aci);
                 <span class="kw">let </span>pni_M1 = uid_struct::UidStruct::calc_M1(<span class="kw-2">*</span>decoded_pni);
                 <span class="macro">debug_assert!</span>(aci_M1 != pni_M1);
-                <span class="kw">let </span>decrypted_M1 = <span class="self">self</span>.a1.invert() * ciphertext.E_A1;
+                <span class="kw">let </span>decrypted_M1 = key_pair.a1.invert() * ciphertext.as_points()[<span class="number">0</span>];
                 <span class="kw">let </span><span class="kw-2">mut </span>index = u8::MAX;
                 index.conditional_assign(<span class="kw-2">&amp;</span><span class="number">0</span>, decrypted_M1.ct_eq(<span class="kw-2">&amp;</span>aci_M1));
                 index.conditional_assign(<span class="kw-2">&amp;</span><span class="number">1</span>, decrypted_M1.ct_eq(<span class="kw-2">&amp;</span>pni_M1));
@@ -371,54 +285,6 @@
                     .ok_or(ZkGroupVerificationFailure)
             }
         }
-    }
-
-    <span class="kw">pub fn </span>get_public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PublicKey {
-        PublicKey { A: <span class="self">self</span>.A }
-    }
-}
-
-<span class="kw">const </span>UID_ENCRYPTION_ID: <span class="kw-2">&amp;</span>str = <span class="string">"Signal_ZKGroup_20230419_UidEncryption"</span>;
-
-<span class="kw">impl </span>zkcredential::attributes::PublicKey <span class="kw">for </span>KeyPair {
-    <span class="kw">fn </span>A(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RistrettoPoint {
-        <span class="self">self</span>.A
-    }
-
-    <span class="kw">fn </span>G_a(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; [RistrettoPoint; <span class="number">2</span>] {
-        <span class="kw">let </span>system = SystemParams::get_hardcoded();
-        [system.G_a1, system.G_a2]
-    }
-
-    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-        UID_ENCRYPTION_ID
-    }
-}
-
-<span class="kw">impl </span>zkcredential::attributes::KeyPair <span class="kw">for </span>KeyPair {
-    <span class="kw">fn </span>a(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; [Scalar; <span class="number">2</span>] {
-        [<span class="self">self</span>.a1, <span class="self">self</span>.a2]
-    }
-}
-
-<span class="kw">impl </span>zkcredential::attributes::PublicKey <span class="kw">for </span>PublicKey {
-    <span class="kw">fn </span>A(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; RistrettoPoint {
-        <span class="self">self</span>.A
-    }
-
-    <span class="kw">fn </span>G_a(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; [RistrettoPoint; <span class="number">2</span>] {
-        <span class="kw">let </span>system = SystemParams::get_hardcoded();
-        [system.G_a1, system.G_a2]
-    }
-
-    <span class="kw">fn </span>id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-        UID_ENCRYPTION_ID
-    }
-}
-
-<span class="kw">impl </span>zkcredential::attributes::Attribute <span class="kw">for </span>Ciphertext {
-    <span class="kw">fn </span>as_points(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; [RistrettoPoint; <span class="number">2</span>] {
-        [<span class="self">self</span>.E_A1, <span class="self">self</span>.E_A2]
     }
 }
 
@@ -436,7 +302,7 @@
         //println!("PARAMS = {:#x?}", bincode::serialize(&amp;system));
         </span><span class="macro">assert!</span>(SystemParams::generate() == SystemParams::get_hardcoded());
 
-        <span class="kw">let </span>key_pair = KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>key_pair = KeyPair::derive_from(sho.as_mut());
 
         <span class="comment">// Test serialize of key_pair
         </span><span class="kw">let </span>key_pair_bytes = bincode::serialize(<span class="kw-2">&amp;</span>key_pair).unwrap();
@@ -447,9 +313,9 @@
         <span class="kw">let </span>key_pair2: KeyPair = bincode::deserialize(<span class="kw-2">&amp;</span>key_pair_bytes).unwrap();
         <span class="macro">assert!</span>(key_pair == key_pair2);
 
-        <span class="kw">let </span>aci = libsignal_protocol::Aci::from_uuid_bytes(TEST_ARRAY_16);
+        <span class="kw">let </span>aci = libsignal_core::Aci::from_uuid_bytes(TEST_ARRAY_16);
         <span class="kw">let </span>uid = uid_struct::UidStruct::from_service_id(aci.into());
-        <span class="kw">let </span>ciphertext = key_pair.encrypt(uid);
+        <span class="kw">let </span>ciphertext = key_pair.encrypt(<span class="kw-2">&amp;</span>uid);
 
         <span class="comment">// Test serialize / deserialize of Ciphertext
         </span><span class="kw">let </span>ciphertext_bytes = bincode::serialize(<span class="kw-2">&amp;</span>ciphertext).unwrap();
@@ -468,19 +334,19 @@
                 ]
         );
 
-        <span class="kw">let </span>plaintext = key_pair.decrypt(ciphertext2).unwrap();
-        <span class="macro">assert!</span>(<span class="macro">matches!</span>(plaintext, libsignal_protocol::ServiceId::Aci(<span class="kw">_</span>)));
+        <span class="kw">let </span>plaintext = UidEncryptionDomain::decrypt(<span class="kw-2">&amp;</span>key_pair, <span class="kw-2">&amp;</span>ciphertext2).unwrap();
+        <span class="macro">assert!</span>(<span class="macro">matches!</span>(plaintext, libsignal_core::ServiceId::Aci(<span class="kw">_</span>)));
         <span class="macro">assert!</span>(uid_struct::UidStruct::from_service_id(plaintext) == uid);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_pni_encryption() {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(<span class="string">b"Test_Pni_Encryption"</span>, <span class="kw-2">&amp;</span>[]);
-        <span class="kw">let </span>key_pair = KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>key_pair = KeyPair::derive_from(sho.as_mut());
 
-        <span class="kw">let </span>pni = libsignal_protocol::Pni::from_uuid_bytes(TEST_ARRAY_16);
+        <span class="kw">let </span>pni = libsignal_core::Pni::from_uuid_bytes(TEST_ARRAY_16);
         <span class="kw">let </span>uid = uid_struct::UidStruct::from_service_id(pni.into());
-        <span class="kw">let </span>ciphertext = key_pair.encrypt(uid);
+        <span class="kw">let </span>ciphertext = key_pair.encrypt(<span class="kw-2">&amp;</span>uid);
 
         <span class="comment">// Test serialize / deserialize of Ciphertext
         </span><span class="kw">let </span>ciphertext_bytes = bincode::serialize(<span class="kw-2">&amp;</span>ciphertext).unwrap();
@@ -488,8 +354,8 @@
         <span class="kw">let </span>ciphertext2: Ciphertext = bincode::deserialize(<span class="kw-2">&amp;</span>ciphertext_bytes).unwrap();
         <span class="macro">assert!</span>(ciphertext == ciphertext2);
 
-        <span class="kw">let </span>plaintext = key_pair.decrypt(ciphertext2).unwrap();
-        <span class="macro">assert!</span>(<span class="macro">matches!</span>(plaintext, libsignal_protocol::ServiceId::Pni(<span class="kw">_</span>)));
+        <span class="kw">let </span>plaintext = UidEncryptionDomain::decrypt(<span class="kw-2">&amp;</span>key_pair, <span class="kw-2">&amp;</span>ciphertext2).unwrap();
+        <span class="macro">assert!</span>(<span class="macro">matches!</span>(plaintext, libsignal_core::ServiceId::Pni(<span class="kw">_</span>)));
         <span class="macro">assert!</span>(uid_struct::UidStruct::from_service_id(plaintext) == uid);
     }
 }

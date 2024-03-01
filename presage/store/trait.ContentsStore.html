@@ -112,7 +112,7 @@
     // Provided methods
     fn <a href="#method.save_trusted_identity_message" class="fn">save_trusted_identity_message</a>(
         &amp;self,
-        protocol_address: &amp;<a class="struct" href="../../libsignal_protocol/address/struct.ProtocolAddress.html" title="struct libsignal_protocol::address::ProtocolAddress">ProtocolAddress</a>,
+        protocol_address: &amp;ProtocolAddress,
         right_identity_key: <a class="struct" href="../../libsignal_protocol/identity_key/struct.IdentityKey.html" title="struct libsignal_protocol::identity_key::IdentityKey">IdentityKey</a>,
         verified_state: <a class="enum" href="../proto/verified/enum.State.html" title="enum presage::proto::verified::State">State</a>
     ) { ... }
@@ -236,7 +236,7 @@ Add a sticker pack</p>
 ) -&gt; <a class="enum" href="https://doc.rust-lang.org/1.76.0/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Self::<a class="associatedtype" href="trait.ContentsStore.html#associatedtype.StickerPacksIter" title="type presage::store::ContentsStore::StickerPacksIter">StickerPacksIter</a>, Self::<a class="associatedtype" href="trait.ContentsStore.html#associatedtype.ContentsStoreError" title="type presage::store::ContentsStore::ContentsStoreError">ContentsStoreError</a>&gt;</h4></section></summary><div class="docblock"><p>Get an iterator on all installed stickerpacks</p>
 </div></details></div><h2 id="provided-methods" class="section-header">Provided Methods<a href="#provided-methods" class="anchor">§</a></h2><div class="methods"><details class="toggle method-toggle" open><summary><section id="method.save_trusted_identity_message" class="method"><a class="src rightside" href="../../src/presage/store.rs.html#83-123">source</a><h4 class="code-header">fn <a href="#method.save_trusted_identity_message" class="fn">save_trusted_identity_message</a>(
     &amp;self,
-    protocol_address: &amp;<a class="struct" href="../../libsignal_protocol/address/struct.ProtocolAddress.html" title="struct libsignal_protocol::address::ProtocolAddress">ProtocolAddress</a>,
+    protocol_address: &amp;ProtocolAddress,
     right_identity_key: <a class="struct" href="../../libsignal_protocol/identity_key/struct.IdentityKey.html" title="struct libsignal_protocol::identity_key::IdentityKey">IdentityKey</a>,
     verified_state: <a class="enum" href="../proto/verified/enum.State.html" title="enum presage::proto::verified::State">State</a>
 )</h4></section></summary><div class="docblock"><p>Saves a message that can show users when the identity of a contact has changed

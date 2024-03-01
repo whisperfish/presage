@@ -4,7 +4,7 @@
     remote_address: &amp;<a class="struct" href="struct.ProtocolAddress.html" title="struct libsignal_protocol::ProtocolAddress">ProtocolAddress</a>,
     session_record: &amp;mut <a class="struct" href="struct.SessionRecord.html" title="struct libsignal_protocol::SessionRecord">SessionRecord</a>,
     identity_store: &amp;mut dyn <a class="trait" href="trait.IdentityKeyStore.html" title="trait libsignal_protocol::IdentityKeyStore">IdentityKeyStore</a>,
-    pre_key_store: &amp;mut dyn <a class="trait" href="trait.PreKeyStore.html" title="trait libsignal_protocol::PreKeyStore">PreKeyStore</a>,
-    signed_prekey_store: &amp;mut dyn <a class="trait" href="trait.SignedPreKeyStore.html" title="trait libsignal_protocol::SignedPreKeyStore">SignedPreKeyStore</a>,
-    kyber_prekey_store: &amp;mut dyn <a class="trait" href="trait.KyberPreKeyStore.html" title="trait libsignal_protocol::KyberPreKeyStore">KyberPreKeyStore</a>
+    pre_key_store: &amp;dyn <a class="trait" href="trait.PreKeyStore.html" title="trait libsignal_protocol::PreKeyStore">PreKeyStore</a>,
+    signed_prekey_store: &amp;dyn <a class="trait" href="trait.SignedPreKeyStore.html" title="trait libsignal_protocol::SignedPreKeyStore">SignedPreKeyStore</a>,
+    kyber_prekey_store: &amp;dyn <a class="trait" href="trait.KyberPreKeyStore.html" title="trait libsignal_protocol::KyberPreKeyStore">KyberPreKeyStore</a>
 ) -&gt; <a class="type" href="error/type.Result.html" title="type libsignal_protocol::error::Result">Result</a>&lt;PreKeysUsed&gt;</code></pre></section></div></main></body></html>

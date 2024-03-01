@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/protocol/src/incremental_mac.rs`."><title>incremental_mac.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/f980fcc/rust/protocol/src/incremental_mac.rs`."><title>incremental_mac.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -423,13 +423,39 @@
 <a href="#422" id="422">422</a>
 <a href="#423" id="423">423</a>
 <a href="#424" id="424">424</a>
+<a href="#425" id="425">425</a>
+<a href="#426" id="426">426</a>
+<a href="#427" id="427">427</a>
+<a href="#428" id="428">428</a>
+<a href="#429" id="429">429</a>
+<a href="#430" id="430">430</a>
+<a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2023 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-</span><span class="kw">use </span>hmac::digest::generic_array::{ArrayLength, GenericArray};
-<span class="kw">use </span>hmac::digest::typenum::Unsigned;
+</span><span class="kw">use </span>aes::cipher::Unsigned;
+<span class="kw">use </span>hmac::digest::generic_array::{ArrayLength, GenericArray};
 <span class="kw">use </span>hmac::Mac;
 <span class="kw">use </span>sha2::digest::{FixedOutput, MacError, Output};
 
@@ -447,24 +473,27 @@
     </span>expected: Vec&lt;Output&lt;M&gt;&gt;,
 }
 
-<span class="kw">const </span>MINIMUM_INCREMENTAL_CHUNK_SIZE: usize = <span class="number">8 </span>* <span class="number">1024</span>;
-<span class="kw">const </span>MAXIMUM_INCREMENTAL_DIGEST_BYTES: usize = <span class="number">1024</span>;
+<span class="kw">const </span>MINIMUM_CHUNK_SIZE: usize = <span class="number">64 </span>* <span class="number">1024</span>;
+<span class="kw">const </span>MAXIMUM_CHUNK_SIZE: usize = <span class="number">2 </span>* <span class="number">1024 </span>* <span class="number">1024</span>;
+<span class="kw">const </span>TARGET_TOTAL_DIGEST_SIZE: usize = <span class="number">8 </span>* <span class="number">1024</span>;
 
-<span class="attr">#[allow(clippy::manual_clamp)]
-</span><span class="kw">pub fn </span>calculate_chunk_size&lt;D&gt;(data_size: usize) -&gt; usize
+<span class="kw">pub const fn </span>calculate_chunk_size&lt;D&gt;(data_size: usize) -&gt; usize
 <span class="kw">where
     </span>D: FixedOutput,
     D::OutputSize: ArrayLength&lt;u8&gt;,
 {
-    <span class="kw">if </span>data_size == <span class="number">0 </span>{
-        <span class="kw">return </span>MINIMUM_INCREMENTAL_CHUNK_SIZE;
+    <span class="macro">assert!</span>(
+        <span class="number">0 </span>== TARGET_TOTAL_DIGEST_SIZE % D::OutputSize::USIZE,
+        <span class="string">"Target digest size should be a multiple of digest size"
+    </span>);
+    <span class="kw">let </span>target_chunk_count = TARGET_TOTAL_DIGEST_SIZE / D::OutputSize::USIZE;
+    <span class="kw">if </span>data_size &lt; target_chunk_count * MINIMUM_CHUNK_SIZE {
+        <span class="kw">return </span>MINIMUM_CHUNK_SIZE;
     }
-    <span class="kw">let </span>max_chunks = MAXIMUM_INCREMENTAL_DIGEST_BYTES / D::OutputSize::USIZE;
-    <span class="kw">let </span>chunk_size = (data_size + max_chunks - <span class="number">1</span>) / max_chunks;
-    std::cmp::min(
-        data_size,
-        std::cmp::max(chunk_size, MINIMUM_INCREMENTAL_CHUNK_SIZE),
-    )
+    <span class="kw">if </span>data_size &lt; target_chunk_count * MAXIMUM_CHUNK_SIZE {
+        <span class="kw">return </span>(data_size + target_chunk_count - <span class="number">1</span>) / target_chunk_count;
+    }
+    MAXIMUM_CHUNK_SIZE
 }
 
 <span class="kw">impl</span>&lt;M: Mac + Clone&gt; Incremental&lt;M&gt; {
@@ -558,6 +587,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
+    <span class="kw">use </span>hex_literal::hex;
     <span class="kw">use </span>hmac::Hmac;
     <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
     <span class="kw">use </span>rand::distributions::Uniform;
@@ -569,8 +599,8 @@
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
-    <span class="kw">const </span>TEST_HMAC_KEY_HEX: <span class="kw-2">&amp;</span>str =
-        <span class="string">"a83481457efecc69ad1342e21d9c0297f71debbf5c9304b4c1b2e433c1a78f98"</span>;
+    <span class="kw">const </span>TEST_HMAC_KEY: <span class="kw-2">&amp;</span>[u8] =
+        <span class="kw-2">&amp;</span><span class="macro">hex!</span>(<span class="string">"a83481457efecc69ad1342e21d9c0297f71debbf5c9304b4c1b2e433c1a78f98"</span>);
 
     <span class="kw">const </span>TEST_CHUNK_SIZE: usize = <span class="number">32</span>;
 
@@ -580,18 +610,20 @@
         Incremental::new(hmac, chunk_size)
     }
 
-    <span class="kw">fn </span>test_key() -&gt; Vec&lt;u8&gt; {
-        hex::decode(TEST_HMAC_KEY_HEX).expect(<span class="string">"Should be able to decode the key from a hex string"</span>)
+    <span class="attr">#[test]
+    #[should_panic]
+    </span><span class="kw">fn </span>chunk_size_zero() {
+        new_incremental(<span class="kw-2">&amp;</span>[], <span class="number">0</span>);
     }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>simple_test() {
-        <span class="kw">let </span>key = test_key();
+        <span class="kw">let </span>key = TEST_HMAC_KEY;
         <span class="kw">let </span>input = <span class="string">"this is a simple test input string which is longer than the chunk"</span>;
 
         <span class="kw">let </span>bytes = input.as_bytes();
-        <span class="kw">let </span>expected = hmac_sha256(<span class="kw-2">&amp;</span>key, bytes);
-        <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
+        <span class="kw">let </span>expected = hmac_sha256(key, bytes);
+        <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(key, TEST_CHUNK_SIZE);
         <span class="kw">let _ </span>= incremental.update(bytes).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
         <span class="kw">let </span>digest = incremental.finalize();
         <span class="kw">let </span>actual: [u8; <span class="number">32</span>] = digest.into();
@@ -600,11 +632,11 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>final_result_should_be_equal_to_non_incremental_hmac() {
-        <span class="kw">let </span>key = test_key();
+        <span class="kw">let </span>key = TEST_HMAC_KEY;
         <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">".{0,100}"</span>)| {
             <span class="kw">let </span>bytes = input.as_bytes();
-            <span class="kw">let </span>expected = hmac_sha256(<span class="kw-2">&amp;</span>key, bytes);
-            <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
+            <span class="kw">let </span>expected = hmac_sha256(key, bytes);
+            <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(key, TEST_CHUNK_SIZE);
             <span class="kw">let _ </span>= incremental.update(bytes).collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
             <span class="kw">let </span>actual: [u8; <span class="number">32</span>] = incremental.finalize().into();
             <span class="macro">assert_eq!</span>(actual, expected);
@@ -613,11 +645,11 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>incremental_macs_are_valid() {
-        <span class="kw">let </span>key = test_key();
+        <span class="kw">let </span>key = TEST_HMAC_KEY;
 
         <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">".{50,100}"</span>)| {
             <span class="kw">let </span>bytes = input.as_bytes();
-            <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
+            <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(key, TEST_CHUNK_SIZE);
 
             <span class="comment">// Manually breaking the input in buffer-sized chunks and calculating the HMACs on the
             // ever-increasing input prefix.
@@ -625,7 +657,7 @@
                 .chunks(incremental.chunk_size)
                 .scan(Vec::new(), |acc, chunk| {
                     acc.extend(chunk.iter());
-                    <span class="prelude-val">Some</span>(hmac_sha256(<span class="kw-2">&amp;</span>key, acc).to_vec())
+                    <span class="prelude-val">Some</span>(hmac_sha256(key, acc).to_vec())
                 })
                 .collect();
 
@@ -647,11 +679,11 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>validating_simple_test() {
-        <span class="kw">let </span>key = test_key();
+        <span class="kw">let </span>key = TEST_HMAC_KEY;
         <span class="kw">let </span>input = <span class="string">"this is a simple test input string"</span>;
 
         <span class="kw">let </span>bytes = input.as_bytes();
-        <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
+        <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(key, TEST_CHUNK_SIZE);
         <span class="kw">let </span><span class="kw-2">mut </span>expected_macs: Vec&lt;<span class="kw">_</span>&gt; = incremental.update(bytes).collect();
         expected_macs.push(incremental.finalize());
 
@@ -660,7 +692,7 @@
 
         {
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
-                new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(expected_bytes.clone());
+                new_incremental(key, TEST_CHUNK_SIZE).validating(expected_bytes.clone());
             validating
                 .update(bytes)
                 .expect(<span class="string">"update: validation should succeed"</span>);
@@ -675,7 +707,7 @@
                 .first_mut()
                 .expect(<span class="string">"there must be at least one mac"</span>)[<span class="number">0</span>] ^= <span class="number">0xff</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
-                new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(failing_first_update);
+                new_incremental(key, TEST_CHUNK_SIZE).validating(failing_first_update);
             validating.update(bytes).expect_err(<span class="string">"MacError"</span>);
         }
 
@@ -684,16 +716,14 @@
             failing_finalize
                 .last_mut()
                 .expect(<span class="string">"there must be at least one mac"</span>)[<span class="number">0</span>] ^= <span class="number">0xff</span>;
-            <span class="kw">let </span><span class="kw-2">mut </span>validating =
-                new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(failing_finalize);
+            <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(key, TEST_CHUNK_SIZE).validating(failing_finalize);
             validating.update(bytes).expect(<span class="string">"update should succeed"</span>);
             validating.finalize().expect_err(<span class="string">"MacError"</span>);
         }
 
         {
             <span class="kw">let </span>missing_last_mac = <span class="kw-2">&amp;</span>expected_bytes[<span class="number">0</span>..expected_bytes.len() - <span class="number">1</span>];
-            <span class="kw">let </span><span class="kw-2">mut </span>validating =
-                new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(missing_last_mac);
+            <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(key, TEST_CHUNK_SIZE).validating(missing_last_mac);
             validating.update(bytes).expect(<span class="string">"update should succeed"</span>);
             validating.finalize().expect_err(<span class="string">"MacError"</span>);
         }
@@ -701,7 +731,7 @@
         {
             <span class="kw">let </span>missing_first_mac: Vec&lt;<span class="kw">_</span>&gt; = expected_bytes.clone().into_iter().skip(<span class="number">1</span>).collect();
             <span class="kw">let </span><span class="kw-2">mut </span>validating =
-                new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(missing_first_mac);
+                new_incremental(key, TEST_CHUNK_SIZE).validating(missing_first_mac);
             validating.update(bytes).expect_err(<span class="string">"MacError"</span>);
         }
         <span class="comment">// To make clippy happy and allow extending the test in the future
@@ -710,18 +740,18 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>validating_returns_right_size() {
-        <span class="kw">let </span>key = test_key();
+        <span class="kw">let </span>key = TEST_HMAC_KEY;
         <span class="kw">let </span>input = <span class="string">"this is a simple test input string"</span>;
 
         <span class="kw">let </span>bytes = input.as_bytes();
-        <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
+        <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(key, TEST_CHUNK_SIZE);
         <span class="kw">let </span><span class="kw-2">mut </span>expected_macs: Vec&lt;<span class="kw">_</span>&gt; = incremental.update(bytes).collect();
         expected_macs.push(incremental.finalize());
 
         <span class="kw">let </span>expected_bytes: Vec&lt;[u8; <span class="number">32</span>]&gt; =
             expected_macs.into_iter().map(|mac| mac.into()).collect();
 
-        <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(expected_bytes);
+        <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(key, TEST_CHUNK_SIZE).validating(expected_bytes);
 
         <span class="comment">// Splitting input into chunks of 16 will give us one full incremental chunk + 3 bytes
         // authenticated by call to finalize.
@@ -747,11 +777,11 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>produce_and_validate() {
-        <span class="kw">let </span>key = test_key();
+        <span class="kw">let </span>key = TEST_HMAC_KEY;
 
         <span class="macro">proptest!</span>(|(input <span class="kw">in </span><span class="string">".{0,100}"</span>)| {
             <span class="kw">let </span>bytes = input.as_bytes();
-            <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE);
+            <span class="kw">let </span><span class="kw-2">mut </span>incremental = new_incremental(key, TEST_CHUNK_SIZE);
             <span class="kw">let </span>input_chunks = bytes.random_chunks(incremental.chunk_size<span class="kw-2">*</span><span class="number">2</span>);
 
             <span class="kw">let </span><span class="kw-2">mut </span>produced: Vec&lt;[u8; <span class="number">32</span>]&gt; = input_chunks.clone()
@@ -760,7 +790,7 @@
                 .collect();
             produced.push(incremental.finalize().into());
 
-            <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(<span class="kw-2">&amp;</span>key, TEST_CHUNK_SIZE).validating(produced);
+            <span class="kw">let </span><span class="kw-2">mut </span>validating = new_incremental(key, TEST_CHUNK_SIZE).validating(produced);
             <span class="kw">for </span>chunk <span class="kw">in </span>input_chunks.clone() {
                 validating.update(chunk).expect(<span class="string">"update: validation should succeed"</span>);
             }
@@ -768,15 +798,47 @@
         });
     }
 
+    <span class="kw">const </span>KIBIBYTES: usize = <span class="number">1024</span>;
+    <span class="kw">const </span>MEBIBYTES: usize = <span class="number">1024 </span>* KIBIBYTES;
+    <span class="kw">const </span>GIBIBYTES: usize = <span class="number">1024 </span>* MEBIBYTES;
+
     <span class="attr">#[test]
-    </span><span class="kw">fn </span>chunk_sizes() {
+    </span><span class="kw">fn </span>chunk_sizes_sha256() {
         <span class="kw">for </span>(data_size, expected) <span class="kw">in </span>[
-            (<span class="number">1024</span>, <span class="number">1024</span>),
-            (<span class="number">10 </span>* <span class="number">1024</span>, MINIMUM_INCREMENTAL_CHUNK_SIZE),
-            (<span class="number">100 </span>* <span class="number">1024</span>, MINIMUM_INCREMENTAL_CHUNK_SIZE),
-            (<span class="number">1024 </span>* <span class="number">1024</span>, <span class="number">65_536</span>),
-            (<span class="number">10 </span>* <span class="number">1024 </span>* <span class="number">1024</span>, <span class="number">10 </span>* <span class="number">65_536</span>),
-            (<span class="number">100 </span>* <span class="number">1024 </span>* <span class="number">1024</span>, <span class="number">100 </span>* <span class="number">65_536</span>),
+            (<span class="number">0</span>, MINIMUM_CHUNK_SIZE),
+            (KIBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">10 </span>* KIBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">100 </span>* KIBIBYTES, MINIMUM_CHUNK_SIZE),
+            (MEBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">10 </span>* MEBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">20 </span>* MEBIBYTES, <span class="number">80 </span>* KIBIBYTES),
+            (<span class="number">100 </span>* MEBIBYTES, <span class="number">400 </span>* KIBIBYTES),
+            (<span class="number">200 </span>* MEBIBYTES, <span class="number">800 </span>* KIBIBYTES),
+            (<span class="number">256 </span>* MEBIBYTES, MEBIBYTES),
+            (<span class="number">512 </span>* MEBIBYTES, <span class="number">2 </span>* MEBIBYTES),
+            (GIBIBYTES, <span class="number">2 </span>* MEBIBYTES),
+            (<span class="number">2 </span>* GIBIBYTES, <span class="number">2 </span>* MEBIBYTES),
+        ] {
+            <span class="kw">let </span>actual = calculate_chunk_size::&lt;Sha256&gt;(data_size);
+            <span class="macro">assert_eq!</span>(actual, expected);
+        }
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>chunk_sizes_sha512() {
+        <span class="kw">for </span>(data_size, expected) <span class="kw">in </span>[
+            (<span class="number">0</span>, MINIMUM_CHUNK_SIZE),
+            (KIBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">10 </span>* KIBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">100 </span>* KIBIBYTES, MINIMUM_CHUNK_SIZE),
+            (MEBIBYTES, MINIMUM_CHUNK_SIZE),
+            (<span class="number">10 </span>* MEBIBYTES, <span class="number">80 </span>* KIBIBYTES),
+            (<span class="number">20 </span>* MEBIBYTES, <span class="number">160 </span>* KIBIBYTES),
+            (<span class="number">100 </span>* MEBIBYTES, <span class="number">800 </span>* KIBIBYTES),
+            (<span class="number">200 </span>* MEBIBYTES, <span class="number">1600 </span>* KIBIBYTES),
+            (<span class="number">256 </span>* MEBIBYTES, <span class="number">2 </span>* MEBIBYTES),
+            (<span class="number">512 </span>* MEBIBYTES, <span class="number">2 </span>* MEBIBYTES),
+            (GIBIBYTES, <span class="number">2 </span>* MEBIBYTES),
         ] {
             <span class="kw">let </span>actual = calculate_chunk_size::&lt;sha2::Sha512&gt;(data_size);
             <span class="macro">assert_eq!</span>(actual, expected);
@@ -785,28 +847,18 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>total_digest_size_is_never_too_big() {
-        <span class="macro">proptest!</span>(|(data_size <span class="kw">in </span><span class="number">256_usize</span>..<span class="number">1_000_000_000</span>)| {
+        <span class="kw">fn </span>total_digest_size(data_size: usize) -&gt; usize {
             <span class="kw">let </span>chunk_size = calculate_chunk_size::&lt;Sha256&gt;(data_size);
-            <span class="kw">let </span>num_increments = std::cmp::max(<span class="number">1</span>, (data_size + chunk_size - <span class="number">1</span>) / chunk_size);
-            <span class="kw">let </span>total_digest_size = num_increments * &lt;Sha256 <span class="kw">as </span>OutputSizeUser&gt;::OutputSize::USIZE;
-            <span class="macro">assert!</span>(total_digest_size &lt;= MAXIMUM_INCREMENTAL_DIGEST_BYTES)
-        })
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>chunk_size_is_never_larger_than_data_size() {
-        <span class="macro">proptest!</span>(|(data_size <span class="kw">in </span><span class="number">256_usize</span>..<span class="number">1_000_000_000</span>)| {
-            <span class="kw">let </span>chunk_size = calculate_chunk_size::&lt;Sha256&gt;(data_size);
-            <span class="macro">assert!</span>(chunk_size &lt;= data_size)
-        })
-    }
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>chunk_size_for_empty_input() {
-        <span class="macro">assert_eq!</span>(
-            MINIMUM_INCREMENTAL_CHUNK_SIZE,
-            calculate_chunk_size::&lt;Sha256&gt;(<span class="number">0</span>)
-        );
+            <span class="kw">let </span>num_chunks = std::cmp::max(<span class="number">1</span>, (data_size + chunk_size - <span class="number">1</span>) / chunk_size);
+            num_chunks * &lt;Sha256 <span class="kw">as </span>OutputSizeUser&gt;::OutputSize::USIZE
+        }
+        <span class="kw">let </span>config = ProptestConfig::with_cases(<span class="number">10_000</span>);
+        <span class="macro">proptest!</span>(config, |(data_size <span class="kw">in </span><span class="number">256</span>..<span class="number">256</span><span class="kw-2">*</span>MEBIBYTES)| {
+            <span class="macro">assert!</span>(total_digest_size(data_size) &lt;= <span class="number">8</span><span class="kw-2">*</span>KIBIBYTES)
+        });
+        <span class="macro">proptest!</span>(|(data_size_mib <span class="kw">in </span><span class="number">256_usize</span>..<span class="number">2048</span>)| {
+            <span class="macro">assert!</span>(total_digest_size(data_size_mib<span class="kw-2">*</span>MEBIBYTES) &lt;= <span class="number">32</span><span class="kw-2">*</span>KIBIBYTES)
+        });
     }
 
     <span class="attr">#[derive(Clone)]

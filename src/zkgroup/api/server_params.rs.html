@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/api/server_params.rs`."><title>server_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/f980fcc/rust/zkgroup/src/api/server_params.rs`."><title>server_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -796,12 +796,22 @@
 <a href="#795" id="795">795</a>
 <a href="#796" id="796">796</a>
 <a href="#797" id="797">797</a>
+<a href="#798" id="798">798</a>
+<a href="#799" id="799">799</a>
+<a href="#800" id="800">800</a>
+<a href="#801" id="801">801</a>
+<a href="#802" id="802">802</a>
+<a href="#803" id="803">803</a>
+<a href="#804" id="804">804</a>
+<a href="#805" id="805">805</a>
+<a href="#806" id="806">806</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020-2022 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-</span><span class="kw">use </span>serde::{Deserialize, Serialize};
+</span><span class="kw">use </span>partial_default::PartialDefault;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::common::errors::<span class="kw-2">*</span>;
@@ -809,7 +819,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::common::simple_types::<span class="kw-2">*</span>;
 <span class="kw">use crate</span>::{api, crypto};
 
-<span class="attr">#[derive(Copy, Clone, Serialize, Deserialize)]
+<span class="attr">#[derive(Clone, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>ServerSecretParams {
     <span class="kw">pub</span>(<span class="kw">crate</span>) reserved: ReservedBytes,
     <span class="kw">pub</span>(<span class="kw">crate</span>) auth_credentials_key_pair:
@@ -830,9 +840,11 @@
         crypto::credentials::KeyPair&lt;crypto::credentials::ExpiringProfileKeyCredential&gt;,
     auth_credentials_with_pni_key_pair:
         crypto::credentials::KeyPair&lt;crypto::credentials::AuthCredentialWithPni&gt;,
+
+    <span class="kw">pub</span>(<span class="kw">crate</span>) generic_credential_key_pair: zkcredential::credentials::CredentialKeyPair,
 }
 
-<span class="attr">#[derive(Copy, Clone, Serialize, Deserialize)]
+<span class="attr">#[derive(Clone, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>ServerPublicParams {
     <span class="kw">pub</span>(<span class="kw">crate</span>) reserved: ReservedBytes,
     <span class="kw">pub</span>(<span class="kw">crate</span>) auth_credentials_public_key: crypto::credentials::PublicKey,
@@ -848,6 +860,8 @@
 
     expiring_profile_key_credentials_public_key: crypto::credentials::PublicKey,
     auth_credentials_with_pni_public_key: crypto::credentials::PublicKey,
+
+    <span class="kw">pub</span>(<span class="kw">crate</span>) generic_credential_public_key: zkcredential::credentials::CredentialPublicKey,
 }
 
 <span class="kw">impl </span>ServerSecretParams {
@@ -865,6 +879,8 @@
         <span class="kw">let </span>expiring_profile_key_credentials_key_pair =
             crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
         <span class="kw">let </span>auth_credentials_with_pni_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>generic_credential_key_pair =
+            zkcredential::credentials::CredentialKeyPair::generate(randomness);
 
         <span class="self">Self </span>{
             reserved: Default::default(),
@@ -875,6 +891,7 @@
             pni_credentials_key_pair,
             expiring_profile_key_credentials_key_pair,
             auth_credentials_with_pni_key_pair,
+            generic_credential_key_pair,
         }
     }
 
@@ -894,6 +911,7 @@
             auth_credentials_with_pni_public_key: <span class="self">self
                 </span>.auth_credentials_with_pni_key_pair
                 .get_public_key(),
+            generic_credential_public_key: <span class="self">self</span>.generic_credential_key_pair.public_key().clone(),
         }
     }
 
@@ -908,7 +926,7 @@
     <span class="kw">pub fn </span>issue_auth_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
-        aci: libsignal_protocol::Aci,
+        aci: libsignal_core::Aci,
         redemption_time: CoarseRedemptionTime,
     ) -&gt; api::auth::AuthCredentialResponse {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
@@ -937,8 +955,8 @@
     <span class="kw">fn </span>issue_auth_credential_with_pni(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
-        aci: libsignal_protocol::Aci,
-        pni: libsignal_protocol::Pni,
+        aci: libsignal_core::Aci,
+        pni: libsignal_core::Pni,
         redemption_time: Timestamp,
         encode_pni_as_aci_for_backward_compatibility: bool,
     ) -&gt; api::auth::AuthCredentialWithPniResponse {
@@ -949,7 +967,7 @@
 
         <span class="kw">let </span>aci_struct = crypto::uid_struct::UidStruct::from_service_id(aci.into());
         <span class="kw">let </span>pni_struct = <span class="kw">if </span>encode_pni_as_aci_for_backward_compatibility {
-            <span class="kw">let </span>pni_as_aci = libsignal_protocol::Aci::from(uuid::Uuid::from(pni));
+            <span class="kw">let </span>pni_as_aci = libsignal_core::Aci::from(uuid::Uuid::from(pni));
             crypto::uid_struct::UidStruct::from_service_id(pni_as_aci.into())
         } <span class="kw">else </span>{
             crypto::uid_struct::UidStruct::from_service_id(pni.into())
@@ -975,8 +993,8 @@
     <span class="kw">pub fn </span>issue_auth_credential_with_pni_as_service_id(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
-        aci: libsignal_protocol::Aci,
-        pni: libsignal_protocol::Pni,
+        aci: libsignal_core::Aci,
+        pni: libsignal_core::Pni,
         redemption_time: Timestamp,
     ) -&gt; api::auth::AuthCredentialWithPniResponse {
         <span class="self">self</span>.issue_auth_credential_with_pni(randomness, aci, pni, redemption_time, <span class="bool-val">false</span>)
@@ -985,8 +1003,8 @@
     <span class="kw">pub fn </span>issue_auth_credential_with_pni_as_aci(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
-        aci: libsignal_protocol::Aci,
-        pni: libsignal_protocol::Pni,
+        aci: libsignal_core::Aci,
+        pni: libsignal_core::Pni,
         redemption_time: Timestamp,
     ) -&gt; api::auth::AuthCredentialWithPniResponse {
         <span class="self">self</span>.issue_auth_credential_with_pni(randomness, aci, pni, redemption_time, <span class="bool-val">true</span>)
@@ -1135,7 +1153,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
         request: <span class="kw-2">&amp;</span>api::profiles::ProfileKeyCredentialRequest,
-        aci: libsignal_protocol::Aci,
+        aci: libsignal_core::Aci,
         commitment: api::profiles::ProfileKeyCommitment,
         credential_expiration_time: Timestamp,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ExpiringProfileKeyCredentialResponse, ZkGroupVerificationFailure&gt;
@@ -1245,7 +1263,7 @@
 
     <span class="kw">pub fn </span>receive_auth_credential(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_protocol::Aci,
+        aci: libsignal_core::Aci,
         redemption_time: CoarseRedemptionTime,
         response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialResponse,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredential, ZkGroupVerificationFailure&gt; {
@@ -1267,8 +1285,8 @@
 
     <span class="kw">fn </span>receive_auth_credential_with_pni(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_protocol::Aci,
-        pni: libsignal_protocol::Pni,
+        aci: libsignal_core::Aci,
+        pni: libsignal_core::Pni,
         redemption_time: Timestamp,
         response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
         encode_pni_as_aci_for_backward_compatibility: bool,
@@ -1278,7 +1296,7 @@
             <span class="comment">// Older AuthCredentialWithPnis used the same encoding for PNIs as ACIs.
             // This won't match up with UuidCiphertexts that hold correctly-encoded PNIs,
             // but can still be used as a valid ACI credential.
-            </span><span class="kw">let </span>pni_as_aci = libsignal_protocol::Aci::from(uuid::Uuid::from(pni));
+            </span><span class="kw">let </span>pni_as_aci = libsignal_core::Aci::from(uuid::Uuid::from(pni));
             crypto::uid_struct::UidStruct::from_service_id(pni_as_aci.into())
         } <span class="kw">else </span>{
             crypto::uid_struct::UidStruct::from_service_id(pni.into())
@@ -1302,8 +1320,8 @@
 
     <span class="kw">pub fn </span>receive_auth_credential_with_pni_as_service_id(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_protocol::Aci,
-        pni: libsignal_protocol::Pni,
+        aci: libsignal_core::Aci,
+        pni: libsignal_core::Pni,
         redemption_time: Timestamp,
         response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredentialWithPni, ZkGroupVerificationFailure&gt; {
@@ -1312,8 +1330,8 @@
 
     <span class="kw">pub fn </span>receive_auth_credential_with_pni_as_aci(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_protocol::Aci,
-        pni: libsignal_protocol::Pni,
+        aci: libsignal_core::Aci,
+        pni: libsignal_core::Pni,
         redemption_time: Timestamp,
         response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredentialWithPni, ZkGroupVerificationFailure&gt; {
@@ -1403,7 +1421,7 @@
     <span class="kw">pub fn </span>create_profile_key_credential_request_context(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
-        aci: libsignal_protocol::Aci,
+        aci: libsignal_core::Aci,
         profile_key: api::profiles::ProfileKey,
     ) -&gt; api::profiles::ProfileKeyCredentialRequestContext {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(

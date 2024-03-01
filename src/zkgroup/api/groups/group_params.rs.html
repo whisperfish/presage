@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/api/groups/group_params.rs`."><title>group_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/f980fcc/rust/zkgroup/src/api/groups/group_params.rs`."><title>group_params.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -376,14 +376,16 @@
 <a href="#375" id="375">375</a>
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-</span><span class="kw">use </span>std::convert::TryInto;
-
-<span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
+</span><span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::common::errors::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::common::sho::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::common::simple_types::<span class="kw-2">*</span>;
@@ -391,6 +393,7 @@
 <span class="kw">use </span>aes_gcm_siv::aead::generic_array::GenericArray;
 <span class="kw">use </span>aes_gcm_siv::aead::Aead;
 <span class="kw">use </span>aes_gcm_siv::{Aes256GcmSiv, KeyInit};
+<span class="kw">use </span>partial_default::PartialDefault;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="attr">#[derive(Copy, Clone, Serialize, Deserialize, Default)]
@@ -398,7 +401,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) bytes: [u8; GROUP_MASTER_KEY_LEN],
 }
 
-<span class="attr">#[derive(Copy, Clone, Serialize, Deserialize)]
+<span class="attr">#[derive(Copy, Clone, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>GroupSecretParams {
     reserved: ReservedBytes,
     master_key: GroupMasterKey,
@@ -408,7 +411,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) profile_key_enc_key_pair: crypto::profile_key_encryption::KeyPair,
 }
 
-<span class="attr">#[derive(Copy, Clone, Serialize, Deserialize)]
+<span class="attr">#[derive(Copy, Clone, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>GroupPublicParams {
     reserved: ReservedBytes,
     group_id: GroupIdentifierBytes,
@@ -446,9 +449,9 @@
         <span class="kw">let </span><span class="kw-2">mut </span>blob_key: AesKeyBytes = Default::default();
         group_id.copy_from_slice(<span class="kw-2">&amp;</span>sho.squeeze(GROUP_IDENTIFIER_LEN)[..]);
         blob_key.copy_from_slice(<span class="kw-2">&amp;</span>sho.squeeze(AES_KEY_LEN)[..]);
-        <span class="kw">let </span>uid_enc_key_pair = crypto::uid_encryption::KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
+        <span class="kw">let </span>uid_enc_key_pair = crypto::uid_encryption::KeyPair::derive_from(sho.as_mut());
         <span class="kw">let </span>profile_key_enc_key_pair =
-            crypto::profile_key_encryption::KeyPair::derive_from(<span class="kw-2">&amp;mut </span>sho);
+            crypto::profile_key_encryption::KeyPair::derive_from(sho.as_mut());
 
         <span class="self">Self </span>{
             reserved: Default::default(),
@@ -471,15 +474,15 @@
     <span class="kw">pub fn </span>get_public_params(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; GroupPublicParams {
         GroupPublicParams {
             reserved: Default::default(),
-            uid_enc_public_key: <span class="self">self</span>.uid_enc_key_pair.get_public_key(),
-            profile_key_enc_public_key: <span class="self">self</span>.profile_key_enc_key_pair.get_public_key(),
+            uid_enc_public_key: <span class="self">self</span>.uid_enc_key_pair.public_key,
+            profile_key_enc_public_key: <span class="self">self</span>.profile_key_enc_key_pair.public_key,
             group_id: <span class="self">self</span>.group_id,
         }
     }
 
     <span class="kw">pub fn </span>encrypt_service_id(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
-        service_id: libsignal_protocol::ServiceId,
+        service_id: libsignal_core::ServiceId,
     ) -&gt; api::groups::UuidCiphertext {
         <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::from_service_id(service_id);
         <span class="self">self</span>.encrypt_uid_struct(uid)
@@ -489,7 +492,7 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         uid: crypto::uid_struct::UidStruct,
     ) -&gt; api::groups::UuidCiphertext {
-        <span class="kw">let </span>ciphertext = <span class="self">self</span>.uid_enc_key_pair.encrypt(uid);
+        <span class="kw">let </span>ciphertext = <span class="self">self</span>.uid_enc_key_pair.encrypt(<span class="kw-2">&amp;</span>uid);
         api::groups::UuidCiphertext {
             reserved: Default::default(),
             ciphertext,
@@ -499,14 +502,17 @@
     <span class="kw">pub fn </span>decrypt_service_id(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ciphertext: api::groups::UuidCiphertext,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;libsignal_protocol::ServiceId, ZkGroupVerificationFailure&gt; {
-        <span class="self">self</span>.uid_enc_key_pair.decrypt(ciphertext.ciphertext)
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;libsignal_core::ServiceId, ZkGroupVerificationFailure&gt; {
+        crypto::uid_encryption::UidEncryptionDomain::decrypt(
+            <span class="kw-2">&amp;</span><span class="self">self</span>.uid_enc_key_pair,
+            <span class="kw-2">&amp;</span>ciphertext.ciphertext,
+        )
     }
 
     <span class="kw">pub fn </span>encrypt_profile_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         profile_key: api::profiles::ProfileKey,
-        user_id: libsignal_protocol::Aci,
+        user_id: libsignal_core::Aci,
     ) -&gt; api::groups::ProfileKeyCiphertext {
         <span class="self">self</span>.encrypt_profile_key_bytes(profile_key.bytes, user_id)
     }
@@ -514,13 +520,13 @@
     <span class="kw">pub fn </span>encrypt_profile_key_bytes(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         profile_key_bytes: ProfileKeyBytes,
-        user_id: libsignal_protocol::Aci,
+        user_id: libsignal_core::Aci,
     ) -&gt; api::groups::ProfileKeyCiphertext {
         <span class="kw">let </span>profile_key = crypto::profile_key_struct::ProfileKeyStruct::new(
             profile_key_bytes,
             uuid::Uuid::from(user_id).into_bytes(),
         );
-        <span class="kw">let </span>ciphertext = <span class="self">self</span>.profile_key_enc_key_pair.encrypt(profile_key);
+        <span class="kw">let </span>ciphertext = <span class="self">self</span>.profile_key_enc_key_pair.encrypt(<span class="kw-2">&amp;</span>profile_key);
         api::groups::ProfileKeyCiphertext {
             reserved: Default::default(),
             ciphertext,
@@ -530,12 +536,14 @@
     <span class="kw">pub fn </span>decrypt_profile_key(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         ciphertext: api::groups::ProfileKeyCiphertext,
-        user_id: libsignal_protocol::Aci,
+        user_id: libsignal_core::Aci,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::profiles::ProfileKey, ZkGroupVerificationFailure&gt; {
-        <span class="kw">let </span>profile_key_struct = <span class="self">self</span>.profile_key_enc_key_pair.decrypt(
-            ciphertext.ciphertext,
-            uuid::Uuid::from(user_id).into_bytes(),
-        )<span class="question-mark">?</span>;
+        <span class="kw">let </span>profile_key_struct =
+            crypto::profile_key_encryption::ProfileKeyEncryptionDomain::decrypt(
+                <span class="kw-2">&amp;</span><span class="self">self</span>.profile_key_enc_key_pair,
+                <span class="kw-2">&amp;</span>ciphertext.ciphertext,
+                uuid::Uuid::from(user_id).into_bytes(),
+            )<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(api::profiles::ProfileKey {
             bytes: profile_key_struct.bytes,
         })
@@ -653,17 +661,17 @@
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
         ];
 
-        <span class="kw">let </span>key_vec = <span class="macro">vec!</span>[
+        <span class="kw">let </span>key = [
             <span class="number">0x01</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
         ];
 
-        <span class="kw">let </span>nonce_vec = <span class="macro">vec!</span>[
+        <span class="kw">let </span>nonce = [
             <span class="number">0x03</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
         ];
 
-        <span class="kw">let </span>ciphertext_vec = <span class="macro">vec!</span>[
+        <span class="kw">let </span>ciphertext = [
             <span class="number">0x4a</span>, <span class="number">0x6a</span>, <span class="number">0x9d</span>, <span class="number">0xb4</span>, <span class="number">0xc8</span>, <span class="number">0xc6</span>, <span class="number">0x54</span>, <span class="number">0x92</span>, <span class="number">0x01</span>, <span class="number">0xb9</span>, <span class="number">0xed</span>, <span class="number">0xb5</span>, <span class="number">0x30</span>, <span class="number">0x06</span>,
             <span class="number">0xcb</span>, <span class="number">0xa8</span>, <span class="number">0x21</span>, <span class="number">0xec</span>, <span class="number">0x9c</span>, <span class="number">0xf8</span>, <span class="number">0x50</span>, <span class="number">0x94</span>, <span class="number">0x8a</span>, <span class="number">0x7c</span>, <span class="number">0x86</span>, <span class="number">0xc6</span>, <span class="number">0x8a</span>, <span class="number">0xc7</span>,
             <span class="number">0x53</span>, <span class="number">0x9d</span>, <span class="number">0x02</span>, <span class="number">0x7f</span>, <span class="number">0xe8</span>, <span class="number">0x19</span>, <span class="number">0xe6</span>, <span class="number">0x3a</span>, <span class="number">0xbc</span>, <span class="number">0xd0</span>, <span class="number">0x20</span>, <span class="number">0xb0</span>, <span class="number">0x06</span>, <span class="number">0xa9</span>,
@@ -671,12 +679,12 @@
         ];
 
         <span class="kw">let </span>calc_ciphertext =
-            group_secret_params.encrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key_vec, <span class="kw-2">&amp;</span>nonce_vec, <span class="kw-2">&amp;</span>plaintext_vec);
+            group_secret_params.encrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>nonce, <span class="kw-2">&amp;</span>plaintext_vec);
 
-        <span class="macro">assert!</span>(calc_ciphertext[..ciphertext_vec.len()] == ciphertext_vec[..]);
+        <span class="macro">assert!</span>(calc_ciphertext[..ciphertext.len()] == ciphertext[..]);
 
         <span class="kw">let </span>calc_plaintext = group_secret_params
-            .decrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key_vec, <span class="kw-2">&amp;</span>nonce_vec, <span class="kw-2">&amp;</span>calc_ciphertext)
+            .decrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>nonce, <span class="kw-2">&amp;</span>calc_ciphertext)
             .unwrap();
         <span class="macro">assert!</span>(calc_plaintext[..] == plaintext_vec[..]);
     }
@@ -693,17 +701,17 @@
             <span class="number">0x3a</span>, <span class="number">0x98</span>, <span class="number">0xe1</span>, <span class="number">0x08</span>,
         ];
 
-        <span class="kw">let </span>key_vec = <span class="macro">vec!</span>[
+        <span class="kw">let </span>key = [
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
         ];
 
-        <span class="kw">let </span>nonce_vec = <span class="macro">vec!</span>[
+        <span class="kw">let </span>nonce = [
             <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
         ];
 
-        <span class="kw">let </span>ciphertext_vec = <span class="macro">vec!</span>[
+        <span class="kw">let </span>ciphertext = [
             <span class="number">0xf3</span>, <span class="number">0xf8</span>, <span class="number">0x0f</span>, <span class="number">0x2c</span>, <span class="number">0xf0</span>, <span class="number">0xcb</span>, <span class="number">0x2d</span>, <span class="number">0xd9</span>, <span class="number">0xc5</span>, <span class="number">0x98</span>, <span class="number">0x4f</span>, <span class="number">0xcd</span>, <span class="number">0xa9</span>, <span class="number">0x08</span>,
             <span class="number">0x45</span>, <span class="number">0x6c</span>, <span class="number">0xc5</span>, <span class="number">0x37</span>, <span class="number">0x70</span>, <span class="number">0x3b</span>, <span class="number">0x5b</span>, <span class="number">0xa7</span>, <span class="number">0x03</span>, <span class="number">0x24</span>, <span class="number">0xa6</span>, <span class="number">0x79</span>, <span class="number">0x3a</span>, <span class="number">0x7b</span>,
             <span class="number">0xf2</span>, <span class="number">0x18</span>, <span class="number">0xd3</span>, <span class="number">0xea</span>, <span class="number">0xff</span>, <span class="number">0xff</span>, <span class="number">0xff</span>, <span class="number">0xff</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>, <span class="number">0x00</span>,
@@ -711,12 +719,12 @@
         ];
 
         <span class="kw">let </span>calc_ciphertext =
-            group_secret_params.encrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key_vec, <span class="kw-2">&amp;</span>nonce_vec, <span class="kw-2">&amp;</span>plaintext_vec);
+            group_secret_params.encrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>nonce, <span class="kw-2">&amp;</span>plaintext_vec);
 
-        <span class="macro">assert!</span>(calc_ciphertext[..ciphertext_vec.len()] == ciphertext_vec[..]);
+        <span class="macro">assert!</span>(calc_ciphertext[..ciphertext.len()] == ciphertext[..]);
 
         <span class="kw">let </span>calc_plaintext = group_secret_params
-            .decrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key_vec, <span class="kw-2">&amp;</span>nonce_vec, <span class="kw-2">&amp;</span>calc_ciphertext)
+            .decrypt_blob_aesgcmsiv(<span class="kw-2">&amp;</span>key, <span class="kw-2">&amp;</span>nonce, <span class="kw-2">&amp;</span>calc_ciphertext)
             .unwrap();
         <span class="macro">assert!</span>(calc_plaintext[..] == plaintext_vec[..]);
     }

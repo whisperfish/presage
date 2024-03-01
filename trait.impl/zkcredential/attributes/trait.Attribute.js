@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"zkgroup":[["impl Attribute for <a class=\"struct\" href=\"zkgroup/crypto/uid_struct/struct.UidStruct.html\" title=\"struct zkgroup::crypto::uid_struct::UidStruct\">UidStruct</a>"],["impl Attribute for <a class=\"struct\" href=\"zkgroup/crypto/uid_encryption/struct.Ciphertext.html\" title=\"struct zkgroup::crypto::uid_encryption::Ciphertext\">Ciphertext</a>"]]
+"zkgroup":[["impl Attribute for <a class=\"struct\" href=\"zkgroup/crypto/uid_struct/struct.UidStruct.html\" title=\"struct zkgroup::crypto::uid_struct::UidStruct\">UidStruct</a>"],["impl Attribute for <a class=\"struct\" href=\"zkgroup/crypto/profile_key_struct/struct.ProfileKeyStruct.html\" title=\"struct zkgroup::crypto::profile_key_struct::ProfileKeyStruct\">ProfileKeyStruct</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/72f046f/rust/zkgroup/src/crypto/proofs.rs`."><title>proofs.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/f980fcc/rust/zkgroup/src/crypto/proofs.rs`."><title>proofs.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ac92e1bbe349e143.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.76.0 (07dca489a 2024-02-04)" data-channel="1.76.0" data-search-js="search-2b6ce74ff89ae146.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-f2adc0d6ca4d09fb.js"></script><script defer src="../../../static.files/src-script-39ed315d46fb705f.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-305769736d49e732.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-feafe1bb7466e4bd.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -1399,6 +1399,24 @@
 <a href="#1398" id="1398">1398</a>
 <a href="#1399" id="1399">1399</a>
 <a href="#1400" id="1400">1400</a>
+<a href="#1401" id="1401">1401</a>
+<a href="#1402" id="1402">1402</a>
+<a href="#1403" id="1403">1403</a>
+<a href="#1404" id="1404">1404</a>
+<a href="#1405" id="1405">1405</a>
+<a href="#1406" id="1406">1406</a>
+<a href="#1407" id="1407">1407</a>
+<a href="#1408" id="1408">1408</a>
+<a href="#1409" id="1409">1409</a>
+<a href="#1410" id="1410">1410</a>
+<a href="#1411" id="1411">1411</a>
+<a href="#1412" id="1412">1412</a>
+<a href="#1413" id="1413">1413</a>
+<a href="#1414" id="1414">1414</a>
+<a href="#1415" id="1415">1415</a>
+<a href="#1416" id="1416">1416</a>
+<a href="#1417" id="1417">1417</a>
+<a href="#1418" id="1418">1418</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020-2022 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
@@ -1410,7 +1428,9 @@
 <span class="kw">use </span>curve25519_dalek::ristretto::RistrettoPoint;
 <span class="kw">use </span>curve25519_dalek::traits::Identity;
 
+<span class="kw">use </span>partial_default::PartialDefault;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>zkcredential::attributes::Attribute;
 
 <span class="kw">use </span><span class="kw">crate</span>::common::array_utils::OneBased;
 <span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
@@ -1424,32 +1444,32 @@
     profile_key_struct, receipt_credential_request, uid_encryption, uid_struct,
 };
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>AuthCredentialIssuanceProof {
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>AuthCredentialWithPniIssuanceProof {
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ProfileKeyCredentialRequestProof {
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ExpiringProfileKeyCredentialIssuanceProof {
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ReceiptCredentialIssuanceProof {
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>AuthCredentialPresentationProofV2 {
     C_x0: RistrettoPoint,
     C_x1: RistrettoPoint,
@@ -1460,7 +1480,7 @@
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>AuthCredentialWithPniPresentationProof {
     C_x0: RistrettoPoint,
     C_x1: RistrettoPoint,
@@ -1477,7 +1497,7 @@
 ///
 /// Kept around so that v1 ProfileKeyCredentialPresentations can still be deserialized,
 /// even though they can't be verified.
-</span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
+</span><span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ProfileKeyCredentialPresentationProofV1 {
     C_x0: RistrettoPoint,
     C_x1: RistrettoPoint,
@@ -1494,7 +1514,7 @@
 ///
 /// Kept around so that v2 ProfileKeyCredentialPresentations can still be deserialized,
 /// even though they can't be verified.
-</span><span class="attr">#[derive(Serialize, Deserialize, Clone)]
+</span><span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ProfileKeyCredentialPresentationProofV2 {
     C_x0: RistrettoPoint,
     C_x1: RistrettoPoint,
@@ -1507,7 +1527,7 @@
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ExpiringProfileKeyCredentialPresentationProof {
     C_x0: RistrettoPoint,
     C_x1: RistrettoPoint,
@@ -1520,7 +1540,7 @@
     poksho_proof: Vec&lt;u8&gt;,
 }
 
-<span class="attr">#[derive(Serialize, Deserialize, Clone)]
+<span class="attr">#[derive(Serialize, Deserialize, Clone, PartialDefault)]
 </span><span class="kw">pub struct </span>ReceiptCredentialPresentationProof {
     C_x0: RistrettoPoint,
     C_x1: RistrettoPoint,
@@ -1956,7 +1976,7 @@
         credential_expiration_time: Timestamp,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
         <span class="kw">let </span>credentials_system = credentials::SystemParams::get_hardcoded();
-        <span class="kw">let </span>aci = libsignal_protocol::Aci::from_uuid_bytes(aci_bytes);
+        <span class="kw">let </span>aci = libsignal_core::Aci::from_uuid_bytes(aci_bytes);
         <span class="kw">let </span>uid = uid_struct::UidStruct::from_service_id(aci.into());
 
         <span class="kw">let </span>m5 = TimestampStruct::calc_m_from(credential_expiration_time);
@@ -2152,6 +2172,8 @@
         </span><span class="kw">let </span>I = credentials_public_key.I;
         <span class="kw">let </span>Z = z * I;
 
+        <span class="kw">let </span>[E_A1, E_A2] = uid_ciphertext.as_points();
+
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
         scalar_args.add(<span class="string">"z"</span>, z);
@@ -2169,12 +2191,12 @@
         point_args.add(<span class="string">"C_x0"</span>, C_x0);
         point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
         point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
-        point_args.add(<span class="string">"A"</span>, uid_enc_key_pair.A);
+        point_args.add(<span class="string">"A"</span>, uid_enc_key_pair.public_key.A);
         point_args.add(<span class="string">"G_a1"</span>, uid_system.G_a1);
         point_args.add(<span class="string">"G_a2"</span>, uid_system.G_a2);
-        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - E_A2);
         point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_A1"</span>, -E_A1);
         point_args.add(<span class="string">"C_y3"</span>, C_y3);
         point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
 
@@ -2229,6 +2251,7 @@
             ..
         } = credentials_key_pair;
 
+        <span class="kw">let </span>[E_A1, E_A2] = uid_ciphertext.as_points();
         <span class="kw">let </span>m3 = encode_redemption_time(redemption_time);
         <span class="kw">let </span>M3 = m3 * credentials_system.G_m3;
         <span class="kw">let </span>Z = C_V - W - x0 * C_x0 - x1 * C_x1 - y1 * C_y1 - y2 * C_y2 - y3 * (C_y3 + M3);
@@ -2244,10 +2267,10 @@
         point_args.add(<span class="string">"A"</span>, uid_enc_public_key.A);
         point_args.add(<span class="string">"G_a1"</span>, enc_system.G_a1);
         point_args.add(<span class="string">"G_a2"</span>, enc_system.G_a2);
-        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - E_A2);
         point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
-        <span class="comment">//point_args.add("E_A1", uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_A1"</span>, -E_A1);
+        <span class="comment">//point_args.add("E_A1", E_A1);
         //point_args.add("C_y1", C_y1);
         //point_args.add("G_y1", credentials_system.G_y[1]);
         </span>point_args.add(<span class="string">"C_y3"</span>, C_y3);
@@ -2313,6 +2336,9 @@
         <span class="kw">let </span>I = credentials_public_key.I;
         <span class="kw">let </span>Z = z * I;
 
+        <span class="kw">let </span>[E_A1, E_A2] = aci_ciphertext.as_points();
+        <span class="kw">let </span>[E_B1, E_B2] = pni_ciphertext.as_points();
+
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
         scalar_args.add(<span class="string">"z"</span>, z);
@@ -2332,21 +2358,21 @@
         point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
         point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">"A"</span>, uid_enc_key_pair.A);
+        point_args.add(<span class="string">"A"</span>, uid_enc_key_pair.public_key.A);
         point_args.add(<span class="string">"G_a1"</span>, uid_system.G_a1);
         point_args.add(<span class="string">"G_a2"</span>, uid_system.G_a2);
 
-        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - aci_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - E_A2);
         point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">"-E_A1"</span>, -aci_ciphertext.E_A1);
-        point_args.add(<span class="string">"E_A1"</span>, aci_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_A1"</span>, -E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, E_A1);
         point_args.add(<span class="string">"C_y1"</span>, C_y1);
         point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - pni_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - E_B2);
         point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">"-E_B1"</span>, -pni_ciphertext.E_A1);
-        point_args.add(<span class="string">"E_B1"</span>, pni_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_B1"</span>, -E_B1);
+        point_args.add(<span class="string">"E_B1"</span>, E_B1);
         point_args.add(<span class="string">"C_y3"</span>, C_y3);
         point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
         point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
@@ -2408,6 +2434,8 @@
             ..
         } = credentials_key_pair;
 
+        <span class="kw">let </span>[E_A1, E_A2] = aci_ciphertext.as_points();
+        <span class="kw">let </span>[E_B1, E_B2] = pni_ciphertext.as_points();
         <span class="kw">let </span>m5 = TimestampStruct::calc_m_from(redemption_time);
         <span class="kw">let </span>M5 = m5 * credentials_system.G_m5;
         <span class="kw">let </span>Z = C_V
@@ -2433,17 +2461,17 @@
         point_args.add(<span class="string">"G_a1"</span>, uid_enc_system.G_a1);
         point_args.add(<span class="string">"G_a2"</span>, uid_enc_system.G_a2);
 
-        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - aci_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - E_A2);
         point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">"-E_A1"</span>, -aci_ciphertext.E_A1);
-        point_args.add(<span class="string">"E_A1"</span>, aci_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_A1"</span>, -E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, E_A1);
         point_args.add(<span class="string">"C_y1"</span>, C_y1);
         point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - pni_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - E_B2);
         point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">"-E_B1"</span>, -pni_ciphertext.E_A1);
-        point_args.add(<span class="string">"E_B1"</span>, pni_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_B1"</span>, -E_B1);
+        point_args.add(<span class="string">"E_B1"</span>, E_B1);
         point_args.add(<span class="string">"C_y3"</span>, C_y3);
         point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
         point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
@@ -2509,7 +2537,7 @@
         <span class="kw">let </span>credentials_system = credentials::SystemParams::get_hardcoded();
         <span class="kw">let </span>uid_system = uid_encryption::SystemParams::get_hardcoded();
         <span class="kw">let </span>profile_key_system = profile_key_encryption::SystemParams::get_hardcoded();
-        <span class="kw">let </span>aci = libsignal_protocol::Aci::from_uuid_bytes(aci_bytes);
+        <span class="kw">let </span>aci = libsignal_core::Aci::from_uuid_bytes(aci_bytes);
         <span class="kw">let </span>uid = uid_struct::UidStruct::from_service_id(aci.into());
         <span class="kw">let </span>profile_key = profile_key_struct::ProfileKeyStruct::new(profile_key_bytes, aci_bytes);
 
@@ -2527,10 +2555,13 @@
 
         <span class="kw">let </span>z0 = -z * credential.t;
         <span class="kw">let </span>z1 = -z * uid_enc_key_pair.a1;
-        <span class="kw">let </span>z2 = -z * profile_key_enc_key_pair.b1;
+        <span class="kw">let </span>z2 = -z * profile_key_enc_key_pair.a1;
 
         <span class="kw">let </span>I = credentials_public_key.I;
         <span class="kw">let </span>Z = z * I;
+
+        <span class="kw">let </span>[E_A1, E_A2] = uid_ciphertext.as_points();
+        <span class="kw">let </span>[E_B1, E_B2] = profile_key_ciphertext.as_points();
 
         <span class="comment">// Scalars listed in order of stmts for debugging
         </span><span class="kw">let </span><span class="kw-2">mut </span>scalar_args = poksho::ScalarArgs::new();
@@ -2539,8 +2570,8 @@
         scalar_args.add(<span class="string">"z0"</span>, z0);
         scalar_args.add(<span class="string">"a1"</span>, uid_enc_key_pair.a1);
         scalar_args.add(<span class="string">"a2"</span>, uid_enc_key_pair.a2);
-        scalar_args.add(<span class="string">"b1"</span>, profile_key_enc_key_pair.b1);
-        scalar_args.add(<span class="string">"b2"</span>, profile_key_enc_key_pair.b2);
+        scalar_args.add(<span class="string">"b1"</span>, profile_key_enc_key_pair.a1);
+        scalar_args.add(<span class="string">"b2"</span>, profile_key_enc_key_pair.a2);
         scalar_args.add(<span class="string">"z1"</span>, z1);
         scalar_args.add(<span class="string">"z2"</span>, z2);
 
@@ -2554,23 +2585,26 @@
         point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
         point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">"A+B"</span>, uid_enc_key_pair.A + profile_key_enc_key_pair.B);
+        point_args.add(
+            <span class="string">"A+B"</span>,
+            uid_enc_key_pair.public_key.A + profile_key_enc_key_pair.public_key.A,
+        );
         point_args.add(<span class="string">"G_a1"</span>, uid_system.G_a1);
         point_args.add(<span class="string">"G_a2"</span>, uid_system.G_a2);
         point_args.add(<span class="string">"G_b1"</span>, profile_key_system.G_b1);
         point_args.add(<span class="string">"G_b2"</span>, profile_key_system.G_b2);
 
-        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - E_A2);
         point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
-        point_args.add(<span class="string">"E_A1"</span>, uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_A1"</span>, -E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, E_A1);
         point_args.add(<span class="string">"C_y1"</span>, C_y1);
         point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - profile_key_ciphertext.E_B2);
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - E_B2);
         point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">"-E_B1"</span>, -profile_key_ciphertext.E_B1);
-        point_args.add(<span class="string">"E_B1"</span>, profile_key_ciphertext.E_B1);
+        point_args.add(<span class="string">"-E_B1"</span>, -E_B1);
+        point_args.add(<span class="string">"E_B1"</span>, E_B1);
         point_args.add(<span class="string">"C_y3"</span>, C_y3);
         point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
         point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
@@ -2634,6 +2668,8 @@
             ..
         } = credentials_key_pair;
 
+        <span class="kw">let </span>[E_A1, E_A2] = uid_ciphertext.as_points();
+        <span class="kw">let </span>[E_B1, E_B2] = profile_key_ciphertext.as_points();
         <span class="kw">let </span>m5 = TimestampStruct::calc_m_from(credential_expiration_time);
         <span class="kw">let </span>M5 = m5 * credentials_system.G_m5;
 
@@ -2656,23 +2692,23 @@
         point_args.add(<span class="string">"G_x0"</span>, credentials_system.G_x0);
         point_args.add(<span class="string">"G_x1"</span>, credentials_system.G_x1);
 
-        point_args.add(<span class="string">"A+B"</span>, uid_enc_public_key.A + profile_key_enc_public_key.B);
+        point_args.add(<span class="string">"A+B"</span>, uid_enc_public_key.A + profile_key_enc_public_key.A);
         point_args.add(<span class="string">"G_a1"</span>, uid_enc_system.G_a1);
         point_args.add(<span class="string">"G_a2"</span>, uid_enc_system.G_a2);
         point_args.add(<span class="string">"G_b1"</span>, profile_key_enc_system.G_b1);
         point_args.add(<span class="string">"G_b2"</span>, profile_key_enc_system.G_b2);
 
-        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - uid_ciphertext.E_A2);
+        point_args.add(<span class="string">"C_y2-E_A2"</span>, C_y2 - E_A2);
         point_args.add(<span class="string">"G_y2"</span>, credentials_system.G_y[<span class="number">2</span>]);
-        point_args.add(<span class="string">"-E_A1"</span>, -uid_ciphertext.E_A1);
-        point_args.add(<span class="string">"E_A1"</span>, uid_ciphertext.E_A1);
+        point_args.add(<span class="string">"-E_A1"</span>, -E_A1);
+        point_args.add(<span class="string">"E_A1"</span>, E_A1);
         point_args.add(<span class="string">"C_y1"</span>, C_y1);
         point_args.add(<span class="string">"G_y1"</span>, credentials_system.G_y[<span class="number">1</span>]);
 
-        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - profile_key_ciphertext.E_B2);
+        point_args.add(<span class="string">"C_y4-E_B2"</span>, C_y4 - E_B2);
         point_args.add(<span class="string">"G_y4"</span>, credentials_system.G_y[<span class="number">4</span>]);
-        point_args.add(<span class="string">"-E_B1"</span>, -profile_key_ciphertext.E_B1);
-        point_args.add(<span class="string">"E_B1"</span>, profile_key_ciphertext.E_B1);
+        point_args.add(<span class="string">"-E_B1"</span>, -E_B1);
+        point_args.add(<span class="string">"E_B1"</span>, E_B1);
         point_args.add(<span class="string">"C_y3"</span>, C_y3);
         point_args.add(<span class="string">"G_y3"</span>, credentials_system.G_y[<span class="number">3</span>]);
         point_args.add(<span class="string">"0"</span>, RistrettoPoint::identity());
