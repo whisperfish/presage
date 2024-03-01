@@ -25,82 +25,66 @@ jobs:
       RUSTFLAGS: -D warnings
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: stable
 
       - name: Install protobuf
         run: |
           sudo apt-get update
-          sudo apt-get install -y libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler
+          sudo apt-get install -y protobuf-compiler
 
       - name: Configure CI cache
         uses: Swatinem/rust-cache@v2
 
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --all-targets ${{ matrix.cargo_flags }}
+        run: cargo build --all-targets ${{ matrix.cargo_flags }}
 
       - name: Test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-targets ${{ matrix.cargo_flags }}
+        run: cargo test --all-targets ${{ matrix.cargo_flags }}
 
       - name: Test docs
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --doc ${{ matrix.cargo_flags }}
+        run: cargo test --doc ${{ matrix.cargo_flags }}
 
   rustfmt:
     name: rustfmt
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: stable
           components: rustfmt
 
       - name: Check code format
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+        run: cargo fmt -- --check
 
   clippy:
     name: clippy
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
-          profile: minimal
           toolchain: stable
           components: clippy
 
       - name: Install protobuf
         run: |
           sudo apt-get update
-          sudo apt-get install -y libprotobuf-dev libprotobuf-c-dev protobuf-compiler protobuf-c-compiler
+          sudo apt-get install -y protobuf-compiler
 
       - name: Setup CI cache
         uses: Swatinem/rust-cache@v2
 
       - name: Run clippy lints
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
+        run: cargo clippy
