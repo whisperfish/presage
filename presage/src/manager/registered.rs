@@ -12,7 +12,7 @@ use libsignal_service::groups_v2::{decrypt_group, Group, GroupsManager, InMemory
 use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
 use libsignal_service::models::Contact;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
-use libsignal_service::prelude::{ProtobufMessage, Uuid};
+use libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
 use libsignal_service::profile_cipher::ProfileCipher;
 use libsignal_service::proto::data_message::Delete;
 use libsignal_service::proto::{
@@ -962,7 +962,12 @@ impl<S: Store> Manager<S, Registered> {
             .await;
 
         // return first error if any
-        results.into_iter().find(|res| res.is_err()).transpose()?;
+        // Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
+        // TODO: Handle the NotFound error in the future by removing all sessions to this UUID and marking it as unregistered, not sending any messages to him anymore.
+        results
+            .into_iter()
+            .find(|res| res.is_err() && !matches!(res, Err(MessageSenderError::NotFound { .. })))
+            .transpose()?;
 
         let content = Content {
             metadata: Metadata {
