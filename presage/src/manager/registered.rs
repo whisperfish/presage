@@ -961,12 +961,19 @@ impl<S: Store> Manager<S, Registered> {
             .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
 
-        // return first error if any
-        // Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
-        // TODO: Handle the NotFound error in the future by removing all sessions to this UUID and marking it as unregistered, not sending any messages to him anymore.
+        // TODO: Handle the NotFound error in the future by removing all sessions to this UUID and marking it as unregistered, not sending any messages to this contact anymore.
         results
             .into_iter()
-            .find(|res| res.is_err() && !matches!(res, Err(MessageSenderError::NotFound { .. })))
+            .find(|res| match res {
+                Ok(_) => false,
+                // Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
+                Err(MessageSenderError::NotFound { uuid }) => {
+                    debug!("UUID {uuid} not found, skipping sent message result");
+                    false
+                }
+                // return first error if any
+                Err(_) => true,
+            })
             .transpose()?;
 
         let content = Content {
