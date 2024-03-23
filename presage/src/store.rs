@@ -6,7 +6,7 @@ use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::{Group, Timer},
     models::Contact,
-    pre_keys::PreKeysStore,
+    pre_keys::{PreKeysStore, ServiceKyberPreKeyStore},
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{self, Sent},
@@ -291,6 +291,7 @@ pub trait ContentsStore: Send + Sync {
 pub trait Store:
     StateStore<StateStoreError = Self::Error>
     + PreKeysStore
+    + ServiceKyberPreKeyStore
     + ContentsStore<ContentsStoreError = Self::Error>
     + ProtocolStore
     + SenderKeyStore

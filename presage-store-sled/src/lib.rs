@@ -14,7 +14,7 @@ use presage::libsignal_service::{
     content::Content,
     groups_v2::Group,
     models::Contact,
-    pre_keys::PreKeysStore,
+    pre_keys::{PreKeysStore, ServiceKyberPreKeyStore},
     prelude::{ProfileKey, Uuid},
     protocol::{
         Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
@@ -49,6 +49,7 @@ const SLED_TREE_SENDER_KEYS: &str = "sender_keys";
 const SLED_TREE_SESSIONS: &str = "sessions";
 const SLED_TREE_SIGNED_PRE_KEYS: &str = "signed_pre_keys";
 const SLED_TREE_KYBER_PRE_KEYS: &str = "kyber_pre_keys";
+const SLED_TREE_KYBER_PRE_KEYS_LAST_RESORT: &str = "kyber_pre_keys_last_resort";
 const SLED_TREE_STATE: &str = "state";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
 const SLED_TREE_PROFILES: &str = "profiles";
@@ -717,6 +718,78 @@ impl PreKeysStore for SledStore {
     }
 }
 
+#[async_trait(?Send)]
+impl ServiceKyberPreKeyStore for SledStore {
+    async fn store_last_resort_kyber_pre_key(
+        &mut self,
+        kyber_prekey_id: KyberPreKeyId,
+        record: &KyberPreKeyRecord,
+    ) -> Result<(), SignalProtocolError> {
+        self.insert(
+            SLED_TREE_KYBER_PRE_KEYS_LAST_RESORT,
+            kyber_prekey_id.to_string(),
+            record.serialize()?,
+        )
+        .map_err(|e| {
+            log::error!("sled error: {}", e);
+            SignalProtocolError::InvalidState(
+                "store_last_resort_kyber_pre_key",
+                "sled error".into(),
+            )
+        })?;
+        Ok(())
+    }
+
+    async fn load_last_resort_kyber_pre_keys(
+        &self,
+    ) -> Result<Vec<KyberPreKeyRecord>, SignalProtocolError> {
+        self
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(SLED_TREE_KYBER_PRE_KEYS_LAST_RESORT).map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState(
+                    "load_last_resort_kyber_pre_keys",
+                    "sled error".into(),
+                )
+            })?
+            .iter()
+            .values()
+            .filter_map(Result::ok)
+            .map(|data| {
+                KyberPreKeyRecord::deserialize(&data)
+            })
+            .collect()
+    }
+
+    async fn remove_kyber_pre_key(
+        &mut self,
+        kyber_prekey_id: KyberPreKeyId,
+    ) -> Result<(), SignalProtocolError> {
+        self.remove(SLED_TREE_KYBER_PRE_KEYS_LAST_RESORT, kyber_prekey_id.to_string())?;
+        self.remove(SLED_TREE_KYBER_PRE_KEYS, kyber_prekey_id.to_string())?;
+        Ok(())
+    }
+
+    /// Analogous to markAllOneTimeKyberPreKeysStaleIfNecessary
+    async fn mark_all_one_time_kyber_pre_keys_stale_if_necessary(
+        &mut self,
+        _stale_time: chrono::DateTime<chrono::Utc>,
+    ) -> Result<(), SignalProtocolError> {
+        unimplemented!("should not be used yet")
+    }
+
+    /// Analogue of deleteAllStaleOneTimeKyberPreKeys
+    async fn delete_all_stale_one_time_kyber_pre_keys(
+        &mut self,
+        _threshold: chrono::DateTime<chrono::Utc>,
+        _min_count: usize,
+    ) -> Result<(), SignalProtocolError> {
+        unimplemented!("should not be used yet")
+    }
+}
+
 impl Store for SledStore {
     type Error = SledStoreError;
 
@@ -972,8 +1045,7 @@ impl SessionStore for SledStore {
         address: &ProtocolAddress,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
         let session = self
-            .get(SLED_TREE_SESSIONS, address.to_string())
-            .map_err(SledStoreError::into_signal_error)?;
+            .get(SLED_TREE_SESSIONS, address.to_string())?;
         trace!("loading session {} / exists={}", address, session.is_some());
         session
             .map(|b: Vec<u8>| SessionRecord::deserialize(&b))
@@ -986,8 +1058,7 @@ impl SessionStore for SledStore {
         record: &SessionRecord,
     ) -> Result<(), SignalProtocolError> {
         trace!("storing session {}", address);
-        self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)
-            .map_err(SledStoreError::into_signal_error)?;
+        self.insert(SLED_TREE_SESSIONS, address.to_string(), record.serialize()?)?;
         Ok(())
     }
 }
@@ -1003,8 +1074,7 @@ impl SessionStoreExt for SledStore {
         let session_ids: Vec<u32> = self
             .read()
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(Into::into)
-            .map_err(SledStoreError::into_signal_error)?
+            .map_err(SledStoreError::from)?
             .scan_prefix(&session_prefix)
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
@@ -1021,8 +1091,7 @@ impl SessionStoreExt for SledStore {
         trace!("deleting session {}", address);
         self.write()
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(Into::into)
-            .map_err(SledStoreError::into_signal_error)?
+            .map_err(SledStoreError::from)?
             .remove(address.to_string())
             .map_err(|_e| SignalProtocolError::SessionNotFound(address.clone()))?;
         Ok(())
@@ -1035,8 +1104,7 @@ impl SessionStoreExt for SledStore {
         let db = self.write();
         let sessions_tree = db
             .open_tree(SLED_TREE_SESSIONS)
-            .map_err(Into::into)
-            .map_err(SledStoreError::into_signal_error)?;
+            .map_err(SledStoreError::from)?;
 
         let mut batch = Batch::default();
         sessions_tree
@@ -1048,8 +1116,7 @@ impl SessionStoreExt for SledStore {
             .for_each(|k| batch.remove(k));
 
         db.apply_batch(batch)
-            .map_err(SledStoreError::Db)
-            .map_err(SledStoreError::into_signal_error)?;
+            .map_err(SledStoreError::Db)?;
 
         let len = sessions_tree.len();
         sessions_tree.clear().map_err(|_e| {
@@ -1064,23 +1131,21 @@ impl IdentityKeyStore for SledStore {
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
         let data = self
-            .load_registration_data()
-            .map_err(SledStoreError::into_signal_error)?
+            .load_registration_data()?
             .ok_or(SignalProtocolError::InvalidState(
                 "failed to load identity key pair",
                 "no registration data".into(),
             ))?;
 
         Ok(IdentityKeyPair::new(
-            IdentityKey::new(data.aci_public_key()),
+            data.aci_identity_key(),
             data.aci_private_key(),
         ))
     }
 
     async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
         let data = self
-            .load_registration_data()
-            .map_err(SledStoreError::into_signal_error)?
+            .load_registration_data()?
             .ok_or(SignalProtocolError::InvalidState(
                 "failed to load registration ID",
                 "no registration data".into(),
@@ -1102,7 +1167,7 @@ impl IdentityKeyStore for SledStore {
             )
             .map_err(|e| {
                 error!("error saving identity for {:?}: {}", address, e);
-                e.into_signal_error()
+                e
             })?;
 
         self.save_trusted_identity_message(
@@ -1125,8 +1190,7 @@ impl IdentityKeyStore for SledStore {
         _direction: Direction,
     ) -> Result<bool, SignalProtocolError> {
         match self
-            .get(SLED_TREE_IDENTITIES, address.to_string())
-            .map_err(SledStoreError::into_signal_error)?
+            .get(SLED_TREE_IDENTITIES, address.to_string())?
             .map(|b: Vec<u8>| IdentityKey::decode(&b))
             .transpose()?
         {
@@ -1153,8 +1217,7 @@ impl IdentityKeyStore for SledStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        self.get(SLED_TREE_IDENTITIES, address.to_string())
-            .map_err(SledStoreError::into_signal_error)?
+        self.get(SLED_TREE_IDENTITIES, address.to_string())?
             .map(|b: Vec<u8>| IdentityKey::decode(&b))
             .transpose()
     }
@@ -1174,8 +1237,7 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)
-            .map_err(SledStoreError::into_signal_error)?;
+        self.insert(SLED_TREE_SENDER_KEYS, key, record.serialize()?)?;
         Ok(())
     }
 
@@ -1190,8 +1252,7 @@ impl SenderKeyStore for SledStore {
             sender.device_id(),
             distribution_id
         );
-        self.get(SLED_TREE_SENDER_KEYS, key)
-            .map_err(SledStoreError::into_signal_error)?
+        self.get(SLED_TREE_SENDER_KEYS, key)?
             .map(|b: Vec<u8>| SenderKeyRecord::deserialize(&b))
             .transpose()
     }

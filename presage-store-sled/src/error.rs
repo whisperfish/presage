@@ -27,8 +27,9 @@ pub enum SledStoreError {
 
 impl StoreError for SledStoreError {}
 
-impl SledStoreError {
-    pub(crate) fn into_signal_error(self) -> SignalProtocolError {
-        SignalProtocolError::InvalidState("presage error", self.to_string())
+impl From<SledStoreError> for SignalProtocolError {
+    fn from(error: SledStoreError) -> Self {
+        log::error!("presage store error: {error}");
+        Self::InvalidState("presage store error", error.to_string())
     }
 }
