@@ -1,10 +1,11 @@
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::messagepipe::ServiceCredentials;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
-use libsignal_service::protocol::KeyPair;
+use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, PushService, RegistrationMethod, ServiceIds,
+    AccountAttributes, DeviceActivationRequest, DeviceCapabilities, PushService,
+    RegistrationMethod, ServiceIds,
 };
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service_hyper::push_service::HyperPushService;
@@ -35,7 +36,7 @@ impl<S: Store> Manager<S, Confirmation> {
     /// Returns a [registered manager](Manager::load_registered) that you can use
     /// to send and receive messages.
     pub async fn confirm_verification_code(
-        self,
+        mut self,
         confirmation_code: impl AsRef<str>,
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
@@ -87,7 +88,50 @@ impl<S: Store> Manager<S, Confirmation> {
 
         let profile_key = ProfileKey::generate(profile_key);
 
+        let aci_identity_key_pair = IdentityKeyPair::generate(&mut rng);
+        let pni_identity_key_pair = IdentityKeyPair::generate(&mut rng);
+
+        let (_aci_pre_keys, aci_signed_pre_key, _aci_pq_pre_keys, aci_pq_last_resort_pre_key) =
+            libsignal_service::pre_keys::replenish_pre_keys(
+                &mut self.store,
+                &aci_identity_key_pair,
+                &mut rng,
+                true,
+                0,
+                0,
+            )
+            .await?;
+
+        let aci_pq_last_resort_pre_key =
+            aci_pq_last_resort_pre_key.expect("requested last resort key");
+        assert!(_aci_pre_keys.is_empty());
+        assert!(_aci_pq_pre_keys.is_empty());
+
+        let (_pni_pre_keys, pni_signed_pre_key, _pni_pq_pre_keys, pni_pq_last_resort_pre_key) =
+            libsignal_service::pre_keys::replenish_pre_keys(
+                &mut self.store,
+                &pni_identity_key_pair,
+                &mut rng,
+                true,
+                0,
+                0,
+            )
+            .await?;
+
+        let pni_pq_last_resort_pre_key =
+            pni_pq_last_resort_pre_key.expect("requested last resort key");
+        assert!(_pni_pre_keys.is_empty());
+        assert!(_pni_pq_pre_keys.is_empty());
+
         let skip_device_transfer = false;
+
+        let device_activation_request = DeviceActivationRequest {
+            aci_signed_pre_key: aci_signed_pre_key.try_into()?,
+            pni_signed_pre_key: pni_signed_pre_key.try_into()?,
+            aci_pq_last_resort_pre_key: aci_pq_last_resort_pre_key.try_into()?,
+            pni_pq_last_resort_pre_key: pni_pq_last_resort_pre_key.try_into()?,
+        };
+
         let registered = push_service
             .submit_registration_request(
                 RegistrationMethod::SessionId(&session_id),
@@ -105,17 +149,17 @@ impl<S: Store> Manager<S, Confirmation> {
                     unrestricted_unidentified_access: false, // TODO: make this configurable?
                     discoverable_by_phone_number: true,
                     capabilities: DeviceCapabilities {
-                        gv2: true,
-                        gv1_migration: true,
+                        pni: true,
+                        sender_key: true,
                         ..Default::default()
                     },
                 },
                 skip_device_transfer,
+                aci_identity_key_pair.identity_key(),
+                pni_identity_key_pair.identity_key(),
+                device_activation_request,
             )
             .await?;
-
-        let aci_identity_key_pair = KeyPair::generate(&mut rng);
-        let pni_identity_key_pair = KeyPair::generate(&mut rng);
 
         trace!("confirmed! (and registered)");
 
@@ -135,10 +179,10 @@ impl<S: Store> Manager<S, Confirmation> {
                 device_id: None,
                 registration_id,
                 pni_registration_id: Some(pni_registration_id),
-                aci_private_key: aci_identity_key_pair.private_key,
-                aci_public_key: aci_identity_key_pair.public_key,
-                pni_private_key: Some(pni_identity_key_pair.private_key),
-                pni_public_key: Some(pni_identity_key_pair.public_key),
+                aci_private_key: *aci_identity_key_pair.private_key(),
+                aci_identity_key: *aci_identity_key_pair.identity_key(),
+                pni_private_key: Some(*pni_identity_key_pair.private_key()),
+                pni_identity_key: Some(*pni_identity_key_pair.identity_key()),
                 profile_key,
             }),
         };

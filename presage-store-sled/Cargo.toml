@@ -23,6 +23,7 @@ thiserror = "1.0"
 prost = "> 0.10, <= 0.12"
 sha2 = "0.10"
 quickcheck_macros = "1.0.0"
+chrono = "0.4.35"
 
 [dev-dependencies]
 anyhow = "1.0"

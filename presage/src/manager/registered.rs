@@ -20,8 +20,7 @@ use libsignal_service::proto::{
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-use libsignal_service::protocol::SenderCertificate;
-use libsignal_service::protocol::{PrivateKey, PublicKey};
+use libsignal_service::protocol::{IdentityKey, IdentityKeyPair, PrivateKey, SenderCertificate};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
@@ -32,7 +31,7 @@ use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
 use libsignal_service::sticker_cipher::derive_key;
 use libsignal_service::unidentified_access::UnidentifiedAccess;
 use libsignal_service::utils::{
-    serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
+    serde_identity_key, serde_optional_identity_key, serde_optional_private_key, serde_private_key,
     serde_signaling_key,
 };
 use libsignal_service::websocket::SignalWebSocket;
@@ -111,12 +110,12 @@ pub struct RegistrationData {
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_private_key", rename = "private_key")]
     pub(crate) aci_private_key: PrivateKey,
-    #[serde(with = "serde_public_key", rename = "public_key")]
-    pub(crate) aci_public_key: PublicKey,
+    #[serde(with = "serde_identity_key", rename = "public_key")]
+    pub(crate) aci_identity_key: IdentityKey,
     #[serde(with = "serde_optional_private_key", default)]
     pub(crate) pni_private_key: Option<PrivateKey>,
-    #[serde(with = "serde_optional_public_key", default)]
-    pub(crate) pni_public_key: Option<PublicKey>,
+    #[serde(with = "serde_optional_identity_key", rename = "pni_public_key", default)]
+    pub(crate) pni_identity_key: Option<IdentityKey>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
 }
@@ -143,13 +142,31 @@ impl RegistrationData {
     }
 
     /// Account identity public key
-    pub fn aci_public_key(&self) -> PublicKey {
-        self.aci_public_key
+    pub fn aci_identity_key(&self) -> IdentityKey {
+        self.aci_identity_key
     }
 
     /// Account identity private key
     pub fn aci_private_key(&self) -> PrivateKey {
         self.aci_private_key
+    }
+
+    pub fn aci_identity_keypair(&self) -> IdentityKeyPair {
+        IdentityKeyPair::new(self.aci_identity_key, self.aci_private_key)
+    }
+
+    /// PNI identity key
+    pub fn pni_identity_key(&self) -> Option<IdentityKey> {
+        self.pni_identity_key
+    }
+
+    pub fn pni_identity_keypair(&self) -> Option<IdentityKeyPair> {
+        match (self.pni_identity_key, self.pni_private_key) {
+            (Some(public_key), Some(private_key)) => {
+                Some(IdentityKeyPair::new(public_key, private_key))
+            }
+            _ => None,
+        }
     }
 }
 
@@ -271,22 +288,14 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
-        // TODO: Do the same for PNI once implemented upstream.
-        let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
+        account_manager
             .update_pre_key_bundle(
                 &mut self.store.clone(),
                 ServiceIdType::AccountIdentity,
                 &mut self.rng,
                 true,
+                false, // TODO: check what the right value is
             )
-            .await?;
-
-        self.store.set_next_pre_key_id(pre_keys_offset_id).await?;
-        self.store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)
-            .await?;
-        self.store
-            .set_next_pq_pre_key_id(next_pq_pre_key_id)
             .await?;
 
         trace!("registered pre keys");
@@ -327,8 +336,11 @@ impl<S: Store> Manager<S, Registered> {
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
-                    gv2: true,
-                    gv1_migration: true,
+                    gift_badges: true,
+                    payment_activation: false,
+                    pni: true,
+                    sender_key: true,
+                    stories: false,
                     ..Default::default()
                 },
             })
@@ -811,6 +823,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let online_only = false;
+        let include_pni_signature = true;
         let recipient = recipient_addr.into();
         let mut content_body: ContentBody = message.into();
 
@@ -855,6 +868,7 @@ impl<S: Store> Manager<S, Registered> {
                 content_body.clone(),
                 timestamp,
                 online_only,
+                include_pni_signature,
             )
             .await?;
 
@@ -953,7 +967,12 @@ impl<S: Store> Manager<S, Registered> {
                         key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
-            recipients.push((member.uuid.into(), unidentified_access));
+            let include_pni_signature = true;
+            recipients.push((
+                member.uuid.into(),
+                unidentified_access,
+                include_pni_signature,
+            ));
         }
 
         let online_only = false;
@@ -1153,10 +1172,6 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Creates a new message sender.
     async fn new_message_sender(&self) -> Result<MessageSender<S>, Error<S::Error>> {
-        let local_addr = ServiceAddress {
-            uuid: self.state.data.service_ids.aci,
-        };
-
         let identified_websocket = self.identified_websocket(false).await?;
         let unidentified_websocket = self.unidentified_websocket().await?;
 
@@ -1167,7 +1182,10 @@ impl<S: Store> Manager<S, Registered> {
             self.new_service_cipher()?,
             self.rng.clone(),
             self.store.clone(),
-            local_addr,
+            self.state.data.service_ids.aci,
+            self.state.data.service_ids.pni,
+            self.state.data.aci_identity_keypair(),
+            self.state.data.pni_identity_keypair(),
             self.state.device_id().into(),
         ))
     }

@@ -124,9 +124,9 @@ impl<S: Store> Manager<S, Linking> {
                     device_id: Some(d.device_id.into()),
                     registration_id: d.registration_id,
                     pni_registration_id: Some(d.pni_registration_id),
-                    aci_public_key: d.aci_public_key,
+                    aci_identity_key: d.aci_public_key,
                     aci_private_key: d.aci_private_key,
-                    pni_public_key: Some(d.pni_public_key),
+                    pni_identity_key: Some(d.pni_public_key),
                     pni_private_key: Some(d.pni_private_key),
                     profile_key: d.profile_key,
                 };
