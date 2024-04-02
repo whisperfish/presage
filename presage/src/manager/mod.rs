@@ -89,7 +89,7 @@ mod tests {
 
         let data: RegistrationData =
             serde_json::from_value(previous_state).expect("should deserialize");
-        assert_eq!(data.aci_identity_key, key_pair.public_key);
+        assert_eq!(data.aci_identity_key.public_key(), &key_pair.public_key);
         assert!(data.aci_private_key == key_pair.private_key);
         assert!(data.pni_identity_key.is_none());
     }

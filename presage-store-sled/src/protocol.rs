@@ -626,3 +626,116 @@ impl<T: SledTrees> SenderKeyStore for SledProtocolStore<T> {
             .transpose()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use core::fmt;
+
+    use base64::prelude::*;
+    use presage::{
+        libsignal_service::protocol::{
+            self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
+            SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+        },
+        store::Store,
+    };
+    use quickcheck::{Arbitrary, Gen};
+
+    use super::SledStore;
+
+    #[derive(Debug, Clone)]
+    struct ProtocolAddress(protocol::ProtocolAddress);
+
+    #[derive(Clone)]
+    struct KeyPair(protocol::KeyPair);
+
+    impl fmt::Debug for KeyPair {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            writeln!(
+                f,
+                "{}",
+                BASE64_STANDARD.encode(self.0.public_key.serialize())
+            )
+        }
+    }
+
+    impl Arbitrary for ProtocolAddress {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let name: String = Arbitrary::arbitrary(g);
+            let device_id: u32 = Arbitrary::arbitrary(g);
+            ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
+        }
+    }
+
+    impl Arbitrary for KeyPair {
+        fn arbitrary(_g: &mut Gen) -> Self {
+            // Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241
+            KeyPair(protocol::KeyPair::generate(&mut rand::thread_rng()))
+        }
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_save_get_trust_identity(addr: ProtocolAddress, key_pair: KeyPair) -> bool {
+        let mut db = SledStore::temporary().unwrap().aci_protocol_store();
+        let identity_key = protocol::IdentityKey::new(key_pair.0.public_key);
+        db.save_identity(&addr.0, &identity_key).await.unwrap();
+        let id = db.get_identity(&addr.0).await.unwrap().unwrap();
+        if id != identity_key {
+            return false;
+        }
+        db.is_trusted_identity(&addr.0, &id, Direction::Receiving)
+            .await
+            .unwrap()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_store_load_session(addr: ProtocolAddress) -> bool {
+        let session = SessionRecord::new_fresh();
+
+        let mut db = SledStore::temporary().unwrap().aci_protocol_store();
+        db.store_session(&addr.0, &session).await.unwrap();
+        if db.load_session(&addr.0).await.unwrap().is_none() {
+            return false;
+        }
+        let loaded_session = db.load_session(&addr.0).await.unwrap().unwrap();
+        session.serialize().unwrap() == loaded_session.serialize().unwrap()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_prekey_store(id: u32, key_pair: KeyPair) -> bool {
+        let id = id.into();
+        let mut db = SledStore::temporary().unwrap().aci_protocol_store();
+        let pre_key_record = PreKeyRecord::new(id, &key_pair.0);
+        db.save_pre_key(id, &pre_key_record).await.unwrap();
+        if db.get_pre_key(id).await.unwrap().serialize().unwrap()
+            != pre_key_record.serialize().unwrap()
+        {
+            return false;
+        }
+
+        db.remove_pre_key(id).await.unwrap();
+        db.get_pre_key(id).await.is_err()
+    }
+
+    #[quickcheck_async::tokio]
+    async fn test_signed_prekey_store(
+        id: u32,
+        timestamp: u64,
+        key_pair: KeyPair,
+        signature: Vec<u8>,
+    ) -> bool {
+        let mut db = SledStore::temporary().unwrap().aci_protocol_store();
+        let id = id.into();
+        let signed_pre_key_record = SignedPreKeyRecord::new(id, timestamp, &key_pair.0, &signature);
+        db.save_signed_pre_key(id, &signed_pre_key_record)
+            .await
+            .unwrap();
+
+        db.get_signed_pre_key(id)
+            .await
+            .unwrap()
+            .serialize()
+            .unwrap()
+            == signed_pre_key_record.serialize().unwrap()
+    }
+}
