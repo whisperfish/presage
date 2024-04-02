@@ -77,13 +77,10 @@ impl<S: Store> Manager<S, Linking> {
 
         let (tx, mut rx) = mpsc::channel(1);
 
-        // XXX: this is obviously wrong
-        let mut pni_store = store.clone();
-
         let (wait_for_qrcode_scan, registration_data) = future::join(
             link_device(
-                &mut store,
-                &mut pni_store,
+                &mut store.aci_protocol_store(),
+                &mut store.pni_protocol_store(),
                 &mut rng,
                 push_service,
                 &password,
@@ -94,10 +91,10 @@ impl<S: Store> Manager<S, Linking> {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
                     info!("generating qrcode from provisioning link: {}", &url);
                     if provisioning_link_channel.send(url).is_err() {
-                        return Err(Error::LinkError);
+                        return Err(Error::LinkingError);
                     }
                 } else {
-                    return Err(Error::LinkError);
+                    return Err(Error::LinkingError);
                 }
                 if let Some(SecondaryDeviceProvisioning::NewDeviceRegistration(data)) =
                     rx.next().await

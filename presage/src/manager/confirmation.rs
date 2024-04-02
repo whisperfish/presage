@@ -1,13 +1,13 @@
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::messagepipe::ServiceCredentials;
-use libsignal_service::prelude::phonenumber::PhoneNumber;
-use libsignal_service::protocol::IdentityKeyPair;
+use libsignal_service::prelude::{phonenumber::PhoneNumber, IdentityKeyStore};
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceActivationRequest, DeviceCapabilities, PushService,
-    RegistrationMethod, ServiceIds,
+    AccountAttributes, DeviceCapabilities, PushService, RegistrationMethod, ServiceIds,
+    VerifyAccountResponse,
 };
 use libsignal_service::zkgroup::profiles::ProfileKey;
+use libsignal_service::AccountManager;
 use libsignal_service_hyper::push_service::HyperPushService;
 use log::trace;
 use rand::rngs::StdRng;
@@ -36,7 +36,7 @@ impl<S: Store> Manager<S, Confirmation> {
     /// Returns a [registered manager](Manager::load_registered) that you can use
     /// to send and receive messages.
     pub async fn confirm_verification_code(
-        mut self,
+        self,
         confirmation_code: impl AsRef<str>,
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
@@ -61,13 +61,13 @@ impl<S: Store> Manager<S, Confirmation> {
         };
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut push_service = HyperPushService::new(
+        let mut identified_push_service = HyperPushService::new(
             service_configuration,
             Some(credentials),
             crate::USER_AGENT.to_string(),
         );
 
-        let session = push_service
+        let session = identified_push_service
             .submit_verification_code(&session_id, confirmation_code.as_ref())
             .await?;
 
@@ -83,60 +83,26 @@ impl<S: Store> Manager<S, Confirmation> {
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
 
+        // generate a 32 bytes profile key
         let mut profile_key = [0u8; 32];
         rng.fill_bytes(&mut profile_key);
 
         let profile_key = ProfileKey::generate(profile_key);
 
-        let aci_identity_key_pair = IdentityKeyPair::generate(&mut rng);
-        let pni_identity_key_pair = IdentityKeyPair::generate(&mut rng);
+        let mut account_manager = AccountManager::new(identified_push_service, Some(profile_key));
 
-        let (_aci_pre_keys, aci_signed_pre_key, _aci_pq_pre_keys, aci_pq_last_resort_pre_key) =
-            libsignal_service::pre_keys::replenish_pre_keys(
-                &mut self.store,
-                &aci_identity_key_pair,
-                &mut rng,
-                true,
-                0,
-                0,
-            )
-            .await?;
+        let skip_device_transfer = true;
 
-        let aci_pq_last_resort_pre_key =
-            aci_pq_last_resort_pre_key.expect("requested last resort key");
-        assert!(_aci_pre_keys.is_empty());
-        assert!(_aci_pq_pre_keys.is_empty());
-
-        let (_pni_pre_keys, pni_signed_pre_key, _pni_pq_pre_keys, pni_pq_last_resort_pre_key) =
-            libsignal_service::pre_keys::replenish_pre_keys(
-                &mut self.store,
-                &pni_identity_key_pair,
-                &mut rng,
-                true,
-                0,
-                0,
-            )
-            .await?;
-
-        let pni_pq_last_resort_pre_key =
-            pni_pq_last_resort_pre_key.expect("requested last resort key");
-        assert!(_pni_pre_keys.is_empty());
-        assert!(_pni_pq_pre_keys.is_empty());
-
-        let skip_device_transfer = false;
-
-        let device_activation_request = DeviceActivationRequest {
-            aci_signed_pre_key: aci_signed_pre_key.try_into()?,
-            pni_signed_pre_key: pni_signed_pre_key.try_into()?,
-            aci_pq_last_resort_pre_key: aci_pq_last_resort_pre_key.try_into()?,
-            pni_pq_last_resort_pre_key: pni_pq_last_resort_pre_key.try_into()?,
-        };
-
-        let registered = push_service
-            .submit_registration_request(
-                RegistrationMethod::SessionId(&session_id),
+        let VerifyAccountResponse {
+            aci,
+            pni,
+            storage_capable: _,
+            number: _,
+        } = account_manager
+            .register_account(
+                &mut rand::thread_rng(),
+                RegistrationMethod::SessionId(&session.id),
                 AccountAttributes {
-                    name: None,
                     signaling_key: Some(signaling_key.to_vec()),
                     registration_id,
                     pni_registration_id,
@@ -148,20 +114,27 @@ impl<S: Store> Manager<S, Confirmation> {
                     unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
                     unrestricted_unidentified_access: false, // TODO: make this configurable?
                     discoverable_by_phone_number: true,
-                    capabilities: DeviceCapabilities {
-                        pni: true,
-                        sender_key: true,
-                        ..Default::default()
-                    },
+                    name: None,
+                    capabilities: DeviceCapabilities::default(),
                 },
+                &mut self.store.aci_protocol_store(),
+                &mut self.store.pni_protocol_store(),
                 skip_device_transfer,
-                aci_identity_key_pair.identity_key(),
-                pni_identity_key_pair.identity_key(),
-                device_activation_request,
             )
             .await?;
 
         trace!("confirmed! (and registered)");
+
+        let aci_identity_key_pair = self
+            .store
+            .aci_protocol_store()
+            .get_identity_key_pair()
+            .await?;
+        let pni_identity_key_pair = self
+            .store
+            .pni_protocol_store()
+            .get_identity_key_pair()
+            .await?;
 
         let mut manager = Manager {
             rng,
@@ -170,10 +143,7 @@ impl<S: Store> Manager<S, Confirmation> {
                 signal_servers: self.state.signal_servers,
                 device_name: None,
                 phone_number,
-                service_ids: ServiceIds {
-                    aci: registered.uuid,
-                    pni: registered.pni,
-                },
+                service_ids: ServiceIds { aci, pni },
                 password,
                 signaling_key,
                 device_id: None,

@@ -114,7 +114,11 @@ pub struct RegistrationData {
     pub(crate) aci_identity_key: IdentityKey,
     #[serde(with = "serde_optional_private_key", default)]
     pub(crate) pni_private_key: Option<PrivateKey>,
-    #[serde(with = "serde_optional_identity_key", rename = "pni_public_key", default)]
+    #[serde(
+        with = "serde_optional_identity_key",
+        rename = "pni_public_key",
+        default
+    )]
     pub(crate) pni_identity_key: Option<IdentityKey>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
@@ -290,8 +294,18 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .update_pre_key_bundle(
-                &mut self.store.clone(),
+                &mut self.store.aci_protocol_store(),
                 ServiceIdType::AccountIdentity,
+                &mut self.rng,
+                true,
+                false, // TODO: check what the right value is
+            )
+            .await?;
+
+        account_manager
+            .update_pre_key_bundle(
+                &mut self.store.pni_protocol_store(),
+                ServiceIdType::PhoneNumberIdentity,
                 &mut self.rng,
                 true,
                 false, // TODO: check what the right value is
@@ -618,12 +632,12 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        struct StreamState<S, C: ContentsStore + Send + Sync> {
-            encrypted_messages: S,
+        struct StreamState<Receiver, Store, AciStore> {
+            encrypted_messages: Receiver,
             message_receiver: MessageReceiver<HyperPushService>,
-            service_cipher: ServiceCipher<C>,
+            service_cipher: ServiceCipher<AciStore>,
             push_service: HyperPushService,
-            store: C,
+            store: Store,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
             mode: ReceivingMode,
         }
@@ -1021,7 +1035,15 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
     pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<S::Error>> {
-        self.store.delete_all_sessions(recipient).await?;
+        use libsignal_service::session_store::SessionStoreExt;
+        self.store
+            .aci_protocol_store()
+            .delete_all_sessions(recipient)
+            .await?;
+        self.store
+            .pni_protocol_store()
+            .delete_all_sessions(recipient)
+            .await?;
         Ok(())
     }
 
@@ -1171,7 +1193,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Creates a new message sender.
-    async fn new_message_sender(&self) -> Result<MessageSender<S>, Error<S::Error>> {
+    async fn new_message_sender(&self) -> Result<MessageSender<S::AciStore>, Error<S::Error>> {
         let identified_websocket = self.identified_websocket(false).await?;
         let unidentified_websocket = self.unidentified_websocket().await?;
 
@@ -1181,7 +1203,7 @@ impl<S: Store> Manager<S, Registered> {
             self.identified_push_service(),
             self.new_service_cipher()?,
             self.rng.clone(),
-            self.store.clone(),
+            self.store.aci_protocol_store(),
             self.state.data.service_ids.aci,
             self.state.data.service_ids.pni,
             self.state.data.aci_identity_keypair(),
@@ -1191,9 +1213,9 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Creates a new service cipher.
-    fn new_service_cipher(&self) -> Result<ServiceCipher<S>, Error<S::Error>> {
+    fn new_service_cipher(&self) -> Result<ServiceCipher<S::AciStore>, Error<S::Error>> {
         let service_cipher = ServiceCipher::new(
-            self.store.clone(),
+            self.store.aci_protocol_store(),
             self.rng.clone(),
             self.state
                 .service_configuration()

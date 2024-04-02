@@ -6,11 +6,12 @@ use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::{Group, Timer},
     models::Contact,
-    pre_keys::{PreKeysStore, ServiceKyberPreKeyStore},
+    pre_keys::PreKeysStore,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{self, Sent},
-        verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
+        verified::{self},
+        DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
     protocol::{IdentityKey, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
@@ -290,23 +291,24 @@ pub trait ContentsStore: Send + Sync {
 /// The manager store trait combining all other stores into a single one
 pub trait Store:
     StateStore<StateStoreError = Self::Error>
-    + PreKeysStore
-    + ServiceKyberPreKeyStore
     + ContentsStore<ContentsStoreError = Self::Error>
-    + ProtocolStore
-    + SenderKeyStore
-    + SessionStoreExt
     + Send
     + Sync
     + Clone
     + 'static
 {
     type Error: StoreError;
+    type AciStore: ProtocolStore + PreKeysStore + SenderKeyStore + SessionStoreExt + Sync + Clone;
+    type PniStore: ProtocolStore + PreKeysStore + SenderKeyStore + SessionStoreExt + Sync + Clone;
 
     /// Clear the entire store
     ///
     /// This can be useful when resetting an existing client.
     fn clear(&mut self) -> Result<(), <Self as StateStore>::StateStoreError>;
+
+    fn aci_protocol_store(&self) -> Self::AciStore;
+
+    fn pni_protocol_store(&self) -> Self::PniStore;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
