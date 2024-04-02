@@ -64,6 +64,12 @@ pub trait ContentsStore: Send + Sync {
     /// Iterator over all stored sticker packs
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
 
+    // Clear all profiles
+    fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError>;
+
+    // Clear all stored messages
+    fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError>;
+
     // Messages
 
     /// Clear all stored messages.
