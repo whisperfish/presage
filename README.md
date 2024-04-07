@@ -35,7 +35,7 @@ presage = { git = "https://github.com/whisperfish/presage" }
 presage-store-sled = { git = "https://github.com/whisperfish/presage" }
 
 # For a discussion as to why, see: 
-# https://github.com/whisperfish/libsignal-service-rs#working-around-the-issue-with-curve25519-dalek
+# https://github.com/whisperfish/libsignal-service-rs/tree/93c23cf27d27a17a803e34ea3dd6a82d268fa79e#working-around-the-issue-with-curve25519-dalek
 [patch.crates-io]
 curve25519-dalek = { git = 'https://github.com/signalapp/curve25519-dalek', tag = 'signal-curve25519-4.1.1' }
 ```
