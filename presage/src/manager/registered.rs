@@ -298,7 +298,6 @@ impl<S: Store> Manager<S, Registered> {
                 ServiceIdType::AccountIdentity,
                 &mut self.rng,
                 true,
-                false, // TODO: check what the right value is
             )
             .await?;
 
@@ -308,7 +307,6 @@ impl<S: Store> Manager<S, Registered> {
                 ServiceIdType::PhoneNumberIdentity,
                 &mut self.rng,
                 true,
-                false, // TODO: check what the right value is
             )
             .await?;
 

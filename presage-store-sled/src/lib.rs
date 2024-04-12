@@ -22,6 +22,7 @@ mod protobuf;
 mod protocol;
 
 pub use error::SledStoreError;
+use sled::IVec;
 
 const SLED_TREE_STATE: &str = "state";
 
@@ -196,16 +197,16 @@ impl SledStore {
     }
 
     #[cfg(feature = "encryption")]
-    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+    fn decrypt_value<T: DeserializeOwned>(&self, value: IVec) -> Result<T, SledStoreError> {
         if let Some(cipher) = self.cipher.as_ref() {
-            Ok(cipher.decrypt_value(value)?)
+            Ok(cipher.decrypt_value(&value)?)
         } else {
-            Ok(serde_json::from_slice(value)?)
+            Ok(serde_json::from_slice(&value)?)
         }
     }
 
     #[cfg(not(feature = "encryption"))]
-    fn decrypt_value<T: DeserializeOwned>(&self, value: &[u8]) -> Result<T, SledStoreError> {
+    fn decrypt_value<T: DeserializeOwned>(&self, value: IVec) -> Result<T, SledStoreError> {
         Ok(serde_json::from_slice(value)?)
     }
 
@@ -231,9 +232,20 @@ impl SledStore {
         self.read()
             .open_tree(tree)?
             .get(key)?
-            .map(|p| self.decrypt_value(&p))
+            .map(|p| self.decrypt_value(p))
             .transpose()
             .map_err(SledStoreError::from)
+    }
+
+    pub fn iter<'a, V: DeserializeOwned + 'a>(
+        &'a self,
+        tree: &str,
+    ) -> Result<impl Iterator<Item = Result<V, SledStoreError>> + 'a, SledStoreError> {
+        Ok(self
+            .read()
+            .open_tree(tree)?
+            .iter()
+            .flat_map(|res| res.map(|(_, value)| self.decrypt_value::<V>(value))))
     }
 
     fn insert<K, V>(&self, tree: &str, key: K, value: V) -> Result<bool, SledStoreError>

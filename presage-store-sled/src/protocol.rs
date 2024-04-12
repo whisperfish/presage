@@ -243,6 +243,45 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
             .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?;
         Ok(())
     }
+
+    async fn signed_pre_keys_count(&self) -> Result<usize, SignalProtocolError> {
+        Ok(self
+            .store
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(T::signed_pre_keys())
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState("signed_pre_keys_count", "sled error".into())
+            })?
+            .into_iter()
+            .keys()
+            .filter_map(Result::ok)
+            .count())
+    }
+
+    /// number of kyber pre-keys we currently have in store
+    async fn kyber_pre_keys_count(&self, last_resort: bool) -> Result<usize, SignalProtocolError> {
+        Ok(self
+            .store
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(if last_resort {
+                T::kyber_pre_keys_last_resort()
+            } else {
+                T::kyber_pre_keys()
+            })
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
+            })?
+            .into_iter()
+            .keys()
+            .filter_map(Result::ok)
+            .count())
+    }
 }
 
 #[async_trait(?Send)]
@@ -337,6 +376,7 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> Result<(), SignalProtocolError> {
+        trace!("store_last_resort_kyber_pre_key");
         self.store
             .insert(
                 T::kyber_pre_keys_last_resort(),
@@ -356,21 +396,10 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
     async fn load_last_resort_kyber_pre_keys(
         &self,
     ) -> Result<Vec<KyberPreKeyRecord>, SignalProtocolError> {
+        trace!("load_last_resort_kyber_pre_keys");
         self.store
-            .db
-            .read()
-            .expect("poisoned mutex")
-            .open_tree(T::kyber_pre_keys_last_resort())
-            .map_err(|e| {
-                log::error!("sled error: {}", e);
-                SignalProtocolError::InvalidState(
-                    "load_last_resort_kyber_pre_keys",
-                    "sled error".into(),
-                )
-            })?
-            .iter()
-            .values()
-            .filter_map(Result::ok)
+            .iter(T::kyber_pre_keys_last_resort())?
+            .filter_map(|data: Result<Vec<u8>, SledStoreError>| data.ok())
             .map(|data| KyberPreKeyRecord::deserialize(&data))
             .collect()
     }
