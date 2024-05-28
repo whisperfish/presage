@@ -5,14 +5,15 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+use base64::prelude::*;
 use log::debug;
-use presage::manager::RegistrationData;
 use presage::store::{StateStore, Store};
 use presage::{
     libsignal_service::prelude::{ProfileKey, Uuid},
     store::ContentsStore,
 };
-use protocol::{AciSledStore, PniSledStore, SledProtocolStore};
+use presage::{libsignal_service::protocol::IdentityKeyPair, manager::RegistrationData};
+use protocol::{AciSledStore, PniSledStore, SledProtocolStore, SledTrees};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -277,6 +278,29 @@ impl SledStore {
         hasher.update(key.collect::<Vec<_>>());
         format!("{:x}", hasher.finalize())
     }
+
+    fn get_identity_key_pair<T: SledTrees>(
+        &self,
+    ) -> Result<Option<IdentityKeyPair>, SledStoreError> {
+        let key_base64: Option<String> = self.get(SLED_TREE_STATE, T::identity_keypair())?;
+        let Some(key_base64) = key_base64 else {
+            return Ok(None);
+        };
+        let key_bytes = BASE64_STANDARD.decode(key_base64)?;
+        IdentityKeyPair::try_from(&*key_bytes)
+            .map(Some)
+            .map_err(|e| SledStoreError::ProtobufDecode(prost::DecodeError::new(e.to_string())))
+    }
+
+    fn set_identity_key_pair<T: SledTrees>(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), SledStoreError> {
+        let key_bytes = key_pair.serialize();
+        let key_base64 = BASE64_STANDARD.encode(key_bytes);
+        self.insert(SLED_TREE_STATE, T::identity_keypair(), key_base64)?;
+        Ok(())
+    }
 }
 
 fn migrate(
@@ -359,6 +383,20 @@ impl StateStore for SledStore {
 
     fn load_registration_data(&self) -> Result<Option<RegistrationData>, SledStoreError> {
         self.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)
+    }
+
+    fn set_aci_identity_key_pair(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), Self::StateStoreError> {
+        self.set_identity_key_pair::<AciSledStore>(key_pair)
+    }
+
+    fn set_pni_identity_key_pair(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), Self::StateStoreError> {
+        self.set_identity_key_pair::<PniSledStore>(key_pair)
     }
 
     fn save_registration_data(&mut self, state: &RegistrationData) -> Result<(), SledStoreError> {

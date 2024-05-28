@@ -1,7 +1,10 @@
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
-use libsignal_service::provisioning::{link_device, SecondaryDeviceProvisioning};
+use libsignal_service::protocol::IdentityKeyPair;
+use libsignal_service::provisioning::{
+    link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
+};
 use libsignal_service_hyper::push_service::HyperPushService;
 use log::info;
 use rand::distributions::{Alphanumeric, DistString};
@@ -110,23 +113,39 @@ impl<S: Store> Manager<S, Linking> {
         wait_for_qrcode_scan?;
 
         match registration_data {
-            Ok(d) => {
+            Ok(NewDeviceRegistration {
+                phone_number,
+                device_id,
+                registration_id,
+                pni_registration_id,
+                service_ids,
+                aci_private_key,
+                aci_public_key,
+                pni_private_key,
+                pni_public_key,
+                profile_key,
+            }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
                     device_name: Some(device_name),
-                    phone_number: d.phone_number,
-                    service_ids: d.service_ids,
+                    phone_number,
+                    service_ids,
                     password,
                     signaling_key,
-                    device_id: Some(d.device_id.into()),
-                    registration_id: d.registration_id,
-                    pni_registration_id: Some(d.pni_registration_id),
-                    aci_identity_key: d.aci_public_key,
-                    aci_private_key: d.aci_private_key,
-                    pni_identity_key: Some(d.pni_public_key),
-                    pni_private_key: Some(d.pni_private_key),
-                    profile_key: d.profile_key,
+                    device_id: Some(device_id.into()),
+                    registration_id,
+                    pni_registration_id: Some(pni_registration_id),
+                    profile_key,
                 };
+
+                store.set_aci_identity_key_pair(IdentityKeyPair::new(
+                    aci_public_key,
+                    aci_private_key,
+                ))?;
+                store.set_pni_identity_key_pair(IdentityKeyPair::new(
+                    pni_public_key,
+                    pni_private_key,
+                ))?;
 
                 store.save_registration_data(&registration_data)?;
                 info!(
@@ -140,7 +159,8 @@ impl<S: Store> Manager<S, Linking> {
                     state: Registered::with_data(registration_data),
                 };
 
-                // Register pre-keys with the server. If this fails, this can lead to issues receiving, in that case clear the registration and propagate the error.
+                // Register pre-keys with the server. If this fails, this can lead to issues
+                // receiving, in that case clear the registration and propagate the error.
                 if let Err(e) = manager.register_pre_keys().await {
                     store.clear_registration()?;
                     Err(e)

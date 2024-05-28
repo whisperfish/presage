@@ -1,6 +1,7 @@
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::messagepipe::ServiceCredentials;
-use libsignal_service::prelude::{phonenumber::PhoneNumber, IdentityKeyStore};
+use libsignal_service::prelude::phonenumber::PhoneNumber;
+use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, PushService, RegistrationMethod, ServiceIds,
@@ -10,8 +11,7 @@ use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
 use libsignal_service_hyper::push_service::HyperPushService;
 use log::trace;
-use rand::rngs::StdRng;
-use rand::{RngCore, SeedableRng};
+use rand::RngCore;
 
 use crate::manager::registered::RegistrationData;
 use crate::store::Store;
@@ -36,13 +36,13 @@ impl<S: Store> Manager<S, Confirmation> {
     /// Returns a [registered manager](Manager::load_registered) that you can use
     /// to send and receive messages.
     pub async fn confirm_verification_code(
-        self,
+        mut self,
         confirmation_code: impl AsRef<str>,
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
 
-        let registration_id = generate_registration_id(&mut StdRng::from_entropy());
-        let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
+        let registration_id = generate_registration_id(&mut self.rng);
+        let pni_registration_id = generate_registration_id(&mut self.rng);
 
         let Confirmation {
             signal_servers,
@@ -77,21 +77,23 @@ impl<S: Store> Manager<S, Confirmation> {
             return Err(Error::UnverifiedRegistrationSession);
         }
 
-        let mut rng = StdRng::from_entropy();
-
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
-        rng.fill_bytes(&mut signaling_key);
+        self.rng.fill_bytes(&mut signaling_key);
 
         // generate a 32 bytes profile key
         let mut profile_key = [0u8; 32];
-        rng.fill_bytes(&mut profile_key);
-
+        self.rng.fill_bytes(&mut profile_key);
         let profile_key = ProfileKey::generate(profile_key);
 
-        let mut account_manager = AccountManager::new(identified_push_service, Some(profile_key));
+        // generate new identity keys used in `register_account` and below
+        self.store
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))?;
+        self.store
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))?;
 
         let skip_device_transfer = true;
+        let mut account_manager = AccountManager::new(identified_push_service, Some(profile_key));
 
         let VerifyAccountResponse {
             aci,
@@ -100,7 +102,7 @@ impl<S: Store> Manager<S, Confirmation> {
             number: _,
         } = account_manager
             .register_account(
-                &mut rand::thread_rng(),
+                &mut self.rng,
                 RegistrationMethod::SessionId(&session.id),
                 AccountAttributes {
                     signaling_key: Some(signaling_key.to_vec()),
@@ -125,19 +127,8 @@ impl<S: Store> Manager<S, Confirmation> {
 
         trace!("confirmed! (and registered)");
 
-        let aci_identity_key_pair = self
-            .store
-            .aci_protocol_store()
-            .get_identity_key_pair()
-            .await?;
-        let pni_identity_key_pair = self
-            .store
-            .pni_protocol_store()
-            .get_identity_key_pair()
-            .await?;
-
         let mut manager = Manager {
-            rng,
+            rng: self.rng,
             store: self.store,
             state: Registered::with_data(RegistrationData {
                 signal_servers: self.state.signal_servers,
@@ -149,10 +140,6 @@ impl<S: Store> Manager<S, Confirmation> {
                 device_id: None,
                 registration_id,
                 pni_registration_id: Some(pni_registration_id),
-                aci_private_key: *aci_identity_key_pair.private_key(),
-                aci_identity_key: *aci_identity_key_pair.identity_key(),
-                pni_private_key: Some(*pni_identity_key_pair.private_key()),
-                pni_identity_key: Some(*pni_identity_key_pair.identity_key()),
                 profile_key,
             }),
         };

@@ -10,10 +10,9 @@ use libsignal_service::{
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{self, Sent},
-        verified::{self},
-        DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
+        verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{IdentityKey, ProtocolAddress, ProtocolStore, SenderKeyStore},
+    protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
     Profile,
@@ -32,6 +31,16 @@ pub trait StateStore {
 
     /// Load registered (or linked) state
     fn load_registration_data(&self) -> Result<Option<RegistrationData>, Self::StateStoreError>;
+
+    fn set_aci_identity_key_pair(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), Self::StateStoreError>;
+
+    fn set_pni_identity_key_pair(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), Self::StateStoreError>;
 
     /// Save registered (or linked) state
     fn save_registration_data(

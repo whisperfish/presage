@@ -13,6 +13,8 @@ pub enum SledStoreError {
     StoreCipher(#[from] presage_store_cipher::StoreCipherError),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("base64 decode error: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
     #[error("Prost error: {0}")]
     ProtobufDecode(#[from] prost::DecodeError),
     #[error("I/O error: {0}")]

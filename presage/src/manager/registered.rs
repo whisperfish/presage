@@ -20,7 +20,7 @@ use libsignal_service::proto::{
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-use libsignal_service::protocol::{IdentityKey, IdentityKeyPair, PrivateKey, SenderCertificate};
+use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
@@ -30,10 +30,7 @@ use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
 use libsignal_service::sticker_cipher::derive_key;
 use libsignal_service::unidentified_access::UnidentifiedAccess;
-use libsignal_service::utils::{
-    serde_identity_key, serde_optional_identity_key, serde_optional_private_key, serde_private_key,
-    serde_signaling_key,
-};
+use libsignal_service::utils::serde_signaling_key;
 use libsignal_service::websocket::SignalWebSocket;
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
@@ -108,18 +105,6 @@ pub struct RegistrationData {
     pub registration_id: u32,
     #[serde(default)]
     pub pni_registration_id: Option<u32>,
-    #[serde(with = "serde_private_key", rename = "private_key")]
-    pub(crate) aci_private_key: PrivateKey,
-    #[serde(with = "serde_identity_key", rename = "public_key")]
-    pub(crate) aci_identity_key: IdentityKey,
-    #[serde(with = "serde_optional_private_key", default)]
-    pub(crate) pni_private_key: Option<PrivateKey>,
-    #[serde(
-        with = "serde_optional_identity_key",
-        rename = "pni_public_key",
-        default
-    )]
-    pub(crate) pni_identity_key: Option<IdentityKey>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
 }
@@ -143,34 +128,6 @@ impl RegistrationData {
     /// The name of the device (if linked as secondary)
     pub fn device_name(&self) -> Option<&str> {
         self.device_name.as_deref()
-    }
-
-    /// Account identity public key
-    pub fn aci_identity_key(&self) -> IdentityKey {
-        self.aci_identity_key
-    }
-
-    /// Account identity private key
-    pub fn aci_private_key(&self) -> PrivateKey {
-        self.aci_private_key
-    }
-
-    pub fn aci_identity_keypair(&self) -> IdentityKeyPair {
-        IdentityKeyPair::new(self.aci_identity_key, self.aci_private_key)
-    }
-
-    /// PNI identity key
-    pub fn pni_identity_key(&self) -> Option<IdentityKey> {
-        self.pni_identity_key
-    }
-
-    pub fn pni_identity_keypair(&self) -> Option<IdentityKeyPair> {
-        match (self.pni_identity_key, self.pni_private_key) {
-            (Some(public_key), Some(private_key)) => {
-                Some(IdentityKeyPair::new(public_key, private_key))
-            }
-            _ => None,
-        }
     }
 }
 
@@ -1195,17 +1152,25 @@ impl<S: Store> Manager<S, Registered> {
         let identified_websocket = self.identified_websocket(false).await?;
         let unidentified_websocket = self.unidentified_websocket().await?;
 
+        let aci_protocol_store = self.store.aci_protocol_store();
+        let aci_identity_keypair = aci_protocol_store.get_identity_key_pair().await?;
+        let pni_identity_keypair = self
+            .store
+            .pni_protocol_store()
+            .get_identity_key_pair()
+            .await?;
+
         Ok(MessageSender::new(
             identified_websocket,
             unidentified_websocket,
             self.identified_push_service(),
             self.new_service_cipher()?,
             self.rng.clone(),
-            self.store.aci_protocol_store(),
+            aci_protocol_store,
             self.state.data.service_ids.aci,
             self.state.data.service_ids.pni,
-            self.state.data.aci_identity_keypair(),
-            self.state.data.pni_identity_keypair(),
+            aci_identity_keypair,
+            Some(pni_identity_keypair),
             self.state.device_id().into(),
         ))
     }

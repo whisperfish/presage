@@ -17,7 +17,6 @@ use presage::{
         session_store::SessionStoreExt,
         ServiceAddress,
     },
-    manager::RegistrationData,
     proto::verified,
     store::{ContentsStore, StateStore},
 };
@@ -61,8 +60,7 @@ pub trait SledTrees: Clone {
     fn kyber_pre_keys_last_resort() -> &'static str;
     fn sender_keys() -> &'static str;
     fn sessions() -> &'static str;
-
-    fn identity_keypair(data: &RegistrationData) -> Result<IdentityKeyPair, SignalProtocolError>;
+    fn identity_keypair() -> &'static str;
 }
 
 #[derive(Clone)]
@@ -101,8 +99,8 @@ impl SledTrees for AciSledStore {
         "sessions"
     }
 
-    fn identity_keypair(data: &RegistrationData) -> Result<IdentityKeyPair, SignalProtocolError> {
-        Ok(data.aci_identity_keypair())
+    fn identity_keypair() -> &'static str {
+        "aci_identity_key_pair"
     }
 }
 
@@ -142,12 +140,8 @@ impl SledTrees for PniSledStore {
         "pni_sessions"
     }
 
-    fn identity_keypair(data: &RegistrationData) -> Result<IdentityKeyPair, SignalProtocolError> {
-        data.pni_identity_keypair()
-            .ok_or(SignalProtocolError::InvalidState(
-                "failed to load identity key pair",
-                "no registration data".into(),
-            ))
+    fn identity_keypair() -> &'static str {
+        "pni_identity_key_pair"
     }
 }
 
@@ -524,15 +518,12 @@ impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
 impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         trace!("getting identity_key_pair");
-        let registration_data =
-            self.store
-                .load_registration_data()?
-                .ok_or(SignalProtocolError::InvalidState(
-                    "failed to load identity key pair",
-                    "no registration data".into(),
-                ))?;
-
-        T::identity_keypair(&registration_data)
+        self.store.get_identity_key_pair::<T>()?.ok_or_else(|| {
+            SignalProtocolError::InvalidState(
+                "get_identity_key_pair",
+                "no identity key pair found".to_owned(),
+            )
+        })
     }
 
     async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
