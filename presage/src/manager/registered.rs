@@ -792,7 +792,10 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let online_only = false;
-        let include_pni_signature = true;
+        // TODO: Populate this flag based on the recipient information
+        //
+        // Issue <https://github.com/whisperfish/presage/issues/252>
+        let include_pni_signature = false;
         let recipient = recipient_addr.into();
         let mut content_body: ContentBody = message.into();
 
