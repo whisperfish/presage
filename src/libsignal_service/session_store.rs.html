@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/c072491/libsignal-service/src/session_store.rs`."><title>session_store.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/26c036e/libsignal-service/src/session_store.rs`."><title>session_store.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../libsignal_service/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -83,25 +83,15 @@
 <a href="#81" id="81">81</a>
 <a href="#82" id="82">82</a>
 <a href="#83" id="83">83</a>
-<a href="#84" id="84">84</a>
-<a href="#85" id="85">85</a>
-<a href="#86" id="86">86</a>
-<a href="#87" id="87">87</a>
-<a href="#88" id="88">88</a>
-<a href="#89" id="89">89</a>
-<a href="#90" id="90">90</a>
-<a href="#91" id="91">91</a>
-<a href="#92" id="92">92</a>
-<a href="#93" id="93">93</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_protocol::{ProtocolAddress, SessionStore, SignalProtocolError};
+</pre></div><pre class="rust"><code><span class="kw">use </span>async_trait::async_trait;
+<span class="kw">use </span>libsignal_protocol::{ProtocolAddress, SessionStore, SignalProtocolError};
 
 <span class="kw">use crate</span>::{push_service::DEFAULT_DEVICE_ID, ServiceAddress};
 
 <span class="doccomment">/// This is additional functions required to handle
 /// session deletion. It might be a candidate for inclusion into
 /// the bigger `SessionStore` trait.
-</span><span class="attr">#[cfg_attr(feature = <span class="string">"unsend-futures"</span>, async_trait::async_trait(<span class="question-mark">?</span>Send))]
-#[cfg_attr(not(feature = <span class="string">"unsend-futures"</span>), async_trait::async_trait)]
+</span><span class="attr">#[async_trait(<span class="question-mark">?</span>Send)]
 </span><span class="kw">pub trait </span>SessionStoreExt: SessionStore {
     <span class="doccomment">/// Get the IDs of all known sub devices with active sessions for a recipient.
     ///
@@ -143,47 +133,37 @@
         <span class="prelude-val">Ok</span>(count)
     }
 
-    <span class="comment">// #[async_trait] sadly doesn't work here,
-    // because calls to libsignal_protocol are unsend.
-    </span><span class="kw">fn </span>compute_safety_number&lt;<span class="lifetime">'s</span>&gt;(
+    <span class="kw">async fn </span>compute_safety_number&lt;<span class="lifetime">'s</span>&gt;(
         <span class="kw-2">&amp;</span><span class="lifetime">'s </span><span class="self">self</span>,
         local_address: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>ServiceAddress,
         address: <span class="kw-2">&amp;</span><span class="lifetime">'s </span>ServiceAddress,
-    ) -&gt; std::pin::Pin&lt;
-        Box&lt;
-            <span class="kw">dyn </span>std::future::Future&lt;
-                    Output = <span class="prelude-ty">Result</span>&lt;String, SignalProtocolError&gt;,
-                &gt; + <span class="lifetime">'s</span>,
-        &gt;,
-    &gt;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;String, SignalProtocolError&gt;
     <span class="kw">where
         </span><span class="self">Self</span>: Sized + libsignal_protocol::IdentityKeyStore,
     {
-        Box::pin(<span class="kw">async move </span>{
-            <span class="kw">let </span>addr = <span class="kw">crate</span>::cipher::get_preferred_protocol_address(
-                <span class="self">self</span>,
-                address,
-                DEFAULT_DEVICE_ID.into(),
-            )
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">let </span>ident = <span class="self">self
-                </span>.get_identity(<span class="kw-2">&amp;</span>addr)
-                .<span class="kw">await</span><span class="question-mark">?
-                </span>.ok_or(SignalProtocolError::UntrustedIdentity(addr))<span class="question-mark">?</span>;
-            <span class="kw">let </span>local = <span class="self">self
-                </span>.get_identity_key_pair()
-                .<span class="kw">await
-                </span>.expect(<span class="string">"valid local identity"</span>);
-            <span class="kw">let </span>fp = libsignal_protocol::Fingerprint::new(
-                <span class="number">2</span>,
-                <span class="number">5200</span>,
-                local_address.uuid.as_bytes(),
-                local.identity_key(),
-                address.uuid.as_bytes(),
-                <span class="kw-2">&amp;</span>ident,
-            )<span class="question-mark">?</span>;
-            fp.display_string()
-        })
+        <span class="kw">let </span>addr = <span class="kw">crate</span>::cipher::get_preferred_protocol_address(
+            <span class="self">self</span>,
+            address,
+            DEFAULT_DEVICE_ID.into(),
+        )
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>ident = <span class="self">self
+            </span>.get_identity(<span class="kw-2">&amp;</span>addr)
+            .<span class="kw">await</span><span class="question-mark">?
+            </span>.ok_or(SignalProtocolError::UntrustedIdentity(addr))<span class="question-mark">?</span>;
+        <span class="kw">let </span>local = <span class="self">self
+            </span>.get_identity_key_pair()
+            .<span class="kw">await
+            </span>.expect(<span class="string">"valid local identity"</span>);
+        <span class="kw">let </span>fp = libsignal_protocol::Fingerprint::new(
+            <span class="number">2</span>,
+            <span class="number">5200</span>,
+            local_address.uuid.as_bytes(),
+            local.identity_key(),
+            address.uuid.as_bytes(),
+            <span class="kw-2">&amp;</span>ident,
+        )<span class="question-mark">?</span>;
+        fp.display_string()
     }
 }
 </code></pre></div></section></main></body></html>

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/registered.rs`."><title>registered.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/registered.rs`."><title>registered.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../presage/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -1557,6 +1557,12 @@
 <a href="#1555" id="1555">1555</a>
 <a href="#1556" id="1556">1556</a>
 <a href="#1557" id="1557">1557</a>
+<a href="#1558" id="1558">1558</a>
+<a href="#1559" id="1559">1559</a>
+<a href="#1560" id="1560">1560</a>
+<a href="#1561" id="1561">1561</a>
+<a href="#1562" id="1562">1562</a>
+<a href="#1563" id="1563">1563</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1579,8 +1585,7 @@
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-<span class="kw">use </span>libsignal_service::protocol::SenderCertificate;
-<span class="kw">use </span>libsignal_service::protocol::{PrivateKey, PublicKey};
+<span class="kw">use </span>libsignal_service::protocol::{IdentityKeyStore, SenderCertificate};
 <span class="kw">use </span>libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 <span class="kw">use </span>libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
@@ -1590,10 +1595,7 @@
 <span class="kw">use </span>libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
 <span class="kw">use </span>libsignal_service::sticker_cipher::derive_key;
 <span class="kw">use </span>libsignal_service::unidentified_access::UnidentifiedAccess;
-<span class="kw">use </span>libsignal_service::utils::{
-    serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
-    serde_signaling_key,
-};
+<span class="kw">use </span>libsignal_service::utils::serde_signaling_key;
 <span class="kw">use </span>libsignal_service::websocket::SignalWebSocket;
 <span class="kw">use </span>libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 <span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
@@ -1668,14 +1670,6 @@
     <span class="kw">pub </span>registration_id: u32,
     <span class="attr">#[serde(default)]
     </span><span class="kw">pub </span>pni_registration_id: <span class="prelude-ty">Option</span>&lt;u32&gt;,
-    <span class="attr">#[serde(with = <span class="string">"serde_private_key"</span>, rename = <span class="string">"private_key"</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) aci_private_key: PrivateKey,
-    <span class="attr">#[serde(with = <span class="string">"serde_public_key"</span>, rename = <span class="string">"public_key"</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) aci_public_key: PublicKey,
-    <span class="attr">#[serde(with = <span class="string">"serde_optional_private_key"</span>, default)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) pni_private_key: <span class="prelude-ty">Option</span>&lt;PrivateKey&gt;,
-    <span class="attr">#[serde(with = <span class="string">"serde_optional_public_key"</span>, default)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) pni_public_key: <span class="prelude-ty">Option</span>&lt;PublicKey&gt;,
     <span class="attr">#[serde(with = <span class="string">"serde_profile_key"</span>)]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) profile_key: ProfileKey,
 }
@@ -1699,16 +1693,6 @@
     <span class="doccomment">/// The name of the device (if linked as secondary)
     </span><span class="kw">pub fn </span>device_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt; {
         <span class="self">self</span>.device_name.as_deref()
-    }
-
-    <span class="doccomment">/// Account identity public key
-    </span><span class="kw">pub fn </span>aci_public_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PublicKey {
-        <span class="self">self</span>.aci_public_key
-    }
-
-    <span class="doccomment">/// Account identity private key
-    </span><span class="kw">pub fn </span>aci_private_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; PrivateKey {
-        <span class="self">self</span>.aci_private_key
     }
 }
 
@@ -1830,22 +1814,22 @@
             <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
         );
 
-        <span class="comment">// TODO: Do the same for PNI once implemented upstream.
-        </span><span class="kw">let </span>(pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
+        account_manager
             .update_pre_key_bundle(
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.clone(),
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.aci_protocol_store(),
                 ServiceIdType::AccountIdentity,
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
                 <span class="bool-val">true</span>,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="self">self</span>.store.set_next_pre_key_id(pre_keys_offset_id).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="self">self</span>.store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)
-            .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="self">self</span>.store
-            .set_next_pq_pre_key_id(next_pq_pre_key_id)
+        account_manager
+            .update_pre_key_bundle(
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.pni_protocol_store(),
+                ServiceIdType::PhoneNumberIdentity,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
+                <span class="bool-val">true</span>,
+            )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="macro">trace!</span>(<span class="string">"registered pre keys"</span>);
@@ -1886,8 +1870,11 @@
                 unrestricted_unidentified_access: <span class="bool-val">false</span>,
                 discoverable_by_phone_number: <span class="bool-val">true</span>,
                 capabilities: DeviceCapabilities {
-                    gv2: <span class="bool-val">true</span>,
-                    gv1_migration: <span class="bool-val">true</span>,
+                    gift_badges: <span class="bool-val">true</span>,
+                    payment_activation: <span class="bool-val">false</span>,
+                    pni: <span class="bool-val">true</span>,
+                    sender_key: <span class="bool-val">true</span>,
+                    stories: <span class="bool-val">false</span>,
                     ..Default::default()
                 },
             })
@@ -2165,12 +2152,12 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         mode: ReceivingMode,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="kw">struct </span>StreamState&lt;S, C: ContentsStore + Send + Sync&gt; {
-            encrypted_messages: S,
+        <span class="kw">struct </span>StreamState&lt;Receiver, Store, AciStore&gt; {
+            encrypted_messages: Receiver,
             message_receiver: MessageReceiver&lt;HyperPushService&gt;,
-            service_cipher: ServiceCipher&lt;C&gt;,
+            service_cipher: ServiceCipher&lt;AciStore&gt;,
             push_service: HyperPushService,
-            store: C,
+            store: Store,
             groups_manager: GroupsManager&lt;HyperPushService, InMemoryCredentialsCache&gt;,
             mode: ReceivingMode,
         }
@@ -2370,6 +2357,10 @@
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
+        <span class="comment">// TODO: Populate this flag based on the recipient information
+        //
+        // Issue &lt;https://github.com/whisperfish/presage/issues/252&gt;
+        </span><span class="kw">let </span>include_pni_signature = <span class="bool-val">false</span>;
         <span class="kw">let </span>recipient = recipient_addr.into();
         <span class="kw">let </span><span class="kw-2">mut </span>content_body: ContentBody = message.into();
 
@@ -2414,6 +2405,7 @@
                 content_body.clone(),
                 timestamp,
                 online_only,
+                include_pni_signature,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -2512,7 +2504,12 @@
                         key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
-            recipients.push((member.uuid.into(), unidentified_access));
+            <span class="kw">let </span>include_pni_signature = <span class="bool-val">true</span>;
+            recipients.push((
+                member.uuid.into(),
+                unidentified_access,
+                include_pni_signature,
+            ));
         }
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
@@ -2561,7 +2558,15 @@
 
     <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).
     </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="self">self</span>.store.delete_all_sessions(recipient).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">use </span>libsignal_service::session_store::SessionStoreExt;
+        <span class="self">self</span>.store
+            .aci_protocol_store()
+            .delete_all_sessions(recipient)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.store
+            .pni_protocol_store()
+            .delete_all_sessions(recipient)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
@@ -2711,13 +2716,17 @@
     }
 
     <span class="doccomment">/// Creates a new message sender.
-    </span><span class="kw">async fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;S&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="kw">let </span>local_addr = ServiceAddress {
-            uuid: <span class="self">self</span>.state.data.service_ids.aci,
-        };
-
+    </span><span class="kw">async fn </span>new_message_sender(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;MessageSender&lt;S::AciStore&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span>identified_websocket = <span class="self">self</span>.identified_websocket(<span class="bool-val">false</span>).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>unidentified_websocket = <span class="self">self</span>.unidentified_websocket().<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>aci_protocol_store = <span class="self">self</span>.store.aci_protocol_store();
+        <span class="kw">let </span>aci_identity_keypair = aci_protocol_store.get_identity_key_pair().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>pni_identity_keypair = <span class="self">self
+            </span>.store
+            .pni_protocol_store()
+            .get_identity_key_pair()
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(MessageSender::new(
             identified_websocket,
@@ -2725,16 +2734,19 @@
             <span class="self">self</span>.identified_push_service(),
             <span class="self">self</span>.new_service_cipher()<span class="question-mark">?</span>,
             <span class="self">self</span>.rng.clone(),
-            <span class="self">self</span>.store.clone(),
-            local_addr,
+            aci_protocol_store,
+            <span class="self">self</span>.state.data.service_ids.aci,
+            <span class="self">self</span>.state.data.service_ids.pni,
+            aci_identity_keypair,
+            <span class="prelude-val">Some</span>(pni_identity_keypair),
             <span class="self">self</span>.state.device_id().into(),
         ))
     }
 
     <span class="doccomment">/// Creates a new service cipher.
-    </span><span class="kw">fn </span>new_service_cipher(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceCipher&lt;S&gt;, Error&lt;S::Error&gt;&gt; {
+    </span><span class="kw">fn </span>new_service_cipher(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;ServiceCipher&lt;S::AciStore&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span>service_cipher = ServiceCipher::new(
-            <span class="self">self</span>.store.clone(),
+            <span class="self">self</span>.store.aci_protocol_store(),
             <span class="self">self</span>.rng.clone(),
             <span class="self">self</span>.state
                 .service_configuration()

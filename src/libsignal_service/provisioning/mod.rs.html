@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/c072491/libsignal-service/src/provisioning/mod.rs`."><title>mod.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/26c036e/libsignal-service/src/provisioning/mod.rs`."><title>mod.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../libsignal_service/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -293,11 +293,73 @@
 <a href="#291" id="291">291</a>
 <a href="#292" id="292">292</a>
 <a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
+<a href="#330" id="330">330</a>
+<a href="#331" id="331">331</a>
+<a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
+<a href="#335" id="335">335</a>
+<a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
+<a href="#338" id="338">338</a>
+<a href="#339" id="339">339</a>
+<a href="#340" id="340">340</a>
+<a href="#341" id="341">341</a>
+<a href="#342" id="342">342</a>
+<a href="#343" id="343">343</a>
+<a href="#344" id="344">344</a>
+<a href="#345" id="345">345</a>
+<a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
+<a href="#354" id="354">354</a>
+<a href="#355" id="355">355</a>
 </pre></div><pre class="rust"><code><span class="kw">mod </span>cipher;
 <span class="kw">mod </span>pipe;
 
+<span class="kw">use </span>std::array::TryFromSliceError;
 <span class="kw">use </span>std::convert::TryInto;
-<span class="kw">use </span>std::{array::TryFromSliceError, borrow::Cow};
 
 <span class="kw">pub use </span>cipher::ProvisioningCipher;
 
@@ -305,7 +367,9 @@
 <span class="kw">use </span>derivative::Derivative;
 <span class="kw">use </span>futures::StreamExt;
 <span class="kw">use </span>futures::{channel::mpsc::Sender, pin_mut, SinkExt};
-<span class="kw">use </span>libsignal_protocol::{DeviceId, KeyPair, PrivateKey, PublicKey};
+<span class="kw">use </span>libsignal_protocol::{
+    DeviceId, IdentityKey, IdentityKeyPair, PrivateKey, PublicKey,
+};
 <span class="kw">use </span>prost::Message;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>url::Url;
@@ -315,12 +379,11 @@
 <span class="kw">use </span>pipe::{ProvisioningPipe, ProvisioningStep};
 
 <span class="kw">use </span><span class="kw">crate</span>::prelude::ServiceError;
+<span class="kw">use </span><span class="kw">crate</span>::push_service::DeviceActivationRequest;
 <span class="kw">use </span><span class="kw">crate</span>::utils::BASE64_RELAXED;
 <span class="kw">use crate</span>::{
     account_manager::encrypt_device_name,
-    pre_keys::{
-        generate_last_resort_kyber_key, generate_signed_pre_key, PreKeysStore,
-    },
+    pre_keys::PreKeysStore,
     push_service::{
         HttpAuth, LinkAccountAttributes, LinkCapabilities, LinkRequest,
         LinkResponse, PushService, ServiceIds,
@@ -334,8 +397,38 @@
 
 <span class="attr">#[derive(thiserror::Error, Debug)]
 </span><span class="kw">pub enum </span>ProvisioningError {
-    <span class="attr">#[error(<span class="string">"Invalid provisioning data: {reason}"</span>)]
-    </span>InvalidData { reason: Cow&lt;<span class="lifetime">'static</span>, str&gt; },
+    <span class="attr">#[error(<span class="string">"no provisioning URL received"</span>)]
+    </span>MissingUrl,
+    <span class="attr">#[error(<span class="string">"bad version number (unsupported)"</span>)]
+    </span>BadVersionNumber,
+    <span class="attr">#[error(<span class="string">"missing public key"</span>)]
+    </span>MissingPublicKey,
+    <span class="attr">#[error(<span class="string">"missing private key"</span>)]
+    </span>MissingPrivateKey,
+    <span class="attr">#[error(<span class="string">"invalid public key"</span>)]
+    </span>InvalidPublicKey(InvalidKeyError),
+    <span class="attr">#[error(<span class="string">"invalid privat key"</span>)]
+    </span>InvalidPrivateKey(InvalidKeyError),
+    <span class="attr">#[error(<span class="string">"missing UUID"</span>)]
+    </span>MissingUuid,
+    <span class="attr">#[error(<span class="string">"no provisioning message received"</span>)]
+    </span>MissingMessage,
+    <span class="attr">#[error(<span class="string">"missing profile key"</span>)]
+    </span>MissingProfileKey,
+    <span class="attr">#[error(<span class="string">"missing phone number"</span>)]
+    </span>MissingPhoneNumber,
+    <span class="attr">#[error(<span class="string">"invalid phone number: {0}"</span>)]
+    </span>InvalidPhoneNumber(phonenumber::ParseError),
+    <span class="attr">#[error(<span class="string">"missing provisioning code"</span>)]
+    </span>MissingProvisioningCode,
+    <span class="attr">#[error(<span class="string">"mismatched MAC"</span>)]
+    </span>MismatchedMac,
+    <span class="attr">#[error(<span class="string">"AES CBC padding error: {0}"</span>)]
+    </span>AesPaddingError(aes::cipher::block_padding::UnpadError),
+
+    <span class="attr">#[error(<span class="string">"invalid provisioning step received"</span>)]
+    </span>InvalidStep,
+
     <span class="attr">#[error(<span class="string">"Protobuf decoding error: {0}"</span>)]
     </span>DecodeError(<span class="attr">#[from] </span>prost::DecodeError),
     <span class="attr">#[error(<span class="string">"Websocket error: {reason}"</span>)]
@@ -345,11 +438,19 @@
     <span class="attr">#[error(<span class="string">"Service error: {0}"</span>)]
     </span>ServiceError(<span class="attr">#[from] </span>ServiceError),
     <span class="attr">#[error(<span class="string">"libsignal-protocol error: {0}"</span>)]
-    </span>ProtocolError(<span class="attr">#[from] </span>libsignal_protocol::error::SignalProtocolError),
+    </span>ProtocolError(<span class="attr">#[from] </span>libsignal_protocol::SignalProtocolError),
     <span class="attr">#[error(<span class="string">"ProvisioningCipher in encrypt-only mode"</span>)]
     </span>EncryptOnlyProvisioningCipher,
     <span class="attr">#[error(<span class="string">"invalid profile key bytes"</span>)]
     </span>InvalidProfileKey(TryFromSliceError),
+}
+
+<span class="attr">#[derive(Debug, thiserror::Error)]
+</span><span class="kw">pub enum </span>InvalidKeyError {
+    <span class="attr">#[error(<span class="string">"base64 decoding error: {0}"</span>)]
+    </span>Base64(<span class="attr">#[from] </span>base64::DecodeError),
+    <span class="attr">#[error(<span class="string">"protocol error: {0}"</span>)]
+    </span>Protocol(<span class="attr">#[from] </span>libsignal_protocol::SignalProtocolError),
 }
 
 <span class="kw">pub fn </span>generate_registration_id&lt;R: rand::Rng + rand::CryptoRng&gt;(
@@ -395,10 +496,10 @@
     <span class="kw">pub </span>service_ids: ServiceIds,
     <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>aci_private_key: PrivateKey,
-    <span class="kw">pub </span>aci_public_key: PublicKey,
+    <span class="kw">pub </span>aci_public_key: IdentityKey,
     <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>pni_private_key: PrivateKey,
-    <span class="kw">pub </span>pni_public_key: PublicKey,
+    <span class="kw">pub </span>pni_public_key: IdentityKey,
     <span class="attr">#[derivative(Debug = <span class="string">"ignore"</span>)]
     </span><span class="kw">pub </span>profile_key: ProfileKey,
 }
@@ -407,7 +508,7 @@
     R: rand::Rng + rand::CryptoRng,
     Aci: PreKeysStore,
     Pni: PreKeysStore,
-    P: PushService,
+    P: PushService + Clone,
 &gt;(
     aci_store: <span class="kw-2">&amp;mut </span>Aci,
     pni_store: <span class="kw-2">&amp;mut </span>Pni,
@@ -434,90 +535,113 @@
     <span class="kw">let </span>provision_stream = provisioning_pipe.stream();
     <span class="macro">pin_mut!</span>(provision_stream);
 
-    <span class="kw">if let </span>ProvisioningStep::Url(url) = provision_stream.next().<span class="kw">await</span>.ok_or(
-        ProvisioningError::InvalidData {
-            reason: <span class="string">"no provisioning URL received"</span>.into(),
-        },
-    )<span class="question-mark">?? </span>{
+    <span class="kw">if let </span>ProvisioningStep::Url(url) = provision_stream
+        .next()
+        .<span class="kw">await
+        </span>.ok_or(ProvisioningError::MissingUrl)<span class="question-mark">??
+    </span>{
         tx.send(SecondaryDeviceProvisioning::Url(url))
             .<span class="kw">await
             </span>.expect(<span class="string">"failed to send provisioning Url in channel"</span>);
     } <span class="kw">else </span>{
-        <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidData {
-            reason: <span class="string">"wrong provisioning step received"</span>.into(),
-        });
+        <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidStep);
     }
 
     <span class="kw">if let </span>ProvisioningStep::Message(message) =
-        provision_stream.next().<span class="kw">await</span>.ok_or(
-            ProvisioningError::InvalidData {
-                reason: <span class="string">"no provisioning message received"</span>.into(),
-            },
-        )<span class="question-mark">??
+        provision_stream
+            .next()
+            .<span class="kw">await
+            </span>.ok_or(ProvisioningError::MissingMessage)<span class="question-mark">??
     </span>{
-        <span class="kw">let </span>aci_public_key =
-            PublicKey::deserialize(<span class="kw-2">&amp;</span>message.aci_identity_key_public.ok_or(
-                ProvisioningError::InvalidData {
-                    reason: <span class="string">"missing public key"</span>.into(),
-                },
-            )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>aci_public_key = PublicKey::deserialize(
+            <span class="kw-2">&amp;</span>message
+                .aci_identity_key_public
+                .ok_or(ProvisioningError::MissingPublicKey)<span class="question-mark">?</span>,
+        )
+        .map_err(|e| ProvisioningError::InvalidPublicKey(e.into()))<span class="question-mark">?</span>;
+        <span class="kw">let </span>aci_public_key = IdentityKey::new(aci_public_key);
 
-        <span class="kw">let </span>aci_private_key =
-            PrivateKey::deserialize(<span class="kw-2">&amp;</span>message.aci_identity_key_private.ok_or(
-                ProvisioningError::InvalidData {
-                    reason: <span class="string">"missing public key"</span>.into(),
-                },
-            )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>aci_private_key = PrivateKey::deserialize(
+            <span class="kw-2">&amp;</span>message
+                .aci_identity_key_private
+                .ok_or(ProvisioningError::MissingPrivateKey)<span class="question-mark">?</span>,
+        )
+        .map_err(|e| ProvisioningError::InvalidPrivateKey(e.into()))<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>pni_public_key =
-            PublicKey::deserialize(<span class="kw-2">&amp;</span>message.pni_identity_key_public.ok_or(
-                ProvisioningError::InvalidData {
-                    reason: <span class="string">"missing public key"</span>.into(),
-                },
-            )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>pni_public_key = PublicKey::deserialize(
+            <span class="kw-2">&amp;</span>message
+                .pni_identity_key_public
+                .ok_or(ProvisioningError::MissingPublicKey)<span class="question-mark">?</span>,
+        )
+        .map_err(|e| ProvisioningError::InvalidPublicKey(e.into()))<span class="question-mark">?</span>;
+        <span class="kw">let </span>pni_public_key = IdentityKey::new(pni_public_key);
 
-        <span class="kw">let </span>pni_private_key =
-            PrivateKey::deserialize(<span class="kw-2">&amp;</span>message.pni_identity_key_private.ok_or(
-                ProvisioningError::InvalidData {
-                    reason: <span class="string">"missing public key"</span>.into(),
-                },
-            )<span class="question-mark">?</span>)<span class="question-mark">?</span>;
+        <span class="kw">let </span>pni_private_key = PrivateKey::deserialize(
+            <span class="kw-2">&amp;</span>message
+                .pni_identity_key_private
+                .ok_or(ProvisioningError::MissingPrivateKey)<span class="question-mark">?</span>,
+        )
+        .map_err(|e| ProvisioningError::InvalidPrivateKey(e.into()))<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>profile_key =
-            message.profile_key.ok_or(ProvisioningError::InvalidData {
-                reason: <span class="string">"missing profile key"</span>.into(),
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>profile_key = message
+            .profile_key
+            .ok_or(ProvisioningError::MissingProfileKey)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>phone_number =
-            message.number.ok_or(ProvisioningError::InvalidData {
-                reason: <span class="string">"missing phone number"</span>.into(),
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>phone_number = message
+            .number
+            .ok_or(ProvisioningError::MissingPhoneNumber)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>phone_number =
-            phonenumber::parse(<span class="prelude-val">None</span>, phone_number).map_err(|e| {
-                ProvisioningError::InvalidData {
-                    reason: <span class="macro">format!</span>(<span class="string">"invalid phone number ({})"</span>, e).into(),
-                }
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>phone_number = phonenumber::parse(<span class="prelude-val">None</span>, phone_number)
+            .map_err(ProvisioningError::InvalidPhoneNumber)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>provisioning_code = message.provisioning_code.ok_or(
-            ProvisioningError::InvalidData {
-                reason: <span class="string">"no provisioning confirmation code"</span>.into(),
-            },
-        )<span class="question-mark">?</span>;
+        <span class="kw">let </span>provisioning_code = message
+            .provisioning_code
+            .ok_or(ProvisioningError::MissingProvisioningCode)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>aci_key_pair = KeyPair::new(aci_public_key, aci_private_key);
-        <span class="kw">let </span>pni_key_pair = KeyPair::new(pni_public_key, pni_private_key);
+        <span class="kw">let </span>aci_key_pair =
+            IdentityKeyPair::new(aci_public_key, aci_private_key);
+        <span class="kw">let </span>pni_key_pair =
+            IdentityKeyPair::new(pni_public_key, pni_private_key);
+
+        <span class="kw">let </span>(
+            _aci_pre_keys,
+            aci_signed_pre_key,
+            _aci_pq_pre_keys,
+            aci_pq_last_resort_pre_key,
+        ) = <span class="kw">crate</span>::pre_keys::replenish_pre_keys(
+            aci_store,
+            <span class="kw-2">&amp;</span>aci_key_pair,
+            csprng,
+            <span class="bool-val">true</span>,
+            <span class="number">0</span>,
+            <span class="number">0</span>,
+        )
+        .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>aci_pq_last_resort_pre_key =
-            generate_last_resort_kyber_key(aci_store, <span class="kw-2">&amp;</span>aci_key_pair).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>pni_pq_last_resort_pre_key =
-            generate_last_resort_kyber_key(pni_store, <span class="kw-2">&amp;</span>pni_key_pair).<span class="kw">await</span><span class="question-mark">?</span>;
+            aci_pq_last_resort_pre_key.expect(<span class="string">"requested last resort key"</span>);
+        <span class="macro">assert!</span>(_aci_pre_keys.is_empty());
+        <span class="macro">assert!</span>(_aci_pq_pre_keys.is_empty());
 
-        <span class="kw">let </span>aci_signed_pre_key =
-            generate_signed_pre_key(aci_store, csprng, <span class="kw-2">&amp;</span>aci_key_pair).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>pni_signed_pre_key =
-            generate_signed_pre_key(pni_store, csprng, <span class="kw-2">&amp;</span>pni_key_pair).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>(
+            _pni_pre_keys,
+            pni_signed_pre_key,
+            _pni_pq_pre_keys,
+            pni_pq_last_resort_pre_key,
+        ) = <span class="kw">crate</span>::pre_keys::replenish_pre_keys(
+            pni_store,
+            <span class="kw-2">&amp;</span>pni_key_pair,
+            csprng,
+            <span class="bool-val">true</span>,
+            <span class="number">0</span>,
+            <span class="number">0</span>,
+        )
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>pni_pq_last_resort_pre_key =
+            pni_pq_last_resort_pre_key.expect(<span class="string">"requested last resort key"</span>);
+        <span class="macro">assert!</span>(_pni_pre_keys.is_empty());
+        <span class="macro">assert!</span>(_pni_pq_pre_keys.is_empty());
 
         <span class="kw">let </span>encrypted_device_name = BASE64_RELAXED.encode(
             encrypt_device_name(csprng, device_name, <span class="kw-2">&amp;</span>aci_public_key)<span class="question-mark">?
@@ -540,12 +664,14 @@
                 capabilities: LinkCapabilities { pni: <span class="bool-val">true </span>},
                 name: encrypted_device_name,
             },
-            aci_signed_pre_key: aci_signed_pre_key.try_into()<span class="question-mark">?</span>,
-            pni_signed_pre_key: pni_signed_pre_key.try_into()<span class="question-mark">?</span>,
-            aci_pq_last_resort_pre_key: aci_pq_last_resort_pre_key
-                .try_into()<span class="question-mark">?</span>,
-            pni_pq_last_resort_pre_key: pni_pq_last_resort_pre_key
-                .try_into()<span class="question-mark">?</span>,
+            device_activation_request: DeviceActivationRequest {
+                aci_signed_pre_key: aci_signed_pre_key.try_into()<span class="question-mark">?</span>,
+                pni_signed_pre_key: pni_signed_pre_key.try_into()<span class="question-mark">?</span>,
+                aci_pq_last_resort_pre_key: aci_pq_last_resort_pre_key
+                    .try_into()<span class="question-mark">?</span>,
+                pni_pq_last_resort_pre_key: pni_pq_last_resort_pre_key
+                    .try_into()<span class="question-mark">?</span>,
+            },
         };
 
         <span class="kw">let </span>LinkResponse {
@@ -579,9 +705,7 @@
         .<span class="kw">await
         </span>.expect(<span class="string">"failed to send provisioning message in rx channel"</span>);
     } <span class="kw">else </span>{
-        <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidData {
-            reason: <span class="string">"wrong provisioning step received"</span>.into(),
-        });
+        <span class="kw">return </span><span class="prelude-val">Err</span>(ProvisioningError::InvalidStep);
     }
 
     <span class="prelude-val">Ok</span>(())

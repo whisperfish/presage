@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/c072491/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/26c036e/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../libsignal_service/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -855,12 +855,55 @@
 <a href="#853" id="853">853</a>
 <a href="#854" id="854">854</a>
 <a href="#855" id="855">855</a>
+<a href="#856" id="856">856</a>
+<a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
+<a href="#866" id="866">866</a>
+<a href="#867" id="867">867</a>
+<a href="#868" id="868">868</a>
+<a href="#869" id="869">869</a>
+<a href="#870" id="870">870</a>
+<a href="#871" id="871">871</a>
+<a href="#872" id="872">872</a>
+<a href="#873" id="873">873</a>
+<a href="#874" id="874">874</a>
+<a href="#875" id="875">875</a>
+<a href="#876" id="876">876</a>
+<a href="#877" id="877">877</a>
+<a href="#878" id="878">878</a>
+<a href="#879" id="879">879</a>
+<a href="#880" id="880">880</a>
+<a href="#881" id="881">881</a>
+<a href="#882" id="882">882</a>
+<a href="#883" id="883">883</a>
+<a href="#884" id="884">884</a>
+<a href="#885" id="885">885</a>
+<a href="#886" id="886">886</a>
+<a href="#887" id="887">887</a>
+<a href="#888" id="888">888</a>
+<a href="#889" id="889">889</a>
+<a href="#890" id="890">890</a>
+<a href="#891" id="891">891</a>
+<a href="#892" id="892">892</a>
+<a href="#893" id="893">893</a>
+<a href="#894" id="894">894</a>
+<a href="#895" id="895">895</a>
+<a href="#896" id="896">896</a>
+<a href="#897" id="897">897</a>
+<a href="#898" id="898">898</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>libsignal_protocol::{
-    process_prekey_bundle, DeviceId, ProtocolStore, SenderCertificate,
-    SenderKeyStore, SignalProtocolError,
+    process_prekey_bundle, DeviceId, IdentityKeyPair, ProtocolStore,
+    SenderCertificate, SenderKeyStore, SignalProtocolError,
 };
 <span class="kw">use </span>rand::{CryptoRng, Rng};
 <span class="kw">use </span>tracing::{info, trace};
@@ -942,7 +985,10 @@
     cipher: ServiceCipher&lt;S, R&gt;,
     csprng: R,
     protocol_store: S,
-    local_address: ServiceAddress,
+    local_aci: ServiceAddress,
+    local_pni: ServiceAddress,
+    aci_identity: IdentityKeyPair,
+    pni_identity: <span class="prelude-ty">Option</span>&lt;IdentityKeyPair&gt;,
     device_id: DeviceId,
 }
 
@@ -979,9 +1025,9 @@
 
 <span class="kw">impl</span>&lt;Service, S, R&gt; MessageSender&lt;Service, S, R&gt;
 <span class="kw">where
-    </span>Service: PushService + Clone,
+    </span>Service: PushService,
     S: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone,
-    R: Rng + CryptoRng + Clone,
+    R: Rng + CryptoRng,
 {
     <span class="attr">#[allow(clippy::too_many_arguments)]
     </span><span class="kw">pub fn </span>new(
@@ -991,7 +1037,10 @@
         cipher: ServiceCipher&lt;S, R&gt;,
         csprng: R,
         protocol_store: S,
-        local_address: ServiceAddress,
+        local_aci: <span class="kw">impl </span>Into&lt;ServiceAddress&gt;,
+        local_pni: <span class="kw">impl </span>Into&lt;ServiceAddress&gt;,
+        aci_identity: IdentityKeyPair,
+        pni_identity: <span class="prelude-ty">Option</span>&lt;IdentityKeyPair&gt;,
         device_id: DeviceId,
     ) -&gt; <span class="self">Self </span>{
         MessageSender {
@@ -1001,7 +1050,10 @@
             cipher,
             csprng,
             protocol_store,
-            local_address,
+            local_aci: local_aci.into(),
+            local_pni: local_pni.into(),
+            aci_identity,
+            pni_identity,
             device_id,
         }
     }
@@ -1140,7 +1192,7 @@
     </span><span class="kw">async fn </span>is_multi_device(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
         <span class="kw">if </span><span class="self">self</span>.device_id == DEFAULT_DEVICE_ID.into() {
             <span class="self">self</span>.protocol_store
-                .get_sub_device_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>.local_address)
+                .get_sub_device_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>.local_aci)
                 .<span class="kw">await
                 </span>.map_or(<span class="bool-val">false</span>, |s| !s.is_empty())
         } <span class="kw">else </span>{
@@ -1159,6 +1211,7 @@
         <span class="kw-2">mut </span>unidentified_access: <span class="prelude-ty">Option</span>&lt;UnidentifiedAccess&gt;,
         message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
         timestamp: u64,
+        include_pni_signature: bool,
         online: bool,
     ) -&gt; SendMessageResult {
         <span class="kw">let </span>content_body = message.into();
@@ -1173,7 +1226,7 @@
         };
 
         <span class="comment">// don't send anything to self nor session enders to others as sealed sender
-        </span><span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_address || end_session {
+        </span><span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_aci || end_session {
             unidentified_access.take();
         }
 
@@ -1184,6 +1237,7 @@
                 unidentified_access.as_ref(),
                 <span class="kw-2">&amp;</span>content_body,
                 timestamp,
+                include_pni_signature,
                 online,
             )
             .<span class="kw">await</span>,
@@ -1204,10 +1258,11 @@
                         <span class="kw-2">&amp;</span>results,
                     );
                 <span class="self">self</span>.try_send_message(
-                    <span class="self">self</span>.local_address,
+                    <span class="self">self</span>.local_aci,
                     <span class="prelude-val">None</span>,
                     <span class="kw-2">&amp;</span>sync_message,
                     timestamp,
+                    <span class="bool-val">false</span>,
                     <span class="bool-val">false</span>,
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -1224,13 +1279,18 @@
     }
 
     <span class="doccomment">/// Send a message to the recipients in a group.
+    ///
+    /// Recipients are a list of tuples, each containing:
+    /// - The recipient's address
+    /// - The recipient's unidentified access
+    /// - Whether the recipient requires a PNI signature
     </span><span class="attr">#[tracing::instrument(
         skip(<span class="self">self</span>, recipients, message),
         fields(recipients = recipients.as_ref().len()),
     )]
     </span><span class="kw">pub async fn </span>send_message_to_group(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        recipients: <span class="kw">impl </span>AsRef&lt;[(ServiceAddress, <span class="prelude-ty">Option</span>&lt;UnidentifiedAccess&gt;)]&gt;,
+        recipients: <span class="kw">impl </span>AsRef&lt;[(ServiceAddress, <span class="prelude-ty">Option</span>&lt;UnidentifiedAccess&gt;, bool)]&gt;,
         message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
         timestamp: u64,
         online: bool,
@@ -1245,13 +1305,16 @@
 
         <span class="kw">let </span>recipients = recipients.as_ref();
         <span class="kw">let </span><span class="kw-2">mut </span>needs_sync_in_results = <span class="bool-val">false</span>;
-        <span class="kw">for </span>(recipient, unidentified_access) <span class="kw">in </span>recipients.iter() {
+        <span class="kw">for </span>(recipient, unidentified_access, include_pni_signature) <span class="kw">in
+            </span>recipients.iter()
+        {
             <span class="kw">let </span>result = <span class="self">self
                 </span>.try_send_message(
                     <span class="kw-2">*</span>recipient,
                     unidentified_access.as_ref(),
                     <span class="kw-2">&amp;</span>content_body,
                     timestamp,
+                    <span class="kw-2">*</span>include_pni_signature,
                     online,
                 )
                 .<span class="kw">await</span>;
@@ -1286,11 +1349,12 @@
 
                 <span class="kw">let </span>result = <span class="self">self
                     </span>.try_send_message(
-                        <span class="self">self</span>.local_address,
+                        <span class="self">self</span>.local_aci,
                         <span class="prelude-val">None</span>,
                         <span class="kw-2">&amp;</span>sync_message,
                         timestamp,
-                        <span class="bool-val">false</span>,
+                        <span class="bool-val">false</span>, <span class="comment">// XXX: maybe the sync device does want a PNI signature?
+                        </span><span class="bool-val">false</span>,
                     )
                     .<span class="kw">await</span>;
 
@@ -1313,11 +1377,15 @@
         <span class="kw-2">mut </span>unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>UnidentifiedAccess&gt;,
         content_body: <span class="kw-2">&amp;</span>ContentBody,
         timestamp: u64,
+        include_pni_signature: bool,
         online: bool,
     ) -&gt; SendMessageResult {
         <span class="kw">use </span>prost::Message;
 
-        <span class="kw">let </span>content = content_body.clone().into_proto();
+        <span class="kw">let </span><span class="kw-2">mut </span>content = content_body.clone().into_proto();
+        <span class="kw">if </span>include_pni_signature {
+            content.pni_signature_message = <span class="prelude-val">Some</span>(<span class="self">self</span>.create_pni_signature()<span class="question-mark">?</span>);
+        }
 
         <span class="kw">let </span>content_bytes = content.encode_to_vec();
 
@@ -1481,11 +1549,29 @@
             unidentified_access,
             msg,
             Utc::now().timestamp_millis() <span class="kw">as </span>u64,
+            <span class="bool-val">false</span>,
             online,
         )
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="attr">#[tracing::instrument(level = <span class="string">"trace"</span>, skip(<span class="self">self</span>))]
+    </span><span class="kw">fn </span>create_pni_signature(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::PniSignatureMessage, MessageSenderError&gt; {
+        <span class="kw">let </span>signature = <span class="self">self
+            </span>.pni_identity
+            .expect(<span class="string">"PNI key set when PNI signature requested"</span>)
+            .sign_alternate_identity(
+                <span class="self">self</span>.aci_identity.identity_key(),
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+            )<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(<span class="kw">crate</span>::proto::PniSignatureMessage {
+            pni: <span class="prelude-val">Some</span>(<span class="self">self</span>.local_pni.uuid.as_bytes().to_vec()),
+            signature: <span class="prelude-val">Some</span>(signature.into()),
+        })
     }
 
     <span class="comment">// Equivalent with `getEncryptedMessages`
@@ -1514,7 +1600,7 @@
         </span>devices.insert(DEFAULT_DEVICE_ID.into());
 
         <span class="comment">// never try to send messages to the sender device
-        </span><span class="kw">if </span>recipient.aci() == <span class="self">self</span>.local_address.aci() {
+        </span><span class="kw">if </span>recipient.aci() == <span class="self">self</span>.local_aci.aci() {
             devices.remove(<span class="kw-2">&amp;</span><span class="self">self</span>.device_id);
         }
 
@@ -1582,7 +1668,7 @@
         skip(<span class="self">self</span>, unidentified_access, content),
         fields(unidentified_access = unidentified_access.is_some()),
     )]
-    </span><span class="kw">async fn </span>create_encrypted_message(
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_encrypted_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
         unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
@@ -1627,7 +1713,7 @@
             };
 
             <span class="kw">for </span>pre_key_bundle <span class="kw">in </span>pre_keys {
-                <span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_address
+                <span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_aci
                     &amp;&amp; <span class="self">self</span>.device_id == pre_key_bundle.device_id()<span class="question-mark">?
                 </span>{
                     <span class="macro">trace!</span>(<span class="string">"not establishing a session with myself!"</span>);

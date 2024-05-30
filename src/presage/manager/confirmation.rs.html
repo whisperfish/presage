@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/confirmation.rs`."><title>confirmation.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-5bc39a1768837dd0.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.77.2 (25ef9e3d8 2024-04-09)" data-channel="1.77.2" data-search-js="search-dd67cee4cfa65049.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-48f368f3872407c8.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/confirmation.rs`."><title>confirmation.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
             <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
     <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../presage/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
@@ -156,19 +156,21 @@
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
 <a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 <span class="kw">use </span>libsignal_service::messagepipe::ServiceCredentials;
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
-<span class="kw">use </span>libsignal_service::protocol::KeyPair;
+<span class="kw">use </span>libsignal_service::protocol::IdentityKeyPair;
 <span class="kw">use </span>libsignal_service::provisioning::generate_registration_id;
 <span class="kw">use </span>libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, PushService, RegistrationMethod, ServiceIds,
+    VerifyAccountResponse,
 };
 <span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
+<span class="kw">use </span>libsignal_service::AccountManager;
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
 <span class="kw">use </span>log::trace;
-<span class="kw">use </span>rand::rngs::StdRng;
-<span class="kw">use </span>rand::{RngCore, SeedableRng};
+<span class="kw">use </span>rand::RngCore;
 
 <span class="kw">use </span><span class="kw">crate</span>::manager::registered::RegistrationData;
 <span class="kw">use </span><span class="kw">crate</span>::store::Store;
@@ -193,13 +195,13 @@
     /// Returns a [registered manager](Manager::load_registered) that you can use
     /// to send and receive messages.
     </span><span class="kw">pub async fn </span>confirm_verification_code(
-        <span class="self">self</span>,
+        <span class="kw-2">mut </span><span class="self">self</span>,
         confirmation_code: <span class="kw">impl </span>AsRef&lt;str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;S, Registered&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">"confirming verification code"</span>);
 
-        <span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>StdRng::from_entropy());
-        <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>StdRng::from_entropy());
+        <span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng);
+        <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng);
 
         <span class="kw">let </span>Confirmation {
             signal_servers,
@@ -218,13 +220,13 @@
         };
 
         <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
-        <span class="kw">let </span><span class="kw-2">mut </span>push_service = HyperPushService::new(
+        <span class="kw">let </span><span class="kw-2">mut </span>identified_push_service = HyperPushService::new(
             service_configuration,
             <span class="prelude-val">Some</span>(credentials),
             <span class="kw">crate</span>::USER_AGENT.to_string(),
         );
 
-        <span class="kw">let </span>session = push_service
+        <span class="kw">let </span>session = identified_push_service
             .submit_verification_code(<span class="kw-2">&amp;</span>session_id, confirmation_code.as_ref())
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -234,23 +236,34 @@
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::UnverifiedRegistrationSession);
         }
 
-        <span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
-
         <span class="comment">// generate a 52 bytes signaling key
         </span><span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
-        rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
+        <span class="self">self</span>.rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
 
-        <span class="kw">let </span><span class="kw-2">mut </span>profile_key = [<span class="number">0u8</span>; <span class="number">32</span>];
-        rng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
-
+        <span class="comment">// generate a 32 bytes profile key
+        </span><span class="kw">let </span><span class="kw-2">mut </span>profile_key = [<span class="number">0u8</span>; <span class="number">32</span>];
+        <span class="self">self</span>.rng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
         <span class="kw">let </span>profile_key = ProfileKey::generate(profile_key);
 
-        <span class="kw">let </span>skip_device_transfer = <span class="bool-val">false</span>;
-        <span class="kw">let </span>registered = push_service
-            .submit_registration_request(
-                RegistrationMethod::SessionId(<span class="kw-2">&amp;</span>session_id),
+        <span class="comment">// generate new identity keys used in `register_account` and below
+        </span><span class="self">self</span>.store
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng))<span class="question-mark">?</span>;
+        <span class="self">self</span>.store
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng))<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>skip_device_transfer = <span class="bool-val">true</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(identified_push_service, <span class="prelude-val">Some</span>(profile_key));
+
+        <span class="kw">let </span>VerifyAccountResponse {
+            aci,
+            pni,
+            storage_capable: <span class="kw">_</span>,
+            number: <span class="kw">_</span>,
+        } = account_manager
+            .register_account(
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
+                RegistrationMethod::SessionId(<span class="kw-2">&amp;</span>session.id),
                 AccountAttributes {
-                    name: <span class="prelude-val">None</span>,
                     signaling_key: <span class="prelude-val">Some</span>(signaling_key.to_vec()),
                     registration_id,
                     pni_registration_id,
@@ -262,41 +275,30 @@
                     unidentified_access_key: <span class="prelude-val">Some</span>(profile_key.derive_access_key().to_vec()),
                     unrestricted_unidentified_access: <span class="bool-val">false</span>, <span class="comment">// TODO: make this configurable?
                     </span>discoverable_by_phone_number: <span class="bool-val">true</span>,
-                    capabilities: DeviceCapabilities {
-                        gv2: <span class="bool-val">true</span>,
-                        gv1_migration: <span class="bool-val">true</span>,
-                        ..Default::default()
-                    },
+                    name: <span class="prelude-val">None</span>,
+                    capabilities: DeviceCapabilities::default(),
                 },
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.aci_protocol_store(),
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.pni_protocol_store(),
                 skip_device_transfer,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>aci_identity_key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>rng);
-        <span class="kw">let </span>pni_identity_key_pair = KeyPair::generate(<span class="kw-2">&amp;mut </span>rng);
-
         <span class="macro">trace!</span>(<span class="string">"confirmed! (and registered)"</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
-            rng,
+            rng: <span class="self">self</span>.rng,
             store: <span class="self">self</span>.store,
             state: Registered::with_data(RegistrationData {
                 signal_servers: <span class="self">self</span>.state.signal_servers,
                 device_name: <span class="prelude-val">None</span>,
                 phone_number,
-                service_ids: ServiceIds {
-                    aci: registered.uuid,
-                    pni: registered.pni,
-                },
+                service_ids: ServiceIds { aci, pni },
                 password,
                 signaling_key,
                 device_id: <span class="prelude-val">None</span>,
                 registration_id,
                 pni_registration_id: <span class="prelude-val">Some</span>(pni_registration_id),
-                aci_private_key: aci_identity_key_pair.private_key,
-                aci_public_key: aci_identity_key_pair.public_key,
-                pni_private_key: <span class="prelude-val">Some</span>(pni_identity_key_pair.private_key),
-                pni_public_key: <span class="prelude-val">Some</span>(pni_identity_key_pair.public_key),
                 profile_key,
             }),
         };
