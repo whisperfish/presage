@@ -7,12 +7,18 @@ use std::{
 
 use base64::prelude::*;
 use log::debug;
-use presage::store::{StateStore, Store};
 use presage::{
-    libsignal_service::prelude::{ProfileKey, Uuid},
-    store::ContentsStore,
+    libsignal_service::{
+        prelude::{ProfileKey, Uuid},
+        protocol::{IdentityKey, IdentityKeyPair, PrivateKey},
+        utils::{
+            serde_identity_key, serde_optional_identity_key, serde_optional_private_key,
+            serde_private_key,
+        },
+    },
+    manager::RegistrationData,
+    store::{ContentsStore, StateStore, Store},
 };
-use presage::{libsignal_service::protocol::IdentityKeyPair, manager::RegistrationData};
 use protocol::{AciSledStore, PniSledStore, SledProtocolStore, SledTrees};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -69,11 +75,13 @@ pub enum SchemaVersion {
     V3 = 3,
     // Introduction of avatars, requires dropping all profiles from the cache
     V4 = 4,
+    /// ACI and PNI identity key pairs are moved into dedicated storage keys from registration data
+    V5 = 5,
 }
 
 impl SchemaVersion {
     fn current() -> SchemaVersion {
-        Self::V4
+        Self::V5
     }
 
     /// return an iterator on all the necessary migration steps from another version
@@ -87,6 +95,7 @@ impl SchemaVersion {
             2 => SchemaVersion::V2,
             3 => SchemaVersion::V3,
             4 => SchemaVersion::V4,
+            5 => SchemaVersion::V5,
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
@@ -343,6 +352,38 @@ fn migrate(
                 SchemaVersion::V4 => {
                     debug!("migrating from schema v3 to v4: dropping profile cache");
                     store.clear_profiles()?;
+                }
+                SchemaVersion::V5 => {
+                    debug!("migrating from schema v4 to v5: moving identity key pairs");
+
+                    #[derive(Deserialize)]
+                    struct RegistrationDataV4Keys {
+                        #[serde(with = "serde_private_key", rename = "private_key")]
+                        pub(crate) aci_private_key: PrivateKey,
+                        #[serde(with = "serde_identity_key", rename = "public_key")]
+                        pub(crate) aci_public_key: IdentityKey,
+                        #[serde(with = "serde_optional_private_key", default)]
+                        pub(crate) pni_private_key: Option<PrivateKey>,
+                        #[serde(with = "serde_optional_identity_key", default)]
+                        pub(crate) pni_public_key: Option<IdentityKey>,
+                    }
+
+                    let registration_data: Option<RegistrationDataV4Keys> =
+                        store.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?;
+                    if let Some(data) = registration_data {
+                        store.set_aci_identity_key_pair(IdentityKeyPair::new(
+                            data.aci_public_key,
+                            data.aci_private_key,
+                        ))?;
+                        if let Some((public_key, private_key)) =
+                            data.pni_public_key.zip(data.pni_private_key)
+                        {
+                            store.set_pni_identity_key_pair(IdentityKeyPair::new(
+                                public_key,
+                                private_key,
+                            ))?;
+                        }
+                    }
                 }
                 _ => return Err(SledStoreError::MigrationConflict),
             }
