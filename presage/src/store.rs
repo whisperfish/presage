@@ -12,7 +12,7 @@ use libsignal_service::{
         sync_message::{self, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{IdentityKey, ProtocolAddress, ProtocolStore, SenderKeyStore},
+    protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
     Profile,
@@ -31,6 +31,16 @@ pub trait StateStore {
 
     /// Load registered (or linked) state
     fn load_registration_data(&self) -> Result<Option<RegistrationData>, Self::StateStoreError>;
+
+    fn set_aci_identity_key_pair(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), Self::StateStoreError>;
+
+    fn set_pni_identity_key_pair(
+        &self,
+        key_pair: IdentityKeyPair,
+    ) -> Result<(), Self::StateStoreError>;
 
     /// Save registered (or linked) state
     fn save_registration_data(
@@ -62,6 +72,12 @@ pub trait ContentsStore: Send + Sync {
 
     /// Iterator over all stored sticker packs
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
+
+    // Clear all profiles
+    fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError>;
+
+    // Clear all stored messages
+    fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError>;
 
     // Messages
 
@@ -290,22 +306,24 @@ pub trait ContentsStore: Send + Sync {
 /// The manager store trait combining all other stores into a single one
 pub trait Store:
     StateStore<StateStoreError = Self::Error>
-    + PreKeysStore
     + ContentsStore<ContentsStoreError = Self::Error>
-    + ProtocolStore
-    + SenderKeyStore
-    + SessionStoreExt
     + Send
     + Sync
     + Clone
     + 'static
 {
     type Error: StoreError;
+    type AciStore: ProtocolStore + PreKeysStore + SenderKeyStore + SessionStoreExt + Sync + Clone;
+    type PniStore: ProtocolStore + PreKeysStore + SenderKeyStore + SessionStoreExt + Sync + Clone;
 
     /// Clear the entire store
     ///
     /// This can be useful when resetting an existing client.
     fn clear(&mut self) -> Result<(), <Self as StateStore>::StateStoreError>;
+
+    fn aci_protocol_store(&self) -> Self::AciStore;
+
+    fn pni_protocol_store(&self) -> Self::PniStore;
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.

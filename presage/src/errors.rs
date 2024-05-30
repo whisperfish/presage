@@ -41,7 +41,7 @@ pub enum Error<S: std::error::Error> {
     #[error("no provisioning message received")]
     NoProvisioningMessageReceived,
     #[error("qr code error")]
-    LinkError,
+    LinkingError,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
     #[error("message pipe not started, you need to start receiving messages before you can send anything back")]

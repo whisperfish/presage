@@ -13,6 +13,8 @@ pub enum SledStoreError {
     StoreCipher(#[from] presage_store_cipher::StoreCipherError),
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
+    #[error("base64 decode error: {0}")]
+    Base64Decode(#[from] base64::DecodeError),
     #[error("Prost error: {0}")]
     ProtobufDecode(#[from] prost::DecodeError),
     #[error("I/O error: {0}")]
@@ -27,8 +29,9 @@ pub enum SledStoreError {
 
 impl StoreError for SledStoreError {}
 
-impl SledStoreError {
-    pub(crate) fn into_signal_error(self) -> SignalProtocolError {
-        SignalProtocolError::InvalidState("presage error", self.to_string())
+impl From<SledStoreError> for SignalProtocolError {
+    fn from(error: SledStoreError) -> Self {
+        log::error!("presage store error: {error}");
+        Self::InvalidState("presage store error", error.to_string())
     }
 }

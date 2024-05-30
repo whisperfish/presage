@@ -20,8 +20,7 @@ use libsignal_service::proto::{
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-use libsignal_service::protocol::SenderCertificate;
-use libsignal_service::protocol::{PrivateKey, PublicKey};
+use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
@@ -31,10 +30,7 @@ use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
 use libsignal_service::sticker_cipher::derive_key;
 use libsignal_service::unidentified_access::UnidentifiedAccess;
-use libsignal_service::utils::{
-    serde_optional_private_key, serde_optional_public_key, serde_private_key, serde_public_key,
-    serde_signaling_key,
-};
+use libsignal_service::utils::serde_signaling_key;
 use libsignal_service::websocket::SignalWebSocket;
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
@@ -109,14 +105,6 @@ pub struct RegistrationData {
     pub registration_id: u32,
     #[serde(default)]
     pub pni_registration_id: Option<u32>,
-    #[serde(with = "serde_private_key", rename = "private_key")]
-    pub(crate) aci_private_key: PrivateKey,
-    #[serde(with = "serde_public_key", rename = "public_key")]
-    pub(crate) aci_public_key: PublicKey,
-    #[serde(with = "serde_optional_private_key", default)]
-    pub(crate) pni_private_key: Option<PrivateKey>,
-    #[serde(with = "serde_optional_public_key", default)]
-    pub(crate) pni_public_key: Option<PublicKey>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
 }
@@ -140,16 +128,6 @@ impl RegistrationData {
     /// The name of the device (if linked as secondary)
     pub fn device_name(&self) -> Option<&str> {
         self.device_name.as_deref()
-    }
-
-    /// Account identity public key
-    pub fn aci_public_key(&self) -> PublicKey {
-        self.aci_public_key
-    }
-
-    /// Account identity private key
-    pub fn aci_private_key(&self) -> PrivateKey {
-        self.aci_private_key
     }
 }
 
@@ -271,22 +249,22 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
-        // TODO: Do the same for PNI once implemented upstream.
-        let (pre_keys_offset_id, next_signed_pre_key_id, next_pq_pre_key_id) = account_manager
+        account_manager
             .update_pre_key_bundle(
-                &mut self.store.clone(),
+                &mut self.store.aci_protocol_store(),
                 ServiceIdType::AccountIdentity,
                 &mut self.rng,
                 true,
             )
             .await?;
 
-        self.store.set_next_pre_key_id(pre_keys_offset_id).await?;
-        self.store
-            .set_next_signed_pre_key_id(next_signed_pre_key_id)
-            .await?;
-        self.store
-            .set_next_pq_pre_key_id(next_pq_pre_key_id)
+        account_manager
+            .update_pre_key_bundle(
+                &mut self.store.pni_protocol_store(),
+                ServiceIdType::PhoneNumberIdentity,
+                &mut self.rng,
+                true,
+            )
             .await?;
 
         trace!("registered pre keys");
@@ -327,8 +305,11 @@ impl<S: Store> Manager<S, Registered> {
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
-                    gv2: true,
-                    gv1_migration: true,
+                    gift_badges: true,
+                    payment_activation: false,
+                    pni: true,
+                    sender_key: true,
+                    stories: false,
                     ..Default::default()
                 },
             })
@@ -606,12 +587,12 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        struct StreamState<S, C: ContentsStore + Send + Sync> {
-            encrypted_messages: S,
+        struct StreamState<Receiver, Store, AciStore> {
+            encrypted_messages: Receiver,
             message_receiver: MessageReceiver<HyperPushService>,
-            service_cipher: ServiceCipher<C>,
+            service_cipher: ServiceCipher<AciStore>,
             push_service: HyperPushService,
-            store: C,
+            store: Store,
             groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
             mode: ReceivingMode,
         }
@@ -811,6 +792,10 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let online_only = false;
+        // TODO: Populate this flag based on the recipient information
+        //
+        // Issue <https://github.com/whisperfish/presage/issues/252>
+        let include_pni_signature = false;
         let recipient = recipient_addr.into();
         let mut content_body: ContentBody = message.into();
 
@@ -855,6 +840,7 @@ impl<S: Store> Manager<S, Registered> {
                 content_body.clone(),
                 timestamp,
                 online_only,
+                include_pni_signature,
             )
             .await?;
 
@@ -953,7 +939,12 @@ impl<S: Store> Manager<S, Registered> {
                         key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
-            recipients.push((member.uuid.into(), unidentified_access));
+            let include_pni_signature = true;
+            recipients.push((
+                member.uuid.into(),
+                unidentified_access,
+                include_pni_signature,
+            ));
         }
 
         let online_only = false;
@@ -1002,7 +993,15 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
     pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<S::Error>> {
-        self.store.delete_all_sessions(recipient).await?;
+        use libsignal_service::session_store::SessionStoreExt;
+        self.store
+            .aci_protocol_store()
+            .delete_all_sessions(recipient)
+            .await?;
+        self.store
+            .pni_protocol_store()
+            .delete_all_sessions(recipient)
+            .await?;
         Ok(())
     }
 
@@ -1152,13 +1151,17 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Creates a new message sender.
-    async fn new_message_sender(&self) -> Result<MessageSender<S>, Error<S::Error>> {
-        let local_addr = ServiceAddress {
-            uuid: self.state.data.service_ids.aci,
-        };
-
+    async fn new_message_sender(&self) -> Result<MessageSender<S::AciStore>, Error<S::Error>> {
         let identified_websocket = self.identified_websocket(false).await?;
         let unidentified_websocket = self.unidentified_websocket().await?;
+
+        let aci_protocol_store = self.store.aci_protocol_store();
+        let aci_identity_keypair = aci_protocol_store.get_identity_key_pair().await?;
+        let pni_identity_keypair = self
+            .store
+            .pni_protocol_store()
+            .get_identity_key_pair()
+            .await?;
 
         Ok(MessageSender::new(
             identified_websocket,
@@ -1166,16 +1169,19 @@ impl<S: Store> Manager<S, Registered> {
             self.identified_push_service(),
             self.new_service_cipher()?,
             self.rng.clone(),
-            self.store.clone(),
-            local_addr,
+            aci_protocol_store,
+            self.state.data.service_ids.aci,
+            self.state.data.service_ids.pni,
+            aci_identity_keypair,
+            Some(pni_identity_keypair),
             self.state.device_id().into(),
         ))
     }
 
     /// Creates a new service cipher.
-    fn new_service_cipher(&self) -> Result<ServiceCipher<S>, Error<S::Error>> {
+    fn new_service_cipher(&self) -> Result<ServiceCipher<S::AciStore>, Error<S::Error>> {
         let service_cipher = ServiceCipher::new(
-            self.store.clone(),
+            self.store.aci_protocol_store(),
             self.rng.clone(),
             self.state
                 .service_configuration()
