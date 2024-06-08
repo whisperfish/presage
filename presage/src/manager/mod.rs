@@ -11,7 +11,7 @@ use rand::rngs::StdRng;
 
 pub use self::confirmation::Confirmation;
 pub use self::linking::Linking;
-pub use self::registered::{ReceivingMode, Registered, RegistrationData};
+pub use self::registered::{ReceivingMode, Registered, RegistrationData, RegistrationType};
 pub use self::registration::{Registration, RegistrationOptions};
 
 /// Signal manager

@@ -23,8 +23,8 @@ use libsignal_service::proto::{
 use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIdType, ServiceIds,
-    WhoAmIResponse, DEFAULT_DEVICE_ID,
+    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIdType,
+    ServiceIds, WhoAmIResponse, DEFAULT_DEVICE_ID,
 };
 use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
@@ -42,6 +42,7 @@ use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
+use url::Url;
 
 use crate::cache::CacheCell;
 use crate::serde::serde_profile_key;
@@ -50,6 +51,12 @@ use crate::{AvatarBytes, Error, Manager};
 
 type ServiceCipher<S> = cipher::ServiceCipher<S, StdRng>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<HyperPushService, S, StdRng>;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum RegistrationType {
+    Primary,
+    Secondary,
+}
 
 /// Manager state when the client is registered and can send and receive messages from Signal
 #[derive(Clone)]
@@ -1214,6 +1221,68 @@ impl<S: Store> Manager<S, Registered> {
                 None => Ok("".to_string()),
             },
         }
+    }
+
+    /// Returns how this client was registered, either as a primary or secondary device.
+    pub fn registration_type(&self) -> RegistrationType {
+        if self.state.data.device_name.is_some() {
+            RegistrationType::Secondary
+        } else {
+            RegistrationType::Primary
+        }
+    }
+
+    /// As a primary device, link a secondary device.
+    pub async fn link_secondary(&self, secondary: Url) -> Result<(), Error<S::Error>> {
+        // XXX: What happens if secondary device? Possible to use static typing to make this method call impossible in that case?
+        if self.registration_type() != RegistrationType::Primary {
+            return Err(Error::NotPrimaryDevice);
+        }
+
+        let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            Some(self.state.data.profile_key),
+        );
+        let store = self.store();
+
+        account_manager
+            .link_device(
+                secondary,
+                &store.aci_protocol_store(),
+                &store.pni_protocol_store(),
+                credentials,
+            )
+            .await?;
+        Ok(())
+    }
+
+    /// As a primary device, unlink a secondary device.
+    pub async fn unlink_secondary(&self, device_id: i64) -> Result<(), Error<S::Error>> {
+        // XXX: What happens if secondary device? Possible to use static typing to make this method call impossible in that case?
+        if self.registration_type() != RegistrationType::Primary {
+            return Err(Error::NotPrimaryDevice);
+        }
+        self.identified_push_service()
+            .unlink_device(device_id)
+            .await?;
+        Ok(())
+    }
+
+    /// As a primary device, list all the devices (uncluding the current device).
+    pub async fn devices(&self) -> Result<Vec<DeviceInfo>, Error<S::Error>> {
+        // XXX: What happens if secondary device? Possible to use static typing to make this method call impossible in that case?
+        if self.registration_type() != RegistrationType::Primary {
+            return Err(Error::<S::Error>::NotPrimaryDevice);
+        }
+
+        let aci_protocol_store = self.store.aci_protocol_store();
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            Some(self.state.data.profile_key),
+        );
+
+        Ok(account_manager.linked_devices(&aci_protocol_store).await?)
     }
 
     /// Deprecated methods

@@ -72,6 +72,8 @@ pub enum Error<S: std::error::Error> {
     UnverifiedRegistrationSession,
     #[error("profile cipher error")]
     ProfileCipherError(#[from] libsignal_service::profile_cipher::ProfileCipherError),
+    #[error("An operation was requested that requires the registration to be primary, but it was only secondary")]
+    NotPrimaryDevice,
 }
 
 impl<S: StoreError> From<S> for Error<S> {

@@ -514,7 +514,9 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 async move {
                     match provisioning_link_rx.await {
                         Ok(url) => {
-                            qr2term::print_qr(url.to_string()).expect("failed to render qrcode")
+                            println!("Please scan in the QR code:");
+                            qr2term::print_qr(url.to_string()).expect("failed to render qrcode");
+                            println!("Alternatively, use the URL: {}", url);
                         }
                         Err(e) => log::error!("Error linking device: {e}"),
                     }
