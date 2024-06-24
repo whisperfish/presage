@@ -655,7 +655,7 @@ mod tests {
     use presage::{
         libsignal_service::protocol::{
             self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyRecord, PreKeyStore,
-            SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore,
+            SessionRecord, SessionStore, SignedPreKeyRecord, SignedPreKeyStore, Timestamp,
         },
         store::Store,
     };
@@ -746,7 +746,12 @@ mod tests {
     ) -> bool {
         let mut db = SledStore::temporary().unwrap().aci_protocol_store();
         let id = id.into();
-        let signed_pre_key_record = SignedPreKeyRecord::new(id, timestamp, &key_pair.0, &signature);
+        let signed_pre_key_record = SignedPreKeyRecord::new(
+            id,
+            Timestamp::from_epoch_millis(timestamp),
+            &key_pair.0,
+            &signature,
+        );
         db.save_signed_pre_key(id, &signed_pre_key_record)
             .await
             .unwrap();
