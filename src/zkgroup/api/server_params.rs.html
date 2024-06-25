@@ -1,6 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/f980fcc/rust/zkgroup/src/api/server_params.rs`."><title>server_params.rs - source</title><script> if (window.location.protocol !== "file:") document.write(`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2">`)</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e935ef01ae1c1829.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.78.0 (9b00956e5 2024-04-29)" data-channel="1.78.0" data-search-js="search-42d8da7a6b9792c2.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-4c98445ec4002617.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-12cf3b4f4f9dc36d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-04d5337699b92874.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title">
-            <h2>Files</h2></div></nav><div class="sidebar-resizer"></div>
-    <main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../zkgroup/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/95bf4e7/rust/zkgroup/src/api/server_params.rs`."><title>server_params.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-081576b923113409.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.79.0 (129f3b996 2024-06-10)" data-channel="1.79.0" data-search-js="search-bf21c90c8c1d92b1.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-e32f0c247825364d.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-09095024cf37855e.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><nav class="sub"><form class="search-form"><span></span><div id="sidebar-button" tabindex="-1"><a href="../../../zkgroup/all.html" title="show sidebar"></a></div><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Type ‘S’ or ‘/’ to search, ‘?’ for more options…" type="search"><div id="help-button" tabindex="-1"><a href="../../../help.html" title="help">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../../settings.html" title="settings">Settings</a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -663,149 +661,6 @@
 <a href="#661" id="661">661</a>
 <a href="#662" id="662">662</a>
 <a href="#663" id="663">663</a>
-<a href="#664" id="664">664</a>
-<a href="#665" id="665">665</a>
-<a href="#666" id="666">666</a>
-<a href="#667" id="667">667</a>
-<a href="#668" id="668">668</a>
-<a href="#669" id="669">669</a>
-<a href="#670" id="670">670</a>
-<a href="#671" id="671">671</a>
-<a href="#672" id="672">672</a>
-<a href="#673" id="673">673</a>
-<a href="#674" id="674">674</a>
-<a href="#675" id="675">675</a>
-<a href="#676" id="676">676</a>
-<a href="#677" id="677">677</a>
-<a href="#678" id="678">678</a>
-<a href="#679" id="679">679</a>
-<a href="#680" id="680">680</a>
-<a href="#681" id="681">681</a>
-<a href="#682" id="682">682</a>
-<a href="#683" id="683">683</a>
-<a href="#684" id="684">684</a>
-<a href="#685" id="685">685</a>
-<a href="#686" id="686">686</a>
-<a href="#687" id="687">687</a>
-<a href="#688" id="688">688</a>
-<a href="#689" id="689">689</a>
-<a href="#690" id="690">690</a>
-<a href="#691" id="691">691</a>
-<a href="#692" id="692">692</a>
-<a href="#693" id="693">693</a>
-<a href="#694" id="694">694</a>
-<a href="#695" id="695">695</a>
-<a href="#696" id="696">696</a>
-<a href="#697" id="697">697</a>
-<a href="#698" id="698">698</a>
-<a href="#699" id="699">699</a>
-<a href="#700" id="700">700</a>
-<a href="#701" id="701">701</a>
-<a href="#702" id="702">702</a>
-<a href="#703" id="703">703</a>
-<a href="#704" id="704">704</a>
-<a href="#705" id="705">705</a>
-<a href="#706" id="706">706</a>
-<a href="#707" id="707">707</a>
-<a href="#708" id="708">708</a>
-<a href="#709" id="709">709</a>
-<a href="#710" id="710">710</a>
-<a href="#711" id="711">711</a>
-<a href="#712" id="712">712</a>
-<a href="#713" id="713">713</a>
-<a href="#714" id="714">714</a>
-<a href="#715" id="715">715</a>
-<a href="#716" id="716">716</a>
-<a href="#717" id="717">717</a>
-<a href="#718" id="718">718</a>
-<a href="#719" id="719">719</a>
-<a href="#720" id="720">720</a>
-<a href="#721" id="721">721</a>
-<a href="#722" id="722">722</a>
-<a href="#723" id="723">723</a>
-<a href="#724" id="724">724</a>
-<a href="#725" id="725">725</a>
-<a href="#726" id="726">726</a>
-<a href="#727" id="727">727</a>
-<a href="#728" id="728">728</a>
-<a href="#729" id="729">729</a>
-<a href="#730" id="730">730</a>
-<a href="#731" id="731">731</a>
-<a href="#732" id="732">732</a>
-<a href="#733" id="733">733</a>
-<a href="#734" id="734">734</a>
-<a href="#735" id="735">735</a>
-<a href="#736" id="736">736</a>
-<a href="#737" id="737">737</a>
-<a href="#738" id="738">738</a>
-<a href="#739" id="739">739</a>
-<a href="#740" id="740">740</a>
-<a href="#741" id="741">741</a>
-<a href="#742" id="742">742</a>
-<a href="#743" id="743">743</a>
-<a href="#744" id="744">744</a>
-<a href="#745" id="745">745</a>
-<a href="#746" id="746">746</a>
-<a href="#747" id="747">747</a>
-<a href="#748" id="748">748</a>
-<a href="#749" id="749">749</a>
-<a href="#750" id="750">750</a>
-<a href="#751" id="751">751</a>
-<a href="#752" id="752">752</a>
-<a href="#753" id="753">753</a>
-<a href="#754" id="754">754</a>
-<a href="#755" id="755">755</a>
-<a href="#756" id="756">756</a>
-<a href="#757" id="757">757</a>
-<a href="#758" id="758">758</a>
-<a href="#759" id="759">759</a>
-<a href="#760" id="760">760</a>
-<a href="#761" id="761">761</a>
-<a href="#762" id="762">762</a>
-<a href="#763" id="763">763</a>
-<a href="#764" id="764">764</a>
-<a href="#765" id="765">765</a>
-<a href="#766" id="766">766</a>
-<a href="#767" id="767">767</a>
-<a href="#768" id="768">768</a>
-<a href="#769" id="769">769</a>
-<a href="#770" id="770">770</a>
-<a href="#771" id="771">771</a>
-<a href="#772" id="772">772</a>
-<a href="#773" id="773">773</a>
-<a href="#774" id="774">774</a>
-<a href="#775" id="775">775</a>
-<a href="#776" id="776">776</a>
-<a href="#777" id="777">777</a>
-<a href="#778" id="778">778</a>
-<a href="#779" id="779">779</a>
-<a href="#780" id="780">780</a>
-<a href="#781" id="781">781</a>
-<a href="#782" id="782">782</a>
-<a href="#783" id="783">783</a>
-<a href="#784" id="784">784</a>
-<a href="#785" id="785">785</a>
-<a href="#786" id="786">786</a>
-<a href="#787" id="787">787</a>
-<a href="#788" id="788">788</a>
-<a href="#789" id="789">789</a>
-<a href="#790" id="790">790</a>
-<a href="#791" id="791">791</a>
-<a href="#792" id="792">792</a>
-<a href="#793" id="793">793</a>
-<a href="#794" id="794">794</a>
-<a href="#795" id="795">795</a>
-<a href="#796" id="796">796</a>
-<a href="#797" id="797">797</a>
-<a href="#798" id="798">798</a>
-<a href="#799" id="799">799</a>
-<a href="#800" id="800">800</a>
-<a href="#801" id="801">801</a>
-<a href="#802" id="802">802</a>
-<a href="#803" id="803">803</a>
-<a href="#804" id="804">804</a>
-<a href="#805" id="805">805</a>
-<a href="#806" id="806">806</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020-2022 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
@@ -816,15 +671,16 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::common::constants::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::common::errors::<span class="kw-2">*</span>;
+<span class="kw">use </span><span class="kw">crate</span>::common::serialization::{ReservedByte, VersionByte};
 <span class="kw">use </span><span class="kw">crate</span>::common::sho::<span class="kw-2">*</span>;
 <span class="kw">use </span><span class="kw">crate</span>::common::simple_types::<span class="kw-2">*</span>;
 <span class="kw">use crate</span>::{api, crypto};
 
 <span class="attr">#[derive(Clone, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>ServerSecretParams {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) reserved: ReservedBytes,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) auth_credentials_key_pair:
-        crypto::credentials::KeyPair&lt;crypto::credentials::AuthCredential&gt;,
+    reserved: ReservedByte,
+    <span class="comment">// Now unused
+    </span>auth_credentials_key_pair: crypto::credentials::KeyPair&lt;crypto::credentials::AuthCredential&gt;,
 
     <span class="comment">// Now unused
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) profile_key_credentials_key_pair:
@@ -843,12 +699,14 @@
         crypto::credentials::KeyPair&lt;crypto::credentials::AuthCredentialWithPni&gt;,
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) generic_credential_key_pair: zkcredential::credentials::CredentialKeyPair,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) endorsement_key_pair: zkcredential::endorsements::ServerRootKeyPair,
 }
 
 <span class="attr">#[derive(Clone, Serialize, Deserialize, PartialDefault)]
 </span><span class="kw">pub struct </span>ServerPublicParams {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) reserved: ReservedBytes,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) auth_credentials_public_key: crypto::credentials::PublicKey,
+    reserved: ReservedByte,
+    <span class="comment">// Now unused
+    </span>auth_credentials_public_key: crypto::credentials::PublicKey,
 
     <span class="comment">// Now unused
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) profile_key_credentials_public_key: crypto::credentials::PublicKey,
@@ -863,6 +721,7 @@
     auth_credentials_with_pni_public_key: crypto::credentials::PublicKey,
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) generic_credential_public_key: zkcredential::credentials::CredentialPublicKey,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) endorsement_public_key: zkcredential::endorsements::ServerRootPublicKey,
 }
 
 <span class="kw">impl </span>ServerSecretParams {
@@ -882,6 +741,8 @@
         <span class="kw">let </span>auth_credentials_with_pni_key_pair = crypto::credentials::KeyPair::generate(<span class="kw-2">&amp;mut </span>sho);
         <span class="kw">let </span>generic_credential_key_pair =
             zkcredential::credentials::CredentialKeyPair::generate(randomness);
+        <span class="kw">let </span>endorsement_key_pair =
+            zkcredential::endorsements::ServerRootKeyPair::generate(randomness);
 
         <span class="self">Self </span>{
             reserved: Default::default(),
@@ -893,6 +754,7 @@
             expiring_profile_key_credentials_key_pair,
             auth_credentials_with_pni_key_pair,
             generic_credential_key_pair,
+            endorsement_key_pair,
         }
     }
 
@@ -913,6 +775,7 @@
                 </span>.auth_credentials_with_pni_key_pair
                 .get_public_key(),
             generic_credential_public_key: <span class="self">self</span>.generic_credential_key_pair.public_key().clone(),
+            endorsement_public_key: <span class="self">self</span>.endorsement_key_pair.public_key().clone(),
         }
     }
 
@@ -924,42 +787,12 @@
         <span class="self">self</span>.sig_key_pair.sign(message, <span class="kw-2">&amp;mut </span>sho)
     }
 
-    <span class="kw">pub fn </span>issue_auth_credential(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        randomness: RandomnessBytes,
-        aci: libsignal_core::Aci,
-        redemption_time: CoarseRedemptionTime,
-    ) -&gt; api::auth::AuthCredentialResponse {
-        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b"Signal_ZKGroup_20200424_Random_ServerSecretParams_IssueAuthCredential"</span>,
-            <span class="kw-2">&amp;</span>randomness,
-        );
-
-        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::from_service_id(aci.into());
-        <span class="kw">let </span>credential =
-            <span class="self">self</span>.auth_credentials_key_pair
-                .create_auth_credential(uid, redemption_time, <span class="kw-2">&amp;mut </span>sho);
-        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialIssuanceProof::new(
-            <span class="self">self</span>.auth_credentials_key_pair,
-            credential,
-            uid,
-            redemption_time,
-            <span class="kw-2">&amp;mut </span>sho,
-        );
-        api::auth::AuthCredentialResponse {
-            reserved: Default::default(),
-            credential,
-            proof,
-        }
-    }
-
-    <span class="kw">fn </span>issue_auth_credential_with_pni(
+    <span class="kw">pub fn </span>issue_auth_credential_with_pni_as_service_id(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         randomness: RandomnessBytes,
         aci: libsignal_core::Aci,
         pni: libsignal_core::Pni,
         redemption_time: Timestamp,
-        encode_pni_as_aci_for_backward_compatibility: bool,
     ) -&gt; api::auth::AuthCredentialWithPniResponse {
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b"Signal_ZKGroup_20220617_Random_ServerSecretParams_IssueAuthCredentialWithPni"</span>,
@@ -967,12 +800,7 @@
         );
 
         <span class="kw">let </span>aci_struct = crypto::uid_struct::UidStruct::from_service_id(aci.into());
-        <span class="kw">let </span>pni_struct = <span class="kw">if </span>encode_pni_as_aci_for_backward_compatibility {
-            <span class="kw">let </span>pni_as_aci = libsignal_core::Aci::from(uuid::Uuid::from(pni));
-            crypto::uid_struct::UidStruct::from_service_id(pni_as_aci.into())
-        } <span class="kw">else </span>{
-            crypto::uid_struct::UidStruct::from_service_id(pni.into())
-        };
+        <span class="kw">let </span>pni_struct = crypto::uid_struct::UidStruct::from_service_id(pni.into());
         <span class="kw">let </span>credential = <span class="self">self
             </span>.auth_credentials_with_pni_key_pair
             .create_auth_credential_with_pni(aci_struct, pni_struct, redemption_time, <span class="kw-2">&amp;mut </span>sho);
@@ -984,46 +812,31 @@
             redemption_time,
             <span class="kw-2">&amp;mut </span>sho,
         );
-        api::auth::AuthCredentialWithPniResponse {
-            reserved: Default::default(),
+        api::auth::AuthCredentialWithPniV0Response {
+            version: VersionByte,
             credential,
             proof,
         }
+        .into()
     }
 
-    <span class="kw">pub fn </span>issue_auth_credential_with_pni_as_service_id(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        randomness: RandomnessBytes,
-        aci: libsignal_core::Aci,
-        pni: libsignal_core::Pni,
-        redemption_time: Timestamp,
-    ) -&gt; api::auth::AuthCredentialWithPniResponse {
-        <span class="self">self</span>.issue_auth_credential_with_pni(randomness, aci, pni, redemption_time, <span class="bool-val">false</span>)
-    }
-
-    <span class="kw">pub fn </span>issue_auth_credential_with_pni_as_aci(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        randomness: RandomnessBytes,
-        aci: libsignal_core::Aci,
-        pni: libsignal_core::Pni,
-        redemption_time: Timestamp,
-    ) -&gt; api::auth::AuthCredentialWithPniResponse {
-        <span class="self">self</span>.issue_auth_credential_with_pni(randomness, aci, pni, redemption_time, <span class="bool-val">true</span>)
-    }
-
-    <span class="doccomment">/// Checks that `current_time_in_seconds` is within the validity window defined by
-    /// `redemption_time_in_seconds`.
+    <span class="doccomment">/// Checks that `current_time` is within the validity window defined by
+    /// `redemption_time`.
     ///
     /// All times are relative to SystemTime::UNIX_EPOCH,
     /// but we don't actually use SystemTime because it's too small on 32-bit Linux.
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>check_auth_credential_redemption_time(
-        redemption_time_in_seconds: Timestamp,
-        current_time_in_seconds: Timestamp,
+        redemption_time: Timestamp,
+        current_time: Timestamp,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
-        <span class="kw">let </span>acceptable_start_time = redemption_time_in_seconds - SECONDS_PER_DAY;
-        <span class="kw">let </span>acceptable_end_time = redemption_time_in_seconds + <span class="number">2 </span>* SECONDS_PER_DAY;
+        <span class="kw">let </span>acceptable_start_time = redemption_time
+            .checked_sub_seconds(SECONDS_PER_DAY)
+            .ok_or(ZkGroupVerificationFailure)<span class="question-mark">?</span>;
+        <span class="kw">let </span>acceptable_end_time = redemption_time
+            .checked_add_seconds(<span class="number">2 </span>* SECONDS_PER_DAY)
+            .ok_or(ZkGroupVerificationFailure)<span class="question-mark">?</span>;
 
-        <span class="kw">if </span>!(acceptable_start_time..=acceptable_end_time).contains(<span class="kw-2">&amp;</span>current_time_in_seconds) {
+        <span class="kw">if </span>!(acceptable_start_time..=acceptable_end_time).contains(<span class="kw-2">&amp;</span>current_time) {
             <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
 
@@ -1034,23 +847,14 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         group_public_params: api::groups::GroupPublicParams,
         presentation: <span class="kw-2">&amp;</span>api::auth::AnyAuthCredentialPresentation,
-        current_time_in_seconds: Timestamp,
+        current_time: Timestamp,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
         <span class="self">Self</span>::check_auth_credential_redemption_time(
             presentation.get_redemption_time(),
-            current_time_in_seconds,
+            current_time,
         )<span class="question-mark">?</span>;
 
         <span class="kw">match </span>presentation {
-            api::auth::AnyAuthCredentialPresentation::V2(presentation) =&gt; {
-                presentation.proof.verify(
-                    <span class="self">self</span>.auth_credentials_key_pair,
-                    group_public_params.uid_enc_public_key,
-                    presentation.ciphertext,
-                    presentation.redemption_time,
-                )
-            }
-
             api::auth::AnyAuthCredentialPresentation::V3(presentation) =&gt; {
                 presentation.proof.verify(
                     <span class="self">self</span>.auth_credentials_with_pni_key_pair,
@@ -1060,36 +864,22 @@
                     presentation.redemption_time,
                 )
             }
-        }
-    }
 
-    <span class="kw">pub fn </span>verify_auth_credential_presentation_v2(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        group_public_params: api::groups::GroupPublicParams,
-        presentation: <span class="kw-2">&amp;</span>api::auth::AuthCredentialPresentationV2,
-        current_time_in_days: CoarseRedemptionTime,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
-        <span class="self">Self</span>::check_auth_credential_redemption_time(
-            u64::from(presentation.get_redemption_time()) * SECONDS_PER_DAY,
-            u64::from(current_time_in_days) * SECONDS_PER_DAY,
-        )<span class="question-mark">?</span>;
-        presentation.proof.verify(
-            <span class="self">self</span>.auth_credentials_key_pair,
-            group_public_params.uid_enc_public_key,
-            presentation.ciphertext,
-            presentation.redemption_time,
-        )
+            api::auth::AnyAuthCredentialPresentation::V4(presentation) =&gt; {
+                presentation.verify(<span class="self">self</span>, <span class="kw-2">&amp;</span>group_public_params, presentation.redemption_time())
+            }
+        }
     }
 
     <span class="kw">pub fn </span>verify_auth_credential_with_pni_presentation(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         group_public_params: api::groups::GroupPublicParams,
         presentation: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniPresentation,
-        current_time_in_seconds: Timestamp,
+        current_time: Timestamp,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), ZkGroupVerificationFailure&gt; {
         <span class="self">Self</span>::check_auth_credential_redemption_time(
             presentation.get_redemption_time(),
-            current_time_in_seconds,
+            current_time,
         )<span class="question-mark">?</span>;
         presentation.proof.verify(
             <span class="self">self</span>.auth_credentials_with_pni_key_pair,
@@ -1192,7 +982,7 @@
         );
 
         <span class="prelude-val">Ok</span>(api::profiles::ExpiringProfileKeyCredentialResponse {
-            version: Default::default(),
+            reserved: Default::default(),
             blinded_credential: blinded_credential_with_secret_nonce
                 .get_blinded_expiring_profile_key_credential(),
             credential_expiration_time,
@@ -1262,46 +1052,23 @@
         <span class="self">self</span>.sig_public_key.verify(message, signature)
     }
 
-    <span class="kw">pub fn </span>receive_auth_credential(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_core::Aci,
-        redemption_time: CoarseRedemptionTime,
-        response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialResponse,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredential, ZkGroupVerificationFailure&gt; {
-        <span class="kw">let </span>uid = crypto::uid_struct::UidStruct::from_service_id(aci.into());
-        response.proof.verify(
-            <span class="self">self</span>.auth_credentials_public_key,
-            response.credential,
-            uid,
-            redemption_time,
-        )<span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(api::auth::AuthCredential {
-            reserved: Default::default(),
-            credential: response.credential,
-            uid,
-            redemption_time,
-        })
-    }
-
-    <span class="kw">fn </span>receive_auth_credential_with_pni(
+    <span class="kw">pub fn </span>receive_auth_credential_with_pni_as_service_id(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         aci: libsignal_core::Aci,
         pni: libsignal_core::Pni,
         redemption_time: Timestamp,
-        response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
-        encode_pni_as_aci_for_backward_compatibility: bool,
+        response: api::auth::AuthCredentialWithPniResponse,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredentialWithPni, ZkGroupVerificationFailure&gt; {
-        <span class="kw">let </span>aci_struct = crypto::uid_struct::UidStruct::from_service_id(aci.into());
-        <span class="kw">let </span>pni_struct = <span class="kw">if </span>encode_pni_as_aci_for_backward_compatibility {
-            <span class="comment">// Older AuthCredentialWithPnis used the same encoding for PNIs as ACIs.
-            // This won't match up with UuidCiphertexts that hold correctly-encoded PNIs,
-            // but can still be used as a valid ACI credential.
-            </span><span class="kw">let </span>pni_as_aci = libsignal_core::Aci::from(uuid::Uuid::from(pni));
-            crypto::uid_struct::UidStruct::from_service_id(pni_as_aci.into())
-        } <span class="kw">else </span>{
-            crypto::uid_struct::UidStruct::from_service_id(pni.into())
+        <span class="kw">let </span>response = <span class="kw">match </span>response {
+            api::auth::AuthCredentialWithPniResponse::Zkc(response) =&gt; {
+                <span class="kw">return </span>response
+                    .receive(aci, pni, redemption_time, <span class="self">self</span>)
+                    .map(Into::into)
+            }
+            api::auth::AuthCredentialWithPniResponse::V0(response) =&gt; response,
         };
+        <span class="kw">let </span>aci_struct = crypto::uid_struct::UidStruct::from_service_id(aci.into());
+        <span class="kw">let </span>pni_struct = crypto::uid_struct::UidStruct::from_service_id(pni.into());
         response.proof.verify(
             <span class="self">self</span>.auth_credentials_with_pni_public_key,
             response.credential,
@@ -1310,78 +1077,14 @@
             redemption_time,
         )<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(api::auth::AuthCredentialWithPni {
-            reserved: Default::default(),
+        <span class="prelude-val">Ok</span>(api::auth::AuthCredentialWithPniV0 {
+            version: VersionByte,
             credential: response.credential,
             aci: aci_struct,
             pni: pni_struct,
             redemption_time,
-        })
-    }
-
-    <span class="kw">pub fn </span>receive_auth_credential_with_pni_as_service_id(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_core::Aci,
-        pni: libsignal_core::Pni,
-        redemption_time: Timestamp,
-        response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredentialWithPni, ZkGroupVerificationFailure&gt; {
-        <span class="self">self</span>.receive_auth_credential_with_pni(aci, pni, redemption_time, response, <span class="bool-val">false</span>)
-    }
-
-    <span class="kw">pub fn </span>receive_auth_credential_with_pni_as_aci(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        aci: libsignal_core::Aci,
-        pni: libsignal_core::Pni,
-        redemption_time: Timestamp,
-        response: <span class="kw-2">&amp;</span>api::auth::AuthCredentialWithPniResponse,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;api::auth::AuthCredentialWithPni, ZkGroupVerificationFailure&gt; {
-        <span class="self">self</span>.receive_auth_credential_with_pni(aci, pni, redemption_time, response, <span class="bool-val">true</span>)
-    }
-
-    <span class="kw">pub fn </span>create_auth_credential_presentation(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        randomness: RandomnessBytes,
-        group_secret_params: api::groups::GroupSecretParams,
-        auth_credential: api::auth::AuthCredential,
-    ) -&gt; api::auth::AnyAuthCredentialPresentation {
-        <span class="kw">let </span>presentation_v2 = <span class="self">self</span>.create_auth_credential_presentation_v2(
-            randomness,
-            group_secret_params,
-            auth_credential,
-        );
-        api::auth::AnyAuthCredentialPresentation::V2(presentation_v2)
-    }
-
-    <span class="kw">pub fn </span>create_auth_credential_presentation_v2(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        randomness: RandomnessBytes,
-        group_secret_params: api::groups::GroupSecretParams,
-        auth_credential: api::auth::AuthCredential,
-    ) -&gt; api::auth::AuthCredentialPresentationV2 {
-        <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
-            <span class="string">b"Signal_ZKGroup_20220120_Random_ServerPublicParams_CreateAuthCredentialPresentationV2"</span>,
-            <span class="kw-2">&amp;</span>randomness,
-        );
-
-        <span class="kw">let </span>uuid_ciphertext = group_secret_params.encrypt_uid_struct(auth_credential.uid);
-
-        <span class="kw">let </span>proof = crypto::proofs::AuthCredentialPresentationProofV2::new(
-            <span class="self">self</span>.auth_credentials_public_key,
-            group_secret_params.uid_enc_key_pair,
-            auth_credential.credential,
-            auth_credential.uid,
-            uuid_ciphertext.ciphertext,
-            auth_credential.redemption_time,
-            <span class="kw-2">&amp;mut </span>sho,
-        );
-
-        api::auth::AuthCredentialPresentationV2 {
-            version: [PRESENTATION_VERSION_2],
-            proof,
-            ciphertext: uuid_ciphertext.ciphertext,
-            redemption_time: auth_credential.redemption_time,
         }
+        .into())
     }
 
     <span class="kw">pub fn </span>create_auth_credential_with_pni_presentation(
@@ -1389,7 +1092,15 @@
         randomness: RandomnessBytes,
         group_secret_params: api::groups::GroupSecretParams,
         auth_credential: api::auth::AuthCredentialWithPni,
-    ) -&gt; api::auth::AuthCredentialWithPniPresentation {
+    ) -&gt; api::auth::AnyAuthCredentialPresentation {
+        <span class="kw">let </span>auth_credential = <span class="kw">match </span>auth_credential {
+            api::auth::AuthCredentialWithPni::Zkc(auth_credential) =&gt; {
+                <span class="kw">return </span>auth_credential
+                    .present(<span class="self">self</span>, <span class="kw-2">&amp;</span>group_secret_params, randomness)
+                    .into()
+            }
+            api::auth::AuthCredentialWithPni::V0(auth_credential) =&gt; auth_credential,
+        };
         <span class="kw">let </span><span class="kw-2">mut </span>sho = Sho::new(
             <span class="string">b"Signal_ZKGroup_20220617_Random_ServerPublicParams_CreateAuthCredentialWithPniPresentation"</span>,
             <span class="kw-2">&amp;</span>randomness,
@@ -1411,12 +1122,13 @@
         );
 
         api::auth::AuthCredentialWithPniPresentation {
-            version: [PRESENTATION_VERSION_3],
+            version: VersionByte,
             proof,
             aci_ciphertext: aci_ciphertext.ciphertext,
             pni_ciphertext: pni_ciphertext.ciphertext,
             redemption_time: auth_credential.redemption_time,
         }
+        .into()
     }
 
     <span class="kw">pub fn </span>create_profile_key_credential_request_context(
@@ -1474,12 +1186,12 @@
             response.credential_expiration_time,
         )<span class="question-mark">?</span>;
 
-        <span class="kw">if </span>response.credential_expiration_time % SECONDS_PER_DAY != <span class="number">0 </span>{
+        <span class="kw">if </span>!response.credential_expiration_time.is_day_aligned() {
             <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
         }
         <span class="kw">let </span>days_remaining = response
             .credential_expiration_time
-            .saturating_sub(current_time)
+            .saturating_seconds_since(current_time)
             / SECONDS_PER_DAY;
         <span class="kw">if </span>days_remaining == <span class="number">0 </span>|| days_remaining &gt; <span class="number">7 </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(ZkGroupVerificationFailure);
@@ -1490,7 +1202,7 @@
             .decrypt_blinded_expiring_profile_key_credential(response.blinded_credential);
 
         <span class="prelude-val">Ok</span>(api::profiles::ExpiringProfileKeyCredential {
-            version: Default::default(),
+            reserved: Default::default(),
             credential,
             aci_bytes: context.aci_bytes,
             profile_key_bytes: context.profile_key_bytes,
@@ -1531,7 +1243,7 @@
         );
 
         api::profiles::ExpiringProfileKeyCredentialPresentation {
-            version: [PRESENTATION_VERSION_3],
+            version: VersionByte,
             proof,
             uid_enc_ciphertext: uuid_ciphertext.ciphertext,
             profile_key_enc_ciphertext: profile_key_ciphertext.ciphertext,

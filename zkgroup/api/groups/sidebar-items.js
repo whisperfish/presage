@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"mod":["group_params","profile_key_ciphertext","uuid_ciphertext"],"struct":["GroupSendCredential","GroupSendCredentialPresentation","GroupSendCredentialResponse"]};
+window.SIDEBAR_ITEMS = {"mod":["group_params","profile_key_ciphertext","uuid_ciphertext"],"struct":["GroupSendDerivedKeyPair","GroupSendEndorsement","GroupSendEndorsementsResponse","GroupSendFullToken","GroupSendToken"]};

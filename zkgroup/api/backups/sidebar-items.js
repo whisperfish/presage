@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["BackupAuthCredential","BackupAuthCredentialPresentation","BackupAuthCredentialRequest","BackupAuthCredentialRequestContext","BackupAuthCredentialResponse"]};
+window.SIDEBAR_ITEMS = {"enum":["BackupLevel"],"struct":["BackupAuthCredential","BackupAuthCredentialPresentation","BackupAuthCredentialRequest","BackupAuthCredentialRequestContext","BackupAuthCredentialResponse"]};
