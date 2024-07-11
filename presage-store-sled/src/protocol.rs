@@ -67,6 +67,17 @@ impl<T: SledTrees> SledProtocolStore<T> {
             .and_then(|data| Some(u32::from_be_bytes(data.as_ref().try_into().ok()?)))
             .map_or(0, |id| id + 1))
     }
+
+    /// Whether to force a pre key refresh.
+    ///
+    /// Check whether we have:
+    /// - 1 signed EC pre key
+    /// - 1 Kyber last resort key
+    async fn needs_pre_key_refresh(&self) -> Result<bool, SignalProtocolError> {
+        let has_signed_pre_keys = self.signed_pre_keys_count().await? > 0;
+        let has_last_resort_kyber_pre_keys = self.kyber_pre_keys_count(true).await? > 0;
+        Ok(has_signed_pre_keys && has_last_resort_kyber_pre_keys)
+    }
 }
 
 pub trait SledTrees: Clone {
