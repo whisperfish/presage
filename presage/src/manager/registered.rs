@@ -1524,7 +1524,6 @@ async fn save_message<S: Store>(
                             .unwrap_or_default(),
                         profile_key: profile_key.bytes.to_vec(),
                         color: None,
-                        blocked: false,
                         expire_timer: data_message.expire_timer.unwrap_or_default(),
                         inbox_position: 0,
                         archived: false,

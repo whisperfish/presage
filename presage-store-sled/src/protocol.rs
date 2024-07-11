@@ -22,10 +22,7 @@ use presage::{
 };
 use sled::Batch;
 
-use crate::{
-    OnNewIdentity, SledStore, SledStoreError, SLED_KEY_NEXT_PQ_PRE_KEY_ID,
-    SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, SLED_KEY_PRE_KEYS_OFFSET_ID,
-};
+use crate::{OnNewIdentity, SledStore, SledStoreError};
 
 #[derive(Clone)]
 pub struct SledProtocolStore<T: SledTrees> {
@@ -48,6 +45,27 @@ impl SledProtocolStore<PniSledStore> {
             store,
             _trees: Default::default(),
         }
+    }
+}
+
+impl<T: SledTrees> SledProtocolStore<T> {
+    fn next_key_id(&self, tree: &str) -> Result<u32, SignalProtocolError> {
+        Ok(self
+            .store
+            .db
+            .read()
+            .expect("poisoned mutex")
+            .open_tree(tree)
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState("next_key_id", "sled error".into())
+            })?
+            .into_iter()
+            .keys()
+            .filter_map(Result::ok)
+            .next()
+            .and_then(|data| Some(u32::from_be_bytes(data.as_ref().try_into().ok()?)))
+            .map_or(0, |id| id + 1))
     }
 }
 
@@ -145,14 +163,38 @@ impl SledTrees for PniSledStore {
     }
 }
 
+trait SledPreKeyId {
+    fn sled_key(self) -> [u8; 4];
+}
+
+impl SledPreKeyId for PreKeyId {
+    fn sled_key(self) -> [u8; 4] {
+        u32::from(self).to_be_bytes()
+    }
+}
+
+impl SledPreKeyId for SignedPreKeyId {
+    fn sled_key(self) -> [u8; 4] {
+        u32::from(self).to_be_bytes()
+    }
+}
+
+impl SledPreKeyId for KyberPreKeyId {
+    fn sled_key(self) -> [u8; 4] {
+        u32::from(self).to_be_bytes()
+    }
+}
+
 impl<T: SledTrees> SledProtocolStore<T> {
-    pub(crate) fn clear(&self) -> Result<(), SledStoreError> {
+    pub(crate) fn clear(&self, clear_sessions: bool) -> Result<(), SledStoreError> {
         let db = self.store.db.write().expect("poisoned mutex");
         db.drop_tree(T::pre_keys())?;
         db.drop_tree(T::sender_keys())?;
-        db.drop_tree(T::sessions())?;
         db.drop_tree(T::signed_pre_keys())?;
         db.drop_tree(T::kyber_pre_keys())?;
+        if clear_sessions {
+            db.drop_tree(T::sessions())?;
+        }
         Ok(())
     }
 }
@@ -164,7 +206,7 @@ impl<T: SledTrees> PreKeyStore for SledProtocolStore<T> {
     async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, SignalProtocolError> {
         let buf: Vec<u8> = self
             .store
-            .get(T::pre_keys(), prekey_id.to_string())
+            .get(T::pre_keys(), prekey_id.sled_key())
             .ok()
             .flatten()
             .ok_or(SignalProtocolError::InvalidPreKeyId)?;
@@ -178,15 +220,21 @@ impl<T: SledTrees> PreKeyStore for SledProtocolStore<T> {
         record: &PreKeyRecord,
     ) -> Result<(), SignalProtocolError> {
         self.store
-            .insert(T::pre_keys(), prekey_id.to_string(), record.serialize()?)
-            .expect("failed to store pre-key");
+            .insert(T::pre_keys(), prekey_id.sled_key(), record.serialize()?)
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState("save_pre_key", "sled error".into())
+            })?;
         Ok(())
     }
 
     async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), SignalProtocolError> {
         self.store
-            .remove(T::pre_keys(), prekey_id.to_string())
-            .expect("failed to remove pre-key");
+            .remove(T::pre_keys(), prekey_id.sled_key())
+            .map_err(|e| {
+                log::error!("sled error: {}", e);
+                SignalProtocolError::InvalidState("remove_pre_key", "sled error".into())
+            })?;
         Ok(())
     }
 }
@@ -194,48 +242,15 @@ impl<T: SledTrees> PreKeyStore for SledProtocolStore<T> {
 #[async_trait(?Send)]
 impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
     async fn next_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
-        Ok(self
-            .store
-            .get(T::state(), SLED_KEY_PRE_KEYS_OFFSET_ID)
-            .map_err(|_| SignalProtocolError::InvalidPreKeyId)?
-            .unwrap_or(0))
-    }
-
-    async fn set_next_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
-        self.store
-            .insert(T::state(), SLED_KEY_PRE_KEYS_OFFSET_ID, id)
-            .map_err(|_| SignalProtocolError::InvalidPreKeyId)?;
-        Ok(())
+        self.next_key_id(T::pre_keys())
     }
 
     async fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
-        Ok(self
-            .store
-            .get(T::state(), SLED_KEY_NEXT_SIGNED_PRE_KEY_ID)
-            .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?
-            .unwrap_or(0))
-    }
-
-    async fn set_next_signed_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
-        self.store
-            .insert(T::state(), SLED_KEY_NEXT_SIGNED_PRE_KEY_ID, id)
-            .map_err(|_| SignalProtocolError::InvalidSignedPreKeyId)?;
-        Ok(())
+        self.next_key_id(T::signed_pre_keys())
     }
 
     async fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
-        Ok(self
-            .store
-            .get(T::state(), SLED_KEY_NEXT_PQ_PRE_KEY_ID)
-            .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?
-            .unwrap_or(0))
-    }
-
-    async fn set_next_pq_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
-        self.store
-            .insert(T::state(), SLED_KEY_NEXT_PQ_PRE_KEY_ID, id)
-            .map_err(|_| SignalProtocolError::InvalidKyberPreKeyId)?;
-        Ok(())
+        self.next_key_id(T::kyber_pre_keys())
     }
 
     async fn signed_pre_keys_count(&self) -> Result<usize, SignalProtocolError> {
@@ -286,7 +301,7 @@ impl<T: SledTrees> SignedPreKeyStore for SledProtocolStore<T> {
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let buf: Vec<u8> = self
             .store
-            .get(T::signed_pre_keys(), signed_prekey_id.to_string())
+            .get(T::signed_pre_keys(), signed_prekey_id.sled_key())
             .ok()
             .flatten()
             .ok_or(SignalProtocolError::InvalidSignedPreKeyId)?;
@@ -301,7 +316,7 @@ impl<T: SledTrees> SignedPreKeyStore for SledProtocolStore<T> {
         self.store
             .insert(
                 T::signed_pre_keys(),
-                signed_prekey_id.to_string(),
+                signed_prekey_id.sled_key(),
                 record.serialize()?,
             )
             .map_err(|e| {
@@ -320,7 +335,7 @@ impl<T: SledTrees> KyberPreKeyStore for SledProtocolStore<T> {
     ) -> Result<KyberPreKeyRecord, SignalProtocolError> {
         let buf: Vec<u8> = self
             .store
-            .get(T::kyber_pre_keys(), kyber_prekey_id.to_string())
+            .get(T::kyber_pre_keys(), kyber_prekey_id.sled_key())
             .ok()
             .flatten()
             .ok_or(SignalProtocolError::InvalidKyberPreKeyId)?;
@@ -335,7 +350,7 @@ impl<T: SledTrees> KyberPreKeyStore for SledProtocolStore<T> {
         self.store
             .insert(
                 T::kyber_pre_keys(),
-                kyber_prekey_id.to_string(),
+                kyber_prekey_id.sled_key(),
                 record.serialize()?,
             )
             .map_err(|e| {
@@ -351,7 +366,7 @@ impl<T: SledTrees> KyberPreKeyStore for SledProtocolStore<T> {
     ) -> Result<(), SignalProtocolError> {
         let removed = self
             .store
-            .remove(T::kyber_pre_keys(), kyber_prekey_id.to_string())
+            .remove(T::kyber_pre_keys(), kyber_prekey_id.sled_key())
             .map_err(|e| {
                 log::error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("mark_kyber_pre_key_used", "sled error".into())
@@ -374,7 +389,7 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
         self.store
             .insert(
                 T::kyber_pre_keys_last_resort(),
-                kyber_prekey_id.to_string(),
+                kyber_prekey_id.sled_key(),
                 record.serialize()?,
             )
             .map_err(|e| {
@@ -403,9 +418,9 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
         kyber_prekey_id: KyberPreKeyId,
     ) -> Result<(), SignalProtocolError> {
         self.store
-            .remove(T::kyber_pre_keys_last_resort(), kyber_prekey_id.to_string())?;
+            .remove(T::kyber_pre_keys_last_resort(), kyber_prekey_id.sled_key())?;
         self.store
-            .remove(T::kyber_pre_keys_last_resort(), kyber_prekey_id.to_string())?;
+            .remove(T::kyber_pre_keys_last_resort(), kyber_prekey_id.sled_key())?;
         Ok(())
     }
 
