@@ -63,7 +63,7 @@ impl<T: SledTrees> SledProtocolStore<T> {
             .into_iter()
             .keys()
             .filter_map(Result::ok)
-            .next()
+            .last()
             .and_then(|data| Some(u32::from_be_bytes(data.as_ref().try_into().ok()?)))
             .map_or(0, |id| id + 1))
     }
