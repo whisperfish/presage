@@ -157,6 +157,8 @@ impl<S: Store> Manager<S, Registered> {
             manager.set_account_attributes().await?;
         }
 
+        manager.register_pre_keys().await?;
+
         Ok(manager)
     }
 
