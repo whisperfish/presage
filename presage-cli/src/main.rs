@@ -47,14 +47,13 @@ use url::Url;
 #[derive(Parser)]
 #[clap(about = "a basic signal CLI to try things out")]
 struct Args {
-    #[clap(long = "db-path", short = 'd', group = "store")]
+    #[clap(long = "db-path", short = 'd')]
     db_path: Option<PathBuf>,
 
     #[clap(
         help = "passphrase to encrypt the local storage",
         long = "passphrase",
-        short = 'p',
-        group = "store"
+        short = 'p'
     )]
     passphrase: Option<String>,
 
