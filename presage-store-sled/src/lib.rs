@@ -512,13 +512,29 @@ mod tests {
         ServiceAddress,
     };
     use presage::store::ContentsStore;
+    use protocol::SledPreKeyId;
     use quickcheck::{Arbitrary, Gen};
     use quickcheck_macros::quickcheck;
 
-    use crate::SledPreKeyId;
+    use crate::SchemaVersion;
 
-    use super::SledStore;
+    use super::*;
 
+    #[test]
+    fn test_migration_steps() {
+        let steps: Vec<_> = SchemaVersion::steps(SchemaVersion::V0).collect();
+        assert_eq!(
+            steps,
+            [
+                SchemaVersion::V1,
+                SchemaVersion::V2,
+                SchemaVersion::V3,
+                SchemaVersion::V4,
+                SchemaVersion::V5,
+                SchemaVersion::V6,
+            ]
+        )
+    }
     #[derive(Debug, Clone)]
     struct Thread(presage::store::Thread);
 
@@ -577,16 +593,11 @@ mod tests {
     }
 
     #[quickcheck]
-    fn compare_pre_keys(pre_key_id: u32, next_pre_key_id: u32) {
-        if pre_key_id < next_pre_key_id {
-            assert!(
-                PreKeyId::from(pre_key_id).sled_key() < PreKeyId::from(next_pre_key_id).sled_key()
-            )
-        } else {
-            assert!(
-                PreKeyId::from(pre_key_id).sled_key() > PreKeyId::from(next_pre_key_id).sled_key()
-            )
+    fn compare_pre_keys(mut pre_key_id: u32, mut next_pre_key_id: u32) {
+        if pre_key_id > next_pre_key_id {
+            std::mem::swap(&mut pre_key_id, &mut next_pre_key_id);
         }
+        assert!(PreKeyId::from(pre_key_id).sled_key() <= PreKeyId::from(next_pre_key_id).sled_key())
     }
 
     #[quickcheck_async::tokio]
