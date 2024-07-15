@@ -368,21 +368,28 @@ fn migrate(
                         pub(crate) pni_public_key: Option<IdentityKey>,
                     }
 
-                    let registration_data: Option<RegistrationDataV4Keys> =
-                        store.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?;
-                    if let Some(data) = registration_data {
-                        store.set_aci_identity_key_pair(IdentityKeyPair::new(
-                            data.aci_public_key,
-                            data.aci_private_key,
-                        ))?;
-                        if let Some((public_key, private_key)) =
-                            data.pni_public_key.zip(data.pni_private_key)
-                        {
-                            store.set_pni_identity_key_pair(IdentityKeyPair::new(
-                                public_key,
-                                private_key,
+                    let run_step = || -> Result<(), SledStoreError> {
+                        let registration_data: Option<RegistrationDataV4Keys> =
+                            store.get(SLED_TREE_STATE, SLED_KEY_REGISTRATION)?;
+                        if let Some(data) = registration_data {
+                            store.set_aci_identity_key_pair(IdentityKeyPair::new(
+                                data.aci_public_key,
+                                data.aci_private_key,
                             ))?;
+                            if let Some((public_key, private_key)) =
+                                data.pni_public_key.zip(data.pni_private_key)
+                            {
+                                store.set_pni_identity_key_pair(IdentityKeyPair::new(
+                                    public_key,
+                                    private_key,
+                                ))?;
+                            }
                         }
+                        Ok(())
+                    };
+
+                    if let Err(error) = run_step() {
+                        log::error!("failed to run v4 -> v5 migration: {error}");
                     }
                 }
                 _ => return Err(SledStoreError::MigrationConflict),
