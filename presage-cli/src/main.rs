@@ -78,6 +78,7 @@ enum Cmd {
         #[clap(long, help = "Force to register again if already registered")]
         force: bool,
     },
+    #[clap(about = "Create QR code and wait until new device is linked")]
     LinkDevice {
         /// Possible values: staging, production
         #[clap(long, short = 's', default_value = "production")]
@@ -89,6 +90,8 @@ enum Cmd {
         )]
         device_name: String,
     },
+    #[clap(about = "List all linked devices")]
+    ListDevices,
     #[clap(about = "Get information on the registered user")]
     Whoami,
     #[clap(about = "Retrieve the user profile")]
@@ -531,6 +534,31 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 (Err(err), _) => {
                     println!("{err:?}");
                 }
+            }
+        }
+        Cmd::ListDevices => {
+            let manager = Manager::load_registered(config_store).await?;
+            let devices = manager.devices().await?;
+            let current_device_id = manager.device_id() as i64;
+
+            for device in devices {
+                let device_name = device
+                    .name
+                    .unwrap_or_else(|| "(no device name)".to_string());
+                let current_marker = if device.id == current_device_id {
+                    "(this device)"
+                } else {
+                    ""
+                };
+
+                println!(
+                    "- Device {} {}\n  Name: {}\n  Created: {}\n  Last seen: {}",
+                    device.id,
+                    current_marker,
+                    device_name,
+                    device.created.to_string(),
+                    device.last_seen.to_string()
+                );
             }
         }
         Cmd::Receive { notifications } => {
