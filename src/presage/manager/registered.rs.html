@@ -1629,7 +1629,6 @@
 <a href="#1629" id="1629">1629</a>
 <a href="#1630" id="1630">1630</a>
 <a href="#1631" id="1631">1631</a>
-<a href="#1632" id="1632">1632</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -2063,6 +2062,10 @@
     <span class="doccomment">/// Fetches basic information on the registered device.
     </span><span class="kw">pub async fn </span>whoami(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;WhoAmIResponse, Error&lt;S::Error&gt;&gt; {
         <span class="prelude-val">Ok</span>(<span class="self">self</span>.identified_push_service().whoami().<span class="kw">await</span><span class="question-mark">?</span>)
+    }
+
+    <span class="kw">pub fn </span>device_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="kw">return </span><span class="self">self</span>.state.device_id();
     }
 
     <span class="doccomment">/// Fetches the profile (name, about, status emoji) of the registered user.
@@ -2901,13 +2904,8 @@
         <span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// As a primary device, list all the devices (uncluding the current device).
+    <span class="doccomment">/// As a primary device, list all the devices (including the current device).
     </span><span class="kw">pub async fn </span>devices(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;DeviceInfo&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="comment">// XXX: What happens if secondary device? Possible to use static typing to make this method call impossible in that case?
-        </span><span class="kw">if </span><span class="self">self</span>.registration_type() != RegistrationType::Primary {
-            <span class="kw">return </span><span class="prelude-val">Err</span>(Error::&lt;S::Error&gt;::NotPrimaryDevice);
-        }
-
         <span class="kw">let </span>aci_protocol_store = <span class="self">self</span>.store.aci_protocol_store();
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(
             <span class="self">self</span>.identified_push_service(),
