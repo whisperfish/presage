@@ -536,15 +536,21 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                     println!("{err:?}");
                 }
             }
-        },
+        }
         Cmd::ListDevices => {
             let manager = Manager::load_registered(config_store).await?;
             let devices = manager.devices().await?;
             let current_device_id = manager.device_id() as i64;
 
             for device in devices {
-                let device_name = device.name.unwrap_or_else(|| "(no device name)".to_string());
-                let current_marker = if device.id == current_device_id { "(this device)" } else { "" };
+                let device_name = device
+                    .name
+                    .unwrap_or_else(|| "(no device name)".to_string());
+                let current_marker = if device.id == current_device_id {
+                    "(this device)"
+                } else {
+                    ""
+                };
 
                 println!(
                     "- Device {} {}\n  Name: {}\n  Created: {}\n  Last seen: {}",
