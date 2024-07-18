@@ -435,6 +435,10 @@ impl<S: Store> Manager<S, Registered> {
         Ok(self.identified_push_service().whoami().await?)
     }
 
+    pub fn device_id(&self) -> u32 {
+        return self.state.device_id();
+    }
+
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
         self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.data.profile_key)
@@ -1271,13 +1275,8 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    /// As a primary device, list all the devices (uncluding the current device).
+    /// As a primary device, list all the devices (including the current device).
     pub async fn devices(&self) -> Result<Vec<DeviceInfo>, Error<S::Error>> {
-        // XXX: What happens if secondary device? Possible to use static typing to make this method call impossible in that case?
-        if self.registration_type() != RegistrationType::Primary {
-            return Err(Error::<S::Error>::NotPrimaryDevice);
-        }
-
         let aci_protocol_store = self.store.aci_protocol_store();
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
