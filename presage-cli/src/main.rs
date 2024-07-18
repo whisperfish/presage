@@ -715,21 +715,41 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 aci_next_pre_key_id: u32,
                 aci_next_signed_pre_keys_id: u32,
                 aci_next_kyber_pre_keys_id: u32,
+                aci_signed_pre_keys_count: usize,
+                aci_kyber_pre_keys_count: usize,
+                aci_kyber_pre_keys_count_last_resort: usize,
                 pni_next_pre_key_id: u32,
                 pni_next_signed_pre_keys_id: u32,
                 pni_next_kyber_pre_keys_id: u32,
+                pni_signed_pre_keys_count: usize,
+                pni_kyber_pre_keys_count: usize,
+                pni_kyber_pre_keys_count_last_resort: usize,
             }
 
             let aci = manager.store().aci_protocol_store();
             let pni = manager.store().pni_protocol_store();
 
+            const LAST_RESORT: bool = true;
+
             let stats = Stats {
                 aci_next_pre_key_id: aci.next_pre_key_id().await.unwrap(),
                 aci_next_signed_pre_keys_id: aci.next_signed_pre_key_id().await.unwrap(),
                 aci_next_kyber_pre_keys_id: aci.next_pq_pre_key_id().await.unwrap(),
+                aci_signed_pre_keys_count: aci.signed_pre_keys_count().await.unwrap(),
+                aci_kyber_pre_keys_count: aci.kyber_pre_keys_count(!LAST_RESORT).await.unwrap(),
+                aci_kyber_pre_keys_count_last_resort: aci
+                    .kyber_pre_keys_count(LAST_RESORT)
+                    .await
+                    .unwrap(),
                 pni_next_pre_key_id: pni.next_pre_key_id().await.unwrap(),
                 pni_next_signed_pre_keys_id: pni.next_signed_pre_key_id().await.unwrap(),
                 pni_next_kyber_pre_keys_id: pni.next_pq_pre_key_id().await.unwrap(),
+                pni_signed_pre_keys_count: pni.signed_pre_keys_count().await.unwrap(),
+                pni_kyber_pre_keys_count: pni.kyber_pre_keys_count(!LAST_RESORT).await.unwrap(),
+                pni_kyber_pre_keys_count_last_resort: pni
+                    .kyber_pre_keys_count(LAST_RESORT)
+                    .await
+                    .unwrap(),
             };
 
             println!("{stats:#?}")
