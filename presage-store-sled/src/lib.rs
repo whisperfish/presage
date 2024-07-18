@@ -393,9 +393,39 @@ fn migrate(
                     }
                 }
                 SchemaVersion::V6 => {
-                    debug!("migrating from schema v4 to v5: clearing ACI and PNI protocol stores (keys)");
-                    store.aci_protocol_store().clear(false)?;
-                    store.pni_protocol_store().clear(false)?;
+                    debug!("migrating from schema v5 to v6: new keys encoding in ACI and PNI protocol stores");
+                    let db = store.db.read().expect("poisoned");
+
+                    let trees = [
+                        AciSledStore::signed_pre_keys(),
+                        AciSledStore::pre_keys(),
+                        AciSledStore::kyber_pre_keys(),
+                        AciSledStore::kyber_pre_keys_last_resort(),
+                        PniSledStore::signed_pre_keys(),
+                        PniSledStore::pre_keys(),
+                        PniSledStore::kyber_pre_keys(),
+                        PniSledStore::kyber_pre_keys_last_resort(),
+                    ];
+
+                    for tree_name in trees {
+                        let tree = db.open_tree(tree_name)?;
+                        let num_keys_before = tree.len();
+                        let mut data = Vec::new();
+                        for (k, v) in tree.iter().filter_map(|kv| kv.ok()) {
+                            if let Some(key) = std::str::from_utf8(&k)
+                                .ok()
+                                .and_then(|s| s.parse::<u32>().ok())
+                            {
+                                data.push((key, v));
+                            }
+                        }
+                        tree.clear()?;
+                        for (k, v) in data {
+                            let _ = tree.insert(k.to_be_bytes(), v);
+                        }
+                        let num_keys_after = tree.len();
+                        debug!("migrated keys in {tree_name}: before {num_keys_before} -> after {num_keys_after}");
+                    }
                 }
                 _ => return Err(SledStoreError::MigrationConflict),
             }
