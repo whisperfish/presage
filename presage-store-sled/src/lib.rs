@@ -539,7 +539,7 @@ mod tests {
         prelude::Uuid,
         proto::DataMessage,
         protocol::PreKeyId,
-        ServiceAddress,
+        ServiceAddress, ServiceIdType,
     };
     use presage::store::ContentsStore;
     use protocol::SledPreKeyId;
@@ -582,6 +582,7 @@ mod tests {
             let metadata = Metadata {
                 sender: ServiceAddress {
                     uuid: *g.choose(&contacts).unwrap(),
+                    identity: ServiceIdType::AccountIdentity,
                 },
                 sender_device: Arbitrary::arbitrary(g),
                 server_guid: None,

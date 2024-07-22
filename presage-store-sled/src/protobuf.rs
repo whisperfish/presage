@@ -9,6 +9,7 @@ use std::str::FromStr;
 use presage::libsignal_service::content::Content;
 use presage::libsignal_service::content::ContentBody;
 use presage::libsignal_service::content::Metadata;
+use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto;
 use presage::libsignal_service::ServiceAddress;
 
@@ -31,9 +32,9 @@ impl TryFrom<AddressProto> for ServiceAddress {
     fn try_from(address: AddressProto) -> Result<Self, Self::Error> {
         address
             .uuid
-            .as_deref()
-            .try_into()
-            .map_err(|_| SledStoreError::NoUuid)
+            .and_then(|bytes| Some(Uuid::from_bytes(bytes.try_into().ok()?)))
+            .ok_or_else(|| SledStoreError::NoUuid)
+            .map(Self::new_aci)
     }
 }
 
