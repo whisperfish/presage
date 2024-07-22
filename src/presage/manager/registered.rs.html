@@ -1629,6 +1629,7 @@
 <a href="#1629" id="1629">1629</a>
 <a href="#1630" id="1630">1630</a>
 <a href="#1631" id="1631">1631</a>
+<a href="#1632" id="1632">1632</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1787,6 +1788,8 @@
         <span class="kw">if </span>manager.state.data.pni_registration_id.is_none() {
             manager.set_account_attributes().<span class="kw">await</span><span class="question-mark">?</span>;
         }
+
+        manager.register_pre_keys().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(manager)
     }
@@ -3154,7 +3157,6 @@
                             .unwrap_or_default(),
                         profile_key: profile_key.bytes.to_vec(),
                         color: <span class="prelude-val">None</span>,
-                        blocked: <span class="bool-val">false</span>,
                         expire_timer: data_message.expire_timer.unwrap_or_default(),
                         inbox_position: <span class="number">0</span>,
                         archived: <span class="bool-val">false</span>,
