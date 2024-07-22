@@ -532,7 +532,7 @@
     protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
-    Profile,
+    Profile, ServiceAddress,
 };
 <span class="kw">use </span>log::error;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
@@ -628,7 +628,7 @@
         </span><span class="kw">let </span>thread = Thread::Contact(sender);
         <span class="kw">let </span>verified_sync_message = Content {
             metadata: Metadata {
-                sender: sender.into(),
+                sender: ServiceAddress::new_aci(sender),
                 sender_device: <span class="number">0</span>,
                 server_guid: <span class="prelude-val">None</span>,
                 timestamp: SystemTime::now()
