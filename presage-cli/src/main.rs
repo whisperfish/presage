@@ -22,6 +22,7 @@ use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
+use presage::libsignal_service::ServiceAddress;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use presage::manager::ReceivingMode;
 use presage::proto::EditMessage;
@@ -236,7 +237,7 @@ async fn send<S: Store>(
                 Recipient::Contact(uuid) => {
                     info!("sending message to contact");
                     manager
-                        .send_message(uuid, content_body, timestamp)
+                        .send_message(ServiceAddress::new_aci(uuid), content_body, timestamp)
                         .await
                         .expect("failed to send message");
                 }
@@ -556,11 +557,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
 
                 println!(
                     "- Device {} {}\n  Name: {}\n  Created: {}\n  Last seen: {}",
-                    device.id,
-                    current_marker,
-                    device_name,
-                    device.created.to_string(),
-                    device.last_seen.to_string()
+                    device.id, current_marker, device_name, device.created, device.last_seen,
                 );
             }
         }

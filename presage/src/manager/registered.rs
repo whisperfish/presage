@@ -376,8 +376,12 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(self.state.data.service_ids.aci, sync_message, timestamp)
-            .await?;
+        self.send_message(
+            ServiceAddress::new_aci(self.state.data.service_ids.aci),
+            sync_message,
+            timestamp,
+        )
+        .await?;
 
         Ok(())
     }
@@ -436,7 +440,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     pub fn device_id(&self) -> u32 {
-        return self.state.device_id();
+        self.state.device_id()
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
@@ -461,7 +465,9 @@ impl<S: Store> Manager<S, Registered> {
         let mut account_manager =
             AccountManager::new(self.identified_push_service(), Some(profile_key));
 
-        let profile = account_manager.retrieve_profile(uuid.into()).await?;
+        let profile = account_manager
+            .retrieve_profile(ServiceAddress::new_aci(uuid))
+            .await?;
 
         let _ = self.store.save_profile(uuid, profile_key, profile.clone());
         Ok(profile)
@@ -860,7 +866,7 @@ impl<S: Store> Manager<S, Registered> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: self.state.data.service_ids.aci.into(),
+                sender: ServiceAddress::new_aci(self.state.data.service_ids.aci),
                 sender_device: self.state.device_id(),
                 server_guid: None,
                 timestamp,
@@ -954,7 +960,7 @@ impl<S: Store> Manager<S, Registered> {
                     });
             let include_pni_signature = true;
             recipients.push((
-                member.uuid.into(),
+                ServiceAddress::new_aci(member.uuid),
                 unidentified_access,
                 include_pni_signature,
             ));
@@ -971,8 +977,8 @@ impl<S: Store> Manager<S, Registered> {
             .find(|res| match res {
                 Ok(_) => false,
                 // Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
-                Err(MessageSenderError::NotFound { uuid }) => {
-                    debug!("UUID {uuid} not found, skipping sent message result");
+                Err(MessageSenderError::NotFound { addr }) => {
+                    debug!("UUID {} not found, skipping sent message result", addr.uuid);
                     false
                 }
                 // return first error if any
@@ -982,7 +988,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let content = Content {
             metadata: Metadata {
-                sender: self.state.data.service_ids.aci.into(),
+                sender: ServiceAddress::new_aci(self.state.data.service_ids.aci),
                 sender_device: self.state.device_id(),
                 server_guid: None,
                 timestamp,
@@ -1101,8 +1107,12 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(self.state.data.aci(), sync_message, timestamp)
-            .await?;
+        self.send_message(
+            ServiceAddress::new_aci(self.state.data.aci()),
+            sync_message,
+            timestamp,
+        )
+        .await?;
 
         Ok(())
     }
@@ -1128,8 +1138,12 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(self.state.data.aci(), sync_message, timestamp)
-            .await?;
+        self.send_message(
+            ServiceAddress::new_aci(self.state.data.aci()),
+            sync_message,
+            timestamp,
+        )
+        .await?;
 
         self.store.remove_sticker_pack(pack_id)?;
 
@@ -1183,8 +1197,8 @@ impl<S: Store> Manager<S, Registered> {
             self.new_service_cipher()?,
             self.rng.clone(),
             aci_protocol_store,
-            self.state.data.service_ids.aci,
-            self.state.data.service_ids.pni,
+            ServiceAddress::new_aci(self.state.data.service_ids.aci),
+            ServiceAddress::new_pni(self.state.data.service_ids.pni),
             aci_identity_keypair,
             Some(pni_identity_keypair),
             self.state.device_id().into(),
@@ -1504,7 +1518,10 @@ async fn save_message<S: Store>(
                         .is_some_and(|p| p.bytes == profile_key.bytes)
                 {
                     let encrypted_profile = push_service
-                        .retrieve_profile_by_id(sender_uuid.into(), Some(profile_key))
+                        .retrieve_profile_by_id(
+                            ServiceAddress::new_aci(sender_uuid),
+                            Some(profile_key),
+                        )
                         .await?;
                     let profile_cipher = ProfileCipher::from(profile_key);
                     let decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
