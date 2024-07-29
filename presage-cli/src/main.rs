@@ -80,7 +80,7 @@ enum Cmd {
         #[clap(long, help = "Force to register again if already registered")]
         force: bool,
     },
-    #[clap(about = "Create QR code and wait until new device is linked")]
+    #[clap(about = "Create QR code (URL) and wait until this device is linked as new secondary")]
     LinkDevice {
         /// Possible values: staging, production
         #[clap(long, short = 's', default_value = "production")]
@@ -91,6 +91,22 @@ enum Cmd {
             help = "Name of the device to register in the primary client"
         )]
         device_name: String,
+    },
+    #[clap(
+        about = "Add a new secondary device to this (primary) device via URL (see link-device)"
+    )]
+    AddDevice {
+        #[clap(
+            long,
+            short = 'u',
+            help = "The URL (that is represented as QR code) created by the secondary device (see link-device)"
+        )]
+        url: Url,
+    },
+    #[clap(about = "Unlink device by device id")]
+    UnlinkDevice {
+        #[clap(long, short = 'd', help = "Device id")]
+        device_id: i64,
     },
     #[clap(about = "List all linked devices")]
     ListDevices,
@@ -539,6 +555,16 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                     println!("{err:?}");
                 }
             }
+        }
+        Cmd::AddDevice { url } => {
+            let manager = Manager::load_registered(config_store).await?;
+            manager.link_secondary(url).await?;
+            println!("Added new secondary device");
+        }
+        Cmd::UnlinkDevice { device_id } => {
+            let manager = Manager::load_registered(config_store).await?;
+            manager.unlink_secondary(device_id).await?;
+            println!("Unlinked device with id: {}", device_id);
         }
         Cmd::ListDevices => {
             let manager = Manager::load_registered(config_store).await?;
