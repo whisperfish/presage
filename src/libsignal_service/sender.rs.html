@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/1b59154/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/86dd9da/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -942,6 +942,18 @@
 <a href="#942" id="942">942</a>
 <a href="#943" id="943">943</a>
 <a href="#944" id="944">944</a>
+<a href="#945" id="945">945</a>
+<a href="#946" id="946">946</a>
+<a href="#947" id="947">947</a>
+<a href="#948" id="948">948</a>
+<a href="#949" id="949">949</a>
+<a href="#950" id="950">950</a>
+<a href="#951" id="951">951</a>
+<a href="#952" id="952">952</a>
+<a href="#953" id="953">953</a>
+<a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
@@ -950,7 +962,7 @@
     ProtocolStore, SenderCertificate, SenderKeyStore, SignalProtocolError,
 };
 <span class="kw">use </span>rand::{CryptoRng, Rng};
-<span class="kw">use </span>tracing::{info, trace};
+<span class="kw">use </span>tracing::{error, info, trace};
 <span class="kw">use </span>tracing_futures::Instrument;
 
 <span class="kw">use crate</span>::{
@@ -1135,10 +1147,9 @@
             )
         };
         <span class="kw">if </span>padded_len &lt; len {
-            <span class="macro">tracing::error!</span>(
+            <span class="macro">error!</span>(
                 <span class="string">"Padded len {} &lt; len {}. Continuing with a privacy risk."</span>,
-                padded_len,
-                len
+                padded_len, len
             );
         } <span class="kw">else </span>{
             contents.resize(padded_len, <span class="number">0</span>);
@@ -1275,8 +1286,8 @@
         }
 
         <span class="comment">// try to send the original message to all the recipient's devices
-        </span><span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[
-            <span class="self">self</span>.try_send_message(
+        </span><span class="kw">let </span>result = <span class="self">self
+            </span>.try_send_message(
                 <span class="kw-2">*</span>recipient,
                 unidentified_access.as_ref(),
                 <span class="kw-2">&amp;</span>content_body,
@@ -1284,34 +1295,40 @@
                 include_pni_signature,
                 online,
             )
-            .<span class="kw">await</span>,
-        ];
+            .<span class="kw">await</span>;
 
-        <span class="kw">match </span>(<span class="kw-2">&amp;</span>content_body, <span class="kw-2">&amp;</span>results[<span class="number">0</span>]) {
-            <span class="comment">// if we sent a data message and we have linked devices, we need to send a sync message
-            </span>(
-                ContentBody::DataMessage(message),
-                <span class="prelude-val">Ok</span>(SentMessage { needs_sync, .. }),
-            ) <span class="kw">if </span><span class="kw-2">*</span>needs_sync || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>=&gt; {
-                <span class="macro">tracing::debug!</span>(<span class="string">"sending multi-device sync message"</span>);
-                <span class="kw">let </span>sync_message = <span class="self">self
-                    </span>.create_multi_device_sent_transcript_content(
-                        <span class="prelude-val">Some</span>(recipient),
-                        <span class="prelude-val">Some</span>(message.clone()),
-                        timestamp,
-                        <span class="kw-2">&amp;</span>results,
-                    );
-                <span class="self">self</span>.try_send_message(
-                    <span class="self">self</span>.local_aci,
-                    <span class="prelude-val">None</span>,
-                    <span class="kw-2">&amp;</span>sync_message,
+        <span class="kw">let </span>needs_sync = <span class="kw">match </span><span class="kw-2">&amp;</span>result {
+            <span class="prelude-val">Ok</span>(SentMessage { needs_sync, .. }) =&gt; <span class="kw-2">*</span>needs_sync,
+            <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
+        };
+
+        <span class="kw">if </span>needs_sync || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
+            <span class="kw">let </span>data_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
+                ContentBody::DataMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+            };
+            <span class="kw">let </span>edit_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
+                ContentBody::EditMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+            };
+            <span class="macro">tracing::debug!</span>(<span class="string">"sending multi-device sync message"</span>);
+            <span class="kw">let </span>sync_message = <span class="self">self
+                </span>.create_multi_device_sent_transcript_content(
+                    <span class="prelude-val">Some</span>(recipient),
+                    data_message,
+                    edit_message,
                     timestamp,
-                    <span class="bool-val">false</span>,
-                    <span class="bool-val">false</span>,
-                )
-                .<span class="kw">await</span><span class="question-mark">?</span>;
-            },
-            <span class="kw">_ </span>=&gt; (),
+                    <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>result),
+                );
+            <span class="self">self</span>.try_send_message(
+                <span class="self">self</span>.local_aci,
+                <span class="prelude-val">None</span>,
+                <span class="kw-2">&amp;</span>sync_message,
+                timestamp,
+                <span class="bool-val">false</span>,
+                <span class="bool-val">false</span>,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
         }
 
         <span class="kw">if </span>end_session {
@@ -1319,7 +1336,7 @@
             <span class="macro">tracing::debug!</span>(<span class="string">"ended {} sessions with {}"</span>, n, recipient.uuid);
         }
 
-        results.remove(<span class="number">0</span>)
+        result
     }
 
     <span class="doccomment">/// Send a message to the recipients in a group.
@@ -1342,15 +1359,19 @@
         <span class="kw">let </span>content_body: ContentBody = message.into();
         <span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[];
 
-        <span class="kw">let </span>message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
+        <span class="kw">let </span>data_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
             ContentBody::DataMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
             <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
         };
+        <span class="kw">let </span>edit_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
+            ContentBody::EditMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+        };
 
-        <span class="kw">let </span>recipients = recipients.as_ref();
         <span class="kw">let </span><span class="kw-2">mut </span>needs_sync_in_results = <span class="bool-val">false</span>;
+
         <span class="kw">for </span>(recipient, unidentified_access, include_pni_signature) <span class="kw">in
-            </span>recipients.iter()
+            </span>recipients.as_ref().iter()
         {
             <span class="kw">let </span>result = <span class="self">self
                 </span>.try_send_message(
@@ -1373,36 +1394,41 @@
             results.push(result);
         }
 
-        <span class="kw">if </span>needs_sync_in_results &amp;&amp; message.is_none() {
+        <span class="kw">if </span>needs_sync_in_results
+            &amp;&amp; data_message.is_none()
+            &amp;&amp; edit_message.is_none()
+        {
             <span class="comment">// XXX: does this happen?
             </span><span class="macro">tracing::warn!</span>(
-                <span class="string">"Server claims need sync, but not sending datamessage."
+                <span class="string">"Server claims need sync, but not sending data message or edit message"
             </span>);
+            <span class="kw">return </span>results;
         }
 
         <span class="comment">// we only need to send a synchronization message once
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(message) = message {
-            <span class="kw">if </span>needs_sync_in_results || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
-                <span class="kw">let </span>sync_message = <span class="self">self
-                    </span>.create_multi_device_sent_transcript_content(
-                        <span class="prelude-val">None</span>,
-                        <span class="prelude-val">Some</span>(message),
-                        timestamp,
-                        <span class="kw-2">&amp;</span>results,
-                    );
-
-                <span class="kw">let </span>result = <span class="self">self
-                    </span>.try_send_message(
-                        <span class="self">self</span>.local_aci,
-                        <span class="prelude-val">None</span>,
-                        <span class="kw-2">&amp;</span>sync_message,
-                        timestamp,
-                        <span class="bool-val">false</span>, <span class="comment">// XXX: maybe the sync device does want a PNI signature?
-                        </span><span class="bool-val">false</span>,
-                    )
-                    .<span class="kw">await</span>;
-
-                results.push(result);
+        </span><span class="kw">if </span>needs_sync_in_results || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
+            <span class="kw">let </span>sync_message = <span class="self">self
+                </span>.create_multi_device_sent_transcript_content(
+                    <span class="prelude-val">None</span>,
+                    data_message,
+                    edit_message,
+                    timestamp,
+                    <span class="kw-2">&amp;</span>results,
+                );
+            <span class="comment">// Note: the result of sending a sync message is not included in results
+            // See Signal Android `SignalServiceMessageSender.java:2817`
+            </span><span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self
+                </span>.try_send_message(
+                    <span class="self">self</span>.local_aci,
+                    <span class="prelude-val">None</span>,
+                    <span class="kw-2">&amp;</span>sync_message,
+                    timestamp,
+                    <span class="bool-val">false</span>, <span class="comment">// XXX: maybe the sync device does want a PNI signature?
+                    </span><span class="bool-val">false</span>,
+                )
+                .<span class="kw">await
+            </span>{
+                <span class="macro">error!</span>(%error, <span class="string">"failed to send a synchronization message"</span>);
             }
         }
 
@@ -1512,7 +1538,7 @@
                         )
                         .<span class="kw">await
                         </span>.map_err(|e| {
-                            <span class="macro">tracing::error!</span>(<span class="string">"failed to create session: {}"</span>, e);
+                            <span class="macro">error!</span>(<span class="string">"failed to create session: {}"</span>, e);
                             MessageSenderError::UntrustedIdentity {
                                 address: recipient,
                             }
@@ -1834,17 +1860,18 @@
         <span class="prelude-val">Ok</span>(message)
     }
 
-    <span class="kw">fn </span>create_multi_device_sent_transcript_content(
+    <span class="kw">fn </span>create_multi_device_sent_transcript_content&lt;<span class="lifetime">'a</span>&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         recipient: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>ServiceAddress&gt;,
         data_message: <span class="prelude-ty">Option</span>&lt;<span class="kw">crate</span>::proto::DataMessage&gt;,
+        edit_message: <span class="prelude-ty">Option</span>&lt;<span class="kw">crate</span>::proto::EditMessage&gt;,
         timestamp: u64,
-        send_message_results: <span class="kw-2">&amp;</span>[SendMessageResult],
+        send_message_results: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>SendMessageResult&gt;,
     ) -&gt; ContentBody {
         <span class="kw">use </span>sync_message::sent::UnidentifiedDeliveryStatus;
         <span class="kw">let </span>unidentified_status: Vec&lt;UnidentifiedDeliveryStatus&gt; =
             send_message_results
-                .iter()
+                .into_iter()
                 .filter_map(|result| result.as_ref().ok())
                 .map(|sent| {
                     <span class="kw">let </span>SentMessage {
@@ -1868,16 +1895,13 @@
             sent: <span class="prelude-val">Some</span>(sync_message::Sent {
                 destination_service_id: recipient.map(|r| r.uuid.to_string()),
                 destination_e164: <span class="prelude-val">None</span>,
-                expiration_start_timestamp: <span class="kw">if </span>data_message
+                expiration_start_timestamp: data_message
                     .as_ref()
                     .and_then(|m| m.expire_timer)
                     .is_some()
-                {
-                    <span class="prelude-val">Some</span>(timestamp)
-                } <span class="kw">else </span>{
-                    <span class="prelude-val">None
-                </span>},
+                    .then_some(timestamp),
                 message: data_message,
+                edit_message,
                 timestamp: <span class="prelude-val">Some</span>(timestamp),
                 unidentified_status,
                 ..Default::default()
