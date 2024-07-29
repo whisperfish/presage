@@ -15,7 +15,7 @@ use libsignal_service::{
     protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
-    Profile,
+    Profile, ServiceAddress,
 };
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -111,7 +111,7 @@ pub trait ContentsStore: Send + Sync {
         let thread = Thread::Contact(sender);
         let verified_sync_message = Content {
             metadata: Metadata {
-                sender: sender.into(),
+                sender: ServiceAddress::new_aci(sender),
                 sender_device: 0,
                 server_guid: None,
                 timestamp: SystemTime::now()

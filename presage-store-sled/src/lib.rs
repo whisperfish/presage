@@ -33,9 +33,6 @@ use sled::IVec;
 
 const SLED_TREE_STATE: &str = "state";
 
-const SLED_KEY_NEXT_SIGNED_PRE_KEY_ID: &str = "next_signed_pre_key_id";
-const SLED_KEY_NEXT_PQ_PRE_KEY_ID: &str = "next_pq_pre_key_id";
-const SLED_KEY_PRE_KEYS_OFFSET_ID: &str = "pre_keys_offset_id";
 const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 #[cfg(feature = "encryption")]
@@ -77,11 +74,13 @@ pub enum SchemaVersion {
     V4 = 4,
     /// ACI and PNI identity key pairs are moved into dedicated storage keys from registration data
     V5 = 5,
+    /// Reset pre-keys after fixing persistence
+    V6 = 6,
 }
 
 impl SchemaVersion {
     fn current() -> SchemaVersion {
-        Self::V5
+        Self::V6
     }
 
     /// return an iterator on all the necessary migration steps from another version
@@ -96,6 +95,7 @@ impl SchemaVersion {
             3 => SchemaVersion::V3,
             4 => SchemaVersion::V4,
             5 => SchemaVersion::V5,
+            6 => SchemaVersion::V6,
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
@@ -392,6 +392,41 @@ fn migrate(
                         log::error!("failed to run v4 -> v5 migration: {error}");
                     }
                 }
+                SchemaVersion::V6 => {
+                    debug!("migrating from schema v5 to v6: new keys encoding in ACI and PNI protocol stores");
+                    let db = store.db.read().expect("poisoned");
+
+                    let trees = [
+                        AciSledStore::signed_pre_keys(),
+                        AciSledStore::pre_keys(),
+                        AciSledStore::kyber_pre_keys(),
+                        AciSledStore::kyber_pre_keys_last_resort(),
+                        PniSledStore::signed_pre_keys(),
+                        PniSledStore::pre_keys(),
+                        PniSledStore::kyber_pre_keys(),
+                        PniSledStore::kyber_pre_keys_last_resort(),
+                    ];
+
+                    for tree_name in trees {
+                        let tree = db.open_tree(tree_name)?;
+                        let num_keys_before = tree.len();
+                        let mut data = Vec::new();
+                        for (k, v) in tree.iter().filter_map(|kv| kv.ok()) {
+                            if let Some(key) = std::str::from_utf8(&k)
+                                .ok()
+                                .and_then(|s| s.parse::<u32>().ok())
+                            {
+                                data.push((key, v));
+                            }
+                        }
+                        tree.clear()?;
+                        for (k, v) in data {
+                            let _ = tree.insert(k.to_be_bytes(), v);
+                        }
+                        let num_keys_after = tree.len();
+                        debug!("migrated keys in {tree_name}: before {num_keys_before} -> after {num_keys_after}");
+                    }
+                }
                 _ => return Err(SledStoreError::MigrationConflict),
             }
 
@@ -469,8 +504,8 @@ impl StateStore for SledStore {
         self.clear_profiles()?;
 
         // drop all keys
-        self.aci_protocol_store().clear()?;
-        self.pni_protocol_store().clear()?;
+        self.aci_protocol_store().clear(true)?;
+        self.pni_protocol_store().clear(true)?;
 
         Ok(())
     }
@@ -503,13 +538,33 @@ mod tests {
         content::{ContentBody, Metadata},
         prelude::Uuid,
         proto::DataMessage,
-        ServiceAddress,
+        protocol::PreKeyId,
+        ServiceAddress, ServiceIdType,
     };
     use presage::store::ContentsStore;
+    use protocol::SledPreKeyId;
     use quickcheck::{Arbitrary, Gen};
+    use quickcheck_macros::quickcheck;
 
-    use super::SledStore;
+    use crate::SchemaVersion;
 
+    use super::*;
+
+    #[test]
+    fn test_migration_steps() {
+        let steps: Vec<_> = SchemaVersion::steps(SchemaVersion::V0).collect();
+        assert_eq!(
+            steps,
+            [
+                SchemaVersion::V1,
+                SchemaVersion::V2,
+                SchemaVersion::V3,
+                SchemaVersion::V4,
+                SchemaVersion::V5,
+                SchemaVersion::V6,
+            ]
+        )
+    }
     #[derive(Debug, Clone)]
     struct Thread(presage::store::Thread);
 
@@ -527,6 +582,7 @@ mod tests {
             let metadata = Metadata {
                 sender: ServiceAddress {
                     uuid: *g.choose(&contacts).unwrap(),
+                    identity: ServiceIdType::AccountIdentity,
                 },
                 sender_device: Arbitrary::arbitrary(g),
                 server_guid: None,
@@ -565,6 +621,14 @@ mod tests {
             },
             body: content.0.body.clone(),
         }
+    }
+
+    #[quickcheck]
+    fn compare_pre_keys(mut pre_key_id: u32, mut next_pre_key_id: u32) {
+        if pre_key_id > next_pre_key_id {
+            std::mem::swap(&mut pre_key_id, &mut next_pre_key_id);
+        }
+        assert!(PreKeyId::from(pre_key_id).sled_key() <= PreKeyId::from(next_pre_key_id).sled_key())
     }
 
     #[quickcheck_async::tokio]
