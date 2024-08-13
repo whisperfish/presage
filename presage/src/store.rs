@@ -112,6 +112,7 @@ pub trait ContentsStore: Send + Sync {
         let verified_sync_message = Content {
             metadata: Metadata {
                 sender: ServiceAddress::new_aci(sender),
+                destination: ServiceAddress::new_aci(sender),
                 sender_device: 0,
                 server_guid: None,
                 timestamp: SystemTime::now()
