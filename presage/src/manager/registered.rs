@@ -868,6 +868,7 @@ impl<S: Store> Manager<S, Registered> {
             metadata: Metadata {
                 sender: ServiceAddress::new_aci(self.state.data.service_ids.aci),
                 sender_device: self.state.device_id(),
+                destination: recipient,
                 server_guid: None,
                 timestamp,
                 needs_receipt: false,
@@ -989,6 +990,7 @@ impl<S: Store> Manager<S, Registered> {
         let content = Content {
             metadata: Metadata {
                 sender: ServiceAddress::new_aci(self.state.data.service_ids.aci),
+                destination: ServiceAddress::new_aci(self.state.data.service_ids.aci),
                 sender_device: self.state.device_id(),
                 server_guid: None,
                 timestamp,

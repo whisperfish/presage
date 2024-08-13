@@ -584,6 +584,10 @@ mod tests {
                     uuid: *g.choose(&contacts).unwrap(),
                     identity: ServiceIdType::AccountIdentity,
                 },
+                destination: ServiceAddress {
+                    uuid: *g.choose(&contacts).unwrap(),
+                    identity: ServiceIdType::AccountIdentity,
+                },
                 sender_device: Arbitrary::arbitrary(g),
                 server_guid: None,
                 timestamp,

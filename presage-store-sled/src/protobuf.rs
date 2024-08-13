@@ -49,7 +49,7 @@ impl From<Metadata> for MetadataProto {
             needs_receipt: Some(m.needs_receipt),
             server_guid: None,
             group_id: None,
-            destination_uuid: None,
+            destination_uuid: Some(m.destination.uuid.to_string()),
         }
     }
 }
@@ -60,6 +60,14 @@ impl TryFrom<MetadataProto> for Metadata {
     fn try_from(metadata: MetadataProto) -> Result<Self, Self::Error> {
         Ok(Metadata {
             sender: metadata.address.ok_or(SledStoreError::NoUuid)?.try_into()?,
+            destination: ServiceAddress::new_aci(
+                metadata
+                    .destination_uuid
+                    .as_deref()
+                    .ok_or(SledStoreError::NoUuid)?
+                    .parse()
+                    .map_err(|_| SledStoreError::NoUuid)?,
+            ),
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())
