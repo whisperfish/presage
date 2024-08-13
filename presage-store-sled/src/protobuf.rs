@@ -49,7 +49,7 @@ impl From<Metadata> for MetadataProto {
             needs_receipt: Some(m.needs_receipt),
             server_guid: None,
             group_id: None,
-            destination_uuid: None,
+            destination_uuid: Some(m.destination.uuid.to_string()),
         }
     }
 }
