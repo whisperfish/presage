@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/86dd9da/libsignal-service-hyper/src/push_service.rs`."><title>push_service.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service_hyper" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.0 (051478957 2024-07-21)" data-channel="1.80.0" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/bcb2821/libsignal-service-hyper/src/push_service.rs`."><title>push_service.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service_hyper" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -665,25 +665,31 @@
 <a href="#665" id="665">665</a>
 <a href="#666" id="666">666</a>
 <a href="#667" id="667">667</a>
-<a href="#668" id="668">668</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{io::Read, time::Duration};
+</pre></div><pre class="rust"><code><span class="kw">use </span>std::io;
+<span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>bytes::{Buf, Bytes};
 <span class="kw">use </span>futures::{FutureExt, StreamExt, TryStreamExt};
 <span class="kw">use </span>headers::{Authorization, HeaderMapExt};
+<span class="kw">use </span>http_body_util::{BodyExt, Full};
 <span class="kw">use </span>hyper::{
-    client::HttpConnector,
+    body::Incoming,
     header::{CONTENT_LENGTH, CONTENT_TYPE, USER_AGENT},
-    Body, Client, Method, Request, Response, StatusCode,
+    Method, Request, Response, StatusCode,
 };
 <span class="kw">use </span>hyper_rustls::HttpsConnector;
 <span class="kw">use </span>hyper_timeout::TimeoutConnector;
+<span class="kw">use </span>hyper_util::{
+    client::legacy::{connect::HttpConnector, Client},
+    rt::TokioExecutor,
+};
 <span class="kw">use </span>libsignal_service::{
     configuration::<span class="kw-2">*</span>, prelude::ProtobufMessage, push_service::<span class="kw-2">*</span>,
     websocket::SignalWebSocket, MaybeSend,
 };
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>tokio_rustls::rustls;
+<span class="kw">use </span>tokio_rustls::rustls::{<span class="self">self</span>, ClientConfig};
+<span class="kw">use </span>tracing::{debug, debug_span};
 <span class="kw">use </span>tracing_futures::Instrument;
 
 <span class="kw">use </span><span class="kw">crate</span>::websocket::TungsteniteWebSocket;
@@ -693,7 +699,8 @@
     cfg: ServiceConfiguration,
     user_agent: String,
     credentials: <span class="prelude-ty">Option</span>&lt;HttpAuth&gt;,
-    client: Client&lt;TimeoutConnector&lt;HttpsConnector&lt;HttpConnector&gt;&gt;&gt;,
+    client:
+        Client&lt;TimeoutConnector&lt;HttpsConnector&lt;HttpConnector&gt;&gt;, Full&lt;Bytes&gt;&gt;,
 }
 
 <span class="attr">#[derive(Debug)]
@@ -723,8 +730,8 @@
         timeout_connector.set_read_timeout(<span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">65</span>)));
         timeout_connector.set_write_timeout(<span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">65</span>)));
 
-        <span class="kw">let </span>client: Client&lt;<span class="kw">_</span>, hyper::Body&gt; =
-            Client::builder().build(timeout_connector);
+        <span class="kw">let </span>client: Client&lt;<span class="kw">_</span>, Full&lt;Bytes&gt;&gt; =
+            Client::builder(TokioExecutor::new()).build(timeout_connector);
 
         <span class="self">Self </span>{
             cfg,
@@ -734,8 +741,8 @@
         }
     }
 
-    <span class="kw">fn </span>tls_config(cfg: <span class="kw-2">&amp;</span>ServiceConfiguration) -&gt; rustls::ClientConfig {
-        <span class="kw">let </span><span class="kw-2">mut </span>cert_bytes = std::io::Cursor::new(<span class="kw-2">&amp;</span>cfg.certificate_authority);
+    <span class="kw">fn </span>tls_config(cfg: <span class="kw-2">&amp;</span>ServiceConfiguration) -&gt; ClientConfig {
+        <span class="kw">let </span><span class="kw-2">mut </span>cert_bytes = io::Cursor::new(<span class="kw-2">&amp;</span>cfg.certificate_authority);
         <span class="kw">let </span>roots = rustls_pemfile::certs(<span class="kw-2">&amp;mut </span>cert_bytes);
 
         <span class="kw">let </span><span class="kw-2">mut </span>root_certs = rustls::RootCertStore::empty();
@@ -757,7 +764,7 @@
         additional_headers: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
         credentials_override: HttpAuthOverride,
         body: <span class="prelude-ty">Option</span>&lt;RequestBody&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Response&lt;Body&gt;, ServiceError&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Response&lt;Incoming&gt;, ServiceError&gt; {
         <span class="kw">let </span>url = <span class="self">self</span>.cfg.base_url(endpoint).join(path.as_ref())<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>builder = Request::builder()
             .method(method)
@@ -796,10 +803,10 @@
             builder
                 .header(CONTENT_LENGTH, contents.len() <span class="kw">as </span>u64)
                 .header(CONTENT_TYPE, content_type)
-                .body(Body::from(contents))
+                .body(Full::new(Bytes::from(contents)))
                 .unwrap()
         } <span class="kw">else </span>{
-            builder.body(Body::empty()).unwrap()
+            builder.body(Full::default()).unwrap()
         };
 
         <span class="kw">let </span><span class="kw-2">mut </span>response = <span class="self">self</span>.client.request(request).<span class="kw">await</span>.map_err(|e| {
@@ -891,19 +898,26 @@
         }
     }
 
+    <span class="kw">async fn </span>body(
+        response: <span class="kw-2">&amp;mut </span>Response&lt;Incoming&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Buf, ServiceError&gt; {
+        <span class="prelude-val">Ok</span>(response
+            .collect()
+            .<span class="kw">await
+            </span>.map_err(|e| ServiceError::ResponseError {
+                reason: <span class="macro">format!</span>(<span class="string">"failed to aggregate HTTP response body: {e}"</span>),
+            })<span class="question-mark">?
+            </span>.aggregate())
+    }
+
     <span class="attr">#[tracing::instrument(skip(response), fields(status = %response.status()))]
-    </span><span class="kw">async fn </span>json&lt;T&gt;(response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
+    </span><span class="kw">async fn </span>json&lt;T&gt;(
+        response: <span class="kw-2">&amp;mut </span>Response&lt;Incoming&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;T, ServiceError&gt;
     <span class="kw">where
         for</span>&lt;<span class="lifetime">'de</span>&gt; T: Deserialize&lt;<span class="lifetime">'de</span>&gt;,
     {
-        <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
-            ServiceError::ResponseError {
-                reason: <span class="macro">format!</span>(
-                    <span class="string">"failed to aggregate HTTP response body: {}"</span>,
-                    e
-                ),
-            }
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>body = <span class="self">Self</span>::body(response).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">if </span>body.has_remaining() {
             serde_json::from_reader(body.reader())
@@ -917,42 +931,25 @@
 
     <span class="attr">#[tracing::instrument(skip(response), fields(status = %response.status()))]
     </span><span class="kw">async fn </span>protobuf&lt;M&gt;(
-        response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;,
+        response: <span class="kw-2">&amp;mut </span>Response&lt;Incoming&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;M, ServiceError&gt;
     <span class="kw">where
         </span>M: ProtobufMessage + Default,
     {
-        <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
-            ServiceError::ResponseError {
-                reason: <span class="macro">format!</span>(
-                    <span class="string">"failed to aggregate HTTP response body: {}"</span>,
-                    e
-                ),
-            }
-        })<span class="question-mark">?</span>;
-
+        <span class="kw">let </span>body = <span class="self">Self</span>::body(response).<span class="kw">await</span><span class="question-mark">?</span>;
         M::decode(body).map_err(ServiceError::ProtobufDecodeError)
     }
 
     <span class="attr">#[tracing::instrument(skip(response), fields(status = %response.status()))]
     </span><span class="kw">async fn </span>text(
-        response: <span class="kw-2">&amp;mut </span>Response&lt;Body&gt;,
+        response: <span class="kw-2">&amp;mut </span>Response&lt;Incoming&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;String, ServiceError&gt; {
-        <span class="kw">let </span>body = hyper::body::aggregate(response).<span class="kw">await</span>.map_err(|e| {
+        <span class="kw">let </span>body = <span class="self">Self</span>::body(response).<span class="kw">await</span><span class="question-mark">?</span>;
+        io::read_to_string(body.reader()).map_err(|e| {
             ServiceError::ResponseError {
-                reason: <span class="macro">format!</span>(
-                    <span class="string">"failed to aggregate HTTP response body: {}"</span>,
-                    e
-                ),
+                reason: <span class="macro">format!</span>(<span class="string">"failed to read HTTP response body: {e}"</span>),
             }
-        })<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="kw-2">mut </span>text = String::new();
-        body.reader().read_to_string(<span class="kw-2">&amp;mut </span>text).map_err(|e| {
-            ServiceError::ResponseError {
-                reason: <span class="macro">format!</span>(<span class="string">"failed to read HTTP response body: {}"</span>, e),
-            }
-        })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(text)
+        })
     }
 }
 
@@ -1195,13 +1192,14 @@
         <span class="prelude-val">Ok</span>(Box::new(
             response
                 .into_body()
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+                .into_data_stream()
+                .map_err(|e| io::Error::new(io::ErrorKind::Other, e))
                 .into_async_read(),
         ))
     }
 
     <span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, value, file), fields(file = file.as_ref().map(|<span class="kw">_</span>| <span class="string">""</span>)))]
-    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">'s</span>, C: std::io::Read + Send + <span class="lifetime">'s</span>&gt;(
+    </span><span class="kw">async fn </span>post_to_cdn0&lt;<span class="lifetime">'s</span>, C: io::Read + Send + <span class="lifetime">'s</span>&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         path: <span class="kw-2">&amp;</span>str,
         value: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
@@ -1265,7 +1263,7 @@
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="macro">tracing::debug!</span>(<span class="string">"HyperPushService::PUT response: {:?}"</span>, response);
+        <span class="macro">debug!</span>(<span class="string">"HyperPushService::PUT response: {:?}"</span>, response);
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -1277,7 +1275,7 @@
         additional_headers: <span class="kw-2">&amp;</span>[(<span class="kw-2">&amp;</span>str, <span class="kw-2">&amp;</span>str)],
         credentials: <span class="prelude-ty">Option</span>&lt;ServiceCredentials&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SignalWebSocket, ServiceError&gt; {
-        <span class="kw">let </span>span = <span class="macro">tracing::debug_span!</span>(<span class="string">"websocket"</span>);
+        <span class="kw">let </span>span = <span class="macro">debug_span!</span>(<span class="string">"websocket"</span>);
         <span class="kw">let </span>(ws, stream) = TungsteniteWebSocket::with_tls_config(
             <span class="self">Self</span>::tls_config(<span class="kw-2">&amp;</span><span class="self">self</span>.cfg),
             <span class="self">self</span>.cfg.base_url(Endpoint::Service),
