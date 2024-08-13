@@ -515,6 +515,7 @@
 <a href="#515" id="515">515</a>
 <a href="#516" id="516">516</a>
 <a href="#517" id="517">517</a>
+<a href="#518" id="518">518</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, ops::RangeBounds, time::SystemTime};
@@ -629,6 +630,7 @@
         <span class="kw">let </span>verified_sync_message = Content {
             metadata: Metadata {
                 sender: ServiceAddress::new_aci(sender),
+                destination: ServiceAddress::new_aci(sender),
                 sender_device: <span class="number">0</span>,
                 server_guid: <span class="prelude-val">None</span>,
                 timestamp: SystemTime::now()

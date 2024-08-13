@@ -1647,6 +1647,8 @@
 <a href="#1647" id="1647">1647</a>
 <a href="#1648" id="1648">1648</a>
 <a href="#1649" id="1649">1649</a>
+<a href="#1650" id="1650">1650</a>
+<a href="#1651" id="1651">1651</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -2517,6 +2519,7 @@
             metadata: Metadata {
                 sender: ServiceAddress::new_aci(<span class="self">self</span>.state.data.service_ids.aci),
                 sender_device: <span class="self">self</span>.state.device_id(),
+                destination: recipient,
                 server_guid: <span class="prelude-val">None</span>,
                 timestamp,
                 needs_receipt: <span class="bool-val">false</span>,
@@ -2638,6 +2641,7 @@
         <span class="kw">let </span>content = Content {
             metadata: Metadata {
                 sender: ServiceAddress::new_aci(<span class="self">self</span>.state.data.service_ids.aci),
+                destination: ServiceAddress::new_aci(<span class="self">self</span>.state.data.service_ids.aci),
                 sender_device: <span class="self">self</span>.state.device_id(),
                 server_guid: <span class="prelude-val">None</span>,
                 timestamp,
