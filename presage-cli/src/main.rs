@@ -200,7 +200,7 @@ fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
-    env_logger::from_env(
+    env_logger::Builder::from_env(
         Env::default().default_filter_or(format!("{}=warn", env!("CARGO_PKG_NAME"))),
     )
     .init();
