@@ -9,7 +9,7 @@
         additional_headers: &amp;'life2 [(&amp;'life3 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>, &amp;'life4 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>)],
         credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
-       <span class="where">where for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+       <span class="where">where for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
              Self: 'async_trait,
              'life0: 'async_trait,
              'life1: 'async_trait,
@@ -22,7 +22,7 @@
         path: &amp;'life1 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>,
         additional_headers: &amp;'life2 [(&amp;'life3 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>, &amp;'life4 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>)],
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
-       <span class="where">where for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+       <span class="where">where for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
              Self: 'async_trait,
              'life0: 'async_trait,
              'life1: 'async_trait,
@@ -37,8 +37,8 @@
         credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
         value: S,
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;D, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
-       <span class="where">where for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
-             S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.207/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
+       <span class="where">where for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+             S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.209/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
              Self: 'async_trait,
              'life0: 'async_trait,
              'life1: 'async_trait,
@@ -53,8 +53,8 @@
         credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
         value: S,
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;D, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
-       <span class="where">where for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
-             S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.207/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
+       <span class="where">where for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+             S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.209/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
              Self: 'async_trait,
              'life0: 'async_trait,
              'life1: 'async_trait,
@@ -69,8 +69,8 @@
         credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
         value: S,
     ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;D, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;
-       <span class="where">where for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
-             S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.207/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
+       <span class="where">where for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+             S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.209/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
              Self: 'async_trait,
              'life0: 'async_trait,
              'life1: 'async_trait,
@@ -392,7 +392,7 @@
     additional_headers: &amp;'life2 [(&amp;'life3 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>, &amp;'life4 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>)],
     credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
-    for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+    for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
     Self: 'async_trait,
     'life0: 'async_trait,
     'life1: 'async_trait,
@@ -404,7 +404,7 @@
     path: &amp;'life1 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>,
     additional_headers: &amp;'life2 [(&amp;'life3 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>, &amp;'life4 <a class="primitive" href="https://doc.rust-lang.org/1.80.1/std/primitive.str.html">str</a>)],
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;T, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
-    for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+    for&lt;'de&gt; T: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
     Self: 'async_trait,
     'life0: 'async_trait,
     'life1: 'async_trait,
@@ -418,8 +418,8 @@
     credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
     value: S,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;D, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
-    for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
-    S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.207/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
+    for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+    S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.209/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
     Self: 'async_trait,
     'life0: 'async_trait,
     'life1: 'async_trait,
@@ -433,8 +433,8 @@
     credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
     value: S,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;D, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
-    for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
-    S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.207/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
+    for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+    S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.209/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
     Self: 'async_trait,
     'life0: 'async_trait,
     'life1: 'async_trait,
@@ -448,8 +448,8 @@
     credentials_override: <a class="enum" href="enum.HttpAuthOverride.html" title="enum libsignal_service::push_service::HttpAuthOverride">HttpAuthOverride</a>,
     value: S,
 ) -&gt; <a class="struct" href="https://doc.rust-lang.org/1.80.1/core/pin/struct.Pin.html" title="struct core::pin::Pin">Pin</a>&lt;<a class="struct" href="https://doc.rust-lang.org/1.80.1/alloc/boxed/struct.Box.html" title="struct alloc::boxed::Box">Box</a>&lt;dyn <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/1.80.1/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;D, <a class="enum" href="enum.ServiceError.html" title="enum libsignal_service::push_service::ServiceError">ServiceError</a>&gt;&gt; + <a class="trait" href="https://doc.rust-lang.org/1.80.1/core/marker/trait.Send.html" title="trait core::marker::Send">Send</a> + 'async_trait&gt;&gt;<div class="where">where
-    for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.207/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
-    S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.207/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
+    for&lt;'de&gt; D: <a class="trait" href="https://docs.rs/serde/1.0.209/serde/de/trait.Deserialize.html" title="trait serde::de::Deserialize">Deserialize</a>&lt;'de&gt; + 'async_trait,
+    S: <a class="trait" href="../trait.MaybeSend.html" title="trait libsignal_service::MaybeSend">MaybeSend</a> + <a class="trait" href="https://docs.rs/serde/1.0.209/serde/ser/trait.Serialize.html" title="trait serde::ser::Serialize">Serialize</a> + 'async_trait,
     Self: 'async_trait,
     'life0: 'async_trait,
     'life1: 'async_trait,

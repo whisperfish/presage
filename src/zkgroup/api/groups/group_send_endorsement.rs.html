@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/2e2896f/rust/zkgroup/src/api/groups/group_send_endorsement.rs`."><title>group_send_endorsement.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/e46841e/rust/zkgroup/src/api/groups/group_send_endorsement.rs`."><title>group_send_endorsement.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../../" data-static-root-path="../../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../src-files.js"></script><script defer src="../../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -578,6 +578,9 @@
 <a href="#578" id="578">578</a>
 <a href="#579" id="579">579</a>
 <a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2024 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
@@ -673,9 +676,9 @@
     /// it.
     ///
     /// The `usize` in each pair must be the original index of the point.
-    </span><span class="kw">fn </span>sort_points(points: <span class="kw-2">&amp;mut </span>[(usize, curve25519_dalek::RistrettoPoint)]) {
+    </span><span class="kw">fn </span>sort_points(points: <span class="kw-2">&amp;mut </span>[(usize, curve25519_dalek_signal::RistrettoPoint)]) {
         <span class="macro">debug_assert!</span>(points.iter().enumerate().all(|(i, (j, <span class="kw">_</span>))| i == <span class="kw-2">*</span>j));
-        <span class="kw">let </span>sort_keys = curve25519_dalek::RistrettoPoint::double_and_compress_batch(
+        <span class="kw">let </span>sort_keys = curve25519_dalek_signal::RistrettoPoint::double_and_compress_batch(
             points.iter().map(|(_i, point)| point),
         );
         points.sort_unstable_by_key(|(i, _point)| sort_keys[<span class="kw-2">*</span>i].as_bytes());
@@ -692,11 +695,12 @@
         <span class="comment">// Note: we could save some work here by pulling the single point we need out of the
         // serialized bytes, and operating directly on that. However, we'd have to remember to
         // update that if the serialization format ever changes.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>points_to_sign: Vec&lt;(usize, curve25519_dalek::RistrettoPoint)&gt; = member_ciphertexts
-            .into_iter()
-            .map(|ciphertext| ciphertext.ciphertext.as_points()[<span class="number">0</span>])
-            .enumerate()
-            .collect();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>points_to_sign: Vec&lt;(usize, curve25519_dalek_signal::RistrettoPoint)&gt; =
+            member_ciphertexts
+                .into_iter()
+                .map(|ciphertext| ciphertext.ciphertext.as_points()[<span class="number">0</span>])
+                .enumerate()
+                .collect();
         <span class="self">Self</span>::sort_points(<span class="kw-2">&amp;mut </span>points_to_sign);
 
         <span class="kw">let </span>endorsements = zkcredential::endorsements::EndorsementResponse::issue(
@@ -774,7 +778,7 @@
         // We have to compute the ciphertexts (expensive), but we can skip the second point (which
         // would be much more expensive).
         // We zip the results together with a set of indexes so we can un-sort the results later.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>member_points: Vec&lt;(usize, curve25519_dalek::RistrettoPoint)&gt; = user_ids
+        </span><span class="kw">let </span><span class="kw-2">mut </span>member_points: Vec&lt;(usize, curve25519_dalek_signal::RistrettoPoint)&gt; = user_ids
             .into_iter()
             .map(|user_id| {
                 group_params.uid_enc_key_pair.a1 * crypto::uid_struct::UidStruct::calc_M1(user_id)
@@ -831,7 +835,7 @@
         // We have to compute the ciphertexts (expensive), but we can skip the second point (which
         // would be much more expensive).
         // We zip the results together with a set of indexes so we can un-sort the results later.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>member_points: Vec&lt;(usize, curve25519_dalek::RistrettoPoint)&gt; = user_ids
+        </span><span class="kw">let </span><span class="kw-2">mut </span>member_points: Vec&lt;(usize, curve25519_dalek_signal::RistrettoPoint)&gt; = user_ids
             .into_par_iter()
             .map(|user_id| {
                 group_params.uid_enc_key_pair.a1 * crypto::uid_struct::UidStruct::calc_M1(user_id)
@@ -920,18 +924,18 @@
 
 <span class="doccomment">/// A single endorsement, for one or multiple group members.
 ///
-/// `Storage` is usually [`curve25519_dalek::RistrettoPoint`], but the `receive` APIs on
+/// `Storage` is usually [`curve25519_dalek_signal::RistrettoPoint`], but the `receive` APIs on
 /// [`GroupSendEndorsementsResponse`] produce "compressed" endorsements, since they are usually
 /// immediately serialized.
 </span><span class="attr">#[derive(Serialize, Deserialize, PartialDefault, Clone, Copy)]
-#[partial_default(bound = <span class="string">"Storage: curve25519_dalek::traits::Identity"</span>)]
+#[partial_default(bound = <span class="string">"Storage: curve25519_dalek_signal::traits::Identity"</span>)]
 #[derive_where(PartialEq; Storage: subtle::ConstantTimeEq)]
-</span><span class="kw">pub struct </span>GroupSendEndorsement&lt;Storage = curve25519_dalek::RistrettoPoint&gt; {
+</span><span class="kw">pub struct </span>GroupSendEndorsement&lt;Storage = curve25519_dalek_signal::RistrettoPoint&gt; {
     reserved: ReservedByte,
     endorsement: zkcredential::endorsements::Endorsement&lt;Storage&gt;,
 }
 
-<span class="kw">impl </span>Debug <span class="kw">for </span>GroupSendEndorsement&lt;curve25519_dalek::RistrettoPoint&gt; {
+<span class="kw">impl </span>Debug <span class="kw">for </span>GroupSendEndorsement&lt;curve25519_dalek_signal::RistrettoPoint&gt; {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
         f.debug_struct(<span class="string">"GroupSendEndorsement"</span>)
             .field(<span class="string">"reserved"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.reserved)
@@ -940,7 +944,7 @@
     }
 }
 
-<span class="kw">impl </span>Debug <span class="kw">for </span>GroupSendEndorsement&lt;curve25519_dalek::ristretto::CompressedRistretto&gt; {
+<span class="kw">impl </span>Debug <span class="kw">for </span>GroupSendEndorsement&lt;curve25519_dalek_signal::ristretto::CompressedRistretto&gt; {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; std::fmt::Result {
         f.debug_struct(<span class="string">"GroupSendEndorsement"</span>)
             .field(<span class="string">"reserved"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.reserved)
@@ -968,11 +972,11 @@
     // existing memory allocation isn't sufficient anyway, and thus we're better off constructing a
     // single big Vec rather than two smaller ones, especially since we have to un-permute the
     // results. (It's close, though, only a 3-6% difference at the largest group sizes.)
-    </span><span class="kw">pub </span>compressed: GroupSendEndorsement&lt;curve25519_dalek::ristretto::CompressedRistretto&gt;,
+    </span><span class="kw">pub </span>compressed: GroupSendEndorsement&lt;curve25519_dalek_signal::ristretto::CompressedRistretto&gt;,
     <span class="kw">pub </span>decompressed: GroupSendEndorsement,
 }
 
-<span class="kw">impl </span>GroupSendEndorsement&lt;curve25519_dalek::ristretto::CompressedRistretto&gt; {
+<span class="kw">impl </span>GroupSendEndorsement&lt;curve25519_dalek_signal::ristretto::CompressedRistretto&gt; {
     <span class="doccomment">/// Attempts to decompress the GroupSendEndorsement.
     ///
     /// Produces [`ZkGroupDeserializationFailure`] if the compressed storage isn't a valid
@@ -982,8 +986,10 @@
     /// `GroupSendEndorsement&lt;CompressedRistretto&gt;` and then calling `decompress`.
     </span><span class="kw">pub fn </span>decompress(
         <span class="self">self</span>,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;GroupSendEndorsement&lt;curve25519_dalek::RistrettoPoint&gt;, ZkGroupDeserializationFailure&gt;
-    {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;
+        GroupSendEndorsement&lt;curve25519_dalek_signal::RistrettoPoint&gt;,
+        ZkGroupDeserializationFailure,
+    &gt; {
         <span class="prelude-val">Ok</span>(GroupSendEndorsement {
             reserved: <span class="self">self</span>.reserved,
             endorsement: <span class="self">self
@@ -994,14 +1000,14 @@
     }
 }
 
-<span class="kw">impl </span>GroupSendEndorsement&lt;curve25519_dalek::RistrettoPoint&gt; {
+<span class="kw">impl </span>GroupSendEndorsement&lt;curve25519_dalek_signal::RistrettoPoint&gt; {
     <span class="doccomment">/// Compresses the GroupSendEndorsement for storage.
     ///
     /// Serializing an `GroupSendEndorsement&lt;RistrettoPoint&gt;` is equivalent to calling `compress` and
     /// serializing the resulting `GroupSendEndorsement&lt;CompressedRistretto&gt;`.
     </span><span class="kw">pub fn </span>compress(
         <span class="self">self</span>,
-    ) -&gt; GroupSendEndorsement&lt;curve25519_dalek::ristretto::CompressedRistretto&gt; {
+    ) -&gt; GroupSendEndorsement&lt;curve25519_dalek_signal::ristretto::CompressedRistretto&gt; {
         GroupSendEndorsement {
             reserved: <span class="self">self</span>.reserved,
             endorsement: <span class="self">self</span>.endorsement.compress(),
@@ -1147,7 +1153,7 @@
             <span class="string">"wrong key pair used for this token"
         </span>);
 
-        <span class="kw">let </span>user_id_sum: curve25519_dalek::RistrettoPoint = user_ids
+        <span class="kw">let </span>user_id_sum: curve25519_dalek_signal::RistrettoPoint = user_ids
             .into_iter()
             .map(crypto::uid_struct::UidStruct::calc_M1)
             .sum();

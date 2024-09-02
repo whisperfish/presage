@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["AttachmentUploadError","MessageSenderError"],"struct":["AttachmentSpec","MessageSender","OutgoingPushMessage","OutgoingPushMessages","SendMessageResponse","SentMessage"],"type":["SendMessageResult"]};
+window.SIDEBAR_ITEMS = {"enum":["AttachmentUploadError","MessageSenderError","ThreadIdentifier"],"struct":["AttachmentSpec","MessageSender","OutgoingPushMessage","OutgoingPushMessages","SendMessageResponse","SentMessage"],"type":["GroupV2Id","SendMessageResult"]};

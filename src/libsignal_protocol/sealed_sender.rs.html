@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/2e2896f/rust/protocol/src/sealed_sender.rs`."><title>sealed_sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/e46841e/rust/protocol/src/sealed_sender.rs`."><title>sealed_sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2059,96 +2059,31 @@
 <a href="#2059" id="2059">2059</a>
 <a href="#2060" id="2060">2060</a>
 <a href="#2061" id="2061">2061</a>
-<a href="#2062" id="2062">2062</a>
-<a href="#2063" id="2063">2063</a>
-<a href="#2064" id="2064">2064</a>
-<a href="#2065" id="2065">2065</a>
-<a href="#2066" id="2066">2066</a>
-<a href="#2067" id="2067">2067</a>
-<a href="#2068" id="2068">2068</a>
-<a href="#2069" id="2069">2069</a>
-<a href="#2070" id="2070">2070</a>
-<a href="#2071" id="2071">2071</a>
-<a href="#2072" id="2072">2072</a>
-<a href="#2073" id="2073">2073</a>
-<a href="#2074" id="2074">2074</a>
-<a href="#2075" id="2075">2075</a>
-<a href="#2076" id="2076">2076</a>
-<a href="#2077" id="2077">2077</a>
-<a href="#2078" id="2078">2078</a>
-<a href="#2079" id="2079">2079</a>
-<a href="#2080" id="2080">2080</a>
-<a href="#2081" id="2081">2081</a>
-<a href="#2082" id="2082">2082</a>
-<a href="#2083" id="2083">2083</a>
-<a href="#2084" id="2084">2084</a>
-<a href="#2085" id="2085">2085</a>
-<a href="#2086" id="2086">2086</a>
-<a href="#2087" id="2087">2087</a>
-<a href="#2088" id="2088">2088</a>
-<a href="#2089" id="2089">2089</a>
-<a href="#2090" id="2090">2090</a>
-<a href="#2091" id="2091">2091</a>
-<a href="#2092" id="2092">2092</a>
-<a href="#2093" id="2093">2093</a>
-<a href="#2094" id="2094">2094</a>
-<a href="#2095" id="2095">2095</a>
-<a href="#2096" id="2096">2096</a>
-<a href="#2097" id="2097">2097</a>
-<a href="#2098" id="2098">2098</a>
-<a href="#2099" id="2099">2099</a>
-<a href="#2100" id="2100">2100</a>
-<a href="#2101" id="2101">2101</a>
-<a href="#2102" id="2102">2102</a>
-<a href="#2103" id="2103">2103</a>
-<a href="#2104" id="2104">2104</a>
-<a href="#2105" id="2105">2105</a>
-<a href="#2106" id="2106">2106</a>
-<a href="#2107" id="2107">2107</a>
-<a href="#2108" id="2108">2108</a>
-<a href="#2109" id="2109">2109</a>
-<a href="#2110" id="2110">2110</a>
-<a href="#2111" id="2111">2111</a>
-<a href="#2112" id="2112">2112</a>
-<a href="#2113" id="2113">2113</a>
-<a href="#2114" id="2114">2114</a>
-<a href="#2115" id="2115">2115</a>
-<a href="#2116" id="2116">2116</a>
-<a href="#2117" id="2117">2117</a>
-<a href="#2118" id="2118">2118</a>
-<a href="#2119" id="2119">2119</a>
-<a href="#2120" id="2120">2120</a>
-<a href="#2121" id="2121">2121</a>
-<a href="#2122" id="2122">2122</a>
-<a href="#2123" id="2123">2123</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020-2022 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-</span><span class="kw">use crate</span>::{
-    message_encrypt, Aci, CiphertextMessageType, DeviceId, Direction, IdentityKey, IdentityKeyPair,
-    IdentityKeyStore, KeyPair, KyberPreKeyStore, PreKeySignalMessage, PreKeyStore, PrivateKey,
-    ProtocolAddress, PublicKey, <span class="prelude-ty">Result</span>, ServiceId, ServiceIdFixedWidthBinaryBytes, SessionRecord,
-    SessionStore, SignalMessage, SignalProtocolError, SignedPreKeyStore, Timestamp,
-};
-
-<span class="kw">use crate</span>::{crypto, curve, proto, session_cipher};
+</span><span class="kw">use </span>std::ops::Range;
+<span class="kw">use </span>std::time::SystemTime;
 
 <span class="kw">use </span>aes_gcm_siv::aead::generic_array::typenum::Unsigned;
 <span class="kw">use </span>aes_gcm_siv::{AeadInPlace, Aes256GcmSiv, KeyInit};
 <span class="kw">use </span>arrayref::array_ref;
-<span class="kw">use </span>curve25519_dalek::scalar::Scalar;
 <span class="kw">use </span>indexmap::IndexMap;
 <span class="kw">use </span>itertools::Itertools;
 <span class="kw">use </span>prost::Message;
+<span class="kw">use </span>proto::sealed_sender::unidentified_sender_message::message::Type <span class="kw">as </span>ProtoMessageType;
 <span class="kw">use </span>rand::{CryptoRng, Rng};
 <span class="kw">use </span>subtle::ConstantTimeEq;
 
-<span class="kw">use </span>proto::sealed_sender::unidentified_sender_message::message::Type <span class="kw">as </span>ProtoMessageType;
-
-<span class="kw">use </span>std::ops::Range;
-<span class="kw">use </span>std::time::SystemTime;
+<span class="kw">use crate</span>::{
+    crypto, curve, message_encrypt, proto, session_cipher, Aci, CiphertextMessageType, DeviceId,
+    Direction, IdentityKey, IdentityKeyPair, IdentityKeyStore, KeyPair, KyberPreKeyStore,
+    PreKeySignalMessage, PreKeyStore, PrivateKey, ProtocolAddress, PublicKey, <span class="prelude-ty">Result</span>, ServiceId,
+    ServiceIdFixedWidthBinaryBytes, SessionRecord, SessionStore, SignalMessage,
+    SignalProtocolError, SignedPreKeyStore, Timestamp,
+};
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>ServerCertificate {
@@ -2727,10 +2662,10 @@ with this test certificate ID, Bad Things will happen.
 }
 
 <span class="kw">mod </span>sealed_sender_v1 {
-    <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
     <span class="attr">#[cfg(test)]
     </span><span class="kw">use </span>std::fmt;
+
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
     <span class="doccomment">/// A symmetric cipher key and a MAC key, along with a "chain key" consumed in
     /// [`StaticKeys::calculate`].
@@ -3039,7 +2974,6 @@ with this test certificate ID, Bad Things will happen.
 
     <span class="comment">// Static byte strings used as part of a MAC in HKDF.
     </span><span class="kw">const </span>LABEL_R: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"Sealed Sender v2: r (2023-08)"</span>;
-    <span class="kw">const </span>LABEL_R_LEGACY: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"Sealed Sender v2: r"</span>;
     <span class="kw">const </span>LABEL_K: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"Sealed Sender v2: K"</span>;
     <span class="kw">const </span>LABEL_DH: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"Sealed Sender v2: DH"</span>;
     <span class="kw">const </span>LABEL_DH_S: <span class="kw-2">&amp;</span>[u8] = <span class="string">b"Sealed Sender v2: DH-sender"</span>;
@@ -3048,9 +2982,6 @@ with this test certificate ID, Bad Things will happen.
     <span class="kw">pub const </span>CIPHER_KEY_LEN: usize =
         &lt;Aes256GcmSiv <span class="kw">as </span>aes_gcm_siv::aead::KeySizeUser&gt;::KeySize::USIZE;
     <span class="kw">pub const </span>AUTH_TAG_LEN: usize = <span class="number">16</span>;
-
-    <span class="comment">// Change this to false after all clients have receive support.
-    </span><span class="kw">pub const </span>USE_LEGACY_EPHEMERAL_KEY_DERIVATION_FOR_ENCRYPT: bool = <span class="bool-val">false</span>;
 
     <span class="doccomment">/// An asymmetric and a symmetric cipher key.
     </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">struct </span>DerivedKeys {
@@ -3072,17 +3003,6 @@ with this test certificate ID, Bad Things will happen.
                 .expand(LABEL_R, <span class="kw-2">&amp;mut </span>r)
                 .expect(<span class="string">"valid output length"</span>);
             <span class="kw">let </span>e = PrivateKey::try_from(<span class="kw-2">&amp;</span>r[..]).expect(<span class="string">"valid PrivateKey"</span>);
-            KeyPair::try_from(e).expect(<span class="string">"can derive public key"</span>)
-        }
-
-        <span class="doccomment">/// Derive the ephemeral asymmetric keys using the legacy implementation.
-        </span><span class="kw">pub</span>(<span class="kw">super</span>) <span class="kw">fn </span>derive_e_legacy(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; KeyPair {
-            <span class="kw">let </span><span class="kw-2">mut </span>r = [<span class="number">0</span>; <span class="number">64</span>];
-            <span class="self">self</span>.kdf
-                .expand(LABEL_R_LEGACY, <span class="kw-2">&amp;mut </span>r)
-                .expect(<span class="string">"valid output length"</span>);
-            <span class="kw">let </span>e_raw = Scalar::from_bytes_mod_order_wide(<span class="kw-2">&amp;</span>r);
-            <span class="kw">let </span>e = PrivateKey::try_from(<span class="kw-2">&amp;</span>e_raw.as_bytes()[..]).expect(<span class="string">"valid PrivateKey"</span>);
             KeyPair::try_from(e).expect(<span class="string">"can derive public key"</span>)
         }
 
@@ -3400,34 +3320,6 @@ with this test certificate ID, Bad Things will happen.
         usmc,
         identity_store,
         rng,
-        sealed_sender_v2::USE_LEGACY_EPHEMERAL_KEY_DERIVATION_FOR_ENCRYPT,
-    )
-    .<span class="kw">await
-</span>}
-
-<span class="doccomment">/// For testing only.
-</span><span class="kw">pub async fn </span>sealed_sender_multi_recipient_encrypt_using_legacy_ephemeral_key_derivation&lt;
-    R: Rng + CryptoRng,
-    X: IntoIterator&lt;Item = ServiceId&gt;,
-&gt;(
-    destinations: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>ProtocolAddress],
-    destination_sessions: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>SessionRecord],
-    excluded_recipients: X,
-    usmc: <span class="kw-2">&amp;</span>UnidentifiedSenderMessageContent,
-    identity_store: <span class="kw-2">&amp;</span><span class="kw">dyn </span>IdentityKeyStore,
-    rng: <span class="kw-2">&amp;mut </span>R,
-) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt;
-<span class="kw">where
-    </span>X::IntoIter: ExactSizeIterator,
-{
-    sealed_sender_multi_recipient_encrypt_impl(
-        destinations,
-        destination_sessions,
-        excluded_recipients,
-        usmc,
-        identity_store,
-        rng,
-        <span class="bool-val">false</span>,
     )
     .<span class="kw">await
 </span>}
@@ -3442,7 +3334,6 @@ with this test certificate ID, Bad Things will happen.
     usmc: <span class="kw-2">&amp;</span>UnidentifiedSenderMessageContent,
     identity_store: <span class="kw-2">&amp;</span><span class="kw">dyn </span>IdentityKeyStore,
     rng: <span class="kw-2">&amp;mut </span>R,
-    should_use_legacy_ephemeral_key_derivation: bool,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;u8&gt;&gt;
 <span class="kw">where
     </span>X::IntoIter: ExactSizeIterator,
@@ -3458,11 +3349,7 @@ with this test certificate ID, Bad Things will happen.
 
     <span class="kw">let </span>m: [u8; sealed_sender_v2::MESSAGE_KEY_LEN] = rng.gen();
     <span class="kw">let </span>keys = sealed_sender_v2::DerivedKeys::new(<span class="kw-2">&amp;</span>m);
-    <span class="kw">let </span>e = <span class="kw">if </span>should_use_legacy_ephemeral_key_derivation {
-        keys.derive_e_legacy()
-    } <span class="kw">else </span>{
-        keys.derive_e()
-    };
+    <span class="kw">let </span>e = keys.derive_e();
     <span class="kw">let </span>e_pub = <span class="kw-2">&amp;</span>e.public_key;
 
     <span class="comment">// Encrypt the shared ciphertext using AES-GCM-SIV.
@@ -3492,7 +3379,7 @@ with this test certificate ID, Bad Things will happen.
         <span class="kw">for </span>(<span class="kw">_</span>, <span class="kw-2">mut </span>next_group) <span class="kw">in </span><span class="kw-2">&amp;</span>destinations
             .iter()
             .enumerate()
-            .group_by(|(_i, next)| next.name())
+            .chunk_by(|(_i, next)| next.name())
         {
             <span class="kw">let </span>(i, <span class="kw-2">&amp;</span>destination) = next_group
                 .next()
@@ -4008,18 +3895,7 @@ with this test certificate ID, Bad Things will happen.
             )<span class="question-mark">?</span>;
 
             <span class="kw">let </span>keys = sealed_sender_v2::DerivedKeys::new(<span class="kw-2">&amp;</span>m);
-            <span class="comment">// It is okay that this is not constant time; the only information revealed is whether
-            // the sender is using the new or old derivation for the ephemeral key, combined with
-            // which key the receiver tried first.
-            </span><span class="kw">let </span><span class="kw-2">mut </span>derive_first_key: <span class="kw">fn</span>(<span class="kw">_</span>) -&gt; <span class="kw">_ </span>= sealed_sender_v2::DerivedKeys::derive_e;
-            <span class="kw">let </span><span class="kw-2">mut </span>derive_second_key: <span class="kw">fn</span>(<span class="kw">_</span>) -&gt; <span class="kw">_ </span>= sealed_sender_v2::DerivedKeys::derive_e_legacy;
-            <span class="kw">if </span>sealed_sender_v2::USE_LEGACY_EPHEMERAL_KEY_DERIVATION_FOR_ENCRYPT {
-                std::mem::swap(<span class="kw-2">&amp;mut </span>derive_first_key, <span class="kw-2">&amp;mut </span>derive_second_key);
-            }
-
-            <span class="kw">if </span>!bool::from(derive_first_key(<span class="kw-2">&amp;</span>keys).public_key.ct_eq(<span class="kw-2">&amp;</span>ephemeral_public))
-                &amp;&amp; !bool::from(derive_second_key(<span class="kw-2">&amp;</span>keys).public_key.ct_eq(<span class="kw-2">&amp;</span>ephemeral_public))
-            {
+            <span class="kw">if </span>!bool::from(keys.derive_e().public_key.ct_eq(<span class="kw-2">&amp;</span>ephemeral_public)) {
                 <span class="kw">return </span><span class="prelude-val">Err</span>(SignalProtocolError::InvalidSealedSenderMessage(
                     <span class="string">"derived ephemeral key did not match key provided in message"</span>.to_string(),
                 ));

@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/2e2896f/rust/protocol/src/fingerprint.rs`."><title>fingerprint.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-e5ca3c64ee2f7cbe/e46841e/rust/protocol/src/fingerprint.rs`."><title>fingerprint.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -545,18 +545,26 @@
 <a href="#545" id="545">545</a>
 <a href="#546" id="546">546</a>
 <a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
+<a href="#552" id="552">552</a>
+<a href="#553" id="553">553</a>
 </pre></div><pre class="rust"><code><span class="comment">//
 // Copyright 2020 Signal Messenger, LLC.
 // SPDX-License-Identifier: AGPL-3.0-only
 //
 
-</span><span class="kw">use crate</span>::{proto, IdentityKey, <span class="prelude-ty">Result</span>, SignalProtocolError};
+</span><span class="kw">use </span>std::fmt;
+<span class="kw">use </span>std::fmt::Write;
+
 <span class="kw">use </span>prost::Message;
 <span class="kw">use </span>sha2::digest::Digest;
 <span class="kw">use </span>sha2::Sha512;
-<span class="kw">use </span>std::fmt;
-<span class="kw">use </span>std::fmt::Write;
 <span class="kw">use </span>subtle::ConstantTimeEq;
+
+<span class="kw">use crate</span>::{proto, IdentityKey, <span class="prelude-ty">Result</span>, SignalProtocolError};
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>DisplayableFingerprint {
@@ -759,8 +767,9 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test {
-    <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span>hex_literal::hex;
+
+    <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
     <span class="kw">const </span>ALICE_IDENTITY: <span class="kw-2">&amp;</span>[u8] =
         <span class="kw-2">&amp;</span><span class="macro">hex!</span>(<span class="string">"0506863bc66d02b40d27b8d49ca7c09e9239236f9d7d25d6fcca5ce13c7064d868"</span>);
@@ -902,8 +911,9 @@
     </span><span class="kw">fn </span>fingerprint_matching_identifiers() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="comment">// testMatchingFingerprints
 
-        </span><span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
-        <span class="kw">use </span>rand::rngs::OsRng;
+        </span><span class="kw">use </span>rand::rngs::OsRng;
+
+        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
 
         <span class="kw">let </span>a_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
         <span class="kw">let </span>b_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
@@ -958,8 +968,9 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>fingerprint_mismatching_fingerprints() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
         <span class="kw">use </span>rand::rngs::OsRng;
+
+        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
 
         <span class="kw">let </span>a_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
         <span class="kw">let </span>b_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
@@ -1007,8 +1018,9 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>fingerprint_mismatching_identifiers() -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
         <span class="kw">use </span>rand::rngs::OsRng;
+
+        <span class="kw">use </span><span class="kw">crate</span>::IdentityKeyPair;
 
         <span class="kw">let </span>a_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);
         <span class="kw">let </span>b_key_pair = IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>OsRng);

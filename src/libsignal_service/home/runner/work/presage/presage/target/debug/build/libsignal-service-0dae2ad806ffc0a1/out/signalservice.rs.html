@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-4074d0dc2129278e/out/signalservice.rs`."><title>signalservice.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../../../../../../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../../../../../../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../../../../../../../../../src-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-0dae2ad806ffc0a1/out/signalservice.rs`."><title>signalservice.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../../../../../../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../../../../../../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../../../../../../../../../src-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2613,116 +2613,8 @@
 <a href="#2613" id="2613">2613</a>
 <a href="#2614" id="2614">2614</a>
 <a href="#2615" id="2615">2615</a>
-<a href="#2616" id="2616">2616</a>
-<a href="#2617" id="2617">2617</a>
-<a href="#2618" id="2618">2618</a>
-<a href="#2619" id="2619">2619</a>
-<a href="#2620" id="2620">2620</a>
-<a href="#2621" id="2621">2621</a>
-<a href="#2622" id="2622">2622</a>
-<a href="#2623" id="2623">2623</a>
-<a href="#2624" id="2624">2624</a>
-<a href="#2625" id="2625">2625</a>
-<a href="#2626" id="2626">2626</a>
-<a href="#2627" id="2627">2627</a>
-<a href="#2628" id="2628">2628</a>
-<a href="#2629" id="2629">2629</a>
-<a href="#2630" id="2630">2630</a>
-<a href="#2631" id="2631">2631</a>
-<a href="#2632" id="2632">2632</a>
-<a href="#2633" id="2633">2633</a>
-<a href="#2634" id="2634">2634</a>
-<a href="#2635" id="2635">2635</a>
-<a href="#2636" id="2636">2636</a>
-<a href="#2637" id="2637">2637</a>
-<a href="#2638" id="2638">2638</a>
-<a href="#2639" id="2639">2639</a>
-<a href="#2640" id="2640">2640</a>
-<a href="#2641" id="2641">2641</a>
-<a href="#2642" id="2642">2642</a>
-<a href="#2643" id="2643">2643</a>
-<a href="#2644" id="2644">2644</a>
-<a href="#2645" id="2645">2645</a>
-<a href="#2646" id="2646">2646</a>
-<a href="#2647" id="2647">2647</a>
-<a href="#2648" id="2648">2648</a>
-<a href="#2649" id="2649">2649</a>
-<a href="#2650" id="2650">2650</a>
-<a href="#2651" id="2651">2651</a>
-<a href="#2652" id="2652">2652</a>
-<a href="#2653" id="2653">2653</a>
-<a href="#2654" id="2654">2654</a>
-<a href="#2655" id="2655">2655</a>
-<a href="#2656" id="2656">2656</a>
-<a href="#2657" id="2657">2657</a>
-<a href="#2658" id="2658">2658</a>
-<a href="#2659" id="2659">2659</a>
-<a href="#2660" id="2660">2660</a>
-<a href="#2661" id="2661">2661</a>
-<a href="#2662" id="2662">2662</a>
-<a href="#2663" id="2663">2663</a>
-<a href="#2664" id="2664">2664</a>
-<a href="#2665" id="2665">2665</a>
-<a href="#2666" id="2666">2666</a>
-<a href="#2667" id="2667">2667</a>
-<a href="#2668" id="2668">2668</a>
-<a href="#2669" id="2669">2669</a>
-<a href="#2670" id="2670">2670</a>
-<a href="#2671" id="2671">2671</a>
-<a href="#2672" id="2672">2672</a>
-<a href="#2673" id="2673">2673</a>
-<a href="#2674" id="2674">2674</a>
-<a href="#2675" id="2675">2675</a>
-<a href="#2676" id="2676">2676</a>
-<a href="#2677" id="2677">2677</a>
-<a href="#2678" id="2678">2678</a>
-<a href="#2679" id="2679">2679</a>
-<a href="#2680" id="2680">2680</a>
-<a href="#2681" id="2681">2681</a>
-<a href="#2682" id="2682">2682</a>
-<a href="#2683" id="2683">2683</a>
-<a href="#2684" id="2684">2684</a>
-<a href="#2685" id="2685">2685</a>
-<a href="#2686" id="2686">2686</a>
-<a href="#2687" id="2687">2687</a>
-<a href="#2688" id="2688">2688</a>
-<a href="#2689" id="2689">2689</a>
-<a href="#2690" id="2690">2690</a>
-<a href="#2691" id="2691">2691</a>
-<a href="#2692" id="2692">2692</a>
-<a href="#2693" id="2693">2693</a>
-<a href="#2694" id="2694">2694</a>
-<a href="#2695" id="2695">2695</a>
-<a href="#2696" id="2696">2696</a>
-<a href="#2697" id="2697">2697</a>
-<a href="#2698" id="2698">2698</a>
-<a href="#2699" id="2699">2699</a>
-<a href="#2700" id="2700">2700</a>
-<a href="#2701" id="2701">2701</a>
-<a href="#2702" id="2702">2702</a>
-<a href="#2703" id="2703">2703</a>
-<a href="#2704" id="2704">2704</a>
-<a href="#2705" id="2705">2705</a>
-<a href="#2706" id="2706">2706</a>
-<a href="#2707" id="2707">2707</a>
-<a href="#2708" id="2708">2708</a>
-<a href="#2709" id="2709">2709</a>
-<a href="#2710" id="2710">2710</a>
-<a href="#2711" id="2711">2711</a>
-<a href="#2712" id="2712">2712</a>
-<a href="#2713" id="2713">2713</a>
-<a href="#2714" id="2714">2714</a>
-<a href="#2715" id="2715">2715</a>
-<a href="#2716" id="2716">2716</a>
-<a href="#2717" id="2717">2717</a>
-<a href="#2718" id="2718">2718</a>
-<a href="#2719" id="2719">2719</a>
-<a href="#2720" id="2720">2720</a>
-<a href="#2721" id="2721">2721</a>
-<a href="#2722" id="2722">2722</a>
 </pre></div><pre class="rust"><code><span class="comment">// This file is @generated by prost-build.
-</span><span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Envelope {
     <span class="attr">#[prost(enumeration = <span class="string">"envelope::Type"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -2803,8 +2695,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Content {
     <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>data_message: ::core::option::Option&lt;DataMessage&gt;,
@@ -2831,8 +2722,7 @@
     <span class="attr">#[prost(message, optional, tag = <span class="string">"11"</span>)]
     </span><span class="kw">pub </span>edit_message: ::core::option::Option&lt;EditMessage&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>CallMessage {
     <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>offer: ::core::option::Option&lt;call_message::Offer&gt;,
@@ -2851,8 +2741,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `CallMessage`.
 </span><span class="kw">pub mod </span>call_message {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Offer {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
@@ -2900,30 +2789,26 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Answer {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
         </span><span class="kw">pub </span>opaque: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>IceUpdate {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"5"</span>)]
         </span><span class="kw">pub </span>opaque: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Busy {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Hangup {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
@@ -2980,8 +2865,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Opaque {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>data: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -3028,8 +2912,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>BodyRange {
     <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>start: ::core::option::Option&lt;u32&gt;,
@@ -3088,8 +2971,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>AssociatedValue {
         <span class="attr">#[prost(string, tag = <span class="string">"3"</span>)]
         </span>MentionAci(::prost::alloc::string::String),
@@ -3097,8 +2979,7 @@
         </span>Style(i32),
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>DataMessage {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3143,8 +3024,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `DataMessage`.
 </span><span class="kw">pub mod </span>data_message {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Quote {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
@@ -3161,8 +3041,7 @@
     }
     <span class="doccomment">/// Nested message and enum types in `Quote`.
     </span><span class="kw">pub mod </span>quote {
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>QuotedAttachment {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3208,8 +3087,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Contact {
         <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>name: ::core::option::Option&lt;contact::Name&gt;,
@@ -3226,8 +3104,7 @@
     }
     <span class="doccomment">/// Nested message and enum types in `Contact`.
     </span><span class="kw">pub mod </span>contact {
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Name {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>given_name: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3242,8 +3119,7 @@
             <span class="attr">#[prost(string, optional, tag = <span class="string">"6"</span>)]
             </span><span class="kw">pub </span>display_name: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Phone {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>value: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3297,8 +3173,7 @@
                 }
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Email {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>value: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3352,8 +3227,7 @@
                 }
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>PostalAddress {
             <span class="attr">#[prost(enumeration = <span class="string">"postal_address::Type"</span>, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -3416,8 +3290,7 @@
                 }
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Avatar {
             <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>avatar: ::core::option::Option&lt;<span class="kw">super</span>::<span class="kw">super</span>::AttachmentPointer&gt;,
@@ -3425,8 +3298,7 @@
             </span><span class="kw">pub </span>is_profile: ::core::option::Option&lt;bool&gt;,
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Sticker {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>pack_id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -3439,8 +3311,7 @@
         <span class="attr">#[prost(string, optional, tag = <span class="string">"5"</span>)]
         </span><span class="kw">pub </span>emoji: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Reaction {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>emoji: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3451,57 +3322,49 @@
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"5"</span>)]
         </span><span class="kw">pub </span>target_sent_timestamp: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Delete {
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>target_sent_timestamp: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>GroupCallUpdate {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>era_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>StoryContext {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>author_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>sent_timestamp: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Payment {
         <span class="attr">#[prost(oneof = <span class="string">"payment::Item"</span>, tags = <span class="string">"1, 2"</span>)]
         </span><span class="kw">pub </span>item: ::core::option::Option&lt;payment::Item&gt;,
     }
     <span class="doccomment">/// Nested message and enum types in `Payment`.
     </span><span class="kw">pub mod </span>payment {
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Amount {
             <span class="attr">#[prost(oneof = <span class="string">"amount::Amount"</span>, tags = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>amount: ::core::option::Option&lt;amount::Amount&gt;,
         }
         <span class="doccomment">/// Nested message and enum types in `Amount`.
         </span><span class="kw">pub mod </span>amount {
-            <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-            #[derive(Clone, PartialEq, ::prost::Message)]
+            <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
             </span><span class="kw">pub struct </span>MobileCoin {
                 <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
                 </span><span class="kw">pub </span>pico_mob: ::core::option::Option&lt;u64&gt;,
             }
-            <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Oneof)]
             </span><span class="kw">pub enum </span>Amount {
                 <span class="attr">#[prost(message, tag = <span class="string">"1"</span>)]
                 </span>MobileCoin(MobileCoin),
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Notification {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>note: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3510,21 +3373,18 @@
         }
         <span class="doccomment">/// Nested message and enum types in `Notification`.
         </span><span class="kw">pub mod </span>notification {
-            <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-            #[derive(Clone, PartialEq, ::prost::Message)]
+            <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
             </span><span class="kw">pub struct </span>MobileCoin {
                 <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
                 </span><span class="kw">pub </span>receipt: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
             }
-            <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
             </span><span class="kw">pub enum </span>Transaction {
                 <span class="attr">#[prost(message, tag = <span class="string">"1"</span>)]
                 </span>MobileCoin(MobileCoin),
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>Activation {
             <span class="attr">#[prost(enumeration = <span class="string">"activation::Type"</span>, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -3568,8 +3428,7 @@
                 }
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
         </span><span class="kw">pub enum </span>Item {
             <span class="attr">#[prost(message, tag = <span class="string">"1"</span>)]
             </span>Notification(Notification),
@@ -3577,8 +3436,7 @@
             </span>Activation(Activation),
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>GiftBadge {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>receipt_credential_presentation: ::core::option::Option&lt;
@@ -3679,14 +3537,12 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>NullMessage {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>padding: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ReceiptMessage {
     <span class="attr">#[prost(enumeration = <span class="string">"receipt_message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -3735,8 +3591,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>TypingMessage {
     <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
@@ -3784,8 +3639,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>StoryMessage {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -3800,8 +3654,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `StoryMessage`.
 </span><span class="kw">pub mod </span>story_message {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>Attachment {
         <span class="attr">#[prost(message, tag = <span class="string">"3"</span>)]
         </span>FileAttachment(<span class="kw">super</span>::AttachmentPointer),
@@ -3809,8 +3662,7 @@
         </span>TextAttachment(<span class="kw">super</span>::TextAttachment),
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Preview {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>url: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3823,8 +3675,7 @@
     <span class="attr">#[prost(uint64, optional, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>date: ::core::option::Option&lt;u64&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>TextAttachment {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>text: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3842,8 +3693,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `TextAttachment`.
 </span><span class="kw">pub mod </span>text_attachment {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Gradient {
         <span class="doccomment">/// deprecated: this field will be removed in a future release.
         </span><span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
@@ -3908,8 +3758,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>Background {
         <span class="attr">#[prost(message, tag = <span class="string">"6"</span>)]
         </span>Gradient(Gradient),
@@ -3917,8 +3766,7 @@
         </span>Color(u32),
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Verified {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>destination_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -3971,8 +3819,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>SyncMessage {
     <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>sent: ::core::option::Option&lt;sync_message::Sent&gt;,
@@ -4021,8 +3868,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `SyncMessage`.
 </span><span class="kw">pub mod </span>sync_message {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Sent {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>destination_e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -4053,8 +3899,7 @@
     }
     <span class="doccomment">/// Nested message and enum types in `Sent`.
     </span><span class="kw">pub mod </span>sent {
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>UnidentifiedDeliveryStatus {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
             </span><span class="kw">pub </span>destination_service_id: ::core::option::Option&lt;
@@ -4067,8 +3912,7 @@
                 ::prost::alloc::vec::Vec&lt;u8&gt;,
             &gt;,
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>StoryMessageRecipient {
             <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>destination_service_id: ::core::option::Option&lt;
@@ -4082,16 +3926,14 @@
             </span><span class="kw">pub </span>is_allowed_to_reply: ::core::option::Option&lt;bool&gt;,
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Contacts {
         <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>blob: ::core::option::Option&lt;<span class="kw">super</span>::AttachmentPointer&gt;,
         <span class="attr">#[prost(bool, optional, tag = <span class="string">"2"</span>, default = <span class="string">"false"</span>)]
         </span><span class="kw">pub </span>complete: ::core::option::Option&lt;bool&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Blocked {
         <span class="attr">#[prost(string, repeated, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>numbers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
@@ -4100,8 +3942,7 @@
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, repeated, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>group_ids: ::prost::alloc::vec::Vec&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Request {
         <span class="attr">#[prost(enumeration = <span class="string">"request::Type"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -4158,24 +3999,21 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Read {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
         </span><span class="kw">pub </span>sender_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Viewed {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
         </span><span class="kw">pub </span>sender_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Configuration {
         <span class="attr">#[prost(bool, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>read_receipts: ::core::option::Option&lt;bool&gt;,
@@ -4188,8 +4026,7 @@
         <span class="attr">#[prost(bool, optional, tag = <span class="string">"6"</span>)]
         </span><span class="kw">pub </span>link_previews: ::core::option::Option&lt;bool&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>StickerPackOperation {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>pack_id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -4237,16 +4074,14 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>ViewOnceOpen {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
         </span><span class="kw">pub </span>sender_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint64, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>timestamp: ::core::option::Option&lt;u64&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, Copy, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>FetchLatest {
         <span class="attr">#[prost(enumeration = <span class="string">"fetch_latest::Type"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -4296,8 +4131,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Keys {
         <span class="doccomment">/// @deprecated
         </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
@@ -4305,8 +4139,7 @@
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>master: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>MessageRequestResponse {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>thread_aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -4369,8 +4202,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>OutgoingPayment {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>recipient_service_id: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -4381,8 +4213,7 @@
     }
     <span class="doccomment">/// Nested message and enum types in `OutgoingPayment`.
     </span><span class="kw">pub mod </span>outgoing_payment {
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>MobileCoin {
             <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>recipient_address: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -4406,15 +4237,13 @@
                 ::prost::alloc::vec::Vec&lt;u8&gt;,
             &gt;,
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Oneof)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
         </span><span class="kw">pub enum </span>PaymentDetail {
             <span class="attr">#[prost(message, tag = <span class="string">"3"</span>)]
             </span>MobileCoin(MobileCoin),
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>PniChangeNumber {
         <span class="doccomment">/// Serialized libsignal-client IdentityKeyPair
         </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
@@ -4433,8 +4262,7 @@
         </span><span class="attr">#[prost(string, optional, tag = <span class="string">"4"</span>)]
         </span><span class="kw">pub </span>new_e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>CallEvent {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>conversation_id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -4581,8 +4409,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>CallLinkUpdate {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>root_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -4630,8 +4457,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>CallLogEvent {
         <span class="attr">#[prost(enumeration = <span class="string">"call_log_event::Type"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -4691,8 +4517,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>DeleteForMe {
         <span class="attr">#[prost(message, repeated, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>message_deletes: ::prost::alloc::vec::Vec&lt;delete_for_me::MessageDeletes&gt;,
@@ -4711,16 +4536,14 @@
     }
     <span class="doccomment">/// Nested message and enum types in `DeleteForMe`.
     </span><span class="kw">pub mod </span>delete_for_me {
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ConversationIdentifier {
             <span class="attr">#[prost(oneof = <span class="string">"conversation_identifier::Identifier"</span>, tags = <span class="string">"1, 2, 3"</span>)]
             </span><span class="kw">pub </span>identifier: ::core::option::Option&lt;conversation_identifier::Identifier&gt;,
         }
         <span class="doccomment">/// Nested message and enum types in `ConversationIdentifier`.
         </span><span class="kw">pub mod </span>conversation_identifier {
-            <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
             </span><span class="kw">pub enum </span>Identifier {
                 <span class="attr">#[prost(string, tag = <span class="string">"1"</span>)]
                 </span>ThreadServiceId(::prost::alloc::string::String),
@@ -4730,8 +4553,7 @@
                 </span>ThreadE164(::prost::alloc::string::String),
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>AddressableMessage {
             <span class="attr">#[prost(uint64, optional, tag = <span class="string">"3"</span>)]
             </span><span class="kw">pub </span>sent_timestamp: ::core::option::Option&lt;u64&gt;,
@@ -4740,8 +4562,7 @@
         }
         <span class="doccomment">/// Nested message and enum types in `AddressableMessage`.
         </span><span class="kw">pub mod </span>addressable_message {
-            <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-            #[derive(Clone, PartialEq, ::prost::Oneof)]
+            <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
             </span><span class="kw">pub enum </span>Author {
                 <span class="attr">#[prost(string, tag = <span class="string">"1"</span>)]
                 </span>AuthorServiceId(::prost::alloc::string::String),
@@ -4749,16 +4570,14 @@
                 </span>AuthorE164(::prost::alloc::string::String),
             }
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>MessageDeletes {
             <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>conversation: ::core::option::Option&lt;ConversationIdentifier&gt;,
             <span class="attr">#[prost(message, repeated, tag = <span class="string">"2"</span>)]
             </span><span class="kw">pub </span>messages: ::prost::alloc::vec::Vec&lt;AddressableMessage&gt;,
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>AttachmentDelete {
             <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>conversation: ::core::option::Option&lt;ConversationIdentifier&gt;,
@@ -4774,8 +4593,7 @@
                 ::prost::alloc::vec::Vec&lt;u8&gt;,
             &gt;,
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>ConversationDelete {
             <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>conversation: ::core::option::Option&lt;ConversationIdentifier&gt;,
@@ -4788,16 +4606,14 @@
             <span class="attr">#[prost(bool, optional, tag = <span class="string">"3"</span>)]
             </span><span class="kw">pub </span>is_full_delete: ::core::option::Option&lt;bool&gt;,
         }
-        <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-        #[derive(Clone, PartialEq, ::prost::Message)]
+        <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
         </span><span class="kw">pub struct </span>LocalOnlyConversationDelete {
             <span class="attr">#[prost(message, optional, tag = <span class="string">"1"</span>)]
             </span><span class="kw">pub </span>conversation: ::core::option::Option&lt;ConversationIdentifier&gt;,
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>AttachmentPointer {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -4878,8 +4694,7 @@
             }
         }
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>AttachmentIdentifier {
         <span class="attr">#[prost(fixed64, tag = <span class="string">"1"</span>)]
         </span>CdnId(u64),
@@ -4887,8 +4702,7 @@
         </span>CdnKey(::prost::alloc::string::String),
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupContext {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -4905,8 +4719,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `GroupContext`.
 </span><span class="kw">pub mod </span>group_context {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Member {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -4957,8 +4770,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupContextV2 {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>master_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -4967,8 +4779,7 @@
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>group_change: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ContactDetails {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>number: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -4993,8 +4804,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `ContactDetails`.
 </span><span class="kw">pub mod </span>contact_details {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Avatar {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -5002,8 +4812,7 @@
         </span><span class="kw">pub </span>length: ::core::option::Option&lt;u32&gt;,
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>GroupDetails {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>id: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5030,46 +4839,40 @@
 }
 <span class="doccomment">/// Nested message and enum types in `GroupDetails`.
 </span><span class="kw">pub mod </span>group_details {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Avatar {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
         <span class="attr">#[prost(uint32, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>length: ::core::option::Option&lt;u32&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Member {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>PaymentAddress {
     <span class="attr">#[prost(oneof = <span class="string">"payment_address::Address"</span>, tags = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>address: ::core::option::Option&lt;payment_address::Address&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `PaymentAddress`.
 </span><span class="kw">pub mod </span>payment_address {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>MobileCoinAddress {
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>address: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
         <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
         </span><span class="kw">pub </span>signature: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Oneof)]
     </span><span class="kw">pub enum </span>Address {
         <span class="attr">#[prost(message, tag = <span class="string">"1"</span>)]
         </span>MobileCoinAddress(MobileCoinAddress),
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>DecryptionErrorMessage {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>ratchet_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5078,24 +4881,21 @@
     <span class="attr">#[prost(uint32, optional, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>device_id: ::core::option::Option&lt;u32&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>PniSignatureMessage {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>pni: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>signature: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>EditMessage {
     <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>target_sent_timestamp: ::core::option::Option&lt;u64&gt;,
     <span class="attr">#[prost(message, optional, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>data_message: ::core::option::Option&lt;DataMessage&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>DeviceName {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>ephemeral_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5104,8 +4904,7 @@
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
     </span><span class="kw">pub </span>ciphertext: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ServerCertificate {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>certificate: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5114,8 +4913,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `ServerCertificate`.
 </span><span class="kw">pub mod </span>server_certificate {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Certificate {
         <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u32&gt;,
@@ -5123,8 +4921,7 @@
         </span><span class="kw">pub </span>key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>SenderCertificate {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>certificate: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5133,8 +4930,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `SenderCertificate`.
 </span><span class="kw">pub mod </span>sender_certificate {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Certificate {
         <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>sender_e164: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -5150,8 +4946,7 @@
         </span><span class="kw">pub </span>signer: ::core::option::Option&lt;<span class="kw">super</span>::ServerCertificate&gt;,
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>UnidentifiedSenderMessage {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>ephemeral_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5162,8 +4957,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `UnidentifiedSenderMessage`.
 </span><span class="kw">pub mod </span>unidentified_sender_message {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Message {
         <span class="attr">#[prost(enumeration = <span class="string">"message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -5265,8 +5059,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>WebSocketRequestMessage {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>verb: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -5279,8 +5072,7 @@
     <span class="attr">#[prost(uint64, optional, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>WebSocketResponseMessage {
     <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
@@ -5293,8 +5085,7 @@
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"4"</span>)]
     </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>WebSocketMessage {
     <span class="attr">#[prost(enumeration = <span class="string">"web_socket_message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -5345,14 +5136,12 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ProvisioningUuid {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ProvisionEnvelope {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>public_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5360,8 +5149,7 @@
     </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
     </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ProvisionMessage {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>aci_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
@@ -5417,8 +5205,7 @@
         }
     }
 }
-<span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Pack {
     <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>title: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
@@ -5431,8 +5218,7 @@
 }
 <span class="doccomment">/// Nested message and enum types in `Pack`.
 </span><span class="kw">pub mod </span>pack {
-    <span class="attr">#[allow(clippy::derive_partial_eq_without_eq)]
-    #[derive(Clone, PartialEq, ::prost::Message)]
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
     </span><span class="kw">pub struct </span>Sticker {
         <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
         </span><span class="kw">pub </span>id: ::core::option::Option&lt;u32&gt;,
