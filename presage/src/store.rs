@@ -163,13 +163,13 @@ pub trait ContentsStore: Send + Sync {
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
     /// or [Group::disappearing_messages_timer].
-    fn expire_timer(&self, thread: &Thread) -> Result<Option<u32>, Self::ContentsStoreError> {
+    fn expire_timer(&self, thread: &Thread) -> Result<Option<(u32, u32)>, Self::ContentsStoreError> {
         match thread {
-            Thread::Contact(uuid) => Ok(self.contact_by_id(uuid)?.map(|c| c.expire_timer)),
+            Thread::Contact(uuid) => Ok(self.contact_by_id(uuid)?.map(|c| (c.expire_timer, c.expire_timer_version))),
             Thread::Group(key) => Ok(self
                 .group(*key)?
                 .and_then(|g| g.disappearing_messages_timer)
-                .map(|t| t.duration)),
+                .map(|t| (t.duration, 1))), // Groups do not have expire_timer_version
         }
     }
 
@@ -179,12 +179,18 @@ pub trait ContentsStore: Send + Sync {
         &mut self,
         thread: &Thread,
         timer: u32,
+        version: u32,
     ) -> Result<(), Self::ContentsStoreError> {
-        log::trace!("update expire timer of {:?} to {}", thread, timer);
+        log::trace!("update expire timer of {:?} to {} (version {})", thread, timer, version);
         match thread {
             Thread::Contact(uuid) => {
                 let contact = self.contact_by_id(uuid)?;
                 if let Some(mut contact) = contact {
+                    let current_version = contact.expire_timer_version;
+                    if version <= current_version {
+                        return Ok(());
+                    }
+                    contact.expire_timer_version = version;
                     contact.expire_timer = timer;
                     self.save_contact(&contact)?;
                 }

@@ -801,7 +801,8 @@ impl<S: Store> Manager<S, Registered> {
     /// to order messages later, and apply reactions.
     ///
     /// This method will automatically update the [DataMessage::expire_timer] if it is set to
-    /// [None] such that the chat will keep the current expire timer.
+    /// [None] such that the chat will keep the current expire timer. If the expire timer is set,
+    /// it will be used as is, and the expire timer version will be incremented.
     pub async fn send_message(
         &mut self,
         recipient_addr: impl Into<ServiceAddress>,
@@ -818,19 +819,23 @@ impl<S: Store> Manager<S, Registered> {
         let recipient = recipient_addr.into();
         let mut content_body: ContentBody = message.into();
 
-        // Only update the expiration timer if it is not set.
+        let store_expire_timer = self
+            .store
+            .expire_timer(&Thread::Contact(recipient.uuid))
+            .unwrap_or_default();
+
         match content_body {
             ContentBody::DataMessage(DataMessage {
                 expire_timer: ref mut timer,
+                expire_timer_version: ref mut version,
                 ..
-            }) if timer.is_none() => {
-                // Set the expire timer to None for errors.
-                let store_expire_timer = self
-                    .store
-                    .expire_timer(&Thread::Contact(recipient.uuid))
-                    .unwrap_or_default();
-
-                *timer = store_expire_timer;
+            }) => {
+                if timer.is_none() {
+                    *timer = store_expire_timer.map(|(t, _)| t);
+                    *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
+                } else {
+                    *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
+                }
             }
             _ => {}
         }
@@ -932,7 +937,7 @@ impl<S: Store> Manager<S, Registered> {
                     .expire_timer(&Thread::Group(master_key_bytes))
                     .unwrap_or_default();
 
-                *timer = store_expire_timer;
+                *timer = store_expire_timer.map(|(t, _)| t);
             }
             _ => {}
         }
@@ -1545,6 +1550,7 @@ async fn save_message<S: Store>(
                         profile_key: profile_key.bytes.to_vec(),
                         color: None,
                         expire_timer: data_message.expire_timer.unwrap_or_default(),
+                        expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
                         inbox_position: 0,
                         archived: false,
                         avatar: None,
@@ -1559,7 +1565,8 @@ async fn save_message<S: Store>(
             }
 
             if let Some(expire_timer) = data_message.expire_timer {
-                store.update_expire_timer(&thread, expire_timer)?;
+                let version = data_message.expire_timer_version.unwrap_or(1);
+                store.update_expire_timer(&thread, expire_timer, version)?;
             }
 
             match data_message {
