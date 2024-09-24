@@ -801,7 +801,8 @@ impl<S: Store> Manager<S, Registered> {
     /// to order messages later, and apply reactions.
     ///
     /// This method will automatically update the [DataMessage::expire_timer] if it is set to
-    /// [None] such that the chat will keep the current expire timer.
+    /// [None] such that the chat will keep the current expire timer. If the expire timer is set,
+    /// it will be used as is, and the expire timer version will be incremented.
     pub async fn send_message(
         &mut self,
         recipient_addr: impl Into<ServiceAddress>,
@@ -816,24 +817,10 @@ impl<S: Store> Manager<S, Registered> {
         // Issue <https://github.com/whisperfish/presage/issues/252>
         let include_pni_signature = false;
         let recipient = recipient_addr.into();
+        let thread = Thread::Contact(recipient.uuid);
         let mut content_body: ContentBody = message.into();
 
-        // Only update the expiration timer if it is not set.
-        match content_body {
-            ContentBody::DataMessage(DataMessage {
-                expire_timer: ref mut timer,
-                ..
-            }) if timer.is_none() => {
-                // Set the expire timer to None for errors.
-                let store_expire_timer = self
-                    .store
-                    .expire_timer(&Thread::Contact(recipient.uuid))
-                    .unwrap_or_default();
-
-                *timer = store_expire_timer;
-            }
-            _ => {}
-        }
+        self.restore_thread_timer(&thread, &mut content_body);
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
@@ -878,13 +865,7 @@ impl<S: Store> Manager<S, Registered> {
         };
 
         let mut push_service = self.identified_push_service();
-        save_message(
-            &mut self.store,
-            &mut push_service,
-            content,
-            Some(Thread::Contact(recipient.uuid)),
-        )
-        .await?;
+        save_message(&mut self.store, &mut push_service, content, Some(thread)).await?;
 
         Ok(())
     }
@@ -919,23 +900,10 @@ impl<S: Store> Manager<S, Registered> {
         let master_key_bytes = master_key_bytes
             .try_into()
             .expect("Master key bytes to be of size 32.");
+        let thread = Thread::Group(master_key_bytes);
 
-        // Only update the expiration timer if it is not set.
-        match content_body {
-            ContentBody::DataMessage(DataMessage {
-                expire_timer: ref mut timer,
-                ..
-            }) if timer.is_none() => {
-                // Set the expire timer to None for errors.
-                let store_expire_timer = self
-                    .store
-                    .expire_timer(&Thread::Group(master_key_bytes))
-                    .unwrap_or_default();
+        self.restore_thread_timer(&thread, &mut content_body);
 
-                *timer = store_expire_timer;
-            }
-            _ => {}
-        }
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
@@ -1001,15 +969,29 @@ impl<S: Store> Manager<S, Registered> {
         };
 
         let mut push_service = self.identified_push_service();
-        save_message(
-            &mut self.store,
-            &mut push_service,
-            content,
-            Some(Thread::Group(master_key_bytes)),
-        )
-        .await?;
+        save_message(&mut self.store, &mut push_service, content, Some(thread)).await?;
 
         Ok(())
+    }
+
+    fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
+        let store_expire_timer = self.store.expire_timer(thread).unwrap_or_default();
+
+        match content_body {
+            ContentBody::DataMessage(DataMessage {
+                expire_timer: ref mut timer,
+                expire_timer_version: ref mut version,
+                ..
+            }) => {
+                if timer.is_none() {
+                    *timer = store_expire_timer.map(|(t, _)| t);
+                    *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
+                } else {
+                    *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
+                }
+            }
+            _ => (),
+        }
     }
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
@@ -1545,6 +1527,7 @@ async fn save_message<S: Store>(
                         profile_key: profile_key.bytes.to_vec(),
                         color: None,
                         expire_timer: data_message.expire_timer.unwrap_or_default(),
+                        expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
                         inbox_position: 0,
                         archived: false,
                         avatar: None,
@@ -1559,7 +1542,8 @@ async fn save_message<S: Store>(
             }
 
             if let Some(expire_timer) = data_message.expire_timer {
-                store.update_expire_timer(&thread, expire_timer)?;
+                let version = data_message.expire_timer_version.unwrap_or(1);
+                store.update_expire_timer(&thread, expire_timer, version)?;
             }
 
             match data_message {
