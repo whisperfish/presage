@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-0dae2ad806ffc0a1/out/signalservice.rs`."><title>signalservice.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../../../../../../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../../../../../../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../../../../../../../../../src-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/work/presage/presage/target/debug/build/libsignal-service-30246d20f860e6e9/out/signalservice.rs`."><title>signalservice.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../../../../../../../../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../../../../../../../../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../../../../../../../../../../static.files/rustdoc-c5d6553a23f1e5a6.css"><meta name="rustdoc-vars" data-root-path="../../../../../../../../../../../../" data-static-root-path="../../../../../../../../../../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.81.0 (eeb90cda1 2024-09-04)" data-channel="1.81.0" data-search-js="search-d234aafac6c221dd.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../../../../../../../../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../../../../../../../../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../../../../../../../../../../src-files.js"></script><script defer src="../../../../../../../../../../../../static.files/main-d2fab2bf619172d3.js"></script><noscript><link rel="stylesheet" href="../../../../../../../../../../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../../../../../../../../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../../../../../../../../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -2615,6 +2615,29 @@
 <a href="#2615" id="2615">2615</a>
 </pre></div><pre class="rust"><code><span class="comment">// This file is @generated by prost-build.
 </span><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>Pack {
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
+    </span><span class="kw">pub </span>title: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
+    </span><span class="kw">pub </span>author: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
+    </span><span class="kw">pub </span>cover: ::core::option::Option&lt;pack::Sticker&gt;,
+    <span class="attr">#[prost(message, repeated, tag = <span class="string">"4"</span>)]
+    </span><span class="kw">pub </span>stickers: ::prost::alloc::vec::Vec&lt;pack::Sticker&gt;,
+}
+<span class="doccomment">/// Nested message and enum types in `Pack`.
+</span><span class="kw">pub mod </span>pack {
+    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+    </span><span class="kw">pub struct </span>Sticker {
+        <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
+        </span><span class="kw">pub </span>id: ::core::option::Option&lt;u32&gt;,
+        <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
+        </span><span class="kw">pub </span>emoji: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+        <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
+        </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    }
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>Envelope {
     <span class="attr">#[prost(enumeration = <span class="string">"envelope::Type"</span>, optional, tag = <span class="string">"1"</span>)]
     </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
@@ -2637,8 +2660,7 @@
     </span><span class="kw">pub </span>urgent: ::core::option::Option&lt;bool&gt;,
     <span class="attr">#[prost(bool, optional, tag = <span class="string">"16"</span>)]
     </span><span class="kw">pub </span>story: ::core::option::Option&lt;bool&gt;,
-    <span class="doccomment">/// NEXT ID: 18
-    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"17"</span>)]
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"17"</span>)]
     </span><span class="kw">pub </span>reporting_token: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
 <span class="doccomment">/// Nested message and enum types in `Envelope`.
@@ -2671,13 +2693,13 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Type::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-                Type::Ciphertext =&gt; <span class="string">"CIPHERTEXT"</span>,
-                Type::KeyExchange =&gt; <span class="string">"KEY_EXCHANGE"</span>,
-                Type::PrekeyBundle =&gt; <span class="string">"PREKEY_BUNDLE"</span>,
-                Type::Receipt =&gt; <span class="string">"RECEIPT"</span>,
-                Type::UnidentifiedSender =&gt; <span class="string">"UNIDENTIFIED_SENDER"</span>,
-                Type::PlaintextContent =&gt; <span class="string">"PLAINTEXT_CONTENT"</span>,
+                <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                <span class="self">Self</span>::Ciphertext =&gt; <span class="string">"CIPHERTEXT"</span>,
+                <span class="self">Self</span>::KeyExchange =&gt; <span class="string">"KEY_EXCHANGE"</span>,
+                <span class="self">Self</span>::PrekeyBundle =&gt; <span class="string">"PREKEY_BUNDLE"</span>,
+                <span class="self">Self</span>::Receipt =&gt; <span class="string">"RECEIPT"</span>,
+                <span class="self">Self</span>::UnidentifiedSender =&gt; <span class="string">"UNIDENTIFIED_SENDER"</span>,
+                <span class="self">Self</span>::PlaintextContent =&gt; <span class="string">"PLAINTEXT_CONTENT"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -2775,8 +2797,8 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::OfferAudioCall =&gt; <span class="string">"OFFER_AUDIO_CALL"</span>,
-                    Type::OfferVideoCall =&gt; <span class="string">"OFFER_VIDEO_CALL"</span>,
+                    <span class="self">Self</span>::OfferAudioCall =&gt; <span class="string">"OFFER_AUDIO_CALL"</span>,
+                    <span class="self">Self</span>::OfferVideoCall =&gt; <span class="string">"OFFER_VIDEO_CALL"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -2845,11 +2867,11 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::HangupNormal =&gt; <span class="string">"HANGUP_NORMAL"</span>,
-                    Type::HangupAccepted =&gt; <span class="string">"HANGUP_ACCEPTED"</span>,
-                    Type::HangupDeclined =&gt; <span class="string">"HANGUP_DECLINED"</span>,
-                    Type::HangupBusy =&gt; <span class="string">"HANGUP_BUSY"</span>,
-                    Type::HangupNeedPermission =&gt; <span class="string">"HANGUP_NEED_PERMISSION"</span>,
+                    <span class="self">Self</span>::HangupNormal =&gt; <span class="string">"HANGUP_NORMAL"</span>,
+                    <span class="self">Self</span>::HangupAccepted =&gt; <span class="string">"HANGUP_ACCEPTED"</span>,
+                    <span class="self">Self</span>::HangupDeclined =&gt; <span class="string">"HANGUP_DECLINED"</span>,
+                    <span class="self">Self</span>::HangupBusy =&gt; <span class="string">"HANGUP_BUSY"</span>,
+                    <span class="self">Self</span>::HangupNeedPermission =&gt; <span class="string">"HANGUP_NEED_PERMISSION"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -2897,8 +2919,8 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Urgency::Droppable =&gt; <span class="string">"DROPPABLE"</span>,
-                    Urgency::HandleImmediately =&gt; <span class="string">"HANDLE_IMMEDIATELY"</span>,
+                    <span class="self">Self</span>::Droppable =&gt; <span class="string">"DROPPABLE"</span>,
+                    <span class="self">Self</span>::HandleImmediately =&gt; <span class="string">"HANDLE_IMMEDIATELY"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -2950,12 +2972,12 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Style::None =&gt; <span class="string">"NONE"</span>,
-                Style::Bold =&gt; <span class="string">"BOLD"</span>,
-                Style::Italic =&gt; <span class="string">"ITALIC"</span>,
-                Style::Spoiler =&gt; <span class="string">"SPOILER"</span>,
-                Style::Strikethrough =&gt; <span class="string">"STRIKETHROUGH"</span>,
-                Style::Monospace =&gt; <span class="string">"MONOSPACE"</span>,
+                <span class="self">Self</span>::None =&gt; <span class="string">"NONE"</span>,
+                <span class="self">Self</span>::Bold =&gt; <span class="string">"BOLD"</span>,
+                <span class="self">Self</span>::Italic =&gt; <span class="string">"ITALIC"</span>,
+                <span class="self">Self</span>::Spoiler =&gt; <span class="string">"SPOILER"</span>,
+                <span class="self">Self</span>::Strikethrough =&gt; <span class="string">"STRIKETHROUGH"</span>,
+                <span class="self">Self</span>::Monospace =&gt; <span class="string">"MONOSPACE"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -2991,6 +3013,8 @@
     </span><span class="kw">pub </span>flags: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(uint32, optional, tag = <span class="string">"5"</span>)]
     </span><span class="kw">pub </span>expire_timer: ::core::option::Option&lt;u32&gt;,
+    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"23"</span>)]
+    </span><span class="kw">pub </span>expire_timer_version: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"6"</span>)]
     </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(uint64, optional, tag = <span class="string">"7"</span>)]
@@ -3073,8 +3097,8 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Normal =&gt; <span class="string">"NORMAL"</span>,
-                    Type::GiftBadge =&gt; <span class="string">"GIFT_BADGE"</span>,
+                    <span class="self">Self</span>::Normal =&gt; <span class="string">"NORMAL"</span>,
+                    <span class="self">Self</span>::GiftBadge =&gt; <span class="string">"GIFT_BADGE"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3155,10 +3179,10 @@
                 /// (if the ProtoBuf definition does not change) and safe for programmatic use.
                 </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                     <span class="kw">match </span><span class="self">self </span>{
-                        Type::Home =&gt; <span class="string">"HOME"</span>,
-                        Type::Mobile =&gt; <span class="string">"MOBILE"</span>,
-                        Type::Work =&gt; <span class="string">"WORK"</span>,
-                        Type::Custom =&gt; <span class="string">"CUSTOM"</span>,
+                        <span class="self">Self</span>::Home =&gt; <span class="string">"HOME"</span>,
+                        <span class="self">Self</span>::Mobile =&gt; <span class="string">"MOBILE"</span>,
+                        <span class="self">Self</span>::Work =&gt; <span class="string">"WORK"</span>,
+                        <span class="self">Self</span>::Custom =&gt; <span class="string">"CUSTOM"</span>,
                     }
                 }
                 <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3209,10 +3233,10 @@
                 /// (if the ProtoBuf definition does not change) and safe for programmatic use.
                 </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                     <span class="kw">match </span><span class="self">self </span>{
-                        Type::Home =&gt; <span class="string">"HOME"</span>,
-                        Type::Mobile =&gt; <span class="string">"MOBILE"</span>,
-                        Type::Work =&gt; <span class="string">"WORK"</span>,
-                        Type::Custom =&gt; <span class="string">"CUSTOM"</span>,
+                        <span class="self">Self</span>::Home =&gt; <span class="string">"HOME"</span>,
+                        <span class="self">Self</span>::Mobile =&gt; <span class="string">"MOBILE"</span>,
+                        <span class="self">Self</span>::Work =&gt; <span class="string">"WORK"</span>,
+                        <span class="self">Self</span>::Custom =&gt; <span class="string">"CUSTOM"</span>,
                     }
                 }
                 <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3274,9 +3298,9 @@
                 /// (if the ProtoBuf definition does not change) and safe for programmatic use.
                 </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                     <span class="kw">match </span><span class="self">self </span>{
-                        Type::Home =&gt; <span class="string">"HOME"</span>,
-                        Type::Work =&gt; <span class="string">"WORK"</span>,
-                        Type::Custom =&gt; <span class="string">"CUSTOM"</span>,
+                        <span class="self">Self</span>::Home =&gt; <span class="string">"HOME"</span>,
+                        <span class="self">Self</span>::Work =&gt; <span class="string">"WORK"</span>,
+                        <span class="self">Self</span>::Custom =&gt; <span class="string">"CUSTOM"</span>,
                     }
                 }
                 <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3414,8 +3438,8 @@
                 /// (if the ProtoBuf definition does not change) and safe for programmatic use.
                 </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                     <span class="kw">match </span><span class="self">self </span>{
-                        Type::Request =&gt; <span class="string">"REQUEST"</span>,
-                        Type::Activated =&gt; <span class="string">"ACTIVATED"</span>,
+                        <span class="self">Self</span>::Request =&gt; <span class="string">"REQUEST"</span>,
+                        <span class="self">Self</span>::Activated =&gt; <span class="string">"ACTIVATED"</span>,
                     }
                 }
                 <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3467,9 +3491,9 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Flags::EndSession =&gt; <span class="string">"END_SESSION"</span>,
-                Flags::ExpirationTimerUpdate =&gt; <span class="string">"EXPIRATION_TIMER_UPDATE"</span>,
-                Flags::ProfileKeyUpdate =&gt; <span class="string">"PROFILE_KEY_UPDATE"</span>,
+                <span class="self">Self</span>::EndSession =&gt; <span class="string">"END_SESSION"</span>,
+                <span class="self">Self</span>::ExpirationTimerUpdate =&gt; <span class="string">"EXPIRATION_TIMER_UPDATE"</span>,
+                <span class="self">Self</span>::ProfileKeyUpdate =&gt; <span class="string">"PROFILE_KEY_UPDATE"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3511,14 +3535,14 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                ProtocolVersion::Initial =&gt; <span class="string">"INITIAL"</span>,
-                ProtocolVersion::MessageTimers =&gt; <span class="string">"MESSAGE_TIMERS"</span>,
-                ProtocolVersion::ViewOnce =&gt; <span class="string">"VIEW_ONCE"</span>,
-                ProtocolVersion::ViewOnceVideo =&gt; <span class="string">"VIEW_ONCE_VIDEO"</span>,
-                ProtocolVersion::Reactions =&gt; <span class="string">"REACTIONS"</span>,
-                ProtocolVersion::CdnSelectorAttachments =&gt; <span class="string">"CDN_SELECTOR_ATTACHMENTS"</span>,
-                ProtocolVersion::Mentions =&gt; <span class="string">"MENTIONS"</span>,
-                ProtocolVersion::Payments =&gt; <span class="string">"PAYMENTS"</span>,
+                <span class="self">Self</span>::Initial =&gt; <span class="string">"INITIAL"</span>,
+                <span class="self">Self</span>::MessageTimers =&gt; <span class="string">"MESSAGE_TIMERS"</span>,
+                <span class="self">Self</span>::ViewOnce =&gt; <span class="string">"VIEW_ONCE"</span>,
+                <span class="self">Self</span>::ViewOnceVideo =&gt; <span class="string">"VIEW_ONCE_VIDEO"</span>,
+                <span class="self">Self</span>::Reactions =&gt; <span class="string">"REACTIONS"</span>,
+                <span class="self">Self</span>::CdnSelectorAttachments =&gt; <span class="string">"CDN_SELECTOR_ATTACHMENTS"</span>,
+                <span class="self">Self</span>::Mentions =&gt; <span class="string">"MENTIONS"</span>,
+                <span class="self">Self</span>::Payments =&gt; <span class="string">"PAYMENTS"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3575,9 +3599,9 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Type::Delivery =&gt; <span class="string">"DELIVERY"</span>,
-                Type::Read =&gt; <span class="string">"READ"</span>,
-                Type::Viewed =&gt; <span class="string">"VIEWED"</span>,
+                <span class="self">Self</span>::Delivery =&gt; <span class="string">"DELIVERY"</span>,
+                <span class="self">Self</span>::Read =&gt; <span class="string">"READ"</span>,
+                <span class="self">Self</span>::Viewed =&gt; <span class="string">"VIEWED"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3625,8 +3649,8 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Action::Started =&gt; <span class="string">"STARTED"</span>,
-                Action::Stopped =&gt; <span class="string">"STOPPED"</span>,
+                <span class="self">Self</span>::Started =&gt; <span class="string">"STARTED"</span>,
+                <span class="self">Self</span>::Stopped =&gt; <span class="string">"STOPPED"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3737,12 +3761,12 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Style::Default =&gt; <span class="string">"DEFAULT"</span>,
-                Style::Regular =&gt; <span class="string">"REGULAR"</span>,
-                Style::Bold =&gt; <span class="string">"BOLD"</span>,
-                Style::Serif =&gt; <span class="string">"SERIF"</span>,
-                Style::Script =&gt; <span class="string">"SCRIPT"</span>,
-                Style::Condensed =&gt; <span class="string">"CONDENSED"</span>,
+                <span class="self">Self</span>::Default =&gt; <span class="string">"DEFAULT"</span>,
+                <span class="self">Self</span>::Regular =&gt; <span class="string">"REGULAR"</span>,
+                <span class="self">Self</span>::Bold =&gt; <span class="string">"BOLD"</span>,
+                <span class="self">Self</span>::Serif =&gt; <span class="string">"SERIF"</span>,
+                <span class="self">Self</span>::Script =&gt; <span class="string">"SCRIPT"</span>,
+                <span class="self">Self</span>::Condensed =&gt; <span class="string">"CONDENSED"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3803,9 +3827,9 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                State::Default =&gt; <span class="string">"DEFAULT"</span>,
-                State::Verified =&gt; <span class="string">"VERIFIED"</span>,
-                State::Unverified =&gt; <span class="string">"UNVERIFIED"</span>,
+                <span class="self">Self</span>::Default =&gt; <span class="string">"DEFAULT"</span>,
+                <span class="self">Self</span>::Verified =&gt; <span class="string">"VERIFIED"</span>,
+                <span class="self">Self</span>::Unverified =&gt; <span class="string">"UNVERIFIED"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -3977,12 +4001,12 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-                    Type::Contacts =&gt; <span class="string">"CONTACTS"</span>,
-                    Type::Blocked =&gt; <span class="string">"BLOCKED"</span>,
-                    Type::Configuration =&gt; <span class="string">"CONFIGURATION"</span>,
-                    Type::Keys =&gt; <span class="string">"KEYS"</span>,
-                    Type::PniIdentity =&gt; <span class="string">"PNI_IDENTITY"</span>,
+                    <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                    <span class="self">Self</span>::Contacts =&gt; <span class="string">"CONTACTS"</span>,
+                    <span class="self">Self</span>::Blocked =&gt; <span class="string">"BLOCKED"</span>,
+                    <span class="self">Self</span>::Configuration =&gt; <span class="string">"CONFIGURATION"</span>,
+                    <span class="self">Self</span>::Keys =&gt; <span class="string">"KEYS"</span>,
+                    <span class="self">Self</span>::PniIdentity =&gt; <span class="string">"PNI_IDENTITY"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4060,8 +4084,8 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Install =&gt; <span class="string">"INSTALL"</span>,
-                    Type::Remove =&gt; <span class="string">"REMOVE"</span>,
+                    <span class="self">Self</span>::Install =&gt; <span class="string">"INSTALL"</span>,
+                    <span class="self">Self</span>::Remove =&gt; <span class="string">"REMOVE"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4113,10 +4137,10 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-                    Type::LocalProfile =&gt; <span class="string">"LOCAL_PROFILE"</span>,
-                    Type::StorageManifest =&gt; <span class="string">"STORAGE_MANIFEST"</span>,
-                    Type::SubscriptionStatus =&gt; <span class="string">"SUBSCRIPTION_STATUS"</span>,
+                    <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                    <span class="self">Self</span>::LocalProfile =&gt; <span class="string">"LOCAL_PROFILE"</span>,
+                    <span class="self">Self</span>::StorageManifest =&gt; <span class="string">"STORAGE_MANIFEST"</span>,
+                    <span class="self">Self</span>::SubscriptionStatus =&gt; <span class="string">"SUBSCRIPTION_STATUS"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4178,13 +4202,13 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-                    Type::Accept =&gt; <span class="string">"ACCEPT"</span>,
-                    Type::Delete =&gt; <span class="string">"DELETE"</span>,
-                    Type::Block =&gt; <span class="string">"BLOCK"</span>,
-                    Type::BlockAndDelete =&gt; <span class="string">"BLOCK_AND_DELETE"</span>,
-                    Type::Spam =&gt; <span class="string">"SPAM"</span>,
-                    Type::BlockAndSpam =&gt; <span class="string">"BLOCK_AND_SPAM"</span>,
+                    <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                    <span class="self">Self</span>::Accept =&gt; <span class="string">"ACCEPT"</span>,
+                    <span class="self">Self</span>::Delete =&gt; <span class="string">"DELETE"</span>,
+                    <span class="self">Self</span>::Block =&gt; <span class="string">"BLOCK"</span>,
+                    <span class="self">Self</span>::BlockAndDelete =&gt; <span class="string">"BLOCK_AND_DELETE"</span>,
+                    <span class="self">Self</span>::Spam =&gt; <span class="string">"SPAM"</span>,
+                    <span class="self">Self</span>::BlockAndSpam =&gt; <span class="string">"BLOCK_AND_SPAM"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4305,11 +4329,11 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::UnknownType =&gt; <span class="string">"UNKNOWN_TYPE"</span>,
-                    Type::AudioCall =&gt; <span class="string">"AUDIO_CALL"</span>,
-                    Type::VideoCall =&gt; <span class="string">"VIDEO_CALL"</span>,
-                    Type::GroupCall =&gt; <span class="string">"GROUP_CALL"</span>,
-                    Type::AdHocCall =&gt; <span class="string">"AD_HOC_CALL"</span>,
+                    <span class="self">Self</span>::UnknownType =&gt; <span class="string">"UNKNOWN_TYPE"</span>,
+                    <span class="self">Self</span>::AudioCall =&gt; <span class="string">"AUDIO_CALL"</span>,
+                    <span class="self">Self</span>::VideoCall =&gt; <span class="string">"VIDEO_CALL"</span>,
+                    <span class="self">Self</span>::GroupCall =&gt; <span class="string">"GROUP_CALL"</span>,
+                    <span class="self">Self</span>::AdHocCall =&gt; <span class="string">"AD_HOC_CALL"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4348,9 +4372,9 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Direction::UnknownDirection =&gt; <span class="string">"UNKNOWN_DIRECTION"</span>,
-                    Direction::Incoming =&gt; <span class="string">"INCOMING"</span>,
-                    Direction::Outgoing =&gt; <span class="string">"OUTGOING"</span>,
+                    <span class="self">Self</span>::UnknownDirection =&gt; <span class="string">"UNKNOWN_DIRECTION"</span>,
+                    <span class="self">Self</span>::Incoming =&gt; <span class="string">"INCOMING"</span>,
+                    <span class="self">Self</span>::Outgoing =&gt; <span class="string">"OUTGOING"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4389,11 +4413,11 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Event::UnknownAction =&gt; <span class="string">"UNKNOWN_ACTION"</span>,
-                    Event::Accepted =&gt; <span class="string">"ACCEPTED"</span>,
-                    Event::NotAccepted =&gt; <span class="string">"NOT_ACCEPTED"</span>,
-                    Event::Delete =&gt; <span class="string">"DELETE"</span>,
-                    Event::Observed =&gt; <span class="string">"OBSERVED"</span>,
+                    <span class="self">Self</span>::UnknownAction =&gt; <span class="string">"UNKNOWN_ACTION"</span>,
+                    <span class="self">Self</span>::Accepted =&gt; <span class="string">"ACCEPTED"</span>,
+                    <span class="self">Self</span>::NotAccepted =&gt; <span class="string">"NOT_ACCEPTED"</span>,
+                    <span class="self">Self</span>::Delete =&gt; <span class="string">"DELETE"</span>,
+                    <span class="self">Self</span>::Observed =&gt; <span class="string">"OBSERVED"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4434,7 +4458,6 @@
         #[repr(i32)]
         </span><span class="kw">pub enum </span>Type {
             Update = <span class="number">0</span>,
-            Delete = <span class="number">1</span>,
         }
         <span class="kw">impl </span>Type {
             <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
@@ -4443,15 +4466,13 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Update =&gt; <span class="string">"UPDATE"</span>,
-                    Type::Delete =&gt; <span class="string">"DELETE"</span>,
+                    <span class="self">Self</span>::Update =&gt; <span class="string">"UPDATE"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
             </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
                 <span class="kw">match </span>value {
                     <span class="string">"UPDATE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Update),
-                    <span class="string">"DELETE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Delete),
                     <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
                 }
             }
@@ -4499,9 +4520,9 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::Clear =&gt; <span class="string">"CLEAR"</span>,
-                    Type::MarkedAsRead =&gt; <span class="string">"MARKED_AS_READ"</span>,
-                    Type::MarkedAsReadInConversation =&gt; <span class="string">"MARKED_AS_READ_IN_CONVERSATION"</span>,
+                    <span class="self">Self</span>::Clear =&gt; <span class="string">"CLEAR"</span>,
+                    <span class="self">Self</span>::MarkedAsRead =&gt; <span class="string">"MARKED_AS_READ"</span>,
+                    <span class="self">Self</span>::MarkedAsReadInConversation =&gt; <span class="string">"MARKED_AS_READ_IN_CONVERSATION"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4679,9 +4700,9 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Flags::VoiceMessage =&gt; <span class="string">"VOICE_MESSAGE"</span>,
-                Flags::Borderless =&gt; <span class="string">"BORDERLESS"</span>,
-                Flags::Gif =&gt; <span class="string">"GIF"</span>,
+                <span class="self">Self</span>::VoiceMessage =&gt; <span class="string">"VOICE_MESSAGE"</span>,
+                <span class="self">Self</span>::Borderless =&gt; <span class="string">"BORDERLESS"</span>,
+                <span class="self">Self</span>::Gif =&gt; <span class="string">"GIF"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4750,11 +4771,11 @@
         /// (if the ProtoBuf definition does not change) and safe for programmatic use.
         </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
             <span class="kw">match </span><span class="self">self </span>{
-                Type::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-                Type::Update =&gt; <span class="string">"UPDATE"</span>,
-                Type::Deliver =&gt; <span class="string">"DELIVER"</span>,
-                Type::Quit =&gt; <span class="string">"QUIT"</span>,
-                Type::RequestInfo =&gt; <span class="string">"REQUEST_INFO"</span>,
+                <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                <span class="self">Self</span>::Update =&gt; <span class="string">"UPDATE"</span>,
+                <span class="self">Self</span>::Deliver =&gt; <span class="string">"DELIVER"</span>,
+                <span class="self">Self</span>::Quit =&gt; <span class="string">"QUIT"</span>,
+                <span class="self">Self</span>::RequestInfo =&gt; <span class="string">"REQUEST_INFO"</span>,
             }
         }
         <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -4797,6 +4818,8 @@
     </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(uint32, optional, tag = <span class="string">"8"</span>)]
     </span><span class="kw">pub </span>expire_timer: ::core::option::Option&lt;u32&gt;,
+    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"12"</span>)]
+    </span><span class="kw">pub </span>expire_timer_version: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(uint32, optional, tag = <span class="string">"10"</span>)]
     </span><span class="kw">pub </span>inbox_position: ::core::option::Option&lt;u32&gt;,
     <span class="attr">#[prost(bool, optional, tag = <span class="string">"11"</span>)]
@@ -4896,13 +4919,150 @@
     </span><span class="kw">pub </span>data_message: ::core::option::Option&lt;DataMessage&gt;,
 }
 <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>DeviceName {
+</span><span class="kw">pub struct </span>ProvisioningUuid {
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
+    </span><span class="kw">pub </span>uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>ProvisionEnvelope {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>ephemeral_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    </span><span class="kw">pub </span>public_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="doccomment">/// Encrypted ProvisionMessage
+    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
+    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>ProvisionMessage {
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
+    </span><span class="kw">pub </span>aci_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>synthetic_iv: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    </span><span class="kw">pub </span>aci_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"11"</span>)]
+    </span><span class="kw">pub </span>pni_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"12"</span>)]
+    </span><span class="kw">pub </span>pni_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"8"</span>)]
+    </span><span class="kw">pub </span>aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"10"</span>)]
+    </span><span class="kw">pub </span>pni: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
+    </span><span class="kw">pub </span>number: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"4"</span>)]
+    </span><span class="kw">pub </span>provisioning_code: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"5"</span>)]
+    </span><span class="kw">pub </span>user_agent: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"6"</span>)]
+    </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(bool, optional, tag = <span class="string">"7"</span>)]
+    </span><span class="kw">pub </span>read_receipts: ::core::option::Option&lt;bool&gt;,
+    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"9"</span>)]
+    </span><span class="kw">pub </span>provisioning_version: ::core::option::Option&lt;u32&gt;,
+    <span class="doccomment">/// NEXT ID: 14
+    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"13"</span>)]
+    </span><span class="kw">pub </span>master_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+}
+<span class="attr">#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+</span><span class="kw">pub enum </span>ProvisioningVersion {
+    Initial = <span class="number">0</span>,
+    TabletSupport = <span class="number">1</span>,
+}
+<span class="kw">impl </span>ProvisioningVersion {
+    <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+        <span class="kw">match </span><span class="self">self </span>{
+            <span class="self">Self</span>::Initial =&gt; <span class="string">"INITIAL"</span>,
+            <span class="self">Self</span>::TabletSupport =&gt; <span class="string">"TABLET_SUPPORT"</span>,
+        }
+    }
+    <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
+    </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">match </span>value {
+            <span class="string">"INITIAL" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Initial),
+            <span class="string">"TABLET_SUPPORT" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::TabletSupport),
+            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+        }
+    }
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>WebSocketRequestMessage {
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
+    </span><span class="kw">pub </span>verb: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
+    </span><span class="kw">pub </span>path: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
-    </span><span class="kw">pub </span>ciphertext: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
+    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"4"</span>)]
+    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>WebSocketResponseMessage {
+    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
+    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
+    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"2"</span>)]
+    </span><span class="kw">pub </span>status: ::core::option::Option&lt;u32&gt;,
+    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
+    </span><span class="kw">pub </span>message: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
+    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"4"</span>)]
+    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+}
+<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+</span><span class="kw">pub struct </span>WebSocketMessage {
+    <span class="attr">#[prost(enumeration = <span class="string">"web_socket_message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
+    </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
+    <span class="attr">#[prost(message, optional, tag = <span class="string">"2"</span>)]
+    </span><span class="kw">pub </span>request: ::core::option::Option&lt;WebSocketRequestMessage&gt;,
+    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
+    </span><span class="kw">pub </span>response: ::core::option::Option&lt;WebSocketResponseMessage&gt;,
+}
+<span class="doccomment">/// Nested message and enum types in `WebSocketMessage`.
+</span><span class="kw">pub mod </span>web_socket_message {
+    <span class="attr">#[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    </span><span class="kw">pub enum </span>Type {
+        Unknown = <span class="number">0</span>,
+        Request = <span class="number">1</span>,
+        Response = <span class="number">2</span>,
+    }
+    <span class="kw">impl </span>Type {
+        <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+            <span class="kw">match </span><span class="self">self </span>{
+                <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+                <span class="self">Self</span>::Request =&gt; <span class="string">"REQUEST"</span>,
+                <span class="self">Self</span>::Response =&gt; <span class="string">"RESPONSE"</span>,
+            }
+        }
+        <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
+        </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
+            <span class="kw">match </span>value {
+                <span class="string">"UNKNOWN" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
+                <span class="string">"REQUEST" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Request),
+                <span class="string">"RESPONSE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Response),
+                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+            }
+        }
+    }
 }
 <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
 </span><span class="kw">pub struct </span>ServerCertificate {
@@ -4998,10 +5158,10 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    Type::PrekeyMessage =&gt; <span class="string">"PREKEY_MESSAGE"</span>,
-                    Type::Message =&gt; <span class="string">"MESSAGE"</span>,
-                    Type::SenderkeyMessage =&gt; <span class="string">"SENDERKEY_MESSAGE"</span>,
-                    Type::PlaintextContent =&gt; <span class="string">"PLAINTEXT_CONTENT"</span>,
+                    <span class="self">Self</span>::PrekeyMessage =&gt; <span class="string">"PREKEY_MESSAGE"</span>,
+                    <span class="self">Self</span>::Message =&gt; <span class="string">"MESSAGE"</span>,
+                    <span class="self">Self</span>::SenderkeyMessage =&gt; <span class="string">"SENDERKEY_MESSAGE"</span>,
+                    <span class="self">Self</span>::PlaintextContent =&gt; <span class="string">"PLAINTEXT_CONTENT"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -5042,9 +5202,9 @@
             /// (if the ProtoBuf definition does not change) and safe for programmatic use.
             </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
                 <span class="kw">match </span><span class="self">self </span>{
-                    ContentHint::Default =&gt; <span class="string">"DEFAULT"</span>,
-                    ContentHint::Resendable =&gt; <span class="string">"RESENDABLE"</span>,
-                    ContentHint::Implicit =&gt; <span class="string">"IMPLICIT"</span>,
+                    <span class="self">Self</span>::Default =&gt; <span class="string">"DEFAULT"</span>,
+                    <span class="self">Self</span>::Resendable =&gt; <span class="string">"RESENDABLE"</span>,
+                    <span class="self">Self</span>::Implicit =&gt; <span class="string">"IMPLICIT"</span>,
                 }
             }
             <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
@@ -5060,172 +5220,12 @@
     }
 }
 <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>WebSocketRequestMessage {
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>verb: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>path: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
-    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
-    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"4"</span>)]
-    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
-}
-<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>WebSocketResponseMessage {
-    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
-    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>status: ::core::option::Option&lt;u32&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
-    </span><span class="kw">pub </span>message: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
-    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"4"</span>)]
-    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-}
-<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>WebSocketMessage {
-    <span class="attr">#[prost(enumeration = <span class="string">"web_socket_message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
-    <span class="attr">#[prost(message, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>request: ::core::option::Option&lt;WebSocketRequestMessage&gt;,
-    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
-    </span><span class="kw">pub </span>response: ::core::option::Option&lt;WebSocketResponseMessage&gt;,
-}
-<span class="doccomment">/// Nested message and enum types in `WebSocketMessage`.
-</span><span class="kw">pub mod </span>web_socket_message {
-    <span class="attr">#[derive(
-        Clone,
-        Copy,
-        Debug,
-        PartialEq,
-        Eq,
-        Hash,
-        PartialOrd,
-        Ord,
-        ::prost::Enumeration
-    )]
-    #[repr(i32)]
-    </span><span class="kw">pub enum </span>Type {
-        Unknown = <span class="number">0</span>,
-        Request = <span class="number">1</span>,
-        Response = <span class="number">2</span>,
-    }
-    <span class="kw">impl </span>Type {
-        <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
-        ///
-        /// The values are not transformed in any way and thus are considered stable
-        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-            <span class="kw">match </span><span class="self">self </span>{
-                Type::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-                Type::Request =&gt; <span class="string">"REQUEST"</span>,
-                Type::Response =&gt; <span class="string">"RESPONSE"</span>,
-            }
-        }
-        <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
-        </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
-            <span class="kw">match </span>value {
-                <span class="string">"UNKNOWN" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
-                <span class="string">"REQUEST" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Request),
-                <span class="string">"RESPONSE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Response),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-            }
-        }
-    }
-}
-<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>ProvisioningUuid {
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>uuid: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-}
-<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>ProvisionEnvelope {
+</span><span class="kw">pub struct </span>DeviceName {
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>public_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    <span class="doccomment">/// Encrypted ProvisionMessage
-    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-}
-<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>ProvisionMessage {
-    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>aci_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    </span><span class="kw">pub </span>ephemeral_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
     <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>aci_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"11"</span>)]
-    </span><span class="kw">pub </span>pni_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"12"</span>)]
-    </span><span class="kw">pub </span>pni_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"8"</span>)]
-    </span><span class="kw">pub </span>aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"10"</span>)]
-    </span><span class="kw">pub </span>pni: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
-    </span><span class="kw">pub </span>number: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"4"</span>)]
-    </span><span class="kw">pub </span>provisioning_code: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"5"</span>)]
-    </span><span class="kw">pub </span>user_agent: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"6"</span>)]
-    </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-    <span class="attr">#[prost(bool, optional, tag = <span class="string">"7"</span>)]
-    </span><span class="kw">pub </span>read_receipts: ::core::option::Option&lt;bool&gt;,
-    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"9"</span>)]
-    </span><span class="kw">pub </span>provisioning_version: ::core::option::Option&lt;u32&gt;,
-    <span class="doccomment">/// NEXT ID: 14
-    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"13"</span>)]
-    </span><span class="kw">pub </span>master_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-}
-<span class="attr">#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-#[repr(i32)]
-</span><span class="kw">pub enum </span>ProvisioningVersion {
-    Initial = <span class="number">0</span>,
-    TabletSupport = <span class="number">1</span>,
-}
-<span class="kw">impl </span>ProvisioningVersion {
-    <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
-    ///
-    /// The values are not transformed in any way and thus are considered stable
-    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-    </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-        <span class="kw">match </span><span class="self">self </span>{
-            ProvisioningVersion::Initial =&gt; <span class="string">"INITIAL"</span>,
-            ProvisioningVersion::TabletSupport =&gt; <span class="string">"TABLET_SUPPORT"</span>,
-        }
-    }
-    <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
-    </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">match </span>value {
-            <span class="string">"INITIAL" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Initial),
-            <span class="string">"TABLET_SUPPORT" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::TabletSupport),
-            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-        }
-    }
-}
-<span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-</span><span class="kw">pub struct </span>Pack {
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
-    </span><span class="kw">pub </span>title: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
-    </span><span class="kw">pub </span>author: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
-    </span><span class="kw">pub </span>cover: ::core::option::Option&lt;pack::Sticker&gt;,
-    <span class="attr">#[prost(message, repeated, tag = <span class="string">"4"</span>)]
-    </span><span class="kw">pub </span>stickers: ::prost::alloc::vec::Vec&lt;pack::Sticker&gt;,
-}
-<span class="doccomment">/// Nested message and enum types in `Pack`.
-</span><span class="kw">pub mod </span>pack {
-    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-    </span><span class="kw">pub struct </span>Sticker {
-        <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
-        </span><span class="kw">pub </span>id: ::core::option::Option&lt;u32&gt;,
-        <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
-        </span><span class="kw">pub </span>emoji: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-        <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
-        </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-    }
+    </span><span class="kw">pub </span>synthetic_iv: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
+    </span><span class="kw">pub </span>ciphertext: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 }
 </code></pre></div></section></main></body></html>

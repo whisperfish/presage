@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/registered.rs`."><title>registered.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-dd39b87e5fcfba68.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.80.1 (3f5fd8dd4 2024-08-06)" data-channel="1.80.1" data-search-js="search-d52510db62a78183.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-20a3ad099b048cf2.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `presage/src/manager/registered.rs`."><title>registered.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../../static.files/rustdoc-c5d6553a23f1e5a6.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="presage" data-themes="" data-resource-suffix="" data-rustdoc-version="1.81.0 (eeb90cda1 2024-09-04)" data-channel="1.81.0" data-search-js="search-d234aafac6c221dd.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-d2fab2bf619172d3.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1633,22 +1633,6 @@
 <a href="#1633" id="1633">1633</a>
 <a href="#1634" id="1634">1634</a>
 <a href="#1635" id="1635">1635</a>
-<a href="#1636" id="1636">1636</a>
-<a href="#1637" id="1637">1637</a>
-<a href="#1638" id="1638">1638</a>
-<a href="#1639" id="1639">1639</a>
-<a href="#1640" id="1640">1640</a>
-<a href="#1641" id="1641">1641</a>
-<a href="#1642" id="1642">1642</a>
-<a href="#1643" id="1643">1643</a>
-<a href="#1644" id="1644">1644</a>
-<a href="#1645" id="1645">1645</a>
-<a href="#1646" id="1646">1646</a>
-<a href="#1647" id="1647">1647</a>
-<a href="#1648" id="1648">1648</a>
-<a href="#1649" id="1649">1649</a>
-<a href="#1650" id="1650">1650</a>
-<a href="#1651" id="1651">1651</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -2452,7 +2436,8 @@
     /// to order messages later, and apply reactions.
     ///
     /// This method will automatically update the [DataMessage::expire_timer] if it is set to
-    /// [None] such that the chat will keep the current expire timer.
+    /// [None] such that the chat will keep the current expire timer. If the expire timer is set,
+    /// it will be used as is, and the expire timer version will be incremented.
     </span><span class="kw">pub async fn </span>send_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient_addr: <span class="kw">impl </span>Into&lt;ServiceAddress&gt;,
@@ -2467,24 +2452,10 @@
         // Issue &lt;https://github.com/whisperfish/presage/issues/252&gt;
         </span><span class="kw">let </span>include_pni_signature = <span class="bool-val">false</span>;
         <span class="kw">let </span>recipient = recipient_addr.into();
+        <span class="kw">let </span>thread = Thread::Contact(recipient.uuid);
         <span class="kw">let </span><span class="kw-2">mut </span>content_body: ContentBody = message.into();
 
-        <span class="comment">// Only update the expiration timer if it is not set.
-        </span><span class="kw">match </span>content_body {
-            ContentBody::DataMessage(DataMessage {
-                expire_timer: <span class="kw-2">ref mut </span>timer,
-                ..
-            }) <span class="kw">if </span>timer.is_none() =&gt; {
-                <span class="comment">// Set the expire timer to None for errors.
-                </span><span class="kw">let </span>store_expire_timer = <span class="self">self
-                    </span>.store
-                    .expire_timer(<span class="kw-2">&amp;</span>Thread::Contact(recipient.uuid))
-                    .unwrap_or_default();
-
-                <span class="kw-2">*</span>timer = store_expire_timer;
-            }
-            <span class="kw">_ </span>=&gt; {}
-        }
+        <span class="self">self</span>.restore_thread_timer(<span class="kw-2">&amp;</span>thread, <span class="kw-2">&amp;mut </span>content_body);
 
         <span class="kw">let </span>sender_certificate = <span class="self">self</span>.sender_certificate().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>unidentified_access =
@@ -2529,13 +2500,7 @@
         };
 
         <span class="kw">let </span><span class="kw-2">mut </span>push_service = <span class="self">self</span>.identified_push_service();
-        save_message(
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.store,
-            <span class="kw-2">&amp;mut </span>push_service,
-            content,
-            <span class="prelude-val">Some</span>(Thread::Contact(recipient.uuid)),
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>;
+        save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>.store, <span class="kw-2">&amp;mut </span>push_service, content, <span class="prelude-val">Some</span>(thread)).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -2570,23 +2535,10 @@
         <span class="kw">let </span>master_key_bytes = master_key_bytes
             .try_into()
             .expect(<span class="string">"Master key bytes to be of size 32."</span>);
+        <span class="kw">let </span>thread = Thread::Group(master_key_bytes);
 
-        <span class="comment">// Only update the expiration timer if it is not set.
-        </span><span class="kw">match </span>content_body {
-            ContentBody::DataMessage(DataMessage {
-                expire_timer: <span class="kw-2">ref mut </span>timer,
-                ..
-            }) <span class="kw">if </span>timer.is_none() =&gt; {
-                <span class="comment">// Set the expire timer to None for errors.
-                </span><span class="kw">let </span>store_expire_timer = <span class="self">self
-                    </span>.store
-                    .expire_timer(<span class="kw-2">&amp;</span>Thread::Group(master_key_bytes))
-                    .unwrap_or_default();
+        <span class="self">self</span>.restore_thread_timer(<span class="kw-2">&amp;</span>thread, <span class="kw-2">&amp;mut </span>content_body);
 
-                <span class="kw-2">*</span>timer = store_expire_timer;
-            }
-            <span class="kw">_ </span>=&gt; {}
-        }
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
@@ -2652,15 +2604,29 @@
         };
 
         <span class="kw">let </span><span class="kw-2">mut </span>push_service = <span class="self">self</span>.identified_push_service();
-        save_message(
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.store,
-            <span class="kw-2">&amp;mut </span>push_service,
-            content,
-            <span class="prelude-val">Some</span>(Thread::Group(master_key_bytes)),
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>;
+        save_message(<span class="kw-2">&amp;mut </span><span class="self">self</span>.store, <span class="kw-2">&amp;mut </span>push_service, content, <span class="prelude-val">Some</span>(thread)).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">fn </span>restore_thread_timer(<span class="kw-2">&amp;mut </span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread, content_body: <span class="kw-2">&amp;mut </span>ContentBody) {
+        <span class="kw">let </span>store_expire_timer = <span class="self">self</span>.store.expire_timer(thread).unwrap_or_default();
+
+        <span class="kw">match </span>content_body {
+            ContentBody::DataMessage(DataMessage {
+                expire_timer: <span class="kw-2">ref mut </span>timer,
+                expire_timer_version: <span class="kw-2">ref mut </span>version,
+                ..
+            }) =&gt; {
+                <span class="kw">if </span>timer.is_none() {
+                    <span class="kw-2">*</span>timer = store_expire_timer.map(|(t, <span class="kw">_</span>)| t);
+                    <span class="kw-2">*</span>version = <span class="prelude-val">Some</span>(store_expire_timer.map(|(<span class="kw">_</span>, v)| v).unwrap_or_default());
+                } <span class="kw">else </span>{
+                    <span class="kw-2">*</span>version = <span class="prelude-val">Some</span>(store_expire_timer.map(|(<span class="kw">_</span>, v)| v).unwrap_or_default() + <span class="number">1</span>);
+                }
+            }
+            <span class="kw">_ </span>=&gt; (),
+        }
     }
 
     <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).
@@ -3196,6 +3162,7 @@
                         profile_key: profile_key.bytes.to_vec(),
                         color: <span class="prelude-val">None</span>,
                         expire_timer: data_message.expire_timer.unwrap_or_default(),
+                        expire_timer_version: data_message.expire_timer_version.unwrap_or(<span class="number">1</span>),
                         inbox_position: <span class="number">0</span>,
                         archived: <span class="bool-val">false</span>,
                         avatar: <span class="prelude-val">None</span>,
@@ -3210,7 +3177,8 @@
             }
 
             <span class="kw">if let </span><span class="prelude-val">Some</span>(expire_timer) = data_message.expire_timer {
-                store.update_expire_timer(<span class="kw-2">&amp;</span>thread, expire_timer)<span class="question-mark">?</span>;
+                <span class="kw">let </span>version = data_message.expire_timer_version.unwrap_or(<span class="number">1</span>);
+                store.update_expire_timer(<span class="kw-2">&amp;</span>thread, expire_timer, version)<span class="question-mark">?</span>;
             }
 
             <span class="kw">match </span>data_message {
