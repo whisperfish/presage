@@ -398,7 +398,7 @@ impl<S: Store> Manager<S, Registered> {
                 .as_secs();
 
             if let Some(expiration) = sender_certificate.and_then(|s| s.expiration().ok()) {
-                seconds_since_epoch <= expiration.epoch_millis() / 1000 + 600
+                expiration.epoch_millis() / 1000 <= seconds_since_epoch + 600
             } else {
                 true
             }
