@@ -1,11 +1,11 @@
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
+use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::{
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
-use libsignal_service_hyper::push_service::HyperPushService;
 use log::info;
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
@@ -76,7 +76,7 @@ impl<S: Store> Manager<S, Linking> {
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
         let push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+            PushService::new(service_configuration, None, crate::USER_AGENT.to_string());
 
         let (tx, mut rx) = mpsc::channel(1);
 

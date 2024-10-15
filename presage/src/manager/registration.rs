@@ -1,7 +1,7 @@
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::prelude::phonenumber::PhoneNumber;
-use libsignal_service::push_service::{PushService, VerificationTransport};
-use libsignal_service_hyper::push_service::HyperPushService;
+use libsignal_service::prelude::PushService;
+use libsignal_service::push_service::VerificationTransport;
 use log::trace;
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
@@ -86,7 +86,7 @@ impl<S: Store> Manager<S, Registration> {
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut push_service =
-            HyperPushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+            PushService::new(service_configuration, None, crate::USER_AGENT.to_string());
 
         trace!("creating registration verification session");
 
