@@ -2033,7 +2033,7 @@
                 .as_secs();
 
             <span class="kw">if let </span><span class="prelude-val">Some</span>(expiration) = sender_certificate.and_then(|s| s.expiration().ok()) {
-                seconds_since_epoch &lt;= expiration.epoch_millis() / <span class="number">1000 </span>+ <span class="number">600
+                expiration.epoch_millis() / <span class="number">1000 </span>&lt;= seconds_since_epoch + <span class="number">600
             </span>} <span class="kw">else </span>{
                 <span class="bool-val">true
             </span>}
