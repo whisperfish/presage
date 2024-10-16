@@ -1,7 +1,7 @@
 use std::fmt;
 use std::ops::RangeBounds;
 use std::pin::pin;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
@@ -44,7 +44,6 @@ use sha2::Digest;
 use tokio::sync::Mutex;
 use url::Url;
 
-use crate::cache::CacheCell;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{AvatarBytes, Error, Manager};
@@ -61,8 +60,8 @@ pub enum RegistrationType {
 /// Manager state when the client is registered and can send and receive messages from Signal
 #[derive(Clone)]
 pub struct Registered {
-    pub(crate) identified_push_service: CacheCell<HyperPushService>,
-    pub(crate) unidentified_push_service: CacheCell<HyperPushService>,
+    pub(crate) identified_push_service: OnceLock<HyperPushService>,
+    pub(crate) unidentified_push_service: OnceLock<HyperPushService>,
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_sender_certificate: Option<SenderCertificate>,
@@ -79,8 +78,8 @@ impl fmt::Debug for Registered {
 impl Registered {
     pub(crate) fn with_data(data: RegistrationData) -> Self {
         Self {
-            identified_push_service: CacheCell::default(),
-            unidentified_push_service: CacheCell::default(),
+            identified_push_service: Default::default(),
+            unidentified_push_service: Default::default(),
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
@@ -176,26 +175,32 @@ impl<S: Store> Manager<S, Registered> {
     ///
     /// If no service is yet cached, it will create and cache one.
     fn identified_push_service(&self) -> HyperPushService {
-        self.state.identified_push_service.get(|| {
-            HyperPushService::new(
-                self.state.service_configuration(),
-                self.credentials(),
-                crate::USER_AGENT.to_string(),
-            )
-        })
+        self.state
+            .identified_push_service
+            .get_or_init(|| {
+                HyperPushService::new(
+                    self.state.service_configuration(),
+                    self.credentials(),
+                    crate::USER_AGENT.to_string(),
+                )
+            })
+            .clone()
     }
 
     /// Returns a clone of a cached push service (without credentials).
     ///
     /// If no service is yet cached, it will create and cache one.
     fn unidentified_push_service(&self) -> HyperPushService {
-        self.state.unidentified_push_service.get(|| {
-            HyperPushService::new(
-                self.state.service_configuration(),
-                None,
-                crate::USER_AGENT.to_string(),
-            )
-        })
+        self.state
+            .unidentified_push_service
+            .get_or_init(|| {
+                HyperPushService::new(
+                    self.state.service_configuration(),
+                    None,
+                    crate::USER_AGENT.to_string(),
+                )
+            })
+            .clone()
     }
 
     /// Returns the current identified websocket, or creates a new one

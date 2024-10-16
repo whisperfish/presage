@@ -38,3 +38,19 @@ impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {
             .finish_non_exhaustive()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn managers_are_sync() {
+        fn is_sync<T: Sync>() {}
+
+        // Store trait has Send + Sync as super-trait, test States only
+        is_sync::<Manager<(), Confirmation>>();
+        is_sync::<Manager<(), Linking>>();
+        is_sync::<Manager<(), Registration>>();
+        is_sync::<Manager<(), Registered>>();
+    }
+}
