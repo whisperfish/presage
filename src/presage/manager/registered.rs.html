@@ -1633,10 +1633,15 @@
 <a href="#1633" id="1633">1633</a>
 <a href="#1634" id="1634">1634</a>
 <a href="#1635" id="1635">1635</a>
+<a href="#1636" id="1636">1636</a>
+<a href="#1637" id="1637">1637</a>
+<a href="#1638" id="1638">1638</a>
+<a href="#1639" id="1639">1639</a>
+<a href="#1640" id="1640">1640</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
-<span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::sync::{Arc, OnceLock};
 <span class="kw">use </span>std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 <span class="kw">use </span>futures::{future, AsyncReadExt, Stream, StreamExt};
@@ -1679,7 +1684,6 @@
 <span class="kw">use </span>tokio::sync::Mutex;
 <span class="kw">use </span>url::Url;
 
-<span class="kw">use </span><span class="kw">crate</span>::cache::CacheCell;
 <span class="kw">use </span><span class="kw">crate</span>::serde::serde_profile_key;
 <span class="kw">use </span><span class="kw">crate</span>::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 <span class="kw">use crate</span>::{AvatarBytes, Error, Manager};
@@ -1696,8 +1700,8 @@
 <span class="doccomment">/// Manager state when the client is registered and can send and receive messages from Signal
 </span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>Registered {
-    <span class="kw">pub</span>(<span class="kw">crate</span>) identified_push_service: CacheCell&lt;HyperPushService&gt;,
-    <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_push_service: CacheCell&lt;HyperPushService&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) identified_push_service: OnceLock&lt;HyperPushService&gt;,
+    <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_push_service: OnceLock&lt;HyperPushService&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) identified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_websocket: Arc&lt;Mutex&lt;<span class="prelude-ty">Option</span>&lt;SignalWebSocket&gt;&gt;&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) unidentified_sender_certificate: <span class="prelude-ty">Option</span>&lt;SenderCertificate&gt;,
@@ -1714,8 +1718,8 @@
 <span class="kw">impl </span>Registered {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>with_data(data: RegistrationData) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            identified_push_service: CacheCell::default(),
-            unidentified_push_service: CacheCell::default(),
+            identified_push_service: Default::default(),
+            unidentified_push_service: Default::default(),
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
@@ -1811,26 +1815,32 @@
     ///
     /// If no service is yet cached, it will create and cache one.
     </span><span class="kw">fn </span>identified_push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HyperPushService {
-        <span class="self">self</span>.state.identified_push_service.get(|| {
-            HyperPushService::new(
-                <span class="self">self</span>.state.service_configuration(),
-                <span class="self">self</span>.credentials(),
-                <span class="kw">crate</span>::USER_AGENT.to_string(),
-            )
-        })
+        <span class="self">self</span>.state
+            .identified_push_service
+            .get_or_init(|| {
+                HyperPushService::new(
+                    <span class="self">self</span>.state.service_configuration(),
+                    <span class="self">self</span>.credentials(),
+                    <span class="kw">crate</span>::USER_AGENT.to_string(),
+                )
+            })
+            .clone()
     }
 
     <span class="doccomment">/// Returns a clone of a cached push service (without credentials).
     ///
     /// If no service is yet cached, it will create and cache one.
     </span><span class="kw">fn </span>unidentified_push_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HyperPushService {
-        <span class="self">self</span>.state.unidentified_push_service.get(|| {
-            HyperPushService::new(
-                <span class="self">self</span>.state.service_configuration(),
-                <span class="prelude-val">None</span>,
-                <span class="kw">crate</span>::USER_AGENT.to_string(),
-            )
-        })
+        <span class="self">self</span>.state
+            .unidentified_push_service
+            .get_or_init(|| {
+                HyperPushService::new(
+                    <span class="self">self</span>.state.service_configuration(),
+                    <span class="prelude-val">None</span>,
+                    <span class="kw">crate</span>::USER_AGENT.to_string(),
+                )
+            })
+            .clone()
     }
 
     <span class="doccomment">/// Returns the current identified websocket, or creates a new one
