@@ -25,7 +25,9 @@ use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::ServiceAddress;
 use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use presage::manager::ReceivingMode;
+use presage::proto::receipt_message;
 use presage::proto::EditMessage;
+use presage::proto::ReceiptMessage;
 use presage::proto::SyncMessage;
 use presage::store::ContentExt;
 use presage::{
@@ -400,6 +402,7 @@ fn print_message<S: Store>(
             data_message: Some(data_message),
             ..
         }) => format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body)),
+        ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
             sent:
                 Some(Sent {
@@ -420,11 +423,24 @@ fn print_message<S: Store>(
                 }),
             ..
         }) => format_data_message(&thread, data_message).map(|body| Msg::Sent(&thread, body)),
+        ContentBody::SynchronizeMessage(SyncMessage { .. }) => None,
         ContentBody::CallMessage(_) => Some(Msg::Received(&thread, "is calling!".into())),
         ContentBody::TypingMessage(_) => Some(Msg::Received(&thread, "is typing...".into())),
-        c => {
-            log::warn!("unsupported message {c:?}");
-            None
+        ContentBody::ReceiptMessage(ReceiptMessage {
+            r#type: receipt_type,
+            timestamp,
+        }) => Some(Msg::Received(
+            &thread,
+            format!(
+                "got {:?} receipt for messages sent at {timestamp:?}",
+                receipt_message::Type::try_from(receipt_type.unwrap_or_default()).unwrap()
+            ),
+        )),
+        ContentBody::StoryMessage(story) => {
+            Some(Msg::Received(&thread, format!("new story: {story:?}")))
+        }
+        ContentBody::PniSignatureMessage(_) => {
+            Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
     } {
         let ts = content.timestamp();
