@@ -1,4 +1,3 @@
-mod cache;
 mod errors;
 pub mod manager;
 mod serde;
