@@ -32,7 +32,7 @@ impl StoreError for SledStoreError {}
 
 impl From<SledStoreError> for SignalProtocolError {
     fn from(error: SledStoreError) -> Self {
-        error!("presage store error: {error}");
+        error!(%error, "presage store error");
         Self::InvalidState("presage store error", error.to_string())
     }
 }

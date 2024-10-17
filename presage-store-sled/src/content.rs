@@ -155,7 +155,7 @@ impl ContentsStore for SledStore {
     }
 
     fn clear_thread(&mut self, thread: &Thread) -> Result<(), SledStoreError> {
-        trace!("clearing thread {thread}");
+        trace!(%thread, "clearing thread");
 
         let db = self.write();
         db.drop_tree(messages_thread_tree_name(thread))?;
@@ -166,7 +166,7 @@ impl ContentsStore for SledStore {
 
     fn save_message(&self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
         let ts = message.timestamp();
-        trace!("storing a message with thread: {thread}, timestamp: {ts}",);
+        trace!(%thread, ts, "storing a message with thread");
 
         let tree = messages_thread_tree_name(thread);
         let key = ts.to_be_bytes();
@@ -204,7 +204,7 @@ impl ContentsStore for SledStore {
         range: impl RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, SledStoreError> {
         let tree_thread = self.read().open_tree(messages_thread_tree_name(thread))?;
-        debug!("{} messages in this tree", tree_thread.len());
+        debug!(%thread, count = tree_thread.len(), "loading message tree");
 
         let iter = match (range.start_bound(), range.end_bound()) {
             (Bound::Included(start), Bound::Unbounded) => tree_thread.range(start.to_be_bytes()..),

@@ -424,7 +424,7 @@ fn migrate(
                             let _ = tree.insert(k.to_be_bytes(), v);
                         }
                         let num_keys_after = tree.len();
-                        debug!("migrated keys in {tree_name}: before {num_keys_before} -> after {num_keys_after}");
+                        debug!(tree_name, num_keys_before, num_keys_after, "migrated keys");
                     }
                 }
                 _ => return Err(SledStoreError::MigrationConflict),

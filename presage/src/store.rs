@@ -135,7 +135,7 @@ pub trait ContentsStore: Send + Sync {
         };
 
         if let Err(error) = self.save_message(&thread, verified_sync_message) {
-            error!("failed to save the verified session message in thread: {error}");
+            error!(%error, "failed to save the verified session message in thread");
         }
     }
 
@@ -187,12 +187,7 @@ pub trait ContentsStore: Send + Sync {
         timer: u32,
         version: u32,
     ) -> Result<(), Self::ContentsStoreError> {
-        trace!(
-            "update expire timer of {:?} to {} (version {})",
-            thread,
-            timer,
-            version
-        );
+        trace!(%thread, timer, version, "updating expire timer");
         match thread {
             Thread::Contact(uuid) => {
                 let contact = self.contact_by_id(uuid)?;
