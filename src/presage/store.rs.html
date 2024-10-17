@@ -528,11 +528,6 @@
 <a href="#528" id="528">528</a>
 <a href="#529" id="529">529</a>
 <a href="#530" id="530">530</a>
-<a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
-<a href="#534" id="534">534</a>
-<a href="#535" id="535">535</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, ops::RangeBounds, time::SystemTime};
@@ -552,8 +547,8 @@
     zkgroup::GroupMasterKeyBytes,
     Profile, ServiceAddress,
 };
-<span class="kw">use </span>log::error;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>tracing::{error, trace};
 
 <span class="kw">use crate</span>::{manager::RegistrationData, AvatarBytes};
 
@@ -670,7 +665,7 @@
         };
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = <span class="self">self</span>.save_message(<span class="kw-2">&amp;</span>thread, verified_sync_message) {
-            <span class="macro">error!</span>(<span class="string">"failed to save the verified session message in thread: {error}"</span>);
+            <span class="macro">error!</span>(%error, <span class="string">"failed to save the verified session message in thread"</span>);
         }
     }
 
@@ -722,12 +717,7 @@
         timer: u32,
         version: u32,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::ContentsStoreError&gt; {
-        <span class="macro">log::trace!</span>(
-            <span class="string">"update expire timer of {:?} to {} (version {})"</span>,
-            thread,
-            timer,
-            version
-        );
+        <span class="macro">trace!</span>(%thread, timer, version, <span class="string">"updating expire timer"</span>);
         <span class="kw">match </span>thread {
             Thread::Contact(uuid) =&gt; {
                 <span class="kw">let </span>contact = <span class="self">self</span>.contact_by_id(uuid)<span class="question-mark">?</span>;

@@ -183,10 +183,10 @@
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
-<span class="kw">use </span>log::info;
 <span class="kw">use </span>rand::distributions::{Alphanumeric, DistString};
 <span class="kw">use </span>rand::rngs::StdRng;
 <span class="kw">use </span>rand::{RngCore, SeedableRng};
+<span class="kw">use </span>tracing::info;
 <span class="kw">use </span>url::Url;
 
 <span class="kw">use </span><span class="kw">crate</span>::manager::registered::RegistrationData;

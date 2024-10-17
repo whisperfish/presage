@@ -1638,6 +1638,7 @@
 <a href="#1638" id="1638">1638</a>
 <a href="#1639" id="1639">1639</a>
 <a href="#1640" id="1640">1640</a>
+<a href="#1641" id="1641">1641</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::ops::RangeBounds;
 <span class="kw">use </span>std::pin::pin;
@@ -1676,12 +1677,12 @@
 <span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
 <span class="kw">use </span>libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
 <span class="kw">use </span>libsignal_service_hyper::push_service::HyperPushService;
-<span class="kw">use </span>log::{debug, error, info, trace, warn};
 <span class="kw">use </span>rand::rngs::StdRng;
 <span class="kw">use </span>rand::SeedableRng;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>sha2::Digest;
 <span class="kw">use </span>tokio::sync::Mutex;
+<span class="kw">use </span>tracing::{debug, error, info, trace, warn};
 <span class="kw">use </span>url::Url;
 
 <span class="kw">use </span><span class="kw">crate</span>::serde::serde_profile_key;
@@ -1995,7 +1996,7 @@
 
         tokio::time::timeout(Duration::from_secs(<span class="number">60</span>), <span class="kw">async move </span>{
             <span class="kw">while let </span><span class="prelude-val">Some</span>(msg) = messages.next().<span class="kw">await </span>{
-                <span class="macro">log::trace!</span>(<span class="string">"got message while waiting for contacts sync: {msg:?}"</span>);
+                <span class="macro">trace!</span>(<span class="question-mark">?</span>msg, <span class="string">"got message while waiting for contacts sync:"</span>);
             }
         })
         .<span class="kw">await</span><span class="question-mark">?</span>;
@@ -2292,14 +2293,16 @@
                                             <span class="kw">let _ </span>= state.store.clear_contacts();
                                             <span class="macro">info!</span>(<span class="string">"saving contacts"</span>);
                                             <span class="kw">for </span>contact <span class="kw">in </span>contacts.filter_map(Result::ok) {
-                                                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = state.store.save_contact(<span class="kw-2">&amp;</span>contact) {
-                                                    <span class="macro">warn!</span>(<span class="string">"failed to save contacts: {e}"</span>);
+                                                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
+                                                    state.store.save_contact(<span class="kw-2">&amp;</span>contact)
+                                                {
+                                                    <span class="macro">warn!</span>(%error, <span class="string">"failed to save contacts"</span>);
                                                     <span class="kw">break</span>;
                                                 }
                                             }
                                         }
-                                        <span class="prelude-val">Err</span>(e) =&gt; {
-                                            <span class="macro">warn!</span>(<span class="string">"failed to retrieve contacts: {e}"</span>);
+                                        <span class="prelude-val">Err</span>(error) =&gt; {
+                                            <span class="macro">warn!</span>(%error, <span class="string">"failed to retrieve contacts"</span>);
                                         }
                                     }
 
@@ -2338,7 +2341,8 @@
                                                             );
                                                         }
                                                         <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">error!</span>(
-                                                            <span class="string">"failed to download sticker pack: {error}"
+                                                            %error,
+                                                            <span class="string">"failed to download sticker pack"
                                                         </span>),
                                                     }
                                                 });
@@ -2348,14 +2352,13 @@
                                                     .store
                                                     .remove_sticker_pack(operation.pack_id())
                                                 {
-                                                    <span class="prelude-val">Ok</span>(removed) =&gt; {
-                                                        <span class="macro">debug!</span>(
-                                                            <span class="string">"removed stick pack: present={removed}"
-                                                        </span>)
+                                                    <span class="prelude-val">Ok</span>(was_present) =&gt; {
+                                                        <span class="macro">debug!</span>(was_present, <span class="string">"removed stick pack"</span>)
                                                     }
                                                     <span class="prelude-val">Err</span>(error) =&gt; {
                                                         <span class="macro">error!</span>(
-                                                            <span class="string">"failed to remove sticker pack: {error}"
+                                                            %error,
+                                                            <span class="string">"failed to remove sticker pack"
                                                         </span>)
                                                     }
                                                 }
@@ -2403,11 +2406,11 @@
                                     )
                                     .<span class="kw">await
                                     </span>{
-                                        <span class="macro">trace!</span>(<span class="string">"{group:?}"</span>);
+                                        <span class="macro">trace!</span>(<span class="question-mark">?</span>group, <span class="string">"upserted group"</span>);
                                     }
                                 }
 
-                                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = save_message(
+                                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = save_message(
                                     <span class="kw-2">&amp;mut </span>state.store,
                                     <span class="kw-2">&amp;mut </span>state.push_service,
                                     content.clone(),
@@ -2415,16 +2418,16 @@
                                 )
                                 .<span class="kw">await
                                 </span>{
-                                    <span class="macro">error!</span>(<span class="string">"Error saving message to store: {}"</span>, e);
+                                    <span class="macro">error!</span>(%error, <span class="string">"error saving message to store"</span>);
                                 }
 
                                 <span class="kw">return </span><span class="prelude-val">Some</span>((content, state));
                             }
                             <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; {
-                                <span class="macro">debug!</span>(<span class="string">"Empty envelope..., message will be skipped!"</span>)
+                                <span class="macro">debug!</span>(<span class="string">"empty envelope..., message will be skipped!"</span>)
                             }
-                            <span class="prelude-val">Err</span>(e) =&gt; {
-                                <span class="macro">error!</span>(<span class="string">"Error opening envelope: {:?}, message will be skipped!"</span>, e);
+                            <span class="prelude-val">Err</span>(error) =&gt; {
+                                <span class="macro">error!</span>(%error, <span class="string">"error opening envelope, message will be skipped!"</span>);
                             }
                         }
                     }
@@ -2434,7 +2437,9 @@
                             <span class="kw">return </span><span class="prelude-val">None</span>;
                         }
                     }
-                    <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(e)) =&gt; <span class="macro">error!</span>(<span class="string">"Error: {}"</span>, e),
+                    <span class="prelude-val">Some</span>(<span class="prelude-val">Err</span>(error)) =&gt; {
+                        <span class="macro">error!</span>(%error, <span class="string">"unexpected error in message receiving loop"</span>)
+                    }
                     <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
                 }
             }
@@ -2592,7 +2597,7 @@
                 <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
                 <span class="comment">// Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
                 </span><span class="prelude-val">Err</span>(MessageSenderError::NotFound { addr }) =&gt; {
-                    <span class="macro">debug!</span>(<span class="string">"UUID {} not found, skipping sent message result"</span>, addr.uuid);
+                    <span class="macro">debug!</span>(uuid = %addr.uuid, <span class="string">"UUID not found, skipping sent message result"</span>);
                     <span class="bool-val">false
                 </span>}
                 <span class="comment">// return first error if any
@@ -2668,8 +2673,8 @@
 
         <span class="comment">// We need the whole file for the crypto to check out
         </span><span class="kw">let </span><span class="kw-2">mut </span>ciphertext = Vec::new();
-        <span class="kw">let </span>len = attachment_stream.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="macro">trace!</span>(<span class="string">"downloaded encrypted attachment of {} bytes"</span>, len);
+        <span class="kw">let </span>size_bytes = attachment_stream.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="macro">trace!</span>(size_bytes, <span class="string">"downloaded encrypted attachment"</span>);
 
         <span class="kw">let </span>digest = sha2::Sha256::digest(<span class="kw-2">&amp;</span>ciphertext);
         <span class="kw">if </span><span class="kw-2">&amp;</span>digest[..] != expected_digest {
@@ -2784,7 +2789,7 @@
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">trace!</span>(<span class="string">"Resetting session for address: {}"</span>, recipient.uuid);
+        <span class="macro">trace!</span>(%recipient.uuid, <span class="string">"resetting session for address"</span>);
         <span class="kw">let </span>message = DataMessage {
             flags: <span class="prelude-val">Some</span>(DataMessageFlags::EndSession <span class="kw">as </span>u32),
             ..Default::default()
@@ -2855,8 +2860,8 @@
             Thread::Contact(uuid) =&gt; {
                 <span class="kw">let </span>contact = <span class="kw">match </span><span class="self">self</span>.store.contact_by_id(uuid) {
                     <span class="prelude-val">Ok</span>(contact) =&gt; contact,
-                    <span class="prelude-val">Err</span>(e) =&gt; {
-                        <span class="macro">info!</span>(<span class="string">"Error getting contact by id: {}, {:?}"</span>, e, uuid);
+                    <span class="prelude-val">Err</span>(error) =&gt; {
+                        <span class="macro">info!</span>(%error, %uuid, <span class="string">"error getting contact by id"</span>);
                         <span class="prelude-val">None
                     </span>}
                 };
@@ -2993,12 +2998,12 @@
 ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Group&gt;, Error&lt;S::Error&gt;&gt; {
     <span class="kw">let </span>upsert_group = <span class="kw">match </span>store.group(master_key_bytes.try_into()<span class="question-mark">?</span>) {
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) =&gt; {
-            <span class="macro">debug!</span>(<span class="string">"loaded group from local db {}"</span>, group.title);
+            <span class="macro">debug!</span>(group_name =% group.title, <span class="string">"loaded group from local db"</span>);
             group.revision &lt; <span class="kw-2">*</span>revision
         }
         <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>) =&gt; <span class="bool-val">true</span>,
-        <span class="prelude-val">Err</span>(e) =&gt; {
-            <span class="macro">warn!</span>(<span class="string">"failed to retrieve group from local db {}"</span>, e);
+        <span class="prelude-val">Err</span>(error) =&gt; {
+            <span class="macro">warn!</span>(%error, <span class="string">"failed to retrieve group from local db"</span>);
             <span class="bool-val">true
         </span>}
     };
@@ -3008,12 +3013,12 @@
         <span class="kw">match </span>groups_manager.fetch_encrypted_group(master_key_bytes).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(encrypted_group) =&gt; {
                 <span class="kw">let </span>group = decrypt_group(master_key_bytes, encrypted_group)<span class="question-mark">?</span>;
-                <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>group) {
-                    <span class="macro">error!</span>(<span class="string">"failed to save group {master_key_bytes:?}: {e}"</span>,);
+                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, <span class="kw-2">&amp;</span>group) {
+                    <span class="macro">error!</span>(%error, <span class="string">"failed to save group"</span>);
                 }
             }
-            <span class="prelude-val">Err</span>(e) =&gt; {
-                <span class="macro">warn!</span>(<span class="string">"failed to fetch encrypted group: {e}"</span>)
+            <span class="prelude-val">Err</span>(error) =&gt; {
+                <span class="macro">warn!</span>(%error, <span class="string">"failed to fetch encrypted group"</span>)
             }
         }
     }
@@ -3034,16 +3039,13 @@
 
     <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = Vec::new();
 
-    <span class="kw">let </span>len = push_service
+    <span class="kw">let </span>size_bytes = push_service
         .get_sticker_pack_manifest(<span class="kw-2">&amp;</span>hex::encode(pack_id))
         .<span class="kw">await</span><span class="question-mark">?
         </span>.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext)
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="macro">trace!</span>(
-        <span class="string">"downloaded encrypted sticker pack manifest of {} bytes"</span>,
-        len
-    );
+    <span class="macro">trace!</span>(size_bytes, <span class="string">"downloaded encrypted sticker pack manifest"</span>);
 
     decrypt_in_place(key, <span class="kw-2">&amp;mut </span>ciphertext)<span class="question-mark">?</span>;
 
@@ -3055,10 +3057,10 @@
     <span class="kw">for </span>sticker <span class="kw">in </span><span class="kw-2">&amp;mut </span>sticker_pack_manifest.stickers {
         <span class="kw">match </span>download_sticker(<span class="kw-2">&amp;mut </span>store, <span class="kw-2">&amp;mut </span>push_service, pack_id, pack_key, sticker.id).<span class="kw">await </span>{
             <span class="prelude-val">Ok</span>(decrypted_sticker_bytes) =&gt; {
-                <span class="macro">debug!</span>(<span class="string">"downloaded sticker {}"</span>, sticker.id);
+                <span class="macro">debug!</span>(id = sticker.id, <span class="string">"downloaded sticker"</span>);
                 sticker.bytes = <span class="prelude-val">Some</span>(decrypted_sticker_bytes);
             }
-            <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">error!</span>(<span class="string">"failed to download sticker {}: {error}"</span>, sticker.id),
+            <span class="prelude-val">Err</span>(error) =&gt; <span class="macro">error!</span>(sticker.id, %error,<span class="string">"failed to download sticker"</span>),
         }
     }
 
@@ -3089,9 +3091,9 @@
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
     <span class="kw">let </span><span class="kw-2">mut </span>ciphertext = Vec::new();
-    <span class="kw">let </span>len = sticker_stream.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext).<span class="kw">await</span><span class="question-mark">?</span>;
+    <span class="kw">let </span>size_bytes = sticker_stream.read_to_end(<span class="kw-2">&amp;mut </span>ciphertext).<span class="kw">await</span><span class="question-mark">?</span>;
 
-    <span class="macro">trace!</span>(<span class="string">"downloaded encrypted sticker of {} bytes"</span>, len);
+    <span class="macro">trace!</span>(size_bytes, <span class="string">"downloaded encrypted sticker"</span>);
 
     decrypt_in_place(key, <span class="kw-2">&amp;mut </span>ciphertext)<span class="question-mark">?</span>;
 
@@ -3135,7 +3137,7 @@
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
                 <span class="kw">let </span>sender_uuid = message.metadata.sender.uuid;
                 <span class="kw">let </span>profile_key = ProfileKey::create(profile_key_bytes);
-                <span class="macro">debug!</span>(<span class="string">"inserting profile key for {sender_uuid}"</span>);
+                <span class="macro">debug!</span>(%sender_uuid, <span class="string">"inserting profile key for"</span>);
 
                 <span class="comment">// Either:
                 // - insert a new contact with the profile information
@@ -3179,7 +3181,7 @@
                         verified: Verified::default(),
                     };
 
-                    <span class="macro">info!</span>(<span class="string">"saved contact after seeing {sender_uuid} for the first time"</span>);
+                    <span class="macro">info!</span>(%sender_uuid, <span class="string">"saved contact on first sight"</span>);
                     store.save_contact(<span class="kw-2">&amp;</span>contact)<span class="question-mark">?</span>;
                 }
 
@@ -3204,10 +3206,10 @@
                         existing_msg.metadata.sender.uuid = Uuid::nil();
                         existing_msg.body = NullMessage::default().into();
                         store.save_message(<span class="kw-2">&amp;</span>thread, existing_msg)<span class="question-mark">?</span>;
-                        <span class="macro">debug!</span>(<span class="string">"message in thread {thread} @ {ts} deleted"</span>);
+                        <span class="macro">debug!</span>(%thread, ts, <span class="string">"message in thread deleted"</span>);
                         <span class="prelude-val">None
                     </span>} <span class="kw">else </span>{
-                        <span class="macro">warn!</span>(<span class="string">"could not find message to delete in thread {thread} @ {ts}"</span>);
+                        <span class="macro">warn!</span>(%thread, ts, <span class="string">"could not find message to delete in thread"</span>);
                         <span class="prelude-val">None
                     </span>}
                 }
@@ -3234,10 +3236,10 @@
                 existing_msg.metadata = message.metadata;
                 existing_msg.body = ContentBody::DataMessage(data_message);
                 <span class="comment">// TODO: find a way to mark the message as edited (so that it's visible in a client)
-                </span><span class="macro">trace!</span>(<span class="string">"message in thread {thread} @ {ts} edited"</span>);
+                </span><span class="macro">trace!</span>(%thread, ts, <span class="string">"message in thread edited"</span>);
                 <span class="prelude-val">Some</span>(existing_msg)
             } <span class="kw">else </span>{
-                <span class="macro">warn!</span>(<span class="string">"could not find edited message {thread} @ {ts}"</span>);
+                <span class="macro">warn!</span>(%thread, ts, <span class="string">"could not find edited message"</span>);
                 <span class="prelude-val">None
             </span>}
         }
