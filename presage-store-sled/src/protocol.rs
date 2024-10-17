@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use async_trait::async_trait;
-use log::{error, trace, warn};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
@@ -21,6 +20,7 @@ use presage::{
     store::{ContentsStore, StateStore},
 };
 use sled::Batch;
+use tracing::{error, trace, warn};
 
 use crate::{OnNewIdentity, SledStore, SledStoreError};
 
@@ -57,7 +57,7 @@ impl<T: SledTrees> SledProtocolStore<T> {
             .expect("poisoned mutex")
             .open_tree(tree)
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("next_key_id", "sled error".into())
             })?
             .into_iter()
@@ -211,7 +211,7 @@ impl<T: SledTrees> PreKeyStore for SledProtocolStore<T> {
         self.store
             .insert(T::pre_keys(), prekey_id.sled_key(), record.serialize()?)
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("save_pre_key", "sled error".into())
             })?;
         Ok(())
@@ -221,7 +221,7 @@ impl<T: SledTrees> PreKeyStore for SledProtocolStore<T> {
         self.store
             .remove(T::pre_keys(), prekey_id.sled_key())
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("remove_pre_key", "sled error".into())
             })?;
         Ok(())
@@ -250,7 +250,7 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
             .expect("poisoned mutex")
             .open_tree(T::signed_pre_keys())
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("signed_pre_keys_count", "sled error".into())
             })?
             .into_iter()
@@ -272,7 +272,7 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
                 T::kyber_pre_keys()
             })
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
             })?
             .into_iter()
@@ -309,7 +309,7 @@ impl<T: SledTrees> SignedPreKeyStore for SledProtocolStore<T> {
                 record.serialize()?,
             )
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("save_signed_pre_key", "sled error".into())
             })?;
         Ok(())
@@ -343,7 +343,7 @@ impl<T: SledTrees> KyberPreKeyStore for SledProtocolStore<T> {
                 record.serialize()?,
             )
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("save_kyber_pre_key", "sled error".into())
             })?;
         Ok(())
@@ -357,11 +357,11 @@ impl<T: SledTrees> KyberPreKeyStore for SledProtocolStore<T> {
             .store
             .remove(T::kyber_pre_keys(), kyber_prekey_id.sled_key())
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState("mark_kyber_pre_key_used", "sled error".into())
             })?;
         if removed {
-            log::trace!("removed kyber pre-key {kyber_prekey_id}");
+            trace!("removed kyber pre-key {kyber_prekey_id}");
         }
         Ok(())
     }
@@ -382,7 +382,7 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
                 record.serialize()?,
             )
             .map_err(|e| {
-                log::error!("sled error: {}", e);
+                error!("sled error: {}", e);
                 SignalProtocolError::InvalidState(
                     "store_last_resort_kyber_pre_key",
                     "sled error".into(),

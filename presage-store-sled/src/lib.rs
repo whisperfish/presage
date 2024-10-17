@@ -6,7 +6,6 @@ use std::{
 };
 
 use base64::prelude::*;
-use log::debug;
 use presage::{
     libsignal_service::{
         prelude::{ProfileKey, Uuid},
@@ -22,6 +21,7 @@ use presage::{
 use protocol::{AciSledStore, PniSledStore, SledProtocolStore, SledTrees};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use tracing::{debug, error};
 
 mod content;
 mod error;
@@ -389,7 +389,7 @@ fn migrate(
                     };
 
                     if let Err(error) = run_step() {
-                        log::error!("failed to run v4 -> v5 migration: {error}");
+                        error!("failed to run v4 -> v5 migration: {error}");
                     }
                 }
                 SchemaVersion::V6 => {

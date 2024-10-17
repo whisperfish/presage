@@ -11,7 +11,6 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
-use log::{debug, error, info};
 use notify_rust::Notification;
 use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
@@ -43,6 +42,8 @@ use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
 };
+use tracing::warn;
+use tracing::{debug, error, info};
 use url::Url;
 
 #[derive(Parser)]
@@ -285,7 +286,7 @@ async fn process_incoming_message<S: Store>(
     if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
         for attachment_pointer in attachments {
             let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
-                log::warn!("failed to fetch attachment");
+                warn!("failed to fetch attachment");
                 continue;
             };
 
@@ -318,7 +319,7 @@ fn print_message<S: Store>(
     content: &Content,
 ) {
     let Ok(thread) = Thread::try_from(content) else {
-        log::warn!("failed to derive thread from content");
+        warn!("failed to derive thread from content");
         return;
     };
 
@@ -342,7 +343,7 @@ fn print_message<S: Store>(
             ..
         } => {
             let Ok(Some(message)) = manager.store().message(thread, *timestamp) else {
-                log::warn!("no message in {thread} sent at {timestamp}");
+                warn!("no message in {thread} sent at {timestamp}");
                 return None;
             };
 
@@ -350,7 +351,7 @@ fn print_message<S: Store>(
                 body: Some(body), ..
             }) = message.body
             else {
-                log::warn!("message reacted to has no body");
+                warn!("message reacted to has no body");
                 return None;
             };
 
@@ -423,7 +424,7 @@ fn print_message<S: Store>(
         ContentBody::CallMessage(_) => Some(Msg::Received(&thread, "is calling!".into())),
         ContentBody::TypingMessage(_) => Some(Msg::Received(&thread, "is typing...".into())),
         c => {
-            log::warn!("unsupported message {c:?}");
+            warn!("unsupported message {c:?}");
             None
         }
     } {
@@ -457,7 +458,7 @@ fn print_message<S: Store>(
                 .icon("presage")
                 .show()
             {
-                log::error!("failed to display desktop notification: {e}");
+                error!("failed to display desktop notification: {e}");
             }
         }
     }
@@ -540,7 +541,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                             qr2term::print_qr(url.to_string()).expect("failed to render qrcode");
                             println!("Alternatively, use the URL: {}", url);
                         }
-                        Err(e) => log::error!("Error linking device: {e}"),
+                        Err(e) => error!("Error linking device: {e}"),
                     }
                 },
             )

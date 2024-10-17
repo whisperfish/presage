@@ -36,12 +36,12 @@ use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
 use libsignal_service_hyper::push_service::HyperPushService;
-use log::{debug, error, info, trace, warn};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
+use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::serde::serde_profile_key;
@@ -355,7 +355,7 @@ impl<S: Store> Manager<S, Registered> {
 
         tokio::time::timeout(Duration::from_secs(60), async move {
             while let Some(msg) = messages.next().await {
-                log::trace!("got message while waiting for contacts sync: {msg:?}");
+                trace!("got message while waiting for contacts sync: {msg:?}");
             }
         })
         .await?;

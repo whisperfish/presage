@@ -2,10 +2,10 @@ use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::push_service::{PushService, VerificationTransport};
 use libsignal_service_hyper::push_service::HyperPushService;
-use log::trace;
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
+use tracing::trace;
 
 use crate::store::Store;
 use crate::{Error, Manager};

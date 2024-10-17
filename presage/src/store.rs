@@ -17,8 +17,8 @@ use libsignal_service::{
     zkgroup::GroupMasterKeyBytes,
     Profile, ServiceAddress,
 };
-use log::error;
 use serde::{Deserialize, Serialize};
+use tracing::{error, trace};
 
 use crate::{manager::RegistrationData, AvatarBytes};
 
@@ -187,7 +187,7 @@ pub trait ContentsStore: Send + Sync {
         timer: u32,
         version: u32,
     ) -> Result<(), Self::ContentsStoreError> {
-        log::trace!(
+        trace!(
             "update expire timer of {:?} to {} (version {})",
             thread,
             timer,

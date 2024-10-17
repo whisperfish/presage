@@ -3,7 +3,6 @@ use std::{
     sync::Arc,
 };
 
-use log::debug;
 use presage::{
     libsignal_service::{
         content::Content,
@@ -20,6 +19,7 @@ use prost::Message;
 use serde::de::DeserializeOwned;
 use sha2::{Digest, Sha256};
 use sled::IVec;
+use tracing::{debug, trace};
 
 use crate::{protobuf::ContentProto, SledStore, SledStoreError};
 
@@ -155,7 +155,7 @@ impl ContentsStore for SledStore {
     }
 
     fn clear_thread(&mut self, thread: &Thread) -> Result<(), SledStoreError> {
-        log::trace!("clearing thread {thread}");
+        trace!("clearing thread {thread}");
 
         let db = self.write();
         db.drop_tree(messages_thread_tree_name(thread))?;
@@ -166,7 +166,7 @@ impl ContentsStore for SledStore {
 
     fn save_message(&self, thread: &Thread, message: Content) -> Result<(), SledStoreError> {
         let ts = message.timestamp();
-        log::trace!("storing a message with thread: {thread}, timestamp: {ts}",);
+        trace!("storing a message with thread: {thread}, timestamp: {ts}",);
 
         let tree = messages_thread_tree_name(thread);
         let key = ts.to_be_bytes();
