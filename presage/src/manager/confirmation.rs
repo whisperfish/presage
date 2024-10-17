@@ -9,8 +9,8 @@ use libsignal_service::push_service::{
 };
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
-use log::trace;
 use rand::RngCore;
+use tracing::trace;
 
 use crate::manager::registered::RegistrationData;
 use crate::store::Store;

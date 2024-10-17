@@ -11,7 +11,6 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
-use log::{debug, error, info};
 use notify_rust::Notification;
 use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
@@ -45,6 +44,8 @@ use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
 };
+use tracing::warn;
+use tracing::{debug, error, info};
 use url::Url;
 
 #[derive(Parser)]
@@ -215,7 +216,7 @@ async fn main() -> anyhow::Result<()> {
             .config_dir()
             .into()
     });
-    debug!("opening config database from {}", db_path.display());
+    debug!(db_path =% db_path.display(), "opening config database");
     let config_store = SledStore::open_with_passphrase(
         db_path,
         args.passphrase,
@@ -246,14 +247,14 @@ async fn send<S: Store>(
         .run_until(async move {
             let mut receiving_manager = manager.clone();
             task::spawn_local(async move {
-                if let Err(e) = receive(&mut receiving_manager, false).await {
-                    error!("error while receiving stuff: {e}");
+                if let Err(error) = receive(&mut receiving_manager, false).await {
+                    error!(%error, "error while receiving stuff");
                 }
             });
 
             match recipient {
                 Recipient::Contact(uuid) => {
-                    info!("sending message to contact");
+                    info!(recipient =% uuid, "sending message to contact");
                     manager
                         .send_message(ServiceAddress::new_aci(uuid), content_body, timestamp)
                         .await
@@ -287,7 +288,7 @@ async fn process_incoming_message<S: Store>(
     if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
         for attachment_pointer in attachments {
             let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
-                log::warn!("failed to fetch attachment");
+                warn!("failed to fetch attachment");
                 continue;
             };
 
@@ -304,10 +305,12 @@ async fn process_incoming_message<S: Store>(
                 .unwrap_or_else(|| Local::now().format("%Y-%m-%d-%H-%M-%s").to_string());
             let file_path = attachments_tmp_dir.join(format!("presage-{filename}.{extension}",));
             match fs::write(&file_path, &attachment_data).await {
-                Ok(_) => info!("saved attachment from {sender} to {}", file_path.display()),
+                Ok(_) => info!(%sender, file_path =% file_path.display(), "saved attachment"),
                 Err(error) => error!(
-                    "failed to write attachment from {sender} to {}: {error}",
-                    file_path.display()
+                    %sender,
+                    file_path =% file_path.display(),
+                    %error,
+                    "failed to write attachment"
                 ),
             }
         }
@@ -320,7 +323,7 @@ fn print_message<S: Store>(
     content: &Content,
 ) {
     let Ok(thread) = Thread::try_from(content) else {
-        log::warn!("failed to derive thread from content");
+        warn!("failed to derive thread from content");
         return;
     };
 
@@ -337,14 +340,14 @@ fn print_message<S: Store>(
         DataMessage {
             reaction:
                 Some(Reaction {
-                    target_sent_timestamp: Some(timestamp),
+                    target_sent_timestamp: Some(ts),
                     emoji: Some(emoji),
                     ..
                 }),
             ..
         } => {
-            let Ok(Some(message)) = manager.store().message(thread, *timestamp) else {
-                log::warn!("no message in {thread} sent at {timestamp}");
+            let Ok(Some(message)) = manager.store().message(thread, *ts) else {
+                warn!(%thread, sent_at = ts, "no message found in thread");
                 return None;
             };
 
@@ -352,7 +355,7 @@ fn print_message<S: Store>(
                 body: Some(body), ..
             }) = message.body
             else {
-                log::warn!("message reacted to has no body");
+                warn!("message reacted to has no body");
                 return None;
             };
 
@@ -467,13 +470,13 @@ fn print_message<S: Store>(
         println!("{prefix} / {body}");
 
         if notifications {
-            if let Err(e) = Notification::new()
+            if let Err(error) = Notification::new()
                 .summary(&prefix)
                 .body(&body)
                 .icon("presage")
                 .show()
             {
-                log::error!("failed to display desktop notification: {e}");
+                error!(%error, "failed to display desktop notification");
             }
         }
     }
@@ -485,8 +488,8 @@ async fn receive<S: Store>(
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
     info!(
-        "attachments will be stored in {}",
-        attachments_tmp_dir.path().display()
+        path =% attachments_tmp_dir.path().display(),
+        "attachments will be stored"
     );
 
     let messages = manager
@@ -556,7 +559,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                             qr2term::print_qr(url.to_string()).expect("failed to render qrcode");
                             println!("Alternatively, use the URL: {}", url);
                         }
-                        Err(e) => log::error!("Error linking device: {e}"),
+                        Err(error) => error!(%error, "linking device was cancelled"),
                     }
                 },
             )
@@ -683,7 +686,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                         );
                     }
                     Err(error) => {
-                        error!("Error: failed to deserialize group, {error}");
+                        error!(%error, "failed to deserialize group");
                     }
                 };
             }
@@ -719,7 +722,9 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                             )
                         }
                     }
-                    Err(error) => error!("error while deserializing sticker pack: {error}"),
+                    Err(error) => {
+                        error!(%error, "error while deserializing sticker pack")
+                    }
                 }
             }
         }
