@@ -6,10 +6,10 @@ use libsignal_service::provisioning::{
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
 use libsignal_service_hyper::push_service::HyperPushService;
-use log::info;
 use rand::distributions::{Alphanumeric, DistString};
 use rand::rngs::StdRng;
 use rand::{RngCore, SeedableRng};
+use tracing::info;
 use url::Url;
 
 use crate::manager::registered::RegistrationData;

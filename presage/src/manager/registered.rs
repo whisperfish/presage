@@ -36,12 +36,12 @@ use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
 use libsignal_service_hyper::push_service::HyperPushService;
-use log::{debug, error, info, trace, warn};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
+use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::serde::serde_profile_key;
@@ -355,7 +355,7 @@ impl<S: Store> Manager<S, Registered> {
 
         tokio::time::timeout(Duration::from_secs(60), async move {
             while let Some(msg) = messages.next().await {
-                log::trace!("got message while waiting for contacts sync: {msg:?}");
+                trace!(?msg, "got message while waiting for contacts sync:");
             }
         })
         .await?;
@@ -652,14 +652,16 @@ impl<S: Store> Manager<S, Registered> {
                                             let _ = state.store.clear_contacts();
                                             info!("saving contacts");
                                             for contact in contacts.filter_map(Result::ok) {
-                                                if let Err(e) = state.store.save_contact(&contact) {
-                                                    warn!("failed to save contacts: {e}");
+                                                if let Err(error) =
+                                                    state.store.save_contact(&contact)
+                                                {
+                                                    warn!(%error, "failed to save contacts");
                                                     break;
                                                 }
                                             }
                                         }
-                                        Err(e) => {
-                                            warn!("failed to retrieve contacts: {e}");
+                                        Err(error) => {
+                                            warn!(%error, "failed to retrieve contacts");
                                         }
                                     }
 
@@ -698,7 +700,8 @@ impl<S: Store> Manager<S, Registered> {
                                                             );
                                                         }
                                                         Err(error) => error!(
-                                                            "failed to download sticker pack: {error}"
+                                                            %error,
+                                                            "failed to download sticker pack"
                                                         ),
                                                     }
                                                 });
@@ -708,14 +711,13 @@ impl<S: Store> Manager<S, Registered> {
                                                     .store
                                                     .remove_sticker_pack(operation.pack_id())
                                                 {
-                                                    Ok(removed) => {
-                                                        debug!(
-                                                            "removed stick pack: present={removed}"
-                                                        )
+                                                    Ok(was_present) => {
+                                                        debug!(was_present, "removed stick pack")
                                                     }
                                                     Err(error) => {
                                                         error!(
-                                                            "failed to remove sticker pack: {error}"
+                                                            %error,
+                                                            "failed to remove sticker pack"
                                                         )
                                                     }
                                                 }
@@ -763,11 +765,11 @@ impl<S: Store> Manager<S, Registered> {
                                     )
                                     .await
                                     {
-                                        trace!("{group:?}");
+                                        trace!(?group, "upserted group");
                                     }
                                 }
 
-                                if let Err(e) = save_message(
+                                if let Err(error) = save_message(
                                     &mut state.store,
                                     &mut state.push_service,
                                     content.clone(),
@@ -775,16 +777,16 @@ impl<S: Store> Manager<S, Registered> {
                                 )
                                 .await
                                 {
-                                    error!("Error saving message to store: {}", e);
+                                    error!(%error, "error saving message to store");
                                 }
 
                                 return Some((content, state));
                             }
                             Ok(None) => {
-                                debug!("Empty envelope..., message will be skipped!")
+                                debug!("empty envelope..., message will be skipped!")
                             }
-                            Err(e) => {
-                                error!("Error opening envelope: {:?}, message will be skipped!", e);
+                            Err(error) => {
+                                error!(%error, "error opening envelope, message will be skipped!");
                             }
                         }
                     }
@@ -794,7 +796,9 @@ impl<S: Store> Manager<S, Registered> {
                             return None;
                         }
                     }
-                    Some(Err(e)) => error!("Error: {}", e),
+                    Some(Err(error)) => {
+                        error!(%error, "unexpected error in message receiving loop")
+                    }
                     None => return None,
                 }
             }
@@ -952,7 +956,7 @@ impl<S: Store> Manager<S, Registered> {
                 Ok(_) => false,
                 // Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
                 Err(MessageSenderError::NotFound { addr }) => {
-                    debug!("UUID {} not found, skipping sent message result", addr.uuid);
+                    debug!(uuid = %addr.uuid, "UUID not found, skipping sent message result");
                     false
                 }
                 // return first error if any
@@ -1028,8 +1032,8 @@ impl<S: Store> Manager<S, Registered> {
 
         // We need the whole file for the crypto to check out
         let mut ciphertext = Vec::new();
-        let len = attachment_stream.read_to_end(&mut ciphertext).await?;
-        trace!("downloaded encrypted attachment of {} bytes", len);
+        let size_bytes = attachment_stream.read_to_end(&mut ciphertext).await?;
+        trace!(size_bytes, "downloaded encrypted attachment");
 
         let digest = sha2::Sha256::digest(&ciphertext);
         if &digest[..] != expected_digest {
@@ -1144,7 +1148,7 @@ impl<S: Store> Manager<S, Registered> {
         recipient: &ServiceAddress,
         timestamp: u64,
     ) -> Result<(), Error<S::Error>> {
-        trace!("Resetting session for address: {}", recipient.uuid);
+        trace!(%recipient.uuid, "resetting session for address");
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
             ..Default::default()
@@ -1215,8 +1219,8 @@ impl<S: Store> Manager<S, Registered> {
             Thread::Contact(uuid) => {
                 let contact = match self.store.contact_by_id(uuid) {
                     Ok(contact) => contact,
-                    Err(e) => {
-                        info!("Error getting contact by id: {}, {:?}", e, uuid);
+                    Err(error) => {
+                        info!(%error, %uuid, "error getting contact by id");
                         None
                     }
                 };
@@ -1353,12 +1357,12 @@ async fn upsert_group<S: Store>(
 ) -> Result<Option<Group>, Error<S::Error>> {
     let upsert_group = match store.group(master_key_bytes.try_into()?) {
         Ok(Some(group)) => {
-            debug!("loaded group from local db {}", group.title);
+            debug!(group_name =% group.title, "loaded group from local db");
             group.revision < *revision
         }
         Ok(None) => true,
-        Err(e) => {
-            warn!("failed to retrieve group from local db {}", e);
+        Err(error) => {
+            warn!(%error, "failed to retrieve group from local db");
             true
         }
     };
@@ -1368,12 +1372,12 @@ async fn upsert_group<S: Store>(
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(e) = store.save_group(master_key_bytes.try_into()?, &group) {
-                    error!("failed to save group {master_key_bytes:?}: {e}",);
+                if let Err(error) = store.save_group(master_key_bytes.try_into()?, &group) {
+                    error!(%error, "failed to save group");
                 }
             }
-            Err(e) => {
-                warn!("failed to fetch encrypted group: {e}")
+            Err(error) => {
+                warn!(%error, "failed to fetch encrypted group")
             }
         }
     }
@@ -1394,16 +1398,13 @@ async fn download_sticker_pack<C: ContentsStore>(
 
     let mut ciphertext = Vec::new();
 
-    let len = push_service
+    let size_bytes = push_service
         .get_sticker_pack_manifest(&hex::encode(pack_id))
         .await?
         .read_to_end(&mut ciphertext)
         .await?;
 
-    trace!(
-        "downloaded encrypted sticker pack manifest of {} bytes",
-        len
-    );
+    trace!(size_bytes, "downloaded encrypted sticker pack manifest");
 
     decrypt_in_place(key, &mut ciphertext)?;
 
@@ -1415,10 +1416,10 @@ async fn download_sticker_pack<C: ContentsStore>(
     for sticker in &mut sticker_pack_manifest.stickers {
         match download_sticker(&mut store, &mut push_service, pack_id, pack_key, sticker.id).await {
             Ok(decrypted_sticker_bytes) => {
-                debug!("downloaded sticker {}", sticker.id);
+                debug!(id = sticker.id, "downloaded sticker");
                 sticker.bytes = Some(decrypted_sticker_bytes);
             }
-            Err(error) => error!("failed to download sticker {}: {error}", sticker.id),
+            Err(error) => error!(sticker.id, %error,"failed to download sticker"),
         }
     }
 
@@ -1449,9 +1450,9 @@ async fn download_sticker<C: ContentsStore>(
         .await?;
 
     let mut ciphertext = Vec::new();
-    let len = sticker_stream.read_to_end(&mut ciphertext).await?;
+    let size_bytes = sticker_stream.read_to_end(&mut ciphertext).await?;
 
-    trace!("downloaded encrypted sticker of {} bytes", len);
+    trace!(size_bytes, "downloaded encrypted sticker");
 
     decrypt_in_place(key, &mut ciphertext)?;
 
@@ -1495,7 +1496,7 @@ async fn save_message<S: Store>(
             if let Some(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
                 let sender_uuid = message.metadata.sender.uuid;
                 let profile_key = ProfileKey::create(profile_key_bytes);
-                debug!("inserting profile key for {sender_uuid}");
+                debug!(%sender_uuid, "inserting profile key for");
 
                 // Either:
                 // - insert a new contact with the profile information
@@ -1539,7 +1540,7 @@ async fn save_message<S: Store>(
                         verified: Verified::default(),
                     };
 
-                    info!("saved contact after seeing {sender_uuid} for the first time");
+                    info!(%sender_uuid, "saved contact on first sight");
                     store.save_contact(&contact)?;
                 }
 
@@ -1564,10 +1565,10 @@ async fn save_message<S: Store>(
                         existing_msg.metadata.sender.uuid = Uuid::nil();
                         existing_msg.body = NullMessage::default().into();
                         store.save_message(&thread, existing_msg)?;
-                        debug!("message in thread {thread} @ {ts} deleted");
+                        debug!(%thread, ts, "message in thread deleted");
                         None
                     } else {
-                        warn!("could not find message to delete in thread {thread} @ {ts}");
+                        warn!(%thread, ts, "could not find message to delete in thread");
                         None
                     }
                 }
@@ -1594,10 +1595,10 @@ async fn save_message<S: Store>(
                 existing_msg.metadata = message.metadata;
                 existing_msg.body = ContentBody::DataMessage(data_message);
                 // TODO: find a way to mark the message as edited (so that it's visible in a client)
-                trace!("message in thread {thread} @ {ts} edited");
+                trace!(%thread, ts, "message in thread edited");
                 Some(existing_msg)
             } else {
-                warn!("could not find edited message {thread} @ {ts}");
+                warn!(%thread, ts, "could not find edited message");
                 None
             }
         }
