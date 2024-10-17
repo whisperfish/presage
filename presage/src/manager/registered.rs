@@ -35,7 +35,6 @@ use libsignal_service::websocket::SignalWebSocket;
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
-use libsignal_service_hyper::push_service::HyperPushService;
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
@@ -49,7 +48,7 @@ use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Sto
 use crate::{AvatarBytes, Error, Manager};
 
 type ServiceCipher<S> = cipher::ServiceCipher<S, StdRng>;
-type MessageSender<S> = libsignal_service::prelude::MessageSender<HyperPushService, S, StdRng>;
+type MessageSender<S> = libsignal_service::prelude::MessageSender<S, StdRng>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegistrationType {
@@ -60,8 +59,8 @@ pub enum RegistrationType {
 /// Manager state when the client is registered and can send and receive messages from Signal
 #[derive(Clone)]
 pub struct Registered {
-    pub(crate) identified_push_service: OnceLock<HyperPushService>,
-    pub(crate) unidentified_push_service: OnceLock<HyperPushService>,
+    pub(crate) identified_push_service: OnceLock<PushService>,
+    pub(crate) unidentified_push_service: OnceLock<PushService>,
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_sender_certificate: Option<SenderCertificate>,
@@ -174,11 +173,11 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns a clone of a cached push service (with credentials).
     ///
     /// If no service is yet cached, it will create and cache one.
-    fn identified_push_service(&self) -> HyperPushService {
+    fn identified_push_service(&self) -> PushService {
         self.state
             .identified_push_service
             .get_or_init(|| {
-                HyperPushService::new(
+                PushService::new(
                     self.state.service_configuration(),
                     self.credentials(),
                     crate::USER_AGENT.to_string(),
@@ -190,11 +189,11 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns a clone of a cached push service (without credentials).
     ///
     /// If no service is yet cached, it will create and cache one.
-    fn unidentified_push_service(&self) -> HyperPushService {
+    fn unidentified_push_service(&self) -> PushService {
         self.state
             .unidentified_push_service
             .get_or_init(|| {
-                HyperPushService::new(
+                PushService::new(
                     self.state.service_configuration(),
                     None,
                     crate::USER_AGENT.to_string(),
@@ -590,9 +589,7 @@ impl<S: Store> Manager<S, Registered> {
         self.receive_messages_stream(mode).await
     }
 
-    fn groups_manager(
-        &self,
-    ) -> Result<GroupsManager<HyperPushService, InMemoryCredentialsCache>, Error<S::Error>> {
+    fn groups_manager(&self) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
         let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
@@ -613,11 +610,11 @@ impl<S: Store> Manager<S, Registered> {
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
         struct StreamState<Receiver, Store, AciStore> {
             encrypted_messages: Receiver,
-            message_receiver: MessageReceiver<HyperPushService>,
+            message_receiver: MessageReceiver,
             service_cipher: ServiceCipher<AciStore>,
-            push_service: HyperPushService,
+            push_service: PushService,
             store: Store,
-            groups_manager: GroupsManager<HyperPushService, InMemoryCredentialsCache>,
+            groups_manager: GroupsManager<InMemoryCredentialsCache>,
             mode: ReceivingMode,
         }
 
@@ -1265,6 +1262,7 @@ impl<S: Store> Manager<S, Registered> {
                 &store.aci_protocol_store(),
                 &store.pni_protocol_store(),
                 credentials,
+                None,
             )
             .await?;
         Ok(())
@@ -1351,7 +1349,7 @@ pub enum ReceivingMode {
 
 async fn upsert_group<S: Store>(
     store: &S,
-    groups_manager: &mut GroupsManager<HyperPushService, InMemoryCredentialsCache>,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<S::Error>> {
@@ -1388,7 +1386,7 @@ async fn upsert_group<S: Store>(
 /// Download and decrypt a sticker manifest
 async fn download_sticker_pack<C: ContentsStore>(
     mut store: C,
-    mut push_service: HyperPushService,
+    mut push_service: PushService,
     operation: &StickerPackOperation,
 ) -> Result<StickerPack, Error<C::ContentsStoreError>> {
     debug!("downloading sticker pack");
@@ -1438,7 +1436,7 @@ async fn download_sticker_pack<C: ContentsStore>(
 /// Downloads and decrypts a single sticker
 async fn download_sticker<C: ContentsStore>(
     _store: &mut C,
-    push_service: &mut HyperPushService,
+    push_service: &mut PushService,
     pack_id: &[u8],
     pack_key: &[u8],
     sticker_id: u32,
@@ -1464,7 +1462,7 @@ async fn download_sticker<C: ContentsStore>(
 /// This is required when storing outgoing messages, as in this case the appropriate storage place cannot be derived from the message itself.
 async fn save_message<S: Store>(
     store: &mut S,
-    push_service: &mut HyperPushService,
+    push_service: &mut PushService,
     message: Content,
     override_thread: Option<Thread>,
 ) -> Result<(), Error<S::Error>> {

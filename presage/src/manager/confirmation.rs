@@ -1,15 +1,14 @@
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::messagepipe::ServiceCredentials;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
+use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, PushService, RegistrationMethod, ServiceIds,
-    VerifyAccountResponse,
+    AccountAttributes, DeviceCapabilities, RegistrationMethod, ServiceIds, VerifyAccountResponse,
 };
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
-use libsignal_service_hyper::push_service::HyperPushService;
 use rand::RngCore;
 use tracing::trace;
 
@@ -61,7 +60,7 @@ impl<S: Store> Manager<S, Confirmation> {
         };
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut identified_push_service = HyperPushService::new(
+        let mut identified_push_service = PushService::new(
             service_configuration,
             Some(credentials),
             crate::USER_AGENT.to_string(),
