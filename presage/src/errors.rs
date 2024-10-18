@@ -1,9 +1,7 @@
 use std::borrow::Cow;
 
 use libsignal_service::prelude::MessageSenderError;
-use libsignal_service::{
-    models::ParseContactError, protocol::SignalProtocolError, ParseServiceAddressError,
-};
+use libsignal_service::{models::ParseContactError, protocol::SignalProtocolError};
 
 use crate::store::StoreError;
 
@@ -49,8 +47,6 @@ pub enum Error<S: std::error::Error> {
     MessagePipeNotStarted,
     #[error("receiving pipe was interrupted")]
     MessagePipeInterruptedError,
-    #[error(transparent)]
-    ParseServiceAddressError(#[from] ParseServiceAddressError),
     #[error("failed to parse contact information: {0}")]
     ParseContactError(#[from] ParseContactError),
     #[error("failed to decrypt attachment: {0}")]

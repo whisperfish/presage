@@ -11,6 +11,7 @@ use directories::ProjectDirs;
 use env_logger::Env;
 use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
+use mime_guess::mime::APPLICATION_OCTET_STREAM;
 use notify_rust::Notification;
 use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
@@ -21,6 +22,7 @@ use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::ServiceAddress;
 use presage::manager::ReceivingMode;
@@ -177,6 +179,8 @@ enum Cmd {
         uuid: Uuid,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
+        #[clap(long, help = "Path to a file to attach, can be repeated")]
+        attachment_filepath: Vec<PathBuf>,
     },
     #[clap(about = "Send a message to group")]
     SendToGroup {
@@ -611,11 +615,49 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             let mut manager = Manager::load_registered(config_store).await?;
             receive(&mut manager, notifications).await?;
         }
-        Cmd::Send { uuid, message } => {
+        Cmd::Send {
+            uuid,
+            message,
+            attachment_filepath,
+        } => {
             let mut manager = Manager::load_registered(config_store).await?;
+
+            let attachment_specs: Vec<_> = attachment_filepath
+                .into_iter()
+                .filter_map(|path| {
+                    let data = std::fs::read(&path).ok()?;
+                    Some((
+                        AttachmentSpec {
+                            content_type: mime_guess::from_path(&path)
+                                .first()
+                                .unwrap_or(APPLICATION_OCTET_STREAM)
+                                .to_string(),
+                            length: data.len(),
+                            file_name: path.file_name().map(|s| s.to_string_lossy().to_string()),
+                            preview: None,
+                            voice_note: None,
+                            borderless: None,
+                            width: None,
+                            height: None,
+                            caption: None,
+                            blur_hash: None,
+                        },
+                        data,
+                    ))
+                })
+                .collect();
+
+            let attachments: Result<Vec<_>, _> = manager
+                .upload_attachments(attachment_specs)
+                .await?
+                .into_iter()
+                .collect();
+
+            let attachments = attachments?;
 
             let data_message = DataMessage {
                 body: Some(message),
+                attachments,
                 ..Default::default()
             };
 
