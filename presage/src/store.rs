@@ -4,7 +4,7 @@ use std::{fmt, ops::RangeBounds, time::SystemTime};
 
 use libsignal_service::{
     content::{ContentBody, Metadata},
-    groups_v2::{Group, Timer},
+    groups_v2::Timer,
     models::Contact,
     pre_keys::PreKeysStore,
     prelude::{Content, ProfileKey, Uuid, UuidError},
@@ -20,7 +20,7 @@ use libsignal_service::{
 use serde::{Deserialize, Serialize};
 use tracing::{error, trace};
 
-use crate::{manager::RegistrationData, AvatarBytes};
+use crate::{manager::RegistrationData, model::groups::Group, AvatarBytes};
 
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send {}
@@ -111,8 +111,8 @@ pub trait ContentsStore: Send + Sync {
         let thread = Thread::Contact(sender);
         let verified_sync_message = Content {
             metadata: Metadata {
-                sender: ServiceAddress::new_aci(sender),
-                destination: ServiceAddress::new_aci(sender),
+                sender: ServiceAddress::from_aci(sender),
+                destination: ServiceAddress::from_aci(sender),
                 sender_device: 0,
                 server_guid: None,
                 timestamp: SystemTime::now()
@@ -206,7 +206,7 @@ pub trait ContentsStore: Send + Sync {
                 let group = self.group(*key)?;
                 if let Some(mut g) = group {
                     g.disappearing_messages_timer = Some(Timer { duration: timer });
-                    self.save_group(*key, &g)?;
+                    self.save_group(*key, g)?;
                 }
                 Ok(())
             }
@@ -234,7 +234,7 @@ pub trait ContentsStore: Send + Sync {
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
-        group: &Group,
+        group: impl Into<Group>,
     ) -> Result<(), Self::ContentsStoreError>;
 
     /// Get an iterator on all cached groups

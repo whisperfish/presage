@@ -34,7 +34,7 @@ impl TryFrom<AddressProto> for ServiceAddress {
             .uuid
             .and_then(|bytes| Some(Uuid::from_bytes(bytes.try_into().ok()?)))
             .ok_or_else(|| SledStoreError::NoUuid)
-            .map(Self::new_aci)
+            .map(Self::from_aci)
     }
 }
 
@@ -60,7 +60,7 @@ impl TryFrom<MetadataProto> for Metadata {
     fn try_from(metadata: MetadataProto) -> Result<Self, Self::Error> {
         Ok(Metadata {
             sender: metadata.address.ok_or(SledStoreError::NoUuid)?.try_into()?,
-            destination: ServiceAddress::new_aci(match metadata.destination_uuid.as_deref() {
+            destination: ServiceAddress::from_aci(match metadata.destination_uuid.as_deref() {
                 Some(value) => value.parse().map_err(|_| SledStoreError::NoUuid),
                 None => Ok(Uuid::nil()),
             }?),

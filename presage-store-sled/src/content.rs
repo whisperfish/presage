@@ -6,12 +6,12 @@ use std::{
 use presage::{
     libsignal_service::{
         content::Content,
-        groups_v2::Group,
         models::Contact,
         prelude::Uuid,
         zkgroup::{profiles::ProfileKey, GroupMasterKeyBytes},
         Profile,
     },
+    model::groups::Group,
     store::{ContentExt, ContentsStore, StickerPack, Thread},
     AvatarBytes,
 };
@@ -116,9 +116,9 @@ impl ContentsStore for SledStore {
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
-        group: &Group,
+        group: impl Into<Group>,
     ) -> Result<(), SledStoreError> {
-        self.insert(SLED_TREE_GROUPS, master_key, group)?;
+        self.insert(SLED_TREE_GROUPS, master_key, group.into())?;
         Ok(())
     }
 

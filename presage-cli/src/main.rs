@@ -17,13 +17,14 @@ use presage::libsignal_service::content::Reaction;
 use presage::libsignal_service::models::Contact;
 use presage::libsignal_service::pre_keys::PreKeysStore;
 use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
+use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::libsignal_service::ServiceAddress;
-use presage::libsignal_service::{groups_v2::Group, prelude::ProfileKey};
 use presage::manager::ReceivingMode;
+use presage::model::groups::Group;
 use presage::proto::receipt_message;
 use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
@@ -256,7 +257,7 @@ async fn send<S: Store>(
                 Recipient::Contact(uuid) => {
                     info!(recipient =% uuid, "sending message to contact");
                     manager
-                        .send_message(ServiceAddress::new_aci(uuid), content_body, timestamp)
+                        .send_message(ServiceAddress::from_aci(uuid), content_body, timestamp)
                         .await
                         .expect("failed to send message");
                 }
