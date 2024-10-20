@@ -16,9 +16,6 @@ concurrency:
 
 jobs:
   build_and_test:
-    strategy:
-      matrix:
-        cargo_flags: ["--all-features", "--no-default-features"]
     name: cargo ${{ matrix.cargo_flags }}
     runs-on: ubuntu-latest
     env:
@@ -41,13 +38,13 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo build --all-targets ${{ matrix.cargo_flags }}
+        run: cargo build --all-targets
 
       - name: Test
-        run: cargo test --all-targets ${{ matrix.cargo_flags }}
+        run: cargo test --all-targets
 
       - name: Test docs
-        run: cargo test --doc ${{ matrix.cargo_flags }}
+        run: cargo test --doc
 
   rustfmt:
     name: rustfmt
