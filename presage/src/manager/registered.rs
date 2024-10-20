@@ -8,7 +8,7 @@ use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
 use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
-use libsignal_service::groups_v2::{decrypt_group, Group, GroupsManager, InMemoryCredentialsCache};
+use libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
 use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
 use libsignal_service::models::Contact;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
@@ -45,7 +45,7 @@ use url::Url;
 
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
-use crate::{AvatarBytes, Error, Manager};
+use crate::{model::groups::Group, AvatarBytes, Error, Manager};
 
 type ServiceCipher<S> = cipher::ServiceCipher<S, StdRng>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<S, StdRng>;
@@ -381,7 +381,7 @@ impl<S: Store> Manager<S, Registered> {
             .as_millis() as u64;
 
         self.send_message(
-            ServiceAddress::new_aci(self.state.data.service_ids.aci),
+            ServiceAddress::from_aci(self.state.data.service_ids.aci),
             sync_message,
             timestamp,
         )
@@ -470,7 +470,7 @@ impl<S: Store> Manager<S, Registered> {
             AccountManager::new(self.identified_push_service(), Some(profile_key));
 
         let profile = account_manager
-            .retrieve_profile(ServiceAddress::new_aci(uuid))
+            .retrieve_profile(ServiceAddress::from_aci(uuid))
             .await?;
 
         let _ = self.store.save_profile(uuid, profile_key, profile.clone());
@@ -859,7 +859,7 @@ impl<S: Store> Manager<S, Registered> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::new_aci(self.state.data.service_ids.aci),
+                sender: ServiceAddress::from_aci(self.state.data.service_ids.aci),
                 sender_device: self.state.device_id(),
                 destination: recipient,
                 server_guid: None,
@@ -935,7 +935,7 @@ impl<S: Store> Manager<S, Registered> {
                     });
             let include_pni_signature = true;
             recipients.push((
-                ServiceAddress::new_aci(member.uuid),
+                ServiceAddress::from_aci(member.uuid),
                 unidentified_access,
                 include_pni_signature,
             ));
@@ -963,8 +963,8 @@ impl<S: Store> Manager<S, Registered> {
 
         let content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::new_aci(self.state.data.service_ids.aci),
-                destination: ServiceAddress::new_aci(self.state.data.service_ids.aci),
+                sender: ServiceAddress::from_aci(self.state.data.service_ids.aci),
+                destination: ServiceAddress::from_aci(self.state.data.service_ids.aci),
                 sender_device: self.state.device_id(),
                 server_guid: None,
                 timestamp,
@@ -1098,7 +1098,7 @@ impl<S: Store> Manager<S, Registered> {
             .as_millis() as u64;
 
         self.send_message(
-            ServiceAddress::new_aci(self.state.data.aci()),
+            ServiceAddress::from_aci(self.state.data.aci()),
             sync_message,
             timestamp,
         )
@@ -1129,7 +1129,7 @@ impl<S: Store> Manager<S, Registered> {
             .as_millis() as u64;
 
         self.send_message(
-            ServiceAddress::new_aci(self.state.data.aci()),
+            ServiceAddress::from_aci(self.state.data.aci()),
             sync_message,
             timestamp,
         )
@@ -1187,8 +1187,8 @@ impl<S: Store> Manager<S, Registered> {
             self.new_service_cipher()?,
             self.rng.clone(),
             aci_protocol_store,
-            ServiceAddress::new_aci(self.state.data.service_ids.aci),
-            ServiceAddress::new_pni(self.state.data.service_ids.pni),
+            ServiceAddress::from_aci(self.state.data.service_ids.aci),
+            ServiceAddress::from_pni(self.state.data.service_ids.pni),
             aci_identity_keypair,
             Some(pni_identity_keypair),
             self.state.device_id().into(),
@@ -1370,7 +1370,7 @@ async fn upsert_group<S: Store>(
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(error) = store.save_group(master_key_bytes.try_into()?, &group) {
+                if let Err(error) = store.save_group(master_key_bytes.try_into()?, group) {
                     error!(%error, "failed to save group");
                 }
             }
@@ -1507,7 +1507,7 @@ async fn save_message<S: Store>(
                 {
                     let encrypted_profile = push_service
                         .retrieve_profile_by_id(
-                            ServiceAddress::new_aci(sender_uuid),
+                            ServiceAddress::from_aci(sender_uuid),
                             Some(profile_key),
                         )
                         .await?;
