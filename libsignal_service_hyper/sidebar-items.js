@@ -1,1 +1,0 @@
-window.SIDEBAR_ITEMS = {"mod":["prelude","push_service","websocket"]};

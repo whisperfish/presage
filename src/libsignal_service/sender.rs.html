@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/f99ff83/libsignal-service/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-c5d6553a23f1e5a6.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.81.0 (eeb90cda1 2024-09-04)" data-channel="1.81.0" data-search-js="search-d234aafac6c221dd.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-d2fab2bf619172d3.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-df360f571f6edeae.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/72f89cd/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1015,6 +1015,54 @@
 <a href="#1015" id="1015">1015</a>
 <a href="#1016" id="1016">1016</a>
 <a href="#1017" id="1017">1017</a>
+<a href="#1018" id="1018">1018</a>
+<a href="#1019" id="1019">1019</a>
+<a href="#1020" id="1020">1020</a>
+<a href="#1021" id="1021">1021</a>
+<a href="#1022" id="1022">1022</a>
+<a href="#1023" id="1023">1023</a>
+<a href="#1024" id="1024">1024</a>
+<a href="#1025" id="1025">1025</a>
+<a href="#1026" id="1026">1026</a>
+<a href="#1027" id="1027">1027</a>
+<a href="#1028" id="1028">1028</a>
+<a href="#1029" id="1029">1029</a>
+<a href="#1030" id="1030">1030</a>
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
+<a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
+<a href="#1039" id="1039">1039</a>
+<a href="#1040" id="1040">1040</a>
+<a href="#1041" id="1041">1041</a>
+<a href="#1042" id="1042">1042</a>
+<a href="#1043" id="1043">1043</a>
+<a href="#1044" id="1044">1044</a>
+<a href="#1045" id="1045">1045</a>
+<a href="#1046" id="1046">1046</a>
+<a href="#1047" id="1047">1047</a>
+<a href="#1048" id="1048">1048</a>
+<a href="#1049" id="1049">1049</a>
+<a href="#1050" id="1050">1050</a>
+<a href="#1051" id="1051">1051</a>
+<a href="#1052" id="1052">1052</a>
+<a href="#1053" id="1053">1053</a>
+<a href="#1054" id="1054">1054</a>
+<a href="#1055" id="1055">1055</a>
+<a href="#1056" id="1056">1056</a>
+<a href="#1057" id="1057">1057</a>
+<a href="#1058" id="1058">1058</a>
+<a href="#1059" id="1059">1059</a>
+<a href="#1060" id="1060">1060</a>
+<a href="#1061" id="1061">1061</a>
+<a href="#1062" id="1062">1062</a>
+<a href="#1063" id="1063">1063</a>
+<a href="#1064" id="1064">1064</a>
+<a href="#1065" id="1065">1065</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
@@ -1085,7 +1133,7 @@
 <span class="doccomment">/// Attachment specification to be used for uploading.
 ///
 /// Loose equivalent of Java's `SignalServiceAttachmentStream`.
-</span><span class="attr">#[derive(Debug)]
+</span><span class="attr">#[derive(Debug, Default)]
 </span><span class="kw">pub struct </span>AttachmentSpec {
     <span class="kw">pub </span>content_type: String,
     <span class="kw">pub </span>length: usize,
@@ -1099,12 +1147,11 @@
     <span class="kw">pub </span>blur_hash: <span class="prelude-ty">Option</span>&lt;String&gt;,
 }
 
-<span class="doccomment">/// Equivalent of Java's `SignalServiceMessageSender`.
-</span><span class="attr">#[derive(Clone)]
-</span><span class="kw">pub struct </span>MessageSender&lt;Service, S, R&gt; {
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub struct </span>MessageSender&lt;S, R&gt; {
     identified_ws: SignalWebSocket,
     unidentified_ws: SignalWebSocket,
-    service: Service,
+    service: PushService,
     cipher: ServiceCipher&lt;S, R&gt;,
     csprng: R,
     protocol_store: S,
@@ -1126,12 +1173,17 @@
 
 <span class="attr">#[derive(thiserror::Error, Debug)]
 </span><span class="kw">pub enum </span>MessageSenderError {
-    <span class="attr">#[error(<span class="string">"{0}"</span>)]
+    <span class="attr">#[error(<span class="string">"service error: {0}"</span>)]
     </span>ServiceError(<span class="attr">#[from] </span>ServiceError),
+
     <span class="attr">#[error(<span class="string">"protocol error: {0}"</span>)]
     </span>ProtocolError(<span class="attr">#[from] </span>SignalProtocolError),
+
     <span class="attr">#[error(<span class="string">"Failed to upload attachment {0}"</span>)]
     </span>AttachmentUploadError(<span class="attr">#[from] </span>AttachmentUploadError),
+
+    <span class="attr">#[error(<span class="string">"primary device can't send sync message {0:?}"</span>)]
+    </span>SendSyncMessageError(sync_message::request::Type),
 
     <span class="attr">#[error(<span class="string">"Untrusted identity key with {address:?}"</span>)]
     </span>UntrustedIdentity { address: ServiceAddress },
@@ -1154,17 +1206,16 @@
     Group(GroupV2Id),
 }
 
-<span class="kw">impl</span>&lt;Service, S, R&gt; MessageSender&lt;Service, S, R&gt;
+<span class="kw">impl</span>&lt;S, R&gt; MessageSender&lt;S, R&gt;
 <span class="kw">where
-    </span>Service: PushService,
-    S: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone,
+    </span>S: ProtocolStore + SenderKeyStore + SessionStoreExt + Sync + Clone,
     R: Rng + CryptoRng,
 {
     <span class="attr">#[allow(clippy::too_many_arguments)]
     </span><span class="kw">pub fn </span>new(
         identified_ws: SignalWebSocket,
         unidentified_ws: SignalWebSocket,
-        service: Service,
+        service: PushService,
         cipher: ServiceCipher&lt;S, R&gt;,
         csprng: R,
         protocol_store: S,
@@ -1236,13 +1287,14 @@
 
         <span class="comment">// Request upload attributes
         </span><span class="kw">let </span>attrs = <span class="self">self
-            </span>.identified_ws
+            </span>.service
             .get_attachment_v2_upload_attributes()
             .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">"requesting upload attributes"</span>))
             .<span class="kw">await</span><span class="question-mark">?</span>;
+
         <span class="kw">let </span>(id, digest) = <span class="self">self
             </span>.service
-            .upload_attachment(<span class="kw-2">&amp;</span>attrs, <span class="kw-2">&amp;mut </span>std::io::Cursor::new(<span class="kw-2">&amp;</span>contents))
+            .upload_attachment(attrs, <span class="kw-2">&amp;mut </span>std::io::Cursor::new(<span class="kw-2">&amp;</span>contents))
             .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">"Uploading attachment"</span>))
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1332,8 +1384,8 @@
 
     <span class="doccomment">/// Send a message `content` to a single `recipient`.
     </span><span class="attr">#[tracing::instrument(
-        skip(<span class="self">self</span>, unidentified_access, message),
-        fields(unidentified_access = unidentified_access.is_some()),
+        skip(<span class="self">self</span>, unidentified_access, message, recipient),
+        fields(unidentified_access = unidentified_access.is_some(), recipient = %recipient),
     )]
     </span><span class="kw">pub async fn </span>send_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1513,8 +1565,8 @@
     <span class="doccomment">/// Send a message (`content`) to an address (`recipient`).
     </span><span class="attr">#[tracing::instrument(
         level = <span class="string">"trace"</span>,
-        skip(<span class="self">self</span>, unidentified_access, content_body),
-        fields(unidentified_access = unidentified_access.is_some()),
+        skip(<span class="self">self</span>, unidentified_access, content_body, recipient),
+        fields(unidentified_access = unidentified_access.is_some(), recipient = %recipient),
     )]
     </span><span class="kw">async fn </span>try_send_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1663,8 +1715,8 @@
 
     <span class="doccomment">/// Upload contact details to the CDN and send a sync message
     </span><span class="attr">#[tracing::instrument(
-        skip(<span class="self">self</span>, unidentified_access, contacts),
-        fields(unidentified_access = unidentified_access.is_some()),
+        skip(<span class="self">self</span>, unidentified_access, contacts, recipient),
+        fields(unidentified_access = unidentified_access.is_some(), recipient = %recipient),
     )]
     </span><span class="kw">pub async fn </span>send_contact_details&lt;Contacts&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1704,7 +1756,7 @@
     }
 
     <span class="doccomment">/// Send `Configuration` synchronization message
-    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>))]
+    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, recipient), fields(recipient = %recipient))]
     </span><span class="kw">pub async fn </span>send_configuration(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
@@ -1723,7 +1775,7 @@
     }
 
     <span class="doccomment">/// Send `MessageRequestResponse` synchronization message with either a recipient ACI or a GroupV2 ID
-    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>))]
+    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>, recipient), fields(recipient = %recipient))]
     </span><span class="kw">pub async fn </span>send_message_request_response(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         recipient: <span class="kw-2">&amp;</span>ServiceAddress,
@@ -1769,6 +1821,50 @@
         <span class="prelude-val">Ok</span>(())
     }
 
+    <span class="doccomment">/// Send `Keys` synchronization message
+    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>))]
+    </span><span class="kw">pub async fn </span>send_keys(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        keys: sync_message::Keys,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt; {
+        <span class="kw">let </span>msg = SyncMessage {
+            keys: <span class="prelude-val">Some</span>(keys),
+            ..SyncMessage::with_padding()
+        };
+
+        <span class="kw">let </span>ts = Utc::now().timestamp_millis() <span class="kw">as </span>u64;
+        <span class="self">self</span>.send_message(recipient, <span class="prelude-val">None</span>, msg, ts, <span class="bool-val">false</span>, <span class="bool-val">false</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="doccomment">/// Send a `Keys` request message
+    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>))]
+    </span><span class="kw">pub async fn </span>send_sync_message_request(
+        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        request_type: sync_message::request::Type,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt; {
+        <span class="kw">if </span><span class="self">self</span>.device_id == DEFAULT_DEVICE_ID.into() {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::SendSyncMessageError(request_type));
+        }
+
+        <span class="kw">let </span>msg = SyncMessage {
+            request: <span class="prelude-val">Some</span>(sync_message::Request {
+                r#type: <span class="prelude-val">Some</span>(request_type.into()),
+            }),
+            ..SyncMessage::with_padding()
+        };
+
+        <span class="kw">let </span>ts = Utc::now().timestamp_millis() <span class="kw">as </span>u64;
+        <span class="self">self</span>.send_message(recipient, <span class="prelude-val">None</span>, msg, ts, <span class="bool-val">false</span>, <span class="bool-val">false</span>)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="attr">#[tracing::instrument(level = <span class="string">"trace"</span>, skip(<span class="self">self</span>))]
     </span><span class="kw">fn </span>create_pni_signature(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1789,8 +1885,8 @@
     <span class="comment">// Equivalent with `getEncryptedMessages`
     </span><span class="attr">#[tracing::instrument(
         level = <span class="string">"trace"</span>,
-        skip(<span class="self">self</span>, unidentified_access, content),
-        fields(unidentified_access = unidentified_access.is_some()),
+        skip(<span class="self">self</span>, unidentified_access, content, recipient),
+        fields(unidentified_access = unidentified_access.is_some(), recipient = %recipient),
     )]
     </span><span class="kw">async fn </span>create_encrypted_messages(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
@@ -1899,8 +1995,8 @@
     /// When no session with the recipient exists, we need to create one.
     </span><span class="attr">#[tracing::instrument(
         level = <span class="string">"trace"</span>,
-        skip(<span class="self">self</span>, unidentified_access, content),
-        fields(unidentified_access = unidentified_access.is_some()),
+        skip(<span class="self">self</span>, unidentified_access, content, recipient),
+        fields(unidentified_access = unidentified_access.is_some(), recipient = %recipient),
     )]
     </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_encrypted_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,

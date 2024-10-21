@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Incoming","WebSocketStreamItem"],"struct":["MessagePipe","PanicingWebSocketService"],"trait":["WebSocketService"]};
+window.SIDEBAR_ITEMS = {"enum":["Incoming"],"struct":["MessagePipe"]};
