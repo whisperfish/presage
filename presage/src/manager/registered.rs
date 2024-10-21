@@ -20,7 +20,7 @@ use libsignal_service::proto::{
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate};
+use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate, ServiceId};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIdType,
@@ -608,10 +608,11 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        struct StreamState<Receiver, Store, AciStore> {
+        struct StreamState<Receiver, Store, AciStore, PniStore> {
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
-            service_cipher: ServiceCipher<AciStore>,
+            service_cipher_aci: ServiceCipher<AciStore>,
+            service_cipher_pni: ServiceCipher<PniStore>,
             push_service: PushService,
             store: Store,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
@@ -623,7 +624,8 @@ impl<S: Store> Manager<S, Registered> {
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service.clone()),
-            service_cipher: self.new_service_cipher()?,
+            service_cipher_aci: self.new_service_cipher_aci(),
+            service_cipher_pni: self.new_service_cipher_pni(),
             push_service,
             store: self.store.clone(),
             groups_manager: self.groups_manager()?,
@@ -633,14 +635,29 @@ impl<S: Store> Manager<S, Registered> {
         debug!("starting to consume incoming message stream");
 
         Ok(futures::stream::unfold(init, |mut state| async move {
-            let semaphore = Semaphore::new(1);
+            let aci_semaphore = Semaphore::new(1);
+            let pni_semaphore = Semaphore::new(1);
             loop {
                 match state.encrypted_messages.next().await {
                     Some(Ok(Incoming::Envelope(envelope))) => {
                         let envelope = {
                             // the permit is released at the end of the block (impl Drop)
-                            let _permit = semaphore.acquire().await.expect("closed semaphore");
-                            state.service_cipher.open_envelope(envelope).await
+                            match ServiceId::parse_from_service_id_string(
+                                envelope.destination_service_id(),
+                            ) {
+                                Some(ServiceId::Aci(_)) => {
+                                    let _permit =
+                                        aci_semaphore.acquire().await.expect("closed semaphore");
+                                    state.service_cipher_aci.open_envelope(envelope).await
+                                }
+                                Some(ServiceId::Pni(_)) => {
+                                    let _permit =
+                                        pni_semaphore.acquire().await.expect("closed semaphore");
+                                    state.service_cipher_pni.open_envelope(envelope).await
+                                }
+
+                                None => todo!(),
+                            }
                         };
                         match envelope {
                             Ok(Some(content)) => {
@@ -1190,7 +1207,7 @@ impl<S: Store> Manager<S, Registered> {
             identified_websocket,
             unidentified_websocket,
             self.identified_push_service(),
-            self.new_service_cipher()?,
+            self.new_service_cipher_aci(),
             self.rng.clone(),
             aci_protocol_store,
             ServiceAddress::from_aci(self.state.data.service_ids.aci),
@@ -1201,9 +1218,8 @@ impl<S: Store> Manager<S, Registered> {
         ))
     }
 
-    /// Creates a new service cipher.
-    fn new_service_cipher(&self) -> Result<ServiceCipher<S::AciStore>, Error<S::Error>> {
-        let service_cipher = ServiceCipher::new(
+    fn new_service_cipher_aci(&self) -> ServiceCipher<S::AciStore> {
+        ServiceCipher::new(
             self.store.aci_protocol_store(),
             self.rng.clone(),
             self.state
@@ -1211,9 +1227,19 @@ impl<S: Store> Manager<S, Registered> {
                 .unidentified_sender_trust_root,
             self.state.data.service_ids.aci,
             self.state.device_id(),
-        );
+        )
+    }
 
-        Ok(service_cipher)
+    fn new_service_cipher_pni(&self) -> ServiceCipher<S::PniStore> {
+        ServiceCipher::new(
+            self.store.pni_protocol_store(),
+            self.rng.clone(),
+            self.state
+                .service_configuration()
+                .unidentified_sender_trust_root,
+            self.state.data.service_ids.pni,
+            self.state.device_id(),
+        )
     }
 
     /// Returns the title of a thread (contact or group).
