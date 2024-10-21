@@ -39,7 +39,7 @@ use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, Semaphore};
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
@@ -633,10 +633,16 @@ impl<S: Store> Manager<S, Registered> {
         debug!("starting to consume incoming message stream");
 
         Ok(futures::stream::unfold(init, |mut state| async move {
+            let semaphore = Semaphore::new(1);
             loop {
                 match state.encrypted_messages.next().await {
                     Some(Ok(Incoming::Envelope(envelope))) => {
-                        match state.service_cipher.open_envelope(envelope).await {
+                        let envelope = {
+                            // the permit is released at the end of the block (impl Drop)
+                            let _permit = semaphore.acquire().await.expect("closed semaphore");
+                            state.service_cipher.open_envelope(envelope).await
+                        };
+                        match envelope {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                 if let ContentBody::SynchronizeMessage(SyncMessage {
