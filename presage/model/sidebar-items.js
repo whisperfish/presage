@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["ServiceIdType"],"mod":["groups"]};
+window.SIDEBAR_ITEMS = {"enum":["ServiceIdType"],"mod":["contacts","groups"]};

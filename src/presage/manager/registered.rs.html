@@ -1673,7 +1673,6 @@
 <span class="kw">use </span>libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
 <span class="kw">use </span>libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
 <span class="kw">use </span>libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
-<span class="kw">use </span>libsignal_service::models::Contact;
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
 <span class="kw">use </span>libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
 <span class="kw">use </span>libsignal_service::profile_cipher::ProfileCipher;
@@ -1706,6 +1705,7 @@
 <span class="kw">use </span>tracing::{debug, error, info, trace, warn};
 <span class="kw">use </span>url::Url;
 
+<span class="kw">use </span><span class="kw">crate</span>::model::contacts::Contact;
 <span class="kw">use </span><span class="kw">crate</span>::serde::serde_profile_key;
 <span class="kw">use </span><span class="kw">crate</span>::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 <span class="kw">use crate</span>::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -2328,7 +2328,7 @@
                                             <span class="macro">info!</span>(<span class="string">"saving contacts"</span>);
                                             <span class="kw">for </span>contact <span class="kw">in </span>contacts.filter_map(Result::ok) {
                                                 <span class="kw">if let </span><span class="prelude-val">Err</span>(error) =
-                                                    state.store.save_contact(<span class="kw-2">&amp;</span>contact)
+                                                    state.store.save_contact(<span class="kw-2">&amp;</span>contact.into())
                                                 {
                                                     <span class="macro">warn!</span>(%error, <span class="string">"failed to save contacts"</span>);
                                                     <span class="kw">break</span>;

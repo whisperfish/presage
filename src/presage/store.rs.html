@@ -528,6 +528,9 @@
 <a href="#528" id="528">528</a>
 <a href="#529" id="529">529</a>
 <a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, ops::RangeBounds, time::SystemTime};
@@ -535,7 +538,6 @@
 <span class="kw">use </span>libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
-    models::Contact,
     pre_keys::PreKeysStore,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
@@ -550,7 +552,11 @@
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>tracing::{error, trace};
 
-<span class="kw">use crate</span>::{manager::RegistrationData, model::groups::Group, AvatarBytes};
+<span class="kw">use crate</span>::{
+    manager::RegistrationData,
+    model::{contacts::Contact, groups::Group},
+    AvatarBytes,
+};
 
 <span class="doccomment">/// An error trait implemented by store error types
 </span><span class="kw">pub trait </span>StoreError: std::error::Error + Sync + Send {}
