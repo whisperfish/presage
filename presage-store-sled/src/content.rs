@@ -6,12 +6,11 @@ use std::{
 use presage::{
     libsignal_service::{
         content::Content,
-        models::Contact,
         prelude::Uuid,
         zkgroup::{profiles::ProfileKey, GroupMasterKeyBytes},
         Profile,
     },
-    model::groups::Group,
+    model::{contacts::Contact, groups::Group},
     store::{ContentExt, ContentsStore, StickerPack, Thread},
     AvatarBytes,
 };

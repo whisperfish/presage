@@ -10,7 +10,6 @@ use libsignal_service::configuration::{ServiceConfiguration, SignalServers, Sign
 use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
 use libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
 use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
-use libsignal_service::models::Contact;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
 use libsignal_service::profile_cipher::ProfileCipher;
@@ -43,6 +42,7 @@ use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
+use crate::model::contacts::Contact;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -665,7 +665,7 @@ impl<S: Store> Manager<S, Registered> {
                                             info!("saving contacts");
                                             for contact in contacts.filter_map(Result::ok) {
                                                 if let Err(error) =
-                                                    state.store.save_contact(&contact)
+                                                    state.store.save_contact(&contact.into())
                                                 {
                                                     warn!(%error, "failed to save contacts");
                                                     break;

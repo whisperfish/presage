@@ -25,6 +25,7 @@ tracing = "0.1"
 url = "2.5"
 serde_with = "3.11.0"
 derivative = "2.2.0"
+bytes = { version = "1.7.2", features = ["serde"] }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
