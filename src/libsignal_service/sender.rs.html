@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/72f89cd/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/158757c/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1063,6 +1063,21 @@
 <a href="#1063" id="1063">1063</a>
 <a href="#1064" id="1064">1064</a>
 <a href="#1065" id="1065">1065</a>
+<a href="#1066" id="1066">1066</a>
+<a href="#1067" id="1067">1067</a>
+<a href="#1068" id="1068">1068</a>
+<a href="#1069" id="1069">1069</a>
+<a href="#1070" id="1070">1070</a>
+<a href="#1071" id="1071">1071</a>
+<a href="#1072" id="1072">1072</a>
+<a href="#1073" id="1073">1073</a>
+<a href="#1074" id="1074">1074</a>
+<a href="#1075" id="1075">1075</a>
+<a href="#1076" id="1076">1076</a>
+<a href="#1077" id="1077">1077</a>
+<a href="#1078" id="1078">1078</a>
+<a href="#1079" id="1079">1079</a>
+<a href="#1080" id="1080">1080</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
@@ -1286,16 +1301,29 @@
         });
 
         <span class="comment">// Request upload attributes
-        </span><span class="kw">let </span>attrs = <span class="self">self
+        // TODO: we can actually store the upload spec to be able to resume the upload later
+        // if it fails or stalls (= we should at least split the API calls so clients can decide what to do)
+        </span><span class="kw">let </span>attachment_upload_form = <span class="self">self
             </span>.service
-            .get_attachment_v2_upload_attributes()
+            .get_attachment_v4_upload_attributes()
             .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">"requesting upload attributes"</span>))
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span>(id, digest) = <span class="self">self
+        <span class="kw">let </span>resumable_upload_url = <span class="self">self
             </span>.service
-            .upload_attachment(attrs, <span class="kw-2">&amp;mut </span>std::io::Cursor::new(<span class="kw-2">&amp;</span>contents))
-            .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">"Uploading attachment"</span>))
+            .get_attachment_resumable_upload_url(<span class="kw-2">&amp;</span>attachment_upload_form)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>attachment_digest = <span class="self">self
+            </span>.service
+            .upload_attachment_v4(
+                attachment_upload_form.cdn,
+                <span class="kw-2">&amp;</span>resumable_upload_url,
+                <span class="kw-2">&amp;</span>spec.content_type,
+                contents.len() <span class="kw">as </span>u64,
+                attachment_upload_form.headers,
+                <span class="kw-2">&amp;mut </span>std::io::Cursor::new(<span class="kw-2">&amp;</span>contents),
+            )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(AttachmentPointer {
@@ -1303,7 +1331,7 @@
             key: <span class="prelude-val">Some</span>(key.to_vec()),
             size: <span class="prelude-val">Some</span>(len <span class="kw">as </span>u32),
             <span class="comment">// thumbnail: Option&lt;Vec&lt;u8&gt;&gt;,
-            </span>digest: <span class="prelude-val">Some</span>(digest),
+            </span>digest: <span class="prelude-val">Some</span>(attachment_digest.digest),
             file_name: spec.file_name,
             flags: <span class="prelude-val">Some</span>(
                 <span class="kw">if </span>spec.voice_note == <span class="prelude-val">Some</span>(<span class="bool-val">true</span>) {
@@ -1326,8 +1354,10 @@
                     .expect(<span class="string">"unix epoch in the past"</span>)
                     .as_millis() <span class="kw">as </span>u64,
             ),
-            cdn_number: <span class="prelude-val">Some</span>(<span class="number">0</span>),
-            attachment_identifier: <span class="prelude-val">Some</span>(AttachmentIdentifier::CdnId(id)),
+            cdn_number: <span class="prelude-val">Some</span>(attachment_upload_form.cdn),
+            attachment_identifier: <span class="prelude-val">Some</span>(AttachmentIdentifier::CdnKey(
+                attachment_upload_form.key,
+            )),
             ..Default::default()
         })
     }
