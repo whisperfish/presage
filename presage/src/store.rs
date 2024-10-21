@@ -489,7 +489,7 @@ pub struct StickerPack {
     pub manifest: StickerPackManifest,
 }
 
-/// equivalent to [Pack](crate::prelude::proto::Pack)
+/// equivalent to [Pack](crate::proto::Pack)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickerPackManifest {
     pub title: String,
@@ -509,7 +509,7 @@ impl From<libsignal_service::proto::Pack> for StickerPackManifest {
     }
 }
 
-/// equivalent to [Sticker](crate::prelude::proto::pack::Sticker)
+/// equivalent to [Sticker](crate::proto::pack::Sticker)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sticker {
     pub id: u32,
