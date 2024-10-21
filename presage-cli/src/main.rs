@@ -179,7 +179,7 @@ enum Cmd {
         uuid: Uuid,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
-        #[clap(long, help = "Path to a file to attach, can be repeated")]
+        #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
         attachment_filepath: Vec<PathBuf>,
     },
     #[clap(about = "Send a message to group")]
@@ -188,6 +188,8 @@ enum Cmd {
         message: String,
         #[clap(long, short = 'k', help = "Master Key of the V2 group (hex string)", value_parser = parse_group_master_key)]
         master_key: GroupMasterKeyBytes,
+        #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
+        attachment_filepath: Vec<PathBuf>,
     },
     RequestContactsSync,
     #[clap(about = "Print various statistics useful for debugging")]
@@ -621,40 +623,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             attachment_filepath,
         } => {
             let mut manager = Manager::load_registered(config_store).await?;
-
-            let attachment_specs: Vec<_> = attachment_filepath
-                .into_iter()
-                .filter_map(|path| {
-                    let data = std::fs::read(&path).ok()?;
-                    Some((
-                        AttachmentSpec {
-                            content_type: mime_guess::from_path(&path)
-                                .first()
-                                .unwrap_or(APPLICATION_OCTET_STREAM)
-                                .to_string(),
-                            length: data.len(),
-                            file_name: path.file_name().map(|s| s.to_string_lossy().to_string()),
-                            preview: None,
-                            voice_note: None,
-                            borderless: None,
-                            width: None,
-                            height: None,
-                            caption: None,
-                            blur_hash: None,
-                        },
-                        data,
-                    ))
-                })
-                .collect();
-
-            let attachments: Result<Vec<_>, _> = manager
-                .upload_attachments(attachment_specs)
-                .await?
-                .into_iter()
-                .collect();
-
-            let attachments = attachments?;
-
+            let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let data_message = DataMessage {
                 body: Some(message),
                 attachments,
@@ -666,11 +635,13 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         Cmd::SendToGroup {
             message,
             master_key,
+            attachment_filepath,
         } => {
             let mut manager = Manager::load_registered(config_store).await?;
-
+            let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let data_message = DataMessage {
                 body: Some(message),
+                attachments,
                 group_v2: Some(GroupContextV2 {
                     master_key: Some(master_key.to_vec()),
                     revision: Some(0),
@@ -871,6 +842,45 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+async fn upload_attachments<S: Store>(
+    attachment_filepath: Vec<PathBuf>,
+    manager: &Manager<S, Registered>,
+) -> Result<Vec<presage::proto::AttachmentPointer>, anyhow::Error> {
+    let attachment_specs: Vec<_> = attachment_filepath
+        .into_iter()
+        .filter_map(|path| {
+            let data = std::fs::read(&path).ok()?;
+            Some((
+                AttachmentSpec {
+                    content_type: mime_guess::from_path(&path)
+                        .first()
+                        .unwrap_or(APPLICATION_OCTET_STREAM)
+                        .to_string(),
+                    length: data.len(),
+                    file_name: path.file_name().map(|s| s.to_string_lossy().to_string()),
+                    preview: None,
+                    voice_note: None,
+                    borderless: None,
+                    width: None,
+                    height: None,
+                    caption: None,
+                    blur_hash: None,
+                },
+                data,
+            ))
+        })
+        .collect();
+
+    let attachments: Result<Vec<_>, _> = manager
+        .upload_attachments(attachment_specs)
+        .await?
+        .into_iter()
+        .collect();
+
+    let attachments = attachments?;
+    Ok(attachments)
 }
 
 fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
