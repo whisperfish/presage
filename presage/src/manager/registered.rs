@@ -10,7 +10,6 @@ use libsignal_service::configuration::{ServiceConfiguration, SignalServers, Sign
 use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
 use libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
 use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
-use libsignal_service::models::Contact;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
 use libsignal_service::profile_cipher::ProfileCipher;
@@ -20,7 +19,7 @@ use libsignal_service::proto::{
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate};
+use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate, ServiceId};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIdType,
@@ -43,6 +42,7 @@ use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
+use crate::model::contacts::Contact;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -608,10 +608,11 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        struct StreamState<Receiver, Store, AciStore> {
+        struct StreamState<Receiver, Store, AciStore, PniStore> {
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
-            service_cipher: ServiceCipher<AciStore>,
+            service_cipher_aci: ServiceCipher<AciStore>,
+            service_cipher_pni: ServiceCipher<PniStore>,
             push_service: PushService,
             store: Store,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
@@ -623,7 +624,8 @@ impl<S: Store> Manager<S, Registered> {
         let init = StreamState {
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service.clone()),
-            service_cipher: self.new_service_cipher()?,
+            service_cipher_aci: self.new_service_cipher_aci(),
+            service_cipher_pni: self.new_service_cipher_pni(),
             push_service,
             store: self.store.clone(),
             groups_manager: self.groups_manager()?,
@@ -636,7 +638,20 @@ impl<S: Store> Manager<S, Registered> {
             loop {
                 match state.encrypted_messages.next().await {
                     Some(Ok(Incoming::Envelope(envelope))) => {
-                        match state.service_cipher.open_envelope(envelope).await {
+                        let envelope = {
+                            // the permit is released at the end of the block (impl Drop)
+                            match ServiceId::parse_from_service_id_string(
+                                envelope.destination_service_id(),
+                            ) {
+                                None | Some(ServiceId::Aci(_)) => {
+                                    state.service_cipher_aci.open_envelope(envelope).await
+                                }
+                                Some(ServiceId::Pni(_)) => {
+                                    state.service_cipher_pni.open_envelope(envelope).await
+                                }
+                            }
+                        };
+                        match envelope {
                             Ok(Some(content)) => {
                                 // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                 if let ContentBody::SynchronizeMessage(SyncMessage {
@@ -650,7 +665,7 @@ impl<S: Store> Manager<S, Registered> {
                                             info!("saving contacts");
                                             for contact in contacts.filter_map(Result::ok) {
                                                 if let Err(error) =
-                                                    state.store.save_contact(&contact)
+                                                    state.store.save_contact(&contact.into())
                                                 {
                                                     warn!(%error, "failed to save contacts");
                                                     break;
@@ -1184,7 +1199,7 @@ impl<S: Store> Manager<S, Registered> {
             identified_websocket,
             unidentified_websocket,
             self.identified_push_service(),
-            self.new_service_cipher()?,
+            self.new_service_cipher_aci(),
             self.rng.clone(),
             aci_protocol_store,
             ServiceAddress::from_aci(self.state.data.service_ids.aci),
@@ -1195,9 +1210,8 @@ impl<S: Store> Manager<S, Registered> {
         ))
     }
 
-    /// Creates a new service cipher.
-    fn new_service_cipher(&self) -> Result<ServiceCipher<S::AciStore>, Error<S::Error>> {
-        let service_cipher = ServiceCipher::new(
+    fn new_service_cipher_aci(&self) -> ServiceCipher<S::AciStore> {
+        ServiceCipher::new(
             self.store.aci_protocol_store(),
             self.rng.clone(),
             self.state
@@ -1205,9 +1219,19 @@ impl<S: Store> Manager<S, Registered> {
                 .unidentified_sender_trust_root,
             self.state.data.service_ids.aci,
             self.state.device_id(),
-        );
+        )
+    }
 
-        Ok(service_cipher)
+    fn new_service_cipher_pni(&self) -> ServiceCipher<S::PniStore> {
+        ServiceCipher::new(
+            self.store.pni_protocol_store(),
+            self.rng.clone(),
+            self.state
+                .service_configuration()
+                .unidentified_sender_trust_root,
+            self.state.data.service_ids.pni,
+            self.state.device_id(),
+        )
     }
 
     /// Returns the title of a thread (contact or group).

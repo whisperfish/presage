@@ -5,7 +5,6 @@ use std::{fmt, ops::RangeBounds, time::SystemTime};
 use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
-    models::Contact,
     pre_keys::PreKeysStore,
     prelude::{Content, ProfileKey, Uuid, UuidError},
     proto::{
@@ -20,7 +19,11 @@ use libsignal_service::{
 use serde::{Deserialize, Serialize};
 use tracing::{error, trace};
 
-use crate::{manager::RegistrationData, model::groups::Group, AvatarBytes};
+use crate::{
+    manager::RegistrationData,
+    model::{contacts::Contact, groups::Group},
+    AvatarBytes,
+};
 
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send {}
@@ -489,7 +492,7 @@ pub struct StickerPack {
     pub manifest: StickerPackManifest,
 }
 
-/// equivalent to [Pack](crate::prelude::proto::Pack)
+/// equivalent to [Pack](crate::proto::Pack)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StickerPackManifest {
     pub title: String,
@@ -509,7 +512,7 @@ impl From<libsignal_service::proto::Pack> for StickerPackManifest {
     }
 }
 
-/// equivalent to [Sticker](crate::prelude::proto::pack::Sticker)
+/// equivalent to [Sticker](crate::proto::pack::Sticker)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sticker {
     pub id: u32,

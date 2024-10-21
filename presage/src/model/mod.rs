@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+pub mod contacts;
 pub mod groups;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]

@@ -7,7 +7,7 @@ edition = "2021"
 license = "AGPL-3.0-only"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "72f89cdf6bdda1c828319e50f65d8ead2c376351" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "158757cac4acafe0ba76977ade2b37b9c43bc4b7" }
 
 base64 = "0.22"
 futures = "0.3"
@@ -17,11 +17,15 @@ serde = "1.0"
 serde_json = "1.0"
 sha2 = "0.10.8"
 thiserror = "1.0"
-tokio = { version = "1.35", default-features = false, features = ["sync", "time"] }
+tokio = { version = "1.35", default-features = false, features = [
+    "sync",
+    "time",
+] }
 tracing = "0.1"
 url = "2.5"
 serde_with = "3.11.0"
 derivative = "2.2.0"
+bytes = { version = "1.7.2", features = ["serde"] }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
