@@ -400,7 +400,7 @@ fn print_message<S: Store>(
         Sent(&'a Thread, String),
     }
 
-    if let Some(msg) = match &content.body {
+    if let Some(msg) = match &dbg!(content).body {
         ContentBody::NullMessage(_) => Some(Msg::Received(
             &thread,
             "Null message (for example deleted)".to_string(),

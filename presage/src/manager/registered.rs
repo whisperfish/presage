@@ -1005,7 +1005,7 @@ impl<S: Store> Manager<S, Registered> {
                 ..
             }) => {
                 if timer.is_none() {
-                    *timer = store_expire_timer.map(|(t, _)| t);
+                    *timer = store_expire_timer.map(|(t, _)| t).filter(|t| t > &0);
                     *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
                 } else {
                     *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
