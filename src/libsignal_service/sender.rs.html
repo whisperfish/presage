@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/158757c/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/468fa6f/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -1076,9 +1076,8 @@
 <a href="#1076" id="1076">1076</a>
 <a href="#1077" id="1077">1077</a>
 <a href="#1078" id="1078">1078</a>
-<a href="#1079" id="1079">1079</a>
-<a href="#1080" id="1080">1080</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
+</pre></div><pre class="rust"><code><span class="kw">use </span>core::time;
+<span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 
 <span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>libsignal_protocol::{
@@ -1086,7 +1085,7 @@
     ProtocolStore, SenderCertificate, SenderKeyStore, SignalProtocolError,
 };
 <span class="kw">use </span>rand::{CryptoRng, Rng};
-<span class="kw">use </span>tracing::{error, info, trace};
+<span class="kw">use </span>tracing::{debug, error, info, trace};
 <span class="kw">use </span>tracing_futures::Instrument;
 <span class="kw">use </span>uuid::Uuid;
 <span class="kw">use </span>zkgroup::GROUP_IDENTIFIER_LEN;
@@ -1427,6 +1426,7 @@
         online: bool,
     ) -&gt; SendMessageResult {
         <span class="kw">let </span>content_body = message.into();
+        <span class="kw">let </span>message_to_self = recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_aci;
 
         <span class="kw">use </span><span class="kw">crate</span>::proto::data_message::Flags;
 
@@ -1437,8 +1437,30 @@
             <span class="kw">_ </span>=&gt; <span class="bool-val">false</span>,
         };
 
-        <span class="comment">// don't send anything to self nor session enders to others as sealed sender
-        </span><span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_aci || end_session {
+        <span class="comment">// only send a sync message when sending to self and skip the rest of the process
+        </span><span class="kw">if </span>message_to_self {
+            <span class="macro">debug!</span>(<span class="string">"sending note to self"</span>);
+            <span class="kw">let </span>sync_message =
+                <span class="self">Self</span>::create_multi_device_sent_transcript_content(
+                    <span class="prelude-val">Some</span>(recipient),
+                    content_body,
+                    timestamp,
+                    <span class="prelude-val">None</span>,
+                );
+            <span class="kw">return </span><span class="self">self
+                </span>.try_send_message(
+                    <span class="kw-2">*</span>recipient,
+                    <span class="prelude-val">None</span>,
+                    <span class="kw-2">&amp;</span>sync_message,
+                    timestamp,
+                    include_pni_signature,
+                    online,
+                )
+                .<span class="kw">await</span>;
+        }
+
+        <span class="comment">// don't send session enders as sealed sender
+        </span><span class="kw">if </span>end_session {
             unidentified_access.take();
         }
 
@@ -1460,20 +1482,11 @@
         };
 
         <span class="kw">if </span>needs_sync || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
-            <span class="kw">let </span>data_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
-                ContentBody::DataMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-            };
-            <span class="kw">let </span>edit_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
-                ContentBody::EditMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
-                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-            };
-            <span class="macro">tracing::debug!</span>(<span class="string">"sending multi-device sync message"</span>);
-            <span class="kw">let </span>sync_message = <span class="self">self
-                </span>.create_multi_device_sent_transcript_content(
+            <span class="macro">debug!</span>(<span class="string">"sending multi-device sync message"</span>);
+            <span class="kw">let </span>sync_message =
+                <span class="self">Self</span>::create_multi_device_sent_transcript_content(
                     <span class="prelude-val">Some</span>(recipient),
-                    data_message,
-                    edit_message,
+                    content_body,
                     timestamp,
                     <span class="prelude-val">Some</span>(<span class="kw-2">&amp;</span>result),
                 );
@@ -1516,19 +1529,10 @@
         <span class="kw">let </span>content_body: ContentBody = message.into();
         <span class="kw">let </span><span class="kw-2">mut </span>results = <span class="macro">vec!</span>[];
 
-        <span class="kw">let </span>data_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
-            ContentBody::DataMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
-            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-        };
-        <span class="kw">let </span>edit_message = <span class="kw">match </span><span class="kw-2">&amp;</span>content_body {
-            ContentBody::EditMessage(m) =&gt; <span class="prelude-val">Some</span>(m.clone()),
-            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-        };
-
         <span class="kw">let </span><span class="kw-2">mut </span>needs_sync_in_results = <span class="bool-val">false</span>;
 
         <span class="kw">for </span>(recipient, unidentified_access, include_pni_signature) <span class="kw">in
-            </span>recipients.as_ref().iter()
+            </span>recipients.as_ref()
         {
             <span class="kw">let </span>result = <span class="self">self
                 </span>.try_send_message(
@@ -1551,24 +1555,12 @@
             results.push(result);
         }
 
-        <span class="kw">if </span>needs_sync_in_results
-            &amp;&amp; data_message.is_none()
-            &amp;&amp; edit_message.is_none()
-        {
-            <span class="comment">// XXX: does this happen?
-            </span><span class="macro">tracing::warn!</span>(
-                <span class="string">"Server claims need sync, but not sending data message or edit message"
-            </span>);
-            <span class="kw">return </span>results;
-        }
-
         <span class="comment">// we only need to send a synchronization message once
         </span><span class="kw">if </span>needs_sync_in_results || <span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
-            <span class="kw">let </span>sync_message = <span class="self">self
-                </span>.create_multi_device_sent_transcript_content(
+            <span class="kw">let </span>sync_message =
+                <span class="self">Self</span>::create_multi_device_sent_transcript_content(
                     <span class="prelude-val">None</span>,
-                    data_message,
-                    edit_message,
+                    content_body,
                     timestamp,
                     <span class="kw-2">&amp;</span>results,
                 );
@@ -1595,7 +1587,7 @@
     <span class="doccomment">/// Send a message (`content`) to an address (`recipient`).
     </span><span class="attr">#[tracing::instrument(
         level = <span class="string">"trace"</span>,
-        skip(<span class="self">self</span>, unidentified_access, content_body, recipient),
+        skip(<span class="self">self</span>, unidentified_access),
         fields(unidentified_access = unidentified_access.is_some(), recipient = %recipient),
     )]
     </span><span class="kw">async fn </span>try_send_message(
@@ -1607,6 +1599,8 @@
         include_pni_signature: bool,
         online: bool,
     ) -&gt; SendMessageResult {
+        <span class="macro">trace!</span>(<span class="string">"trying to send a message"</span>);
+
         <span class="kw">use </span>prost::Message;
 
         <span class="kw">let </span><span class="kw-2">mut </span>content = content_body.clone().into_proto();
@@ -2109,14 +2103,17 @@
     }
 
     <span class="kw">fn </span>create_multi_device_sent_transcript_content&lt;<span class="lifetime">'a</span>&gt;(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
         recipient: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>ServiceAddress&gt;,
-        data_message: <span class="prelude-ty">Option</span>&lt;<span class="kw">crate</span>::proto::DataMessage&gt;,
-        edit_message: <span class="prelude-ty">Option</span>&lt;<span class="kw">crate</span>::proto::EditMessage&gt;,
+        content_body: ContentBody,
         timestamp: u64,
         send_message_results: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>SendMessageResult&gt;,
     ) -&gt; ContentBody {
         <span class="kw">use </span>sync_message::sent::UnidentifiedDeliveryStatus;
+        <span class="kw">let </span>(data_message, edit_message) = <span class="kw">match </span>content_body {
+            ContentBody::DataMessage(m) =&gt; (<span class="prelude-val">Some</span>(m), <span class="prelude-val">None</span>),
+            ContentBody::EditMessage(m) =&gt; (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(m)),
+            <span class="kw">_ </span>=&gt; (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>),
+        };
         <span class="kw">let </span>unidentified_status: Vec&lt;UnidentifiedDeliveryStatus&gt; =
             send_message_results
                 .into_iter()
@@ -2146,8 +2143,7 @@
                 expiration_start_timestamp: data_message
                     .as_ref()
                     .and_then(|m| m.expire_timer)
-                    .is_some()
-                    .then_some(timestamp),
+                    .map(|<span class="kw">_</span>| timestamp),
                 message: data_message,
                 edit_message,
                 timestamp: <span class="prelude-val">Some</span>(timestamp),
