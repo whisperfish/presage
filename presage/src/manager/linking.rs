@@ -29,7 +29,8 @@ impl<S: Store> Manager<S, Linking> {
     /// use futures::{channel::oneshot, future, StreamExt};
     /// use presage::libsignal_service::configuration::SignalServers;
     /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
+    /// use presage::model::identity::OnNewIdentity;
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
