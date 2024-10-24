@@ -73,19 +73,18 @@ impl<S: Store> Manager<S, Registration> {
         } = registration_options;
 
         // check if we are already registered
-        if !force && store.is_registered() {
+        if !force && store.is_registered().await {
             return Err(Error::AlreadyRegisteredError);
         }
 
-        store.clear_registration()?;
+        store.clear_registration().await?;
 
         // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
         let password = Alphanumeric.sample_string(&mut rng, 24);
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut push_service =
-            PushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+        let mut push_service = PushService::new(service_configuration, None, crate::USER_AGENT);
 
         trace!("creating registration verification session");
 

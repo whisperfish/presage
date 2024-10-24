@@ -60,11 +60,8 @@ impl<S: Store> Manager<S, Confirmation> {
         };
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut identified_push_service = PushService::new(
-            service_configuration,
-            Some(credentials),
-            crate::USER_AGENT.to_string(),
-        );
+        let mut identified_push_service =
+            PushService::new(service_configuration, Some(credentials), crate::USER_AGENT);
 
         let session = identified_push_service
             .submit_verification_code(&session_id, confirmation_code.as_ref())
@@ -87,9 +84,11 @@ impl<S: Store> Manager<S, Confirmation> {
 
         // generate new identity keys used in `register_account` and below
         self.store
-            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))?;
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))
+            .await?;
         self.store
-            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))?;
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))
+            .await?;
 
         let skip_device_transfer = true;
         let mut account_manager = AccountManager::new(identified_push_service, Some(profile_key));
@@ -143,11 +142,14 @@ impl<S: Store> Manager<S, Confirmation> {
             }),
         };
 
-        manager.store.save_registration_data(&manager.state.data)?;
+        manager
+            .store
+            .save_registration_data(&manager.state.data)
+            .await?;
 
         if let Err(e) = manager.register_pre_keys().await {
             // clear the entire store on any error, there's no possible recovery here
-            manager.store.clear_registration()?;
+            manager.store.clear_registration().await?;
             Err(e)
         } else {
             Ok(manager)

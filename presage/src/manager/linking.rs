@@ -64,7 +64,7 @@ impl<S: Store> Manager<S, Linking> {
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        store.clear_registration()?;
+        store.clear_registration().await?;
 
         // generate a random alphanumeric 24 chars password
         let mut rng = StdRng::from_entropy();
@@ -75,8 +75,7 @@ impl<S: Store> Manager<S, Linking> {
         rng.fill_bytes(&mut signaling_key);
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let push_service =
-            PushService::new(service_configuration, None, crate::USER_AGENT.to_string());
+        let push_service = PushService::new(service_configuration, None, crate::USER_AGENT);
 
         let (tx, mut rx) = mpsc::channel(1);
 
@@ -138,16 +137,20 @@ impl<S: Store> Manager<S, Linking> {
                     profile_key,
                 };
 
-                store.set_aci_identity_key_pair(IdentityKeyPair::new(
-                    aci_public_key,
-                    aci_private_key,
-                ))?;
-                store.set_pni_identity_key_pair(IdentityKeyPair::new(
-                    pni_public_key,
-                    pni_private_key,
-                ))?;
+                store
+                    .set_aci_identity_key_pair(IdentityKeyPair::new(
+                        aci_public_key,
+                        aci_private_key,
+                    ))
+                    .await?;
+                store
+                    .set_pni_identity_key_pair(IdentityKeyPair::new(
+                        pni_public_key,
+                        pni_private_key,
+                    ))
+                    .await?;
 
-                store.save_registration_data(&registration_data)?;
+                store.save_registration_data(&registration_data).await?;
                 info!(
                     "successfully registered device {}",
                     &registration_data.service_ids
@@ -162,14 +165,14 @@ impl<S: Store> Manager<S, Linking> {
                 // Register pre-keys with the server. If this fails, this can lead to issues
                 // receiving, in that case clear the registration and propagate the error.
                 if let Err(e) = manager.register_pre_keys().await {
-                    store.clear_registration()?;
+                    store.clear_registration().await?;
                     Err(e)
                 } else {
                     Ok(manager)
                 }
             }
             Err(e) => {
-                store.clear_registration()?;
+                store.clear_registration().await?;
                 Err(e)
             }
         }
