@@ -175,6 +175,9 @@
 <a href="#175" id="175">175</a>
 <a href="#176" id="176">176</a>
 <a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>futures::channel::{mpsc, oneshot};
 <span class="kw">use </span>futures::{future, StreamExt};
 <span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
@@ -211,7 +214,7 @@
     /// #[tokio::main]
     /// async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     ///     let store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust)?;
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust).await?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
@@ -241,7 +244,7 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;S, Registered&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="comment">// clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
-        </span>store.clear_registration()<span class="question-mark">?</span>;
+        </span>store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// generate a random alphanumeric 24 chars password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
@@ -252,8 +255,7 @@
         rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
 
         <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
-        <span class="kw">let </span>push_service =
-            PushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
+        <span class="kw">let </span>push_service = PushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT);
 
         <span class="kw">let </span>(tx, <span class="kw-2">mut </span>rx) = mpsc::channel(<span class="number">1</span>);
 
@@ -315,16 +317,20 @@
                     profile_key,
                 };
 
-                store.set_aci_identity_key_pair(IdentityKeyPair::new(
-                    aci_public_key,
-                    aci_private_key,
-                ))<span class="question-mark">?</span>;
-                store.set_pni_identity_key_pair(IdentityKeyPair::new(
-                    pni_public_key,
-                    pni_private_key,
-                ))<span class="question-mark">?</span>;
+                store
+                    .set_aci_identity_key_pair(IdentityKeyPair::new(
+                        aci_public_key,
+                        aci_private_key,
+                    ))
+                    .<span class="kw">await</span><span class="question-mark">?</span>;
+                store
+                    .set_pni_identity_key_pair(IdentityKeyPair::new(
+                        pni_public_key,
+                        pni_private_key,
+                    ))
+                    .<span class="kw">await</span><span class="question-mark">?</span>;
 
-                store.save_registration_data(<span class="kw-2">&amp;</span>registration_data)<span class="question-mark">?</span>;
+                store.save_registration_data(<span class="kw-2">&amp;</span>registration_data).<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="macro">info!</span>(
                     <span class="string">"successfully registered device {}"</span>,
                     <span class="kw-2">&amp;</span>registration_data.service_ids
@@ -339,14 +345,14 @@
                 <span class="comment">// Register pre-keys with the server. If this fails, this can lead to issues
                 // receiving, in that case clear the registration and propagate the error.
                 </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
-                    store.clear_registration()<span class="question-mark">?</span>;
+                    store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
                     <span class="prelude-val">Err</span>(e)
                 } <span class="kw">else </span>{
                     <span class="prelude-val">Ok</span>(manager)
                 }
             }
             <span class="prelude-val">Err</span>(e) =&gt; {
-                store.clear_registration()<span class="question-mark">?</span>;
+                store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="prelude-val">Err</span>(e)
             }
         }

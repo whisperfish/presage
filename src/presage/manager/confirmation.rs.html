@@ -154,6 +154,8 @@
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
 <a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 <span class="kw">use </span>libsignal_service::messagepipe::ServiceCredentials;
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
@@ -216,11 +218,8 @@
         };
 
         <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
-        <span class="kw">let </span><span class="kw-2">mut </span>identified_push_service = PushService::new(
-            service_configuration,
-            <span class="prelude-val">Some</span>(credentials),
-            <span class="kw">crate</span>::USER_AGENT.to_string(),
-        );
+        <span class="kw">let </span><span class="kw-2">mut </span>identified_push_service =
+            PushService::new(service_configuration, <span class="prelude-val">Some</span>(credentials), <span class="kw">crate</span>::USER_AGENT);
 
         <span class="kw">let </span>session = identified_push_service
             .submit_verification_code(<span class="kw-2">&amp;</span>session_id, confirmation_code.as_ref())
@@ -243,9 +242,11 @@
 
         <span class="comment">// generate new identity keys used in `register_account` and below
         </span><span class="self">self</span>.store
-            .set_aci_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng))<span class="question-mark">?</span>;
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng))
+            .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="self">self</span>.store
-            .set_pni_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng))<span class="question-mark">?</span>;
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng))
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>skip_device_transfer = <span class="bool-val">true</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager = AccountManager::new(identified_push_service, <span class="prelude-val">Some</span>(profile_key));
@@ -299,11 +300,14 @@
             }),
         };
 
-        manager.store.save_registration_data(<span class="kw-2">&amp;</span>manager.state.data)<span class="question-mark">?</span>;
+        manager
+            .store
+            .save_registration_data(<span class="kw-2">&amp;</span>manager.state.data)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = manager.register_pre_keys().<span class="kw">await </span>{
             <span class="comment">// clear the entire store on any error, there's no possible recovery here
-            </span>manager.store.clear_registration()<span class="question-mark">?</span>;
+            </span>manager.store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="prelude-val">Err</span>(e)
         } <span class="kw">else </span>{
             <span class="prelude-val">Ok</span>(manager)

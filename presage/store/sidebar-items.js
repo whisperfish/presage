@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Thread"],"struct":["Sticker","StickerPack","StickerPackManifest"],"trait":["ContentExt","ContentsStore","StateStore","Store","StoreError"]};
+window.SIDEBAR_ITEMS = {"enum":["Thread"],"fn":["save_trusted_identity_message"],"struct":["Sticker","StickerPack","StickerPackManifest"],"trait":["ContentExt","ContentsStore","StateStore","Store","StoreError"]};

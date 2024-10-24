@@ -140,7 +140,6 @@
 <a href="#140" id="140">140</a>
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
-<a href="#143" id="143">143</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
 <span class="kw">use </span>libsignal_service::push_service::{PushService, VerificationTransport};
@@ -186,7 +185,7 @@
     /// #[tokio::main]
     /// async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     ///     let store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust)?;
+    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust).await?;
     ///
     ///     let manager = Manager::register(
     ///         store,
@@ -216,19 +215,18 @@
         } = registration_options;
 
         <span class="comment">// check if we are already registered
-        </span><span class="kw">if </span>!force &amp;&amp; store.is_registered() {
+        </span><span class="kw">if </span>!force &amp;&amp; store.is_registered().<span class="kw">await </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::AlreadyRegisteredError);
         }
 
-        store.clear_registration()<span class="question-mark">?</span>;
+        store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// generate a random alphanumeric 24 chars password
         </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
         <span class="kw">let </span>password = Alphanumeric.sample_string(<span class="kw-2">&amp;mut </span>rng, <span class="number">24</span>);
 
         <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
-        <span class="kw">let </span><span class="kw-2">mut </span>push_service =
-            PushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT.to_string());
+        <span class="kw">let </span><span class="kw-2">mut </span>push_service = PushService::new(service_configuration, <span class="prelude-val">None</span>, <span class="kw">crate</span>::USER_AGENT);
 
         <span class="macro">trace!</span>(<span class="string">"creating registration verification session"</span>);
 

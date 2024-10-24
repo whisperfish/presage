@@ -44,9 +44,9 @@
     </span>PhoneNumberIdentity,
 }
 
-<span class="kw">impl </span>Into&lt;ServiceIdType&gt; <span class="kw">for </span>libsignal_service::ServiceIdType {
-    <span class="kw">fn </span>into(<span class="self">self</span>) -&gt; ServiceIdType {
-        <span class="kw">match </span><span class="self">self </span>{
+<span class="kw">impl </span>From&lt;libsignal_service::ServiceIdType&gt; <span class="kw">for </span>ServiceIdType {
+    <span class="kw">fn </span>from(val: libsignal_service::ServiceIdType) -&gt; <span class="self">Self </span>{
+        <span class="kw">match </span>val {
             libsignal_service::ServiceIdType::AccountIdentity =&gt; ServiceIdType::AccountIdentity,
             libsignal_service::ServiceIdType::PhoneNumberIdentity =&gt; {
                 ServiceIdType::PhoneNumberIdentity
