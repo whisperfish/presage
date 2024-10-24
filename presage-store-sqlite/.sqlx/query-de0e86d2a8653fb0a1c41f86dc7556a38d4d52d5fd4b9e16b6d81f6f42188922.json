@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "de0e86d2a8653fb0a1c41f86dc7556a38d4d52d5fd4b9e16b6d81f6f42188922"
+}

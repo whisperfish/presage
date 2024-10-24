@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT MAX(id) as 'max_id: u32' FROM prekeys",
+  "describe": {
+    "columns": [
+      {
+        "name": "max_id: u32",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "ce8fa6148c79dc6a3e44154a81d350e536b4cf5bc3ee6abde2529395486680dc"
+}

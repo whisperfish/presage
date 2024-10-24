@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id, record FROM prekey_records WHERE id = $1 LIMIT 1",
+  "query": "SELECT id, record FROM signed_prekeys WHERE id = $1 LIMIT 1",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "c901819d83824d5feabb1bd920f9d5942084f6ef038ab3608b4b84fb961371f8"
+  "hash": "9b028a96067cf022af14f3a0a85364e76f5668266c7b2eb956bb9d7feb18f195"
 }

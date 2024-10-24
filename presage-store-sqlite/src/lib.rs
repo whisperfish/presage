@@ -62,12 +62,14 @@ impl Store for SqliteStore {
     fn aci_protocol_store(&self) -> Self::AciStore {
         SqliteProtocolStore {
             store: self.clone(),
+            identity_type: "aci",
         }
     }
 
     fn pni_protocol_store(&self) -> Self::PniStore {
         SqliteProtocolStore {
             store: self.clone(),
+            identity_type: "pni",
         }
     }
 }
