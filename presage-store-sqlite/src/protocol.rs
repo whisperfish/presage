@@ -16,7 +16,6 @@ use presage::libsignal_service::{
 use crate::SqliteStore;
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct SqliteProtocolStore {
     pub(crate) store: SqliteStore,
 }

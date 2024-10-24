@@ -1,3 +1,5 @@
+#![allow(warnings)]
+
 use std::path::Path;
 
 use presage::{
@@ -7,16 +9,13 @@ use presage::{
 use protocol::SqliteProtocolStore;
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
 
-#[allow(unused)]
 mod content;
 mod error;
-#[allow(unused)]
 mod protocol;
 
 pub use error::SqliteStoreError;
 
 #[derive(Debug, Clone)]
-#[allow(unused)]
 pub struct SqliteStore {
     db: SqlitePool,
     /// Whether to trust new identities automatically (for instance, when a somebody's phone has changed)
