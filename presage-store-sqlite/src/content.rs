@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use presage::{
     libsignal_service::{prelude::Content, zkgroup::GroupMasterKeyBytes},
     model::{contacts::Contact, groups::Group},
-    store::{ContentsStore, Sticker, StickerPack},
+    store::{ContentsStore, StickerPack},
 };
 
 use crate::{SqliteStore, SqliteStoreError};

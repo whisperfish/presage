@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use presage::libsignal_service::{
@@ -18,6 +16,7 @@ use presage::libsignal_service::{
 use crate::SqliteStore;
 
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct SqliteProtocolStore {
     pub(crate) store: SqliteStore,
 }

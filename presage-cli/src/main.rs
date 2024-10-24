@@ -27,6 +27,7 @@ use presage::libsignal_service::ServiceAddress;
 use presage::manager::ReceivingMode;
 use presage::model::contacts::Contact;
 use presage::model::groups::Group;
+use presage::model::identity::OnNewIdentity;
 use presage::proto::receipt_message;
 use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
@@ -39,9 +40,7 @@ use presage::{
     Manager,
 };
 use presage_store_sled::MigrationConflictStrategy;
-use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
-use presage_store_sqlite::SqliteStore;
 use tempfile::Builder;
 use tokio::task;
 use tokio::{
@@ -225,7 +224,13 @@ async fn main() -> anyhow::Result<()> {
             .into()
     });
     debug!(db_path =% db_path.display(), "opening config database");
-    let config_store = SqliteStore::open(db_path, OnNewIdentity::Trust).await?;
+    let config_store = SledStore::open_with_passphrase(
+        db_path,
+        args.passphrase,
+        MigrationConflictStrategy::Raise,
+        OnNewIdentity::Trust,
+    )
+    .await?;
     run(args.subcommand, config_store).await
 }
 
