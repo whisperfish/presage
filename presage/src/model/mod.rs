@@ -16,9 +16,9 @@ pub enum ServiceIdType {
     PhoneNumberIdentity,
 }
 
-impl Into<ServiceIdType> for libsignal_service::ServiceIdType {
-    fn into(self) -> ServiceIdType {
-        match self {
+impl From<libsignal_service::ServiceIdType> for ServiceIdType {
+    fn from(val: libsignal_service::ServiceIdType) -> Self {
+        match val {
             libsignal_service::ServiceIdType::AccountIdentity => ServiceIdType::AccountIdentity,
             libsignal_service::ServiceIdType::PhoneNumberIdentity => {
                 ServiceIdType::PhoneNumberIdentity

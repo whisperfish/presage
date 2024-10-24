@@ -229,7 +229,8 @@ async fn main() -> anyhow::Result<()> {
         args.passphrase,
         MigrationConflictStrategy::Raise,
         OnNewIdentity::Trust,
-    )?;
+    )
+    .await?;
     run(args.subcommand, config_store).await
 }
 
@@ -289,7 +290,7 @@ async fn process_incoming_message<S: Store>(
     notifications: bool,
     content: &Content,
 ) {
-    print_message(manager, notifications, content);
+    print_message(manager, notifications, content).await;
 
     let sender = content.metadata.sender.uuid;
     if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
@@ -324,7 +325,7 @@ async fn process_incoming_message<S: Store>(
     }
 }
 
-fn print_message<S: Store>(
+async fn print_message<S: Store>(
     manager: &Manager<S, Registered>,
     notifications: bool,
     content: &Content,
@@ -334,66 +335,74 @@ fn print_message<S: Store>(
         return;
     };
 
-    let format_data_message = |thread: &Thread, data_message: &DataMessage| match data_message {
-        DataMessage {
-            quote:
-                Some(Quote {
-                    text: Some(quoted_text),
-                    ..
-                }),
-            body: Some(body),
-            ..
-        } => Some(format!("Answer to message \"{quoted_text}\": {body}")),
-        DataMessage {
-            reaction:
-                Some(Reaction {
-                    target_sent_timestamp: Some(ts),
-                    emoji: Some(emoji),
-                    ..
-                }),
-            ..
-        } => {
-            let Ok(Some(message)) = manager.store().message(thread, *ts) else {
-                warn!(%thread, sent_at = ts, "no message found in thread");
-                return None;
-            };
+    async fn format_data_message<S: Store>(
+        thread: &Thread,
+        data_message: &DataMessage,
+        manager: &Manager<S, Registered>,
+    ) -> Option<String> {
+        match data_message {
+            DataMessage {
+                quote:
+                    Some(Quote {
+                        text: Some(quoted_text),
+                        ..
+                    }),
+                body: Some(body),
+                ..
+            } => Some(format!("Answer to message \"{quoted_text}\": {body}")),
+            DataMessage {
+                reaction:
+                    Some(Reaction {
+                        target_sent_timestamp: Some(ts),
+                        emoji: Some(emoji),
+                        ..
+                    }),
+                ..
+            } => {
+                let Ok(Some(message)) = manager.store().message(thread, *ts).await else {
+                    warn!(%thread, sent_at = ts, "no message found in thread");
+                    return None;
+                };
 
-            let ContentBody::DataMessage(DataMessage {
+                let ContentBody::DataMessage(DataMessage {
+                    body: Some(body), ..
+                }) = message.body
+                else {
+                    warn!("message reacted to has no body");
+                    return None;
+                };
+
+                Some(format!("Reacted with {emoji} to message: \"{body}\""))
+            }
+            DataMessage {
                 body: Some(body), ..
-            }) = message.body
-            else {
-                warn!("message reacted to has no body");
-                return None;
-            };
-
-            Some(format!("Reacted with {emoji} to message: \"{body}\""))
+            } => Some(body.to_string()),
+            _ => Some("Empty data message".to_string()),
         }
-        DataMessage {
-            body: Some(body), ..
-        } => Some(body.to_string()),
-        _ => Some("Empty data message".to_string()),
-    };
+    }
 
-    let format_contact = |uuid| {
+    async fn format_contact<S: Store>(uuid: &Uuid, manager: &Manager<S, Registered>) -> String {
         manager
             .store()
             .contact_by_id(uuid)
+            .await
             .ok()
             .flatten()
             .filter(|c| !c.name.is_empty())
             .map(|c| format!("{}: {}", c.name, uuid))
             .unwrap_or_else(|| uuid.to_string())
-    };
+    }
 
-    let format_group = |key| {
+    async fn format_group<S: Store>(key: [u8; 32], manager: &Manager<S, Registered>) -> String {
         manager
             .store()
             .group(key)
+            .await
             .ok()
             .flatten()
             .map(|g| g.title)
             .unwrap_or_else(|| "<missing group>".to_string())
-    };
+    }
 
     enum Msg<'a> {
         Received(&'a Thread, String),
@@ -406,12 +415,16 @@ fn print_message<S: Store>(
             "Null message (for example deleted)".to_string(),
         )),
         ContentBody::DataMessage(data_message) => {
-            format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body))
+            format_data_message(&thread, data_message, manager)
+                .await
+                .map(|body| Msg::Received(&thread, body))
         }
         ContentBody::EditMessage(EditMessage {
             data_message: Some(data_message),
             ..
-        }) => format_data_message(&thread, data_message).map(|body| Msg::Received(&thread, body)),
+        }) => format_data_message(&thread, data_message, manager)
+            .await
+            .map(|body| Msg::Received(&thread, body)),
         ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
             sent:
@@ -420,7 +433,9 @@ fn print_message<S: Store>(
                     ..
                 }),
             ..
-        }) => format_data_message(&thread, data_message).map(|body| Msg::Sent(&thread, body)),
+        }) => format_data_message(&thread, data_message, manager)
+            .await
+            .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
             sent:
                 Some(Sent {
@@ -432,7 +447,9 @@ fn print_message<S: Store>(
                     ..
                 }),
             ..
-        }) => format_data_message(&thread, data_message).map(|body| Msg::Sent(&thread, body)),
+        }) => format_data_message(&thread, data_message, manager)
+            .await
+            .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage { .. }) => None,
         ContentBody::CallMessage(_) => Some(Msg::Received(&thread, "is calling!".into())),
         ContentBody::TypingMessage(_) => Some(Msg::Received(&thread, "is typing...".into())),
@@ -456,20 +473,20 @@ fn print_message<S: Store>(
         let ts = content.timestamp();
         let (prefix, body) = match msg {
             Msg::Received(Thread::Contact(sender), body) => {
-                let contact = format_contact(sender);
+                let contact = format_contact(sender, manager).await;
                 (format!("From {contact} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Contact(recipient), body) => {
-                let contact = format_contact(recipient);
+                let contact = format_contact(recipient, manager).await;
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = format_contact(&content.metadata.sender.uuid);
-                let group = format_group(*key);
+                let sender = format_contact(&content.metadata.sender.uuid, manager).await;
+                let group = format_group(*key, manager).await;
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
             Msg::Sent(Thread::Group(key), body) => {
-                let group = format_group(*key);
+                let group = format_group(*key, manager).await;
                 (format!("To group {group} @ {ts}"), body)
             }
         };
@@ -660,7 +677,8 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             if profile_key.is_none() {
                 for contact in manager
                     .store()
-                    .contacts()?
+                    .contacts()
+                    .await?
                     .filter_map(Result::ok)
                     .filter(|c| c.uuid == uuid)
                 {
@@ -681,7 +699,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         }
         Cmd::ListGroups => {
             let manager = Manager::load_registered(config_store).await?;
-            for group in manager.store().groups()? {
+            for group in manager.store().groups().await? {
                 match group {
                     Ok((
                         group_master_key,
@@ -712,14 +730,14 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 uuid,
                 phone_number,
                 ..
-            } in manager.store().contacts()?.flatten()
+            } in manager.store().contacts().await?.flatten()
             {
                 println!("{uuid} / {phone_number:?} / {name}");
             }
         }
         Cmd::ListStickerPacks => {
             let manager = Manager::load_registered(config_store).await?;
-            for sticker_pack in manager.sticker_packs().await? {
+            for sticker_pack in manager.store().sticker_packs().await? {
                 match sticker_pack {
                     Ok(sticker_pack) => {
                         println!(
@@ -748,7 +766,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         }
         Cmd::GetContact { ref uuid } => {
             let manager = Manager::load_registered(config_store).await?;
-            match manager.store().contact_by_id(uuid)? {
+            match manager.store().contact_by_id(uuid).await? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
             }
@@ -761,7 +779,8 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             let manager = Manager::load_registered(config_store).await?;
             for contact in manager
                 .store()
-                .contacts()?
+                .contacts()
+                .await?
                 .filter_map(Result::ok)
                 .filter(|c| uuid.map_or_else(|| true, |u| c.uuid == u))
                 .filter(|c| c.phone_number == phone_number)
@@ -786,10 +805,12 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 _ => unreachable!(),
             };
             for msg in manager
-                .messages(&thread, from.unwrap_or(0)..)?
+                .store()
+                .messages(&thread, from.unwrap_or(0)..)
+                .await?
                 .filter_map(Result::ok)
             {
-                print_message(&manager, false, &msg);
+                print_message(&manager, false, &msg).await;
             }
         }
         Cmd::Stats => {

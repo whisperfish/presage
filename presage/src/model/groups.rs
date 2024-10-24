@@ -40,45 +40,41 @@ pub struct RequestingMember {
     pub timestamp: u64,
 }
 
-impl Into<Group> for libsignal_service::groups_v2::Group {
-    fn into(self) -> Group {
+impl From<libsignal_service::groups_v2::Group> for Group {
+    fn from(val: libsignal_service::groups_v2::Group) -> Self {
         Group {
-            title: self.title,
-            avatar: self.avatar,
-            disappearing_messages_timer: self.disappearing_messages_timer,
-            access_control: self.access_control,
-            revision: self.revision,
-            members: self.members,
-            pending_members: self.pending_members.into_iter().map(Into::into).collect(),
-            requesting_members: self
-                .requesting_members
-                .into_iter()
-                .map(Into::into)
-                .collect(),
-            invite_link_password: self.invite_link_password,
-            description: self.description,
+            title: val.title,
+            avatar: val.avatar,
+            disappearing_messages_timer: val.disappearing_messages_timer,
+            access_control: val.access_control,
+            revision: val.revision,
+            members: val.members,
+            pending_members: val.pending_members.into_iter().map(Into::into).collect(),
+            requesting_members: val.requesting_members.into_iter().map(Into::into).collect(),
+            invite_link_password: val.invite_link_password,
+            description: val.description,
         }
     }
 }
 
-impl Into<PendingMember> for libsignal_service::groups_v2::PendingMember {
-    fn into(self) -> PendingMember {
+impl From<libsignal_service::groups_v2::PendingMember> for PendingMember {
+    fn from(val: libsignal_service::groups_v2::PendingMember) -> Self {
         PendingMember {
-            uuid: self.address.uuid,
-            service_id_type: self.address.identity.into(),
-            role: self.role,
-            added_by_uuid: self.added_by_uuid,
-            timestamp: self.timestamp,
+            uuid: val.address.uuid,
+            service_id_type: val.address.identity.into(),
+            role: val.role,
+            added_by_uuid: val.added_by_uuid,
+            timestamp: val.timestamp,
         }
     }
 }
 
-impl Into<RequestingMember> for libsignal_service::groups_v2::RequestingMember {
-    fn into(self) -> RequestingMember {
+impl From<libsignal_service::groups_v2::RequestingMember> for RequestingMember {
+    fn from(val: libsignal_service::groups_v2::RequestingMember) -> Self {
         RequestingMember {
-            uuid: self.uuid,
-            profile_key: self.profile_key,
-            timestamp: self.timestamp,
+            uuid: val.uuid,
+            profile_key: val.profile_key,
+            timestamp: val.timestamp,
         }
     }
 }

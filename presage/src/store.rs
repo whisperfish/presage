@@ -1,6 +1,6 @@
 //! Traits that are used by the manager for storing the data.
 
-use std::{fmt, ops::RangeBounds, time::SystemTime};
+use std::{fmt, future::Future, ops::RangeBounds, time::SystemTime};
 
 use libsignal_service::{
     content::{ContentBody, Metadata},
@@ -17,7 +17,7 @@ use libsignal_service::{
     Profile, ServiceAddress,
 };
 use serde::{Deserialize, Serialize};
-use tracing::{error, trace};
+use tracing::trace;
 
 use crate::{
     manager::RegistrationData,
@@ -33,29 +33,31 @@ pub trait StateStore {
     type StateStoreError: StoreError;
 
     /// Load registered (or linked) state
-    fn load_registration_data(&self) -> Result<Option<RegistrationData>, Self::StateStoreError>;
+    fn load_registration_data(
+        &self,
+    ) -> impl Future<Output = Result<Option<RegistrationData>, Self::StateStoreError>>;
 
     fn set_aci_identity_key_pair(
         &self,
         key_pair: IdentityKeyPair,
-    ) -> Result<(), Self::StateStoreError>;
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn set_pni_identity_key_pair(
         &self,
         key_pair: IdentityKeyPair,
-    ) -> Result<(), Self::StateStoreError>;
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     /// Save registered (or linked) state
     fn save_registration_data(
         &mut self,
         state: &RegistrationData,
-    ) -> Result<(), Self::StateStoreError>;
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     /// Returns whether this store contains registration data or not
-    fn is_registered(&self) -> bool;
+    fn is_registered(&self) -> impl Future<Output = bool>;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
-    fn clear_registration(&mut self) -> Result<(), Self::StateStoreError>;
+    fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 }
 
 /// Stores messages, contacts, groups and profiles
@@ -77,70 +79,28 @@ pub trait ContentsStore: Send + Sync {
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
 
     // Clear all profiles
-    fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError>;
+    fn clear_profiles(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Clear all stored messages
-    fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError>;
+    fn clear_contents(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Messages
 
     /// Clear all stored messages.
-    fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError>;
+    fn clear_messages(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Clear the messages in a thread.
-    fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::ContentsStoreError>;
+    fn clear_thread(
+        &mut self,
+        thread: &Thread,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Save a message in a [Thread] identified by a timestamp.
     fn save_message(
         &self,
         thread: &Thread,
         message: Content,
-    ) -> Result<(), Self::ContentsStoreError>;
-
-    /// Saves a message that can show users when the identity of a contact has changed
-    /// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
-    fn save_trusted_identity_message(
-        &self,
-        protocol_address: &ProtocolAddress,
-        right_identity_key: IdentityKey,
-        verified_state: verified::State,
-    ) {
-        let Ok(sender) = protocol_address.name().parse() else {
-            return;
-        };
-
-        // TODO: this is a hack to save a message showing that the verification status changed
-        // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
-        let thread = Thread::Contact(sender);
-        let verified_sync_message = Content {
-            metadata: Metadata {
-                sender: ServiceAddress::from_aci(sender),
-                destination: ServiceAddress::from_aci(sender),
-                sender_device: 0,
-                server_guid: None,
-                timestamp: SystemTime::now()
-                    .duration_since(SystemTime::UNIX_EPOCH)
-                    .unwrap_or_default()
-                    .as_millis() as u64,
-                needs_receipt: false,
-                unidentified_sender: false,
-            },
-            body: SyncMessage {
-                verified: Some(Verified {
-                    destination_aci: None,
-                    identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
-                    state: Some(verified_state.into()),
-                    null_message: None,
-                }),
-                ..Default::default()
-            }
-            .into(),
-        };
-
-        if let Err(error) = self.save_message(&thread, verified_sync_message) {
-            error!(%error, "failed to save the verified session message in thread");
-        }
-    }
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Delete a single message, identified by its received timestamp from a thread.
     /// Useful when you want to delete a message locally only.
@@ -148,37 +108,41 @@ pub trait ContentsStore: Send + Sync {
         &mut self,
         thread: &Thread,
         timestamp: u64,
-    ) -> Result<bool, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
     /// Retrieve a message from a [Thread] by its timestamp.
     fn message(
         &self,
         thread: &Thread,
         timestamp: u64,
-    ) -> Result<Option<Content>, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
 
     /// Retrieve all messages from a [Thread] within a range in time
     fn messages(
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
-    ) -> Result<Self::MessagesIter, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<Self::MessagesIter, Self::ContentsStoreError>>;
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
     /// or [Group::disappearing_messages_timer].
     fn expire_timer(
         &self,
         thread: &Thread,
-    ) -> Result<Option<(u32, u32)>, Self::ContentsStoreError> {
-        match thread {
-            Thread::Contact(uuid) => Ok(self
-                .contact_by_id(uuid)?
-                .map(|c| (c.expire_timer, c.expire_timer_version))),
-            Thread::Group(key) => Ok(self
-                .group(*key)?
-                .and_then(|g| g.disappearing_messages_timer)
-                // TODO: most likely we can have versions here
-                .map(|t| (t.duration, 1))), // Groups do not have expire_timer_version
+    ) -> impl Future<Output = Result<Option<(u32, u32)>, Self::ContentsStoreError>> {
+        async move {
+            match thread {
+                Thread::Contact(uuid) => Ok(self
+                    .contact_by_id(uuid)
+                    .await?
+                    .map(|c| (c.expire_timer, c.expire_timer_version))),
+                Thread::Group(key) => Ok(self
+                    .group(*key)
+                    .await?
+                    .and_then(|g| g.disappearing_messages_timer)
+                    // TODO: most likely we can have versions here
+                    .map(|t| (t.duration, 1))), // Groups do not have expire_timer_version
+            }
         }
     }
 
@@ -189,29 +153,31 @@ pub trait ContentsStore: Send + Sync {
         thread: &Thread,
         timer: u32,
         version: u32,
-    ) -> Result<(), Self::ContentsStoreError> {
-        trace!(%thread, timer, version, "updating expire timer");
-        match thread {
-            Thread::Contact(uuid) => {
-                let contact = self.contact_by_id(uuid)?;
-                if let Some(mut contact) = contact {
-                    let current_version = contact.expire_timer_version;
-                    if version <= current_version {
-                        return Ok(());
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> {
+        async move {
+            trace!(%thread, timer, version, "updating expire timer");
+            match thread {
+                Thread::Contact(uuid) => {
+                    let contact = self.contact_by_id(uuid).await?;
+                    if let Some(mut contact) = contact {
+                        let current_version = contact.expire_timer_version;
+                        if version <= current_version {
+                            return Ok(());
+                        }
+                        contact.expire_timer_version = version;
+                        contact.expire_timer = timer;
+                        self.save_contact(&contact).await?;
                     }
-                    contact.expire_timer_version = version;
-                    contact.expire_timer = timer;
-                    self.save_contact(&contact)?;
+                    Ok(())
                 }
-                Ok(())
-            }
-            Thread::Group(key) => {
-                let group = self.group(*key)?;
-                if let Some(mut g) = group {
-                    g.disappearing_messages_timer = Some(Timer { duration: timer });
-                    self.save_group(*key, g)?;
+                Thread::Group(key) => {
+                    let group = self.group(*key).await?;
+                    if let Some(mut g) = group {
+                        g.disappearing_messages_timer = Some(Timer { duration: timer });
+                        self.save_group(*key, g).await?;
+                    }
+                    Ok(())
                 }
-                Ok(())
             }
         }
     }
@@ -219,48 +185,56 @@ pub trait ContentsStore: Send + Sync {
     // Contacts
 
     /// Clear all saved synchronized contact data
-    fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError>;
+    fn clear_contacts(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Save a contact
-    fn save_contact(&mut self, contacts: &Contact) -> Result<(), Self::ContentsStoreError>;
+    fn save_contact(
+        &mut self,
+        contacts: &Contact,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Get an iterator on all stored (synchronized) contacts
-    fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError>;
+    fn contacts(
+        &self,
+    ) -> impl Future<Output = Result<Self::ContactsIter, Self::ContentsStoreError>>;
 
     /// Get contact data for a single user by its [Uuid].
-    fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Self::ContentsStoreError>;
+    fn contact_by_id(
+        &self,
+        id: &Uuid,
+    ) -> impl Future<Output = Result<Option<Contact>, Self::ContentsStoreError>>;
 
     /// Delete all cached group data
-    fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError>;
+    fn clear_groups(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Save a group in the cache
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
         group: impl Into<Group>,
-    ) -> Result<(), Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Get an iterator on all cached groups
-    fn groups(&self) -> Result<Self::GroupsIter, Self::ContentsStoreError>;
+    fn groups(&self) -> impl Future<Output = Result<Self::GroupsIter, Self::ContentsStoreError>>;
 
     /// Retrieve a single unencrypted group indexed by its `[GroupMasterKeyBytes]`
     fn group(
         &self,
         master_key: GroupMasterKeyBytes,
-    ) -> Result<Option<Group>, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<Option<Group>, Self::ContentsStoreError>>;
 
     /// Save a group avatar in the cache
     fn save_group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
         avatar: &AvatarBytes,
-    ) -> Result<(), Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a group avatar from the cache.
     fn group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
-    ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     // Profiles
 
@@ -269,10 +243,13 @@ pub trait ContentsStore: Send + Sync {
         &mut self,
         uuid: &Uuid,
         key: ProfileKey,
-    ) -> Result<bool, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
     /// Get the profile key for a contact
-    fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, Self::ContentsStoreError>;
+    fn profile_key(
+        &self,
+        uuid: &Uuid,
+    ) -> impl Future<Output = Result<Option<ProfileKey>, Self::ContentsStoreError>>;
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(
@@ -280,14 +257,14 @@ pub trait ContentsStore: Send + Sync {
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
-    ) -> Result<(), Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
     fn profile(
         &self,
         uuid: Uuid,
         key: ProfileKey,
-    ) -> Result<Option<Profile>, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<Option<Profile>, Self::ContentsStoreError>>;
 
     /// Save a profile avatar by [Uuid] and [ProfileKey].
     fn save_profile_avatar(
@@ -295,28 +272,39 @@ pub trait ContentsStore: Send + Sync {
         uuid: Uuid,
         key: ProfileKey,
         profile: &AvatarBytes,
-    ) -> Result<(), Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a profile avatar by [Uuid] and [ProfileKey].
     fn profile_avatar(
         &self,
         uuid: Uuid,
         key: ProfileKey,
-    ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError>;
+    ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     /// Stickers
 
     /// Add a sticker pack
-    fn add_sticker_pack(&mut self, pack: &StickerPack) -> Result<(), Self::ContentsStoreError>;
+    fn add_sticker_pack(
+        &mut self,
+        pack: &StickerPack,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
 
     /// Gets a cached sticker pack
-    fn sticker_pack(&self, id: &[u8]) -> Result<Option<StickerPack>, Self::ContentsStoreError>;
+    fn sticker_pack(
+        &self,
+        id: &[u8],
+    ) -> impl Future<Output = Result<Option<StickerPack>, Self::ContentsStoreError>>;
 
     /// Removes a sticker pack
-    fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError>;
+    fn remove_sticker_pack(
+        &mut self,
+        id: &[u8],
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
     /// Get an iterator on all installed stickerpacks
-    fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::ContentsStoreError>;
+    fn sticker_packs(
+        &self,
+    ) -> impl Future<Output = Result<Self::StickerPacksIter, Self::ContentsStoreError>>;
 }
 
 /// The manager store trait combining all other stores into a single one
@@ -335,7 +323,9 @@ pub trait Store:
     /// Clear the entire store
     ///
     /// This can be useful when resetting an existing client.
-    fn clear(&mut self) -> Result<(), <Self as StateStore>::StateStoreError>;
+    fn clear(
+        &mut self,
+    ) -> impl Future<Output = Result<(), <Self as StateStore>::StateStoreError>> + Send;
 
     fn aci_protocol_store(&self) -> Self::AciStore;
 
@@ -530,4 +520,47 @@ impl From<libsignal_service::proto::pack::Sticker> for Sticker {
             bytes: None,
         }
     }
+}
+
+/// Saves a message that can show users when the identity of a contact has changed
+/// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
+pub async fn save_trusted_identity_message<S: Store>(
+    store: &S,
+    protocol_address: &ProtocolAddress,
+    right_identity_key: IdentityKey,
+    verified_state: verified::State,
+) -> Result<(), S::Error> {
+    let Ok(sender) = protocol_address.name().parse() else {
+        return Ok(());
+    };
+
+    // TODO: this is a hack to save a message showing that the verification status changed
+    // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
+    let thread = Thread::Contact(sender);
+    let verified_sync_message = Content {
+        metadata: Metadata {
+            sender: ServiceAddress::from_aci(sender),
+            destination: ServiceAddress::from_aci(sender),
+            sender_device: 0,
+            server_guid: None,
+            timestamp: SystemTime::now()
+                .duration_since(SystemTime::UNIX_EPOCH)
+                .unwrap_or_default()
+                .as_millis() as u64,
+            needs_receipt: false,
+            unidentified_sender: false,
+        },
+        body: SyncMessage {
+            verified: Some(Verified {
+                destination_aci: None,
+                identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
+                state: Some(verified_state.into()),
+                null_message: None,
+            }),
+            ..Default::default()
+        }
+        .into(),
+    };
+
+    store.save_message(&thread, verified_sync_message).await
 }

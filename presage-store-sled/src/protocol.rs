@@ -17,7 +17,7 @@ use presage::{
         ServiceAddress,
     },
     proto::verified,
-    store::{ContentsStore, StateStore},
+    store::{save_trusted_identity_message, StateStore},
 };
 use sled::Batch;
 use tracing::{error, trace, warn};
@@ -537,7 +537,8 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
     async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
         let data =
             self.store
-                .load_registration_data()?
+                .load_registration_data()
+                .await?
                 .ok_or(SignalProtocolError::InvalidState(
                     "failed to load registration ID",
                     "no registration data".into(),
@@ -563,7 +564,8 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
                 error
             })?;
 
-        self.store.save_trusted_identity_message(
+        save_trusted_identity_message(
+            &self.store,
             address,
             *identity_key,
             if existed_before {
@@ -571,7 +573,8 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
             } else {
                 verified::State::Default
             },
-        );
+        )
+        .await?;
 
         Ok(true)
     }

@@ -1,5 +1,4 @@
 use std::fmt;
-use std::ops::RangeBounds;
 use std::pin::pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -142,7 +141,8 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns a instance of [Manager] you can use to send & receive messages.
     pub async fn load_registered(store: S) -> Result<Self, Error<S::Error>> {
         let registration_data = store
-            .load_registration_data()?
+            .load_registration_data()
+            .await?
             .ok_or(Error::NotYetRegisteredError)?;
 
         let mut manager = Self {
@@ -180,7 +180,7 @@ impl<S: Store> Manager<S, Registered> {
                 PushService::new(
                     self.state.service_configuration(),
                     self.credentials(),
-                    crate::USER_AGENT.to_string(),
+                    crate::USER_AGENT,
                 )
             })
             .clone()
@@ -193,11 +193,7 @@ impl<S: Store> Manager<S, Registered> {
         self.state
             .unidentified_push_service
             .get_or_init(|| {
-                PushService::new(
-                    self.state.service_configuration(),
-                    None,
-                    crate::USER_AGENT.to_string(),
-                )
+                PushService::new(self.state.service_configuration(), None, crate::USER_AGENT)
             })
             .clone()
     }
@@ -297,7 +293,7 @@ impl<S: Store> Manager<S, Registered> {
             } else {
                 info!("migrating to PNI");
                 let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
-                self.store.save_registration_data(&self.state.data)?;
+                self.store.save_registration_data(&self.state.data).await?;
                 pni_registration_id
             };
 
@@ -332,7 +328,7 @@ impl<S: Store> Manager<S, Registered> {
             debug!("fetching PNI UUID and updating state");
             let whoami = self.whoami().await?;
             self.state.data.service_ids.pni = whoami.pni;
-            self.store.save_registration_data(&self.state.data)?;
+            self.store.save_registration_data(&self.state.data).await?;
         }
 
         trace!("done setting account attributes");
@@ -462,7 +458,7 @@ impl<S: Store> Manager<S, Registered> {
         // Check if profile is cached.
         // TODO: Create a migration in the store removing all profiles.
         // TODO: Is there some way to know if this is outdated?
-        if let Some(profile) = self.store.profile(uuid, profile_key).ok().flatten() {
+        if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
             return Ok(profile);
         }
 
@@ -473,7 +469,10 @@ impl<S: Store> Manager<S, Registered> {
             .retrieve_profile(ServiceAddress::from_aci(uuid))
             .await?;
 
-        let _ = self.store.save_profile(uuid, profile_key, profile.clone());
+        let _ = self
+            .store
+            .save_profile(uuid, profile_key, profile.clone())
+            .await;
         Ok(profile)
     }
 
@@ -488,7 +487,13 @@ impl<S: Store> Manager<S, Registered> {
 
         // Check if group avatar is cached.
         // TODO: Is there some way to know if this is outdated?
-        if let Some(avatar) = self.store.group_avatar(master_key_bytes).ok().flatten() {
+        if let Some(avatar) = self
+            .store
+            .group_avatar(master_key_bytes)
+            .await
+            .ok()
+            .flatten()
+        {
             return Ok(Some(avatar));
         }
 
@@ -516,7 +521,7 @@ impl<S: Store> Manager<S, Registered> {
             )
             .await?;
         if let Some(avatar) = &avatar {
-            let _ = self.store.save_group_avatar(master_key_bytes, avatar);
+            let _ = self.store.save_group_avatar(master_key_bytes, avatar).await;
         }
         Ok(avatar)
     }
@@ -528,15 +533,22 @@ impl<S: Store> Manager<S, Registered> {
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
         // Check if profile avatar is cached.
         // TODO: Is there some way to know if this is outdated?
-        if let Some(avatar) = self.store.profile_avatar(uuid, profile_key).ok().flatten() {
+        if let Some(avatar) = self
+            .store
+            .profile_avatar(uuid, profile_key)
+            .await
+            .ok()
+            .flatten()
+        {
             return Ok(Some(avatar));
         }
 
-        let profile = if let Some(profile) = self.store.profile(uuid, profile_key).ok().flatten() {
-            profile
-        } else {
-            self.retrieve_profile_by_uuid(uuid, profile_key).await?
-        };
+        let profile =
+            if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
+                profile
+            } else {
+                self.retrieve_profile_by_uuid(uuid, profile_key).await?
+            };
 
         let Some(avatar) = profile.avatar.as_ref() else {
             return Ok(None);
@@ -553,17 +565,11 @@ impl<S: Store> Manager<S, Registered> {
         let cipher = ProfileCipher::from(profile_key);
 
         let avatar = cipher.decrypt_avatar(&contents)?;
-        let _ = self.store.save_profile_avatar(uuid, profile_key, &avatar);
+        let _ = self
+            .store
+            .save_profile_avatar(uuid, profile_key, &avatar)
+            .await;
         Ok(Some(avatar))
-    }
-
-    /// Gets an iterator of messages in a thread, optionally starting from a point in time.
-    pub fn messages(
-        &self,
-        thread: &Thread,
-        range: impl RangeBounds<u64>,
-    ) -> Result<S::MessagesIter, Error<S::Error>> {
-        Ok(self.store.messages(thread, range)?)
     }
 
     async fn receive_messages_encrypted(
@@ -661,11 +667,11 @@ impl<S: Store> Manager<S, Registered> {
                                 {
                                     match state.message_receiver.retrieve_contacts(contacts).await {
                                         Ok(contacts) => {
-                                            let _ = state.store.clear_contacts();
+                                            let _ = state.store.clear_contacts().await;
                                             info!("saving contacts");
                                             for contact in contacts.filter_map(Result::ok) {
                                                 if let Err(error) =
-                                                    state.store.save_contact(&contact.into())
+                                                    state.store.save_contact(&contact.into()).await
                                                 {
                                                     warn!(%error, "failed to save contacts");
                                                     break;
@@ -722,6 +728,7 @@ impl<S: Store> Manager<S, Registered> {
                                                 match state
                                                     .store
                                                     .remove_sticker_pack(operation.pack_id())
+                                                    .await
                                                 {
                                                     Ok(was_present) => {
                                                         debug!(was_present, "removed stick pack")
@@ -841,12 +848,13 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Contact(recipient.uuid);
         let mut content_body: ContentBody = message.into();
 
-        self.restore_thread_timer(&thread, &mut content_body);
+        self.restore_thread_timer(&thread, &mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access =
             self.store
-                .profile_key(&recipient.uuid)?
+                .profile_key(&recipient.uuid)
+                .await?
                 .map(|profile_key| UnidentifiedAccess {
                     key: profile_key.derive_access_key().to_vec(),
                     certificate: sender_certificate.clone(),
@@ -923,7 +931,7 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Master key bytes to be of size 32.");
         let thread = Thread::Group(master_key_bytes);
 
-        self.restore_thread_timer(&thread, &mut content_body);
+        self.restore_thread_timer(&thread, &mut content_body).await;
 
         let mut sender = self.new_message_sender().await?;
 
@@ -943,7 +951,8 @@ impl<S: Store> Manager<S, Registered> {
         {
             let unidentified_access =
                 self.store
-                    .profile_key(&member.uuid)?
+                    .profile_key(&member.uuid)
+                    .await?
                     .map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
@@ -995,23 +1004,21 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
-        let store_expire_timer = self.store.expire_timer(thread).unwrap_or_default();
+    async fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
+        let store_expire_timer = self.store.expire_timer(thread).await.unwrap_or_default();
 
-        match content_body {
-            ContentBody::DataMessage(DataMessage {
-                expire_timer: ref mut timer,
-                expire_timer_version: ref mut version,
-                ..
-            }) => {
-                if timer.is_none() {
-                    *timer = store_expire_timer.map(|(t, _)| t);
-                    *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
-                } else {
-                    *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
-                }
+        if let ContentBody::DataMessage(DataMessage {
+            expire_timer: ref mut timer,
+            expire_timer_version: ref mut version,
+            ..
+        }) = content_body
+        {
+            if timer.is_none() {
+                *timer = store_expire_timer.map(|(t, _)| t);
+                *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
+            } else {
+                *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
             }
-            _ => (),
         }
     }
 
@@ -1058,26 +1065,13 @@ impl<S: Store> Manager<S, Registered> {
         Ok(ciphertext)
     }
 
-    /// Gets an iterator over installed sticker packs
-    pub async fn sticker_packs(&self) -> Result<S::StickerPacksIter, Error<S::Error>> {
-        Ok(self.store.sticker_packs()?)
-    }
-
-    /// Gets a sticker pack by id
-    pub async fn sticker_pack(
-        &self,
-        pack_id: &[u8],
-    ) -> Result<Option<StickerPack>, Error<S::Error>> {
-        Ok(self.store.sticker_pack(pack_id)?)
-    }
-
     /// Gets the metadata of a sticker
     pub async fn sticker_metadata(
         &mut self,
         pack_id: &[u8],
         sticker_id: u32,
     ) -> Result<Option<Sticker>, Error<S::Error>> {
-        Ok(self.store.sticker_pack(pack_id)?.and_then(|pack| {
+        Ok(self.store.sticker_pack(pack_id).await?.and_then(|pack| {
             pack.manifest
                 .stickers
                 .iter()
@@ -1150,7 +1144,7 @@ impl<S: Store> Manager<S, Registered> {
         )
         .await?;
 
-        self.store.remove_sticker_pack(pack_id)?;
+        self.store.remove_sticker_pack(pack_id).await?;
 
         Ok(())
     }
@@ -1238,7 +1232,7 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<S::Error>> {
         match thread {
             Thread::Contact(uuid) => {
-                let contact = match self.store.contact_by_id(uuid) {
+                let contact = match self.store.contact_by_id(uuid).await {
                     Ok(contact) => contact,
                     Err(error) => {
                         info!(%error, %uuid, "error getting contact by id");
@@ -1250,7 +1244,7 @@ impl<S: Store> Manager<S, Registered> {
                     None => uuid.to_string(),
                 })
             }
-            Thread::Group(id) => match self.store.group(*id)? {
+            Thread::Group(id) => match self.store.group(*id).await? {
                 Some(group) => Ok(group.title),
                 None => Ok("".to_string()),
             },
@@ -1314,47 +1308,6 @@ impl<S: Store> Manager<S, Registered> {
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
     }
-
-    /// Deprecated methods
-
-    /// Get a single contact by its UUID
-    ///
-    /// Note: this only currently works when linked as secondary device (the contacts are sent by the primary device at linking time)
-    #[deprecated = "use the store handle directly"]
-    pub fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Error<S::Error>> {
-        Ok(self.store.contact_by_id(id)?)
-    }
-
-    /// Returns an iterator on contacts stored in the [Store].
-    #[deprecated = "use the store handle directly"]
-    pub fn contacts(
-        &self,
-    ) -> Result<impl Iterator<Item = Result<Contact, Error<S::Error>>>, Error<S::Error>> {
-        let iter = self.store.contacts()?;
-        Ok(iter.map(|r| r.map_err(Into::into)))
-    }
-
-    /// Get a group (either from the local cache, or fetch it remotely) using its master key
-    #[deprecated = "use the store handle directly"]
-    pub fn group(&self, master_key_bytes: &[u8]) -> Result<Option<Group>, Error<S::Error>> {
-        Ok(self.store.group(master_key_bytes.try_into()?)?)
-    }
-
-    /// Returns an iterator on groups stored in the [Store].
-    #[deprecated = "use the store handle directly"]
-    pub fn groups(&self) -> Result<S::GroupsIter, Error<S::Error>> {
-        Ok(self.store.groups()?)
-    }
-
-    /// Get a single message in a thread (identified by its server-side sent timestamp)
-    #[deprecated = "use the store handle directly"]
-    pub fn message(
-        &self,
-        thread: &Thread,
-        timestamp: u64,
-    ) -> Result<Option<Content>, Error<S::Error>> {
-        Ok(self.store.message(thread, timestamp)?)
-    }
 }
 
 /// The mode receiving messages stream
@@ -1377,7 +1330,7 @@ async fn upsert_group<S: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<S::Error>> {
-    let upsert_group = match store.group(master_key_bytes.try_into()?) {
+    let upsert_group = match store.group(master_key_bytes.try_into()?).await {
         Ok(Some(group)) => {
             debug!(group_name =% group.title, "loaded group from local db");
             group.revision < *revision
@@ -1394,7 +1347,7 @@ async fn upsert_group<S: Store>(
         match groups_manager.fetch_encrypted_group(master_key_bytes).await {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(error) = store.save_group(master_key_bytes.try_into()?, group) {
+                if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
                     error!(%error, "failed to save group");
                 }
             }
@@ -1404,7 +1357,7 @@ async fn upsert_group<S: Store>(
         }
     }
 
-    Ok(store.group(master_key_bytes.try_into()?)?)
+    Ok(store.group(master_key_bytes.try_into()?).await?)
 }
 
 /// Download and decrypt a sticker manifest
@@ -1452,7 +1405,7 @@ async fn download_sticker_pack<C: ContentsStore>(
     };
 
     // save everything in store
-    store.add_sticker_pack(&sticker_pack)?;
+    store.add_sticker_pack(&sticker_pack).await?;
 
     Ok(sticker_pack)
 }
@@ -1524,9 +1477,10 @@ async fn save_message<S: Store>(
                 // - insert a new contact with the profile information
                 // - update the contact if the profile key has changed
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
-                if store.contact_by_id(&sender_uuid)?.is_none()
+                if store.contact_by_id(&sender_uuid).await?.is_none()
                     || !store
-                        .profile_key(&sender_uuid)?
+                        .profile_key(&sender_uuid)
+                        .await?
                         .is_some_and(|p| p.bytes == profile_key.bytes)
                 {
                     let encrypted_profile = push_service
@@ -1563,15 +1517,17 @@ async fn save_message<S: Store>(
                     };
 
                     info!(%sender_uuid, "saved contact on first sight");
-                    store.save_contact(&contact)?;
+                    store.save_contact(&contact).await?;
                 }
 
-                store.upsert_profile_key(&sender_uuid, profile_key)?;
+                store.upsert_profile_key(&sender_uuid, profile_key).await?;
             }
 
             if let Some(expire_timer) = data_message.expire_timer {
                 let version = data_message.expire_timer_version.unwrap_or(1);
-                store.update_expire_timer(&thread, expire_timer, version)?;
+                store
+                    .update_expire_timer(&thread, expire_timer, version)
+                    .await?;
             }
 
             match data_message {
@@ -1583,10 +1539,10 @@ async fn save_message<S: Store>(
                     ..
                 } => {
                     // replace an existing message by an empty NullMessage
-                    if let Some(mut existing_msg) = store.message(&thread, *ts)? {
+                    if let Some(mut existing_msg) = store.message(&thread, *ts).await? {
                         existing_msg.metadata.sender.uuid = Uuid::nil();
                         existing_msg.body = NullMessage::default().into();
-                        store.save_message(&thread, existing_msg)?;
+                        store.save_message(&thread, existing_msg).await?;
                         debug!(%thread, ts, "message in thread deleted");
                         None
                     } else {
@@ -1613,7 +1569,7 @@ async fn save_message<S: Store>(
                 }),
             ..
         }) => {
-            if let Some(mut existing_msg) = store.message(&thread, ts)? {
+            if let Some(mut existing_msg) = store.message(&thread, ts).await? {
                 existing_msg.metadata = message.metadata;
                 existing_msg.body = ContentBody::DataMessage(data_message);
                 // TODO: find a way to mark the message as edited (so that it's visible in a client)
@@ -1656,7 +1612,7 @@ async fn save_message<S: Store>(
     };
 
     if let Some(message) = message {
-        store.save_message(&thread, message)?;
+        store.save_message(&thread, message).await?;
     }
 
     Ok(())
