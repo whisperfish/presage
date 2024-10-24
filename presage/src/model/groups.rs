@@ -50,11 +50,7 @@ impl From<libsignal_service::groups_v2::Group> for Group {
             revision: val.revision,
             members: val.members,
             pending_members: val.pending_members.into_iter().map(Into::into).collect(),
-            requesting_members: val
-                .requesting_members
-                .into_iter()
-                .map(Into::into)
-                .collect(),
+            requesting_members: val.requesting_members.into_iter().map(Into::into).collect(),
             invite_link_password: val.invite_link_password,
             description: val.description,
         }
