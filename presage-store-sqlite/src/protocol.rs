@@ -1,23 +1,28 @@
+use std::fmt::{self, Formatter};
+
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use presage::libsignal_service::{
     pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
     prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
     protocol::{
-        Direction, IdentityKey, IdentityKeyPair, KyberPreKeyId, KyberPreKeyRecord,
-        KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore,
-        SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
+        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
+        KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress,
+        ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
         SignalProtocolError as ProtocolError, SignedPreKeyId, SignedPreKeyRecord,
         SignedPreKeyStore,
     },
     ServiceAddress,
 };
+use sqlx::{query, query_scalar, Executor};
+use tracing::trace;
 
-use crate::SqliteStore;
+use crate::{SqliteStore, SqlxErrorExt};
 
 #[derive(Clone)]
 pub struct SqliteProtocolStore {
     pub(crate) store: SqliteStore,
+    pub(crate) identity_type: &'static str,
 }
 
 impl ProtocolStore for SqliteProtocolStore {}
@@ -29,7 +34,19 @@ impl SessionStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<SessionRecord>, ProtocolError> {
-        todo!()
+        let uuid = address.name();
+        let device_id: u32 = address.device_id().into();
+        query!(
+            "SELECT record FROM sessions WHERE address = $1 AND device_id = $2 AND identity = $3 LIMIT 1",
+            uuid,
+            device_id,
+            self.identity_type
+        )
+        .fetch_optional(&self.store.db)
+        .await
+        .into_protocol_error()?
+        .map(|record| SessionRecord::deserialize(&record.record))
+            .transpose()
     }
 
     /// Set the entry for `address` to the value of `record`.
@@ -38,7 +55,21 @@ impl SessionStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         record: &SessionRecord,
     ) -> Result<(), ProtocolError> {
-        todo!();
+        let uuid = address.name();
+        let device_id: u32 = address.device_id().into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO sessions ( address, device_id, identity, record ) VALUES ( $1, $2, $3, $4 )",
+            uuid,
+            device_id,
+            self.identity_type,
+            record_data,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 }
 
@@ -56,7 +87,19 @@ impl SessionStoreExt for SqliteProtocolStore {
 
     /// Remove a session record for a recipient ID + device ID tuple.
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), ProtocolError> {
-        todo!()
+        let uuid = address.name();
+        let device_id: u32 = address.device_id().into();
+        query!(
+            "DELETE FROM sessions WHERE address = $1 AND device_id = $2 AND identity = $3",
+            uuid,
+            device_id,
+            self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Remove the session records corresponding to all devices of a recipient
@@ -64,7 +107,18 @@ impl SessionStoreExt for SqliteProtocolStore {
     ///
     /// Returns the number of deleted sessions.
     async fn delete_all_sessions(&self, address: &ServiceAddress) -> Result<usize, ProtocolError> {
-        todo!()
+        let uuid = address.uuid.to_string();
+        let rows = query!(
+            "DELETE FROM sessions WHERE address = $1 AND identity = $3",
+            uuid,
+            self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?
+        .rows_affected();
+
+        Ok(rows as usize)
     }
 }
 
@@ -72,7 +126,12 @@ impl SessionStoreExt for SqliteProtocolStore {
 impl PreKeyStore for SqliteProtocolStore {
     /// Look up the pre-key corresponding to `prekey_id`.
     async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, ProtocolError> {
-        todo!()
+        let id: u32 = prekey_id.into();
+        query!("SELECT id, record FROM prekeys WHERE id = $1 LIMIT 1", id)
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()
+            .and_then(|record| PreKeyRecord::deserialize(&record.record))
     }
 
     /// Set the entry for `prekey_id` to the value of `record`.
@@ -81,12 +140,29 @@ impl PreKeyStore for SqliteProtocolStore {
         prekey_id: PreKeyId,
         record: &PreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            id,
+            record_data,
+            self.identity_type,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Remove the entry for `prekey_id`.
     async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = prekey_id.into();
+        let rows_affected = query!("DELETE FROM prekeys WHERE id = $1", id)
+            .execute(&self.store.db)
+            .await
+            .into_protocol_error()?;
+        Ok(())
     }
 }
 
@@ -94,27 +170,47 @@ impl PreKeyStore for SqliteProtocolStore {
 impl PreKeysStore for SqliteProtocolStore {
     /// ID of the next pre key
     async fn next_pre_key_id(&self) -> Result<u32, ProtocolError> {
-        todo!()
+        query_scalar!("SELECT MAX(id) FROM prekeys")
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()
+            .map(|record| record.map(|i| i as u32 + 1).unwrap_or_default())
     }
 
     /// ID of the next signed pre key
     async fn next_signed_pre_key_id(&self) -> Result<u32, ProtocolError> {
-        todo!()
+        query_scalar!("SELECT MAX(id) FROM signed_prekeys")
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()
+            .map(|record| record.map(|i| i as u32 + 1).unwrap_or_default())
     }
 
     /// ID of the next PQ pre key
     async fn next_pq_pre_key_id(&self) -> Result<u32, ProtocolError> {
-        todo!()
+        query!("SELECT MAX(id) as 'max_id: u32' FROM kyber_prekeys")
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()
+            .map(|record| record.max_id.map(|i| i + 1).unwrap_or_default())
     }
 
     /// number of signed pre-keys we currently have in store
     async fn signed_pre_keys_count(&self) -> Result<usize, ProtocolError> {
-        todo!()
+        let count = query_scalar!("SELECT COUNT(id) FROM signed_prekeys")
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()?;
+        Ok(count as usize)
     }
 
     /// number of kyber pre-keys we currently have in store
     async fn kyber_pre_keys_count(&self, last_resort: bool) -> Result<usize, ProtocolError> {
-        todo!()
+        let count = query_scalar!("SELECT COUNT(id) FROM kyber_prekeys")
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()?;
+        Ok(count as usize)
     }
 }
 
@@ -125,7 +221,15 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         &self,
         signed_prekey_id: SignedPreKeyId,
     ) -> Result<SignedPreKeyRecord, ProtocolError> {
-        todo!()
+        let id: u32 = signed_prekey_id.into();
+        query!(
+            "SELECT id, record FROM signed_prekeys WHERE id = $1 LIMIT 1",
+            id
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .and_then(|record| SignedPreKeyRecord::deserialize(&record.record))
     }
 
     /// Set the entry for `signed_prekey_id` to the value of `record`.
@@ -134,7 +238,19 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = signed_prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO signed_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            id,
+            record_data,
+            self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 }
 
@@ -145,7 +261,15 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         &self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> Result<KyberPreKeyRecord, ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        query!(
+            "SELECT id, record FROM kyber_prekeys WHERE id = $1 LIMIT 1",
+            id
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .and_then(|record| KyberPreKeyRecord::deserialize(&record.record))
     }
 
     /// Set the entry for `kyber_prekey_id` to the value of `record`.
@@ -154,7 +278,19 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO kyber_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            id,
+            record_data,
+            self.identity_type,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Mark the entry for `kyber_prekey_id` as "used".
@@ -174,37 +310,61 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO kyber_prekeys( id, record, is_last_resort, identity )
+            VALUES( $1, $2, true, $4 )",
+            id,
+            record_data,
+            self.identity_type,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     async fn load_last_resort_kyber_pre_keys(
         &self,
     ) -> Result<Vec<KyberPreKeyRecord>, ProtocolError> {
-        todo!()
+        let records = query!(
+            "SELECT * FROM kyber_prekeys WHERE is_last_resort = true AND identity = $1",
+            self.identity_type,
+        )
+        .fetch_all(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        let kyber_prekeys: Result<Vec<_>, ProtocolError> = records
+            .into_iter()
+            .map(|record| KyberPreKeyRecord::deserialize(&record.record))
+            .collect();
+
+        Ok(kyber_prekeys?)
     }
 
     async fn remove_kyber_pre_key(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        unimplemented!("unexpected in this flow")
     }
 
-    /// Analogous to markAllOneTimeKyberPreKeysStaleIfNecessary
     async fn mark_all_one_time_kyber_pre_keys_stale_if_necessary(
         &mut self,
         stale_time: DateTime<Utc>,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        unimplemented!("unexpected in this flow")
     }
 
-    /// Analogue of deleteAllStaleOneTimeKyberPreKeys
     async fn delete_all_stale_one_time_kyber_pre_keys(
         &mut self,
         threshold: DateTime<Utc>,
         min_count: usize,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        unimplemented!("unexpected in this flow")
     }
 }
 

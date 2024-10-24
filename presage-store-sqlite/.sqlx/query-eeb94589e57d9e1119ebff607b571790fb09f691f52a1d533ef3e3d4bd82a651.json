@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT * FROM kyber_prekeys WHERE is_last_resort = true AND identity = $1",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "record",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_last_resort",
+        "ordinal": 2,
+        "type_info": "Bool"
+      },
+      {
+        "name": "identity",
+        "ordinal": 3,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "eeb94589e57d9e1119ebff607b571790fb09f691f52a1d533ef3e3d4bd82a651"
+}

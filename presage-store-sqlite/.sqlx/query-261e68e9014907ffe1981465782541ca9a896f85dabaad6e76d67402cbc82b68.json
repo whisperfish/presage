@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM sessions WHERE address = $1 AND identity = $3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "261e68e9014907ffe1981465782541ca9a896f85dabaad6e76d67402cbc82b68"
+}

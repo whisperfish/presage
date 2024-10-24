@@ -3,11 +3,12 @@
 use std::path::Path;
 
 use presage::{
+    libsignal_service::protocol::SignalProtocolError,
     model::identity::OnNewIdentity,
     store::{StateStore, Store},
 };
 use protocol::SqliteProtocolStore;
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool};
+use sqlx::{migrate::MigrateDatabase, sqlite::SqliteConnectOptions, Sqlite, SqlitePool};
 
 mod content;
 mod error;
@@ -37,6 +38,16 @@ impl SqliteStore {
     }
 }
 
+trait SqlxErrorExt<T> {
+    fn into_protocol_error(self) -> Result<T, SignalProtocolError>;
+}
+
+impl<T> SqlxErrorExt<T> for Result<T, sqlx::Error> {
+    fn into_protocol_error(self) -> Result<T, SignalProtocolError> {
+        self.map_err(|error| SignalProtocolError::InvalidState("sqlite", error.to_string()))
+    }
+}
+
 impl Store for SqliteStore {
     type Error = SqliteStoreError;
 
@@ -51,12 +62,14 @@ impl Store for SqliteStore {
     fn aci_protocol_store(&self) -> Self::AciStore {
         SqliteProtocolStore {
             store: self.clone(),
+            identity_type: "aci",
         }
     }
 
     fn pni_protocol_store(&self) -> Self::PniStore {
         SqliteProtocolStore {
             store: self.clone(),
+            identity_type: "pni",
         }
     }
 }
