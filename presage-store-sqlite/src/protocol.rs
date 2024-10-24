@@ -12,8 +12,10 @@ use presage::libsignal_service::{
     },
     ServiceAddress,
 };
+use sqlx::{query, Executor};
+use tracing::trace;
 
-use crate::SqliteStore;
+use crate::{SqliteStore, SqlxErrorExt};
 
 #[derive(Clone)]
 pub struct SqliteProtocolStore {
@@ -72,7 +74,15 @@ impl SessionStoreExt for SqliteProtocolStore {
 impl PreKeyStore for SqliteProtocolStore {
     /// Look up the pre-key corresponding to `prekey_id`.
     async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, ProtocolError> {
-        todo!()
+        let id: u32 = prekey_id.into();
+        query!(
+            "SELECT id, record FROM prekey_records WHERE id = $1 LIMIT 1",
+            id
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .and_then(|record| PreKeyRecord::deserialize(&record.record))
     }
 
     /// Set the entry for `prekey_id` to the value of `record`.
@@ -81,12 +91,28 @@ impl PreKeyStore for SqliteProtocolStore {
         prekey_id: PreKeyId,
         record: &PreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO prekey_records( id, record ) VALUES( ?1, ?2 )",
+            id,
+            record_data
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Remove the entry for `prekey_id`.
     async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = prekey_id.into();
+        let rows_affected = query!("DELETE FROM prekey_records WHERE id = $1", id)
+            .execute(&self.store.db)
+            .await
+            .into_protocol_error()?;
+        Ok(())
     }
 }
 
