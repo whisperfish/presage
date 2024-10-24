@@ -87,7 +87,19 @@ impl SessionStoreExt for SqliteProtocolStore {
 
     /// Remove a session record for a recipient ID + device ID tuple.
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), ProtocolError> {
-        todo!()
+        let uuid = address.name();
+        let device_id: u32 = address.device_id().into();
+        query!(
+            "DELETE FROM sessions WHERE address = $1 AND device_id = $2 AND identity = $3",
+            uuid,
+            device_id,
+            self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Remove the session records corresponding to all devices of a recipient
@@ -95,7 +107,18 @@ impl SessionStoreExt for SqliteProtocolStore {
     ///
     /// Returns the number of deleted sessions.
     async fn delete_all_sessions(&self, address: &ServiceAddress) -> Result<usize, ProtocolError> {
-        todo!()
+        let uuid = address.uuid.to_string();
+        let rows = query!(
+            "DELETE FROM sessions WHERE address = $1 AND identity = $3",
+            uuid,
+            self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?
+        .rows_affected();
+
+        Ok(rows as usize)
     }
 }
 
