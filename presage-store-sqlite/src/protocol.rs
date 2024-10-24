@@ -121,20 +121,20 @@ impl PreKeyStore for SqliteProtocolStore {
 impl PreKeysStore for SqliteProtocolStore {
     /// ID of the next pre key
     async fn next_pre_key_id(&self) -> Result<u32, ProtocolError> {
-        query!("SELECT MAX(id) as 'max_id: u32' FROM prekeys")
+        query_scalar!("SELECT MAX(id) FROM prekeys")
             .fetch_one(&self.store.db)
             .await
             .into_protocol_error()
-            .map(|record| record.max_id.map(|i| i + 1).unwrap_or_default())
+            .map(|record| record.map(|i| i as u32 + 1).unwrap_or_default())
     }
 
     /// ID of the next signed pre key
     async fn next_signed_pre_key_id(&self) -> Result<u32, ProtocolError> {
-        query!("SELECT MAX(id) as 'max_id: u32' FROM signed_prekeys")
+        query_scalar!("SELECT MAX(id) FROM signed_prekeys")
             .fetch_one(&self.store.db)
             .await
             .into_protocol_error()
-            .map(|record| record.max_id.map(|i| i + 1).unwrap_or_default())
+            .map(|record| record.map(|i| i as u32 + 1).unwrap_or_default())
     }
 
     /// ID of the next PQ pre key
@@ -212,7 +212,15 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         &self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> Result<KyberPreKeyRecord, ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        query!(
+            "SELECT id, record FROM kyber_prekeys WHERE id = $1 LIMIT 1",
+            id
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .and_then(|record| KyberPreKeyRecord::deserialize(&record.record))
     }
 
     /// Set the entry for `kyber_prekey_id` to the value of `record`.
@@ -221,7 +229,19 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO kyber_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            id,
+            record_data,
+            self.identity_type,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Mark the entry for `kyber_prekey_id` as "used".
@@ -241,37 +261,61 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO kyber_prekeys( id, record, is_last_resort, identity )
+            VALUES( $1, $2, true, $4 )",
+            id,
+            record_data,
+            self.identity_type,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     async fn load_last_resort_kyber_pre_keys(
         &self,
     ) -> Result<Vec<KyberPreKeyRecord>, ProtocolError> {
-        todo!()
+        let records = query!(
+            "SELECT * FROM kyber_prekeys WHERE is_last_resort = true AND identity = $1",
+            self.identity_type,
+        )
+        .fetch_all(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        let kyber_prekeys: Result<Vec<_>, ProtocolError> = records
+            .into_iter()
+            .map(|record| KyberPreKeyRecord::deserialize(&record.record))
+            .collect();
+
+        Ok(kyber_prekeys?)
     }
 
     async fn remove_kyber_pre_key(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        unimplemented!("unexpected in this flow")
     }
 
-    /// Analogous to markAllOneTimeKyberPreKeysStaleIfNecessary
     async fn mark_all_one_time_kyber_pre_keys_stale_if_necessary(
         &mut self,
         stale_time: DateTime<Utc>,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        unimplemented!("unexpected in this flow")
     }
 
-    /// Analogue of deleteAllStaleOneTimeKyberPreKeys
     async fn delete_all_stale_one_time_kyber_pre_keys(
         &mut self,
         threshold: DateTime<Utc>,
         min_count: usize,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        unimplemented!("unexpected in this flow")
     }
 }
 
