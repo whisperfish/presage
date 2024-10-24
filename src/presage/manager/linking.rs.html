@@ -178,6 +178,7 @@
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
 <a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>futures::channel::{mpsc, oneshot};
 <span class="kw">use </span>futures::{future, StreamExt};
 <span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
@@ -209,7 +210,8 @@
     /// use futures::{channel::oneshot, future, StreamExt};
     /// use presage::libsignal_service::configuration::SignalServers;
     /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
+    /// use presage::model::identity::OnNewIdentity;
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {

@@ -140,6 +140,8 @@
 <a href="#140" id="140">140</a>
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
 <span class="kw">use </span>libsignal_service::push_service::{PushService, VerificationTransport};
@@ -180,7 +182,9 @@
     /// };
     /// use presage::manager::RegistrationOptions;
     /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
+    /// use presage::model::identity::OnNewIdentity;
+    ///
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
