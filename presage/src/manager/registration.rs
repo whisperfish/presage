@@ -38,7 +38,9 @@ impl<S: Store> Manager<S, Registration> {
     /// };
     /// use presage::manager::RegistrationOptions;
     /// use presage::Manager;
-    /// use presage_store_sled::{MigrationConflictStrategy, OnNewIdentity, SledStore};
+    /// use presage::model::identity::OnNewIdentity;
+    ///
+    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {

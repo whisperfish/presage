@@ -27,6 +27,7 @@ use presage::libsignal_service::ServiceAddress;
 use presage::manager::ReceivingMode;
 use presage::model::contacts::Contact;
 use presage::model::groups::Group;
+use presage::model::identity::OnNewIdentity;
 use presage::proto::receipt_message;
 use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
@@ -39,7 +40,6 @@ use presage::{
     Manager,
 };
 use presage_store_sled::MigrationConflictStrategy;
-use presage_store_sled::OnNewIdentity;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;

@@ -16,6 +16,7 @@ use presage::{
         },
     },
     manager::RegistrationData,
+    model::identity::OnNewIdentity,
     store::{ContentsStore, StateStore, Store},
 };
 use protocol::{AciSledStore, PniSledStore, SledProtocolStore, SledTrees};
@@ -99,12 +100,6 @@ impl SchemaVersion {
             _ => unreachable!("oops, this not supposed to happen!"),
         })
     }
-}
-
-#[derive(Debug, Clone)]
-pub enum OnNewIdentity {
-    Reject,
-    Trust,
 }
 
 impl SledStore {
