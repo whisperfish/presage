@@ -1,0 +1,13 @@
+[package]
+name = "presage-store-sqlite"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+async-trait = "0.1.83"
+chrono = "0.4.38"
+presage = { path = "../presage" }
+presage-store-cipher = { path = "../presage-store-cipher", optional = true }
+
+sqlx = { version = "0.8.2", features = ["sqlite"] }
+thiserror = "1.0.65"
