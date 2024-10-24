@@ -34,7 +34,19 @@ impl SessionStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<SessionRecord>, ProtocolError> {
-        todo!()
+        let uuid = address.name();
+        let device_id: u32 = address.device_id().into();
+        query!(
+            "SELECT record FROM sessions WHERE address = $1 AND device_id = $2 AND identity = $3 LIMIT 1",
+            uuid,
+            device_id,
+            self.identity_type
+        )
+        .fetch_optional(&self.store.db)
+        .await
+        .into_protocol_error()?
+        .map(|record| SessionRecord::deserialize(&record.record))
+            .transpose()
     }
 
     /// Set the entry for `address` to the value of `record`.
@@ -43,7 +55,21 @@ impl SessionStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         record: &SessionRecord,
     ) -> Result<(), ProtocolError> {
-        todo!();
+        let uuid = address.name();
+        let device_id: u32 = address.device_id().into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO sessions ( address, device_id, identity, record ) VALUES ( $1, $2, $3, $4 )",
+            uuid,
+            device_id,
+            self.identity_type,
+            record_data,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 }
 

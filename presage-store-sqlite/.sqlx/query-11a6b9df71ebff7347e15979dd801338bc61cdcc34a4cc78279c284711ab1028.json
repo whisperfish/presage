@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record FROM sessions WHERE address = $1 AND device_id = $2 AND identity = $3 LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "record",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "11a6b9df71ebff7347e15979dd801338bc61cdcc34a4cc78279c284711ab1028"
+}
