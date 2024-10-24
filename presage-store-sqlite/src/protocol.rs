@@ -4,9 +4,9 @@ use presage::libsignal_service::{
     pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
     prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
     protocol::{
-        Direction, IdentityKey, IdentityKeyPair, KyberPreKeyId, KyberPreKeyRecord,
-        KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore,
-        SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
+        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
+        KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress,
+        ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
         SignalProtocolError as ProtocolError, SignedPreKeyId, SignedPreKeyRecord,
         SignedPreKeyStore,
     },
@@ -151,7 +151,15 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         &self,
         signed_prekey_id: SignedPreKeyId,
     ) -> Result<SignedPreKeyRecord, ProtocolError> {
-        todo!()
+        let id: u32 = signed_prekey_id.into();
+        query!(
+            "SELECT id, record FROM signed_prekey_records WHERE id = $1 LIMIT 1",
+            id
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .and_then(|record| SignedPreKeyRecord::deserialize(&record.record))
     }
 
     /// Set the entry for `signed_prekey_id` to the value of `record`.
@@ -160,7 +168,18 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = signed_prekey_id.into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO signed_prekey_records( id, record ) VALUES( ?1, ?2 )",
+            id,
+            record_data
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 }
 
