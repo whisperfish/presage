@@ -25,14 +25,16 @@ impl ContentsStore for SqliteStore {
 
     type ContactsIter = Box<dyn Iterator<Item = Result<Contact, Self::ContentsStoreError>>>;
 
-    type GroupsIter = DummyIter<Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>;
+    type GroupsIter =
+        Box<dyn Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>>;
 
-    type MessagesIter = DummyIter<Result<Content, Self::ContentsStoreError>>;
+    type MessagesIter = Box<dyn Iterator<Item = Result<Content, Self::ContentsStoreError>>>;
 
-    type StickerPacksIter = DummyIter<Result<StickerPack, Self::ContentsStoreError>>;
+    type StickerPacksIter = Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>>;
 
     async fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        query!("DELETE FROM profiles").execute(&self.db).await?;
+        Ok(())
     }
 
     async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
@@ -321,18 +323,6 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::ContentsStoreError> {
-        todo!()
-    }
-}
-
-pub struct DummyIter<T> {
-    _data: PhantomData<T>,
-}
-
-impl<T> Iterator for DummyIter<T> {
-    type Item = T;
-
-    fn next(&mut self) -> Option<Self::Item> {
         todo!()
     }
 }
