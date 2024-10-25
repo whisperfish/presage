@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record FROM sender_keys WHERE address = $1 AND device = $2  AND distribution_id = $3 AND identity = $4",
+  "describe": {
+    "columns": [
+      {
+        "name": "record",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "55deb2155c89853ac179f0cf85b181f12233ad20a6af32514c25fcd646b7ff19"
+}

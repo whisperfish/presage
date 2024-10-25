@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO sender_keys (address, device, distribution_id, record, identity) VALUES ($1, $2, $3, $4, $5)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "113b7ed248bfc820dc2a9a90354c07b339ad028dcfad92c928dd381d891e3ad0"
+}

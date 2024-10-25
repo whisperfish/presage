@@ -671,7 +671,7 @@ impl<S: Store> Manager<S, Registered> {
                                             info!("saving contacts");
                                             for contact in contacts.filter_map(Result::ok) {
                                                 if let Err(error) =
-                                                    state.store.save_contact(&contact.into()).await
+                                                    state.store.save_contact(contact.into()).await
                                                 {
                                                     warn!(%error, "failed to save contacts");
                                                     break;
@@ -1517,7 +1517,7 @@ async fn save_message<S: Store>(
                     };
 
                     info!(%sender_uuid, "saved contact on first sight");
-                    store.save_contact(&contact).await?;
+                    store.save_contact(contact).await?;
                 }
 
                 store.upsert_profile_key(&sender_uuid, profile_key).await?;

@@ -299,7 +299,17 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let id: u32 = kyber_prekey_id.into();
+        query!(
+            "DELETE FROM kyber_prekeys WHERE id = $1 AND identity = $2",
+            id,
+            self.identity_type,
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 }
 
@@ -395,19 +405,41 @@ impl IdentityKeyStore for SqliteProtocolStore {
     async fn save_identity(
         &mut self,
         address: &ProtocolAddress,
-        identity: &IdentityKey,
+        identity_key: &IdentityKey,
     ) -> Result<bool, ProtocolError> {
-        todo!()
+        let previous = self.get_identity(address).await?;
+        let ret = previous.as_ref() == Some(identity_key);
+
+        let address = address.name();
+        let record_data = identity_key.serialize();
+        query!(
+            "INSERT INTO identities ( address, record, identity ) VALUES ( $1, $2, $3 )",
+            address,
+            record_data,
+            self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(ret)
     }
 
+    // TODO: take this out of the store trait!
     /// Return whether an identity is trusted for the role specified by `direction`.
     async fn is_trusted_identity(
         &self,
         address: &ProtocolAddress,
-        identity: &IdentityKey,
+        identity_key: &IdentityKey,
         direction: Direction,
     ) -> Result<bool, ProtocolError> {
-        todo!()
+        if let Some(trusted_key) = self.get_identity(address).await? {
+            Ok(trusted_key == *identity_key)
+        } else {
+            // Trust on first use
+            // TODO: we should most likely expose this behaviour as a setting
+            Ok(true)
+        }
     }
 
     /// Return the public identity for the given `address`, if known.
@@ -415,7 +447,17 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<IdentityKey>, ProtocolError> {
-        todo!()
+        let address_name = address.name();
+        query!(
+            "SELECT record FROM identities WHERE address = $1 AND identity = $2",
+            address_name,
+            self.identity_type
+        )
+        .fetch_optional(&self.store.db)
+        .await
+        .into_protocol_error()?
+        .map(|record| IdentityKey::decode(&record.record))
+        .transpose()
     }
 }
 
@@ -426,10 +468,24 @@ impl SenderKeyStore for SqliteProtocolStore {
         &mut self,
         sender: &ProtocolAddress,
         distribution_id: Uuid,
-        // TODO: pass this by value!
         record: &SenderKeyRecord,
     ) -> Result<(), ProtocolError> {
-        todo!()
+        let address = sender.name();
+        let device_id: u32 = sender.device_id().into();
+        let record_data = record.serialize()?;
+        query!(
+            "INSERT INTO sender_keys (address, device, distribution_id, record, identity) VALUES ($1, $2, $3, $4, $5)", 
+            address,
+            device_id,
+            distribution_id,
+            record_data,
+             self.identity_type
+        )
+        .execute(&self.store.db)
+        .await
+        .into_protocol_error()?;
+
+        Ok(())
     }
 
     /// Look up the entry corresponding to `(sender, distribution_id)`.
@@ -438,6 +494,18 @@ impl SenderKeyStore for SqliteProtocolStore {
         sender: &ProtocolAddress,
         distribution_id: Uuid,
     ) -> Result<Option<SenderKeyRecord>, ProtocolError> {
-        todo!()
+        let address = sender.name();
+        let device_id: u32 = sender.device_id().into();
+        query!(
+            "SELECT record FROM sender_keys WHERE address = $1 AND device = $2  AND distribution_id = $3 AND identity = $4", 
+            address,
+            device_id,
+            distribution_id,
+            self.identity_type
+        )
+        .fetch_optional(&self.store.db) .await
+        .into_protocol_error()?
+        .map(|record| SenderKeyRecord::deserialize(&record.record))
+        .transpose()
     }
 }

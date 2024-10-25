@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO identities ( address, record, identity ) VALUES ( $1, $2, $3 )",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "cef653d4d400e9e153b4dcf281ef5b62ec49534742a292116f74ea9672f85c87"
+}
