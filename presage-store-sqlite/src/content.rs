@@ -8,6 +8,7 @@ use presage::{
             phonenumber::{self, PhoneNumber},
             Content, ProfileKey,
         },
+        profile_name::ProfileName,
         zkgroup::{self, GroupMasterKeyBytes},
         Profile,
     },
@@ -15,7 +16,7 @@ use presage::{
     proto::{verified, Verified},
     store::{ContentsStore, StickerPack, Thread},
 };
-use sqlx::{query, types::Uuid};
+use sqlx::{query, query_as, query_scalar, types::Uuid};
 
 use crate::{SqliteStore, SqliteStoreError};
 
@@ -91,7 +92,7 @@ impl ContentsStore for SqliteStore {
         let mut tx = self.db.begin().await?;
 
         query!(
-            "INSERT INTO contacts(uuid, phone_number, name, color, profile_key, expire_timer, expire_timer_version, inbox_position, archived, avatar)
+            "INSERT INTO contacts
             VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
             contact.uuid,
             phone_number,
@@ -103,7 +104,9 @@ impl ContentsStore for SqliteStore {
             contact.inbox_position,
             contact.archived,
             avatar_bytes,
-        ).execute(&mut *tx).await?;
+        )
+        .execute(&mut *tx)
+        .await?;
 
         let Verified {
             destination_aci,
@@ -133,7 +136,8 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError> {
-        let contacts = query!(
+        let contacts = query_as!(
+            SqlContact,
             "SELECT *
                 FROM contacts c
                 LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci 
@@ -143,38 +147,7 @@ impl ContentsStore for SqliteStore {
         .fetch_all(&self.db)
         .await?
         .into_iter()
-        .map(|r| {
-            Ok(Contact {
-                uuid: r.uuid.parse()?,
-                phone_number: r
-                    .phone_number
-                    .map(|p| phonenumber::parse(None, &p))
-                    .transpose()?,
-                name: r.name,
-                color: r.color,
-                verified: Verified {
-                    destination_aci: r.destination_aci,
-                    identity_key: r.identity_key,
-                    state: r.is_verified.map(|v| {
-                        match v {
-                            true => verified::State::Verified,
-                            false => verified::State::Unverified,
-                        }
-                        .into()
-                    }),
-                    null_message: None,
-                },
-                profile_key: r.profile_key,
-                expire_timer: r.expire_timer as u32,
-                expire_timer_version: r.expire_timer_version as u32,
-                inbox_position: r.inbox_position as u32,
-                archived: r.archived,
-                avatar: r.avatar.map(|b| Attachment {
-                    content_type: "application/octet-stream".into(),
-                    reader: Bytes::from(b),
-                }),
-            })
-        });
+        .map(TryInto::try_into);
 
         Ok(Box::new(contacts))
     }
@@ -183,7 +156,8 @@ impl ContentsStore for SqliteStore {
         &self,
         uuid: &Uuid,
     ) -> Result<Option<presage::model::contacts::Contact>, Self::ContentsStoreError> {
-        query!(
+        query_as!(
+            SqlContact,
             "SELECT *
                 FROM contacts c
                 LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
@@ -195,38 +169,7 @@ impl ContentsStore for SqliteStore {
         )
         .fetch_optional(&self.db)
         .await?
-        .map(|r| {
-            Ok(Contact {
-                uuid: r.uuid.parse()?,
-                phone_number: r
-                    .phone_number
-                    .map(|p| phonenumber::parse(None, &p))
-                    .transpose()?,
-                name: r.name,
-                color: r.color,
-                verified: Verified {
-                    destination_aci: Some(r.destination_aci),
-                    identity_key: Some(r.identity_key),
-                    state: r.is_verified.map(|v| {
-                        match v {
-                            true => verified::State::Verified,
-                            false => verified::State::Unverified,
-                        }
-                        .into()
-                    }),
-                    null_message: None,
-                },
-                profile_key: r.profile_key,
-                expire_timer: r.expire_timer as u32,
-                expire_timer_version: r.expire_timer_version as u32,
-                inbox_position: r.inbox_position as u32,
-                archived: r.archived,
-                avatar: r.avatar.map(|b| Attachment {
-                    content_type: "application/octet-stream".into(),
-                    reader: Bytes::from(b),
-                }),
-            })
-        })
+        .map(TryInto::try_into)
         .transpose()
     }
 
@@ -274,22 +217,50 @@ impl ContentsStore for SqliteStore {
         uuid: &Uuid,
         key: ProfileKey,
     ) -> Result<bool, Self::ContentsStoreError> {
-        todo!()
+        let profile_key_bytes = key.get_bytes();
+        let profile_key_slice = profile_key_bytes.as_slice();
+        let rows_upserted = query!(
+            "INSERT INTO profile_keys VALUES($1, $2)",
+            uuid,
+            profile_key_slice
+        )
+        .execute(&self.db)
+        .await?
+        .rows_affected();
+        Ok(rows_upserted == 1)
     }
 
     async fn profile_key(
         &self,
         uuid: &Uuid,
     ) -> Result<Option<ProfileKey>, Self::ContentsStoreError> {
-        todo!()
+        let profile_key =
+            query_scalar!("SELECT key FROM profile_keys WHERE uuid = $1 LIMIT 1", uuid)
+                .fetch_optional(&self.db)
+                .await?
+                .and_then(|key_bytes| key_bytes.try_into().ok().map(ProfileKey::create));
+        Ok(profile_key)
     }
 
     async fn save_profile(
         &mut self,
         uuid: Uuid,
-        key: ProfileKey,
+        _key: ProfileKey,
         profile: Profile,
     ) -> Result<(), Self::ContentsStoreError> {
+        let given_name = profile.name.clone().map(|n| n.given_name);
+        let family_name = profile.name.map(|n| n.family_name).flatten();
+        query!(
+            "INSERT INTO profiles VALUES($1, $2, $3, $4, $5, $6)",
+            uuid,
+            given_name,
+            family_name,
+            profile.about,
+            profile.about_emoji,
+            profile.avatar
+        )
+        .execute(&self.db)
+        .await?;
         todo!()
     }
 
@@ -298,7 +269,20 @@ impl ContentsStore for SqliteStore {
         uuid: Uuid,
         key: ProfileKey,
     ) -> Result<Option<Profile>, Self::ContentsStoreError> {
-        todo!()
+        let key_bytes = key.get_bytes();
+        let key_slice = key_bytes.as_slice();
+        query_as!(
+            SqlProfile,
+            "SELECT pk.key, p.* FROM profile_keys pk
+             LEFT JOIN profiles p ON pk.uuid = p.uuid
+             WHERE pk.uuid = $1
+             LIMIT 1",
+            uuid
+        )
+        .fetch_optional(&self.db)
+        .await?
+        .map(TryInto::try_into)
+        .transpose()
     }
 
     async fn save_profile_avatar(
@@ -350,5 +334,85 @@ impl<T> Iterator for DummyIter<T> {
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
+    }
+}
+
+struct SqlContact {
+    uuid: String,
+    phone_number: Option<String>,
+    name: String,
+    color: Option<String>,
+    profile_key: Vec<u8>,
+    expire_timer: i64,
+    expire_timer_version: i64,
+    inbox_position: i64,
+    archived: bool,
+    avatar: Option<Vec<u8>>,
+
+    destination_aci: Option<String>,
+    identity_key: Option<Vec<u8>>,
+    is_verified: Option<bool>,
+}
+
+impl TryInto<Contact> for SqlContact {
+    type Error = SqliteStoreError;
+
+    fn try_into(self) -> Result<Contact, Self::Error> {
+        Ok(Contact {
+            uuid: self.uuid.parse()?,
+            phone_number: self
+                .phone_number
+                .map(|p| phonenumber::parse(None, &p))
+                .transpose()?,
+            name: self.name,
+            color: self.color,
+            verified: Verified {
+                destination_aci: self.destination_aci,
+                identity_key: self.identity_key,
+                state: self.is_verified.map(|v| {
+                    match v {
+                        true => verified::State::Verified,
+                        false => verified::State::Unverified,
+                    }
+                    .into()
+                }),
+                null_message: None,
+            },
+            profile_key: self.profile_key,
+            expire_timer: self.expire_timer as u32,
+            expire_timer_version: self.expire_timer_version as u32,
+            inbox_position: self.inbox_position as u32,
+            archived: self.archived,
+            avatar: self.avatar.map(|b| Attachment {
+                content_type: "application/octet-stream".into(),
+                reader: Bytes::from(b),
+            }),
+        })
+    }
+}
+
+struct SqlProfile {
+    uuid: String,
+    key: Vec<u8>,
+    given_name: Option<String>,
+    family_name: Option<String>,
+    about: Option<String>,
+    about_emoji: Option<String>,
+    avatar: Option<String>,
+}
+
+impl TryInto<Profile> for SqlProfile {
+    type Error = SqliteStoreError;
+
+    fn try_into(self) -> Result<Profile, Self::Error> {
+        Ok(Profile {
+            name: self.given_name.map(|gn| ProfileName {
+                given_name: gn,
+                family_name: self.family_name,
+            }),
+            about: self.about,
+            about_emoji: self.about_emoji,
+            avatar: self.avatar,
+        })
     }
 }

@@ -100,3 +100,22 @@ CREATE TABLE contacts_verification_state(
     FOREIGN KEY(destination_aci) REFERENCES contacts(uuid) ON UPDATE CASCADE,
     PRIMARY KEY(destination_aci) ON CONFLICT REPLACE
 );
+
+CREATE TABLE profile_keys(
+    uuid VARCHAR(36) NOT NULL,
+    key BLOB NOT NULL,
+
+    PRIMARY KEY(uuid) ON CONFLICT REPLACE
+);
+
+CREATE TABLE profiles(
+    uuid VARCHAR(36) NOT NULL,
+    given_name TEXT,
+    family_name TEXT,
+    about TEXT,
+    about_emoji TEXT,
+    avatar TEXT,
+
+    FOREIGN KEY(uuid) REFERENCES profile_keys(uuid) ON UPDATE CASCADE
+    PRIMARY KEY(uuid) ON CONFLICT REPLACE
+);
