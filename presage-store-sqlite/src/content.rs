@@ -52,9 +52,35 @@ impl ContentsStore for SqliteStore {
     async fn save_message(
         &self,
         thread: &Thread,
-        message: Content,
+        Content { metadata, body }: Content,
     ) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let mut tx = self.db.begin().await?;
+
+        match thread {
+            Thread::Contact(uuid) => {
+                query!(
+                    "INSERT INTO threads(recipient_id, group_id) VALUES (?, NULL)",
+                    metadata.sender.uuid,
+                )
+                .execute(&mut *tx)
+                .await?
+            }
+            Thread::Group(master_key_bytes) => {
+                let master_key_bytes = master_key_bytes.as_slice();
+                query!(
+                    "INSERT INTO threads(group_id)
+                       SELECT id FROM groups
+                        WHERE groups.master_key = ?
+                    ",
+                    master_key_bytes
+                )
+                .execute(&mut *tx)
+                .await?
+            }
+        };
+
+        tx.commit().await?;
+        Ok(())
     }
 
     async fn delete_message(

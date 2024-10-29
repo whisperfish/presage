@@ -57,7 +57,7 @@ CREATE TABLE sender_keys (
 CREATE TABLE groups (
     id VARCHAR(64) PRIMARY KEY NOT NULL,
     name TEXT NOT NULL,
-    master_key VARCHAR(64) NOT NULL,
+    master_key BLOB NOT NULL,
     revision INTEGER NOT NULL DEFAULT 0,
     invite_link_password BLOB,
     access_required_for_attributes INTEGER NOT NULL DEFAULT 0,
@@ -75,7 +75,7 @@ CREATE TABLE group_members (
     role INTEGER NOT NULL,
 
     FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE,
-    FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE RESTRICT,
+    -- FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE RESTRICT,
     PRIMARY KEY(group_id, recipient_id)
 );
 CREATE INDEX group_member_recipient_id ON group_members(recipient_id DESC);
@@ -127,17 +127,16 @@ CREATE TABLE profiles(
 
 -- Threads
 CREATE TABLE threads (
-    id INTEGER NOT NULL,
-    group_id VARCHAR(64),
-    recipient_id VARCHAR(36),
+    group_id VARCHAR(64) DEFAULT NULL,
+    recipient_id VARCHAR(36) DEFAULT NULL,
 
-    PRIMARY KEY(id, group_id, recipient_id) ON CONFLICT IGNORE,
-    FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE,
-    FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE CASCADE
+    PRIMARY KEY(group_id, recipient_id) ON CONFLICT IGNORE,
+    FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE
+    -- FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE CASCADE
 );
 
 CREATE TABLE thread_messages(
-    id INTEGER NOT NULL,
+    ts TIMESTAMP NOT NULL,
     thread_id INTEGER NOT NULL,
 
     sender_service_id TEXT NOT NULL,
@@ -148,6 +147,6 @@ CREATE TABLE thread_messages(
 
     content_body BLOB NOT NULL,
 
-    PRIMARY KEY(id, thread_id) ON CONFLICT REPLACE,
+    PRIMARY KEY(ts, thread_id) ON CONFLICT REPLACE,
     FOREIGN KEY(thread_id) REFERENCES threads(id) ON UPDATE CASCADE
 );
