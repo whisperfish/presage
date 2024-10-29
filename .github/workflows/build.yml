@@ -37,6 +37,15 @@ jobs:
       - name: Configure CI cache
         uses: Swatinem/rust-cache@v2
 
+      - name: Prepare .sqlx files
+        working-directory: presage-store-sqlite
+        env:
+          DATABASE_URL: sqlite:presage.sqlite
+        run: |
+          cargo install --locked sqlx-cli
+          yes | cargo sqlx database reset
+          cargo sqlx prepare
+
       - name: Build
         run: cargo build --all-targets
 
@@ -80,8 +89,17 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y protobuf-compiler
 
-      - name: Setup CI cache
+      - name: Configure CI cache
         uses: Swatinem/rust-cache@v2
+
+      - name: Prepare .sqlx files
+        working-directory: presage-store-sqlite
+        env:
+          DATABASE_URL: sqlite:presage.sqlite
+        run: |
+          cargo install --locked sqlx-cli
+          yes | cargo sqlx database reset
+          cargo sqlx prepare
 
       - name: Run clippy lints
         run: cargo clippy
