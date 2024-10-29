@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build_and_test:
-    name: cargo ${{ matrix.cargo_flags }}
+    name: cargo clippy + test
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -D warnings
@@ -31,8 +31,8 @@ jobs:
 
       - name: Install protobuf
         run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
+          sudo apt-get update -qq
+          sudo apt-get install -yqq protobuf-compiler
 
       - name: Configure CI cache
         uses: Swatinem/rust-cache@v2
@@ -46,8 +46,8 @@ jobs:
           yes | cargo sqlx database reset
           cargo sqlx prepare
 
-      - name: Build
-        run: cargo build --all-targets
+      - name: Clippy
+        run: cargo clippy --all-targets
 
       - name: Test
         run: cargo test --all-targets
@@ -70,36 +70,3 @@ jobs:
 
       - name: Check code format
         run: cargo fmt -- --check
-
-  clippy:
-    name: clippy
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Rust toolchain
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy
-
-      - name: Install protobuf
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-
-      - name: Configure CI cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Prepare .sqlx files
-        working-directory: presage-store-sqlite
-        env:
-          DATABASE_URL: sqlite:presage.sqlite
-        run: |
-          cargo install --locked sqlx-cli
-          yes | cargo sqlx database reset
-          cargo sqlx prepare
-
-      - name: Run clippy lints
-        run: cargo clippy
