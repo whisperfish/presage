@@ -18,22 +18,28 @@ CREATE TABLE identities (
 );
 
 CREATE TABLE prekeys (
-    id INTEGER PRIMARY KEY ON CONFLICT REPLACE NOT NULL,
+    id INTEGER NOT NULL,
     record BLOB NOT NULL,
-    identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL
+    identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL,
+
+    PRIMARY KEY(id, identity) ON CONFLICT REPLACE
 );
 
 CREATE TABLE signed_prekeys (
-    id INTEGER PRIMARY KEY ON CONFLICT REPLACE NOT NULL,
+    id INTEGER,
     record BLOB NOT NULL,
-    identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL DEFAULT 'aci'
+    identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL DEFAULT 'aci',
+
+    PRIMARY KEY(id, identity) ON CONFLICT REPLACE
 );
 
 CREATE TABLE kyber_prekeys (
-    id INTEGER PRIMARY KEY ON CONFLICT REPLACE NOT NULL,
+    id INTEGER,
     record BLOB NOT NULL,
     is_last_resort BOOLEAN DEFAULT FALSE NOT NULL,
-    identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL
+    identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL,
+
+    PRIMARY KEY(id, identity) ON CONFLICT REPLACE
 );
 
 CREATE TABLE sender_keys (
@@ -44,8 +50,7 @@ CREATE TABLE sender_keys (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL DEFAULT 'aci',
 
-    PRIMARY KEY(address, device, distribution_id),
-    UNIQUE(address, device, distribution_id) ON CONFLICT REPLACE
+    PRIMARY KEY(address, device, distribution_id) ON CONFLICT REPLACE
 );
 
 -- Groups
