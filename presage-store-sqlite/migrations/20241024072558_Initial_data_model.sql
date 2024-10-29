@@ -124,3 +124,30 @@ CREATE TABLE profiles(
     FOREIGN KEY(uuid) REFERENCES profile_keys(uuid) ON UPDATE CASCADE
     PRIMARY KEY(uuid) ON CONFLICT REPLACE
 );
+
+-- Threads
+CREATE TABLE threads (
+    id INTEGER NOT NULL,
+    group_id VARCHAR(64),
+    recipient_id VARCHAR(36),
+
+    PRIMARY KEY(id, group_id, recipient_id) ON CONFLICT IGNORE,
+    FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE,
+    FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE CASCADE
+);
+
+CREATE TABLE thread_messages(
+    id INTEGER NOT NULL,
+    thread_id INTEGER NOT NULL,
+
+    sender_service_id TEXT NOT NULL,
+    -- destination_service_id TEXT NOT NULL,
+    received_at TIMESTAMP NOT NULL,
+    needs_receipt BOOLEAN NOT NULL,
+    unidentified_sender BOOLEAN NOT NULL,
+
+    content_body BLOB NOT NULL,
+
+    PRIMARY KEY(id, thread_id) ON CONFLICT REPLACE,
+    FOREIGN KEY(thread_id) REFERENCES threads(id) ON UPDATE CASCADE
+);

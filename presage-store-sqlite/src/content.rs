@@ -95,7 +95,7 @@ impl ContentsStore for SqliteStore {
 
         query!(
             "INSERT INTO contacts
-            VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             contact.uuid,
             phone_number,
             contact.name,
@@ -124,7 +124,7 @@ impl ContentsStore for SqliteStore {
 
         query!(
             "INSERT INTO contacts_verification_state(destination_aci, identity_key, is_verified)
-            VALUES($1, $2, $3)",
+            VALUES(?, ?, ?)",
             destination_aci,
             identity_key,
             verified_state,
@@ -163,7 +163,7 @@ impl ContentsStore for SqliteStore {
             "SELECT *
                 FROM contacts c
                 LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
-                WHERE c.uuid = $1
+                WHERE c.uuid = ?
                 ORDER BY inbox_position
                 LIMIT 1
             ",
@@ -222,7 +222,7 @@ impl ContentsStore for SqliteStore {
         let profile_key_bytes = key.get_bytes();
         let profile_key_slice = profile_key_bytes.as_slice();
         let rows_upserted = query!(
-            "INSERT INTO profile_keys VALUES($1, $2)",
+            "INSERT INTO profile_keys VALUES(?, ?)",
             uuid,
             profile_key_slice
         )
@@ -237,7 +237,7 @@ impl ContentsStore for SqliteStore {
         uuid: &Uuid,
     ) -> Result<Option<ProfileKey>, Self::ContentsStoreError> {
         let profile_key =
-            query_scalar!("SELECT key FROM profile_keys WHERE uuid = $1 LIMIT 1", uuid)
+            query_scalar!("SELECT key FROM profile_keys WHERE uuid = ? LIMIT 1", uuid)
                 .fetch_optional(&self.db)
                 .await?
                 .and_then(|key_bytes| key_bytes.try_into().ok().map(ProfileKey::create));
@@ -253,7 +253,7 @@ impl ContentsStore for SqliteStore {
         let given_name = profile.name.clone().map(|n| n.given_name);
         let family_name = profile.name.map(|n| n.family_name).flatten();
         query!(
-            "INSERT INTO profiles VALUES($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO profiles VALUES(?, ?, ?, ?, ?, ?)",
             uuid,
             given_name,
             family_name,
@@ -277,7 +277,7 @@ impl ContentsStore for SqliteStore {
             SqlProfile,
             "SELECT pk.key, p.* FROM profile_keys pk
              LEFT JOIN profiles p ON pk.uuid = p.uuid
-             WHERE pk.uuid = $1
+             WHERE pk.uuid = ?
              LIMIT 1",
             uuid
         )

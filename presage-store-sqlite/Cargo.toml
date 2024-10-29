@@ -13,3 +13,4 @@ presage-store-cipher = { path = "../presage-store-cipher", optional = true }
 sqlx = { version = "0.8.2", features = ["sqlite", "uuid"] }
 thiserror = "1.0.65"
 tracing = "0.1.40"
+uuid = { version = "1.11.0", features = ["v4"] }
