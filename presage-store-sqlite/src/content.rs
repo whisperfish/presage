@@ -3,6 +3,7 @@ use std::marker::PhantomData;
 use bytes::Bytes;
 use presage::{
     libsignal_service::{
+        content::Metadata,
         models::Attachment,
         prelude::{
             phonenumber::{self, PhoneNumber},
@@ -56,28 +57,53 @@ impl ContentsStore for SqliteStore {
     ) -> Result<(), Self::ContentsStoreError> {
         let mut tx = self.db.begin().await?;
 
-        match thread {
+        let thread_id = match thread {
             Thread::Contact(uuid) => {
-                query!(
-                    "INSERT INTO threads(recipient_id, group_id) VALUES (?, NULL)",
+                query_scalar!(
+                    "INSERT INTO threads(recipient_id, group_id) VALUES (?, NULL) RETURNING id",
                     metadata.sender.uuid,
                 )
-                .execute(&mut *tx)
+                .fetch_one(&mut *tx)
                 .await?
             }
             Thread::Group(master_key_bytes) => {
                 let master_key_bytes = master_key_bytes.as_slice();
-                query!(
-                    "INSERT INTO threads(group_id)
-                       SELECT id FROM groups
-                        WHERE groups.master_key = ?
-                    ",
+                query_scalar!(
+                    "INSERT INTO threads(group_id) SELECT id FROM groups WHERE groups.master_key = ? RETURNING id",
                     master_key_bytes
                 )
-                .execute(&mut *tx)
+                .fetch_one(&mut *tx)
                 .await?
             }
         };
+
+        let Metadata {
+            sender,
+            destination,
+            sender_device,
+            timestamp,
+            needs_receipt,
+            unidentified_sender,
+            server_guid,
+        } = metadata;
+
+        let proto_bytes = prost::Message::encode_to_vec(&body.into_proto());
+
+        let timestamp = timestamp as i64; // danger
+
+        query!(
+            "INSERT INTO 
+                thread_messages(ts, thread_id, sender_service_id, needs_receipt, unidentified_sender, content_body)
+                VALUES(?, ?, ?, ?, ?, ?)",
+            timestamp,
+            thread_id,
+            sender.uuid,
+            needs_receipt,
+            unidentified_sender,
+            proto_bytes
+        )
+        .execute(&mut *tx)
+        .await?;
 
         tx.commit().await?;
         Ok(())

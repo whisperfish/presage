@@ -127,21 +127,20 @@ CREATE TABLE profiles(
 
 -- Threads
 CREATE TABLE threads (
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     group_id VARCHAR(64) DEFAULT NULL,
     recipient_id VARCHAR(36) DEFAULT NULL,
 
-    PRIMARY KEY(group_id, recipient_id) ON CONFLICT IGNORE,
     FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE
     -- FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE CASCADE
 );
 
 CREATE TABLE thread_messages(
-    ts TIMESTAMP NOT NULL,
+    ts INTEGER NOT NULL,
     thread_id INTEGER NOT NULL,
 
     sender_service_id TEXT NOT NULL,
     -- destination_service_id TEXT NOT NULL,
-    received_at TIMESTAMP NOT NULL,
     needs_receipt BOOLEAN NOT NULL,
     unidentified_sender BOOLEAN NOT NULL,
 

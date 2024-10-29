@@ -9,6 +9,7 @@ bytes = "1.8.0"
 chrono = "0.4.38"
 presage = { path = "../presage" }
 presage-store-cipher = { path = "../presage-store-cipher", optional = true }
+prost = "0.13.3"
 
 sqlx = { version = "0.8.2", features = ["sqlite", "uuid"] }
 thiserror = "1.0.65"
