@@ -4,7 +4,7 @@ CREATE TABLE sessions (
     record BLOB NOT NULL,
     identity TEXT CHECK(identity IN ('aci', 'pni')) NOT NULL DEFAULT 'aci',
 
-    PRIMARY KEY(address, device_id, identity)
+    PRIMARY KEY(address, device_id, identity) ON CONFLICT REPLACE
 );
 
 CREATE TABLE identities (
