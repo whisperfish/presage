@@ -54,32 +54,22 @@ CREATE TABLE sender_keys (
 );
 
 -- Groups
-CREATE TABLE groups (
-    id VARCHAR(64) PRIMARY KEY NOT NULL,
-    name TEXT NOT NULL,
+CREATE TABLE groups(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
     master_key BLOB NOT NULL,
+    title TEXT NOT NULL,
     revision INTEGER NOT NULL DEFAULT 0,
     invite_link_password BLOB,
     access_required_for_attributes INTEGER NOT NULL DEFAULT 0,
     access_required_for_members INTEGER NOT NULL DEFAULT 0,
     access_required_for_add_from_invite_link INTEGER NOT NULL DEFAULT 0,
-    avatar TEXT,
-    description TEXT
+    avatar TEXT NOT NULL,
+    description TEXT,
+    members BLOB NOT NULL,
+    pending_members BLOB NOT NULL,
+    requesting_members BLOB NOT NULL
 );
 
-CREATE TABLE group_members (
-    group_id VARCHAR(64) NOT NULL,
-    recipient_id INTEGER NOT NULL,
-    member_since TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    joined_at_revision INTEGER NOT NULL,
-    role INTEGER NOT NULL,
-
-    FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE,
-    -- FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE RESTRICT,
-    PRIMARY KEY(group_id, recipient_id)
-);
-CREATE INDEX group_member_recipient_id ON group_members(recipient_id DESC);
-CREATE INDEX group_member_id ON group_members(group_id);
 
 CREATE TABLE contacts(
     uuid VARCHAR(36) NOT NULL,
@@ -128,11 +118,10 @@ CREATE TABLE profiles(
 -- Threads
 CREATE TABLE threads (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    group_id VARCHAR(64) DEFAULT NULL,
+    group_id BLOB DEFAULT NULL,
     recipient_id VARCHAR(36) DEFAULT NULL,
 
-    FOREIGN KEY(group_id) REFERENCES groups(id) ON UPDATE CASCADE
-    -- FOREIGN KEY(recipient_id) REFERENCES recipients(id) ON UPDATE CASCADE
+    FOREIGN KEY(id) REFERENCES groups(id) ON DELETE CASCADE
 );
 
 CREATE TABLE thread_messages(
@@ -140,7 +129,8 @@ CREATE TABLE thread_messages(
     thread_id INTEGER NOT NULL,
 
     sender_service_id TEXT NOT NULL,
-    -- destination_service_id TEXT NOT NULL,
+    sender_device_id INTEGER NOT NULL,
+    destination_service_id TEXT NOT NULL,
     needs_receipt BOOLEAN NOT NULL,
     unidentified_sender BOOLEAN NOT NULL,
 

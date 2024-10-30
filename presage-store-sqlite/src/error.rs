@@ -11,6 +11,15 @@ pub enum SqliteStoreError {
     PhoneNumber(#[from] phonenumber::ParseError),
     #[error("error parsing UUID: {0}")]
     Uuid(#[from] uuid::Error),
+
+    #[error("failed to convert int: {0}")]
+    TryFromInt(#[from] std::num::TryFromIntError),
+
+    #[error("invalid format")]
+    InvalidFormat,
+
+    #[error("serde_json error: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 impl StoreError for SqliteStoreError {}

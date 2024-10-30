@@ -3,21 +3,27 @@ use std::marker::PhantomData;
 use bytes::Bytes;
 use presage::{
     libsignal_service::{
-        content::Metadata,
+        self,
+        content::{ContentBody, Metadata},
         models::Attachment,
         prelude::{
             phonenumber::{self, PhoneNumber},
-            Content, ProfileKey,
+            AccessControl, Content, GroupMasterKey, Member, ProfileKey, ServiceError,
         },
         profile_name::ProfileName,
+        protocol::ServiceId,
         zkgroup::{self, GroupMasterKeyBytes},
-        Profile,
+        Profile, ServiceAddress,
     },
-    model::{contacts::Contact, groups::Group},
-    proto::{verified, Verified},
+    model::{
+        contacts::Contact,
+        groups::{Group, PendingMember, RequestingMember},
+    },
+    proto::{self, verified, Verified},
     store::{ContentsStore, StickerPack, Thread},
 };
 use sqlx::{query, query_as, query_scalar, types::Uuid};
+use uuid::timestamp;
 
 use crate::{SqliteStore, SqliteStoreError};
 
@@ -89,10 +95,10 @@ impl ContentsStore for SqliteStore {
 
         let proto_bytes = prost::Message::encode_to_vec(&body.into_proto());
 
-        let timestamp = timestamp as i64; // danger
+        let timestamp: i64 = timestamp.try_into()?;
 
         query!(
-            "INSERT INTO 
+            "INSERT INTO
                 thread_messages(ts, thread_id, sender_service_id, needs_receipt, unidentified_sender, content_body)
                 VALUES(?, ?, ?, ?, ?, ?)",
             timestamp,
@@ -114,7 +120,37 @@ impl ContentsStore for SqliteStore {
         thread: &Thread,
         timestamp: u64,
     ) -> Result<bool, Self::ContentsStoreError> {
-        todo!()
+        let timestamp: i64 = timestamp.try_into()?;
+        let deleted: u64 = match thread {
+            Thread::Contact(uuid) => query_scalar!(
+                "
+                    DELETE FROM thread_messages WHERE ts = ? AND thread_id IN (
+                        SELECT thread_id FROM threads
+                        WHERE recipient_id = ?
+                    )",
+                timestamp,
+                uuid
+            )
+            .execute(&self.db)
+            .await?
+            .rows_affected(),
+            Thread::Group(master_key) => {
+                let master_key = master_key.as_slice();
+                query_scalar!(
+                    "
+                    DELETE FROM thread_messages WHERE ts = ? AND thread_id IN (
+                        SELECT thread_id FROM threads
+                        WHERE group_id = ?
+                    )",
+                    timestamp,
+                    master_key
+                )
+                .execute(&self.db)
+                .await?
+                .rows_affected()
+            }
+        };
+        Ok(deleted > 0)
     }
 
     async fn message(
@@ -122,7 +158,36 @@ impl ContentsStore for SqliteStore {
         thread: &Thread,
         timestamp: u64,
     ) -> Result<Option<Content>, Self::ContentsStoreError> {
-        todo!()
+        let timestamp: i64 = timestamp.try_into()?;
+        let message: Option<SqlMessage> = match thread {
+            Thread::Contact(uuid) => {
+                query_as!(
+                    SqlMessage,
+                    "SELECT * FROM thread_messages WHERE ts = ? AND thread_id = (
+                        SELECT thread_id FROM threads WHERE recipient_id = ? LIMIT 1
+                    )",
+                    timestamp,
+                    uuid
+                )
+                .fetch_optional(&self.db)
+                .await?
+            }
+            Thread::Group(master_key) => {
+                let master_key = master_key.as_slice();
+                query_as!(
+                    SqlMessage,
+                    "SELECT * FROM thread_messages WHERE ts = ? AND thread_id = (
+                        SELECT thread_id FROM threads WHERE group_id = ? LIMIT 1
+                    )",
+                    timestamp,
+                    master_key
+                )
+                .fetch_optional(&self.db)
+                .await?
+            }
+        };
+
+        message.map(TryInto::try_into).transpose()
     }
 
     async fn messages(
@@ -194,7 +259,7 @@ impl ContentsStore for SqliteStore {
             SqlContact,
             "SELECT *
                 FROM contacts c
-                LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci 
+                LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
                 ORDER BY inbox_position
             "
         )
@@ -237,18 +302,65 @@ impl ContentsStore for SqliteStore {
         master_key: zkgroup::GroupMasterKeyBytes,
         group: impl Into<presage::model::groups::Group>,
     ) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let group = SqlGroup::from_group(master_key, group.into())?;
+        query_as!(
+            SqlGroup,
+            "INSERT INTO groups(
+                id,
+                master_key,
+                title,
+                revision,
+                invite_link_password,
+                access_required_for_attributes,
+                access_required_for_members,
+                access_required_for_add_from_invite_link,
+                avatar,
+                description,
+                members,
+                pending_members,
+                requesting_members
+            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            group.master_key,
+            group.title,
+            group.revision,
+            group.invite_link_password,
+            group.access_required_for_attributes,
+            group.access_required_for_members,
+            group.access_required_for_add_from_invite_link,
+            group.avatar,
+            group.description,
+            group.members,
+            group.pending_members,
+            group.requesting_members,
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
     }
 
     async fn groups(&self) -> Result<Self::GroupsIter, Self::ContentsStoreError> {
-        todo!()
+        let groups = query_as!(SqlGroup, "SELECT * FROM groups")
+            .fetch_all(&self.db)
+            .await?
+            .into_iter()
+            .map(|g| {
+                let group_master_key_bytes: GroupMasterKeyBytes =
+                    g.master_key.clone().try_into().expect("invalid master key");
+                let group = g.into_group()?;
+                Ok((group_master_key_bytes, group))
+            });
+        Ok(Box::new(groups))
     }
 
     async fn group(
         &self,
         master_key: zkgroup::GroupMasterKeyBytes,
     ) -> Result<Option<presage::model::groups::Group>, Self::ContentsStoreError> {
-        todo!()
+        query_as!(SqlGroup, "SELECT * FROM groups")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|g| g.into_group())
+            .transpose()
     }
 
     async fn save_group_avatar(
@@ -455,6 +567,125 @@ impl TryInto<Profile> for SqlProfile {
             about: self.about,
             about_emoji: self.about_emoji,
             avatar: self.avatar,
+        })
+    }
+}
+
+fn thread_key(thread: &Thread) -> String {
+    match thread {
+        Thread::Contact(uuid) => format!("contact:{uuid}"),
+        Thread::Group(ref master_key_bytes) => format!("group:{}", hex::encode(master_key_bytes)),
+    }
+}
+
+struct SqlMessage {
+    ts: i64,
+    thread_id: i64,
+
+    sender_service_id: String,
+    sender_device_id: i64,
+    destination_service_id: String,
+    needs_receipt: bool,
+    unidentified_sender: bool,
+
+    content_body: Vec<u8>,
+}
+
+impl TryInto<Content> for SqlMessage {
+    type Error = SqliteStoreError;
+
+    fn try_into(self) -> Result<Content, Self::Error> {
+        let body: proto::Content = prost::Message::decode(&self.content_body[..]).unwrap();
+        let sender_service_id =
+            ServiceId::parse_from_service_id_string(&self.sender_service_id).unwrap();
+        let destination_service_id =
+            ServiceId::parse_from_service_id_string(&self.destination_service_id).unwrap();
+        Content::from_proto(
+            body,
+            Metadata {
+                sender: sender_service_id.into(),
+                destination: destination_service_id.into(),
+                sender_device: self.sender_device_id.try_into().unwrap(),
+                timestamp: self.ts.try_into().unwrap(),
+                needs_receipt: self.needs_receipt,
+                unidentified_sender: self.unidentified_sender,
+                server_guid: None,
+            },
+        )
+        .map_err(|err| SqliteStoreError::InvalidFormat)
+    }
+}
+
+struct SqlGroup {
+    pub id: Option<i64>,
+    pub master_key: Vec<u8>,
+    pub title: String,
+    pub revision: i64,
+    pub invite_link_password: Option<Vec<u8>>,
+    pub access_required_for_attributes: i64,
+    pub access_required_for_members: i64,
+    pub access_required_for_add_from_invite_link: i64,
+    pub avatar: String,
+    pub description: Option<String>,
+    pub members: Vec<u8>,
+    pub pending_members: Vec<u8>,
+    pub requesting_members: Vec<u8>,
+}
+
+impl SqlGroup {
+    fn from_group(
+        master_key: GroupMasterKeyBytes,
+        group: Group,
+    ) -> Result<SqlGroup, SqliteStoreError> {
+        let (
+            access_required_for_attributes,
+            access_required_for_members,
+            access_required_for_add_from_invite_link,
+        ) = match group.access_control {
+            Some(AccessControl {
+                attributes,
+                members,
+                add_from_invite_link,
+            }) => {
+                // TODO: talk to Ruben about making AccessRequired some indexed enum? with repr(u8)
+                (0, 0, 0)
+            }
+            None => (0, 0, 0),
+        };
+
+        Ok(SqlGroup {
+            id: None,
+            master_key: master_key.to_vec(),
+            title: group.title,
+            revision: group.revision as i64,
+            invite_link_password: Some(group.invite_link_password),
+            access_required_for_attributes: 0,
+            access_required_for_members: 0,
+            access_required_for_add_from_invite_link: 0,
+            avatar: group.avatar,
+            description: group.description,
+            members: serde_json::to_vec(&group.members)?,
+            pending_members: serde_json::to_vec(&group.pending_members)?,
+            requesting_members: serde_json::to_vec(&group.requesting_members)?,
+        })
+    }
+
+    fn into_group(self) -> Result<Group, SqliteStoreError> {
+        let members: Vec<Member> = serde_json::from_slice(&self.members)?;
+        let pending_members: Vec<PendingMember> = serde_json::from_slice(&self.pending_members)?;
+        let requesting_members: Vec<RequestingMember> =
+            serde_json::from_slice(&self.requesting_members)?;
+        Ok(Group {
+            title: self.title,
+            avatar: self.avatar,
+            disappearing_messages_timer: None,
+            access_control: None,
+            revision: self.revision.try_into()?,
+            members,
+            pending_members,
+            requesting_members,
+            invite_link_password: self.invite_link_password.unwrap_or_default(),
+            description: self.description,
         })
     }
 }
