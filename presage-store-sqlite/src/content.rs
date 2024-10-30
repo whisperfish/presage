@@ -23,6 +23,7 @@ use presage::{
     store::{ContentsStore, StickerPack, Thread},
 };
 use sqlx::{query, query_as, query_scalar, types::Uuid};
+use tracing::warn;
 use uuid::timestamp;
 
 use crate::{SqliteStore, SqliteStoreError};
@@ -45,15 +46,22 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        Ok(())
     }
 
     async fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        query!("DELETE FROM threads").execute(&self.db).await?;
+        Ok(())
     }
 
     async fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        if let Some(thread_id) = self.thread_id(thread).await? {
+            query!("DELETE FROM thread_messages WHERE thread_id = ?", thread_id)
+                .execute(&self.db)
+                .await?;
+        };
+
+        Ok(())
     }
 
     async fn save_message(
@@ -159,35 +167,22 @@ impl ContentsStore for SqliteStore {
         timestamp: u64,
     ) -> Result<Option<Content>, Self::ContentsStoreError> {
         let timestamp: i64 = timestamp.try_into()?;
-        let message: Option<SqlMessage> = match thread {
-            Thread::Contact(uuid) => {
-                query_as!(
-                    SqlMessage,
-                    "SELECT * FROM thread_messages WHERE ts = ? AND thread_id = (
-                        SELECT thread_id FROM threads WHERE recipient_id = ? LIMIT 1
-                    )",
-                    timestamp,
-                    uuid
-                )
-                .fetch_optional(&self.db)
-                .await?
-            }
-            Thread::Group(master_key) => {
-                let master_key = master_key.as_slice();
-                query_as!(
-                    SqlMessage,
-                    "SELECT * FROM thread_messages WHERE ts = ? AND thread_id = (
-                        SELECT thread_id FROM threads WHERE group_id = ? LIMIT 1
-                    )",
-                    timestamp,
-                    master_key
-                )
-                .fetch_optional(&self.db)
-                .await?
-            }
+        let Some(thread_id) = self.thread_id(thread).await? else {
+            warn!("no thread found");
+            // TODO: return error?
+            return Ok(None);
         };
 
-        message.map(TryInto::try_into).transpose()
+        query_as!(
+            SqlMessage,
+            "SELECT * FROM thread_messages WHERE ts = ? AND thread_id = ?",
+            timestamp,
+            thread_id
+        )
+        .fetch_optional(&self.db)
+        .await?
+        .map(TryInto::try_into)
+        .transpose()
     }
 
     async fn messages(
@@ -491,6 +486,30 @@ impl ContentsStore for SqliteStore {
     }
 }
 
+impl SqliteStore {
+    async fn thread_id(&self, thread: &Thread) -> Result<Option<i64>, SqliteStoreError> {
+        Ok(match thread {
+            Thread::Contact(uuid) => {
+                query_scalar!(
+                    "SELECT id FROM threads WHERE recipient_id = ? LIMIT 1",
+                    uuid
+                )
+                .fetch_optional(&self.db)
+                .await?
+            }
+            Thread::Group(master_key) => {
+                let master_key = master_key.as_slice();
+                query_scalar!(
+                    "SELECT id FROM threads WHERE group_id = ? LIMIT 1",
+                    master_key
+                )
+                .fetch_optional(&self.db)
+                .await?
+            }
+        })
+    }
+}
+
 struct SqlContact {
     uuid: String,
     phone_number: Option<String>,
@@ -568,13 +587,6 @@ impl TryInto<Profile> for SqlProfile {
             about_emoji: self.about_emoji,
             avatar: self.avatar,
         })
-    }
-}
-
-fn thread_key(thread: &Thread) -> String {
-    match thread {
-        Thread::Contact(uuid) => format!("contact:{uuid}"),
-        Thread::Group(ref master_key_bytes) => format!("group:{}", hex::encode(master_key_bytes)),
     }
 }
 
