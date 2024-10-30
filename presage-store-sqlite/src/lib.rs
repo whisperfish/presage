@@ -58,7 +58,8 @@ impl Store for SqliteStore {
     type PniStore = SqliteProtocolStore;
 
     async fn clear(&mut self) -> Result<(), SqliteStoreError> {
-        todo!()
+        query!("DELETE FROM config").execute(&self.db).await?;
+        Ok(())
     }
 
     fn aci_protocol_store(&self) -> Self::AciStore {

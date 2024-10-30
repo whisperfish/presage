@@ -2,20 +2,23 @@ use std::fmt::{self, Formatter};
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use presage::libsignal_service::{
-    pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
-    prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
-    protocol::{
-        Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
-        KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress,
-        ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
-        SignalProtocolError as ProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-        SignedPreKeyStore,
+use presage::{
+    libsignal_service::{
+        pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
+        prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
+        protocol::{
+            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
+            KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
+            ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, SessionRecord,
+            SessionStore, SignalProtocolError as ProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
+        },
+        push_service::DEFAULT_DEVICE_ID,
+        ServiceAddress,
     },
-    push_service::DEFAULT_DEVICE_ID,
-    ServiceAddress,
+    store::StateStore,
 };
-use sqlx::{query, query_scalar, Executor};
+use sqlx::{query, query_scalar, Executor, QueryBuilder};
 use tracing::trace;
 
 use crate::{SqliteStore, SqlxErrorExt};
@@ -390,7 +393,12 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
 impl IdentityKeyStore for SqliteProtocolStore {
     /// Return the single specific identity the store is assumed to represent, with private key.
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, ProtocolError> {
-        todo!()
+        let key = format!("{}_identity_key_pair", self.identity_type);
+        let key_pair_bytes = query_scalar!("SELECT value FROM config WHERE key = ?", key)
+            .fetch_one(&self.store.db)
+            .await
+            .into_protocol_error()?;
+        IdentityKeyPair::try_from(key_pair_bytes.as_slice())
     }
 
     /// Return a [u32] specific to this store instance.
@@ -402,7 +410,13 @@ impl IdentityKeyStore for SqliteProtocolStore {
     /// may be the same, but the store registration id returned by this method should
     /// be regenerated.
     async fn get_local_registration_id(&self) -> Result<u32, ProtocolError> {
-        todo!()
+        let registration_id = self
+            .store
+            .load_registration_data()
+            .await
+            .map_err(|error| ProtocolError::InvalidState("sqlite", error.to_string()))?
+            .map(|data| data.registration_id);
+        Ok(registration_id.unwrap_or_default())
     }
 
     // TODO: make this into an enum instead of a bool!
