@@ -12,6 +12,7 @@ use presage::libsignal_service::{
         SignalProtocolError as ProtocolError, SignedPreKeyId, SignedPreKeyRecord,
         SignedPreKeyStore,
     },
+    push_service::DEFAULT_DEVICE_ID,
     ServiceAddress,
 };
 use sqlx::{query, query_scalar, Executor};
@@ -82,7 +83,14 @@ impl SessionStoreExt for SqliteProtocolStore {
         &self,
         name: &ServiceAddress,
     ) -> Result<Vec<u32>, ProtocolError> {
-        todo!()
+        query_scalar!(
+            "SELECT device_id AS 'id: u32' FROM sessions WHERE address = ? AND device_id != ?",
+            name.uuid,
+            DEFAULT_DEVICE_ID
+        )
+        .fetch_all(&self.store.db)
+        .await
+        .into_protocol_error()
     }
 
     /// Remove a session record for a recipient ID + device ID tuple.

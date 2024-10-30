@@ -8,7 +8,9 @@ use presage::{
     store::{StateStore, Store},
 };
 use protocol::SqliteProtocolStore;
-use sqlx::{migrate::MigrateDatabase, sqlite::SqliteConnectOptions, Sqlite, SqlitePool};
+use sqlx::{
+    migrate::MigrateDatabase, query, query_scalar, sqlite::SqliteConnectOptions, Sqlite, SqlitePool,
+};
 
 mod content;
 mod error;
@@ -80,35 +82,64 @@ impl StateStore for SqliteStore {
     async fn load_registration_data(
         &self,
     ) -> Result<Option<presage::manager::RegistrationData>, Self::StateStoreError> {
-        todo!()
+        query_scalar!("SELECT value FROM config WHERE key = 'registration'")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|value: Vec<u8>| serde_json::from_slice(&value).map_err(Into::into))
+            .transpose()
     }
 
     async fn set_aci_identity_key_pair(
         &self,
         key_pair: presage::libsignal_service::protocol::IdentityKeyPair,
     ) -> Result<(), Self::StateStoreError> {
-        todo!()
+        let key_pair_bytes = key_pair.serialize();
+        query!(
+            "INSERT INTO config(key, value) VALUES('aci_identity_key_pair', ?)",
+            key_pair_bytes
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
     }
 
     async fn set_pni_identity_key_pair(
         &self,
         key_pair: presage::libsignal_service::protocol::IdentityKeyPair,
     ) -> Result<(), Self::StateStoreError> {
-        todo!()
+        let key_pair_bytes = key_pair.serialize();
+        query!(
+            "INSERT INTO config(key, value) VALUES('pni_identity_key_pair', ?)",
+            key_pair_bytes
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
     }
 
     async fn save_registration_data(
         &mut self,
         state: &presage::manager::RegistrationData,
     ) -> Result<(), Self::StateStoreError> {
-        todo!()
+        let registration_data_json = serde_json::to_vec(&state)?;
+        query!(
+            "INSERT INTO config(key, value) VALUES('registration', ?)",
+            registration_data_json
+        )
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
     }
 
     async fn is_registered(&self) -> bool {
-        todo!()
+        self.load_registration_data().await.ok().is_some()
     }
 
     async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
-        todo!()
+        query!("DELETE FROM config WHERE key = 'registration'")
+            .execute(&self.db)
+            .await?;
+        Ok(())
     }
 }

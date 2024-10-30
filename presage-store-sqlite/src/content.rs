@@ -22,7 +22,7 @@ use presage::{
     proto::{self, verified, Verified},
     store::{ContentsStore, StickerPack, Thread},
 };
-use sqlx::{query, query_as, query_scalar, types::Uuid};
+use sqlx::{query, query_as, query_scalar, types::Uuid, QueryBuilder, Sqlite};
 use tracing::warn;
 use uuid::timestamp;
 
@@ -190,7 +190,44 @@ impl ContentsStore for SqliteStore {
         thread: &Thread,
         range: impl std::ops::RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Self::ContentsStoreError> {
-        todo!()
+        let Some(thread_id) = self.thread_id(thread).await? else {
+            warn!("no thread found");
+            // TODO: return error?
+            return Ok(Box::new(std::iter::empty()));
+        };
+
+        let start = range.start_bound();
+
+        let end = range.end_bound();
+
+        let mut query_builder: QueryBuilder<Sqlite> =
+            QueryBuilder::new("SELECT * FROM thread_messages WHERE thread_id = ");
+        query_builder.push_bind(thread_id);
+        match range.start_bound() {
+            std::ops::Bound::Included(ts) => {
+                query_builder.push("AND ts >= ");
+                query_builder.push_bind(*ts as i64);
+            }
+            std::ops::Bound::Excluded(ts) => {
+                query_builder.push("AND ts > ");
+                query_builder.push_bind(*ts as i64);
+            }
+            std::ops::Bound::Unbounded => (),
+        }
+        match range.end_bound() {
+            std::ops::Bound::Included(ts) => {
+                query_builder.push("AND ts <= ");
+                query_builder.push_bind(*ts as i64);
+            }
+            std::ops::Bound::Excluded(ts) => {
+                query_builder.push("AND ts < ");
+                query_builder.push_bind(*ts as i64);
+            }
+            std::ops::Bound::Unbounded => (),
+        }
+
+        let messages: Vec<SqlMessage> = query_builder.build_query_as().fetch_all(&self.db).await?;
+        Ok(Box::new(messages.into_iter().map(TryInto::try_into)))
     }
 
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
@@ -363,14 +400,31 @@ impl ContentsStore for SqliteStore {
         master_key: zkgroup::GroupMasterKeyBytes,
         avatar: &presage::AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let mut tx = self.db.begin().await?;
+
+        let group_id = self.group_id(&master_key).await?;
+        query!(
+            "INSERT INTO group_avatars(id, bytes) VALUES(?, ?)",
+            group_id,
+            avatar
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        Ok(())
     }
 
     async fn group_avatar(
         &self,
         master_key: zkgroup::GroupMasterKeyBytes,
     ) -> Result<Option<presage::AvatarBytes>, Self::ContentsStoreError> {
-        todo!()
+        let group_id = self.group_id(&master_key).await?;
+        query_scalar!("SELECT bytes FROM group_avatars WHERE id = ?", group_id)
+            .fetch_optional(&self.db)
+            .await
+            .map_err(Into::into)
     }
 
     async fn upsert_profile_key(
@@ -422,7 +476,7 @@ impl ContentsStore for SqliteStore {
         )
         .execute(&self.db)
         .await?;
-        todo!()
+        Ok(())
     }
 
     async fn profile(
@@ -449,10 +503,18 @@ impl ContentsStore for SqliteStore {
     async fn save_profile_avatar(
         &mut self,
         uuid: Uuid,
-        key: ProfileKey,
+        _key: ProfileKey,
         profile: &presage::AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        query!(
+            "INSERT INTO profile_avatars(uuid, bytes) VALUES(?, ?)",
+            uuid,
+            profile
+        )
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
     }
 
     async fn profile_avatar(
@@ -460,33 +522,75 @@ impl ContentsStore for SqliteStore {
         uuid: Uuid,
         key: ProfileKey,
     ) -> Result<Option<presage::AvatarBytes>, Self::ContentsStoreError> {
-        todo!()
+        query_scalar!("SELECT bytes FROM profile_avatars WHERE uuid = ?", uuid)
+            .fetch_optional(&self.db)
+            .await
+            .map_err(Into::into)
     }
 
     async fn add_sticker_pack(
         &mut self,
         pack: &StickerPack,
     ) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let manifest_json = serde_json::to_vec(&pack.manifest)?;
+        query!(
+            "INSERT INTO sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
+            pack.id,
+            pack.key,
+            manifest_json,
+        )
+        .execute(&self.db)
+        .await?;
+
+        Ok(())
     }
 
     async fn sticker_pack(
         &self,
         id: &[u8],
     ) -> Result<Option<StickerPack>, Self::ContentsStoreError> {
-        todo!()
+        query_scalar!("SELECT manifest FROM sticker_packs WHERE id = ?", id)
+            .fetch_optional(&self.db)
+            .await?
+            .map(|bytes| serde_json::from_slice(&bytes).map_err(Into::into))
+            .transpose()
     }
 
     async fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError> {
-        todo!()
+        query!("DELETE FROM sticker_packs WHERE id = ?", id)
+            .execute(&self.db)
+            .await
+            .map_err(Into::into)
+            .map(|r| r.rows_affected() > 0)
     }
 
     async fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::ContentsStoreError> {
-        todo!()
+        let sticker_packs = query!("SELECT * FROM sticker_packs")
+            .fetch_all(&self.db)
+            .await?
+            .into_iter()
+            .map(|r| {
+                Ok(StickerPack {
+                    id: r.id,
+                    key: r.key,
+                    manifest: serde_json::from_slice(&r.manifest)?,
+                })
+            });
+        Ok(Box::new(sticker_packs))
     }
 }
 
 impl SqliteStore {
+    async fn group_id(&self, master_key: &[u8]) -> Result<i64, SqliteStoreError> {
+        query_scalar!(
+            "SELECT id FROM groups WHERE groups.master_key = ?",
+            master_key
+        )
+        .fetch_one(&self.db)
+        .await
+        .map_err(Into::into)
+    }
+
     async fn thread_id(&self, thread: &Thread) -> Result<Option<i64>, SqliteStoreError> {
         Ok(match thread {
             Thread::Contact(uuid) => {
@@ -590,6 +694,7 @@ impl TryInto<Profile> for SqlProfile {
     }
 }
 
+#[derive(sqlx::FromRow)]
 struct SqlMessage {
     ts: i64,
     thread_id: i64,

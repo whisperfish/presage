@@ -1,3 +1,8 @@
+CREATE TABLE config(
+    key TEXT PRIMARY KEY NOT NULL,
+    value BLOB NOT NULL
+);
+
 CREATE TABLE sessions (
     address VARCHAR(36) NOT NULL,
     device_id INTEGER NOT NULL,
@@ -70,6 +75,12 @@ CREATE TABLE groups(
     requesting_members BLOB NOT NULL
 );
 
+CREATE TABLE group_avatars(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    bytes BLOB NOT NULL,
+
+    FOREIGN KEY(id) REFERENCES groups(id) ON DELETE CASCADE
+);
 
 CREATE TABLE contacts(
     uuid VARCHAR(36) NOT NULL,
@@ -115,6 +126,13 @@ CREATE TABLE profiles(
     PRIMARY KEY(uuid) ON CONFLICT REPLACE
 );
 
+CREATE TABLE profile_avatars(
+    uuid VARCHAR(36) NOT NULL,
+    bytes BLOB NOT NULL,
+
+    FOREIGN KEY(uuid) REFERENCES profile_keys(uuid) ON UPDATE CASCADE
+);
+
 -- Threads
 CREATE TABLE threads (
     id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -138,4 +156,10 @@ CREATE TABLE thread_messages(
 
     PRIMARY KEY(ts, thread_id) ON CONFLICT REPLACE,
     FOREIGN KEY(thread_id) REFERENCES threads(id) ON UPDATE CASCADE
+);
+
+CREATE TABLE sticker_packs(
+    id BLOB PRIMARY KEY NOT NULL,
+    key BLOB NOT NULL,
+    manifest BLOB NOT NULL
 );
