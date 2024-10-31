@@ -13,6 +13,7 @@ use sqlx::{
 };
 
 mod content;
+pub(crate) mod data;
 mod error;
 mod protocol;
 
