@@ -86,7 +86,7 @@ impl StateStore for SqliteStore {
         query_scalar!("SELECT value FROM config WHERE key = 'registration'")
             .fetch_optional(&self.db)
             .await?
-            .map(|value: Vec<u8>| serde_json::from_slice(&value).map_err(Into::into))
+            .map(|value: Vec<u8>| postcard::from_bytes(&value).map_err(Into::into))
             .transpose()
     }
 
@@ -122,7 +122,7 @@ impl StateStore for SqliteStore {
         &mut self,
         state: &presage::manager::RegistrationData,
     ) -> Result<(), Self::StateStoreError> {
-        let registration_data_json = serde_json::to_vec(&state)?;
+        let registration_data_json = postcard::to_allocvec(&state)?;
         query!(
             "INSERT INTO config(key, value) VALUES('registration', ?)",
             registration_data_json

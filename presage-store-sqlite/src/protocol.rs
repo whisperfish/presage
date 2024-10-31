@@ -410,13 +410,13 @@ impl IdentityKeyStore for SqliteProtocolStore {
     /// may be the same, but the store registration id returned by this method should
     /// be regenerated.
     async fn get_local_registration_id(&self) -> Result<u32, ProtocolError> {
-        let registration_id = self
+        Ok(self
             .store
             .load_registration_data()
             .await
             .map_err(|error| ProtocolError::InvalidState("sqlite", error.to_string()))?
-            .map(|data| data.registration_id);
-        Ok(registration_id.unwrap_or_default())
+            .map(|data| data.registration_id)
+            .unwrap_or_default())
     }
 
     // TODO: make this into an enum instead of a bool!

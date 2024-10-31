@@ -18,8 +18,8 @@ pub enum SqliteStoreError {
     #[error("invalid format")]
     InvalidFormat,
 
-    #[error("serde_json error: {0}")]
-    Json(#[from] serde_json::Error),
+    #[error(transparent)]
+    Postcard(#[from] postcard::Error),
 }
 
 impl StoreError for SqliteStoreError {}

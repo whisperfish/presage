@@ -8,10 +8,10 @@ async-trait = "0.1.83"
 bytes = "1.8.0"
 chrono = "0.4.38"
 hex = "0.4.3"
+postcard = { version = "1.0.10", features = ["alloc"] }
 presage = { path = "../presage" }
 presage-store-cipher = { path = "../presage-store-cipher", optional = true }
 prost = "0.13.3"
-serde_json = "1.0.132"
 
 sqlx = { version = "0.8.2", features = ["sqlite", "uuid"] }
 thiserror = "1.0.65"

@@ -532,7 +532,7 @@ impl ContentsStore for SqliteStore {
         &mut self,
         pack: &StickerPack,
     ) -> Result<(), Self::ContentsStoreError> {
-        let manifest_json = serde_json::to_vec(&pack.manifest)?;
+        let manifest_json = postcard::to_allocvec(&pack.manifest)?;
         query!(
             "INSERT INTO sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
             pack.id,
@@ -552,7 +552,7 @@ impl ContentsStore for SqliteStore {
         query_scalar!("SELECT manifest FROM sticker_packs WHERE id = ?", id)
             .fetch_optional(&self.db)
             .await?
-            .map(|bytes| serde_json::from_slice(&bytes).map_err(Into::into))
+            .map(|bytes| postcard::from_bytes(&bytes).map_err(Into::into))
             .transpose()
     }
 
@@ -573,7 +573,7 @@ impl ContentsStore for SqliteStore {
                 Ok(StickerPack {
                     id: r.id,
                     key: r.key,
-                    manifest: serde_json::from_slice(&r.manifest)?,
+                    manifest: postcard::from_bytes(&r.manifest)?,
                 })
             });
         Ok(Box::new(sticker_packs))
@@ -781,17 +781,17 @@ impl SqlGroup {
             access_required_for_add_from_invite_link: 0,
             avatar: group.avatar,
             description: group.description,
-            members: serde_json::to_vec(&group.members)?,
-            pending_members: serde_json::to_vec(&group.pending_members)?,
-            requesting_members: serde_json::to_vec(&group.requesting_members)?,
+            members: postcard::to_allocvec(&group.members)?,
+            pending_members: postcard::to_allocvec(&group.pending_members)?,
+            requesting_members: postcard::to_allocvec(&group.requesting_members)?,
         })
     }
 
     fn into_group(self) -> Result<Group, SqliteStoreError> {
-        let members: Vec<Member> = serde_json::from_slice(&self.members)?;
-        let pending_members: Vec<PendingMember> = serde_json::from_slice(&self.pending_members)?;
+        let members: Vec<Member> = postcard::from_bytes(&self.members)?;
+        let pending_members: Vec<PendingMember> = postcard::from_bytes(&self.pending_members)?;
         let requesting_members: Vec<RequestingMember> =
-            serde_json::from_slice(&self.requesting_members)?;
+            postcard::from_bytes(&self.requesting_members)?;
         Ok(Group {
             title: self.title,
             avatar: self.avatar,
