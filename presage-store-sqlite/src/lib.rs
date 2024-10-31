@@ -3,7 +3,12 @@
 use std::{future::Future, path::Path, pin::Pin};
 
 use presage::{
-    libsignal_service::protocol::SignalProtocolError,
+    libsignal_service::{
+        configuration::SignalServers,
+        prelude::{phonenumber::PhoneNumber, ProfileKey, SignalingKey},
+        protocol::SignalProtocolError,
+        push_service::ServiceIds,
+    },
     model::identity::OnNewIdentity,
     store::{StateStore, Store},
 };
@@ -117,7 +122,7 @@ impl StateStore for SqliteStore {
         trace!("setting ACI identity key pair");
         let key_pair_bytes = key_pair.serialize();
         query!(
-            "INSERT INTO config(key, value) VALUES('aci_identity_key_pair', ?)",
+            "INSERT OR REPLACE INTO config(key, value) VALUES('aci_identity_key_pair', ?)",
             key_pair_bytes
         )
         .execute(&self.db)
@@ -132,7 +137,7 @@ impl StateStore for SqliteStore {
         trace!("setting PNI identity key pair");
         let key_pair_bytes = key_pair.serialize();
         query!(
-            "INSERT INTO config(key, value) VALUES('pni_identity_key_pair', ?)",
+            "INSERT OR REPLACE INTO config(key, value) VALUES('pni_identity_key_pair', ?)",
             key_pair_bytes
         )
         .execute(&self.db)
@@ -147,7 +152,7 @@ impl StateStore for SqliteStore {
         trace!("saving registration data");
         let registration_data_json = postcard::to_allocvec(&state)?;
         query!(
-            "INSERT INTO config(key, value) VALUES('registration', ?)",
+            "INSERT OR REPLACE INTO config(key, value) VALUES('registration', ?)",
             registration_data_json
         )
         .execute(&self.db)

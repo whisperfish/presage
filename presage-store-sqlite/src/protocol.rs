@@ -63,7 +63,7 @@ impl SessionStore for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let record_data = record.serialize()?;
         query!(
-            "INSERT INTO sessions ( address, device_id, identity, record ) VALUES ( $1, $2, $3, $4 )",
+            "INSERT OR REPLACE INTO sessions ( address, device_id, identity, record ) VALUES ( $1, $2, $3, $4 )",
             uuid,
             device_id,
             self.identity_type,
@@ -154,7 +154,7 @@ impl PreKeyStore for SqliteProtocolStore {
         let id: u32 = prekey_id.into();
         let record_data = record.serialize()?;
         query!(
-            "INSERT INTO prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            "INSERT OR REPLACE INTO prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
             id,
             record_data,
             self.identity_type,
@@ -252,7 +252,7 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         let id: u32 = signed_prekey_id.into();
         let record_data = record.serialize()?;
         query!(
-            "INSERT INTO signed_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            "INSERT OR REPLACE INTO signed_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
             id,
             record_data,
             self.identity_type
@@ -292,7 +292,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         let id: u32 = kyber_prekey_id.into();
         let record_data = record.serialize()?;
         query!(
-            "INSERT INTO kyber_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
+            "INSERT OR REPLACE INTO kyber_prekeys( id, record, identity ) VALUES( ?1, ?2, ?3 )",
             id,
             record_data,
             self.identity_type,
@@ -334,7 +334,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         let id: u32 = kyber_prekey_id.into();
         let record_data = record.serialize()?;
         query!(
-            "INSERT INTO kyber_prekeys( id, record, is_last_resort, identity )
+            "INSERT OR REPLACE INTO kyber_prekeys( id, record, is_last_resort, identity )
             VALUES( ?, ?, TRUE, ? )",
             id,
             record_data,
@@ -435,7 +435,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         let address = address.name();
         let record_data = identity_key.serialize();
         query!(
-            "INSERT INTO identities ( address, record, identity ) VALUES ( $1, $2, $3 )",
+            "INSERT OR REPLACE INTO identities ( address, record, identity ) VALUES ( $1, $2, $3 )",
             address,
             record_data,
             self.identity_type
@@ -496,7 +496,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         let device_id: u32 = sender.device_id().into();
         let record_data = record.serialize()?;
         query!(
-            "INSERT INTO sender_keys (address, device, distribution_id, record, identity) VALUES ($1, $2, $3, $4, $5)", 
+            "INSERT OR REPLACE INTO sender_keys (address, device, distribution_id, record, identity) VALUES ($1, $2, $3, $4, $5)", 
             address,
             device_id,
             distribution_id,

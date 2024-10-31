@@ -129,7 +129,8 @@ impl<S: Store> Manager<S, Linking> {
                     signal_servers,
                     device_name: Some(device_name),
                     phone_number,
-                    service_ids,
+                    aci: service_ids.aci,
+                    pni: service_ids.pni,
                     password,
                     signaling_key,
                     device_id: Some(device_id.into()),
@@ -154,7 +155,7 @@ impl<S: Store> Manager<S, Linking> {
                 store.save_registration_data(&registration_data).await?;
                 info!(
                     "successfully registered device {}",
-                    &registration_data.service_ids
+                    &registration_data.service_ids()
                 );
 
                 let mut manager = Manager {

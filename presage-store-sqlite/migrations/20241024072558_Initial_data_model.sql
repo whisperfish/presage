@@ -139,6 +139,7 @@ CREATE TABLE threads (
 
     FOREIGN KEY(id) REFERENCES groups(id) ON DELETE CASCADE
 );
+CREATE UNIQUE INDEX threads_target ON threads(group_id, recipient_id);
 
 CREATE TABLE thread_messages(
     ts INTEGER NOT NULL,

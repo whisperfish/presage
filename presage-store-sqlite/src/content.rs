@@ -89,7 +89,7 @@ impl ContentsStore for SqliteStore {
         let thread_id = match thread {
             Thread::Contact(uuid) => {
                 query_scalar!(
-                    "INSERT INTO threads(recipient_id, group_id) VALUES (?, NULL) RETURNING id",
+                    "INSERT INTO threads(recipient_id, group_id) VALUES (?, NULL) ON CONFLICT DO NOTHING RETURNING id",
                     metadata.sender.uuid,
                 )
                 .fetch_one(&mut *tx)
@@ -98,7 +98,7 @@ impl ContentsStore for SqliteStore {
             Thread::Group(master_key_bytes) => {
                 let master_key_bytes = master_key_bytes.as_slice();
                 query_scalar!(
-                    "INSERT INTO threads(group_id) SELECT id FROM groups WHERE groups.master_key = ? RETURNING id",
+                    "INSERT INTO threads(group_id) SELECT id FROM groups WHERE groups.master_key = ? ON CONFLICT DO NOTHING RETURNING id",
                     master_key_bytes
                 )
                 .fetch_one(&mut *tx)
@@ -121,7 +121,7 @@ impl ContentsStore for SqliteStore {
         let timestamp: i64 = timestamp.try_into()?;
 
         query!(
-            "INSERT INTO
+            "INSERT OR REPLACE INTO
                 thread_messages(ts, thread_id, sender_service_id, needs_receipt, unidentified_sender, content_body)
                 VALUES(?, ?, ?, ?, ?, ?)",
             timestamp,
@@ -257,7 +257,7 @@ impl ContentsStore for SqliteStore {
         let mut tx = self.db.begin().await?;
 
         query!(
-            "INSERT INTO contacts
+            "INSERT OR REPLACE INTO contacts
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             contact.uuid,
             phone_number,
@@ -286,7 +286,7 @@ impl ContentsStore for SqliteStore {
         };
 
         query!(
-            "INSERT INTO contacts_verification_state(destination_aci, identity_key, is_verified)
+            "INSERT OR REPLACE INTO contacts_verification_state(destination_aci, identity_key, is_verified)
             VALUES(?, ?, ?)",
             destination_aci,
             identity_key,
@@ -351,7 +351,7 @@ impl ContentsStore for SqliteStore {
         let group = SqlGroup::from_group(master_key, group.into())?;
         query_as!(
             SqlGroup,
-            "INSERT INTO groups(
+            "INSERT OR REPLACE INTO groups(
                 id,
                 master_key,
                 title,
@@ -414,7 +414,7 @@ impl ContentsStore for SqliteStore {
 
         let group_id = self.group_id(&master_key).await?;
         query!(
-            "INSERT INTO group_avatars(id, bytes) VALUES(?, ?)",
+            "INSERT OR REPLACE INTO group_avatars(id, bytes) VALUES(?, ?)",
             group_id,
             avatar
         )
@@ -445,7 +445,7 @@ impl ContentsStore for SqliteStore {
         let profile_key_bytes = key.get_bytes();
         let profile_key_slice = profile_key_bytes.as_slice();
         let rows_upserted = query!(
-            "INSERT INTO profile_keys VALUES(?, ?)",
+            "INSERT OR REPLACE INTO profile_keys VALUES(?, ?)",
             uuid,
             profile_key_slice
         )
@@ -476,7 +476,7 @@ impl ContentsStore for SqliteStore {
         let given_name = profile.name.clone().map(|n| n.given_name);
         let family_name = profile.name.map(|n| n.family_name).flatten();
         query!(
-            "INSERT INTO profiles VALUES(?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO profiles VALUES(?, ?, ?, ?, ?, ?)",
             uuid,
             given_name,
             family_name,
@@ -517,7 +517,7 @@ impl ContentsStore for SqliteStore {
         profile: &presage::AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         query!(
-            "INSERT INTO profile_avatars(uuid, bytes) VALUES(?, ?)",
+            "INSERT OR REPLACE INTO profile_avatars(uuid, bytes) VALUES(?, ?)",
             uuid,
             profile
         )
@@ -544,7 +544,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<(), Self::ContentsStoreError> {
         let manifest_json = postcard::to_allocvec(&pack.manifest)?;
         query!(
-            "INSERT INTO sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
+            "INSERT OR REPLACE INTO sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
             pack.id,
             pack.key,
             manifest_json,
