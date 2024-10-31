@@ -6,11 +6,10 @@ use presage::libsignal_service::{
     protocol::{
         Direction, IdentityKey, IdentityKeyPair, KyberPreKeyId, KyberPreKeyRecord,
         KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore,
-        SenderKeyRecord, SenderKeyStore, SessionRecord, SessionStore,
+        SenderKeyRecord, SenderKeyStore, ServiceId, SessionRecord, SessionStore,
         SignalProtocolError as ProtocolError, SignedPreKeyId, SignedPreKeyRecord,
         SignedPreKeyStore,
     },
-    ServiceAddress,
 };
 
 use crate::SqliteStore;
@@ -49,7 +48,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     /// This should return every device except for the main device [DEFAULT_DEVICE_ID].
     async fn get_sub_device_sessions(
         &self,
-        name: &ServiceAddress,
+        service_id: &ServiceId,
     ) -> Result<Vec<u32>, ProtocolError> {
         todo!()
     }
@@ -63,7 +62,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     /// ID.
     ///
     /// Returns the number of deleted sessions.
-    async fn delete_all_sessions(&self, address: &ServiceAddress) -> Result<usize, ProtocolError> {
+    async fn delete_all_sessions(&self, service_id: &ServiceId) -> Result<usize, ProtocolError> {
         todo!()
     }
 }

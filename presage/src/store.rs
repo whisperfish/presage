@@ -11,10 +11,13 @@ use libsignal_service::{
         sync_message::{self, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
+    protocol::{
+        Aci, IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore,
+        ServiceId, ServiceIdKind,
+    },
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
-    Profile, ServiceAddress,
+    Profile,
 };
 use serde::{Deserialize, Serialize};
 use tracing::trace;
@@ -132,8 +135,8 @@ pub trait ContentsStore: Send + Sync {
     ) -> impl Future<Output = Result<Option<(u32, u32)>, Self::ContentsStoreError>> {
         async move {
             match thread {
-                Thread::Contact(uuid) => Ok(self
-                    .contact_by_id(uuid)
+                Thread::Contact(service_id) => Ok(self
+                    .contact_by_id(&service_id.raw_uuid())
                     .await?
                     .map(|c| (c.expire_timer, c.expire_timer_version))),
                 Thread::Group(key) => Ok(self
@@ -157,8 +160,8 @@ pub trait ContentsStore: Send + Sync {
         async move {
             trace!(%thread, timer, version, "updating expire timer");
             match thread {
-                Thread::Contact(uuid) => {
-                    let contact = self.contact_by_id(uuid).await?;
+                Thread::Contact(service_id) => {
+                    let contact = self.contact_by_id(&service_id.raw_uuid()).await?;
                     if let Some(mut contact) = contact {
                         let current_version = contact.expire_timer_version;
                         if version <= current_version {
@@ -201,7 +204,7 @@ pub trait ContentsStore: Send + Sync {
     /// Get contact data for a single user by its [Uuid].
     fn contact_by_id(
         &self,
-        id: &Uuid,
+        uuid: &Uuid,
     ) -> impl Future<Output = Result<Option<Contact>, Self::ContentsStoreError>>;
 
     /// Delete all cached group data
@@ -241,44 +244,44 @@ pub trait ContentsStore: Send + Sync {
     /// Insert or update the profile key of a contact
     fn upsert_profile_key(
         &mut self,
-        uuid: &Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
     /// Get the profile key for a contact
     fn profile_key(
         &self,
-        uuid: &Uuid,
+        aci: &Aci,
     ) -> impl Future<Output = Result<Option<ProfileKey>, Self::ContentsStoreError>>;
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(
         &mut self,
-        uuid: Uuid,
-        key: ProfileKey,
-        profile: Profile,
+        uuid: &Aci,
+        key: &ProfileKey,
+        profile: &Profile,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
     fn profile(
         &self,
-        uuid: Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> impl Future<Output = Result<Option<Profile>, Self::ContentsStoreError>>;
 
     /// Save a profile avatar by [Uuid] and [ProfileKey].
     fn save_profile_avatar(
         &mut self,
-        uuid: Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
         profile: &AvatarBytes,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a profile avatar by [Uuid] and [ProfileKey].
     fn profile_avatar(
         &self,
-        uuid: Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     /// Stickers
@@ -333,10 +336,10 @@ pub trait Store:
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {
     /// The message was sent inside a contact-chat.
-    Contact(Uuid),
+    Contact(ServiceId),
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
     Group(GroupMasterKeyBytes),
@@ -345,7 +348,9 @@ pub enum Thread {
 impl fmt::Display for Thread {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Thread::Contact(uuid) => write!(f, "Thread(contact={uuid})"),
+            Thread::Contact(service_id) => {
+                write!(f, "Thread(contact={})", service_id.service_id_string())
+            }
             Thread::Group(master_key_bytes) => {
                 write!(f, "Thread(group={:x?})", &master_key_bytes[..4])
             }
@@ -354,6 +359,7 @@ impl fmt::Display for Thread {
 }
 
 impl TryFrom<&Content> for Thread {
+    // TODO: fix error here and remove expects below
     type Error = UuidError;
 
     fn try_from(content: &Content) -> Result<Self, Self::Error> {
@@ -366,7 +372,7 @@ impl TryFrom<&Content> for Thread {
                         ..
                     }),
                 ..
-            }) => Ok(Self::Contact(Uuid::parse_str(uuid)?)),
+            }) => Ok(Self::Contact(ServiceId::parse_from_service_id_string(uuid).expect("invalid service ID"))),
             // [Group] message from somebody else
             ContentBody::DataMessage(DataMessage {
                 group_v2:
@@ -432,7 +438,7 @@ impl TryFrom<&Content> for Thread {
                     .expect("Group master key to have 32 bytes"),
             )),
             // [1-1] Any other message directly to us
-            _ => Ok(Thread::Contact(content.metadata.sender.uuid)),
+            _ => Ok(Thread::Contact(content.metadata.sender)),
         }
     }
 }
@@ -526,12 +532,15 @@ impl From<libsignal_service::proto::pack::Sticker> for Sticker {
 /// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
 pub async fn save_trusted_identity_message<S: Store>(
     store: &S,
+    service_id_kind: ServiceIdKind,
     protocol_address: &ProtocolAddress,
     right_identity_key: IdentityKey,
     verified_state: verified::State,
 ) -> Result<(), S::Error> {
-    let Ok(sender) = protocol_address.name().parse() else {
-        return Ok(());
+    let uuid: Uuid = protocol_address.name().parse().unwrap_or_default();
+    let sender = match service_id_kind {
+        ServiceIdKind::Aci => ServiceId::Aci(uuid.into()),
+        ServiceIdKind::Pni => ServiceId::Pni(uuid.into()),
     };
 
     // TODO: this is a hack to save a message showing that the verification status changed
@@ -539,8 +548,8 @@ pub async fn save_trusted_identity_message<S: Store>(
     let thread = Thread::Contact(sender);
     let verified_sync_message = Content {
         metadata: Metadata {
-            sender: ServiceAddress::from_aci(sender),
-            destination: ServiceAddress::from_aci(sender),
+            sender,
+            destination: sender,
             sender_device: 0,
             server_guid: None,
             timestamp: SystemTime::now()

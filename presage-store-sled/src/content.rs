@@ -7,6 +7,7 @@ use presage::{
     libsignal_service::{
         content::Content,
         prelude::Uuid,
+        protocol::{Aci, ServiceId},
         zkgroup::{profiles::ProfileKey, GroupMasterKeyBytes},
         Profile,
     },
@@ -238,53 +239,53 @@ impl ContentsStore for SledStore {
 
     async fn upsert_profile_key(
         &mut self,
-        uuid: &Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> Result<bool, SledStoreError> {
-        self.insert(SLED_TREE_PROFILE_KEYS, uuid.as_bytes(), key)
+        self.insert(SLED_TREE_PROFILE_KEYS, ServiceId::Aci(*aci).raw_uuid(), key)
     }
 
-    async fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, SledStoreError> {
-        self.get(SLED_TREE_PROFILE_KEYS, uuid.as_bytes())
+    async fn profile_key(&self, aci: &Aci) -> Result<Option<ProfileKey>, SledStoreError> {
+        self.get(SLED_TREE_PROFILE_KEYS, aci.service_id_binary())
     }
 
     async fn save_profile(
         &mut self,
-        uuid: Uuid,
-        key: ProfileKey,
-        profile: Profile,
+        aci: &Aci,
+        key: &ProfileKey,
+        profile: &Profile,
     ) -> Result<(), SledStoreError> {
-        let key = self.profile_key_for_uuid(uuid, key);
+        let key = self.profile_key_for_uuid(aci, key);
         self.insert(SLED_TREE_PROFILES, key, profile)?;
         Ok(())
     }
 
     async fn profile(
         &self,
-        uuid: Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> Result<Option<Profile>, SledStoreError> {
-        let key = self.profile_key_for_uuid(uuid, key);
+        let key = self.profile_key_for_uuid(aci, key);
         self.get(SLED_TREE_PROFILES, key)
     }
 
     async fn save_profile_avatar(
         &mut self,
-        uuid: Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
         avatar: &AvatarBytes,
     ) -> Result<(), SledStoreError> {
-        let key = self.profile_key_for_uuid(uuid, key);
+        let key = self.profile_key_for_uuid(aci, key);
         self.insert(SLED_TREE_PROFILE_AVATARS, key, avatar)?;
         Ok(())
     }
 
     async fn profile_avatar(
         &self,
-        uuid: Uuid,
-        key: ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> Result<Option<AvatarBytes>, SledStoreError> {
-        let key = self.profile_key_for_uuid(uuid, key);
+        let key = self.profile_key_for_uuid(aci, key);
         self.get(SLED_TREE_PROFILE_AVATARS, key)
     }
 
@@ -471,8 +472,11 @@ impl DoubleEndedIterator for SledMessagesIter {
 fn messages_thread_tree_name(t: &Thread) -> String {
     use base64::prelude::*;
     let key = match t {
-        Thread::Contact(uuid) => {
-            format!("{SLED_TREE_THREADS_PREFIX}:contact:{uuid}")
+        Thread::Contact(service_id) => {
+            format!(
+                "{SLED_TREE_THREADS_PREFIX}:contact:{}",
+                service_id.service_id_string()
+            )
         }
         Thread::Group(group_id) => format!(
             "{SLED_TREE_THREADS_PREFIX}:group:{}",

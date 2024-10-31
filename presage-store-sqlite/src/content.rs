@@ -1,7 +1,12 @@
 use std::marker::PhantomData;
 
 use presage::{
-    libsignal_service::{prelude::Content, zkgroup::GroupMasterKeyBytes},
+    libsignal_service::{
+        prelude::{Content, ProfileKey},
+        protocol::Aci,
+        zkgroup::GroupMasterKeyBytes,
+        Profile,
+    },
     model::{contacts::Contact, groups::Group},
     store::{ContentsStore, StickerPack},
 };
@@ -126,22 +131,22 @@ impl ContentsStore for SqliteStore {
 
     async fn group_avatar(
         &self,
-        master_key: presage::libsignal_service::zkgroup::GroupMasterKeyBytes,
+        master_key: GroupMasterKeyBytes,
     ) -> Result<Option<presage::AvatarBytes>, Self::ContentsStoreError> {
         todo!()
     }
 
     async fn upsert_profile_key(
         &mut self,
-        uuid: &presage::libsignal_service::prelude::Uuid,
-        key: presage::libsignal_service::prelude::ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> Result<bool, Self::ContentsStoreError> {
         todo!()
     }
 
     async fn profile_key(
         &self,
-        uuid: &presage::libsignal_service::prelude::Uuid,
+        aci: &Aci,
     ) -> Result<Option<presage::libsignal_service::prelude::ProfileKey>, Self::ContentsStoreError>
     {
         todo!()
@@ -149,25 +154,25 @@ impl ContentsStore for SqliteStore {
 
     async fn save_profile(
         &mut self,
-        uuid: presage::libsignal_service::prelude::Uuid,
-        key: presage::libsignal_service::prelude::ProfileKey,
-        profile: presage::libsignal_service::Profile,
+        aci: &Aci,
+        key: &ProfileKey,
+        profile: &Profile,
     ) -> Result<(), Self::ContentsStoreError> {
         todo!()
     }
 
     async fn profile(
         &self,
-        uuid: presage::libsignal_service::prelude::Uuid,
-        key: presage::libsignal_service::prelude::ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> Result<Option<presage::libsignal_service::Profile>, Self::ContentsStoreError> {
         todo!()
     }
 
     async fn save_profile_avatar(
         &mut self,
-        uuid: presage::libsignal_service::prelude::Uuid,
-        key: presage::libsignal_service::prelude::ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
         profile: &presage::AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         todo!()
@@ -175,8 +180,8 @@ impl ContentsStore for SqliteStore {
 
     async fn profile_avatar(
         &self,
-        uuid: presage::libsignal_service::prelude::Uuid,
-        key: presage::libsignal_service::prelude::ProfileKey,
+        aci: &Aci,
+        key: &ProfileKey,
     ) -> Result<Option<presage::AvatarBytes>, Self::ContentsStoreError> {
         todo!()
     }

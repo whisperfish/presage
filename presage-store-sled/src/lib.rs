@@ -9,7 +9,7 @@ use base64::prelude::*;
 use presage::{
     libsignal_service::{
         prelude::{ProfileKey, Uuid},
-        protocol::{IdentityKey, IdentityKeyPair, PrivateKey},
+        protocol::{Aci, IdentityKey, IdentityKeyPair, PrivateKey},
         utils::{
             serde_identity_key, serde_optional_identity_key, serde_optional_private_key,
             serde_private_key,
@@ -276,8 +276,8 @@ impl SledStore {
         Ok(removed.is_some())
     }
 
-    fn profile_key_for_uuid(&self, uuid: Uuid, key: ProfileKey) -> String {
-        let key = uuid.into_bytes().into_iter().chain(key.get_bytes());
+    fn profile_key_for_uuid(&self, aci: &Aci, key: &ProfileKey) -> String {
+        let key = aci.service_id_binary().into_iter().chain(key.get_bytes());
 
         let mut hasher = Sha256::new();
         hasher.update(key.collect::<Vec<_>>());
@@ -487,6 +487,11 @@ impl StateStore for SledStore {
         state: &RegistrationData,
     ) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_STATE, SLED_KEY_REGISTRATION, state)?;
+        self.insert(
+            SLED_TREE_STATE,
+            SLED_KEY_SCHEMA_VERSION,
+            SchemaVersion::current(),
+        )?;
         Ok(())
     }
 

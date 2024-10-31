@@ -21,9 +21,9 @@ use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
-use presage::libsignal_service::ServiceAddress;
 use presage::manager::ReceivingMode;
 use presage::model::contacts::Contact;
 use presage::model::groups::Group;
@@ -99,6 +99,15 @@ enum Cmd {
         device_name: String,
     },
     #[clap(
+        about = "Submit a captcha challenge obtained from https://signalcaptchas.org/challenge/generate.html"
+    )]
+    SubmitCaptcha {
+        #[clap(long)]
+        token: String,
+        #[clap(long)]
+        url: Url,
+    },
+    #[clap(
         about = "Add a new secondary device to this (primary) device via URL (see link-device)"
     )]
     AddDevice {
@@ -146,8 +155,8 @@ enum Cmd {
         )
     )]
     ListMessages {
-        #[clap(long, short = 'u', help = "recipient UUID")]
-        recipient_uuid: Option<Uuid>,
+        #[clap(long, short = 'r', help = "recipient service ID", value_parser = parse_service_id)]
+        recipient: Option<ServiceId>,
         #[clap(
             long,
             short = 'k',
@@ -166,7 +175,7 @@ enum Cmd {
     },
     #[clap(about = "Find a contact in the embedded DB")]
     FindContact {
-        #[clap(long, short = 'u', help = "contact UUID")]
+        #[clap(long, short = 'u', help = "contact service ID")]
         uuid: Option<Uuid>,
         #[clap(long, short = 'p', help = "contact phone number")]
         phone_number: Option<PhoneNumber>,
@@ -175,8 +184,13 @@ enum Cmd {
     },
     #[clap(about = "Send a message")]
     Send {
-        #[clap(long, short = 'u', help = "uuid of the recipient")]
-        uuid: Uuid,
+        #[clap(
+            long,
+            short = 'r',
+            help = "recipient service ID",
+            value_parser = parse_service_id
+        )]
+        recipient: ServiceId,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
@@ -197,8 +211,12 @@ enum Cmd {
 }
 
 enum Recipient {
-    Contact(Uuid),
+    Contact(ServiceId),
     Group(GroupMasterKeyBytes),
+}
+
+fn parse_service_id(value: &str) -> anyhow::Result<ServiceId> {
+    ServiceId::parse_from_service_id_string(value).context("invalid service id")
 }
 
 fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
@@ -261,10 +279,10 @@ async fn send<S: Store>(
             });
 
             match recipient {
-                Recipient::Contact(uuid) => {
-                    info!(recipient =% uuid, "sending message to contact");
+                Recipient::Contact(service_id) => {
+                    info!(recipient = %service_id.service_id_string(), "sending message to contact");
                     manager
-                        .send_message(ServiceAddress::from_aci(uuid), content_body, timestamp)
+                        .send_message(service_id, content_body, timestamp)
                         .await
                         .expect("failed to send message");
                 }
@@ -292,7 +310,7 @@ async fn process_incoming_message<S: Store>(
 ) {
     print_message(manager, notifications, content).await;
 
-    let sender = content.metadata.sender.uuid;
+    let sender = content.metadata.sender.raw_uuid();
     if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
         for attachment_pointer in attachments {
             let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
@@ -381,10 +399,14 @@ async fn print_message<S: Store>(
         }
     }
 
-    async fn format_contact<S: Store>(uuid: &Uuid, manager: &Manager<S, Registered>) -> String {
+    async fn format_contact<S: Store>(
+        service_id: &ServiceId,
+        manager: &Manager<S, Registered>,
+    ) -> String {
+        let uuid = service_id.raw_uuid();
         manager
             .store()
-            .contact_by_id(uuid)
+            .contact_by_id(&uuid)
             .await
             .ok()
             .flatten()
@@ -481,7 +503,7 @@ async fn print_message<S: Store>(
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = format_contact(&content.metadata.sender.uuid, manager).await;
+                let sender = format_contact(&content.metadata.sender, manager).await;
                 let group = format_group(*key, manager).await;
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
@@ -559,8 +581,8 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 let registered_manager =
                     manager.confirm_verification_code(confirmation_code).await?;
                 println!(
-                    "Account identifier: {}",
-                    registered_manager.registration_data().aci()
+                    "Account identifiers: {}",
+                    registered_manager.registration_data().service_ids
                 );
             }
         }
@@ -591,13 +613,20 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
 
             match manager {
                 (Ok(manager), _) => {
-                    let uuid = manager.whoami().await.unwrap().uuid;
-                    println!("{uuid:?}");
+                    let whoami = manager.whoami().await?;
+                    println!("{whoami:?}");
                 }
                 (Err(err), _) => {
                     println!("{err:?}");
                 }
             }
+        }
+        Cmd::SubmitCaptcha { token, url } => {
+            let manager = Manager::load_registered(config_store).await?;
+            manager
+                .submit_recaptcha_challenge(&token, url.host_str().unwrap())
+                .await?;
+            println!("Done!");
         }
         Cmd::AddDevice { url } => {
             let manager = Manager::load_registered(config_store).await?;
@@ -635,7 +664,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             receive(&mut manager, notifications).await?;
         }
         Cmd::Send {
-            uuid,
+            recipient,
             message,
             attachment_filepath,
         } => {
@@ -647,7 +676,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 ..Default::default()
             };
 
-            send(&mut manager, Recipient::Contact(uuid), data_message).await?;
+            send(&mut manager, Recipient::Contact(recipient), data_message).await?;
         }
         Cmd::SendToGroup {
             message,
@@ -693,7 +722,11 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
             let profile = match profile_key {
                 None => manager.retrieve_profile().await?,
-                Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
+                Some(profile_key) => {
+                    manager
+                        .retrieve_profile_by_uuid(uuid.into(), profile_key)
+                        .await?
+                }
             };
             println!("{profile:#?}");
         }
@@ -795,13 +828,13 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         }
         Cmd::ListMessages {
             group_master_key,
-            recipient_uuid,
+            recipient,
             from,
         } => {
             let manager = Manager::load_registered(config_store).await?;
-            let thread = match (group_master_key, recipient_uuid) {
+            let thread = match (group_master_key, recipient) {
                 (Some(master_key), _) => Thread::Group(master_key),
-                (_, Some(uuid)) => Thread::Contact(uuid),
+                (_, Some(service_id)) => Thread::Contact(service_id),
                 _ => unreachable!(),
             };
             for msg in manager

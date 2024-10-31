@@ -2,6 +2,7 @@ use derivative::Derivative;
 use libsignal_service::{
     groups_v2::Role,
     prelude::{AccessControl, Member, ProfileKey, Timer, Uuid},
+    protocol::ServiceId,
 };
 use serde::{Deserialize, Serialize};
 
@@ -60,8 +61,11 @@ impl From<libsignal_service::groups_v2::Group> for Group {
 impl From<libsignal_service::groups_v2::PendingMember> for PendingMember {
     fn from(val: libsignal_service::groups_v2::PendingMember) -> Self {
         PendingMember {
-            uuid: val.address.uuid,
-            service_id_type: val.address.identity.into(),
+            uuid: val.address.raw_uuid(),
+            service_id_type: match val.address {
+                ServiceId::Aci(_) => ServiceIdType::AccountIdentity,
+                ServiceId::Pni(_) => ServiceIdType::PhoneNumberIdentity,
+            },
             role: val.role,
             added_by_uuid: val.added_by_uuid,
             timestamp: val.timestamp,

@@ -9,12 +9,11 @@ use presage::{
             Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
             KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
             PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
+            ServiceId, ServiceIdKind, SessionRecord, SessionStore, SignalProtocolError,
+            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
         session_store::SessionStoreExt,
-        ServiceAddress,
     },
     proto::verified,
     store::{save_trusted_identity_message, StateStore},
@@ -70,6 +69,8 @@ impl<T: SledTrees> SledProtocolStore<T> {
 }
 
 pub trait SledTrees: Clone {
+    fn service_id_kind() -> ServiceIdKind;
+
     fn identities() -> &'static str;
     fn state() -> &'static str;
     fn pre_keys() -> &'static str;
@@ -85,6 +86,10 @@ pub trait SledTrees: Clone {
 pub struct AciSledStore;
 
 impl SledTrees for AciSledStore {
+    fn service_id_kind() -> ServiceIdKind {
+        ServiceIdKind::Aci
+    }
+
     fn identities() -> &'static str {
         "identities"
     }
@@ -126,6 +131,10 @@ impl SledTrees for AciSledStore {
 pub struct PniSledStore;
 
 impl SledTrees for PniSledStore {
+    fn service_id_kind() -> ServiceIdKind {
+        ServiceIdKind::Pni
+    }
+
     fn identities() -> &'static str {
         "identities"
     }
@@ -464,9 +473,9 @@ impl<T: SledTrees> SessionStore for SledProtocolStore<T> {
 impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
     async fn get_sub_device_sessions(
         &self,
-        address: &ServiceAddress,
+        service_id: &ServiceId,
     ) -> Result<Vec<u32>, SignalProtocolError> {
-        let session_prefix = format!("{}.", address.uuid);
+        let session_prefix = format!("{}.", service_id.raw_uuid());
         trace!(session_prefix, "get_sub_device_sessions");
         let session_ids: Vec<u32> = self
             .store
@@ -498,14 +507,14 @@ impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
 
     async fn delete_all_sessions(
         &self,
-        address: &ServiceAddress,
+        service_id: &ServiceId,
     ) -> Result<usize, SignalProtocolError> {
         let db = self.store.write();
         let sessions_tree = db.open_tree(T::sessions()).map_err(SledStoreError::Db)?;
 
         let mut batch = Batch::default();
         sessions_tree
-            .scan_prefix(address.uuid.to_string())
+            .scan_prefix(service_id.raw_uuid())
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
                 Some(key)
@@ -566,6 +575,7 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
 
         save_trusted_identity_message(
             &self.store,
+            T::service_id_kind(),
             address,
             *identity_key,
             if existed_before {

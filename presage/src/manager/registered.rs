@@ -18,11 +18,13 @@ use libsignal_service::proto::{
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-use libsignal_service::protocol::{IdentityKeyStore, SenderCertificate, ServiceId};
+use libsignal_service::protocol::{
+    self, Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
+};
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIdType,
-    ServiceIds, WhoAmIResponse, DEFAULT_DEVICE_ID,
+    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIds,
+    WhoAmIResponse, DEFAULT_DEVICE_ID,
 };
 use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
@@ -32,7 +34,7 @@ use libsignal_service::utils::serde_signaling_key;
 use libsignal_service::websocket::SignalWebSocket;
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
-use libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
+use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
 use rand::rngs::StdRng;
 use rand::SeedableRng;
 use serde::{Deserialize, Serialize};
@@ -115,13 +117,13 @@ pub struct RegistrationData {
 
 impl RegistrationData {
     /// Account identity
-    pub fn aci(&self) -> Uuid {
-        self.service_ids.aci
+    pub fn aci(&self) -> protocol::Aci {
+        self.service_ids.aci()
     }
 
     /// Phone number identity
-    pub fn pni(&self) -> Uuid {
-        self.service_ids.pni
+    pub fn pni(&self) -> protocol::Pni {
+        self.service_ids.pni()
     }
 
     /// Our own profile key
@@ -261,7 +263,7 @@ impl<S: Store> Manager<S, Registered> {
         account_manager
             .update_pre_key_bundle(
                 &mut self.store.aci_protocol_store(),
-                ServiceIdType::AccountIdentity,
+                ServiceIdKind::Aci,
                 &mut self.rng,
                 true,
             )
@@ -270,7 +272,7 @@ impl<S: Store> Manager<S, Registered> {
         account_manager
             .update_pre_key_bundle(
                 &mut self.store.pni_protocol_store(),
-                ServiceIdType::PhoneNumberIdentity,
+                ServiceIdKind::Pni,
                 &mut self.rng,
                 true,
             )
@@ -376,12 +378,8 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(
-            ServiceAddress::from_aci(self.state.data.service_ids.aci),
-            sync_message,
-            timestamp,
-        )
-        .await?;
+        self.send_message(self.state.data.aci(), sync_message, timestamp)
+            .await?;
 
         Ok(())
     }
@@ -445,34 +443,29 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
-        self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.data.profile_key)
+        self.retrieve_profile_by_uuid(self.state.data.aci(), self.state.data.profile_key)
             .await
     }
 
     /// Fetches the profile of the provided user by UUID and profile key.
     pub async fn retrieve_profile_by_uuid(
         &mut self,
-        uuid: Uuid,
+        aci: Aci,
         profile_key: ProfileKey,
     ) -> Result<Profile, Error<S::Error>> {
         // Check if profile is cached.
         // TODO: Create a migration in the store removing all profiles.
         // TODO: Is there some way to know if this is outdated?
-        if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
+        if let Some(profile) = self.store.profile(&aci, &profile_key).await.ok().flatten() {
             return Ok(profile);
         }
 
         let mut account_manager =
             AccountManager::new(self.identified_push_service(), Some(profile_key));
 
-        let profile = account_manager
-            .retrieve_profile(ServiceAddress::from_aci(uuid))
-            .await?;
+        let profile = account_manager.retrieve_profile(aci).await?;
 
-        let _ = self
-            .store
-            .save_profile(uuid, profile_key, profile.clone())
-            .await;
+        let _ = self.store.save_profile(&aci, &profile_key, &profile).await;
         Ok(profile)
     }
 
@@ -528,14 +521,14 @@ impl<S: Store> Manager<S, Registered> {
 
     pub async fn retrieve_profile_avatar_by_uuid(
         &mut self,
-        uuid: Uuid,
+        aci: Aci,
         profile_key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
         // Check if profile avatar is cached.
         // TODO: Is there some way to know if this is outdated?
         if let Some(avatar) = self
             .store
-            .profile_avatar(uuid, profile_key)
+            .profile_avatar(&aci, &profile_key)
             .await
             .ok()
             .flatten()
@@ -544,10 +537,10 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         let profile =
-            if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
+            if let Some(profile) = self.store.profile(&aci, &profile_key).await.ok().flatten() {
                 profile
             } else {
-                self.retrieve_profile_by_uuid(uuid, profile_key).await?
+                self.retrieve_profile_by_uuid(aci, profile_key).await?
             };
 
         let Some(avatar) = profile.avatar.as_ref() else {
@@ -567,7 +560,7 @@ impl<S: Store> Manager<S, Registered> {
         let avatar = cipher.decrypt_avatar(&contents)?;
         let _ = self
             .store
-            .save_profile_avatar(uuid, profile_key, &avatar)
+            .save_profile_avatar(&aci, &profile_key, &avatar)
             .await;
         Ok(Some(avatar))
     }
@@ -833,7 +826,7 @@ impl<S: Store> Manager<S, Registered> {
     /// it will be used as is, and the expire timer version will be incremented.
     pub async fn send_message(
         &mut self,
-        recipient_addr: impl Into<ServiceAddress>,
+        recipient_addr: impl Into<ServiceId>,
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<(), Error<S::Error>> {
@@ -845,20 +838,24 @@ impl<S: Store> Manager<S, Registered> {
         // Issue <https://github.com/whisperfish/presage/issues/252>
         let include_pni_signature = false;
         let recipient = recipient_addr.into();
-        let thread = Thread::Contact(recipient.uuid);
+        let thread = Thread::Contact(recipient);
         let mut content_body: ContentBody = message.into();
 
         self.restore_thread_timer(&thread, &mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
-        let unidentified_access =
-            self.store
-                .profile_key(&recipient.uuid)
-                .await?
-                .map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key().to_vec(),
-                    certificate: sender_certificate.clone(),
-                });
+        let unidentified_access = match recipient {
+            ServiceId::Aci(recipient) => {
+                self.store
+                    .profile_key(&recipient)
+                    .await?
+                    .map(|profile_key| UnidentifiedAccess {
+                        key: profile_key.derive_access_key().to_vec(),
+                        certificate: sender_certificate.clone(),
+                    })
+            }
+            ServiceId::Pni(_) => None,
+        };
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -882,7 +879,7 @@ impl<S: Store> Manager<S, Registered> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::from_aci(self.state.data.service_ids.aci),
+                sender: self.state.data.aci().into(),
                 sender_device: self.state.device_id(),
                 destination: recipient,
                 server_guid: None,
@@ -951,7 +948,7 @@ impl<S: Store> Manager<S, Registered> {
         {
             let unidentified_access =
                 self.store
-                    .profile_key(&member.uuid)
+                    .profile_key(&member.uuid.into())
                     .await?
                     .map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key().to_vec(),
@@ -959,7 +956,7 @@ impl<S: Store> Manager<S, Registered> {
                     });
             let include_pni_signature = true;
             recipients.push((
-                ServiceAddress::from_aci(member.uuid),
+                ServiceId::Aci(member.uuid.into()),
                 unidentified_access,
                 include_pni_signature,
             ));
@@ -976,8 +973,11 @@ impl<S: Store> Manager<S, Registered> {
             .find(|res| match res {
                 Ok(_) => false,
                 // Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
-                Err(MessageSenderError::NotFound { addr }) => {
-                    debug!(uuid = %addr.uuid, "UUID not found, skipping sent message result");
+                Err(MessageSenderError::NotFound { service_id }) => {
+                    debug!(
+                        service_id = %service_id.service_id_string(),
+                        "UUID not found, skipping sent message result"
+                    );
                     false
                 }
                 // return first error if any
@@ -987,8 +987,8 @@ impl<S: Store> Manager<S, Registered> {
 
         let content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::from_aci(self.state.data.service_ids.aci),
-                destination: ServiceAddress::from_aci(self.state.data.service_ids.aci),
+                sender: self.state.data.aci().into(),
+                destination: self.state.data.aci().into(),
                 sender_device: self.state.device_id(),
                 server_guid: None,
                 timestamp,
@@ -1023,7 +1023,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Clears all sessions established wiht [recipient](ServiceAddress).
-    pub async fn clear_sessions(&self, recipient: &ServiceAddress) -> Result<(), Error<S::Error>> {
+    pub async fn clear_sessions(&self, recipient: &ServiceId) -> Result<(), Error<S::Error>> {
         use libsignal_service::session_store::SessionStoreExt;
         self.store
             .aci_protocol_store()
@@ -1106,12 +1106,8 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(
-            ServiceAddress::from_aci(self.state.data.aci()),
-            sync_message,
-            timestamp,
-        )
-        .await?;
+        self.send_message(self.state.data.aci(), sync_message, timestamp)
+            .await?;
 
         Ok(())
     }
@@ -1137,12 +1133,8 @@ impl<S: Store> Manager<S, Registered> {
             .expect("Time went backwards")
             .as_millis() as u64;
 
-        self.send_message(
-            ServiceAddress::from_aci(self.state.data.aci()),
-            sync_message,
-            timestamp,
-        )
-        .await?;
+        self.send_message(self.state.data.aci(), sync_message, timestamp)
+            .await?;
 
         self.store.remove_sticker_pack(pack_id).await?;
 
@@ -1151,10 +1143,10 @@ impl<S: Store> Manager<S, Registered> {
 
     pub async fn send_session_reset(
         &mut self,
-        recipient: &ServiceAddress,
+        recipient: &ServiceId,
         timestamp: u64,
     ) -> Result<(), Error<S::Error>> {
-        trace!(%recipient.uuid, "resetting session for address");
+        trace!(recipient = %recipient.service_id_string(), "resetting session for address");
         let message = DataMessage {
             flags: Some(DataMessageFlags::EndSession as u32),
             ..Default::default()
@@ -1196,8 +1188,8 @@ impl<S: Store> Manager<S, Registered> {
             self.new_service_cipher_aci(),
             self.rng.clone(),
             aci_protocol_store,
-            ServiceAddress::from_aci(self.state.data.service_ids.aci),
-            ServiceAddress::from_pni(self.state.data.service_ids.pni),
+            self.state.data.aci(),
+            self.state.data.pni(),
             aci_identity_keypair,
             Some(pni_identity_keypair),
             self.state.device_id().into(),
@@ -1231,17 +1223,17 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns the title of a thread (contact or group).
     pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<S::Error>> {
         match thread {
-            Thread::Contact(uuid) => {
-                let contact = match self.store.contact_by_id(uuid).await {
+            Thread::Contact(service_id) => {
+                let contact = match self.store.contact_by_id(&service_id.raw_uuid()).await {
                     Ok(contact) => contact,
                     Err(error) => {
-                        info!(%error, %uuid, "error getting contact by id");
+                        info!(%error, service_id = %service_id.service_id_string(), "error getting contact by id");
                         None
                     }
                 };
                 Ok(match contact {
                     Some(contact) => contact.name,
-                    None => uuid.to_string(),
+                    None => service_id.service_id_string(),
                 })
             }
             Thread::Group(id) => match self.store.group(*id).await? {
@@ -1469,58 +1461,57 @@ async fn save_message<S: Store>(
         }) => {
             // update recipient profile key if changed
             if let Some(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
-                let sender_uuid = message.metadata.sender.uuid;
-                let profile_key = ProfileKey::create(profile_key_bytes);
-                debug!(%sender_uuid, "inserting profile key for");
+                if let Some(aci) = message.metadata.sender.aci() {
+                    let sender_uuid = ServiceId::Aci(aci).raw_uuid();
+                    let profile_key = ProfileKey::create(profile_key_bytes);
+                    debug!(aci = %aci.service_id_string(), "inserting profile key for");
 
-                // Either:
-                // - insert a new contact with the profile information
-                // - update the contact if the profile key has changed
-                // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
-                if store.contact_by_id(&sender_uuid).await?.is_none()
-                    || !store
-                        .profile_key(&sender_uuid)
-                        .await?
-                        .is_some_and(|p| p.bytes == profile_key.bytes)
-                {
-                    let encrypted_profile = push_service
-                        .retrieve_profile_by_id(
-                            ServiceAddress::from_aci(sender_uuid),
-                            Some(profile_key),
-                        )
-                        .await?;
-                    let profile_cipher = ProfileCipher::from(profile_key);
-                    let decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
+                    // Either:
+                    // - insert a new contact with the profile information
+                    // - update the contact if the profile key has changed
+                    // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
+                    if store.contact_by_id(&sender_uuid).await?.is_none()
+                        || !store
+                            .profile_key(&aci)
+                            .await?
+                            .is_some_and(|p| p.bytes == profile_key.bytes)
+                    {
+                        let encrypted_profile = push_service
+                            .retrieve_profile_by_id(aci, Some(profile_key))
+                            .await?;
+                        let profile_cipher = ProfileCipher::from(profile_key);
+                        let decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
 
-                    let contact = Contact {
-                        uuid: sender_uuid,
-                        phone_number: None,
-                        name: decrypted_profile
-                            .name
-                            // FIXME: this assumes [firstname] [lastname]
-                            .map(|pn| {
-                                if let Some(family_name) = pn.family_name {
-                                    format!("{} {}", pn.given_name, family_name)
-                                } else {
-                                    pn.given_name
-                                }
-                            })
-                            .unwrap_or_default(),
-                        profile_key: profile_key.bytes.to_vec(),
-                        color: None,
-                        expire_timer: data_message.expire_timer.unwrap_or_default(),
-                        expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
-                        inbox_position: 0,
-                        archived: false,
-                        avatar: None,
-                        verified: Verified::default(),
-                    };
+                        let contact = Contact {
+                            uuid: sender_uuid,
+                            phone_number: None,
+                            name: decrypted_profile
+                                .name
+                                // FIXME: this assumes [firstname] [lastname]
+                                .map(|pn| {
+                                    if let Some(family_name) = pn.family_name {
+                                        format!("{} {}", pn.given_name, family_name)
+                                    } else {
+                                        pn.given_name
+                                    }
+                                })
+                                .unwrap_or_default(),
+                            profile_key: profile_key.bytes.to_vec(),
+                            color: None,
+                            expire_timer: data_message.expire_timer.unwrap_or_default(),
+                            expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
+                            inbox_position: 0,
+                            archived: false,
+                            avatar: None,
+                            verified: Verified::default(),
+                        };
 
-                    info!(%sender_uuid, "saved contact on first sight");
-                    store.save_contact(&contact).await?;
+                        info!(%sender_uuid, "saved contact on first sight");
+                        store.save_contact(&contact).await?;
+                    }
+
+                    store.upsert_profile_key(&aci, &profile_key).await?;
                 }
-
-                store.upsert_profile_key(&sender_uuid, profile_key).await?;
             }
 
             if let Some(expire_timer) = data_message.expire_timer {
@@ -1540,7 +1531,9 @@ async fn save_message<S: Store>(
                 } => {
                     // replace an existing message by an empty NullMessage
                     if let Some(mut existing_msg) = store.message(&thread, *ts).await? {
-                        existing_msg.metadata.sender.uuid = Uuid::nil();
+                        existing_msg.metadata.sender =
+                            ServiceId::parse_from_service_id_string(&Uuid::nil().to_string())
+                                .unwrap();
                         existing_msg.body = NullMessage::default().into();
                         store.save_message(&thread, existing_msg).await?;
                         debug!(%thread, ts, "message in thread deleted");

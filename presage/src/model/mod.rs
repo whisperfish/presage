@@ -16,14 +16,3 @@ pub enum ServiceIdType {
     /// A UUID associated with a phone number
     PhoneNumberIdentity,
 }
-
-impl From<libsignal_service::ServiceIdType> for ServiceIdType {
-    fn from(val: libsignal_service::ServiceIdType) -> Self {
-        match val {
-            libsignal_service::ServiceIdType::AccountIdentity => ServiceIdType::AccountIdentity,
-            libsignal_service::ServiceIdType::PhoneNumberIdentity => {
-                ServiceIdType::PhoneNumberIdentity
-            }
-        }
-    }
-}
