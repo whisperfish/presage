@@ -3,6 +3,7 @@ use std::pin::pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use derivative::Derivative;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
@@ -95,14 +96,18 @@ impl Registered {
 }
 
 /// Registration data like device name, and credentials to connect to Signal
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Derivative, Serialize, Deserialize, Clone)]
+#[derivative(Debug)]
 pub struct RegistrationData {
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
     #[serde(flatten)]
+    #[derivative(Debug = "ignore")]
     pub service_ids: ServiceIds,
+    #[derivative(Debug = "ignore")]
     pub(crate) password: String,
+    #[derivative(Debug = "ignore")]
     #[serde(with = "serde_signaling_key")]
     pub(crate) signaling_key: SignalingKey,
     pub device_id: Option<u32>,

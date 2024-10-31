@@ -18,7 +18,7 @@ use presage::{
 
 use crate::SqliteStoreError;
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct SqlContact {
     pub uuid: String,
     pub phone_number: Option<String>,
@@ -39,6 +39,7 @@ pub struct SqlContact {
 impl TryInto<Contact> for SqlContact {
     type Error = SqliteStoreError;
 
+    #[tracing::instrument]
     fn try_into(self) -> Result<Contact, Self::Error> {
         Ok(Contact {
             uuid: self.uuid.parse()?,
@@ -73,7 +74,7 @@ impl TryInto<Contact> for SqlContact {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct SqlProfile {
     pub uuid: String,
     pub key: Vec<u8>,
@@ -87,6 +88,7 @@ pub struct SqlProfile {
 impl TryInto<Profile> for SqlProfile {
     type Error = SqliteStoreError;
 
+    #[tracing::instrument]
     fn try_into(self) -> Result<Profile, Self::Error> {
         Ok(Profile {
             name: self.given_name.map(|gn| ProfileName {
@@ -100,7 +102,7 @@ impl TryInto<Profile> for SqlProfile {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct SqlGroup {
     pub id: Option<i64>,
     pub master_key: Vec<u8>,
@@ -116,6 +118,7 @@ pub struct SqlGroup {
 }
 
 impl SqlGroup {
+    #[tracing::instrument]
     pub fn from_group(
         master_key: GroupMasterKeyBytes,
         group: Group,
@@ -138,6 +141,7 @@ impl SqlGroup {
         })
     }
 
+    #[tracing::instrument]
     pub fn into_group(self) -> Result<Group, SqliteStoreError> {
         let members: Vec<Member> = postcard::from_bytes(&self.members)?;
         let pending_members: Vec<PendingMember> = postcard::from_bytes(&self.pending_members)?;
@@ -158,7 +162,7 @@ impl SqlGroup {
     }
 }
 
-#[derive(sqlx::FromRow)]
+#[derive(Debug, sqlx::FromRow)]
 pub struct SqlMessage {
     pub ts: i64,
     pub thread_id: i64,
@@ -175,6 +179,7 @@ pub struct SqlMessage {
 impl TryInto<Content> for SqlMessage {
     type Error = SqliteStoreError;
 
+    #[tracing::instrument]
     fn try_into(self) -> Result<Content, Self::Error> {
         let body: proto::Content = prost::Message::decode(&self.content_body[..]).unwrap();
         let sender_service_id =

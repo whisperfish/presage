@@ -3,10 +3,11 @@ use sqlx::types::uuid;
 
 #[derive(Debug, thiserror::Error)]
 pub enum SqliteStoreError {
-    #[error("database migration is not supported")]
-    MigrationConflict,
+    #[error("database migration failed: {0}")]
+    Migration(#[from] sqlx::migrate::MigrateError),
     #[error("data store error: {0}")]
     Db(#[from] sqlx::Error),
+
     #[error("error parsing phonenumber: {0}")]
     PhoneNumber(#[from] phonenumber::ParseError),
     #[error("error parsing UUID: {0}")]

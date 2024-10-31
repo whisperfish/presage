@@ -49,11 +49,23 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
+        let mut tx = self.db.begin().await?;
+
+        query!("DELETE FROM groups").execute(&mut *tx).await;
+        query!("DELETE FROM contacts").execute(&mut *tx).await;
+
+        tx.commit().await?;
         Ok(())
     }
 
     async fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError> {
-        query!("DELETE FROM threads").execute(&self.db).await?;
+        let mut tx = self.db.begin().await?;
+        query!("DELETE FROM thread_messages")
+            .execute(&mut *tx)
+            .await?;
+        query!("DELETE FROM threads").execute(&mut *tx).await?;
+        tx.commit().await?;
+
         Ok(())
     }
 
@@ -134,11 +146,10 @@ impl ContentsStore for SqliteStore {
         let timestamp: i64 = timestamp.try_into()?;
         let deleted: u64 = match thread {
             Thread::Contact(uuid) => query_scalar!(
-                "
-                    DELETE FROM thread_messages WHERE ts = ? AND thread_id IN (
-                        SELECT thread_id FROM threads
-                        WHERE recipient_id = ?
-                    )",
+                "DELETE FROM thread_messages WHERE ts = ? AND thread_id IN (
+                    SELECT thread_id FROM threads
+                    WHERE recipient_id = ?
+                )",
                 timestamp,
                 uuid
             )
@@ -171,8 +182,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<Option<Content>, Self::ContentsStoreError> {
         let timestamp: i64 = timestamp.try_into()?;
         let Some(thread_id) = self.thread_id(thread).await? else {
-            warn!("no thread found");
-            // TODO: return error?
+            warn!(%thread, "thread not found");
             return Ok(None);
         };
 
@@ -194,8 +204,7 @@ impl ContentsStore for SqliteStore {
         range: impl std::ops::RangeBounds<u64>,
     ) -> Result<Self::MessagesIter, Self::ContentsStoreError> {
         let Some(thread_id) = self.thread_id(thread).await? else {
-            warn!("no thread found");
-            // TODO: return error?
+            warn!(%thread, "thread not found");
             return Ok(Box::new(std::iter::empty()));
         };
 
@@ -228,6 +237,8 @@ impl ContentsStore for SqliteStore {
             }
             std::ops::Bound::Unbounded => (),
         }
+
+        query_builder.push("ORDER BY ts DESC");
 
         let messages: Vec<SqlMessage> = query_builder.build_query_as().fetch_all(&self.db).await?;
         Ok(Box::new(messages.into_iter().map(TryInto::try_into)))
@@ -284,7 +295,7 @@ impl ContentsStore for SqliteStore {
         .execute(&mut *tx)
         .await?;
 
-        tx.commit().await;
+        tx.commit().await?;
 
         Ok(())
     }

@@ -39,8 +39,6 @@ use presage::{
     store::{Store, Thread},
     Manager,
 };
-use presage_store_sled::MigrationConflictStrategy;
-use presage_store_sled::SledStore;
 use tempfile::Builder;
 use tokio::task;
 use tokio::{
@@ -223,14 +221,22 @@ async fn main() -> anyhow::Result<()> {
             .config_dir()
             .into()
     });
-    debug!(db_path =% db_path.display(), "opening config database");
-    let config_store = SledStore::open_with_passphrase(
+    debug!(dir =% db_path.display(), "opening database in dir");
+
+    #[cfg(feature = "sled")]
+    let config_store = presage_store_sled::SledStore::open_with_passphrase(
         db_path,
         args.passphrase,
-        MigrationConflictStrategy::Raise,
+        presage_store_sled::MigrationConflictStrategy::Raise,
         OnNewIdentity::Trust,
     )
     .await?;
+
+    #[cfg(feature = "sqlite")]
+    let config_store =
+        presage_store_sqlite::SqliteStore::open(db_path.join("db.sqlite"), OnNewIdentity::Trust)
+            .await?;
+
     run(args.subcommand, config_store).await
 }
 

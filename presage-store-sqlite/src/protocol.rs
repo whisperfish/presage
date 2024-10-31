@@ -335,7 +335,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         let record_data = record.serialize()?;
         query!(
             "INSERT INTO kyber_prekeys( id, record, is_last_resort, identity )
-            VALUES( $1, $2, true, $4 )",
+            VALUES( ?, ?, TRUE, ? )",
             id,
             record_data,
             self.identity_type,
