@@ -343,22 +343,18 @@ impl ContentsStore for SqliteStore {
                 title,
                 revision,
                 invite_link_password,
-                access_required_for_attributes,
-                access_required_for_members,
-                access_required_for_add_from_invite_link,
+                access_required,
                 avatar,
                 description,
                 members,
                 pending_members,
                 requesting_members
-            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            ) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             group.master_key,
             group.title,
             group.revision,
             group.invite_link_password,
-            group.access_required_for_attributes,
-            group.access_required_for_members,
-            group.access_required_for_add_from_invite_link,
+            group.access_required,
             group.avatar,
             group.description,
             group.members,
@@ -739,9 +735,7 @@ struct SqlGroup {
     pub title: String,
     pub revision: i64,
     pub invite_link_password: Option<Vec<u8>>,
-    pub access_required_for_attributes: i64,
-    pub access_required_for_members: i64,
-    pub access_required_for_add_from_invite_link: i64,
+    pub access_required: Option<Vec<u8>>,
     pub avatar: String,
     pub description: Option<String>,
     pub members: Vec<u8>,
@@ -754,31 +748,16 @@ impl SqlGroup {
         master_key: GroupMasterKeyBytes,
         group: Group,
     ) -> Result<SqlGroup, SqliteStoreError> {
-        let (
-            access_required_for_attributes,
-            access_required_for_members,
-            access_required_for_add_from_invite_link,
-        ) = match group.access_control {
-            Some(AccessControl {
-                attributes,
-                members,
-                add_from_invite_link,
-            }) => {
-                // TODO: talk to Ruben about making AccessRequired some indexed enum? with repr(u8)
-                (0, 0, 0)
-            }
-            None => (0, 0, 0),
-        };
-
         Ok(SqlGroup {
             id: None,
             master_key: master_key.to_vec(),
             title: group.title,
             revision: group.revision as i64,
             invite_link_password: Some(group.invite_link_password),
-            access_required_for_attributes: 0,
-            access_required_for_members: 0,
-            access_required_for_add_from_invite_link: 0,
+            access_required: group
+                .access_control
+                .map(|ac| postcard::to_allocvec(&ac))
+                .transpose()?,
             avatar: group.avatar,
             description: group.description,
             members: postcard::to_allocvec(&group.members)?,
