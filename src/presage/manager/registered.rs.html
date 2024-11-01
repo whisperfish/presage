@@ -2576,7 +2576,7 @@
                         key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
-            <span class="kw">let </span>include_pni_signature = <span class="bool-val">true</span>;
+            <span class="kw">let </span>include_pni_signature = <span class="bool-val">false</span>;
             recipients.push((
                 ServiceAddress::from_aci(member.uuid),
                 unidentified_access,
