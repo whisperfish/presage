@@ -23,6 +23,7 @@ Features:
 - [x] Handle groups v2 (and change events)
 - [x] Download + decrypt attachments
 - [x] Send messages
+  - [ ] Send messages to PNI recipients
 - [x] Groups support
 
 ## Instructions
