@@ -957,7 +957,7 @@ impl<S: Store> Manager<S, Registered> {
                         key: profile_key.derive_access_key().to_vec(),
                         certificate: sender_certificate.clone(),
                     });
-            let include_pni_signature = true;
+            let include_pni_signature = false;
             recipients.push((
                 ServiceAddress::from_aci(member.uuid),
                 unidentified_access,
