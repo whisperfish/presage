@@ -66,7 +66,6 @@ pub enum MigrationConflictStrategy {
 #[derive(PartialEq, Eq, Clone, Debug, Default, Serialize, Deserialize)]
 pub enum SchemaVersion {
     /// prior to any versioning of the schema
-    #[default]
     V0 = 0,
     V1 = 1,
     V2 = 2,
@@ -75,20 +74,17 @@ pub enum SchemaVersion {
     V4 = 4,
     /// ACI and PNI identity key pairs are moved into dedicated storage keys from registration data
     V5 = 5,
+    #[default]
     /// Reset pre-keys after fixing persistence
     V6 = 6,
 }
 
 impl SchemaVersion {
-    fn current() -> SchemaVersion {
-        Self::V6
-    }
-
     /// return an iterator on all the necessary migration steps from another version
     fn steps(self) -> impl Iterator<Item = SchemaVersion> {
         Range {
             start: self as u8 + 1,
-            end: Self::current() as u8 + 1,
+            end: Self::default() as u8 + 1,
         }
         .map(|i| match i {
             1 => SchemaVersion::V1,
