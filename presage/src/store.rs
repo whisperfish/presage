@@ -166,7 +166,7 @@ pub trait ContentsStore: Send + Sync {
                         }
                         contact.expire_timer_version = version;
                         contact.expire_timer = timer;
-                        self.save_contact(&contact).await?;
+                        self.save_contact(contact).await?;
                     }
                     Ok(())
                 }
@@ -190,7 +190,7 @@ pub trait ContentsStore: Send + Sync {
     /// Save a contact
     fn save_contact(
         &mut self,
-        contacts: &Contact,
+        contacts: Contact,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Get an iterator on all stored (synchronized) contacts

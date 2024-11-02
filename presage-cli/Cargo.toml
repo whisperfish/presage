@@ -5,9 +5,15 @@ edition = "2021"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 license = "AGPL-3.0-only"
 
+[features]
+default = ["sqlite"]
+sled = ["presage-store-sled"]
+sqlite = ["presage-store-sqlite"]
+
 [dependencies]
 presage = { path = "../presage" }
-presage-store-sled = { path = "../presage-store-sled" }
+presage-store-sled = { path = "../presage-store-sled", optional = true }
+presage-store-sqlite = { path = "../presage-store-sqlite", optional = true }
 
 anyhow = { version = "1.0", features = ["backtrace"] }
 base64 = "0.22"

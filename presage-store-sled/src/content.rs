@@ -70,7 +70,7 @@ impl ContentsStore for SledStore {
         Ok(())
     }
 
-    async fn save_contact(&mut self, contact: &Contact) -> Result<(), SledStoreError> {
+    async fn save_contact(&mut self, contact: Contact) -> Result<(), SledStoreError> {
         self.insert(SLED_TREE_CONTACTS, contact.uuid, contact)?;
         debug!("saved contact");
         Ok(())

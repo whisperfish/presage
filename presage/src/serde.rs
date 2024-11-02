@@ -3,11 +3,13 @@ pub(crate) mod serde_profile_key {
     use base64::{engine::general_purpose, Engine};
     use libsignal_service::prelude::ProfileKey;
     use serde::{Deserialize, Deserializer, Serializer};
+    use tracing::trace;
 
     pub(crate) fn serialize<S>(profile_key: &ProfileKey, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
     {
+        trace!("serializing profile key");
         serializer.serialize_str(&general_purpose::STANDARD.encode(profile_key.bytes))
     }
 
@@ -15,6 +17,7 @@ pub(crate) mod serde_profile_key {
     where
         D: Deserializer<'de>,
     {
+        trace!("deserializing profile key");
         let bytes: [u8; 32] = general_purpose::STANDARD
             .decode(String::deserialize(deserializer)?)
             .map_err(serde::de::Error::custom)?

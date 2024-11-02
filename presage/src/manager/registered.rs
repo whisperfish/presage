@@ -3,6 +3,7 @@ use std::pin::pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use derivative::Derivative;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
@@ -100,8 +101,8 @@ pub struct RegistrationData {
     pub signal_servers: SignalServers,
     pub device_name: Option<String>,
     pub phone_number: PhoneNumber,
-    #[serde(flatten)]
-    pub service_ids: ServiceIds,
+    pub aci: Uuid,
+    pub pni: Uuid,
     pub(crate) password: String,
     #[serde(with = "serde_signaling_key")]
     pub(crate) signaling_key: SignalingKey,
@@ -114,14 +115,21 @@ pub struct RegistrationData {
 }
 
 impl RegistrationData {
+    pub fn service_ids(&self) -> ServiceIds {
+        ServiceIds {
+            aci: self.aci,
+            pni: self.pni,
+        }
+    }
+
     /// Account identity
     pub fn aci(&self) -> Uuid {
-        self.service_ids.aci
+        self.aci
     }
 
     /// Phone number identity
     pub fn pni(&self) -> Uuid {
-        self.service_ids.pni
+        self.pni
     }
 
     /// Our own profile key
@@ -327,7 +335,7 @@ impl<S: Store> Manager<S, Registered> {
         if self.state.data.pni_registration_id.is_none() {
             debug!("fetching PNI UUID and updating state");
             let whoami = self.whoami().await?;
-            self.state.data.service_ids.pni = whoami.pni;
+            self.state.data.pni = whoami.pni;
             self.store.save_registration_data(&self.state.data).await?;
         }
 
@@ -377,7 +385,7 @@ impl<S: Store> Manager<S, Registered> {
             .as_millis() as u64;
 
         self.send_message(
-            ServiceAddress::from_aci(self.state.data.service_ids.aci),
+            ServiceAddress::from_aci(self.state.data.aci),
             sync_message,
             timestamp,
         )
@@ -445,7 +453,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
-        self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.data.profile_key)
+        self.retrieve_profile_by_uuid(self.state.data.aci, self.state.data.profile_key)
             .await
     }
 
@@ -601,7 +609,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let groups_credentials_cache = InMemoryCredentialsCache::default();
         let groups_manager = GroupsManager::new(
-            self.state.data.service_ids.clone(),
+            self.state.data.service_ids(),
             self.identified_push_service(),
             groups_credentials_cache,
             server_public_params,
@@ -671,7 +679,7 @@ impl<S: Store> Manager<S, Registered> {
                                             info!("saving contacts");
                                             for contact in contacts.filter_map(Result::ok) {
                                                 if let Err(error) =
-                                                    state.store.save_contact(&contact.into()).await
+                                                    state.store.save_contact(contact.into()).await
                                                 {
                                                     warn!(%error, "failed to save contacts");
                                                     break;
@@ -882,7 +890,7 @@ impl<S: Store> Manager<S, Registered> {
         // save the message
         let content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::from_aci(self.state.data.service_ids.aci),
+                sender: ServiceAddress::from_aci(self.state.data.aci),
                 sender_device: self.state.device_id(),
                 destination: recipient,
                 server_guid: None,
@@ -947,7 +955,7 @@ impl<S: Store> Manager<S, Registered> {
         for member in group
             .members
             .into_iter()
-            .filter(|m| m.uuid != self.state.data.service_ids.aci)
+            .filter(|m| m.uuid != self.state.data.aci)
         {
             let unidentified_access =
                 self.store
@@ -987,8 +995,8 @@ impl<S: Store> Manager<S, Registered> {
 
         let content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::from_aci(self.state.data.service_ids.aci),
-                destination: ServiceAddress::from_aci(self.state.data.service_ids.aci),
+                sender: ServiceAddress::from_aci(self.state.data.aci),
+                destination: ServiceAddress::from_aci(self.state.data.aci),
                 sender_device: self.state.device_id(),
                 server_guid: None,
                 timestamp,
@@ -1167,8 +1175,8 @@ impl<S: Store> Manager<S, Registered> {
 
     fn credentials(&self) -> Option<ServiceCredentials> {
         Some(ServiceCredentials {
-            aci: Some(self.state.data.service_ids.aci),
-            pni: Some(self.state.data.service_ids.pni),
+            aci: Some(self.state.data.aci),
+            pni: Some(self.state.data.pni),
             phonenumber: self.state.data.phone_number.clone(),
             password: Some(self.state.data.password.clone()),
             signaling_key: Some(self.state.data.signaling_key),
@@ -1196,8 +1204,8 @@ impl<S: Store> Manager<S, Registered> {
             self.new_service_cipher_aci(),
             self.rng.clone(),
             aci_protocol_store,
-            ServiceAddress::from_aci(self.state.data.service_ids.aci),
-            ServiceAddress::from_pni(self.state.data.service_ids.pni),
+            ServiceAddress::from_aci(self.state.data.aci),
+            ServiceAddress::from_pni(self.state.data.pni),
             aci_identity_keypair,
             Some(pni_identity_keypair),
             self.state.device_id().into(),
@@ -1211,7 +1219,7 @@ impl<S: Store> Manager<S, Registered> {
             self.state
                 .service_configuration()
                 .unidentified_sender_trust_root,
-            self.state.data.service_ids.aci,
+            self.state.data.aci,
             self.state.device_id(),
         )
     }
@@ -1223,7 +1231,7 @@ impl<S: Store> Manager<S, Registered> {
             self.state
                 .service_configuration()
                 .unidentified_sender_trust_root,
-            self.state.data.service_ids.pni,
+            self.state.data.pni,
             self.state.device_id(),
         )
     }
@@ -1517,7 +1525,7 @@ async fn save_message<S: Store>(
                     };
 
                     info!(%sender_uuid, "saved contact on first sight");
-                    store.save_contact(&contact).await?;
+                    store.save_contact(contact).await?;
                 }
 
                 store.upsert_profile_key(&sender_uuid, profile_key).await?;
