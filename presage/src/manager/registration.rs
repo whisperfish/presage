@@ -136,7 +136,7 @@ impl<S: Store> Manager<S, Registration> {
                 password,
                 session_id: session.id,
             },
-            rng,
+            csprng: rng,
         };
 
         Ok(manager)

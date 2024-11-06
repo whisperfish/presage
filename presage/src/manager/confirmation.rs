@@ -40,8 +40,8 @@ impl<S: Store> Manager<S, Confirmation> {
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
 
-        let registration_id = generate_registration_id(&mut self.rng);
-        let pni_registration_id = generate_registration_id(&mut self.rng);
+        let registration_id = generate_registration_id(&mut self.csprng);
+        let pni_registration_id = generate_registration_id(&mut self.csprng);
 
         let Confirmation {
             signal_servers,
@@ -75,19 +75,19 @@ impl<S: Store> Manager<S, Confirmation> {
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
-        self.rng.fill_bytes(&mut signaling_key);
+        self.csprng.fill_bytes(&mut signaling_key);
 
         // generate a 32 bytes profile key
         let mut profile_key = [0u8; 32];
-        self.rng.fill_bytes(&mut profile_key);
+        self.csprng.fill_bytes(&mut profile_key);
         let profile_key = ProfileKey::generate(profile_key);
 
         // generate new identity keys used in `register_account` and below
         self.store
-            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut self.csprng))
             .await?;
         self.store
-            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut self.rng))
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut self.csprng))
             .await?;
 
         let skip_device_transfer = true;
@@ -100,7 +100,7 @@ impl<S: Store> Manager<S, Confirmation> {
             number: _,
         } = account_manager
             .register_account(
-                &mut self.rng,
+                &mut self.csprng,
                 RegistrationMethod::SessionId(&session.id),
                 AccountAttributes {
                     signaling_key: Some(signaling_key.to_vec()),
@@ -126,7 +126,7 @@ impl<S: Store> Manager<S, Confirmation> {
         trace!("confirmed! (and registered)");
 
         let mut manager = Manager {
-            rng: self.rng,
+            csprng: self.csprng,
             store: self.store,
             state: Registered::with_data(RegistrationData {
                 signal_servers: self.state.signal_servers,
