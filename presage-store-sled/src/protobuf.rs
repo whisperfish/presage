@@ -11,22 +11,22 @@ use presage::libsignal_service::content::ContentBody;
 use presage::libsignal_service::content::Metadata;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto;
-use presage::libsignal_service::ServiceAddress;
+use presage::libsignal_service::protocol::ServiceId;
 
 use crate::SledStoreError;
 
 use self::textsecure::AddressProto;
 use self::textsecure::MetadataProto;
 
-impl From<ServiceAddress> for AddressProto {
-    fn from(s: ServiceAddress) -> Self {
+impl From<ServiceId> for AddressProto {
+    fn from(s: ServiceId) -> Self {
         AddressProto {
-            uuid: Some(s.uuid.as_bytes().to_vec()),
+            uuid: Some(s.raw_uuid().as_bytes().to_vec()),
         }
     }
 }
 
-impl TryFrom<AddressProto> for ServiceAddress {
+impl TryFrom<AddressProto> for ServiceId {
     type Error = SledStoreError;
 
     fn try_from(address: AddressProto) -> Result<Self, Self::Error> {
@@ -34,7 +34,7 @@ impl TryFrom<AddressProto> for ServiceAddress {
             .uuid
             .and_then(|bytes| Some(Uuid::from_bytes(bytes.try_into().ok()?)))
             .ok_or_else(|| SledStoreError::NoUuid)
-            .map(Self::from_aci)
+            .map(|u| ServiceId::Aci(u.into()))
     }
 }
 
@@ -49,7 +49,7 @@ impl From<Metadata> for MetadataProto {
             needs_receipt: Some(m.needs_receipt),
             server_guid: None,
             group_id: None,
-            destination_uuid: Some(m.destination.uuid.to_string()),
+            destination_uuid: Some(m.destination.raw_uuid().to_string()),
         }
     }
 }
@@ -60,10 +60,13 @@ impl TryFrom<MetadataProto> for Metadata {
     fn try_from(metadata: MetadataProto) -> Result<Self, Self::Error> {
         Ok(Metadata {
             sender: metadata.address.ok_or(SledStoreError::NoUuid)?.try_into()?,
-            destination: ServiceAddress::from_aci(match metadata.destination_uuid.as_deref() {
-                Some(value) => value.parse().map_err(|_| SledStoreError::NoUuid),
-                None => Ok(Uuid::nil()),
-            }?),
+            destination: ServiceId::Aci(
+                match metadata.destination_uuid.as_deref() {
+                    Some(value) => value.parse().map_err(|_| SledStoreError::NoUuid),
+                    None => Ok(Uuid::nil()),
+                }?
+                .into(),
+            ),
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())

@@ -158,7 +158,7 @@ impl<S: Store> Manager<S, Linking> {
                 );
 
                 let mut manager = Manager {
-                    rng,
+                    csprng: rng,
                     store: store.clone(),
                     state: Registered::with_data(registration_data),
                 };

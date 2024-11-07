@@ -11,10 +11,12 @@ use libsignal_service::{
         sync_message::{self, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
+    protocol::{
+        IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore, ServiceId,
+    },
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
-    Profile, ServiceAddress,
+    Profile,
 };
 use serde::{Deserialize, Serialize};
 use tracing::trace;
@@ -336,6 +338,7 @@ pub trait Store:
 #[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
 pub enum Thread {
     /// The message was sent inside a contact-chat.
+    /// TODO: make this correctly either ACI or PNI (store the ServiceId)
     Contact(Uuid),
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
@@ -432,7 +435,7 @@ impl TryFrom<&Content> for Thread {
                     .expect("Group master key to have 32 bytes"),
             )),
             // [1-1] Any other message directly to us
-            _ => Ok(Thread::Contact(content.metadata.sender.uuid)),
+            _ => Ok(Thread::Contact(content.metadata.sender.raw_uuid())),
         }
     }
 }
@@ -530,17 +533,17 @@ pub async fn save_trusted_identity_message<S: Store>(
     right_identity_key: IdentityKey,
     verified_state: verified::State,
 ) -> Result<(), S::Error> {
-    let Ok(sender) = protocol_address.name().parse() else {
+    let Some(sender) = ServiceId::parse_from_service_id_string(protocol_address.name()) else {
         return Ok(());
     };
 
     // TODO: this is a hack to save a message showing that the verification status changed
     // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
-    let thread = Thread::Contact(sender);
+    let thread = Thread::Contact(sender.raw_uuid());
     let verified_sync_message = Content {
         metadata: Metadata {
-            sender: ServiceAddress::from_aci(sender),
-            destination: ServiceAddress::from_aci(sender),
+            sender: sender,
+            destination: sender,
             sender_device: 0,
             server_guid: None,
             timestamp: SystemTime::now()

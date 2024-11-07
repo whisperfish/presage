@@ -1,3 +1,4 @@
+use libsignal_service::protocol::ServiceIdKind;
 use serde::{Deserialize, Serialize};
 
 pub mod contacts;
@@ -17,13 +18,11 @@ pub enum ServiceIdType {
     PhoneNumberIdentity,
 }
 
-impl From<libsignal_service::ServiceIdType> for ServiceIdType {
-    fn from(val: libsignal_service::ServiceIdType) -> Self {
+impl From<ServiceIdKind> for ServiceIdType {
+    fn from(val: ServiceIdKind) -> Self {
         match val {
-            libsignal_service::ServiceIdType::AccountIdentity => ServiceIdType::AccountIdentity,
-            libsignal_service::ServiceIdType::PhoneNumberIdentity => {
-                ServiceIdType::PhoneNumberIdentity
-            }
+            ServiceIdKind::Aci => ServiceIdType::AccountIdentity,
+            ServiceIdKind::Pni => ServiceIdType::PhoneNumberIdentity,
         }
     }
 }

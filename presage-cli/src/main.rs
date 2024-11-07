@@ -21,9 +21,9 @@ use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
-use presage::libsignal_service::ServiceAddress;
 use presage::manager::ReceivingMode;
 use presage::model::contacts::Contact;
 use presage::model::groups::Group;
@@ -264,7 +264,7 @@ async fn send<S: Store>(
                 Recipient::Contact(uuid) => {
                     info!(recipient =% uuid, "sending message to contact");
                     manager
-                        .send_message(ServiceAddress::from_aci(uuid), content_body, timestamp)
+                        .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
                         .await
                         .expect("failed to send message");
                 }
@@ -292,7 +292,7 @@ async fn process_incoming_message<S: Store>(
 ) {
     print_message(manager, notifications, content).await;
 
-    let sender = content.metadata.sender.uuid;
+    let sender = content.metadata.sender.raw_uuid();
     if let ContentBody::DataMessage(DataMessage { attachments, .. }) = &content.body {
         for attachment_pointer in attachments {
             let Ok(attachment_data) = manager.get_attachment(attachment_pointer).await else {
@@ -481,7 +481,7 @@ async fn print_message<S: Store>(
                 (format!("To {contact} @ {ts}"), body)
             }
             Msg::Received(Thread::Group(key), body) => {
-                let sender = format_contact(&content.metadata.sender.uuid, manager).await;
+                let sender = format_contact(&content.metadata.sender.raw_uuid(), manager).await;
                 let group = format_group(*key, manager).await;
                 (format!("From {sender} to group {group} @ {ts}: "), body)
             }
@@ -559,8 +559,8 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 let registered_manager =
                     manager.confirm_verification_code(confirmation_code).await?;
                 println!(
-                    "Account identifier: {}",
-                    registered_manager.registration_data().aci()
+                    "Account identifiers: {}",
+                    registered_manager.registration_data().service_ids
                 );
             }
         }
@@ -591,8 +591,8 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
 
             match manager {
                 (Ok(manager), _) => {
-                    let uuid = manager.whoami().await.unwrap().uuid;
-                    println!("{uuid:?}");
+                    let whoami = manager.whoami().await.unwrap();
+                    println!("{whoami:?}");
                 }
                 (Err(err), _) => {
                     println!("{err:?}");
@@ -600,7 +600,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::AddDevice { url } => {
-            let manager = Manager::load_registered(config_store).await?;
+            let mut manager = Manager::load_registered(config_store).await?;
             manager.link_secondary(url).await?;
             println!("Added new secondary device");
         }

@@ -9,12 +9,11 @@ use presage::{
             Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
             KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
             PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
+            ServiceId, SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId,
+            SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
         session_store::SessionStoreExt,
-        ServiceAddress,
     },
     proto::verified,
     store::{save_trusted_identity_message, StateStore},
@@ -464,9 +463,9 @@ impl<T: SledTrees> SessionStore for SledProtocolStore<T> {
 impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
     async fn get_sub_device_sessions(
         &self,
-        address: &ServiceAddress,
+        address: &ServiceId,
     ) -> Result<Vec<u32>, SignalProtocolError> {
-        let session_prefix = format!("{}.", address.uuid);
+        let session_prefix = format!("{}.", address.raw_uuid());
         trace!(session_prefix, "get_sub_device_sessions");
         let session_ids: Vec<u32> = self
             .store
@@ -496,16 +495,13 @@ impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
         Ok(())
     }
 
-    async fn delete_all_sessions(
-        &self,
-        address: &ServiceAddress,
-    ) -> Result<usize, SignalProtocolError> {
+    async fn delete_all_sessions(&self, address: &ServiceId) -> Result<usize, SignalProtocolError> {
         let db = self.store.write();
         let sessions_tree = db.open_tree(T::sessions()).map_err(SledStoreError::Db)?;
 
         let mut batch = Batch::default();
         sessions_tree
-            .scan_prefix(address.uuid.to_string())
+            .scan_prefix(address.raw_uuid().to_string())
             .filter_map(|r| {
                 let (key, _) = r.ok()?;
                 Some(key)

@@ -7,7 +7,7 @@ edition = "2021"
 license = "AGPL-3.0-only"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "468fa6f84cce0db3bdf11609d165758291da99df" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "6401dc34872a5f0c2fba32c1f136d98ccf3dd418" }
 
 base64 = "0.22"
 futures = "0.3"
