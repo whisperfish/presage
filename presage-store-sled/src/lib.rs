@@ -540,8 +540,7 @@ mod tests {
         content::{ContentBody, Metadata},
         prelude::Uuid,
         proto::DataMessage,
-        protocol::PreKeyId,
-        ServiceAddress, ServiceIdType,
+        protocol::{PreKeyId, ServiceId},
     };
     use presage::store::ContentsStore;
     use protocol::SledPreKeyId;
@@ -581,15 +580,11 @@ mod tests {
                 Uuid::from_u128(Arbitrary::arbitrary(g)),
                 Uuid::from_u128(Arbitrary::arbitrary(g)),
             ];
+            let sender_uuid: Uuid = *g.choose(&contacts).unwrap();
+            let destination_uuid: Uuid = *g.choose(&contacts).unwrap();
             let metadata = Metadata {
-                sender: ServiceAddress {
-                    uuid: *g.choose(&contacts).unwrap(),
-                    identity: ServiceIdType::AccountIdentity,
-                },
-                destination: ServiceAddress {
-                    uuid: *g.choose(&contacts).unwrap(),
-                    identity: ServiceIdType::AccountIdentity,
-                },
+                sender: ServiceId::Aci(sender_uuid.into()),
+                destination: ServiceId::Aci(destination_uuid.into()),
                 sender_device: Arbitrary::arbitrary(g),
                 server_guid: None,
                 timestamp,
