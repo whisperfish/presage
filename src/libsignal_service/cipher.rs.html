@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/468fa6f/src/cipher.rs`."><title>cipher.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/6401dc3/src/cipher.rs`."><title>cipher.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-46f98efaafac5295.ttf.woff2,FiraSans-Regular-018c141bf0843ffd.woff2,FiraSans-Medium-8f9a781e4970d388.woff2,SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2,SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-492a78a4a87dcc01.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.82.0 (f6e511eec 2024-10-15)" data-channel="1.82.0" data-search-js="search-a99f1315e7cc5121.js" data-settings-js="settings-4313503d2e1961c2.js" ><script src="../../static.files/storage-118b08c4c78b968e.js"></script><script defer src="../../static.files/src-script-e66d777a5a92e9b2.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-921df33f47b8780c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-3b12f09e550e0385.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -573,6 +573,7 @@
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
 <a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::TryFrom, fmt, time::SystemTime};
 
 <span class="kw">use </span>aes::cipher::block_padding::{Iso7816, RawPadding};
@@ -584,8 +585,8 @@
     CiphertextMessageType, DeviceId, IdentityKeyStore, KyberPreKeyStore,
     PreKeySignalMessage, PreKeyStore, ProtocolAddress, ProtocolStore,
     PublicKey, SealedSenderDecryptionResult, SenderCertificate,
-    SenderKeyDistributionMessage, SenderKeyStore, SessionStore, SignalMessage,
-    SignalProtocolError, SignedPreKeyStore, Timestamp,
+    SenderKeyDistributionMessage, SenderKeyStore, ServiceId, SessionStore,
+    SignalMessage, SignalProtocolError, SignedPreKeyStore, Timestamp,
 };
 <span class="kw">use </span>prost::Message;
 <span class="kw">use </span>rand::{CryptoRng, Rng};
@@ -598,25 +599,23 @@
     sender::OutgoingPushMessage,
     session_store::SessionStoreExt,
     utils::BASE64_RELAXED,
-    ServiceAddress,
+    ServiceIdExt,
 };
 <span class="doccomment">/// Decrypts incoming messages and encrypts outgoing messages.
 ///
 /// Equivalent of SignalServiceCipher in Java.
 </span><span class="attr">#[derive(Clone)]
-</span><span class="kw">pub struct </span>ServiceCipher&lt;S, R&gt; {
+</span><span class="kw">pub struct </span>ServiceCipher&lt;S&gt; {
     protocol_store: S,
-    csprng: R,
     trust_root: PublicKey,
     local_uuid: Uuid,
     local_device_id: u32,
 }
 
-<span class="kw">impl</span>&lt;S, R&gt; fmt::Debug <span class="kw">for </span>ServiceCipher&lt;S, R&gt; {
+<span class="kw">impl</span>&lt;S&gt; fmt::Debug <span class="kw">for </span>ServiceCipher&lt;S&gt; {
     <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
         f.debug_struct(<span class="string">"ServiceCipher"</span>)
             .field(<span class="string">"protocol_store"</span>, <span class="kw-2">&amp;</span><span class="string">"..."</span>)
-            .field(<span class="string">"csprng"</span>, <span class="kw-2">&amp;</span><span class="string">"..."</span>)
             .field(<span class="string">"trust_root"</span>, <span class="kw-2">&amp;</span><span class="string">"..."</span>)
             .field(<span class="string">"local_uuid"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.local_uuid)
             .field(<span class="string">"local_device_id"</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.local_device_id)
@@ -645,21 +644,18 @@
     }
 }
 
-<span class="kw">impl</span>&lt;S, R&gt; ServiceCipher&lt;S, R&gt;
+<span class="kw">impl</span>&lt;S&gt; ServiceCipher&lt;S&gt;
 <span class="kw">where
     </span>S: ProtocolStore + SenderKeyStore + SessionStoreExt + Clone,
-    R: Rng + CryptoRng,
 {
     <span class="kw">pub fn </span>new(
         protocol_store: S,
-        csprng: R,
         trust_root: PublicKey,
         local_uuid: Uuid,
         local_device_id: u32,
     ) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             protocol_store,
-            csprng,
             trust_root,
             local_uuid,
             local_device_id,
@@ -669,13 +665,14 @@
     <span class="doccomment">/// Opens ("decrypts") an envelope.
     ///
     /// Envelopes may be empty, in which case this method returns `Ok(None)`
-    </span><span class="attr">#[tracing::instrument(skip(envelope), fields(envelope = debug_envelope(<span class="kw-2">&amp;</span>envelope)))]
-    </span><span class="kw">pub async fn </span>open_envelope(
+    </span><span class="attr">#[tracing::instrument(skip(envelope, csprng), fields(envelope = debug_envelope(<span class="kw-2">&amp;</span>envelope)))]
+    </span><span class="kw">pub async fn </span>open_envelope&lt;R: Rng + CryptoRng&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         envelope: Envelope,
+        csprng: <span class="kw-2">&amp;mut </span>R,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, ServiceError&gt; {
         <span class="kw">if </span>envelope.content.is_some() {
-            <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope, csprng).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="kw">let </span>message =
                 <span class="kw">crate</span>::proto::Content::decode(plaintext.data.as_slice())<span class="question-mark">?</span>;
             <span class="kw">if let </span><span class="prelude-val">Some</span>(bytes) = message.sender_key_distribution_message {
@@ -701,10 +698,11 @@
     /// Triage of legacy messages happens inside this method, as opposed to the
     /// Java implementation, because it makes the borrow checker and the
     /// author happier.
-    </span><span class="attr">#[tracing::instrument(skip(envelope), fields(envelope = debug_envelope(envelope)))]
-    </span><span class="kw">async fn </span>decrypt(
+    </span><span class="attr">#[tracing::instrument(skip(envelope, csprng), fields(envelope = debug_envelope(envelope)))]
+    </span><span class="kw">async fn </span>decrypt&lt;R: Rng + CryptoRng&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         envelope: <span class="kw-2">&amp;</span>Envelope,
+        csprng: <span class="kw-2">&amp;mut </span>R,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Plaintext, ServiceError&gt; {
         <span class="kw">let </span>ciphertext = <span class="kw">if let </span><span class="prelude-val">Some</span>(msg) = envelope.content.as_ref() {
             msg
@@ -755,7 +753,7 @@
                     <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
                     <span class="kw-2">&amp;</span><span class="self">self</span>.protocol_store.clone(),
                     <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
-                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                    csprng,
                 )
                 .<span class="kw">await</span><span class="question-mark">?
                 </span>.as_slice()
@@ -811,7 +809,7 @@
                     <span class="kw-2">&amp;</span>sender,
                     <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
                     <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
-                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                    csprng,
                 )
                 .<span class="kw">await</span><span class="question-mark">?
                 </span>.as_slice()
@@ -851,13 +849,16 @@
                 )
                 .<span class="kw">await</span><span class="question-mark">?</span>;
 
-                <span class="kw">let </span>sender = ServiceAddress::try_from(sender_uuid.as_str())
-                    .map_err(|e| {
-                        <span class="macro">tracing::error!</span>(<span class="string">"{:?}"</span>, e);
+                <span class="kw">let </span><span class="prelude-val">Some</span>(sender) =
+                    ServiceId::parse_from_service_id_string(<span class="kw-2">&amp;</span>sender_uuid)
+                <span class="kw">else </span>{
+                    <span class="kw">return </span><span class="prelude-val">Err</span>(
                         SignalProtocolError::InvalidSealedSenderMessage(
                             <span class="string">"invalid sender UUID"</span>.to_string(),
                         )
-                    })<span class="question-mark">?</span>;
+                        .into(),
+                    );
+                };
 
                 <span class="kw">let </span>needs_receipt = <span class="kw">if </span>envelope.source_service_id.is_some() {
                     <span class="macro">tracing::warn!</span>(<span class="question-mark">?</span>envelope, <span class="string">"Received an unidentified delivery over an identified channel.  Marking needs_receipt=false"</span>);
@@ -894,18 +895,19 @@
     }
 
     <span class="attr">#[tracing::instrument(
-        skip(address, unidentified_access, content),
+        skip(address, unidentified_access, content, csprng),
         fields(
             address = %address,
             with_unidentified_access = unidentified_access.is_some(),
             content_length = content.len(),
         )
     )]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>encrypt(
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>encrypt&lt;R: Rng + CryptoRng&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         address: <span class="kw-2">&amp;</span>ProtocolAddress,
         unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
         content: <span class="kw-2">&amp;</span>[u8],
+        csprng: <span class="kw-2">&amp;mut </span>R,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;OutgoingPushMessage, ServiceError&gt; {
         <span class="kw">let </span>session_record = <span class="self">self
             </span>.protocol_store
@@ -929,7 +931,7 @@
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store,
                 SystemTime::now(),
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                csprng,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1026,7 +1028,7 @@
 <span class="doccomment">/// Equivalent of `SignalServiceCipher::getPreferredProtocolAddress`
 </span><span class="kw">pub async fn </span>get_preferred_protocol_address&lt;S: SessionStore&gt;(
     session_store: <span class="kw-2">&amp;</span>S,
-    address: <span class="kw-2">&amp;</span>ServiceAddress,
+    address: <span class="kw-2">&amp;</span>ServiceId,
     device_id: DeviceId,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;ProtocolAddress, libsignal_protocol::error::SignalProtocolError&gt; {
     <span class="kw">let </span>address = address.to_protocol_address(device_id);

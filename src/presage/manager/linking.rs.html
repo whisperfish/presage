@@ -339,7 +339,7 @@
                 );
 
                 <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
-                    rng,
+                    csprng: rng,
                     store: store.clone(),
                     state: Registered::with_data(registration_data),
                 };

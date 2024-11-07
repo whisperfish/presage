@@ -564,6 +564,9 @@
 <a href="#564" id="564">564</a>
 <a href="#565" id="565">565</a>
 <a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Traits that are used by the manager for storing the data.
 
 </span><span class="kw">use </span>std::{fmt, future::Future, ops::RangeBounds, time::SystemTime};
@@ -577,10 +580,12 @@
         sync_message::{<span class="self">self</span>, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
-    protocol::{IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore},
+    protocol::{
+        IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore, ServiceId,
+    },
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
-    Profile, ServiceAddress,
+    Profile,
 };
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>tracing::trace;
@@ -902,6 +907,7 @@
 </span><span class="attr">#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
 </span><span class="kw">pub enum </span>Thread {
     <span class="doccomment">/// The message was sent inside a contact-chat.
+    /// TODO: make this correctly either ACI or PNI (store the ServiceId)
     </span>Contact(Uuid),
     <span class="comment">// Cannot use GroupMasterKey as unable to extract the bytes.
     </span><span class="doccomment">/// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
@@ -998,7 +1004,7 @@
                     .expect(<span class="string">"Group master key to have 32 bytes"</span>),
             )),
             <span class="comment">// [1-1] Any other message directly to us
-            </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(Thread::Contact(content.metadata.sender.uuid)),
+            </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(Thread::Contact(content.metadata.sender.raw_uuid())),
         }
     }
 }
@@ -1096,17 +1102,17 @@
     right_identity_key: IdentityKey,
     verified_state: verified::State,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;(), S::Error&gt; {
-    <span class="kw">let </span><span class="prelude-val">Ok</span>(sender) = protocol_address.name().parse() <span class="kw">else </span>{
+    <span class="kw">let </span><span class="prelude-val">Some</span>(sender) = ServiceId::parse_from_service_id_string(protocol_address.name()) <span class="kw">else </span>{
         <span class="kw">return </span><span class="prelude-val">Ok</span>(());
     };
 
     <span class="comment">// TODO: this is a hack to save a message showing that the verification status changed
     // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
-    </span><span class="kw">let </span>thread = Thread::Contact(sender);
+    </span><span class="kw">let </span>thread = Thread::Contact(sender.raw_uuid());
     <span class="kw">let </span>verified_sync_message = Content {
         metadata: Metadata {
-            sender: ServiceAddress::from_aci(sender),
-            destination: ServiceAddress::from_aci(sender),
+            sender: sender,
+            destination: sender,
             sender_device: <span class="number">0</span>,
             server_guid: <span class="prelude-val">None</span>,
             timestamp: SystemTime::now()

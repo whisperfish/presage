@@ -84,7 +84,7 @@
     <span class="doccomment">/// Part of the manager which is persisted in the store.
     </span>state: State,
     <span class="doccomment">/// Random number generator
-    </span>rng: StdRng,
+    </span>csprng: StdRng,
 }
 
 <span class="kw">impl</span>&lt;Store, State: fmt::Debug&gt; fmt::Debug <span class="kw">for </span>Manager&lt;Store, State&gt; {

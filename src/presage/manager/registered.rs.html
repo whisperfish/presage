@@ -1617,6 +1617,11 @@
 <a href="#1617" id="1617">1617</a>
 <a href="#1618" id="1618">1618</a>
 <a href="#1619" id="1619">1619</a>
+<a href="#1620" id="1620">1620</a>
+<a href="#1621" id="1621">1621</a>
+<a href="#1622" id="1622">1622</a>
+<a href="#1623" id="1623">1623</a>
+<a href="#1624" id="1624">1624</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::pin::pin;
 <span class="kw">use </span>std::sync::{Arc, OnceLock};
@@ -1637,11 +1642,13 @@
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
     Verified,
 };
-<span class="kw">use </span>libsignal_service::protocol::{IdentityKeyStore, SenderCertificate, ServiceId};
+<span class="kw">use </span>libsignal_service::protocol::{
+    Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
+};
 <span class="kw">use </span>libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 <span class="kw">use </span>libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIdType,
-    ServiceIds, WhoAmIResponse, DEFAULT_DEVICE_ID,
+    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIds,
+    WhoAmIResponse, DEFAULT_DEVICE_ID,
 };
 <span class="kw">use </span>libsignal_service::receiver::MessageReceiver;
 <span class="kw">use </span>libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
@@ -1651,9 +1658,9 @@
 <span class="kw">use </span>libsignal_service::websocket::SignalWebSocket;
 <span class="kw">use </span>libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 <span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
-<span class="kw">use </span>libsignal_service::{cipher, AccountManager, Profile, ServiceAddress};
+<span class="kw">use </span>libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
 <span class="kw">use </span>rand::rngs::StdRng;
-<span class="kw">use </span>rand::SeedableRng;
+<span class="kw">use </span>rand::{CryptoRng, Rng, SeedableRng};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>sha2::Digest;
 <span class="kw">use </span>tokio::sync::Mutex;
@@ -1665,7 +1672,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 <span class="kw">use crate</span>::{model::groups::Group, AvatarBytes, Error, Manager};
 
-<span class="kw">type </span>ServiceCipher&lt;S&gt; = cipher::ServiceCipher&lt;S, StdRng&gt;;
+<span class="kw">type </span>ServiceCipher&lt;S&gt; = cipher::ServiceCipher&lt;S&gt;;
 <span class="kw">type </span>MessageSender&lt;S&gt; = libsignal_service::prelude::MessageSender&lt;S, StdRng&gt;;
 
 <span class="attr">#[derive(Clone, Debug, PartialEq, Eq)]
@@ -1733,16 +1740,6 @@
 }
 
 <span class="kw">impl </span>RegistrationData {
-    <span class="doccomment">/// Account identity
-    </span><span class="kw">pub fn </span>aci(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Uuid {
-        <span class="self">self</span>.service_ids.aci
-    }
-
-    <span class="doccomment">/// Phone number identity
-    </span><span class="kw">pub fn </span>pni(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; Uuid {
-        <span class="self">self</span>.service_ids.pni
-    }
-
     <span class="doccomment">/// Our own profile key
     </span><span class="kw">pub fn </span>profile_key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProfileKey {
         <span class="self">self</span>.profile_key
@@ -1765,7 +1762,7 @@
             </span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>manager = <span class="self">Self </span>{
-            rng: StdRng::from_entropy(),
+            csprng: StdRng::from_entropy(),
             store,
             state: Registered::with_data(registration_data),
         };
@@ -1880,18 +1877,18 @@
         account_manager
             .update_pre_key_bundle(
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.aci_protocol_store(),
-                ServiceIdType::AccountIdentity,
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
+                ServiceIdKind::Aci,
                 <span class="bool-val">true</span>,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         account_manager
             .update_pre_key_bundle(
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.pni_protocol_store(),
-                ServiceIdType::PhoneNumberIdentity,
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.rng,
+                ServiceIdKind::Pni,
                 <span class="bool-val">true</span>,
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1987,7 +1984,7 @@
             request: <span class="prelude-val">Some</span>(sync_message::Request {
                 r#type: <span class="prelude-val">Some</span>(sync_message::request::Type::Contacts.into()),
             }),
-            ..SyncMessage::with_padding()
+            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng)
         };
 
         <span class="kw">let </span>timestamp = SystemTime::now()
@@ -1995,12 +1992,8 @@
             .expect(<span class="string">"Time went backwards"</span>)
             .as_millis() <span class="kw">as </span>u64;
 
-        <span class="self">self</span>.send_message(
-            ServiceAddress::from_aci(<span class="self">self</span>.state.data.service_ids.aci),
-            sync_message,
-            timestamp,
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.send_message(<span class="self">self</span>.state.data.service_ids.aci(), sync_message, timestamp)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -2071,26 +2064,32 @@
     <span class="doccomment">/// Fetches the profile of the provided user by UUID and profile key.
     </span><span class="kw">pub async fn </span>retrieve_profile_by_uuid(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        uuid: Uuid,
+        aci: <span class="kw">impl </span>Into&lt;Aci&gt;,
         profile_key: ProfileKey,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Profile, Error&lt;S::Error&gt;&gt; {
+        <span class="kw">let </span>aci = aci.into();
+
         <span class="comment">// Check if profile is cached.
         // TODO: Create a migration in the store removing all profiles.
         // TODO: Is there some way to know if this is outdated?
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile) = <span class="self">self</span>.store.profile(uuid, profile_key).<span class="kw">await</span>.ok().flatten() {
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile) = <span class="self">self
+            </span>.store
+            .profile(aci.into(), profile_key)
+            .<span class="kw">await
+            </span>.ok()
+            .flatten()
+        {
             <span class="kw">return </span><span class="prelude-val">Ok</span>(profile);
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>account_manager =
             AccountManager::new(<span class="self">self</span>.identified_push_service(), <span class="prelude-val">Some</span>(profile_key));
 
-        <span class="kw">let </span>profile = account_manager
-            .retrieve_profile(ServiceAddress::from_aci(uuid))
-            .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>profile = account_manager.retrieve_profile(aci).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let _ </span>= <span class="self">self
             </span>.store
-            .save_profile(uuid, profile_key, profile.clone())
+            .save_profile(aci.into(), profile_key, profile.clone())
             .<span class="kw">await</span>;
         <span class="prelude-val">Ok</span>(profile)
     }
@@ -2118,7 +2117,8 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>gm = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(
-            <span class="self">self</span>.store(),
+            <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.store,
             <span class="kw-2">&amp;mut </span>gm,
             context.master_key(),
             <span class="kw-2">&amp;</span>context.revision(),
@@ -2181,7 +2181,7 @@
         <span class="kw">let </span>len = avatar_stream.read_to_end(<span class="kw-2">&amp;mut </span>contents).<span class="kw">await</span><span class="question-mark">?</span>;
         contents.truncate(len);
 
-        <span class="kw">let </span>cipher = ProfileCipher::from(profile_key);
+        <span class="kw">let </span>cipher = ProfileCipher::new(profile_key);
 
         <span class="kw">let </span>avatar = cipher.decrypt_avatar(<span class="kw-2">&amp;</span>contents)<span class="question-mark">?</span>;
         <span class="kw">let _ </span>= <span class="self">self
@@ -2233,13 +2233,14 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         mode: ReceivingMode,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="kw">struct </span>StreamState&lt;Receiver, Store, AciStore, PniStore&gt; {
+        <span class="kw">struct </span>StreamState&lt;Receiver, Store, AciStore, PniStore, R&gt; {
+            store: Store,
+            push_service: PushService,
+            csprng: R,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
             service_cipher_aci: ServiceCipher&lt;AciStore&gt;,
             service_cipher_pni: ServiceCipher&lt;PniStore&gt;,
-            push_service: PushService,
-            store: Store,
             groups_manager: GroupsManager&lt;InMemoryCredentialsCache&gt;,
             mode: ReceivingMode,
         }
@@ -2247,12 +2248,13 @@
         <span class="kw">let </span>push_service = <span class="self">self</span>.identified_push_service();
 
         <span class="kw">let </span>init = StreamState {
+            store: <span class="self">self</span>.store.clone(),
+            push_service: push_service.clone(),
+            csprng: <span class="self">self</span>.csprng.clone(),
             encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
-            message_receiver: MessageReceiver::new(push_service.clone()),
+            message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: <span class="self">self</span>.new_service_cipher_aci(),
             service_cipher_pni: <span class="self">self</span>.new_service_cipher_pni(),
-            push_service,
-            store: <span class="self">self</span>.store.clone(),
             groups_manager: <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>,
             mode,
         };
@@ -2269,10 +2271,16 @@
                                 envelope.destination_service_id(),
                             ) {
                                 <span class="prelude-val">None </span>| <span class="prelude-val">Some</span>(ServiceId::Aci(<span class="kw">_</span>)) =&gt; {
-                                    state.service_cipher_aci.open_envelope(envelope).<span class="kw">await
+                                    state
+                                        .service_cipher_aci
+                                        .open_envelope(envelope, <span class="kw-2">&amp;mut </span>state.csprng)
+                                        .<span class="kw">await
                                 </span>}
                                 <span class="prelude-val">Some</span>(ServiceId::Pni(<span class="kw">_</span>)) =&gt; {
-                                    state.service_cipher_pni.open_envelope(envelope).<span class="kw">await
+                                    state
+                                        .service_cipher_pni
+                                        .open_envelope(envelope, <span class="kw-2">&amp;mut </span>state.csprng)
+                                        .<span class="kw">await
                                 </span>}
                             }
                         };
@@ -2396,6 +2404,7 @@
                                     // and the group changes, which are part of the protobuf messages
                                     // this means we kinda need our own internal representation of groups inside of presage?
                                     </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) = upsert_group(
+                                        <span class="kw-2">&amp;mut </span>state.csprng,
                                         <span class="kw-2">&amp;</span>state.store,
                                         <span class="kw-2">&amp;mut </span>state.groups_manager,
                                         master_key_bytes,
@@ -2443,7 +2452,7 @@
         }))
     }
 
-    <span class="doccomment">/// Sends a messages to the provided [ServiceAddress].
+    <span class="doccomment">/// Sends a messages to the provided [ServiceId].
     /// The timestamp should be set to now and is used by Signal mobile apps
     /// to order messages later, and apply reactions.
     ///
@@ -2452,19 +2461,19 @@
     /// it will be used as is, and the expire timer version will be incremented.
     </span><span class="kw">pub async fn </span>send_message(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        recipient_addr: <span class="kw">impl </span>Into&lt;ServiceAddress&gt;,
+        recipient: <span class="kw">impl </span>Into&lt;ServiceId&gt;,
         message: <span class="kw">impl </span>Into&lt;ContentBody&gt;,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>recipient = recipient.into();
 
         <span class="kw">let </span>online_only = <span class="bool-val">false</span>;
         <span class="comment">// TODO: Populate this flag based on the recipient information
         //
         // Issue &lt;https://github.com/whisperfish/presage/issues/252&gt;
         </span><span class="kw">let </span>include_pni_signature = <span class="bool-val">false</span>;
-        <span class="kw">let </span>recipient = recipient_addr.into();
-        <span class="kw">let </span>thread = Thread::Contact(recipient.uuid);
+        <span class="kw">let </span>thread = Thread::Contact(recipient.raw_uuid());
         <span class="kw">let </span><span class="kw-2">mut </span>content_body: ContentBody = message.into();
 
         <span class="self">self</span>.restore_thread_timer(<span class="kw-2">&amp;</span>thread, <span class="kw-2">&amp;mut </span>content_body).<span class="kw">await</span>;
@@ -2472,7 +2481,7 @@
         <span class="kw">let </span>sender_certificate = <span class="self">self</span>.sender_certificate().<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>unidentified_access =
             <span class="self">self</span>.store
-                .profile_key(<span class="kw-2">&amp;</span>recipient.uuid)
+                .profile_key(<span class="kw-2">&amp;</span>recipient.raw_uuid())
                 .<span class="kw">await</span><span class="question-mark">?
                 </span>.map(|profile_key| UnidentifiedAccess {
                     key: profile_key.derive_access_key().to_vec(),
@@ -2501,7 +2510,7 @@
         <span class="comment">// save the message
         </span><span class="kw">let </span>content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::from_aci(<span class="self">self</span>.state.data.service_ids.aci),
+                sender: <span class="self">self</span>.state.data.service_ids.aci().into(),
                 sender_device: <span class="self">self</span>.state.device_id(),
                 destination: recipient,
                 server_guid: <span class="prelude-val">None</span>,
@@ -2555,8 +2564,14 @@
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="prelude-val">Some</span>(group) =
-            upsert_group(<span class="kw-2">&amp;</span><span class="self">self</span>.store, <span class="kw-2">&amp;mut </span>groups_manager, <span class="kw-2">&amp;</span>master_key_bytes, <span class="kw-2">&amp;</span><span class="number">0</span>).<span class="kw">await</span><span class="question-mark">?
+        <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(
+            <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.store,
+            <span class="kw-2">&amp;mut </span>groups_manager,
+            <span class="kw-2">&amp;</span>master_key_bytes,
+            <span class="kw-2">&amp;</span><span class="number">0</span>,
+        )
+        .<span class="kw">await</span><span class="question-mark">?
         </span><span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::UnknownGroup);
         };
@@ -2578,7 +2593,7 @@
                     });
             <span class="kw">let </span>include_pni_signature = <span class="bool-val">false</span>;
             recipients.push((
-                ServiceAddress::from_aci(member.uuid),
+                Aci::from(member.uuid).into(),
                 unidentified_access,
                 include_pni_signature,
             ));
@@ -2595,8 +2610,8 @@
             .find(|res| <span class="kw">match </span>res {
                 <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="bool-val">false</span>,
                 <span class="comment">// Ignore any NotFound errors, those mean that e.g. some contact in a group deleted his account.
-                </span><span class="prelude-val">Err</span>(MessageSenderError::NotFound { addr }) =&gt; {
-                    <span class="macro">debug!</span>(uuid = %addr.uuid, <span class="string">"UUID not found, skipping sent message result"</span>);
+                </span><span class="prelude-val">Err</span>(MessageSenderError::NotFound { service_id }) =&gt; {
+                    <span class="macro">debug!</span>(service_id = %service_id.service_id_string(), <span class="string">"recipient not found, skipping sent message result"</span>);
                     <span class="bool-val">false
                 </span>}
                 <span class="comment">// return first error if any
@@ -2606,8 +2621,8 @@
 
         <span class="kw">let </span>content = Content {
             metadata: Metadata {
-                sender: ServiceAddress::from_aci(<span class="self">self</span>.state.data.service_ids.aci),
-                destination: ServiceAddress::from_aci(<span class="self">self</span>.state.data.service_ids.aci),
+                sender: <span class="self">self</span>.state.data.service_ids.aci().into(),
+                destination: <span class="self">self</span>.state.data.service_ids.aci().into(),
                 sender_device: <span class="self">self</span>.state.device_id(),
                 server_guid: <span class="prelude-val">None</span>,
                 timestamp,
@@ -2641,8 +2656,8 @@
         }
     }
 
-    <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceAddress).
-    </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceAddress) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
+    <span class="doccomment">/// Clears all sessions established wiht [recipient](ServiceId).
+    </span><span class="kw">pub async fn </span>clear_sessions(<span class="kw-2">&amp;</span><span class="self">self</span>, recipient: <span class="kw-2">&amp;</span>ServiceId) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
         <span class="kw">use </span>libsignal_service::session_store::SessionStoreExt;
         <span class="self">self</span>.store
             .aci_protocol_store()
@@ -2725,12 +2740,8 @@
             .expect(<span class="string">"Time went backwards"</span>)
             .as_millis() <span class="kw">as </span>u64;
 
-        <span class="self">self</span>.send_message(
-            ServiceAddress::from_aci(<span class="self">self</span>.state.data.aci()),
-            sync_message,
-            timestamp,
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.send_message(<span class="self">self</span>.state.data.service_ids.aci(), sync_message, timestamp)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
     }
@@ -2756,12 +2767,8 @@
             .expect(<span class="string">"Time went backwards"</span>)
             .as_millis() <span class="kw">as </span>u64;
 
-        <span class="self">self</span>.send_message(
-            ServiceAddress::from_aci(<span class="self">self</span>.state.data.aci()),
-            sync_message,
-            timestamp,
-        )
-        .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="self">self</span>.send_message(<span class="self">self</span>.state.data.service_ids.aci(), sync_message, timestamp)
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="self">self</span>.store.remove_sticker_pack(pack_id).<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -2770,10 +2777,10 @@
 
     <span class="kw">pub async fn </span>send_session_reset(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-        recipient: <span class="kw-2">&amp;</span>ServiceAddress,
+        recipient: <span class="kw-2">&amp;</span>ServiceId,
         timestamp: u64,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
-        <span class="macro">trace!</span>(%recipient.uuid, <span class="string">"resetting session for address"</span>);
+        <span class="macro">trace!</span>(recipient = %recipient.service_id_string(), <span class="string">"resetting session for address"</span>);
         <span class="kw">let </span>message = DataMessage {
             flags: <span class="prelude-val">Some</span>(DataMessageFlags::EndSession <span class="kw">as </span>u32),
             ..Default::default()
@@ -2813,10 +2820,10 @@
             unidentified_websocket,
             <span class="self">self</span>.identified_push_service(),
             <span class="self">self</span>.new_service_cipher_aci(),
-            <span class="self">self</span>.rng.clone(),
+            <span class="self">self</span>.csprng.clone(),
             aci_protocol_store,
-            ServiceAddress::from_aci(<span class="self">self</span>.state.data.service_ids.aci),
-            ServiceAddress::from_pni(<span class="self">self</span>.state.data.service_ids.pni),
+            <span class="self">self</span>.state.data.service_ids.aci,
+            <span class="self">self</span>.state.data.service_ids.pni,
             aci_identity_keypair,
             <span class="prelude-val">Some</span>(pni_identity_keypair),
             <span class="self">self</span>.state.device_id().into(),
@@ -2826,7 +2833,6 @@
     <span class="kw">fn </span>new_service_cipher_aci(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ServiceCipher&lt;S::AciStore&gt; {
         ServiceCipher::new(
             <span class="self">self</span>.store.aci_protocol_store(),
-            <span class="self">self</span>.rng.clone(),
             <span class="self">self</span>.state
                 .service_configuration()
                 .unidentified_sender_trust_root,
@@ -2838,7 +2844,6 @@
     <span class="kw">fn </span>new_service_cipher_pni(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ServiceCipher&lt;S::PniStore&gt; {
         ServiceCipher::new(
             <span class="self">self</span>.store.pni_protocol_store(),
-            <span class="self">self</span>.rng.clone(),
             <span class="self">self</span>.state
                 .service_configuration()
                 .unidentified_sender_trust_root,
@@ -2880,7 +2885,7 @@
     }
 
     <span class="doccomment">/// As a primary device, link a secondary device.
-    </span><span class="kw">pub async fn </span>link_secondary(<span class="kw-2">&amp;</span><span class="self">self</span>, secondary: Url) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
+    </span><span class="kw">pub async fn </span>link_secondary(<span class="kw-2">&amp;mut </span><span class="self">self</span>, secondary: Url) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;S::Error&gt;&gt; {
         <span class="comment">// XXX: What happens if secondary device? Possible to use static typing to make this method call impossible in that case?
         </span><span class="kw">if </span><span class="self">self</span>.registration_type() != RegistrationType::Primary {
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::NotPrimaryDevice);
@@ -2891,13 +2896,13 @@
             <span class="self">self</span>.identified_push_service(),
             <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
         );
-        <span class="kw">let </span>store = <span class="self">self</span>.store();
 
         account_manager
             .link_device(
+                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
                 secondary,
-                <span class="kw-2">&amp;</span>store.aci_protocol_store(),
-                <span class="kw-2">&amp;</span>store.pni_protocol_store(),
+                <span class="kw-2">&amp;</span><span class="self">self</span>.store.aci_protocol_store(),
+                <span class="kw-2">&amp;</span><span class="self">self</span>.store.pni_protocol_store(),
                 credentials,
                 <span class="prelude-val">None</span>,
             )
@@ -2943,7 +2948,8 @@
     </span>WaitForContacts,
 }
 
-<span class="kw">async fn </span>upsert_group&lt;S: Store&gt;(
+<span class="kw">async fn </span>upsert_group&lt;R: Rng + CryptoRng, S: Store&gt;(
+    csprng: <span class="kw-2">&amp;mut </span>R,
     store: <span class="kw-2">&amp;</span>S,
     groups_manager: <span class="kw-2">&amp;mut </span>GroupsManager&lt;InMemoryCredentialsCache&gt;,
     master_key_bytes: <span class="kw-2">&amp;</span>[u8],
@@ -2963,7 +2969,10 @@
 
     <span class="kw">if </span>upsert_group {
         <span class="macro">debug!</span>(<span class="string">"fetching and saving group"</span>);
-        <span class="kw">match </span>groups_manager.fetch_encrypted_group(master_key_bytes).<span class="kw">await </span>{
+        <span class="kw">match </span>groups_manager
+            .fetch_encrypted_group(csprng, master_key_bytes)
+            .<span class="kw">await
+        </span>{
             <span class="prelude-val">Ok</span>(encrypted_group) =&gt; {
                 <span class="kw">let </span>group = decrypt_group(master_key_bytes, encrypted_group)<span class="question-mark">?</span>;
                 <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = store.save_group(master_key_bytes.try_into()<span class="question-mark">?</span>, group).<span class="kw">await </span>{
@@ -3088,58 +3097,59 @@
         }) =&gt; {
             <span class="comment">// update recipient profile key if changed
             </span><span class="kw">if let </span><span class="prelude-val">Some</span>(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
-                <span class="kw">let </span>sender_uuid = message.metadata.sender.uuid;
+                <span class="kw">let </span>sender = message.metadata.sender;
                 <span class="kw">let </span>profile_key = ProfileKey::create(profile_key_bytes);
-                <span class="macro">debug!</span>(%sender_uuid, <span class="string">"inserting profile key for"</span>);
+                <span class="macro">debug!</span>(sender = %sender.service_id_string(), <span class="string">"inserting profile key for"</span>);
 
                 <span class="comment">// Either:
                 // - insert a new contact with the profile information
                 // - update the contact if the profile key has changed
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
-                </span><span class="kw">if </span>store.contact_by_id(<span class="kw-2">&amp;</span>sender_uuid).<span class="kw">await</span><span class="question-mark">?</span>.is_none()
+                </span><span class="kw">if </span>store.contact_by_id(<span class="kw-2">&amp;</span>sender.raw_uuid()).<span class="kw">await</span><span class="question-mark">?</span>.is_none()
                     || !store
-                        .profile_key(<span class="kw-2">&amp;</span>sender_uuid)
+                        .profile_key(<span class="kw-2">&amp;</span>sender.raw_uuid())
                         .<span class="kw">await</span><span class="question-mark">?
                         </span>.is_some_and(|p| p.bytes == profile_key.bytes)
                 {
-                    <span class="kw">let </span>encrypted_profile = push_service
-                        .retrieve_profile_by_id(
-                            ServiceAddress::from_aci(sender_uuid),
-                            <span class="prelude-val">Some</span>(profile_key),
-                        )
-                        .<span class="kw">await</span><span class="question-mark">?</span>;
-                    <span class="kw">let </span>profile_cipher = ProfileCipher::from(profile_key);
-                    <span class="kw">let </span>decrypted_profile = encrypted_profile.decrypt(profile_cipher).unwrap();
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(aci) = sender.aci() {
+                        <span class="kw">let </span>sender_uuid: Uuid = aci.into();
+                        <span class="kw">let </span>encrypted_profile = push_service
+                            .retrieve_profile_by_id(aci, <span class="prelude-val">Some</span>(profile_key))
+                            .<span class="kw">await</span><span class="question-mark">?</span>;
+                        <span class="kw">let </span>profile_cipher = ProfileCipher::new(profile_key);
+                        <span class="kw">let </span>decrypted_profile = profile_cipher.decrypt(encrypted_profile).unwrap();
 
-                    <span class="kw">let </span>contact = Contact {
-                        uuid: sender_uuid,
-                        phone_number: <span class="prelude-val">None</span>,
-                        name: decrypted_profile
-                            .name
-                            <span class="comment">// FIXME: this assumes [firstname] [lastname]
-                            </span>.map(|pn| {
-                                <span class="kw">if let </span><span class="prelude-val">Some</span>(family_name) = pn.family_name {
-                                    <span class="macro">format!</span>(<span class="string">"{} {}"</span>, pn.given_name, family_name)
-                                } <span class="kw">else </span>{
-                                    pn.given_name
-                                }
-                            })
-                            .unwrap_or_default(),
-                        profile_key: profile_key.bytes.to_vec(),
-                        color: <span class="prelude-val">None</span>,
-                        expire_timer: data_message.expire_timer.unwrap_or_default(),
-                        expire_timer_version: data_message.expire_timer_version.unwrap_or(<span class="number">1</span>),
-                        inbox_position: <span class="number">0</span>,
-                        archived: <span class="bool-val">false</span>,
-                        avatar: <span class="prelude-val">None</span>,
-                        verified: Verified::default(),
-                    };
+                        <span class="kw">let </span>contact = Contact {
+                            uuid: sender_uuid,
+                            phone_number: <span class="prelude-val">None</span>,
+                            name: decrypted_profile
+                                .name
+                                <span class="comment">// FIXME: this assumes [firstname] [lastname]
+                                </span>.map(|pn| {
+                                    <span class="kw">if let </span><span class="prelude-val">Some</span>(family_name) = pn.family_name {
+                                        <span class="macro">format!</span>(<span class="string">"{} {}"</span>, pn.given_name, family_name)
+                                    } <span class="kw">else </span>{
+                                        pn.given_name
+                                    }
+                                })
+                                .unwrap_or_default(),
+                            profile_key: profile_key.bytes.to_vec(),
+                            color: <span class="prelude-val">None</span>,
+                            expire_timer: data_message.expire_timer.unwrap_or_default(),
+                            expire_timer_version: data_message.expire_timer_version.unwrap_or(<span class="number">1</span>),
+                            inbox_position: <span class="number">0</span>,
+                            archived: <span class="bool-val">false</span>,
+                            avatar: <span class="prelude-val">None</span>,
+                            verified: Verified::default(),
+                        };
 
-                    <span class="macro">info!</span>(%sender_uuid, <span class="string">"saved contact on first sight"</span>);
-                    store.save_contact(<span class="kw-2">&amp;</span>contact).<span class="kw">await</span><span class="question-mark">?</span>;
+                        <span class="macro">info!</span>(%sender_uuid, <span class="string">"saved contact on first sight"</span>);
+                        store.save_contact(<span class="kw-2">&amp;</span>contact).<span class="kw">await</span><span class="question-mark">?</span>;
+                        store.upsert_profile_key(<span class="kw-2">&amp;</span>sender_uuid, profile_key).<span class="kw">await</span><span class="question-mark">?</span>;
+                    } <span class="kw">else </span>{
+                        <span class="macro">debug!</span>(<span class="string">"not storing profile for PNI contact"</span>);
+                    }
                 }
-
-                store.upsert_profile_key(<span class="kw-2">&amp;</span>sender_uuid, profile_key).<span class="kw">await</span><span class="question-mark">?</span>;
             }
 
             <span class="kw">if let </span><span class="prelude-val">Some</span>(expire_timer) = data_message.expire_timer {
@@ -3159,7 +3169,7 @@
                 } =&gt; {
                     <span class="comment">// replace an existing message by an empty NullMessage
                     </span><span class="kw">if let </span><span class="prelude-val">Some</span>(<span class="kw-2">mut </span>existing_msg) = store.message(<span class="kw-2">&amp;</span>thread, <span class="kw-2">*</span>ts).<span class="kw">await</span><span class="question-mark">? </span>{
-                        existing_msg.metadata.sender.uuid = Uuid::nil();
+                        existing_msg.metadata.sender = Aci::from(Uuid::nil()).into();
                         existing_msg.body = NullMessage::default().into();
                         store.save_message(<span class="kw-2">&amp;</span>thread, existing_msg).<span class="kw">await</span><span class="question-mark">?</span>;
                         <span class="macro">debug!</span>(%thread, ts, <span class="string">"message in thread deleted"</span>);

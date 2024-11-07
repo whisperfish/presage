@@ -26,8 +26,8 @@
 <a href="#26" id="26">26</a>
 <a href="#27" id="27">27</a>
 <a href="#28" id="28">28</a>
-<a href="#29" id="29">29</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>serde::{Deserialize, Serialize};
+</pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::protocol::ServiceIdKind;
+<span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="kw">pub mod </span>contacts;
 <span class="kw">pub mod </span>groups;
@@ -46,13 +46,11 @@
     </span>PhoneNumberIdentity,
 }
 
-<span class="kw">impl </span>From&lt;libsignal_service::ServiceIdType&gt; <span class="kw">for </span>ServiceIdType {
-    <span class="kw">fn </span>from(val: libsignal_service::ServiceIdType) -&gt; <span class="self">Self </span>{
+<span class="kw">impl </span>From&lt;ServiceIdKind&gt; <span class="kw">for </span>ServiceIdType {
+    <span class="kw">fn </span>from(val: ServiceIdKind) -&gt; <span class="self">Self </span>{
         <span class="kw">match </span>val {
-            libsignal_service::ServiceIdType::AccountIdentity =&gt; ServiceIdType::AccountIdentity,
-            libsignal_service::ServiceIdType::PhoneNumberIdentity =&gt; {
-                ServiceIdType::PhoneNumberIdentity
-            }
+            ServiceIdKind::Aci =&gt; ServiceIdType::AccountIdentity,
+            ServiceIdKind::Pni =&gt; ServiceIdType::PhoneNumberIdentity,
         }
     }
 }

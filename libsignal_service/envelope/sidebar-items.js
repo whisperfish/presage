@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["EnvelopeEntity"]};
+window.SIDEBAR_ITEMS = {};

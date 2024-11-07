@@ -140,8 +140,8 @@
 <span class="kw">impl </span>From&lt;libsignal_service::groups_v2::PendingMember&gt; <span class="kw">for </span>PendingMember {
     <span class="kw">fn </span>from(val: libsignal_service::groups_v2::PendingMember) -&gt; <span class="self">Self </span>{
         PendingMember {
-            uuid: val.address.uuid,
-            service_id_type: val.address.identity.into(),
+            uuid: val.address.raw_uuid(),
+            service_id_type: val.address.kind().into(),
             role: val.role,
             added_by_uuid: val.added_by_uuid,
             timestamp: val.timestamp,
