@@ -7,8 +7,6 @@ mod registration;
 
 use std::fmt;
 
-use rand::rngs::StdRng;
-
 pub use self::confirmation::Confirmation;
 pub use self::linking::Linking;
 pub use self::registered::{ReceivingMode, Registered, RegistrationData, RegistrationType};
@@ -27,8 +25,6 @@ pub struct Manager<Store, State> {
     store: Store,
     /// Part of the manager which is persisted in the store.
     state: State,
-    /// Random number generator
-    csprng: StdRng,
 }
 
 impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {

@@ -542,7 +542,7 @@ pub async fn save_trusted_identity_message<S: Store>(
     let thread = Thread::Contact(sender.raw_uuid());
     let verified_sync_message = Content {
         metadata: Metadata {
-            sender: sender,
+            sender,
             destination: sender,
             sender_device: 0,
             server_guid: None,
