@@ -1614,14 +1614,6 @@
 <a href="#1614" id="1614">1614</a>
 <a href="#1615" id="1615">1615</a>
 <a href="#1616" id="1616">1616</a>
-<a href="#1617" id="1617">1617</a>
-<a href="#1618" id="1618">1618</a>
-<a href="#1619" id="1619">1619</a>
-<a href="#1620" id="1620">1620</a>
-<a href="#1621" id="1621">1621</a>
-<a href="#1622" id="1622">1622</a>
-<a href="#1623" id="1623">1623</a>
-<a href="#1624" id="1624">1624</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::pin::pin;
 <span class="kw">use </span>std::sync::{Arc, OnceLock};
@@ -1659,8 +1651,8 @@
 <span class="kw">use </span>libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 <span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
 <span class="kw">use </span>libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
-<span class="kw">use </span>rand::rngs::StdRng;
-<span class="kw">use </span>rand::{CryptoRng, Rng, SeedableRng};
+<span class="kw">use </span>rand::rngs::ThreadRng;
+<span class="kw">use </span>rand::thread_rng;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>sha2::Digest;
 <span class="kw">use </span>tokio::sync::Mutex;
@@ -1673,7 +1665,7 @@
 <span class="kw">use crate</span>::{model::groups::Group, AvatarBytes, Error, Manager};
 
 <span class="kw">type </span>ServiceCipher&lt;S&gt; = cipher::ServiceCipher&lt;S&gt;;
-<span class="kw">type </span>MessageSender&lt;S&gt; = libsignal_service::prelude::MessageSender&lt;S, StdRng&gt;;
+<span class="kw">type </span>MessageSender&lt;S&gt; = libsignal_service::prelude::MessageSender&lt;S, ThreadRng&gt;;
 
 <span class="attr">#[derive(Clone, Debug, PartialEq, Eq)]
 </span><span class="kw">pub enum </span>RegistrationType {
@@ -1762,7 +1754,6 @@
             </span>.ok_or(Error::NotYetRegisteredError)<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>manager = <span class="self">Self </span>{
-            csprng: StdRng::from_entropy(),
             store,
             state: Registered::with_data(registration_data),
         };
@@ -1874,12 +1865,14 @@
             <span class="prelude-val">Some</span>(<span class="self">self</span>.state.data.profile_key),
         );
 
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = thread_rng();
+
         account_manager
             .update_pre_key_bundle(
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.aci_protocol_store(),
                 ServiceIdKind::Aci,
                 <span class="bool-val">true</span>,
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                <span class="kw-2">&amp;mut </span>rng,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1888,7 +1881,7 @@
                 <span class="kw-2">&amp;mut </span><span class="self">self</span>.store.pni_protocol_store(),
                 ServiceIdKind::Pni,
                 <span class="bool-val">true</span>,
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                <span class="kw-2">&amp;mut </span>rng,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -1908,7 +1901,7 @@
                 pni_registration_id
             } <span class="kw">else </span>{
                 <span class="macro">info!</span>(<span class="string">"migrating to PNI"</span>);
-                <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>StdRng::from_entropy());
+                <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>thread_rng());
                 <span class="self">self</span>.store.save_registration_data(<span class="kw-2">&amp;</span><span class="self">self</span>.state.data).<span class="kw">await</span><span class="question-mark">?</span>;
                 pni_registration_id
             };
@@ -1984,7 +1977,7 @@
             request: <span class="prelude-val">Some</span>(sync_message::Request {
                 r#type: <span class="prelude-val">Some</span>(sync_message::request::Type::Contacts.into()),
             }),
-            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng)
+            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>thread_rng())
         };
 
         <span class="kw">let </span>timestamp = SystemTime::now()
@@ -2117,7 +2110,6 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>gm = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
         <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
             <span class="kw-2">&amp;</span><span class="self">self</span>.store,
             <span class="kw-2">&amp;mut </span>gm,
             context.master_key(),
@@ -2233,10 +2225,10 @@
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         mode: ReceivingMode,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">impl </span>Stream&lt;Item = Content&gt;, Error&lt;S::Error&gt;&gt; {
-        <span class="kw">struct </span>StreamState&lt;Receiver, Store, AciStore, PniStore, R&gt; {
+        <span class="kw">struct </span>StreamState&lt;Receiver, Store, AciStore, PniStore&gt; {
             store: Store,
             push_service: PushService,
-            csprng: R,
+            csprng: ThreadRng,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
             service_cipher_aci: ServiceCipher&lt;AciStore&gt;,
@@ -2250,7 +2242,7 @@
         <span class="kw">let </span>init = StreamState {
             store: <span class="self">self</span>.store.clone(),
             push_service: push_service.clone(),
-            csprng: <span class="self">self</span>.csprng.clone(),
+            csprng: thread_rng(),
             encrypted_messages: Box::pin(<span class="self">self</span>.receive_messages_encrypted().<span class="kw">await</span><span class="question-mark">?</span>),
             message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: <span class="self">self</span>.new_service_cipher_aci(),
@@ -2404,7 +2396,6 @@
                                     // and the group changes, which are part of the protobuf messages
                                     // this means we kinda need our own internal representation of groups inside of presage?
                                     </span><span class="kw">if let </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group)) = upsert_group(
-                                        <span class="kw-2">&amp;mut </span>state.csprng,
                                         <span class="kw-2">&amp;</span>state.store,
                                         <span class="kw-2">&amp;mut </span>state.groups_manager,
                                         master_key_bytes,
@@ -2564,14 +2555,8 @@
         <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>;
-        <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(
-            <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
-            <span class="kw-2">&amp;</span><span class="self">self</span>.store,
-            <span class="kw-2">&amp;mut </span>groups_manager,
-            <span class="kw-2">&amp;</span>master_key_bytes,
-            <span class="kw-2">&amp;</span><span class="number">0</span>,
-        )
-        .<span class="kw">await</span><span class="question-mark">?
+        <span class="kw">let </span><span class="prelude-val">Some</span>(group) =
+            upsert_group(<span class="kw-2">&amp;</span><span class="self">self</span>.store, <span class="kw-2">&amp;mut </span>groups_manager, <span class="kw-2">&amp;</span>master_key_bytes, <span class="kw-2">&amp;</span><span class="number">0</span>).<span class="kw">await</span><span class="question-mark">?
         </span><span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(Error::UnknownGroup);
         };
@@ -2820,7 +2805,7 @@
             unidentified_websocket,
             <span class="self">self</span>.identified_push_service(),
             <span class="self">self</span>.new_service_cipher_aci(),
-            <span class="self">self</span>.csprng.clone(),
+            thread_rng(),
             aci_protocol_store,
             <span class="self">self</span>.state.data.service_ids.aci,
             <span class="self">self</span>.state.data.service_ids.pni,
@@ -2899,7 +2884,7 @@
 
         account_manager
             .link_device(
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                <span class="kw-2">&amp;mut </span>thread_rng(),
                 secondary,
                 <span class="kw-2">&amp;</span><span class="self">self</span>.store.aci_protocol_store(),
                 <span class="kw-2">&amp;</span><span class="self">self</span>.store.pni_protocol_store(),
@@ -2948,8 +2933,7 @@
     </span>WaitForContacts,
 }
 
-<span class="kw">async fn </span>upsert_group&lt;R: Rng + CryptoRng, S: Store&gt;(
-    csprng: <span class="kw-2">&amp;mut </span>R,
+<span class="kw">async fn </span>upsert_group&lt;S: Store&gt;(
     store: <span class="kw-2">&amp;</span>S,
     groups_manager: <span class="kw-2">&amp;mut </span>GroupsManager&lt;InMemoryCredentialsCache&gt;,
     master_key_bytes: <span class="kw-2">&amp;</span>[u8],
@@ -2970,7 +2954,7 @@
     <span class="kw">if </span>upsert_group {
         <span class="macro">debug!</span>(<span class="string">"fetching and saving group"</span>);
         <span class="kw">match </span>groups_manager
-            .fetch_encrypted_group(csprng, master_key_bytes)
+            .fetch_encrypted_group(<span class="kw-2">&amp;mut </span>thread_rng(), master_key_bytes)
             .<span class="kw">await
         </span>{
             <span class="prelude-val">Ok</span>(encrypted_group) =&gt; {

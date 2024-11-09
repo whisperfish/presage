@@ -140,14 +140,11 @@
 <a href="#140" id="140">140</a>
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
-<a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
 <span class="kw">use </span>libsignal_service::push_service::{PushService, VerificationTransport};
 <span class="kw">use </span>rand::distributions::{Alphanumeric, DistString};
-<span class="kw">use </span>rand::rngs::StdRng;
-<span class="kw">use </span>rand::SeedableRng;
+<span class="kw">use </span>rand::thread_rng;
 <span class="kw">use </span>tracing::trace;
 
 <span class="kw">use </span><span class="kw">crate</span>::store::Store;
@@ -226,7 +223,7 @@
         store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// generate a random alphanumeric 24 chars password
-        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = thread_rng();
         <span class="kw">let </span>password = Alphanumeric.sample_string(<span class="kw-2">&amp;mut </span>rng, <span class="number">24</span>);
 
         <span class="kw">let </span>service_configuration: ServiceConfiguration = signal_servers.into();
@@ -280,7 +277,6 @@
                 password,
                 session_id: session.id,
             },
-            csprng: rng,
         };
 
         <span class="prelude-val">Ok</span>(manager)

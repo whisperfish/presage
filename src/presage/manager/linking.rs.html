@@ -177,8 +177,6 @@
 <a href="#177" id="177">177</a>
 <a href="#178" id="178">178</a>
 <a href="#179" id="179">179</a>
-<a href="#180" id="180">180</a>
-<a href="#181" id="181">181</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>futures::channel::{mpsc, oneshot};
 <span class="kw">use </span>futures::{future, StreamExt};
 <span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
@@ -188,8 +186,7 @@
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
 <span class="kw">use </span>rand::distributions::{Alphanumeric, DistString};
-<span class="kw">use </span>rand::rngs::StdRng;
-<span class="kw">use </span>rand::{RngCore, SeedableRng};
+<span class="kw">use </span>rand::{thread_rng, RngCore};
 <span class="kw">use </span>tracing::info;
 <span class="kw">use </span>url::Url;
 
@@ -249,7 +246,7 @@
         </span>store.clear_registration().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="comment">// generate a random alphanumeric 24 chars password
-        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = StdRng::from_entropy();
+        </span><span class="kw">let </span><span class="kw-2">mut </span>rng = thread_rng();
         <span class="kw">let </span>password = Alphanumeric.sample_string(<span class="kw-2">&amp;mut </span>rng, <span class="number">24</span>);
 
         <span class="comment">// generate a 52 bytes signaling key
@@ -339,7 +336,6 @@
                 );
 
                 <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
-                    csprng: rng,
                     store: store.clone(),
                     state: Registered::with_data(registration_data),
                 };

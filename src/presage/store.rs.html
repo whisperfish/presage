@@ -1111,7 +1111,7 @@
     </span><span class="kw">let </span>thread = Thread::Contact(sender.raw_uuid());
     <span class="kw">let </span>verified_sync_message = Content {
         metadata: Metadata {
-            sender: sender,
+            sender,
             destination: sender,
             sender_device: <span class="number">0</span>,
             server_guid: <span class="prelude-val">None</span>,

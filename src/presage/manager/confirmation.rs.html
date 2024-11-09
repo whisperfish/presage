@@ -156,6 +156,7 @@
 <a href="#156" id="156">156</a>
 <a href="#157" id="157">157</a>
 <a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 <span class="kw">use </span>libsignal_service::messagepipe::ServiceCredentials;
 <span class="kw">use </span>libsignal_service::prelude::phonenumber::PhoneNumber;
@@ -167,7 +168,7 @@
 };
 <span class="kw">use </span>libsignal_service::zkgroup::profiles::ProfileKey;
 <span class="kw">use </span>libsignal_service::AccountManager;
-<span class="kw">use </span>rand::RngCore;
+<span class="kw">use </span>rand::{thread_rng, RngCore};
 <span class="kw">use </span>tracing::trace;
 
 <span class="kw">use </span><span class="kw">crate</span>::manager::registered::RegistrationData;
@@ -193,13 +194,15 @@
     /// Returns a [registered manager](Manager::load_registered) that you can use
     /// to send and receive messages.
     </span><span class="kw">pub async fn </span>confirm_verification_code(
-        <span class="kw-2">mut </span><span class="self">self</span>,
+        <span class="self">self</span>,
         confirmation_code: <span class="kw">impl </span>AsRef&lt;str&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Manager&lt;S, Registered&gt;, Error&lt;S::Error&gt;&gt; {
         <span class="macro">trace!</span>(<span class="string">"confirming verification code"</span>);
 
-        <span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng);
-        <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng);
+        <span class="kw">let </span><span class="kw-2">mut </span>rng = thread_rng();
+
+        <span class="kw">let </span>registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>rng);
+        <span class="kw">let </span>pni_registration_id = generate_registration_id(<span class="kw-2">&amp;mut </span>rng);
 
         <span class="kw">let </span>Confirmation {
             signal_servers,
@@ -233,19 +236,19 @@
 
         <span class="comment">// generate a 52 bytes signaling key
         </span><span class="kw">let </span><span class="kw-2">mut </span>signaling_key = [<span class="number">0u8</span>; <span class="number">52</span>];
-        <span class="self">self</span>.csprng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>signaling_key);
 
         <span class="comment">// generate a 32 bytes profile key
         </span><span class="kw">let </span><span class="kw-2">mut </span>profile_key = [<span class="number">0u8</span>; <span class="number">32</span>];
-        <span class="self">self</span>.csprng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
+        rng.fill_bytes(<span class="kw-2">&amp;mut </span>profile_key);
         <span class="kw">let </span>profile_key = ProfileKey::generate(profile_key);
 
         <span class="comment">// generate new identity keys used in `register_account` and below
         </span><span class="self">self</span>.store
-            .set_aci_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng))
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>rng))
             .<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="self">self</span>.store
-            .set_pni_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng))
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(<span class="kw-2">&amp;mut </span>rng))
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>skip_device_transfer = <span class="bool-val">true</span>;
@@ -258,7 +261,7 @@
             number: <span class="kw">_</span>,
         } = account_manager
             .register_account(
-                <span class="kw-2">&amp;mut </span><span class="self">self</span>.csprng,
+                <span class="kw-2">&amp;mut </span>rng,
                 RegistrationMethod::SessionId(<span class="kw-2">&amp;</span>session.id),
                 AccountAttributes {
                     signaling_key: <span class="prelude-val">Some</span>(signaling_key.to_vec()),
@@ -284,7 +287,6 @@
         <span class="macro">trace!</span>(<span class="string">"confirmed! (and registered)"</span>);
 
         <span class="kw">let </span><span class="kw-2">mut </span>manager = Manager {
-            csprng: <span class="self">self</span>.csprng,
             store: <span class="self">self</span>.store,
             state: Registered::with_data(RegistrationData {
                 signal_servers: <span class="self">self</span>.state.signal_servers,
