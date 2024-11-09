@@ -9,7 +9,7 @@ use libsignal_service::push_service::{
 };
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
-use rand::RngCore;
+use rand::{thread_rng, RngCore};
 use tracing::trace;
 
 use crate::manager::registered::RegistrationData;
@@ -35,13 +35,15 @@ impl<S: Store> Manager<S, Confirmation> {
     /// Returns a [registered manager](Manager::load_registered) that you can use
     /// to send and receive messages.
     pub async fn confirm_verification_code(
-        mut self,
+        self,
         confirmation_code: impl AsRef<str>,
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
 
-        let registration_id = generate_registration_id(&mut self.csprng);
-        let pni_registration_id = generate_registration_id(&mut self.csprng);
+        let mut rng = thread_rng();
+
+        let registration_id = generate_registration_id(&mut rng);
+        let pni_registration_id = generate_registration_id(&mut rng);
 
         let Confirmation {
             signal_servers,
@@ -75,19 +77,19 @@ impl<S: Store> Manager<S, Confirmation> {
 
         // generate a 52 bytes signaling key
         let mut signaling_key = [0u8; 52];
-        self.csprng.fill_bytes(&mut signaling_key);
+        rng.fill_bytes(&mut signaling_key);
 
         // generate a 32 bytes profile key
         let mut profile_key = [0u8; 32];
-        self.csprng.fill_bytes(&mut profile_key);
+        rng.fill_bytes(&mut profile_key);
         let profile_key = ProfileKey::generate(profile_key);
 
         // generate new identity keys used in `register_account` and below
         self.store
-            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut self.csprng))
+            .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut rng))
             .await?;
         self.store
-            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut self.csprng))
+            .set_pni_identity_key_pair(IdentityKeyPair::generate(&mut rng))
             .await?;
 
         let skip_device_transfer = true;
@@ -100,7 +102,7 @@ impl<S: Store> Manager<S, Confirmation> {
             number: _,
         } = account_manager
             .register_account(
-                &mut self.csprng,
+                &mut rng,
                 RegistrationMethod::SessionId(&session.id),
                 AccountAttributes {
                     signaling_key: Some(signaling_key.to_vec()),
@@ -126,7 +128,6 @@ impl<S: Store> Manager<S, Confirmation> {
         trace!("confirmed! (and registered)");
 
         let mut manager = Manager {
-            csprng: self.csprng,
             store: self.store,
             state: Registered::with_data(RegistrationData {
                 signal_servers: self.state.signal_servers,

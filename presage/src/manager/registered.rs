@@ -35,8 +35,8 @@ use libsignal_service::websocket::SignalWebSocket;
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
-use rand::rngs::StdRng;
-use rand::{CryptoRng, Rng, SeedableRng};
+use rand::rngs::ThreadRng;
+use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
@@ -49,7 +49,7 @@ use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Sto
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
 
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
-type MessageSender<S> = libsignal_service::prelude::MessageSender<S, StdRng>;
+type MessageSender<S> = libsignal_service::prelude::MessageSender<S, ThreadRng>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegistrationType {
@@ -138,7 +138,6 @@ impl<S: Store> Manager<S, Registered> {
             .ok_or(Error::NotYetRegisteredError)?;
 
         let mut manager = Self {
-            csprng: StdRng::from_entropy(),
             store,
             state: Registered::with_data(registration_data),
         };
@@ -250,12 +249,14 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
+        let mut rng = thread_rng();
+
         account_manager
             .update_pre_key_bundle(
                 &mut self.store.aci_protocol_store(),
                 ServiceIdKind::Aci,
                 true,
-                &mut self.csprng,
+                &mut rng,
             )
             .await?;
 
@@ -264,7 +265,7 @@ impl<S: Store> Manager<S, Registered> {
                 &mut self.store.pni_protocol_store(),
                 ServiceIdKind::Pni,
                 true,
-                &mut self.csprng,
+                &mut rng,
             )
             .await?;
 
@@ -284,7 +285,7 @@ impl<S: Store> Manager<S, Registered> {
                 pni_registration_id
             } else {
                 info!("migrating to PNI");
-                let pni_registration_id = generate_registration_id(&mut StdRng::from_entropy());
+                let pni_registration_id = generate_registration_id(&mut thread_rng());
                 self.store.save_registration_data(&self.state.data).await?;
                 pni_registration_id
             };
@@ -360,7 +361,7 @@ impl<S: Store> Manager<S, Registered> {
             request: Some(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts.into()),
             }),
-            ..SyncMessage::with_padding(&mut self.csprng)
+            ..SyncMessage::with_padding(&mut thread_rng())
         };
 
         let timestamp = SystemTime::now()
@@ -493,7 +494,6 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut gm = self.groups_manager()?;
         let Some(group) = upsert_group(
-            &mut self.csprng,
             &self.store,
             &mut gm,
             context.master_key(),
@@ -609,10 +609,10 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         mode: ReceivingMode,
     ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        struct StreamState<Receiver, Store, AciStore, PniStore, R> {
+        struct StreamState<Receiver, Store, AciStore, PniStore> {
             store: Store,
             push_service: PushService,
-            csprng: R,
+            csprng: ThreadRng,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
             service_cipher_aci: ServiceCipher<AciStore>,
@@ -626,7 +626,7 @@ impl<S: Store> Manager<S, Registered> {
         let init = StreamState {
             store: self.store.clone(),
             push_service: push_service.clone(),
-            csprng: self.csprng.clone(),
+            csprng: thread_rng(),
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
@@ -780,7 +780,6 @@ impl<S: Store> Manager<S, Registered> {
                                     // and the group changes, which are part of the protobuf messages
                                     // this means we kinda need our own internal representation of groups inside of presage?
                                     if let Ok(Some(group)) = upsert_group(
-                                        &mut state.csprng,
                                         &state.store,
                                         &mut state.groups_manager,
                                         master_key_bytes,
@@ -940,14 +939,8 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = self.groups_manager()?;
-        let Some(group) = upsert_group(
-            &mut self.csprng,
-            &self.store,
-            &mut groups_manager,
-            &master_key_bytes,
-            &0,
-        )
-        .await?
+        let Some(group) =
+            upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
         else {
             return Err(Error::UnknownGroup);
         };
@@ -1196,7 +1189,7 @@ impl<S: Store> Manager<S, Registered> {
             unidentified_websocket,
             self.identified_push_service(),
             self.new_service_cipher_aci(),
-            self.csprng.clone(),
+            thread_rng(),
             aci_protocol_store,
             self.state.data.service_ids.aci,
             self.state.data.service_ids.pni,
@@ -1275,7 +1268,7 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .link_device(
-                &mut self.csprng,
+                &mut thread_rng(),
                 secondary,
                 &self.store.aci_protocol_store(),
                 &self.store.pni_protocol_store(),
@@ -1324,8 +1317,7 @@ pub enum ReceivingMode {
     WaitForContacts,
 }
 
-async fn upsert_group<R: Rng + CryptoRng, S: Store>(
-    csprng: &mut R,
+async fn upsert_group<S: Store>(
     store: &S,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
@@ -1346,7 +1338,7 @@ async fn upsert_group<R: Rng + CryptoRng, S: Store>(
     if upsert_group {
         debug!("fetching and saving group");
         match groups_manager
-            .fetch_encrypted_group(csprng, master_key_bytes)
+            .fetch_encrypted_group(&mut thread_rng(), master_key_bytes)
             .await
         {
             Ok(encrypted_group) => {
