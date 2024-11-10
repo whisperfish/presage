@@ -7,8 +7,7 @@ use libsignal_service::provisioning::{
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
 use rand::distributions::{Alphanumeric, DistString};
-use rand::rngs::StdRng;
-use rand::{RngCore, SeedableRng};
+use rand::{thread_rng, RngCore};
 use tracing::info;
 use url::Url;
 
@@ -68,7 +67,7 @@ impl<S: Store> Manager<S, Linking> {
         store.clear_registration().await?;
 
         // generate a random alphanumeric 24 chars password
-        let mut rng = StdRng::from_entropy();
+        let mut rng = thread_rng();
         let password = Alphanumeric.sample_string(&mut rng, 24);
 
         // generate a 52 bytes signaling key
@@ -158,7 +157,6 @@ impl<S: Store> Manager<S, Linking> {
                 );
 
                 let mut manager = Manager {
-                    csprng: rng,
                     store: store.clone(),
                     state: Registered::with_data(registration_data),
                 };
