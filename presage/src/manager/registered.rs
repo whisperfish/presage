@@ -1,7 +1,6 @@
 use std::fmt;
-use std::pin::pin;
 use std::sync::{Arc, OnceLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::attachment_cipher::decrypt_in_place;
@@ -47,6 +46,8 @@ use crate::model::contacts::Contact;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
+
+pub use crate::model::messages::Received;
 
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<S, ThreadRng>;
@@ -328,29 +329,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    /// Requests contacts synchronization and waits until the primary device sends them
-    ///
-    /// Note: DO NOT call this function if you're already running a receiving loop
-    pub async fn sync_contacts(&mut self) -> Result<(), Error<S::Error>> {
-        debug!("synchronizing contacts");
-
-        let mut messages = pin!(
-            self.receive_messages(ReceivingMode::WaitForContacts)
-                .await?
-        );
-
-        self.request_contacts().await?;
-
-        tokio::time::timeout(Duration::from_secs(60), async move {
-            while let Some(msg) = messages.next().await {
-                trace!(?msg, "got message while waiting for contacts sync:");
-            }
-        })
-        .await?;
-
-        Ok(())
-    }
-
     /// Request the primary device to encrypt & send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
@@ -567,29 +545,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(Some(avatar))
     }
 
-    async fn receive_messages_encrypted(
-        &mut self,
-    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
-        let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
-        let ws = self.identified_websocket(true).await?;
-        let pipe = MessagePipe::from_socket(ws, credentials);
-        Ok(pipe.stream())
-    }
-
-    /// Starts receiving and storing messages.
-    ///
-    /// As a client, it is heavily recommended to run this once in `ReceivingMode::InitialSync` once
-    /// before enabling the possiblity of sending messages. That way, all possible updates (sessions, profile keys, sender keys)
-    /// are processed _before_ trying to encrypt and send messages which might fail otherwise.
-    ///
-    /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
-    pub async fn receive_messages(
-        &mut self,
-        mode: ReceivingMode,
-    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
-        self.receive_messages_stream(mode).await
-    }
-
     fn groups_manager(&self) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
         let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
@@ -605,10 +560,25 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    async fn receive_messages_stream(
+    async fn receive_messages_encrypted(
         &mut self,
-        mode: ReceivingMode,
-    ) -> Result<impl Stream<Item = Content>, Error<S::Error>> {
+    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
+        let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
+        let ws = self.identified_websocket(true).await?;
+        let pipe = MessagePipe::from_socket(ws, credentials);
+        Ok(pipe.stream())
+    }
+
+    /// Starts receiving and storing messages.
+    ///
+    /// As a client, it is heavily recommended to process incoming messages and wait for the `Received::QueueEmpty` messages
+    /// until giving the ability for users to send messages. That way, all possible updates (sessions, profile keys, sender keys)
+    /// are processed _before_ trying to encrypt and send messages, which might get rejected by recipients otherwise.
+    ///
+    /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
+    pub async fn receive_messages(
+        &mut self,
+    ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
         struct StreamState<Receiver, Store, AciStore, PniStore> {
             store: Store,
             push_service: PushService,
@@ -618,7 +588,6 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_aci: ServiceCipher<AciStore>,
             service_cipher_pni: ServiceCipher<PniStore>,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
-            mode: ReceivingMode,
         }
 
         let push_service = self.identified_push_service();
@@ -632,7 +601,6 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
             groups_manager: self.groups_manager()?,
-            mode,
         };
 
         debug!("starting to consume incoming message stream");
@@ -686,9 +654,7 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
-                                    if let ReceivingMode::WaitForContacts = state.mode {
-                                        return None;
-                                    }
+                                    return Some((Received::Contacts, state));
                                 }
 
                                 // sticker pack operations
@@ -802,10 +768,10 @@ impl<S: Store> Manager<S, Registered> {
                                     error!(%error, "error saving message to store");
                                 }
 
-                                return Some((content, state));
+                                return Some((Received::Content(content), state));
                             }
                             Ok(None) => {
-                                debug!("empty envelope..., message will be skipped!")
+                                debug!("empty envelope, message will be skipped!")
                             }
                             Err(error) => {
                                 error!(%error, "error opening envelope, message will be skipped!");
@@ -813,10 +779,8 @@ impl<S: Store> Manager<S, Registered> {
                         }
                     }
                     Some(Ok(Incoming::QueueEmpty)) => {
-                        debug!("empty queue");
-                        if let ReceivingMode::InitialSync = state.mode {
-                            return None;
-                        }
+                        debug!("got empty queue");
+                        return Some((Received::QueueEmpty, state));
                     }
                     Some(Err(error)) => {
                         error!(%error, "unexpected error in message receiving loop")
@@ -1303,20 +1267,6 @@ impl<S: Store> Manager<S, Registered> {
     }
 }
 
-/// The mode receiving messages stream
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub enum ReceivingMode {
-    /// Don't stop the stream
-    #[default]
-    Forever,
-    /// Stop the stream after the initial sync
-    ///
-    /// That is, when the Signal's message queue becomes empty.
-    InitialSync,
-    /// Stop the stream after contacts are synced
-    WaitForContacts,
-}
-
 async fn upsert_group<S: Store>(
     store: &S,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
@@ -1582,28 +1532,31 @@ async fn save_message<S: Store>(
             call_event: Some(_),
             ..
         }) => Some(message),
-        ContentBody::SynchronizeMessage(_) => {
-            debug!("skipping saving sync message without interesting fields");
+        ContentBody::SynchronizeMessage(msg) => {
+            debug!(
+                ?msg,
+                "skipping saving sync message without interesting fields"
+            );
             None
         }
-        ContentBody::ReceiptMessage(_) => {
-            debug!("skipping saving receipt message");
+        ContentBody::ReceiptMessage(msg) => {
+            debug!(?msg, "skipping saving receipt message");
             None
         }
-        ContentBody::TypingMessage(_) => {
-            debug!("skipping saving typing message");
+        ContentBody::TypingMessage(msg) => {
+            debug!(?msg, "skipping saving typing message");
             None
         }
-        ContentBody::StoryMessage(_) => {
-            debug!("skipping story message");
+        ContentBody::StoryMessage(msg) => {
+            debug!(?msg, "skipping story message");
             None
         }
-        ContentBody::PniSignatureMessage(_) => {
-            debug!("skipping PNI signature message");
+        ContentBody::PniSignatureMessage(msg) => {
+            debug!(?msg, "skipping PNI signature message");
             None
         }
-        ContentBody::EditMessage(_) => {
-            debug!("invalid edited");
+        ContentBody::EditMessage(msg) => {
+            debug!(?msg, "invalid edited");
             None
         }
     };

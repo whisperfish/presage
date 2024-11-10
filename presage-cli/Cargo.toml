@@ -25,3 +25,4 @@ tokio = { version = "1.35", features = ["macros", "rt-multi-thread", "io-std", "
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false }
 url = "2.5"
+rand = "0.8.5"
