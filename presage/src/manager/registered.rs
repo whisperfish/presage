@@ -869,6 +869,7 @@ impl<S: Store> Manager<S, Registered> {
                 .profile_key
                 .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
             message.required_protocol_version = Some(0);
+            message.timestamp = Some(timestamp);
         }
 
         sender
