@@ -1614,6 +1614,7 @@
 <a href="#1614" id="1614">1614</a>
 <a href="#1615" id="1615">1615</a>
 <a href="#1616" id="1616">1616</a>
+<a href="#1617" id="1617">1617</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::pin::pin;
 <span class="kw">use </span>std::sync::{Arc, OnceLock};
@@ -2485,6 +2486,7 @@
                 .profile_key
                 .get_or_insert(<span class="self">self</span>.state.data.profile_key().get_bytes().to_vec());
             message.required_protocol_version = <span class="prelude-val">Some</span>(<span class="number">0</span>);
+            message.timestamp = <span class="prelude-val">Some</span>(timestamp);
         }
 
         sender
