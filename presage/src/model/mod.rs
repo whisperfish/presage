@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub mod contacts;
 pub mod groups;
 pub mod identity;
+pub(crate) mod messages;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ServiceIdType {
