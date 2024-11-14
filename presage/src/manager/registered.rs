@@ -869,8 +869,9 @@ impl<S: Store> Manager<S, Registered> {
                 .profile_key
                 .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
             message.required_protocol_version = Some(0);
-            message.timestamp = Some(timestamp);
         }
+
+        ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
             .send_message(
@@ -936,6 +937,7 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Group(master_key_bytes);
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
 
@@ -1301,6 +1303,32 @@ impl<S: Store> Manager<S, Registered> {
         );
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
+    }
+}
+
+/// Set the timestamp in any DataMessage so it matches its envelope's
+fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64) {
+    match content_body {
+        ContentBody::DataMessage(message) => {
+            message.timestamp = Some(timestamp);
+        }
+        ContentBody::EditMessage(EditMessage {
+            data_message: Some(data_message),
+            ..
+        }) => {
+            data_message.timestamp = Some(timestamp);
+        }
+        ContentBody::SynchronizeMessage(SyncMessage {
+            sent:
+                Some(sync_message::Sent {
+                    message: Some(data_message),
+                    ..
+                }),
+            ..
+        }) => {
+            data_message.timestamp = Some(timestamp);
+        }
+        _ => (),
     }
 }
 
