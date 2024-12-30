@@ -1028,7 +1028,7 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
-    /// Clears all sessions established wiht [recipient](ServiceId).
+    /// Clears all sessions established with [recipient](ServiceId).
     pub async fn clear_sessions(&self, recipient: &ServiceId) -> Result<(), Error<S::Error>> {
         use libsignal_service::session_store::SessionStoreExt;
         self.store
