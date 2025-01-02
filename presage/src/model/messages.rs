@@ -6,8 +6,10 @@ pub enum Received {
     /// once you're done synchronizing all pending messages for this registered client.
     QueueEmpty,
 
-    // got contacts synchronization
+    /// Got contacts (only applies if linked to a primary device
+    /// Contacts can be later queried in the store.
     Contacts,
 
-    Content(Content),
+    /// Incoming decrypted message with metadata and content
+    Content(Box<Content>),
 }

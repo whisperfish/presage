@@ -768,7 +768,7 @@ impl<S: Store> Manager<S, Registered> {
                                     error!(%error, "error saving message to store");
                                 }
 
-                                return Some((Received::Content(content), state));
+                                return Some((Received::Content(Box::new(content)), state));
                             }
                             Ok(None) => {
                                 debug!("empty envelope, message will be skipped!")
