@@ -827,6 +827,22 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         Cmd::SyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
             manager.request_contacts().await?;
+
+            let messages = manager
+                .receive_messages()
+                .await
+                .context("failed to initialize messages stream")?;
+            pin_mut!(messages);
+
+            println!("synchronizing messages until we get contacts (dots are messages synced from the past timeline)");
+
+            while let Some(content) = messages.next().await {
+                match content {
+                    Received::QueueEmpty => break,
+                    Received::Contacts => println!("got contacts! thank you, come again."),
+                    Received::Content(_) => print!("."),
+                }
+            }
         }
         Cmd::ListMessages {
             group_master_key,
