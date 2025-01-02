@@ -26,12 +26,14 @@
 <a href="#25" id="25">25</a>
 <a href="#26" id="26">26</a>
 <a href="#27" id="27">27</a>
-<a href="#28" id="28">28</a></pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::protocol::ServiceIdKind;
+<a href="#28" id="28">28</a>
+<a href="#29" id="29">29</a></pre></div><pre class="rust"><code><span class="kw">use </span>libsignal_service::protocol::ServiceIdKind;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 
 <span class="kw">pub mod </span>contacts;
 <span class="kw">pub mod </span>groups;
 <span class="kw">pub mod </span>identity;
+<span class="kw">pub mod </span>messages;
 
 <span class="attr">#[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 </span><span class="kw">pub enum </span>ServiceIdType {
