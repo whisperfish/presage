@@ -828,14 +828,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         }
         Cmd::SyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
-            let sync_message = SyncMessage {
-                request: Some(sync_message::Request {
-                    r#type: Some(sync_message::request::Type::Contacts.into()),
-                }),
-                ..SyncMessage::with_padding(&mut thread_rng())
-            };
-            let aci_self = Recipient::Contact(manager.registration_data().service_ids.aci);
-            send(&mut manager, aci_self, sync_message).await?;
+            manager.request_contacts().await?;
         }
         Cmd::ListMessages {
             group_master_key,
