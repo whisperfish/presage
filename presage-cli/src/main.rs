@@ -30,7 +30,6 @@ use presage::model::groups::Group;
 use presage::model::identity::OnNewIdentity;
 use presage::model::messages::Received;
 use presage::proto::receipt_message;
-use presage::proto::sync_message;
 use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
 use presage::proto::SyncMessage;
@@ -43,7 +42,6 @@ use presage::{
 };
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
-use rand::thread_rng;
 use tempfile::Builder;
 use tempfile::TempDir;
 use tokio::{
