@@ -1,6 +1,7 @@
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
+use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -24,10 +25,10 @@ use presage::libsignal_service::proto::sync_message::Sent;
 use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
-use presage::manager::ReceivingMode;
 use presage::model::contacts::Contact;
 use presage::model::groups::Group;
 use presage::model::identity::OnNewIdentity;
+use presage::model::messages::Received;
 use presage::proto::receipt_message;
 use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
@@ -42,7 +43,7 @@ use presage::{
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
 use tempfile::Builder;
-use tokio::task;
+use tempfile::TempDir;
 use tokio::{
     fs,
     io::{self, AsyncBufReadExt, BufReader},
@@ -191,7 +192,7 @@ enum Cmd {
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
         attachment_filepath: Vec<PathBuf>,
     },
-    RequestContactsSync,
+    SyncContacts,
     #[clap(about = "Print various statistics useful for debugging")]
     Stats,
 }
@@ -206,6 +207,15 @@ fn parse_group_master_key(value: &str) -> anyhow::Result<GroupMasterKeyBytes> {
     master_key_bytes
         .try_into()
         .map_err(|_| anyhow::format_err!("master key should be 32 bytes long"))
+}
+
+fn attachments_tmp_dir() -> anyhow::Result<TempDir> {
+    let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
+    info!(
+        path =% attachments_tmp_dir.path().display(),
+        "attachments will be stored"
+    );
+    Ok(attachments_tmp_dir)
 }
 
 #[tokio::main(flavor = "multi_thread")]
@@ -239,7 +249,7 @@ async fn send<S: Store>(
     recipient: Recipient,
     msg: impl Into<ContentBody>,
 ) -> anyhow::Result<()> {
-    let local = task::LocalSet::new();
+    let attachments_tmp_dir = attachments_tmp_dir()?;
 
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -251,33 +261,52 @@ async fn send<S: Store>(
         d.timestamp = Some(timestamp);
     }
 
-    local
-        .run_until(async move {
-            let mut receiving_manager = manager.clone();
-            task::spawn_local(async move {
-                if let Err(error) = receive(&mut receiving_manager, false).await {
-                    error!(%error, "error while receiving stuff");
-                }
-            });
+    let messages = manager
+        .receive_messages()
+        .await
+        .context("failed to initialize messages stream")?;
+    pin_mut!(messages);
 
-            match recipient {
-                Recipient::Contact(uuid) => {
-                    info!(recipient =% uuid, "sending message to contact");
-                    manager
-                        .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
-                        .await
-                        .expect("failed to send message");
-                }
-                Recipient::Group(master_key) => {
-                    info!("sending message to group");
-                    manager
-                        .send_message_to_group(&master_key, content_body, timestamp)
-                        .await
-                        .expect("failed to send message");
-                }
+    println!("synchronizing messages since last time");
+
+    while let Some(content) = messages.next().await {
+        match content {
+            Received::QueueEmpty => break,
+            Received::Contacts => continue,
+            Received::Content(content) => {
+                process_incoming_message(manager, attachments_tmp_dir.path(), false, &content).await
             }
-        })
-        .await;
+        }
+    }
+
+    println!("done synchronizing, sending your message now!");
+
+    match recipient {
+        Recipient::Contact(uuid) => {
+            info!(recipient =% uuid, "sending message to contact");
+            manager
+                .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
+                .await
+                .expect("failed to send message");
+        }
+        Recipient::Group(master_key) => {
+            info!("sending message to group");
+            manager
+                .send_message_to_group(&master_key, content_body, timestamp)
+                .await
+                .expect("failed to send message");
+        }
+    }
+
+    tokio::time::timeout(Duration::from_secs(60), async move {
+        while let Some(msg) = messages.next().await {
+            if let Received::Contacts = msg {
+                println!("got contacts sync!");
+                break;
+            }
+        }
+    })
+    .await?;
 
     Ok(())
 }
@@ -510,21 +539,27 @@ async fn receive<S: Store>(
     manager: &mut Manager<S, Registered>,
     notifications: bool,
 ) -> anyhow::Result<()> {
-    let attachments_tmp_dir = Builder::new().prefix("presage-attachments").tempdir()?;
-    info!(
-        path =% attachments_tmp_dir.path().display(),
-        "attachments will be stored"
-    );
-
+    let attachments_tmp_dir = attachments_tmp_dir()?;
     let messages = manager
-        .receive_messages(ReceivingMode::Forever)
+        .receive_messages()
         .await
         .context("failed to initialize messages stream")?;
     pin_mut!(messages);
 
     while let Some(content) = messages.next().await {
-        process_incoming_message(manager, attachments_tmp_dir.path(), notifications, &content)
-            .await;
+        match content {
+            Received::QueueEmpty => println!("done with synchronization"),
+            Received::Contacts => println!("got contacts synchronization"),
+            Received::Content(content) => {
+                process_incoming_message(
+                    manager,
+                    attachments_tmp_dir.path(),
+                    notifications,
+                    &content,
+                )
+                .await
+            }
+        }
     }
 
     Ok(())
@@ -789,9 +824,25 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 println!("{contact:#?}");
             }
         }
-        Cmd::RequestContactsSync => {
+        Cmd::SyncContacts => {
             let mut manager = Manager::load_registered(config_store).await?;
-            manager.sync_contacts().await?;
+            manager.request_contacts().await?;
+
+            let messages = manager
+                .receive_messages()
+                .await
+                .context("failed to initialize messages stream")?;
+            pin_mut!(messages);
+
+            println!("synchronizing messages until we get contacts (dots are messages synced from the past timeline)");
+
+            while let Some(content) = messages.next().await {
+                match content {
+                    Received::QueueEmpty => break,
+                    Received::Contacts => println!("got contacts! thank you, come again."),
+                    Received::Content(_) => print!("."),
+                }
+            }
         }
         Cmd::ListMessages {
             group_master_key,
