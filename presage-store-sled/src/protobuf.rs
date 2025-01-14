@@ -1,5 +1,4 @@
 #[allow(clippy::derive_partial_eq_without_eq)]
-
 mod textsecure {
     include!(concat!(env!("OUT_DIR"), "/textsecure.rs"));
 }

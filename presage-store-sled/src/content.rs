@@ -88,7 +88,7 @@ impl ContentsStore for SledStore {
         self.get(SLED_TREE_CONTACTS, id)
     }
 
-    /// Groups
+    // Groups
 
     async fn clear_groups(&mut self) -> Result<(), SledStoreError> {
         let db = self.write();
@@ -137,7 +137,7 @@ impl ContentsStore for SledStore {
         Ok(())
     }
 
-    /// Messages
+    // Messages
 
     async fn clear_messages(&mut self) -> Result<(), SledStoreError> {
         let db = self.write();

@@ -283,7 +283,7 @@ pub trait ContentsStore: Send + Sync {
         key: ProfileKey,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
-    /// Stickers
+    // Stickers
 
     /// Add a sticker pack
     fn add_sticker_pack(
