@@ -8,8 +8,8 @@ use presage::{
             Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
             KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
             ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, ServiceId,
-            SessionRecord, SessionStore, SignalProtocolError as ProtocolError, SignedPreKeyId,
-            SignedPreKeyRecord, SignedPreKeyStore,
+            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
+            SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
     },
@@ -17,7 +17,7 @@ use presage::{
 };
 use sqlx::{query, query_as, query_scalar};
 
-use crate::{SqliteStore, SqliteStoreError};
+use crate::{error::SqlxErrorExt, SqliteStore, SqliteStoreError};
 
 #[derive(Clone)]
 pub struct SqliteProtocolStore {
@@ -43,23 +43,13 @@ impl IdentityType {
 
 impl ProtocolStore for SqliteProtocolStore {}
 
-trait SqlxErrorExt<T> {
-    fn into_protocol_error(self) -> Result<T, ProtocolError>;
-}
-
-impl<T> SqlxErrorExt<T> for Result<T, sqlx::Error> {
-    fn into_protocol_error(self) -> Result<T, ProtocolError> {
-        self.map_err(|error| ProtocolError::InvalidState("sqlite", error.to_string()))
-    }
-}
-
 #[async_trait(?Send)]
 impl SessionStore for SqliteProtocolStore {
     /// Look up the session corresponding to `address`.
     async fn load_session(
         &self,
         address: &ProtocolAddress,
-    ) -> Result<Option<SessionRecord>, ProtocolError> {
+    ) -> Result<Option<SessionRecord>, SignalProtocolError> {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query!(
@@ -80,7 +70,7 @@ impl SessionStore for SqliteProtocolStore {
         &mut self,
         address: &ProtocolAddress,
         record: &SessionRecord,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         let record = record.serialize()?;
@@ -104,7 +94,10 @@ impl SessionStoreExt for SqliteProtocolStore {
     /// Get the IDs of all known sub devices with active sessions for a recipient.
     ///
     /// This should return every device except for the main device [DEFAULT_DEVICE_ID].
-    async fn get_sub_device_sessions(&self, name: &ServiceId) -> Result<Vec<u32>, ProtocolError> {
+    async fn get_sub_device_sessions(
+        &self,
+        name: &ServiceId,
+    ) -> Result<Vec<u32>, SignalProtocolError> {
         let address = name.raw_uuid().to_string();
         query_scalar!(
             "SELECT device_id AS 'id: u32' FROM sessions
@@ -119,7 +112,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     }
 
     /// Remove a session record for a recipient ID + device ID tuple.
-    async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), ProtocolError> {
+    async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query!(
@@ -138,7 +131,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     /// ID.
     ///
     /// Returns the number of deleted sessions.
-    async fn delete_all_sessions(&self, name: &ServiceId) -> Result<usize, ProtocolError> {
+    async fn delete_all_sessions(&self, name: &ServiceId) -> Result<usize, SignalProtocolError> {
         let address = name.raw_uuid();
         let res = query!(
             "DELETE FROM sessions WHERE address = ? AND identity = ?",
@@ -155,7 +148,7 @@ impl SessionStoreExt for SqliteProtocolStore {
 #[async_trait(?Send)]
 impl PreKeyStore for SqliteProtocolStore {
     /// Look up the pre-key corresponding to `prekey_id`.
-    async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, ProtocolError> {
+    async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, SignalProtocolError> {
         let id: u32 = prekey_id.into();
         let record = query_scalar!(
             "SELECT record FROM pre_keys WHERE id = ? AND identity = ?",
@@ -173,7 +166,7 @@ impl PreKeyStore for SqliteProtocolStore {
         &mut self,
         prekey_id: PreKeyId,
         record: &PreKeyRecord,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let id: u32 = prekey_id.into();
         let record = record.serialize()?;
         query!(
@@ -189,7 +182,7 @@ impl PreKeyStore for SqliteProtocolStore {
     }
 
     /// Remove the entry for `prekey_id`.
-    async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), ProtocolError> {
+    async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), SignalProtocolError> {
         let id: u32 = prekey_id.into();
         query!(
             "DELETE FROM pre_keys WHERE id = ? AND identity = ?",
@@ -206,7 +199,7 @@ impl PreKeyStore for SqliteProtocolStore {
 #[async_trait(?Send)]
 impl PreKeysStore for SqliteProtocolStore {
     /// ID of the next pre key
-    async fn next_pre_key_id(&self) -> Result<u32, ProtocolError> {
+    async fn next_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         let max_id = query_scalar!(
             "SELECT MAX(id) AS 'id: u32' FROM pre_keys WHERE identity = ?",
             self.identity,
@@ -218,7 +211,7 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     /// ID of the next signed pre key
-    async fn next_signed_pre_key_id(&self) -> Result<u32, ProtocolError> {
+    async fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         let max_id = query_scalar!(
             "SELECT MAX(id) AS 'id: u32' FROM signed_pre_keys WHERE identity = ?",
             self.identity
@@ -230,7 +223,7 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     /// ID of the next PQ pre key
-    async fn next_pq_pre_key_id(&self) -> Result<u32, ProtocolError> {
+    async fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         let max_id = query_scalar!(
             "SELECT MAX(id) AS 'id: u32' FROM kyber_pre_keys WHERE identity = ?",
             self.identity
@@ -242,7 +235,7 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     /// number of signed pre-keys we currently have in store
-    async fn signed_pre_keys_count(&self) -> Result<usize, ProtocolError> {
+    async fn signed_pre_keys_count(&self) -> Result<usize, SignalProtocolError> {
         query_scalar!(
             "SELECT COUNT(id) FROM signed_pre_keys WHERE identity = ?",
             self.identity
@@ -254,7 +247,7 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     /// number of kyber pre-keys we currently have in store
-    async fn kyber_pre_keys_count(&self, last_resort: bool) -> Result<usize, ProtocolError> {
+    async fn kyber_pre_keys_count(&self, last_resort: bool) -> Result<usize, SignalProtocolError> {
         query_scalar!(
             "SELECT COUNT(id) FROM kyber_pre_keys WHERE identity = ?",
             self.identity
@@ -272,7 +265,7 @@ impl SignedPreKeyStore for SqliteProtocolStore {
     async fn get_signed_pre_key(
         &self,
         signed_prekey_id: SignedPreKeyId,
-    ) -> Result<SignedPreKeyRecord, ProtocolError> {
+    ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let id: u32 = signed_prekey_id.into();
         let bytes = query_scalar!(
             "SELECT record FROM signed_pre_keys WHERE id = ? AND identity = ?",
@@ -290,7 +283,7 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         &mut self,
         signed_prekey_id: SignedPreKeyId,
         record: &SignedPreKeyRecord,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let id: u32 = signed_prekey_id.into();
         let bytes = record.serialize()?;
         query!(
@@ -312,7 +305,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
     async fn get_kyber_pre_key(
         &self,
         kyber_prekey_id: KyberPreKeyId,
-    ) -> Result<KyberPreKeyRecord, ProtocolError> {
+    ) -> Result<KyberPreKeyRecord, SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         let bytes = query_scalar!(
             "SELECT record FROM kyber_pre_keys WHERE id = ? AND identity = ?",
@@ -330,7 +323,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         let record = record.serialize()?;
         query!(
@@ -350,7 +343,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
     async fn mark_kyber_pre_key_used(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         query!(
             "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ?",
@@ -370,7 +363,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         let record = record.serialize()?;
         query!(
@@ -388,7 +381,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
 
     async fn load_last_resort_kyber_pre_keys(
         &self,
-    ) -> Result<Vec<KyberPreKeyRecord>, ProtocolError> {
+    ) -> Result<Vec<KyberPreKeyRecord>, SignalProtocolError> {
         query_scalar!(
             "SELECT record FROM kyber_pre_keys
             WHERE identity = ? AND is_last_resort = TRUE",
@@ -405,7 +398,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
     async fn remove_kyber_pre_key(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         query!(
             "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ?",
@@ -422,7 +415,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
     async fn mark_all_one_time_kyber_pre_keys_stale_if_necessary(
         &mut self,
         _stale_time: DateTime<Utc>,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         unimplemented!("should not be used yet")
     }
 
@@ -431,7 +424,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         &mut self,
         _threshold: DateTime<Utc>,
         _min_count: usize,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         unimplemented!("should not be used yet")
     }
 }
@@ -439,7 +432,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
 #[async_trait(?Send)]
 impl IdentityKeyStore for SqliteProtocolStore {
     /// Return the single specific identity the store is assumed to represent, with private key.
-    async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, ProtocolError> {
+    async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         let key = self.identity.identity_key_pair_key();
         let bytes = query_scalar!("SELECT value FROM kv WHERE key = ?", key)
             .fetch_one(&self.store.db)
@@ -456,9 +449,9 @@ impl IdentityKeyStore for SqliteProtocolStore {
     /// If the same *device* is unregistered, then registers again, the [ProtocolAddress::device_id]
     /// may be the same, but the store registration id returned by this method should
     /// be regenerated.
-    async fn get_local_registration_id(&self) -> Result<u32, ProtocolError> {
+    async fn get_local_registration_id(&self) -> Result<u32, SignalProtocolError> {
         let data = self.store.load_registration_data().await?.ok_or_else(|| {
-            ProtocolError::InvalidState(
+            SignalProtocolError::InvalidState(
                 "failed to load registration ID",
                 "no registration data".into(),
             )
@@ -474,7 +467,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &mut self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-    ) -> Result<bool, ProtocolError> {
+    ) -> Result<bool, SignalProtocolError> {
         let previous = self.get_identity(address).await?;
         let is_replaced = previous.as_ref() == Some(identity);
 
@@ -502,7 +495,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         identity: &IdentityKey,
         direction: Direction,
-    ) -> Result<bool, ProtocolError> {
+    ) -> Result<bool, SignalProtocolError> {
         if let Some(trusted_key) = self.get_identity(address).await? {
             Ok(trusted_key == *identity)
         } else {
@@ -514,7 +507,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
     async fn get_identity(
         &self,
         address: &ProtocolAddress,
-    ) -> Result<Option<IdentityKey>, ProtocolError> {
+    ) -> Result<Option<IdentityKey>, SignalProtocolError> {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query_scalar!(
@@ -539,7 +532,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         sender: &ProtocolAddress,
         distribution_id: Uuid,
         record: &SenderKeyRecord,
-    ) -> Result<(), ProtocolError> {
+    ) -> Result<(), SignalProtocolError> {
         let address = sender.name();
         let device_id: u32 = sender.device_id().into();
         let record = record.serialize()?;
@@ -564,7 +557,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         &mut self,
         sender: &ProtocolAddress,
         distribution_id: Uuid,
-    ) -> Result<Option<SenderKeyRecord>, ProtocolError> {
+    ) -> Result<Option<SenderKeyRecord>, SignalProtocolError> {
         let address = sender.name();
         let device_id: u32 = sender.device_id().into();
         query_scalar!(
