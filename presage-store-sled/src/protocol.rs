@@ -1,6 +1,7 @@
 use std::marker::PhantomData;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
@@ -407,15 +408,13 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
     ) -> Result<(), SignalProtocolError> {
         self.store
             .remove(T::kyber_pre_keys_last_resort(), kyber_prekey_id.sled_key())?;
-        self.store
-            .remove(T::kyber_pre_keys_last_resort(), kyber_prekey_id.sled_key())?;
         Ok(())
     }
 
     /// Analogous to markAllOneTimeKyberPreKeysStaleIfNecessary
     async fn mark_all_one_time_kyber_pre_keys_stale_if_necessary(
         &mut self,
-        _stale_time: chrono::DateTime<chrono::Utc>,
+        _stale_time: DateTime<Utc>,
     ) -> Result<(), SignalProtocolError> {
         unimplemented!("should not be used yet")
     }
@@ -423,7 +422,7 @@ impl<T: SledTrees> KyberPreKeyStoreExt for SledProtocolStore<T> {
     /// Analogue of deleteAllStaleOneTimeKyberPreKeys
     async fn delete_all_stale_one_time_kyber_pre_keys(
         &mut self,
-        _threshold: chrono::DateTime<chrono::Utc>,
+        _threshold: DateTime<Utc>,
         _min_count: usize,
     ) -> Result<(), SignalProtocolError> {
         unimplemented!("should not be used yet")

@@ -4,10 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+presage = { path = "../presage" }
+
 async-trait = "0.1.83"
 chrono = "0.4.38"
-presage = { path = "../presage" }
-presage-store-cipher = { path = "../presage-store-cipher", optional = true }
-
-sqlx = { version = "0.8.2", features = ["sqlite"] }
+serde_json = "1.0.135"
+sqlx = { version = "0.8.2", features = ["sqlite", "uuid"] }
 thiserror = "1.0.65"
+tracing = "0.1.41"
