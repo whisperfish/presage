@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(id) FROM kyber_pre_keys WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(id)",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "759758c0c79377c3004e2b04ecca0e292524dc7965bab1eea79bd714134eba59"
+}

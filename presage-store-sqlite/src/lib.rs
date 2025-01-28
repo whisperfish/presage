@@ -1,15 +1,12 @@
-#![allow(warnings)]
-
-use std::path::Path;
-
 use presage::{
     model::identity::OnNewIdentity,
     store::{StateStore, Store},
 };
 use protocol::{IdentityType, SqliteProtocolStore};
-use sqlx::{query, query_scalar, sqlite::SqliteConnectOptions, Executor, SqlitePool};
+use sqlx::{query, query_scalar, sqlite::SqliteConnectOptions, SqlitePool};
 
 mod content;
+mod data;
 mod error;
 mod protocol;
 
@@ -18,21 +15,16 @@ pub use error::SqliteStoreError;
 #[derive(Debug, Clone)]
 pub struct SqliteStore {
     pub(crate) db: SqlitePool,
-    /// Whether to trust new identities automatically (for instance, when a somebody's phone has changed)
-    trust_new_identities: OnNewIdentity,
 }
 
 impl SqliteStore {
     pub async fn open(
         url: &str,
-        trust_new_identities: OnNewIdentity,
+        _trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SqliteStoreError> {
         let options: SqliteConnectOptions = url.parse()?;
         let pool = SqlitePool::connect_with(options).await?;
-        Ok(Self {
-            db: pool,
-            trust_new_identities,
-        })
+        Ok(Self { db: pool })
     }
 }
 

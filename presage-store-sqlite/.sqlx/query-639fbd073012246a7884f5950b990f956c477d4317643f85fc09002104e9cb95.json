@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT device_id AS 'id: u32' FROM sessions\n            WHERE address = ? AND device_id != ? AND identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: u32",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "639fbd073012246a7884f5950b990f956c477d4317643f85fc09002104e9cb95"
+}

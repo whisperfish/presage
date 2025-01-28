@@ -1,4 +1,7 @@
-use presage::{libsignal_service::protocol::SignalProtocolError, store::StoreError};
+use presage::{
+    libsignal_service::{prelude::phonenumber, protocol::SignalProtocolError},
+    store::StoreError,
+};
 use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
@@ -6,7 +9,15 @@ pub enum SqliteStoreError {
     #[error(transparent)]
     Db(#[from] sqlx::Error),
     #[error(transparent)]
+    Postcard(#[from] postcard::Error),
+    #[error(transparent)]
     Json(#[from] serde_json::Error),
+    #[error(transparent)]
+    Uuid(#[from] uuid::Error),
+    #[error(transparent)]
+    PhoneNumber(#[from] phonenumber::ParseError),
+    #[error("conversation error")]
+    InvalidFormat,
 }
 
 impl StoreError for SqliteStoreError {}

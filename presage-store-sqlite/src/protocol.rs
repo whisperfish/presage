@@ -15,7 +15,7 @@ use presage::{
     },
     store::StateStore,
 };
-use sqlx::{query, query_as, query_scalar};
+use sqlx::{query, query_scalar};
 
 use crate::{error::SqlxErrorExt, SqliteStore, SqliteStoreError};
 
@@ -177,7 +177,7 @@ impl PreKeyStore for SqliteProtocolStore {
         )
         .execute(&self.store.db)
         .await
-        .into_protocol_error();
+        .into_protocol_error()?;
         Ok(())
     }
 
@@ -247,7 +247,7 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     /// number of kyber pre-keys we currently have in store
-    async fn kyber_pre_keys_count(&self, last_resort: bool) -> Result<usize, SignalProtocolError> {
+    async fn kyber_pre_keys_count(&self, _last_resort: bool) -> Result<usize, SignalProtocolError> {
         query_scalar!(
             "SELECT COUNT(id) FROM kyber_pre_keys WHERE identity = ?",
             self.identity
@@ -494,7 +494,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-        direction: Direction,
+        _direction: Direction,
     ) -> Result<bool, SignalProtocolError> {
         if let Some(trusted_key) = self.get_identity(address).await? {
             Ok(trusted_key == *identity)
