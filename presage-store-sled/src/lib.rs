@@ -590,6 +590,7 @@ mod tests {
                 timestamp,
                 needs_receipt: Arbitrary::arbitrary(g),
                 unidentified_sender: Arbitrary::arbitrary(g),
+                was_plaintext: false,
             };
             let content_body = ContentBody::DataMessage(DataMessage {
                 body: Arbitrary::arbitrary(g),
