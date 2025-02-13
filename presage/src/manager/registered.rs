@@ -858,6 +858,7 @@ impl<S: Store> Manager<S, Registered> {
                 timestamp,
                 needs_receipt: false,
                 unidentified_sender: false,
+                was_plaintext: false,
             },
             body: content_body,
         };
@@ -964,6 +965,7 @@ impl<S: Store> Manager<S, Registered> {
                 timestamp,
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
+                was_plaintext: false,
             },
             body: content_body,
         };
