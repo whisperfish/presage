@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/43aa16f/src/cipher.rs`."><title>cipher.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-42caa33d.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.84.0 (9fc6b4312 2025-01-07)" data-channel="1.84.0" data-search-js="search-92e6798f.js" data-settings-js="settings-0f613d39.js" ><script src="../../static.files/storage-59e33391.js"></script><script defer src="../../static.files/src-script-56102188.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-5f194d8c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/</div>cipher.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-e91a0c40cab55da9/82d70f6/src/cipher.rs`."><title>cipher.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-42caa33d.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.84.1 (e71f9a9a9 2025-01-27)" data-channel="1.84.1" data-search-js="search-92e6798f.js" data-settings-js="settings-0f613d39.js" ><script src="../../static.files/storage-59e33391.js"></script><script defer src="../../static.files/src-script-56102188.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-5f194d8c.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/</div>cipher.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers">
 <a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
@@ -574,7 +574,60 @@
 <a href="#573" id="573">573</a>
 <a href="#574" id="574">574</a>
 <a href="#575" id="575">575</a>
-<a href="#576" id="576">576</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::TryFrom, fmt, time::SystemTime};
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
+<a href="#629" id="629">629</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::{convert::TryFrom, fmt, time::SystemTime};
 
 <span class="kw">use </span>aes::cipher::block_padding::{Iso7816, RawPadding};
 <span class="kw">use </span>base64::prelude::<span class="kw-2">*</span>;
@@ -673,8 +726,53 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Content&gt;, ServiceError&gt; {
         <span class="kw">if </span>envelope.content.is_some() {
             <span class="kw">let </span>plaintext = <span class="self">self</span>.decrypt(<span class="kw-2">&amp;</span>envelope, csprng).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>was_plaintext = plaintext.metadata.was_plaintext;
             <span class="kw">let </span>message =
                 <span class="kw">crate</span>::proto::Content::decode(plaintext.data.as_slice())<span class="question-mark">?</span>;
+
+            tracing::Span::current()
+                .record(<span class="string">"envelope_metadata"</span>, plaintext.metadata.to_string());
+
+            <span class="comment">// Sanity test: if the envelope was plaintext, the message should *only* be a
+            // decryption failure error
+            </span><span class="kw">if </span>was_plaintext {
+                <span class="kw">if let </span><span class="kw">crate</span>::proto::Content {
+                    data_message: <span class="prelude-val">None</span>,
+                    sync_message: <span class="prelude-val">None</span>,
+                    call_message: <span class="prelude-val">None</span>,
+                    null_message: <span class="prelude-val">None</span>,
+                    receipt_message: <span class="prelude-val">None</span>,
+                    typing_message: <span class="prelude-val">None</span>,
+                    sender_key_distribution_message: <span class="prelude-val">None</span>,
+                    decryption_error_message: <span class="prelude-val">Some</span>(decryption_error_message),
+                    story_message: <span class="prelude-val">None</span>,
+                    pni_signature_message: <span class="prelude-val">None</span>,
+                    edit_message: <span class="prelude-val">None</span>,
+                } = <span class="kw-2">&amp;</span>message
+                {
+                    <span class="macro">tracing::warn!</span>(
+                        <span class="question-mark">?</span>envelope,
+                        <span class="string">"Received a decryption error message: {}."</span>,
+                        String::from_utf8_lossy(decryption_error_message)
+                    );
+                } <span class="kw">else </span>{
+                    <span class="macro">tracing::error!</span>(
+                        <span class="question-mark">?</span>envelope,
+                        <span class="string">"Received a plaintext envelope with a non-decryption error message."
+                    </span>);
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+                }
+            }
+
+            <span class="kw">if </span>message.sync_message.is_some() {
+                <span class="kw">if </span>plaintext.metadata.sender.aci().map(Into::into)
+                    != <span class="prelude-val">Some</span>(<span class="self">self</span>.local_uuid)
+                {
+                    <span class="macro">tracing::warn!</span>(<span class="string">"Source is not ourself."</span>);
+                    <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+                }
+            }
+
             <span class="kw">if let </span><span class="prelude-val">Some</span>(bytes) = message.sender_key_distribution_message {
                 <span class="kw">let </span>skdm = SenderKeyDistributionMessage::try_from(<span class="kw-2">&amp;</span>bytes[..])<span class="question-mark">?</span>;
                 process_sender_key_distribution_message(
@@ -742,6 +840,8 @@
                     timestamp: envelope.server_timestamp(),
                     needs_receipt: <span class="bool-val">false</span>,
                     unidentified_sender: <span class="bool-val">false</span>,
+                    was_plaintext: <span class="bool-val">false</span>,
+
                     server_guid,
                 };
 
@@ -780,6 +880,8 @@
                     timestamp: envelope.server_timestamp(),
                     needs_receipt: <span class="bool-val">false</span>,
                     unidentified_sender: <span class="bool-val">false</span>,
+                    was_plaintext: <span class="bool-val">true</span>,
+
                     server_guid,
                 };
                 Plaintext {
@@ -801,6 +903,8 @@
                     timestamp: envelope.timestamp(),
                     needs_receipt: <span class="bool-val">false</span>,
                     unidentified_sender: <span class="bool-val">false</span>,
+                    was_plaintext: <span class="bool-val">false</span>,
+
                     server_guid,
                 };
 
@@ -874,6 +978,8 @@
                     timestamp: envelope.timestamp(),
                     unidentified_sender: <span class="bool-val">true</span>,
                     needs_receipt,
+                    was_plaintext: <span class="bool-val">false</span>,
+
                     server_guid,
                 };
 
