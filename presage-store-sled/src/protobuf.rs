@@ -79,6 +79,7 @@ impl TryFrom<MetadataProto> for Metadata {
                 .unwrap_or_default(),
             needs_receipt: metadata.needs_receipt.unwrap_or_default(),
             unidentified_sender: false,
+            was_plaintext: false,
         })
     }
 }
