@@ -3055,10 +3055,10 @@
                 // - update the contact if the profile key has changed
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
                 </span><span class="kw">if </span>store.contact_by_id(<span class="kw-2">&amp;</span>sender.raw_uuid()).<span class="kw">await</span><span class="question-mark">?</span>.is_none()
-                    || !store
+                    || store
                         .profile_key(<span class="kw-2">&amp;</span>sender.raw_uuid())
                         .<span class="kw">await</span><span class="question-mark">?
-                        </span>.is_some_and(|p| p.bytes == profile_key.bytes)
+                        </span>.is_none_or(|p| p.bytes != profile_key.bytes)
                 {
                     <span class="kw">if let </span><span class="prelude-val">Some</span>(aci) = sender.aci() {
                         <span class="kw">let </span>sender_uuid: Uuid = aci.into();
