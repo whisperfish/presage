@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE group_avatars SET bytes = ? WHERE group_master_key = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "b8132dfdac9d908be4a0456599e6baaa6295ed358dac091476662ac6b137ee8c"
+}

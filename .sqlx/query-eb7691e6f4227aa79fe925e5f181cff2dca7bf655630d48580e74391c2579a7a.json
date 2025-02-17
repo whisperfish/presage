@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT MAX(id) AS 'id: u32' FROM kyber_pre_keys WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: u32",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "eb7691e6f4227aa79fe925e5f181cff2dca7bf655630d48580e74391c2579a7a"
+}

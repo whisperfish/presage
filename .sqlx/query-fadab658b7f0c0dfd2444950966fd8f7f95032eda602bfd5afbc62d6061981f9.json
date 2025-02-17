@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record FROM kyber_pre_keys WHERE id = ? AND identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "record",
+        "ordinal": 0,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fadab658b7f0c0dfd2444950966fd8f7f95032eda602bfd5afbc62d6061981f9"
+}

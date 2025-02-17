@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE profile_avatars SET bytes = ? WHERE uuid = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c43853cc74ab0f2f94d0f05231c731102675cd7bf2f7857cc5f2a5ebfcf2a208"
+}

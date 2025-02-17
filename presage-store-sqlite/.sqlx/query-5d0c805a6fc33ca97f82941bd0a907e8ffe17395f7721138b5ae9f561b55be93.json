@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM kv WHERE key = 'registration'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "5d0c805a6fc33ca97f82941bd0a907e8ffe17395f7721138b5ae9f561b55be93"
+}

@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT MAX(id) AS 'id: u32' FROM signed_pre_keys WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: u32",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "f0a273c8a87f790e3d0cb7595f2f401f35d0abfa4c6cc6a94972e46eb059ad30"
+}

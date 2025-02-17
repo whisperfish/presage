@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(id) FROM signed_pre_keys WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(id)",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6596b08f27ca4a47ed041e593a9c8a1621abb0336cf79a714a80904c6a85c7ed"
+}

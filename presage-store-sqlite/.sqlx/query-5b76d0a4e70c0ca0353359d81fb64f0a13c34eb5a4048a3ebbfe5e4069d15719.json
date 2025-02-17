@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM contacts",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "5b76d0a4e70c0ca0353359d81fb64f0a13c34eb5a4048a3ebbfe5e4069d15719"
+}
