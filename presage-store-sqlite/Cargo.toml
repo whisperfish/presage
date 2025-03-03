@@ -1,19 +1,17 @@
 [package]
 name = "presage-store-sqlite"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 presage = { path = "../presage" }
 
 async-trait = "0.1.83"
+bytes = "1.9.0"
 chrono = "0.4.38"
+prost = "0.13.4"
 serde_json = "1.0.135"
 sqlx = { version = "0.8.2", features = ["json", "sqlite", "uuid"] }
-thiserror = "1.0.65"
+thiserror = "2.0.0"
 tracing = "0.1.41"
 uuid = "1.12.0"
-prost = "0.13.4"
-postcard = { version = "1.1.1", features = ["alloc"] }
-serde = "1.0.217"
-bytes = "1.9.0"
