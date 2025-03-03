@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM presage_contacts",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "edba4a7f701a4f8d8cc7174a699bbcf03945022a802f30feec715e57d158e0a3"
+}

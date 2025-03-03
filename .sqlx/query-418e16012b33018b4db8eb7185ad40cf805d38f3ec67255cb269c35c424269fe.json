@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE presage_profile_avatars SET bytes = ? WHERE uuid = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "418e16012b33018b4db8eb7185ad40cf805d38f3ec67255cb269c35c424269fe"
+}

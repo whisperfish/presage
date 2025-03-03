@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO presage_profile_keys (uuid, key) VALUES (?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "bbfcf3843c7bc1a9cd7a0b64d9b5ee949b13f0a32026d536f1c8f9000d7acbbe"
+}

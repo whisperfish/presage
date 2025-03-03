@@ -53,7 +53,8 @@ impl SessionStore for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query!(
-            "SELECT record FROM sessions WHERE address = ? AND device_id = ? AND identity = ?",
+            "SELECT record FROM presage_sessions
+            WHERE address = ? AND device_id = ? AND identity = ?",
             address,
             device_id,
             self.identity,
@@ -75,7 +76,7 @@ impl SessionStore for SqliteProtocolStore {
         let address = address.name();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO sessions (address, device_id, identity, record)
+            "INSERT OR REPLACE INTO presage_sessions (address, device_id, identity, record)
             VALUES (?, ?, ?, ?)",
             address,
             device_id,
@@ -100,7 +101,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     ) -> Result<Vec<u32>, SignalProtocolError> {
         let address = name.raw_uuid().to_string();
         query_scalar!(
-            "SELECT device_id AS 'id: u32' FROM sessions
+            "SELECT device_id AS 'id: u32' FROM presage_sessions
             WHERE address = ? AND device_id != ? AND identity = ?",
             address,
             DEFAULT_DEVICE_ID,
@@ -116,7 +117,7 @@ impl SessionStoreExt for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query!(
-            "DELETE FROM sessions WHERE address = ? AND device_id = ? AND identity = ?",
+            "DELETE FROM presage_sessions WHERE address = ? AND device_id = ? AND identity = ?",
             address,
             device_id,
             self.identity,
@@ -134,7 +135,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     async fn delete_all_sessions(&self, name: &ServiceId) -> Result<usize, SignalProtocolError> {
         let address = name.raw_uuid();
         let res = query!(
-            "DELETE FROM sessions WHERE address = ? AND identity = ?",
+            "DELETE FROM presage_sessions WHERE address = ? AND identity = ?",
             address,
             self.identity
         )
@@ -151,7 +152,7 @@ impl PreKeyStore for SqliteProtocolStore {
     async fn get_pre_key(&self, prekey_id: PreKeyId) -> Result<PreKeyRecord, SignalProtocolError> {
         let id: u32 = prekey_id.into();
         let record = query_scalar!(
-            "SELECT record FROM pre_keys WHERE id = ? AND identity = ?",
+            "SELECT record FROM presage_pre_keys WHERE id = ? AND identity = ?",
             id,
             self.identity
         )
@@ -170,7 +171,7 @@ impl PreKeyStore for SqliteProtocolStore {
         let id: u32 = prekey_id.into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO pre_keys (id, identity, record) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO presage_pre_keys (id, identity, record) VALUES (?, ?, ?)",
             id,
             self.identity,
             record,
@@ -185,7 +186,7 @@ impl PreKeyStore for SqliteProtocolStore {
     async fn remove_pre_key(&mut self, prekey_id: PreKeyId) -> Result<(), SignalProtocolError> {
         let id: u32 = prekey_id.into();
         query!(
-            "DELETE FROM pre_keys WHERE id = ? AND identity = ?",
+            "DELETE FROM presage_pre_keys WHERE id = ? AND identity = ?",
             id,
             self.identity
         )
@@ -201,7 +202,7 @@ impl PreKeysStore for SqliteProtocolStore {
     /// ID of the next pre key
     async fn next_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         let max_id = query_scalar!(
-            "SELECT MAX(id) AS 'id: u32' FROM pre_keys WHERE identity = ?",
+            "SELECT MAX(id) AS 'id: u32' FROM presage_pre_keys WHERE identity = ?",
             self.identity,
         )
         .fetch_one(&self.store.db)
@@ -213,7 +214,7 @@ impl PreKeysStore for SqliteProtocolStore {
     /// ID of the next signed pre key
     async fn next_signed_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         let max_id = query_scalar!(
-            "SELECT MAX(id) AS 'id: u32' FROM signed_pre_keys WHERE identity = ?",
+            "SELECT MAX(id) AS 'id: u32' FROM presage_signed_pre_keys WHERE identity = ?",
             self.identity
         )
         .fetch_one(&self.store.db)
@@ -225,7 +226,7 @@ impl PreKeysStore for SqliteProtocolStore {
     /// ID of the next PQ pre key
     async fn next_pq_pre_key_id(&self) -> Result<u32, SignalProtocolError> {
         let max_id = query_scalar!(
-            "SELECT MAX(id) AS 'id: u32' FROM kyber_pre_keys WHERE identity = ?",
+            "SELECT MAX(id) AS 'id: u32' FROM presage_kyber_pre_keys WHERE identity = ?",
             self.identity
         )
         .fetch_one(&self.store.db)
@@ -237,7 +238,7 @@ impl PreKeysStore for SqliteProtocolStore {
     /// number of signed pre-keys we currently have in store
     async fn signed_pre_keys_count(&self) -> Result<usize, SignalProtocolError> {
         query_scalar!(
-            "SELECT COUNT(id) FROM signed_pre_keys WHERE identity = ?",
+            "SELECT COUNT(id) FROM presage_signed_pre_keys WHERE identity = ?",
             self.identity
         )
         .fetch_one(&self.store.db)
@@ -249,7 +250,7 @@ impl PreKeysStore for SqliteProtocolStore {
     /// number of kyber pre-keys we currently have in store
     async fn kyber_pre_keys_count(&self, _last_resort: bool) -> Result<usize, SignalProtocolError> {
         query_scalar!(
-            "SELECT COUNT(id) FROM kyber_pre_keys WHERE identity = ?",
+            "SELECT COUNT(id) FROM presage_kyber_pre_keys WHERE identity = ?",
             self.identity
         )
         .fetch_one(&self.store.db)
@@ -268,7 +269,7 @@ impl SignedPreKeyStore for SqliteProtocolStore {
     ) -> Result<SignedPreKeyRecord, SignalProtocolError> {
         let id: u32 = signed_prekey_id.into();
         let bytes = query_scalar!(
-            "SELECT record FROM signed_pre_keys WHERE id = ? AND identity = ?",
+            "SELECT record FROM presage_signed_pre_keys WHERE id = ? AND identity = ?",
             id,
             self.identity,
         )
@@ -287,7 +288,7 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         let id: u32 = signed_prekey_id.into();
         let bytes = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO signed_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO presage_signed_pre_keys (id, identity, record) VALUES (?, ?, ?)",
             id,
             self.identity,
             bytes,
@@ -308,7 +309,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
     ) -> Result<KyberPreKeyRecord, SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         let bytes = query_scalar!(
-            "SELECT record FROM kyber_pre_keys WHERE id = ? AND identity = ?",
+            "SELECT record FROM presage_kyber_pre_keys WHERE id = ? AND identity = ?",
             id,
             self.identity,
         )
@@ -327,7 +328,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         let id: u32 = kyber_prekey_id.into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO kyber_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+            "INSERT OR REPLACE INTO presage_kyber_pre_keys (id, identity, record) VALUES (?, ?, ?)",
             id,
             self.identity,
             record,
@@ -346,7 +347,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
     ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         query!(
-            "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ?",
+            "DELETE FROM presage_kyber_pre_keys WHERE id = ? AND identity = ?",
             id,
             self.identity,
         )
@@ -367,7 +368,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         let id: u32 = kyber_prekey_id.into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO kyber_pre_keys
+            "INSERT OR REPLACE INTO presage_kyber_pre_keys
             (id, identity, is_last_resort, record) VALUES (?, ?, TRUE, ?)",
             id,
             self.identity,
@@ -383,7 +384,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         &self,
     ) -> Result<Vec<KyberPreKeyRecord>, SignalProtocolError> {
         query_scalar!(
-            "SELECT record FROM kyber_pre_keys
+            "SELECT record FROM presage_kyber_pre_keys
             WHERE identity = ? AND is_last_resort = TRUE",
             self.identity,
         )
@@ -401,7 +402,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
     ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         query!(
-            "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ?",
+            "DELETE FROM presage_kyber_pre_keys WHERE id = ? AND identity = ?",
             id,
             self.identity,
         )
@@ -434,7 +435,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
     /// Return the single specific identity the store is assumed to represent, with private key.
     async fn get_identity_key_pair(&self) -> Result<IdentityKeyPair, SignalProtocolError> {
         let key = self.identity.identity_key_pair_key();
-        let bytes = query_scalar!("SELECT value FROM kv WHERE key = ?", key)
+        let bytes = query_scalar!("SELECT value FROM presage_kv WHERE key = ?", key)
             .fetch_one(&self.store.db)
             .await
             .into_protocol_error()?;
@@ -475,7 +476,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         let address = address.name();
         let bytes = identity.serialize();
         query!(
-            "INSERT OR REPLACE INTO identities (address, device_id, identity, record)
+            "INSERT OR REPLACE INTO presage_identities (address, device_id, identity, record)
             VALUES (?, ?, ?, ?)",
             address,
             device_id,
@@ -511,7 +512,8 @@ impl IdentityKeyStore for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query_scalar!(
-            "SELECT record FROM identities WHERE address = ? AND device_id = ? AND identity = ?",
+            "SELECT record FROM presage_identities
+            WHERE address = ? AND device_id = ? AND identity = ?",
             address,
             device_id,
             self.identity,
@@ -537,7 +539,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         let device_id: u32 = sender.device_id().into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO sender_keys
+            "INSERT OR REPLACE INTO presage_sender_keys
             (address, device_id, identity, distribution_id, record)
             VALUES (?, ?, ?, ?, ?)",
             address,
@@ -561,7 +563,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         let address = sender.name();
         let device_id: u32 = sender.device_id().into();
         query_scalar!(
-            "SELECT record FROM sender_keys
+            "SELECT record FROM presage_sender_keys
             WHERE address = ? AND device_id = ? AND identity = ? AND distribution_id = ?",
             address,
             device_id,

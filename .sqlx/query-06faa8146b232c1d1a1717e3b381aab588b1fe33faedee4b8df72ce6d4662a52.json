@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT device_id AS 'id: u32' FROM presage_sessions\n            WHERE address = ? AND device_id != ? AND identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id: u32",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "06faa8146b232c1d1a1717e3b381aab588b1fe33faedee4b8df72ce6d4662a52"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM presage_thread_messages WHERE thread_id = (\n                SELECT id FROM presage_threads WHERE group_master_key = ? OR recipient_id = ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "04b06771f0882e688e8d39acb2aa896aac60690c102a906872f2ebb5709ceb53"
+}

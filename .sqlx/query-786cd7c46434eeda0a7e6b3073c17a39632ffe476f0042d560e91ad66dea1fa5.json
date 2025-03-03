@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO presage_thread_messages (\n                ts,\n                thread_id,\n                sender_service_id,\n                sender_device_id,\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body\n            )\n            VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 8
+    },
+    "nullable": []
+  },
+  "hash": "786cd7c46434eeda0a7e6b3073c17a39632ffe476f0042d560e91ad66dea1fa5"
+}

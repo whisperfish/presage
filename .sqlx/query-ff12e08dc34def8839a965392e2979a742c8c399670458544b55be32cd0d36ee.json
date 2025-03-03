@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM presage_kv WHERE key = 'registration'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "ff12e08dc34def8839a965392e2979a742c8c399670458544b55be32cd0d36ee"
+}

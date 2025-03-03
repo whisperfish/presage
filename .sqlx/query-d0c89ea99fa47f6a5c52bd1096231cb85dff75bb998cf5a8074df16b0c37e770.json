@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO presage_contacts_verification_state\n                (destination_aci, identity_key, is_verified)\n            VALUES(?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d0c89ea99fa47f6a5c52bd1096231cb85dff75bb998cf5a8074df16b0c37e770"
+}

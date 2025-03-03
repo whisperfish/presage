@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE presage_group_avatars SET bytes = ? WHERE group_master_key = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "81b410a0cb6b881ebec8f22039f65c00377d9c6bfede3de34c86ce1771bff16d"
+}

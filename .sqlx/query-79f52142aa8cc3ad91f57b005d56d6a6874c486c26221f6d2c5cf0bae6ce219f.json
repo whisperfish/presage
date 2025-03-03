@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO presage_signed_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "79f52142aa8cc3ad91f57b005d56d6a6874c486c26221f6d2c5cf0bae6ce219f"
+}

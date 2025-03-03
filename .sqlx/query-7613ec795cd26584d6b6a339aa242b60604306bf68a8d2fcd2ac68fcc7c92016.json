@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO presage_kv (key, value) VALUES ('registration', ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "7613ec795cd26584d6b6a339aa242b60604306bf68a8d2fcd2ac68fcc7c92016"
+}

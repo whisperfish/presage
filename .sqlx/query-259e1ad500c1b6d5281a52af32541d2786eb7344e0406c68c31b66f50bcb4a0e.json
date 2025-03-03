@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO presage_kyber_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "259e1ad500c1b6d5281a52af32541d2786eb7344e0406c68c31b66f50bcb4a0e"
+}

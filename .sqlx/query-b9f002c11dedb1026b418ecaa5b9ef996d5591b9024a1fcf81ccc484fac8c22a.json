@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM presage_sessions WHERE address = ? AND device_id = ? AND identity = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "b9f002c11dedb1026b418ecaa5b9ef996d5591b9024a1fcf81ccc484fac8c22a"
+}

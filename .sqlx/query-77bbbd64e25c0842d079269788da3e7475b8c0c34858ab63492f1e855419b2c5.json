@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, key, manifest AS \"manifest: _\" FROM presage_sticker_packs WHERE id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "key",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "manifest: _",
+        "ordinal": 2,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "77bbbd64e25c0842d079269788da3e7475b8c0c34858ab63492f1e855419b2c5"
+}
