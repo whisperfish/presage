@@ -5,11 +5,10 @@ use presage::{
 use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum SqliteStoreError {
     #[error(transparent)]
     Db(#[from] sqlx::Error),
-    #[error(transparent)]
-    Postcard(#[from] postcard::Error),
     #[error(transparent)]
     Json(#[from] serde_json::Error),
     #[error(transparent)]
