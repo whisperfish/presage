@@ -36,7 +36,7 @@ impl Store for SqliteStore {
     type PniStore = SqliteProtocolStore;
 
     async fn clear(&mut self) -> Result<(), SqliteStoreError> {
-        query!("DELETE FROM presage_kv").execute(&self.db).await?;
+        query!("DELETE FROM kv").execute(&self.db).await?;
         Ok(())
     }
 
@@ -61,7 +61,7 @@ impl StateStore for SqliteStore {
     async fn load_registration_data(
         &self,
     ) -> Result<Option<presage::manager::RegistrationData>, Self::StateStoreError> {
-        query_scalar!("SELECT value FROM presage_kv WHERE key = 'registration'")
+        query_scalar!("SELECT value FROM kv WHERE key = 'registration'")
             .fetch_optional(&self.db)
             .await?
             .map(|value| serde_json::from_slice(&value))
@@ -75,7 +75,7 @@ impl StateStore for SqliteStore {
     ) -> Result<(), Self::StateStoreError> {
         let value = serde_json::to_string(state)?;
         query!(
-            "INSERT OR REPLACE INTO presage_kv (key, value) VALUES ('registration', ?)",
+            "INSERT OR REPLACE INTO kv (key, value) VALUES ('registration', ?)",
             value
         )
         .execute(&self.db)
@@ -88,7 +88,7 @@ impl StateStore for SqliteStore {
     }
 
     async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
-        query!("DELETE FROM presage_kv WHERE key = 'registration'")
+        query!("DELETE FROM kv WHERE key = 'registration'")
             .execute(&self.db)
             .await?;
         Ok(())
@@ -101,7 +101,7 @@ impl StateStore for SqliteStore {
         let key = IdentityType::Aci.identity_key_pair_key();
         let value = key_pair.serialize();
         query!(
-            "INSERT OR REPLACE INTO presage_kv (key, value) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
             key,
             value
         )
@@ -117,7 +117,7 @@ impl StateStore for SqliteStore {
         let key = IdentityType::Pni.identity_key_pair_key();
         let value = key_pair.serialize();
         query!(
-            "INSERT OR REPLACE INTO presage_kv (key, value) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
             key,
             value
         )

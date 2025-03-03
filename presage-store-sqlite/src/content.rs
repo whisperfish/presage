@@ -46,8 +46,8 @@ impl ContentsStore for SqliteStore {
     async fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::ContentsStoreError> {
         let (group_master_key, recipient_id) = thread.unzip();
         query!(
-            "DELETE FROM presage_thread_messages WHERE thread_id = (
-                SELECT id FROM presage_threads WHERE group_master_key = ? OR recipient_id = ?)",
+            "DELETE FROM thread_messages WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
             group_master_key,
             recipient_id,
         )
@@ -66,7 +66,7 @@ impl ContentsStore for SqliteStore {
         let thread_id = match thread {
             Thread::Contact(uuid) => {
                 query_scalar!(
-                    "INSERT INTO presage_threads(recipient_id, group_master_key) VALUES (?, NULL)
+                    "INSERT INTO threads(recipient_id, group_master_key) VALUES (?, NULL)
                     ON CONFLICT DO NOTHING RETURNING id",
                     uuid,
                 )
@@ -76,7 +76,7 @@ impl ContentsStore for SqliteStore {
             Thread::Group(master_key_bytes) => {
                 let master_key_bytes = master_key_bytes.as_slice();
                 query_scalar!(
-                    "INSERT INTO presage_threads(recipient_id, group_master_key) VALUES (NULL, ?)
+                    "INSERT INTO threads(recipient_id, group_master_key) VALUES (NULL, ?)
                     ON CONFLICT DO NOTHING RETURNING id",
                     master_key_bytes
                 )
@@ -104,7 +104,7 @@ impl ContentsStore for SqliteStore {
             .map_err(|_| SqliteStoreError::InvalidFormat)?;
 
         query!(
-            "INSERT OR REPLACE INTO presage_thread_messages (
+            "INSERT OR REPLACE INTO thread_messages (
                 ts,
                 thread_id,
                 sender_service_id,
@@ -141,9 +141,9 @@ impl ContentsStore for SqliteStore {
             .map_err(|_| SqliteStoreError::InvalidFormat)?;
         let (group_master_key, recipient_id) = thread.unzip();
         let res = query!(
-            "DELETE FROM presage_thread_messages
+            "DELETE FROM thread_messages
             WHERE ts = ? AND thread_id = (
-                SELECT id FROM presage_threads WHERE group_master_key = ? OR recipient_id = ?)",
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
             timestamp,
             group_master_key,
             recipient_id,
@@ -172,9 +172,9 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body
-            FROM presage_thread_messages
+            FROM thread_messages
             WHERE ts = ? AND thread_id = (
-                SELECT id FROM presage_threads WHERE group_master_key = ? OR recipient_id = ?)"#,
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)"#,
             timestamp,
             group_master_key,
             recipient_id,
@@ -204,9 +204,9 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body
-            FROM presage_thread_messages
+            FROM thread_messages
             WHERE thread_id = (
-                SELECT id FROM presage_threads WHERE group_master_key = ? OR recipient_id = ?)
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
                 AND coalesce(ts > ?, ts >= ?, true)
                 AND coalesce(ts < ?, ts <= ?, true)
             ORDER BY ts DESC"#,
@@ -224,9 +224,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
-        query!("DELETE FROM presage_contacts")
-            .execute(&self.db)
-            .await?;
+        query!("DELETE FROM contacts").execute(&self.db).await?;
         Ok(())
     }
 
@@ -238,7 +236,7 @@ impl ContentsStore for SqliteStore {
         let mut tx = self.db.begin().await?;
 
         query!(
-            "INSERT OR REPLACE INTO presage_contacts
+            "INSERT OR REPLACE INTO contacts
             VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             contact.uuid,
             phone_number,
@@ -267,8 +265,7 @@ impl ContentsStore for SqliteStore {
         };
 
         query!(
-            "INSERT OR REPLACE INTO presage_contacts_verification_state
-                (destination_aci, identity_key, is_verified)
+            "INSERT OR REPLACE INTO contacts_verification_state(destination_aci, identity_key, is_verified)
             VALUES(?, ?, ?)",
             destination_aci,
             identity_key,
@@ -285,8 +282,8 @@ impl ContentsStore for SqliteStore {
     async fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError> {
         let sql_contacts = query_as!(
             SqlContact,
-            "SELECT * FROM presage_contacts c
-            LEFT JOIN presage_contacts_verification_state cv ON c.uuid = cv.destination_aci
+            "SELECT * FROM contacts c
+            LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
             ORDER BY c.inbox_position"
         )
         .fetch_all(&self.db)
@@ -297,8 +294,8 @@ impl ContentsStore for SqliteStore {
     async fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Self::ContentsStoreError> {
         query_as!(
             SqlContact,
-            "SELECT * FROM presage_contacts c
-            LEFT JOIN presage_contacts_verification_state cv ON c.uuid = cv.destination_aci
+            "SELECT * FROM contacts c
+            LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
             WHERE c.uuid = ?",
             id
         )
@@ -309,9 +306,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError> {
-        query!("DELETE FROM presage_groups")
-            .execute(&self.db)
-            .await?;
+        query!("DELETE FROM groups").execute(&self.db).await?;
         Ok(())
     }
 
@@ -323,7 +318,7 @@ impl ContentsStore for SqliteStore {
         let g = SqlGroup::from_group(&master_key, group.into());
         let master_key = g.master_key.as_ref();
         query!(
-            "INSERT OR REPLACE INTO presage_groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             master_key,
             g.title,
             g.revision,
@@ -354,7 +349,7 @@ impl ContentsStore for SqliteStore {
                 members AS "members: _",
                 pending_members AS "pending_members: _",
                 requesting_members AS "requesting_members: _"
-            FROM presage_groups"#,
+            FROM groups"#,
         )
         .fetch_all(&self.db)
         .await?;
@@ -379,7 +374,7 @@ impl ContentsStore for SqliteStore {
                 members AS "members: _",
                 pending_members AS "pending_members: _",
                 requesting_members AS "requesting_members: _"
-            FROM presage_groups
+            FROM groups
             WHERE master_key = ?
             LIMIT 1"#,
             master_key_bytes,
@@ -397,7 +392,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<(), Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query!(
-            "UPDATE presage_group_avatars SET bytes = ? WHERE group_master_key = ?",
+            "UPDATE group_avatars SET bytes = ? WHERE group_master_key = ?",
             avatar,
             master_key_bytes,
         )
@@ -412,7 +407,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query_scalar!(
-            "SELECT bytes FROM presage_group_avatars WHERE group_master_key = ?",
+            "SELECT bytes FROM group_avatars WHERE group_master_key = ?",
             master_key_bytes,
         )
         .fetch_optional(&self.db)
@@ -427,7 +422,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<bool, Self::ContentsStoreError> {
         let profile_key_bytes = key.bytes.as_slice();
         let res = query_scalar!(
-            "INSERT OR REPLACE INTO presage_profile_keys (uuid, key) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO profile_keys (uuid, key) VALUES (?, ?)",
             uuid,
             profile_key_bytes
         )
@@ -440,11 +435,10 @@ impl ContentsStore for SqliteStore {
         &self,
         uuid: &Uuid,
     ) -> Result<Option<ProfileKey>, Self::ContentsStoreError> {
-        let profile_key =
-            query_scalar!("SELECT key FROM presage_profile_keys WHERE uuid = ?", uuid)
-                .fetch_optional(&self.db)
-                .await?
-                .and_then(|bytes| bytes.try_into().ok().map(ProfileKey::create));
+        let profile_key = query_scalar!("SELECT key FROM profile_keys WHERE uuid = ?", uuid)
+            .fetch_optional(&self.db)
+            .await?
+            .and_then(|bytes| bytes.try_into().ok().map(ProfileKey::create));
         Ok(profile_key)
     }
 
@@ -465,7 +459,7 @@ impl ContentsStore for SqliteStore {
         let (given_name, family_name) = name.map(|n| (n.given_name, n.family_name)).unzip();
         let family_name = family_name.flatten();
         query!(
-            "INSERT OR REPLACE INTO presage_profiles VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO profiles VALUES (?, ?, ?, ?, ?, ?, ?)",
             uuid,
             given_name,
             family_name,
@@ -494,8 +488,8 @@ impl ContentsStore for SqliteStore {
                 p.about_emoji,
                 p.avatar,
                 p.unrestricted_unidentified_access
-            FROM presage_profile_keys pk
-            INNER JOIN presage_profiles p ON p.uuid = pk.uuid
+            FROM profile_keys pk
+            INNER JOIN profiles p ON p.uuid = pk.uuid
             WHERE pk.uuid = ? AND pk.key = ?",
             uuid,
             profile_key_bytes,
@@ -512,7 +506,7 @@ impl ContentsStore for SqliteStore {
         profile: &AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         query!(
-            "UPDATE presage_profile_avatars SET bytes = ? WHERE uuid = ?",
+            "UPDATE profile_avatars SET bytes = ? WHERE uuid = ?",
             profile,
             uuid,
         )
@@ -526,13 +520,10 @@ impl ContentsStore for SqliteStore {
         uuid: Uuid,
         _key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError> {
-        query_scalar!(
-            "SELECT bytes FROM presage_profile_avatars WHERE uuid = ?",
-            uuid
-        )
-        .fetch_optional(&self.db)
-        .await
-        .map_err(From::from)
+        query_scalar!("SELECT bytes FROM profile_avatars WHERE uuid = ?", uuid)
+            .fetch_optional(&self.db)
+            .await
+            .map_err(From::from)
     }
 
     async fn add_sticker_pack(
@@ -541,7 +532,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<(), Self::ContentsStoreError> {
         let manifest_json = Json(&pack.manifest);
         query!(
-            "INSERT OR REPLACE INTO presage_sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
+            "INSERT OR REPLACE INTO sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
             pack.id,
             pack.key,
             manifest_json,
@@ -557,7 +548,7 @@ impl ContentsStore for SqliteStore {
     ) -> Result<Option<StickerPack>, Self::ContentsStoreError> {
         let pack = query_as!(
             SqlStickerPack,
-            r#"SELECT id, key, manifest AS "manifest: _" FROM presage_sticker_packs WHERE id = ?"#,
+            r#"SELECT id, key, manifest AS "manifest: _" FROM sticker_packs WHERE id = ?"#,
             id
         )
         .fetch_optional(&self.db)
@@ -566,7 +557,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError> {
-        let res = query!("DELETE FROM presage_sticker_packs WHERE id = ?", id)
+        let res = query!("DELETE FROM sticker_packs WHERE id = ?", id)
             .execute(&self.db)
             .await?;
         Ok(res.rows_affected() > 0)
@@ -575,7 +566,7 @@ impl ContentsStore for SqliteStore {
     async fn sticker_packs(&self) -> Result<Self::StickerPacksIter, Self::ContentsStoreError> {
         let sql_packs = query_as!(
             SqlStickerPack,
-            r#"SELECT id, key, manifest AS "manifest: _" FROM presage_sticker_packs"#,
+            r#"SELECT id, key, manifest AS "manifest: _" FROM sticker_packs"#,
         )
         .fetch_all(&self.db)
         .await?;

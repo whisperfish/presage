@@ -1,7 +1,7 @@
-CREATE TABLE IF NOT EXISTS presage_kv (key TEXT PRIMARY KEY, value BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value BLOB NOT NULL);
 
 -- protocol
-CREATE TABLE IF NOT EXISTS presage_sessions (
+CREATE TABLE IF NOT EXISTS sessions (
   address TEXT NOT NULL,
   device_id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS presage_sessions (
   PRIMARY KEY (address, device_id, identity)
 );
 
-CREATE TABLE IF NOT EXISTS presage_identities (
+CREATE TABLE IF NOT EXISTS identities (
   address TEXT NOT NULL,
   device_id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
@@ -17,21 +17,21 @@ CREATE TABLE IF NOT EXISTS presage_identities (
   PRIMARY KEY (address, device_id, identity)
 );
 
-CREATE TABLE IF NOT EXISTS presage_pre_keys (
+CREATE TABLE IF NOT EXISTS pre_keys (
   id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
   record BLOB NOT NULL,
   PRIMARY KEY (id, identity)
 );
 
-CREATE TABLE IF NOT EXISTS presage_signed_pre_keys (
+CREATE TABLE IF NOT EXISTS signed_pre_keys (
   id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
   record BLOB NOT NULL,
   PRIMARY KEY (id, identity)
 );
 
-CREATE TABLE IF NOT EXISTS presage_kyber_pre_keys (
+CREATE TABLE IF NOT EXISTS kyber_pre_keys (
   id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
   record BLOB NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS presage_kyber_pre_keys (
   PRIMARY KEY (id, identity)
 );
 
-CREATE TABLE presage_sender_keys (
+CREATE TABLE sender_keys (
   address TEXT NOT NULL,
   device_id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
@@ -49,7 +49,7 @@ CREATE TABLE presage_sender_keys (
 );
 
 -- content
-CREATE TABLE presage_contacts (
+CREATE TABLE contacts (
   uuid VARCHAR(36) NOT NULL PRIMARY KEY,
   phone_number TEXT,
   name TEXT NOT NULL,
@@ -62,16 +62,16 @@ CREATE TABLE presage_contacts (
   avatar BLOB
 );
 
-CREATE TABLE presage_contacts_verification_state (
+CREATE TABLE contacts_verification_state (
   destination_aci TEXT NOT NULL PRIMARY KEY,
   identity_key BLOB NOT NULL,
   is_verified BOOLEAN,
-  FOREIGN KEY (destination_aci) REFERENCES presage_contacts (uuid) ON UPDATE CASCADE
+  FOREIGN KEY (destination_aci) REFERENCES contacts (uuid) ON UPDATE CASCADE
 );
 
-CREATE TABLE presage_profile_keys (uuid BLOB NOT NULL PRIMARY KEY, key BLOB NOT NULL);
+CREATE TABLE profile_keys (uuid BLOB NOT NULL PRIMARY KEY, key BLOB NOT NULL);
 
-CREATE TABLE presage_profiles (
+CREATE TABLE profiles (
   uuid BLOB NOT NULL PRIMARY KEY,
   given_name TEXT,
   family_name TEXT,
@@ -79,16 +79,16 @@ CREATE TABLE presage_profiles (
   about_emoji TEXT,
   avatar TEXT,
   unrestricted_unidentified_access BOOLEAN NOT NULL DEFAULT 0,
-  FOREIGN KEY (uuid) REFERENCES presage_profile_keys (uuid) ON DELETE CASCADE
+  FOREIGN KEY (uuid) REFERENCES profile_keys (uuid) ON DELETE CASCADE
 );
 
-CREATE TABLE presage_profile_avatars (
+CREATE TABLE profile_avatars (
   uuid BLOB NOT NULL PRIMARY KEY,
   bytes BLOB NOT NULL,
-  FOREIGN KEY (uuid) REFERENCES presage_profile_keys (uuid) ON UPDATE CASCADE
+  FOREIGN KEY (uuid) REFERENCES profile_keys (uuid) ON UPDATE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS presage_groups (
+CREATE TABLE IF NOT EXISTS groups (
   master_key BLOB NOT NULL PRIMARY KEY,
   title TEXT NOT NULL,
   revision INTEGER NOT NULL DEFAULT 0,
@@ -101,19 +101,19 @@ CREATE TABLE IF NOT EXISTS presage_groups (
   requesting_members BLOB NOT NULL
 );
 
-CREATE TABLE presage_group_avatars (
+CREATE TABLE group_avatars (
   group_master_key BLOB PRIMARY KEY,
   bytes BLOB NOT NULL,
-  FOREIGN KEY (group_master_key) REFERENCES presage_groups (master_key) ON DELETE CASCADE
+  FOREIGN KEY (group_master_key) REFERENCES groups (master_key) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS presage_threads (
+CREATE TABLE IF NOT EXISTS threads (
   id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
   group_master_key BLOB UNIQUE,
   recipient_id TEXT UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS presage_thread_messages (
+CREATE TABLE IF NOT EXISTS thread_messages (
   ts INTEGER NOT NULL,
   thread_id INTEGER NOT NULL,
   sender_service_id TEXT NOT NULL,
@@ -123,10 +123,10 @@ CREATE TABLE IF NOT EXISTS presage_thread_messages (
   unidentified_sender BOOLEAN NOT NULL,
   content_body BLOB NOT NULL,
   PRIMARY KEY (ts, thread_id),
-  FOREIGN KEY (thread_id) REFERENCES presage_threads (id) ON UPDATE CASCADE
+  FOREIGN KEY (thread_id) REFERENCES threads (id) ON UPDATE CASCADE
 );
 
-CREATE TABLE presage_sticker_packs (
+CREATE TABLE sticker_packs (
   id BLOB PRIMARY KEY NOT NULL,
   key BLOB NOT NULL,
   manifest BLOB NOT NULL

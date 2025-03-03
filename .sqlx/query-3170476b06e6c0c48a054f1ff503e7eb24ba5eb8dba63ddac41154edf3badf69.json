@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO identities (address, device_id, identity, record)\n            VALUES (?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "3170476b06e6c0c48a054f1ff503e7eb24ba5eb8dba63ddac41154edf3badf69"
+}

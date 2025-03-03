@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO signed_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "d001f0fbc1f0f4b3c579c5c7a7abea02277324296452f76bb25356ce8fb0e63c"
+}
