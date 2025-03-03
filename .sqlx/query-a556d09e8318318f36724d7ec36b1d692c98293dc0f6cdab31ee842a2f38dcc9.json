@@ -1,0 +1,32 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id, key, manifest AS \"manifest: _\" FROM sticker_packs",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "key",
+        "ordinal": 1,
+        "type_info": "Blob"
+      },
+      {
+        "name": "manifest: _",
+        "ordinal": 2,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "a556d09e8318318f36724d7ec36b1d692c98293dc0f6cdab31ee842a2f38dcc9"
+}

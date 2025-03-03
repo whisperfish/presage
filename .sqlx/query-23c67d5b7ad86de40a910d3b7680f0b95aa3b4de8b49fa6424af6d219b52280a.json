@@ -1,0 +1,74 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                master_key,\n                title,\n                revision AS \"revision: _\",\n                invite_link_password,\n                access_control AS \"access_control: _\",\n                avatar,\n                description,\n                members AS \"members: _\",\n                pending_members AS \"pending_members: _\",\n                requesting_members AS \"requesting_members: _\"\n            FROM groups\n            WHERE master_key = ?\n            LIMIT 1",
+  "describe": {
+    "columns": [
+      {
+        "name": "master_key",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "title",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "revision: _",
+        "ordinal": 2,
+        "type_info": "Integer"
+      },
+      {
+        "name": "invite_link_password",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "access_control: _",
+        "ordinal": 4,
+        "type_info": "Blob"
+      },
+      {
+        "name": "avatar",
+        "ordinal": 5,
+        "type_info": "Text"
+      },
+      {
+        "name": "description",
+        "ordinal": 6,
+        "type_info": "Text"
+      },
+      {
+        "name": "members: _",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "pending_members: _",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "requesting_members: _",
+        "ordinal": 9,
+        "type_info": "Blob"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "23c67d5b7ad86de40a910d3b7680f0b95aa3b4de8b49fa6424af6d219b52280a"
+}
