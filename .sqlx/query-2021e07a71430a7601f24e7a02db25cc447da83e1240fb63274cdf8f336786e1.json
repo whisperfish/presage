@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT record FROM identities WHERE address = ? AND device_id = ? AND identity = ?",
+  "query": "SELECT record FROM sessions\n            WHERE address = ? AND device_id = ? AND identity = ?",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "a263ed2911260b16c8dd69756df76011eb7125dd5fb51522d26253088c5fa381"
+  "hash": "2021e07a71430a7601f24e7a02db25cc447da83e1240fb63274cdf8f336786e1"
 }

@@ -3,28 +3,29 @@ use std::borrow::Cow;
 use bytes::Bytes;
 use presage::{
     libsignal_service::{
+        Profile,
         content::Metadata,
         models::Attachment,
-        prelude::{phonenumber, AccessControl, Content, Member},
+        prelude::{AccessControl, Content, Member, phonenumber},
         profile_name::ProfileName,
         protocol::ServiceId,
         zkgroup::GroupMasterKeyBytes,
-        Profile,
     },
     model::{
         contacts::Contact,
         groups::{Group, PendingMember, RequestingMember},
     },
-    proto::{self, verified, Verified},
+    proto::{self, Verified, verified},
     store::{StickerPack, StickerPackManifest},
 };
 use sqlx::types::Json;
+use uuid::Uuid;
 
 use crate::SqliteStoreError;
 
 #[derive(Debug)]
 pub struct SqlContact {
-    pub uuid: String,
+    pub uuid: Uuid,
     pub phone_number: Option<String>,
     pub name: String,
     pub color: Option<String>,
@@ -46,7 +47,7 @@ impl TryInto<Contact> for SqlContact {
     #[tracing::instrument]
     fn try_into(self) -> Result<Contact, Self::Error> {
         Ok(Contact {
-            uuid: self.uuid.parse()?,
+            uuid: self.uuid,
             phone_number: self
                 .phone_number
                 .map(|p| phonenumber::parse(None, &p))

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO contacts_verification_state(\n                    destination_aci, identity_key, is_verified\n                ) VALUES(?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "c457798448aaf00ffc7f74b348e02d1e35b7fd995e2ba8b9ad28be0d5a49634e"
+}

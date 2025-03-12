@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO pre_keys (id, identity, record)\n            VALUES (?1, ?2, ?3)\n            ON CONFLICT DO UPDATE SET record = ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "14a77634b0af69062c8cc9872304b0f0f67e7d2bff863aaf15acbd679537dee5"
+}

@@ -10,6 +10,8 @@ pub enum SqliteStoreError {
     #[error(transparent)]
     Db(#[from] sqlx::Error),
     #[error(transparent)]
+    Migrate(#[from] sqlx::migrate::MigrateError),
+    #[error(transparent)]
     Json(#[from] serde_json::Error),
     #[error(transparent)]
     Uuid(#[from] uuid::Error),

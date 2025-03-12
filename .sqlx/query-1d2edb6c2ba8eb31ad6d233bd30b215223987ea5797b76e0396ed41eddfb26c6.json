@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO kyber_pre_keys (id, identity, record)\n            VALUES (?1, ?2, ?3)\n            ON CONFLICT DO UPDATE SET record = ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "1d2edb6c2ba8eb31ad6d233bd30b215223987ea5797b76e0396ed41eddfb26c6"
+}

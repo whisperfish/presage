@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO sender_keys\n            (address, device_id, identity, distribution_id, record)\n            VALUES (?1, ?2, ?3, ?4, ?5)\n            ON CONFLICT DO UPDATE SET record = ?5",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 5
+    },
+    "nullable": []
+  },
+  "hash": "a6639387055b76c0c1c81179abf7f4b536c614ab54afcf2c7374d4ab5784e705"
+}

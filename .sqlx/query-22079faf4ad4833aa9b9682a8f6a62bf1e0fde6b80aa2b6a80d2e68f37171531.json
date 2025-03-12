@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO threads(recipient_id, group_master_key) VALUES (?, NULL)\n                    ON CONFLICT DO NOTHING RETURNING id",
+  "query": "INSERT INTO threads(recipient_id, group_master_key) VALUES (?1, NULL)\n                    ON CONFLICT DO UPDATE SET recipient_id = ?1 RETURNING id",
   "describe": {
     "columns": [
       {
@@ -16,5 +16,5 @@
       false
     ]
   },
-  "hash": "0691b004ea1f7e45ee1dfca2bf2fe74bab01b377a38df31be072ba9c37f7e7cf"
+  "hash": "22079faf4ad4833aa9b9682a8f6a62bf1e0fde6b80aa2b6a80d2e68f37171531"
 }

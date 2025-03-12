@@ -1,9 +1,6 @@
-use presage::{
-    model::identity::OnNewIdentity,
-    store::{StateStore, Store},
-};
+use presage::store::{StateStore, Store};
 use protocol::{IdentityType, SqliteProtocolStore};
-use sqlx::{query, query_scalar, sqlite::SqliteConnectOptions, SqlitePool};
+use sqlx::{SqlitePool, query, query_scalar};
 
 mod content;
 mod data;
@@ -11,20 +8,49 @@ mod error;
 mod protocol;
 
 pub use error::SqliteStoreError;
+pub use presage::model::identity::OnNewIdentity;
+pub use sqlx::sqlite::SqliteConnectOptions;
 
 #[derive(Debug, Clone)]
 pub struct SqliteStore {
     pub(crate) db: SqlitePool,
+    pub(crate) trust_new_identities: OnNewIdentity,
 }
 
 impl SqliteStore {
     pub async fn open(
         url: &str,
-        _trust_new_identities: OnNewIdentity,
+        trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SqliteStoreError> {
         let options: SqliteConnectOptions = url.parse()?;
-        let pool = SqlitePool::connect_with(options).await?;
-        Ok(Self { db: pool })
+        Self::open_with_options(options, trust_new_identities).await
+    }
+
+    pub async fn open_with_passphrase(
+        url: &str,
+        passphrase: Option<&str>,
+        trust_new_identities: OnNewIdentity,
+    ) -> Result<Self, SqliteStoreError> {
+        let options: SqliteConnectOptions = url.parse()?;
+        let options = options.create_if_missing(true).foreign_keys(true);
+        let options = if let Some(passphrase) = passphrase {
+            options.pragma("key", passphrase.to_owned())
+        } else {
+            options
+        };
+        Self::open_with_options(options, trust_new_identities).await
+    }
+
+    pub async fn open_with_options(
+        options: SqliteConnectOptions,
+        trust_new_identities: OnNewIdentity,
+    ) -> Result<Self, SqliteStoreError> {
+        let db = SqlitePool::connect_with(options).await?;
+        sqlx::migrate!().run(&db).await?;
+        Ok(Self {
+            db,
+            trust_new_identities,
+        })
     }
 }
 

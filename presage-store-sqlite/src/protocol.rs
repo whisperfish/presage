@@ -13,11 +13,13 @@ use presage::{
         },
         push_service::DEFAULT_DEVICE_ID,
     },
+    model::identity::OnNewIdentity,
     store::StateStore,
 };
 use sqlx::{query, query_scalar};
+use tracing::warn;
 
-use crate::{error::SqlxErrorExt, SqliteStore, SqliteStoreError};
+use crate::{SqliteStore, SqliteStoreError, error::SqlxErrorExt};
 
 #[derive(Clone)]
 pub struct SqliteProtocolStore {
@@ -53,7 +55,8 @@ impl SessionStore for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query!(
-            "SELECT record FROM sessions WHERE address = ? AND device_id = ? AND identity = ?",
+            "SELECT record FROM sessions
+            WHERE address = ? AND device_id = ? AND identity = ?",
             address,
             device_id,
             self.identity,
@@ -74,17 +77,39 @@ impl SessionStore for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         let record = record.serialize()?;
-        query!(
-            "INSERT OR REPLACE INTO sessions (address, device_id, identity, record)
-            VALUES (?, ?, ?, ?)",
+
+        let mut transaction = self.store.db.begin().await.into_protocol_error()?;
+
+        // Note: It is faster to do the update in a separate query and only insert the record if
+        // the update did not do anything.
+        let res = query!(
+            "UPDATE sessions SET record = ?4
+            WHERE address = ?1 AND device_id = ?2 AND identity = ?3",
             address,
             device_id,
             self.identity,
             record,
         )
-        .execute(&self.store.db)
+        .execute(&mut *transaction)
         .await
         .into_protocol_error()?;
+
+        if res.rows_affected() == 0 {
+            query!(
+                "INSERT INTO sessions (address, device_id, identity, record)
+                VALUES (?1, ?2, ?3, ?4)",
+                address,
+                device_id,
+                self.identity,
+                record,
+            )
+            .execute(&mut *transaction)
+            .await
+            .into_protocol_error()?;
+        }
+
+        transaction.commit().await.into_protocol_error()?;
+
         Ok(())
     }
 }
@@ -170,7 +195,9 @@ impl PreKeyStore for SqliteProtocolStore {
         let id: u32 = prekey_id.into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO pre_keys (id, identity, record) VALUES (?, ?, ?)",
+            "INSERT INTO pre_keys (id, identity, record)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT DO UPDATE SET record = ?3",
             id,
             self.identity,
             record,
@@ -287,7 +314,9 @@ impl SignedPreKeyStore for SqliteProtocolStore {
         let id: u32 = signed_prekey_id.into();
         let bytes = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO signed_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+            "INSERT INTO signed_pre_keys (id, identity, record)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT DO UPDATE SET record = ?3",
             id,
             self.identity,
             bytes,
@@ -327,7 +356,9 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         let id: u32 = kyber_prekey_id.into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO kyber_pre_keys (id, identity, record) VALUES (?, ?, ?)",
+            "INSERT INTO kyber_pre_keys (id, identity, record)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT DO UPDATE SET record = ?3",
             id,
             self.identity,
             record,
@@ -367,8 +398,10 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         let id: u32 = kyber_prekey_id.into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO kyber_pre_keys
-            (id, identity, is_last_resort, record) VALUES (?, ?, TRUE, ?)",
+            "INSERT INTO kyber_pre_keys
+            (id, identity, is_last_resort, record)
+            VALUES (?1, ?2, TRUE, ?3)
+            ON CONFLICT DO UPDATE SET is_last_resort = TRUE, record = ?3",
             id,
             self.identity,
             record,
@@ -468,23 +501,43 @@ impl IdentityKeyStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         identity: &IdentityKey,
     ) -> Result<bool, SignalProtocolError> {
-        let previous = self.get_identity(address).await?;
-        let is_replaced = previous.as_ref() == Some(identity);
-
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         let bytes = identity.serialize();
-        query!(
-            "INSERT OR REPLACE INTO identities (address, device_id, identity, record)
-            VALUES (?, ?, ?, ?)",
+
+        let mut transaction = self.store.db.begin().await.into_protocol_error()?;
+
+        // Note: It is faster to do the update in a separate query and only insert the record if
+        // the update did not do anything.
+        let is_replaced = query!(
+            "UPDATE identities SET record = ?4
+            WHERE address = ?1 AND device_id = ?2 AND identity = ?3",
             address,
             device_id,
             self.identity,
             bytes,
         )
-        .execute(&self.store.db)
+        .execute(&mut *transaction)
         .await
-        .into_protocol_error()?;
+        .into_protocol_error()?
+        .rows_affected()
+            != 0;
+
+        if !is_replaced {
+            query!(
+                "INSERT INTO identities (address, device_id, identity, record)
+                VALUES (?1, ?2, ?3, ?4)",
+                address,
+                device_id,
+                self.identity,
+                bytes,
+            )
+            .execute(&self.store.db)
+            .await
+            .into_protocol_error()?;
+        }
+
+        transaction.commit().await.into_protocol_error()?;
 
         Ok(is_replaced)
     }
@@ -497,9 +550,19 @@ impl IdentityKeyStore for SqliteProtocolStore {
         _direction: Direction,
     ) -> Result<bool, SignalProtocolError> {
         if let Some(trusted_key) = self.get_identity(address).await? {
-            Ok(trusted_key == *identity)
+            // when we encounter some identity we know, we need to decide whether we trust it or not
+            if identity == &trusted_key {
+                Ok(true)
+            } else {
+                match self.store.trust_new_identities {
+                    OnNewIdentity::Trust => Ok(true),
+                    OnNewIdentity::Reject => Ok(false),
+                }
+            }
         } else {
-            Ok(false)
+            // when we encounter a new identity, we trust it by default
+            warn!(%address, "trusting new identity");
+            Ok(true)
         }
     }
 
@@ -511,7 +574,8 @@ impl IdentityKeyStore for SqliteProtocolStore {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         query_scalar!(
-            "SELECT record FROM identities WHERE address = ? AND device_id = ? AND identity = ?",
+            "SELECT record FROM identities
+            WHERE address = ? AND device_id = ? AND identity = ?",
             address,
             device_id,
             self.identity,
@@ -537,9 +601,10 @@ impl SenderKeyStore for SqliteProtocolStore {
         let device_id: u32 = sender.device_id().into();
         let record = record.serialize()?;
         query!(
-            "INSERT OR REPLACE INTO sender_keys
+            "INSERT INTO sender_keys
             (address, device_id, identity, distribution_id, record)
-            VALUES (?, ?, ?, ?, ?)",
+            VALUES (?1, ?2, ?3, ?4, ?5)
+            ON CONFLICT DO UPDATE SET record = ?5",
             address,
             device_id,
             self.identity,

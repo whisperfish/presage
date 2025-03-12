@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS kyber_pre_keys (
   PRIMARY KEY (id, identity)
 );
 
-CREATE TABLE sender_keys (
+CREATE TABLE IF NOT EXISTS sender_keys (
   address TEXT NOT NULL,
   device_id INTEGER NOT NULL,
   identity TEXT NOT NULL CHECK (identity IN ('aci', 'pni')),
@@ -49,8 +49,8 @@ CREATE TABLE sender_keys (
 );
 
 -- content
-CREATE TABLE contacts (
-  uuid VARCHAR(36) NOT NULL PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS contacts (
+  uuid BLOB NOT NULL PRIMARY KEY,
   phone_number TEXT,
   name TEXT NOT NULL,
   color TEXT,
@@ -63,15 +63,15 @@ CREATE TABLE contacts (
 );
 
 CREATE TABLE contacts_verification_state (
-  destination_aci TEXT NOT NULL PRIMARY KEY,
+  destination_aci BLOB NOT NULL PRIMARY KEY,
   identity_key BLOB NOT NULL,
   is_verified BOOLEAN,
   FOREIGN KEY (destination_aci) REFERENCES contacts (uuid) ON UPDATE CASCADE
 );
 
-CREATE TABLE profile_keys (uuid BLOB NOT NULL PRIMARY KEY, key BLOB NOT NULL);
+CREATE TABLE IF NOT EXISTS profile_keys (uuid BLOB NOT NULL PRIMARY KEY, key BLOB NOT NULL);
 
-CREATE TABLE profiles (
+CREATE TABLE IF NOT EXISTS profiles (
   uuid BLOB NOT NULL PRIMARY KEY,
   given_name TEXT,
   family_name TEXT,
@@ -82,7 +82,7 @@ CREATE TABLE profiles (
   FOREIGN KEY (uuid) REFERENCES profile_keys (uuid) ON DELETE CASCADE
 );
 
-CREATE TABLE profile_avatars (
+CREATE TABLE IF NOT EXISTS profile_avatars (
   uuid BLOB NOT NULL PRIMARY KEY,
   bytes BLOB NOT NULL,
   FOREIGN KEY (uuid) REFERENCES profile_keys (uuid) ON UPDATE CASCADE
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS groups (
   requesting_members BLOB NOT NULL
 );
 
-CREATE TABLE group_avatars (
+CREATE TABLE IF NOT EXISTS group_avatars (
   group_master_key BLOB PRIMARY KEY,
   bytes BLOB NOT NULL,
   FOREIGN KEY (group_master_key) REFERENCES groups (master_key) ON DELETE CASCADE
@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS thread_messages (
   FOREIGN KEY (thread_id) REFERENCES threads (id) ON UPDATE CASCADE
 );
 
-CREATE TABLE sticker_packs (
+CREATE TABLE IF NOT EXISTS sticker_packs (
   id BLOB PRIMARY KEY NOT NULL,
   key BLOB NOT NULL,
   manifest BLOB NOT NULL

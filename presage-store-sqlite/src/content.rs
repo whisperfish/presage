@@ -1,22 +1,22 @@
 use std::ops::{Bound, RangeBounds};
 
 use presage::{
+    AvatarBytes,
     libsignal_service::{
+        Profile,
         content::Metadata,
         prelude::{Content, ProfileKey, Uuid},
         zkgroup::GroupMasterKeyBytes,
-        Profile,
     },
     model::{contacts::Contact, groups::Group},
-    proto::{verified, Verified},
+    proto::{Verified, verified},
     store::{ContentsStore, StickerPack, Thread},
-    AvatarBytes,
 };
 use sqlx::{query, query_as, query_scalar, types::Json};
 
 use crate::{
-    data::{SqlContact, SqlGroup, SqlMessage, SqlProfile, SqlStickerPack},
     SqliteStore, SqliteStoreError,
+    data::{SqlContact, SqlGroup, SqlMessage, SqlProfile, SqlStickerPack},
 };
 
 impl ContentsStore for SqliteStore {
@@ -66,8 +66,8 @@ impl ContentsStore for SqliteStore {
         let thread_id = match thread {
             Thread::Contact(uuid) => {
                 query_scalar!(
-                    "INSERT INTO threads(recipient_id, group_master_key) VALUES (?, NULL)
-                    ON CONFLICT DO NOTHING RETURNING id",
+                    "INSERT INTO threads(recipient_id, group_master_key) VALUES (?1, NULL)
+                    ON CONFLICT DO UPDATE SET recipient_id = ?1 RETURNING id",
                     uuid,
                 )
                 .fetch_one(&mut *tx)
@@ -76,8 +76,8 @@ impl ContentsStore for SqliteStore {
             Thread::Group(master_key_bytes) => {
                 let master_key_bytes = master_key_bytes.as_slice();
                 query_scalar!(
-                    "INSERT INTO threads(recipient_id, group_master_key) VALUES (NULL, ?)
-                    ON CONFLICT DO NOTHING RETURNING id",
+                    "INSERT INTO threads(recipient_id, group_master_key) VALUES (NULL, ?1)
+                    ON CONFLICT DO UPDATE SET group_master_key = ?1 RETURNING id",
                     master_key_bytes
                 )
                 .fetch_one(&mut *tx)
@@ -264,15 +264,20 @@ impl ContentsStore for SqliteStore {
             Ok(verified::State::Verified) => Some(true),
         };
 
-        query!(
-            "INSERT OR REPLACE INTO contacts_verification_state(destination_aci, identity_key, is_verified)
-            VALUES(?, ?, ?)",
-            destination_aci,
-            identity_key,
-            is_verified,
-        )
-        .execute(&mut *tx)
-        .await?;
+        if let Some((destination_aci, identity_key)) =
+            destination_aci.as_ref().zip(identity_key.as_ref())
+        {
+            query!(
+                "INSERT OR REPLACE INTO contacts_verification_state(
+                    destination_aci, identity_key, is_verified
+                ) VALUES(?, ?, ?)",
+                destination_aci,
+                identity_key,
+                is_verified,
+            )
+            .execute(&mut *tx)
+            .await?;
+        }
 
         tx.commit().await?;
 
@@ -282,9 +287,23 @@ impl ContentsStore for SqliteStore {
     async fn contacts(&self) -> Result<Self::ContactsIter, Self::ContentsStoreError> {
         let sql_contacts = query_as!(
             SqlContact,
-            "SELECT * FROM contacts c
+            r#"SELECT
+                uuid AS "uuid: _",
+                phone_number,
+                name,
+                color,
+                profile_key,
+                expire_timer,
+                expire_timer_version,
+                inbox_position,
+                archived,
+                avatar,
+                destination_aci AS "destination_aci: _",
+                identity_key,
+                is_verified
+            FROM contacts c
             LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
-            ORDER BY c.inbox_position"
+            ORDER BY c.inbox_position"#
         )
         .fetch_all(&self.db)
         .await?;
@@ -294,9 +313,23 @@ impl ContentsStore for SqliteStore {
     async fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Self::ContentsStoreError> {
         query_as!(
             SqlContact,
-            "SELECT * FROM contacts c
+            r#"SELECT
+                uuid AS "uuid: _",
+                phone_number,
+                name,
+                color,
+                profile_key,
+                expire_timer,
+                expire_timer_version,
+                inbox_position,
+                archived,
+                avatar,
+                destination_aci AS "destination_aci: _",
+                identity_key,
+                is_verified
+            FROM contacts c
             LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci
-            WHERE c.uuid = ?",
+            WHERE c.uuid = ?"#,
             id
         )
         .fetch_optional(&self.db)
