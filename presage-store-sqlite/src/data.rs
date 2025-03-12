@@ -190,6 +190,7 @@ pub struct SqlMessage {
     pub unidentified_sender: bool,
 
     pub content_body: Vec<u8>,
+    pub was_plaintext: bool,
 }
 
 impl TryInto<Content> for SqlMessage {
@@ -205,6 +206,7 @@ impl TryInto<Content> for SqlMessage {
             needs_receipt,
             unidentified_sender,
             content_body,
+            was_plaintext,
         } = self;
         let body: proto::Content =
             prost::Message::decode(&*content_body).map_err(|_| SqliteStoreError::InvalidFormat)?;
@@ -220,6 +222,7 @@ impl TryInto<Content> for SqlMessage {
             needs_receipt,
             unidentified_sender,
             server_guid: None,
+            was_plaintext,
         };
         Content::from_proto(body, metadata).map_err(|_| SqliteStoreError::InvalidFormat)
     }

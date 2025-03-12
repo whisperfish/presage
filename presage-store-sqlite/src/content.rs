@@ -93,6 +93,7 @@ impl ContentsStore for SqliteStore {
             needs_receipt,
             unidentified_sender,
             server_guid: _,
+            was_plaintext,
         } = metadata;
 
         let sender_service_id = sender.service_id_string();
@@ -112,9 +113,10 @@ impl ContentsStore for SqliteStore {
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
-                content_body
+                content_body,
+                was_plaintext
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
             timestamp,
             thread_id,
             sender_service_id,
@@ -122,7 +124,8 @@ impl ContentsStore for SqliteStore {
             destination_service_id,
             needs_receipt,
             unidentified_sender,
-            proto_bytes
+            proto_bytes,
+            was_plaintext,
         )
         .execute(&mut *tx)
         .await?;
@@ -171,7 +174,8 @@ impl ContentsStore for SqliteStore {
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
-                content_body
+                content_body,
+                was_plaintext
             FROM thread_messages
             WHERE ts = ? AND thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)"#,
@@ -203,7 +207,8 @@ impl ContentsStore for SqliteStore {
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
-                content_body
+                content_body,
+                was_plaintext
             FROM thread_messages
             WHERE thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)

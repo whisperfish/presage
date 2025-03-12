@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n                ts AS \"ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body\n            FROM thread_messages\n            WHERE ts = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
+  "query": "SELECT\n                ts AS \"ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext\n            FROM thread_messages\n            WHERE ts = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
   "describe": {
     "columns": [
       {
@@ -37,6 +37,11 @@
         "name": "content_body",
         "ordinal": 6,
         "type_info": "Blob"
+      },
+      {
+        "name": "was_plaintext",
+        "ordinal": 7,
+        "type_info": "Bool"
       }
     ],
     "parameters": {
@@ -49,8 +54,9 @@
       false,
       false,
       false,
+      false,
       false
     ]
   },
-  "hash": "a2b1314aa21840ebab7289521cf30a4553262b52766679b9f0917cc29ac4770a"
+  "hash": "e945af97e789d44a88f923c8cfd8f2fdcf9810d1df6667e1d5ac55aa9a98d88e"
 }

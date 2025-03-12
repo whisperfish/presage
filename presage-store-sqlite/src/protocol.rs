@@ -505,7 +505,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         let address = address.name();
         let bytes = identity.serialize();
 
-        let mut transaction = self.store.db.begin().await.into_protocol_error()?;
+        let mut tx = self.store.db.begin().await.into_protocol_error()?;
 
         // Note: It is faster to do the update in a separate query and only insert the record if
         // the update did not do anything.
@@ -517,7 +517,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
             self.identity,
             bytes,
         )
-        .execute(&mut *transaction)
+        .execute(&mut *tx)
         .await
         .into_protocol_error()?
         .rows_affected()
@@ -537,7 +537,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
             .into_protocol_error()?;
         }
 
-        transaction.commit().await.into_protocol_error()?;
+        tx.commit().await.into_protocol_error()?;
 
         Ok(is_replaced)
     }

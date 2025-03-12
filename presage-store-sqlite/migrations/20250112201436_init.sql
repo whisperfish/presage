@@ -122,6 +122,7 @@ CREATE TABLE IF NOT EXISTS thread_messages (
   needs_receipt BOOLEAN NOT NULL,
   unidentified_sender BOOLEAN NOT NULL,
   content_body BLOB NOT NULL,
+  was_plaintext BOOLEAN NOT NULL,
   PRIMARY KEY (ts, thread_id),
   FOREIGN KEY (thread_id) REFERENCES threads (id) ON UPDATE CASCADE
 );
