@@ -552,6 +552,7 @@ pub async fn save_trusted_identity_message<S: Store>(
                 .as_millis() as u64,
             needs_receipt: false,
             unidentified_sender: false,
+            was_plaintext: false,
         },
         body: SyncMessage {
             verified: Some(Verified {
