@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS contacts (
   avatar BLOB
 );
 
-CREATE TABLE contacts_verification_state (
+CREATE TABLE IF NOT EXISTS contacts_verification_state (
   destination_aci BLOB NOT NULL PRIMARY KEY,
   identity_key BLOB NOT NULL,
   is_verified BOOLEAN,
