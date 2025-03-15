@@ -1598,7 +1598,15 @@
 <a href="#1597" id="1597">1597</a>
 <a href="#1598" id="1598">1598</a>
 <a href="#1599" id="1599">1599</a>
-<a href="#1600" id="1600">1600</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
+<a href="#1600" id="1600">1600</a>
+<a href="#1601" id="1601">1601</a>
+<a href="#1602" id="1602">1602</a>
+<a href="#1603" id="1603">1603</a>
+<a href="#1604" id="1604">1604</a>
+<a href="#1605" id="1605">1605</a>
+<a href="#1606" id="1606">1606</a>
+<a href="#1607" id="1607">1607</a>
+<a href="#1608" id="1608">1608</a></pre></div><pre class="rust"><code><span class="kw">use </span>std::fmt;
 <span class="kw">use </span>std::sync::{Arc, OnceLock};
 <span class="kw">use </span>std::time::{SystemTime, UNIX_EPOCH};
 
@@ -2188,6 +2196,7 @@
             service_cipher_aci: ServiceCipher&lt;AciStore&gt;,
             service_cipher_pni: ServiceCipher&lt;PniStore&gt;,
             groups_manager: GroupsManager&lt;InMemoryCredentialsCache&gt;,
+            service_ids: ServiceIds,
         }
 
         <span class="kw">let </span>push_service = <span class="self">self</span>.identified_push_service();
@@ -2201,6 +2210,7 @@
             service_cipher_aci: <span class="self">self</span>.new_service_cipher_aci(),
             service_cipher_pni: <span class="self">self</span>.new_service_cipher_pni(),
             groups_manager: <span class="self">self</span>.groups_manager()<span class="question-mark">?</span>,
+            service_ids: <span class="self">self</span>.state.data.service_ids.clone(),
         };
 
         <span class="macro">debug!</span>(<span class="string">"starting to consume incoming message stream"</span>);
@@ -2220,7 +2230,13 @@
                                         .open_envelope(envelope, <span class="kw-2">&amp;mut </span>state.csprng)
                                         .<span class="kw">await
                                 </span>}
-                                <span class="prelude-val">Some</span>(ServiceId::Pni(<span class="kw">_</span>)) =&gt; {
+                                <span class="prelude-val">Some</span>(ServiceId::Pni(pni)) =&gt; {
+                                    <span class="kw">if </span>pni == state.service_ids.pni()
+                                        &amp;&amp; envelope.source_service_id.is_none()
+                                    {
+                                        <span class="macro">warn!</span>(<span class="string">"Got a sealed sender message to our PNI? Invalid message, ignoring."</span>);
+                                        <span class="kw">continue</span>;
+                                    }
                                     state
                                         .service_cipher_pni
                                         .open_envelope(envelope, <span class="kw-2">&amp;mut </span>state.csprng)
