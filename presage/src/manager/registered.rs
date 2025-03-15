@@ -588,6 +588,7 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_aci: ServiceCipher<AciStore>,
             service_cipher_pni: ServiceCipher<PniStore>,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
+            service_ids: ServiceIds,
         }
 
         let push_service = self.identified_push_service();
@@ -601,6 +602,7 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
             groups_manager: self.groups_manager()?,
+            service_ids: self.state.data.service_ids.clone(),
         };
 
         debug!("starting to consume incoming message stream");
@@ -620,7 +622,13 @@ impl<S: Store> Manager<S, Registered> {
                                         .open_envelope(envelope, &mut state.csprng)
                                         .await
                                 }
-                                Some(ServiceId::Pni(_)) => {
+                                Some(ServiceId::Pni(pni)) => {
+                                    if pni == state.service_ids.pni()
+                                        && envelope.source_service_id.is_none()
+                                    {
+                                        warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
+                                        continue;
+                                    }
                                     state
                                         .service_cipher_pni
                                         .open_envelope(envelope, &mut state.csprng)
