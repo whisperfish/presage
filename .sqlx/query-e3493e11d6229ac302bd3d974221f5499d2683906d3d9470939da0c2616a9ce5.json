@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO threads(recipient_id, group_master_key) VALUES (NULL, ?1)\n                    ON CONFLICT DO UPDATE SET group_master_key = ?1 RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "e3493e11d6229ac302bd3d974221f5499d2683906d3d9470939da0c2616a9ce5"
+}
