@@ -38,7 +38,7 @@ use rand::rngs::ThreadRng;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use tokio::sync::Mutex;
+use tokio::{sync::Mutex, task::block_in_place};
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
@@ -1029,8 +1029,10 @@ impl<S: Store> Manager<S, Registered> {
         let mut service = self.identified_push_service();
         let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
 
+        let plaintext_len = attachment_pointer.size.and_then(|len| len.try_into().ok());
+
         // We need the whole file for the crypto to check out
-        let mut ciphertext = Vec::new();
+        let mut ciphertext = Vec::with_capacity(plaintext_len.unwrap_or(0));
         let size_bytes = attachment_stream.read_to_end(&mut ciphertext).await?;
         trace!(size_bytes, "downloaded encrypted attachment");
 
@@ -1040,7 +1042,14 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         let key: [u8; 64] = attachment_pointer.key().try_into()?;
-        decrypt_in_place(key, &mut ciphertext)?;
+        block_in_place(|| decrypt_in_place(key, &mut ciphertext))?;
+
+        if let Some(len) = plaintext_len {
+            if len < ciphertext.len() {
+                // remove padding
+                ciphertext.truncate(len);
+            }
+        }
 
         Ok(ciphertext)
     }
