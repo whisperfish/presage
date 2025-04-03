@@ -532,7 +532,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
                 self.identity,
                 bytes,
             )
-            .execute(&self.store.db)
+            .execute(&mut *tx)
             .await
             .into_protocol_error()?;
         }
