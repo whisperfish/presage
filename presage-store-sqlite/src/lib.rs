@@ -34,7 +34,8 @@ impl SqliteStore {
         let options: SqliteConnectOptions = url.parse()?;
         let options = options.create_if_missing(true).foreign_keys(true);
         let options = if let Some(passphrase) = passphrase {
-            options.pragma("key", passphrase.to_owned())
+            let passphrase = passphrase.replace("'", "''");
+            options.pragma("key", format!("'{passphrase}'"))
         } else {
             options
         };
