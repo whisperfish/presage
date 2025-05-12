@@ -38,7 +38,7 @@ use rand::rngs::ThreadRng;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use tokio::{sync::Mutex, task::block_in_place};
+use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
@@ -1061,7 +1061,19 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         let key: [u8; 64] = attachment_pointer.key().try_into()?;
-        block_in_place(|| decrypt_in_place(key, &mut ciphertext))?;
+
+        // Offload decryption of large attachments to another thread.
+        // Chose arbitrary threshold here.
+        const DECRYPT_IN_THREAD_THRESHOLD: usize = 100 * 1024;
+        if ciphertext.len() > DECRYPT_IN_THREAD_THRESHOLD {
+            ciphertext = tokio::task::spawn_blocking(move || {
+                decrypt_in_place(key, &mut ciphertext).map(|_| ciphertext)
+            })
+            .await
+            .expect("decryption in another thread")?;
+        } else {
+            decrypt_in_place(key, &mut ciphertext)?;
+        };
 
         if let Some(len) = plaintext_len {
             if len < ciphertext.len() {
