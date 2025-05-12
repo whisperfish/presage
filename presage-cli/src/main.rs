@@ -42,6 +42,7 @@ use presage::{
 };
 use presage_store_sled::MigrationConflictStrategy;
 use presage_store_sled::SledStore;
+use presage_store_sqlite::SqliteStore;
 use tempfile::Builder;
 use tempfile::TempDir;
 use tokio::{
@@ -55,8 +56,11 @@ use url::Url;
 #[derive(Parser)]
 #[clap(about = "a basic signal CLI to try things out")]
 struct Args {
-    #[clap(long = "db-path", short = 'd')]
-    db_path: Option<PathBuf>,
+    #[clap(long = "sled-db-path", group = "db")]
+    sled_db_path: Option<PathBuf>,
+
+    #[clap(long = "sqlite-db-path", group = "db")]
+    sqlite_db_path: Option<String>,
 
     #[clap(
         help = "passphrase to encrypt the local storage",
@@ -227,21 +231,36 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
 
-    let db_path = args.db_path.unwrap_or_else(|| {
-        ProjectDirs::from("org", "whisperfish", "presage")
-            .unwrap()
-            .config_dir()
-            .into()
-    });
-    debug!(db_path =% db_path.display(), "opening config database");
-    let config_store = SledStore::open_with_passphrase(
-        db_path,
-        args.passphrase,
-        MigrationConflictStrategy::Raise,
-        OnNewIdentity::Trust,
-    )
-    .await?;
-    run(args.subcommand, config_store).await
+    if let Some(sled_db_path) = args.sled_db_path {
+        debug!(sled_db_path =% sled_db_path.display(), "opening config database");
+        let config_store = SledStore::open_with_passphrase(
+            sled_db_path,
+            args.passphrase,
+            MigrationConflictStrategy::Raise,
+            OnNewIdentity::Trust,
+        )
+        .await?;
+
+        run(args.subcommand, config_store).await
+    } else {
+        let sqlite_db_path = args.sqlite_db_path.unwrap_or_else(|| {
+            ProjectDirs::from("org", "whisperfish", "presage")
+                .unwrap()
+                .config_dir()
+                .join("cli.db3")
+                .display()
+                .to_string()
+        });
+        debug!(sqlite_db_path, "opening config database");
+        let config_store = SqliteStore::open_with_passphrase(
+            &sqlite_db_path,
+            args.passphrase.as_deref(),
+            OnNewIdentity::Trust,
+        )
+        .await?;
+
+        run(args.subcommand, config_store).await
+    }
 }
 
 async fn send<S: Store>(
