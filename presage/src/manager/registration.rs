@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::push_service::{PushService, VerificationTransport};
@@ -129,12 +131,12 @@ impl<S: Store> Manager<S, Registration> {
 
         let manager = Manager {
             store,
-            state: Confirmation {
+            state: Arc::new(Confirmation {
                 signal_servers,
                 phone_number,
                 password,
                 session_id: session.id,
-            },
+            }),
         };
 
         Ok(manager)

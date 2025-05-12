@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO kv (key, value) VALUES ('sender_certificate', ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "9325a70c494cad6e4eff76e8ddabbc17fe6f0d496cd3e0f1328fdce83144a547"
+}

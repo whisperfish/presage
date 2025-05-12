@@ -2,6 +2,7 @@ use presage::{libsignal_service::protocol::SignalProtocolError, store::StoreErro
 use tracing::error;
 
 #[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
 pub enum SledStoreError {
     #[error("database migration is not supported")]
     MigrationConflict,
@@ -26,6 +27,8 @@ pub enum SledStoreError {
     NoUuid,
     #[error("Unsupported message content")]
     UnsupportedContent,
+    #[error(transparent)]
+    Protocol(#[from] SignalProtocolError),
 }
 
 impl StoreError for SledStoreError {}
