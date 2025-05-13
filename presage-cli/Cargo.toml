@@ -22,7 +22,7 @@ mime_guess = "2.0"
 notify-rust = "4.10.0"
 qr2term = { version = "0.3.1" }
 tempfile = "3.9"
-tokio = { version = "1.35", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
+tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", default-features = false }
 url = "2.5"
