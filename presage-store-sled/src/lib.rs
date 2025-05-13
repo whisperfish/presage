@@ -9,7 +9,7 @@ use base64::prelude::*;
 use presage::{
     libsignal_service::{
         prelude::{ProfileKey, Uuid},
-        protocol::{IdentityKey, IdentityKeyPair, PrivateKey},
+        protocol::{IdentityKey, IdentityKeyPair, PrivateKey, SenderCertificate},
         utils::{
             serde_identity_key, serde_optional_identity_key, serde_optional_private_key,
             serde_private_key,
@@ -38,6 +38,7 @@ const SLED_KEY_REGISTRATION: &str = "registration";
 const SLED_KEY_SCHEMA_VERSION: &str = "schema_version";
 #[cfg(feature = "encryption")]
 const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
+const SLED_KEY_SENDER_CERTIFICATE: &str = "sender_certificate";
 
 #[derive(Clone)]
 pub struct SledStore {
@@ -236,7 +237,6 @@ impl SledStore {
             .get(key)?
             .map(|p| self.decrypt_value(p))
             .transpose()
-            .map_err(SledStoreError::from)
     }
 
     pub fn iter<'a, V: DeserializeOwned + 'a>(
@@ -509,6 +509,26 @@ impl StateStore for SledStore {
         self.aci_protocol_store().clear(true)?;
         self.pni_protocol_store().clear(true)?;
 
+        Ok(())
+    }
+
+    async fn sender_certificate(&self) -> Result<Option<SenderCertificate>, Self::StateStoreError> {
+        let value: Option<Vec<u8>> = self.get(SLED_TREE_STATE, SLED_KEY_SENDER_CERTIFICATE)?;
+        value
+            .map(|value| SenderCertificate::deserialize(&value))
+            .transpose()
+            .map_err(From::from)
+    }
+
+    async fn save_sender_certificate(
+        &self,
+        certificate: &SenderCertificate,
+    ) -> Result<(), Self::StateStoreError> {
+        self.insert(
+            SLED_TREE_STATE,
+            SLED_KEY_SENDER_CERTIFICATE,
+            certificate.serialized()?,
+        )?;
         Ok(())
     }
 }

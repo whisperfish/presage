@@ -446,7 +446,7 @@ impl SledMessagesIter {
         elem: Result<(IVec, IVec), sled::Error>,
     ) -> Option<Result<Content, SledStoreError>> {
         elem.map_err(SledStoreError::from)
-            .and_then(|(_, value)| self.decrypt_value(&value).map_err(SledStoreError::from))
+            .and_then(|(_, value)| self.decrypt_value(&value))
             .and_then(|data: Vec<u8>| ContentProto::decode(&data[..]).map_err(SledStoreError::from))
             .map_or_else(|e| Some(Err(e)), |p| Some(p.try_into()))
     }

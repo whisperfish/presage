@@ -838,7 +838,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 .filter_map(Result::ok)
                 .filter(|c| uuid.map_or_else(|| true, |u| c.uuid == u))
                 .filter(|c| c.phone_number == phone_number)
-                .filter(|c| name.as_ref().map_or(true, |n| c.name.contains(n)))
+                .filter(|c| name.as_ref().is_none_or(|n| c.name.contains(n)))
             {
                 println!("{contact:#?}");
             }

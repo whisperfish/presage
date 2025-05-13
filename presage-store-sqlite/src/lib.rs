@@ -1,4 +1,7 @@
-use presage::store::{StateStore, Store};
+use presage::{
+    libsignal_service::protocol::SenderCertificate,
+    store::{StateStore, Store},
+};
 use protocol::{IdentityType, SqliteProtocolStore};
 use sqlx::{SqlitePool, query, query_scalar};
 
@@ -146,6 +149,29 @@ impl StateStore for SqliteStore {
         query!(
             "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
             key,
+            value
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    async fn sender_certificate(&self) -> Result<Option<SenderCertificate>, Self::StateStoreError> {
+        query_scalar!("SELECT value FROM kv WHERE key = 'sender_certificate' LIMIT 1")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|value| SenderCertificate::deserialize(&value))
+            .transpose()
+            .map_err(From::from)
+    }
+
+    async fn save_sender_certificate(
+        &self,
+        certificate: &SenderCertificate,
+    ) -> Result<(), Self::StateStoreError> {
+        let value = certificate.serialized()?;
+        query!(
+            "INSERT OR REPLACE INTO kv (key, value) VALUES ('sender_certificate', ?)",
             value
         )
         .execute(&self.db)

@@ -19,6 +19,8 @@ pub enum SqliteStoreError {
     PhoneNumber(#[from] phonenumber::ParseError),
     #[error("conversation error")]
     InvalidFormat,
+    #[error(transparent)]
+    Protocol(#[from] SignalProtocolError),
 }
 
 impl StoreError for SqliteStoreError {}

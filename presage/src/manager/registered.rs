@@ -59,13 +59,12 @@ pub enum RegistrationType {
 }
 
 /// Manager state when the client is registered and can send and receive messages from Signal
-#[derive(Clone)]
 pub struct Registered {
     pub(crate) identified_push_service: OnceLock<PushService>,
     pub(crate) unidentified_push_service: OnceLock<PushService>,
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
-    pub(crate) unidentified_sender_certificate: Option<SenderCertificate>,
+    pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
 
     pub(crate) data: RegistrationData,
 }
@@ -94,6 +93,82 @@ impl Registered {
 
     pub fn device_id(&self) -> u32 {
         self.data.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    }
+
+    pub(crate) fn identified_push_service(&self) -> PushService {
+        self.identified_push_service
+            .get_or_init(|| {
+                PushService::new(
+                    self.service_configuration(),
+                    Some(self.credentials()),
+                    crate::USER_AGENT,
+                )
+            })
+            .clone()
+    }
+
+    pub(crate) fn credentials(&self) -> ServiceCredentials {
+        ServiceCredentials {
+            aci: Some(self.data.service_ids.aci),
+            pni: Some(self.data.service_ids.pni),
+            phonenumber: self.data.phone_number.clone(),
+            password: Some(self.data.password.clone()),
+            signaling_key: Some(self.data.signaling_key),
+            device_id: self.data.device_id,
+        }
+    }
+
+    pub(crate) async fn set_account_attributes<S: Store>(
+        &mut self,
+        store: &mut S,
+    ) -> Result<(), Error<S::Error>> {
+        trace!("setting account attributes");
+        let mut account_manager =
+            AccountManager::new(self.identified_push_service(), Some(self.data.profile_key));
+
+        let pni_registration_id = if let Some(pni_registration_id) = self.data.pni_registration_id {
+            pni_registration_id
+        } else {
+            info!("migrating to PNI");
+            let pni_registration_id = generate_registration_id(&mut thread_rng());
+            store.save_registration_data(&self.data).await?;
+            pni_registration_id
+        };
+
+        account_manager
+            .set_account_attributes(AccountAttributes {
+                name: self.data.device_name().map(|d| d.to_string()),
+                registration_id: self.data.registration_id,
+                pni_registration_id,
+                signaling_key: None,
+                voice: false,
+                video: false,
+                fetches_messages: true,
+                pin: None,
+                registration_lock: None,
+                unidentified_access_key: Some(self.data.profile_key.derive_access_key().to_vec()),
+                unrestricted_unidentified_access: false,
+                discoverable_by_phone_number: true,
+                capabilities: DeviceCapabilities {
+                    gift_badges: true,
+                    payment_activation: false,
+                    pni: true,
+                    sender_key: true,
+                    stories: false,
+                    ..Default::default()
+                },
+            })
+            .await?;
+
+        if self.data.pni_registration_id.is_none() {
+            debug!("fetching PNI UUID and updating state");
+            let whoami = self.identified_push_service().whoami().await?;
+            self.data.service_ids.pni = whoami.pni;
+            store.save_registration_data(&self.data).await?;
+        }
+
+        trace!("done setting account attributes");
+        Ok(())
     }
 }
 
@@ -132,20 +207,28 @@ impl<S: Store> Manager<S, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
-    pub async fn load_registered(store: S) -> Result<Self, Error<S::Error>> {
+    pub async fn load_registered(mut store: S) -> Result<Self, Error<S::Error>> {
         let registration_data = store
             .load_registration_data()
             .await?
             .ok_or(Error::NotYetRegisteredError)?;
 
+        let mut registered = Registered::with_data(registration_data);
+        if registered.data.pni_registration_id.is_none() {
+            registered.set_account_attributes(&mut store).await?;
+        }
+        if let Some(sender_certificate) = store.sender_certificate().await? {
+            registered
+                .unidentified_sender_certificate
+                .lock()
+                .await
+                .replace(sender_certificate);
+        }
+
         let mut manager = Self {
             store,
-            state: Registered::with_data(registration_data),
+            state: Arc::new(registered),
         };
-
-        if manager.state.data.pni_registration_id.is_none() {
-            manager.set_account_attributes().await?;
-        }
 
         manager.register_pre_keys().await?;
 
@@ -166,16 +249,7 @@ impl<S: Store> Manager<S, Registered> {
     ///
     /// If no service is yet cached, it will create and cache one.
     fn identified_push_service(&self) -> PushService {
-        self.state
-            .identified_push_service
-            .get_or_init(|| {
-                PushService::new(
-                    self.state.service_configuration(),
-                    self.credentials(),
-                    crate::USER_AGENT,
-                )
-            })
-            .clone()
+        self.state.identified_push_service()
     }
 
     /// Returns a clone of a cached push service (without credentials).
@@ -212,7 +286,7 @@ impl<S: Store> Manager<S, Registered> {
                         "/v1/websocket/",
                         "/v1/keepalive",
                         headers,
-                        self.credentials(),
+                        Some(self.credentials()),
                     )
                     .await?;
                 identified_ws.replace(ws.clone());
@@ -274,61 +348,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<S::Error>> {
-        trace!("setting account attributes");
-        let mut account_manager = AccountManager::new(
-            self.identified_push_service(),
-            Some(self.state.data.profile_key),
-        );
-
-        let pni_registration_id =
-            if let Some(pni_registration_id) = self.state.data.pni_registration_id {
-                pni_registration_id
-            } else {
-                info!("migrating to PNI");
-                let pni_registration_id = generate_registration_id(&mut thread_rng());
-                self.store.save_registration_data(&self.state.data).await?;
-                pni_registration_id
-            };
-
-        account_manager
-            .set_account_attributes(AccountAttributes {
-                name: self.state.data.device_name().map(|d| d.to_string()),
-                registration_id: self.state.data.registration_id,
-                pni_registration_id,
-                signaling_key: None,
-                voice: false,
-                video: false,
-                fetches_messages: true,
-                pin: None,
-                registration_lock: None,
-                unidentified_access_key: Some(
-                    self.state.data.profile_key.derive_access_key().to_vec(),
-                ),
-                unrestricted_unidentified_access: false,
-                discoverable_by_phone_number: true,
-                capabilities: DeviceCapabilities {
-                    gift_badges: true,
-                    payment_activation: false,
-                    pni: true,
-                    sender_key: true,
-                    stories: false,
-                    ..Default::default()
-                },
-            })
-            .await?;
-
-        if self.state.data.pni_registration_id.is_none() {
-            debug!("fetching PNI UUID and updating state");
-            let whoami = self.whoami().await?;
-            self.state.data.service_ids.pni = whoami.pni;
-            self.store.save_registration_data(&self.state.data).await?;
-        }
-
-        trace!("done setting account attributes");
-        Ok(())
-    }
-
     /// Request the primary device to encrypt & send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
@@ -353,7 +372,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    async fn sender_certificate(&mut self) -> Result<SenderCertificate, Error<S::Error>> {
+    async fn sender_certificate(&self) -> Result<SenderCertificate, Error<S::Error>> {
         let needs_renewal = |sender_certificate: Option<&SenderCertificate>| -> bool {
             if sender_certificate.is_none() {
                 return true;
@@ -371,20 +390,20 @@ impl<S: Store> Manager<S, Registered> {
             }
         };
 
-        if needs_renewal(self.state.unidentified_sender_certificate.as_ref()) {
+        let mut unidentified_sender_certificate =
+            self.state.unidentified_sender_certificate.lock().await;
+        if needs_renewal(unidentified_sender_certificate.as_ref()) {
             let sender_certificate = self
                 .identified_push_service()
                 .get_uuid_only_sender_certificate()
                 .await?;
-
-            self.state
-                .unidentified_sender_certificate
-                .replace(sender_certificate);
+            self.store
+                .save_sender_certificate(&sender_certificate)
+                .await?;
+            unidentified_sender_certificate.replace(sender_certificate);
         }
 
-        Ok(self
-            .state
-            .unidentified_sender_certificate
+        Ok(unidentified_sender_certificate
             .clone()
             .expect("logic error"))
     }
@@ -563,7 +582,7 @@ impl<S: Store> Manager<S, Registered> {
     async fn receive_messages_encrypted(
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
-        let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
+        let credentials = self.credentials();
         let ws = self.identified_websocket(true).await?;
         let pipe = MessagePipe::from_socket(ws, credentials);
         Ok(pipe.stream())
@@ -1158,15 +1177,8 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    fn credentials(&self) -> Option<ServiceCredentials> {
-        Some(ServiceCredentials {
-            aci: Some(self.state.data.service_ids.aci),
-            pni: Some(self.state.data.service_ids.pni),
-            phonenumber: self.state.data.phone_number.clone(),
-            password: Some(self.state.data.password.clone()),
-            signaling_key: Some(self.state.data.signaling_key),
-            device_id: self.state.data.device_id,
-        })
+    fn credentials(&self) -> ServiceCredentials {
+        self.state.credentials()
     }
 
     /// Creates a new message sender.
@@ -1258,7 +1270,7 @@ impl<S: Store> Manager<S, Registered> {
             return Err(Error::NotPrimaryDevice);
         }
 
-        let credentials = self.credentials().ok_or(Error::NotYetRegisteredError)?;
+        let credentials = self.credentials();
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             Some(self.state.data.profile_key),
