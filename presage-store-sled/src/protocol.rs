@@ -7,11 +7,11 @@ use presage::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
         prelude::Uuid,
         protocol::{
-            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, IdentityKeyStore,
-            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
-            ServiceId, SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId,
-            SignedPreKeyRecord, SignedPreKeyStore,
+            Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
+            IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
+            SenderKeyStore, ServiceId, SessionRecord, SessionStore, SignalProtocolError,
+            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
         session_store::SessionStoreExt,
@@ -545,7 +545,7 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
         &mut self,
         address: &ProtocolAddress,
         identity_key: &IdentityKey,
-    ) -> Result<bool, SignalProtocolError> {
+    ) -> Result<IdentityChange, SignalProtocolError> {
         trace!("saving identity");
         let existed_before = self
             .store
@@ -571,7 +571,11 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
         )
         .await?;
 
-        Ok(true)
+        Ok(if existed_before {
+            IdentityChange::ReplacedExisting
+        } else {
+            IdentityChange::NewOrUnchanged
+        })
     }
 
     async fn is_trusted_identity(
@@ -700,7 +704,7 @@ mod tests {
     impl Arbitrary for KeyPair {
         fn arbitrary(_g: &mut Gen) -> Self {
             // Gen is not rand::CryptoRng here, see https://github.com/BurntSushi/quickcheck/issues/241
-            KeyPair(protocol::KeyPair::generate(&mut rand::thread_rng()))
+            KeyPair(protocol::KeyPair::generate(&mut rand::rng()))
         }
     }
 

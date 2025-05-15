@@ -35,7 +35,6 @@ use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
 use rand::rngs::ThreadRng;
-use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
@@ -130,7 +129,7 @@ impl Registered {
             pni_registration_id
         } else {
             info!("migrating to PNI");
-            let pni_registration_id = generate_registration_id(&mut thread_rng());
+            let pni_registration_id = generate_registration_id(&mut rand::rng());
             store.save_registration_data(&self.data).await?;
             pni_registration_id
         };
@@ -324,7 +323,7 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         account_manager
             .update_pre_key_bundle(
@@ -358,7 +357,7 @@ impl<S: Store> Manager<S, Registered> {
             request: Some(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts.into()),
             }),
-            ..SyncMessage::with_padding(&mut thread_rng())
+            ..SyncMessage::with_padding(&mut rand::rng())
         };
 
         let timestamp = SystemTime::now()
@@ -615,7 +614,7 @@ impl<S: Store> Manager<S, Registered> {
         let init = StreamState {
             store: self.store.clone(),
             push_service: push_service.clone(),
-            csprng: thread_rng(),
+            csprng: rand::rng(),
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
@@ -1199,7 +1198,7 @@ impl<S: Store> Manager<S, Registered> {
             unidentified_websocket,
             self.identified_push_service(),
             self.new_service_cipher_aci(),
-            thread_rng(),
+            rand::rng(),
             aci_protocol_store,
             self.state.data.service_ids.aci,
             self.state.data.service_ids.pni,
@@ -1278,7 +1277,7 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .link_device(
-                &mut thread_rng(),
+                &mut rand::rng(),
                 secondary,
                 &self.store.aci_protocol_store(),
                 &self.store.pni_protocol_store(),
@@ -1360,7 +1359,7 @@ async fn upsert_group<S: Store>(
     if upsert_group {
         debug!("fetching and saving group");
         match groups_manager
-            .fetch_encrypted_group(&mut thread_rng(), master_key_bytes)
+            .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
             .await
         {
             Ok(encrypted_group) => {
