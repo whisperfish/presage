@@ -11,7 +11,7 @@ use libsignal_service::push_service::{
 };
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
-use rand::{thread_rng, RngCore};
+use rand::RngCore;
 use tracing::trace;
 
 use crate::manager::registered::RegistrationData;
@@ -43,7 +43,7 @@ impl<S: Store> Manager<S, Confirmation> {
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         let registration_id = generate_registration_id(&mut rng);
         let pni_registration_id = generate_registration_id(&mut rng);

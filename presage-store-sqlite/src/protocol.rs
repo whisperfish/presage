@@ -5,11 +5,11 @@ use presage::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
         prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
         protocol::{
-            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
-            KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-            ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, ServiceId,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
+            Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
+            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
+            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
+            ServiceId, SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId,
+            SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
     },
@@ -500,7 +500,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &mut self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-    ) -> Result<bool, SignalProtocolError> {
+    ) -> Result<IdentityChange, SignalProtocolError> {
         let device_id: u32 = address.device_id().into();
         let address = address.name();
         let bytes = identity.serialize();
@@ -539,7 +539,11 @@ impl IdentityKeyStore for SqliteProtocolStore {
 
         tx.commit().await.into_protocol_error()?;
 
-        Ok(is_replaced)
+        Ok(if is_replaced {
+            IdentityChange::ReplacedExisting
+        } else {
+            IdentityChange::NewOrUnchanged
+        })
     }
 
     /// Return whether an identity is trusted for the role specified by `direction`.
