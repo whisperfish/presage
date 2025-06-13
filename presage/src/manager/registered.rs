@@ -34,7 +34,6 @@ use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{attachment_cipher::decrypt_in_place, sender::MessageSender};
 use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
-use rand::rngs::ThreadRng;
 use rand::thread_rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
@@ -601,7 +600,6 @@ impl<S: Store> Manager<S, Registered> {
         struct StreamState<Receiver, Store, AciStore, PniStore> {
             store: Store,
             push_service: PushService,
-            csprng: ThreadRng,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
             service_cipher_aci: ServiceCipher<AciStore>,
@@ -615,7 +613,6 @@ impl<S: Store> Manager<S, Registered> {
         let init = StreamState {
             store: self.store.clone(),
             push_service: push_service.clone(),
-            csprng: thread_rng(),
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
@@ -638,7 +635,7 @@ impl<S: Store> Manager<S, Registered> {
                                 None | Some(ServiceId::Aci(_)) => {
                                     state
                                         .service_cipher_aci
-                                        .open_envelope(envelope, &mut state.csprng)
+                                        .open_envelope(envelope, &mut thread_rng())
                                         .await
                                 }
                                 Some(ServiceId::Pni(pni)) => {
@@ -650,7 +647,7 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                     state
                                         .service_cipher_pni
-                                        .open_envelope(envelope, &mut state.csprng)
+                                        .open_envelope(envelope, &mut thread_rng())
                                         .await
                                 }
                             }

@@ -26,6 +26,13 @@ pub struct Manager<Store, State> {
     state: Arc<State>,
 }
 
+#[cfg(test)]
+#[allow(dead_code)]
+fn assert_registered_manager_is_send<S: Send>() {
+    fn check_send<T: Send>() {}
+    check_send::<Manager<S, Registered>>();
+}
+
 impl<Store: Clone, State> Clone for Manager<Store, State> {
     fn clone(&self) -> Self {
         Self {
