@@ -3,7 +3,6 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::attachment_cipher::decrypt_in_place;
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
 use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
 use libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
@@ -33,6 +32,7 @@ use libsignal_service::utils::serde_signaling_key;
 use libsignal_service::websocket::SignalWebSocket;
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
+use libsignal_service::{attachment_cipher::decrypt_in_place, sender::MessageSender};
 use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
 use rand::rngs::ThreadRng;
 use rand::thread_rng;
@@ -50,7 +50,6 @@ use crate::{model::groups::Group, AvatarBytes, Error, Manager};
 pub use crate::model::messages::Received;
 
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
-type MessageSender<S> = libsignal_service::prelude::MessageSender<S, ThreadRng>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegistrationType {
@@ -564,6 +563,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(Some(avatar))
     }
 
+    #[expect(clippy::result_large_err)]
     fn groups_manager(&self) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
         let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
@@ -907,7 +907,11 @@ impl<S: Store> Manager<S, Registered> {
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
-            async move { sender.upload_attachment(spec, contents).await }
+            async move {
+                sender
+                    .upload_attachment(spec, contents, &mut thread_rng())
+                    .await
+            }
         }));
         Ok(upload.await)
     }
@@ -1199,7 +1203,6 @@ impl<S: Store> Manager<S, Registered> {
             unidentified_websocket,
             self.identified_push_service(),
             self.new_service_cipher_aci(),
-            thread_rng(),
             aci_protocol_store,
             self.state.data.service_ids.aci,
             self.state.data.service_ids.pni,
