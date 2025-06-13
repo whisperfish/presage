@@ -12,17 +12,24 @@ presage-store-sqlite = { path = "../presage-store-sqlite" }
 
 anyhow = { version = "1.0", features = ["backtrace"] }
 base64 = "0.22"
-chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+chrono = { version = "0.4", default-features = false, features = [
+    "serde",
+    "clock",
+] }
 clap = { version = ">=4.2.4", features = ["derive"] }
-directories = "5.0"
-env_logger = "0.11"
+directories = "6.0"
 futures = "0.3"
 hex = "0.4"
 mime_guess = "2.0"
 notify-rust = "4.10.0"
 qr2term = { version = "0.3.1" }
 tempfile = "3.9"
-tokio = { version = "1.43", features = ["macros", "rt-multi-thread", "io-std", "io-util"] }
+tokio = { version = "1.43", features = [
+    "macros",
+    "rt-multi-thread",
+    "io-std",
+    "io-util",
+] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", default-features = false }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 url = "2.5"

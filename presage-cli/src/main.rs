@@ -9,7 +9,6 @@ use base64::prelude::*;
 use chrono::Local;
 use clap::{ArgGroup, Parser, Subcommand};
 use directories::ProjectDirs;
-use env_logger::Env;
 use futures::StreamExt;
 use futures::{channel::oneshot, future, pin_mut};
 use mime_guess::mime::APPLICATION_OCTET_STREAM;
@@ -222,14 +221,20 @@ fn attachments_tmp_dir() -> anyhow::Result<TempDir> {
     Ok(attachments_tmp_dir)
 }
 
+fn init() -> Args {
+    let filter = tracing_subscriber::EnvFilter::builder()
+        .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
+        .from_env_lossy();
+    tracing_subscriber::fmt::fmt()
+        .with_writer(std::io::stderr)
+        .with_env_filter(filter)
+        .init();
+    Args::parse()
+}
+
 #[tokio::main(flavor = "multi_thread")]
 async fn main() -> anyhow::Result<()> {
-    env_logger::Builder::from_env(
-        Env::default().default_filter_or(format!("{}=warn", env!("CARGO_PKG_NAME"))),
-    )
-    .init();
-
-    let args = Args::parse();
+    let args = init();
 
     if let Some(sled_db_path) = args.sled_db_path {
         debug!(sled_db_path =% sled_db_path.display(), "opening config database");
