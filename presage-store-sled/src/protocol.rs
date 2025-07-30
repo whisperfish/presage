@@ -22,15 +22,18 @@ use presage::{
 use sled::Batch;
 use tracing::{error, trace, warn};
 
+#[allow(deprecated)]
 use crate::{OnNewIdentity, SledStore, SledStoreError};
 
 #[derive(Clone)]
 pub struct SledProtocolStore<T: SledTrees> {
+    #[allow(deprecated)]
     pub(crate) store: SledStore,
     _trees: PhantomData<T>,
 }
 
 impl SledProtocolStore<AciSledStore> {
+    #[allow(deprecated)]
     pub(crate) fn aci_protocol_store(store: SledStore) -> Self {
         Self {
             store,
@@ -40,6 +43,7 @@ impl SledProtocolStore<AciSledStore> {
 }
 
 impl SledProtocolStore<PniSledStore> {
+    #[allow(deprecated)]
     pub(crate) fn pni_protocol_store(store: SledStore) -> Self {
         Self {
             store,
@@ -50,6 +54,7 @@ impl SledProtocolStore<PniSledStore> {
 
 impl<T: SledTrees> SledProtocolStore<T> {
     fn max_key_id(&self, tree: &str) -> Result<Option<u32>, SignalProtocolError> {
+        #[allow(deprecated)]
         let tree = self
             .store
             .db
@@ -180,6 +185,7 @@ impl SledPreKeyId for KyberPreKeyId {}
 
 impl<T: SledTrees> SledProtocolStore<T> {
     pub(crate) fn clear(&self, clear_sessions: bool) -> Result<(), SledStoreError> {
+        #[allow(deprecated)]
         let db = self.store.db.write().expect("poisoned mutex");
         db.drop_tree(T::pre_keys())?;
         db.drop_tree(T::sender_keys())?;
@@ -247,6 +253,7 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
     }
 
     async fn signed_pre_keys_count(&self) -> Result<usize, SignalProtocolError> {
+        #[allow(deprecated)]
         Ok(self
             .store
             .db
@@ -265,6 +272,7 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
 
     /// number of kyber pre-keys we currently have in store
     async fn kyber_pre_keys_count(&self, last_resort: bool) -> Result<usize, SignalProtocolError> {
+        #[allow(deprecated)]
         Ok(self
             .store
             .db
@@ -612,6 +620,7 @@ impl<T: SledTrees> IdentityKeyStore for SledProtocolStore<T> {
                 if left_identity_key == *right_identity_key {
                     Ok(true)
                 } else {
+                    #[allow(deprecated)]
                     match self.store.trust_new_identities {
                         OnNewIdentity::Trust => Ok(true),
                         OnNewIdentity::Reject => Ok(false),
@@ -722,6 +731,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_save_get_trust_identity(addr: ProtocolAddress, key_pair: KeyPair) -> bool {
+        #[allow(deprecated)]
         let mut db = SledStore::temporary().unwrap().aci_protocol_store();
         let identity_key = protocol::IdentityKey::new(key_pair.0.public_key);
         db.save_identity(&addr.0, &identity_key).await.unwrap();
@@ -738,6 +748,7 @@ mod tests {
     async fn test_store_load_session(addr: ProtocolAddress) -> bool {
         let session = SessionRecord::new_fresh();
 
+        #[allow(deprecated)]
         let mut db = SledStore::temporary().unwrap().aci_protocol_store();
         db.store_session(&addr.0, &session).await.unwrap();
         if db.load_session(&addr.0).await.unwrap().is_none() {
@@ -750,6 +761,7 @@ mod tests {
     #[quickcheck_async::tokio]
     async fn test_prekey_store(id: u32, key_pair: KeyPair) -> bool {
         let id = id.into();
+        #[allow(deprecated)]
         let mut db = SledStore::temporary().unwrap().aci_protocol_store();
         let pre_key_record = PreKeyRecord::new(id, &key_pair.0);
         db.save_pre_key(id, &pre_key_record).await.unwrap();
@@ -770,6 +782,7 @@ mod tests {
         key_pair: KeyPair,
         signature: Vec<u8>,
     ) -> bool {
+        #[allow(deprecated)]
         let mut db = SledStore::temporary().unwrap().aci_protocol_store();
         let id = id.into();
         let signed_pre_key_record = SignedPreKeyRecord::new(
@@ -825,6 +838,7 @@ mod tests {
         key2: ArbPreKeyRecord,
         signed_key: ArbSignedPreKeyRecord,
     ) {
+        #[allow(deprecated)]
         let db = SledStore::temporary().unwrap();
         let mut store = db.aci_protocol_store();
 
@@ -852,6 +866,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_next_key_id_is_max(keys: Vec<u32>, record: ArbPreKeyRecord) -> TestResult {
+        #[allow(deprecated)]
         let db = SledStore::temporary().unwrap();
         let mut store = db.aci_protocol_store();
 

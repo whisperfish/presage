@@ -41,6 +41,10 @@ const SLED_KEY_STORE_CIPHER: &str = "store_cipher";
 const SLED_KEY_SENDER_CERTIFICATE: &str = "sender_certificate";
 
 #[derive(Clone)]
+#[deprecated(
+    since = "0.8.0",
+    note = "The sled store is deprecated, use the `presage-store-sqlite` crate instead. This will be removed in a future release. A migration path might be provided before removal if there is demand for it."
+)]
 pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
     #[cfg(feature = "encryption")]
@@ -99,6 +103,7 @@ impl SchemaVersion {
     }
 }
 
+#[allow(deprecated)]
 impl SledStore {
     #[allow(unused_variables)]
     fn new(
@@ -313,6 +318,7 @@ async fn migrate(
     let passphrase = passphrase.as_ref();
 
     let run_migrations = {
+        #[allow(deprecated)]
         let mut store = SledStore::new(db_path, passphrase, OnNewIdentity::Reject)?;
         let schema_version = store.schema_version();
         for step in schema_version.steps() {
@@ -390,6 +396,7 @@ async fn migrate(
                 }
                 SchemaVersion::V6 => {
                     debug!("migrating from schema v5 to v6: new keys encoding in ACI and PNI protocol stores");
+                    #[allow(deprecated)]
                     let db = store.db.read().expect("poisoned");
 
                     let trees = [
@@ -457,6 +464,7 @@ async fn migrate(
     Ok(())
 }
 
+#[allow(deprecated)]
 impl StateStore for SledStore {
     type StateStoreError = SledStoreError;
 
@@ -533,6 +541,7 @@ impl StateStore for SledStore {
     }
 }
 
+#[allow(deprecated)]
 impl Store for SledStore {
     type Error = SledStoreError;
     type AciStore = SledProtocolStore<AciSledStore>;
@@ -655,6 +664,7 @@ mod tests {
 
     #[quickcheck_async::tokio]
     async fn test_store_messages(thread: Thread, content: Content) -> anyhow::Result<()> {
+        #[allow(deprecated)]
         let db = SledStore::temporary()?;
         let thread = thread.0;
         db.save_message(&thread, content_with_timestamp(&content, 1678295210))
