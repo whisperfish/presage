@@ -12,6 +12,7 @@ use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
 use libsignal_service::profile_cipher::ProfileCipher;
 use libsignal_service::proto::data_message::Delete;
+use libsignal_service::proto::{receipt_message, ReceiptMessage};
 use libsignal_service::proto::{
     sync_message::{self, sticker_pack_operation, StickerPackOperation},
     AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
@@ -792,6 +793,14 @@ impl<S: Store> Manager<S, Registered> {
                                 .await
                                 {
                                     error!(%error, "error saving message to store");
+                                }
+
+                                if let ContentBody::DataMessage(_) = &content.body {
+                                    let delivery_receipt = ReceiptMessage {
+                                        r#type: Some(receipt_message::Type::Delivery),
+                                        timestamp: content.metadata.timestamp,
+                                    };
+                                    content.metadata.timestamp;
                                 }
 
                                 return Some((Received::Content(Box::new(content)), state));
