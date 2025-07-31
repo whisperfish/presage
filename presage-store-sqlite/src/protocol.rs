@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
-        prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
+        prelude::{DeviceId, IdentityKeyStore, SessionStoreExt, Uuid},
         protocol::{
             Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
             KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
@@ -122,17 +122,24 @@ impl SessionStoreExt for SqliteProtocolStore {
     async fn get_sub_device_sessions(
         &self,
         name: &ServiceId,
-    ) -> Result<Vec<u32>, SignalProtocolError> {
-        let address = name.raw_uuid().to_string();
+    ) -> Result<Vec<DeviceId>, SignalProtocolError> {
+        let address: String = name.raw_uuid().to_string();
+        let device_id: u32 = (*DEFAULT_DEVICE_ID).into();
         query_scalar!(
             "SELECT device_id AS 'id: u32' FROM sessions
             WHERE address = ? AND device_id != ? AND identity = ?",
             address,
-            DEFAULT_DEVICE_ID,
+            device_id,
             self.identity,
         )
         .fetch_all(&self.store.db)
         .await
+        .map(|device_ids| {
+            device_ids
+                .into_iter()
+                .filter_map(|device_id| device_id.try_into().ok())
+                .collect()
+        })
         .into_protocol_error()
     }
 
@@ -283,6 +290,16 @@ impl PreKeysStore for SqliteProtocolStore {
         .await
         .into_protocol_error()
         .map(|count| count.try_into().expect("invalid usize"))
+    }
+
+    async fn signed_prekey_id(&self) -> Result<Option<SignedPreKeyId>, SignalProtocolError> {
+        todo!()
+    }
+
+    async fn last_resort_kyber_prekey_id(
+        &self,
+    ) -> Result<Option<KyberPreKeyId>, SignalProtocolError> {
+        todo!()
     }
 }
 

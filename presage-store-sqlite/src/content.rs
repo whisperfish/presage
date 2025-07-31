@@ -6,6 +6,7 @@ use presage::{
         Profile,
         content::Metadata,
         prelude::{Content, ProfileKey, Uuid},
+        protocol::ServiceId,
         zkgroup::GroupMasterKeyBytes,
     },
     model::{contacts::Contact, groups::Group},
@@ -96,6 +97,7 @@ impl ContentsStore for SqliteStore {
             was_plaintext,
         } = metadata;
 
+        let sender_device: u8 = sender_device.into();
         let sender_service_id = sender.service_id_string();
         let destination_service_id = destination.service_id_string();
 
@@ -242,16 +244,14 @@ impl ContentsStore for SqliteStore {
 
         query!(
             "INSERT OR REPLACE INTO contacts
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?)",
             contact.uuid,
             phone_number,
             contact.name,
-            contact.color,
             profile_key,
             contact.expire_timer,
             contact.expire_timer_version,
             contact.inbox_position,
-            contact.archived,
             avatar_bytes,
         )
         .execute(&mut *tx)
@@ -296,12 +296,10 @@ impl ContentsStore for SqliteStore {
                 uuid AS "uuid: _",
                 phone_number,
                 name,
-                color,
                 profile_key,
                 expire_timer,
                 expire_timer_version,
                 inbox_position,
-                archived,
                 avatar,
                 destination_aci AS "destination_aci: _",
                 identity_key,
@@ -322,12 +320,10 @@ impl ContentsStore for SqliteStore {
                 uuid AS "uuid: _",
                 phone_number,
                 name,
-                color,
                 profile_key,
                 expire_timer,
                 expire_timer_version,
                 inbox_position,
-                archived,
                 avatar,
                 destination_aci AS "destination_aci: _",
                 identity_key,
@@ -471,9 +467,10 @@ impl ContentsStore for SqliteStore {
 
     async fn profile_key(
         &self,
-        uuid: &Uuid,
+        service_id: &ServiceId,
     ) -> Result<Option<ProfileKey>, Self::ContentsStoreError> {
-        let profile_key = query_scalar!("SELECT key FROM profile_keys WHERE uuid = ?", uuid)
+        let service_id = service_id.service_id_string();
+        let profile_key = query_scalar!("SELECT key FROM profile_keys WHERE uuid = ?", service_id)
             .fetch_optional(&self.db)
             .await?
             .and_then(|bytes| bytes.try_into().ok().map(ProfileKey::create));

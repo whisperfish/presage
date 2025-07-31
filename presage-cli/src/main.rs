@@ -666,7 +666,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         Cmd::ListDevices => {
             let manager = Manager::load_registered(config_store).await?;
             let devices = manager.devices().await?;
-            let current_device_id = manager.device_id() as i64;
+            let current_device_id: u8 = manager.device_id().into();
 
             for device in devices {
                 let device_name = device

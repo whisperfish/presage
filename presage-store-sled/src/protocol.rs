@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
-        prelude::Uuid,
+        prelude::{DeviceId, Uuid},
         protocol::{
             Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
             IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
@@ -280,6 +280,16 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
             .filter_map(Result::ok)
             .count())
     }
+
+    async fn signed_prekey_id(&self) -> Result<Option<SignedPreKeyId>, SignalProtocolError> {
+        todo!()
+    }
+
+    async fn last_resort_kyber_prekey_id(
+        &self,
+    ) -> Result<Option<KyberPreKeyId>, SignalProtocolError> {
+        todo!()
+    }
 }
 
 #[async_trait(?Send)]
@@ -463,10 +473,10 @@ impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
     async fn get_sub_device_sessions(
         &self,
         address: &ServiceId,
-    ) -> Result<Vec<u32>, SignalProtocolError> {
+    ) -> Result<Vec<DeviceId>, SignalProtocolError> {
         let session_prefix = format!("{}.", address.raw_uuid());
         trace!(session_prefix, "get_sub_device_sessions");
-        let session_ids: Vec<u32> = self
+        let session_ids: Vec<DeviceId> = self
             .store
             .read()
             .open_tree(T::sessions())
@@ -476,9 +486,10 @@ impl<T: SledTrees> SessionStoreExt for SledProtocolStore<T> {
                 let (key, _) = r.ok()?;
                 let key_str = String::from_utf8_lossy(&key);
                 let device_id = key_str.strip_prefix(&session_prefix)?;
-                device_id.parse().ok()
+                let device_id: u8 = device_id.parse().ok()?;
+                DeviceId::try_from(device_id).ok()
             })
-            .filter(|d| *d != DEFAULT_DEVICE_ID)
+            .filter(|d| *d != *DEFAULT_DEVICE_ID)
             .collect();
         Ok(session_ids)
     }
