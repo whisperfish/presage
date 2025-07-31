@@ -14,10 +14,9 @@ use libsignal_service::{
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
-        receipt_message,
         sync_message::{self, sticker_pack_operation, StickerPackOperation},
-        AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, ReceiptMessage,
-        SyncMessage, Verified,
+        AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
+        Verified,
     },
     protocol::{Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind},
     provisioning::{generate_registration_id, ProvisioningError},

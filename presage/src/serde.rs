@@ -43,30 +43,3 @@ pub(crate) mod serde_profile_key {
         }
     }
 }
-
-pub mod serde_device_id {
-    use libsignal_service::prelude::DeviceId;
-    use serde::{ser, Deserialize, Deserializer, Serializer};
-
-    pub fn serialize<S>(device_id: Option<DeviceId>, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match device_id {
-            Some(id) => serializer.serialize_u8(id.into()),
-            None => serializer.serialize_none(),
-        }
-    }
-
-    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DeviceId>, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        match u8::deserialize(deserializer) {
-            Ok(id) => DeviceId::try_from(id)
-                .map(Some)
-                .map_err(|e| serde::de::Error::custom(format!("invalid device ID u8: {}", e))),
-            Err(_) => Ok(None),
-        }
-    }
-}

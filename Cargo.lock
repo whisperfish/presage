@@ -3115,8 +3115,7 @@ dependencies = [
 [[package]]
 name = "quickcheck_async"
 version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "247df671941313a4e255a5015772917368f1b21bfedfbd89d68fbb27e802b2fa"
+source = "git+https://github.com/nytopop/quickcheck_async?rev=76b13525ca93e0725e757f841fc6ccab8bae1913#76b13525ca93e0725e757f841fc6ccab8bae1913"
 dependencies = [
  "quote",
  "syn 1.0.109",

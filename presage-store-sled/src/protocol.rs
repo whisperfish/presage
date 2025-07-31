@@ -676,6 +676,7 @@ mod tests {
     use presage::{
         libsignal_service::{
             pre_keys::PreKeysStore,
+            prelude::DeviceId,
             protocol::{
                 self, Direction, GenericSignedPreKey, IdentityKeyStore, PreKeyId, PreKeyRecord,
                 PreKeyStore, SessionRecord, SessionStore, SignedPreKeyId, SignedPreKeyRecord,
@@ -707,7 +708,8 @@ mod tests {
     impl Arbitrary for ProtocolAddress {
         fn arbitrary(g: &mut Gen) -> Self {
             let name: String = Arbitrary::arbitrary(g);
-            let device_id: u32 = Arbitrary::arbitrary(g);
+            let device_id: u8 = Arbitrary::arbitrary(g);
+            let device_id: DeviceId = device_id.try_into().unwrap();
             ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
         }
     }

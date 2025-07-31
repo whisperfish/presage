@@ -558,7 +558,7 @@ impl Store for SledStore {
 mod tests {
     use presage::libsignal_service::{
         content::{ContentBody, Metadata},
-        prelude::Uuid,
+        prelude::{DeviceId, Uuid},
         proto::DataMessage,
         protocol::{PreKeyId, ServiceId},
     };
@@ -602,10 +602,12 @@ mod tests {
             ];
             let sender_uuid: Uuid = *g.choose(&contacts).unwrap();
             let destination_uuid: Uuid = *g.choose(&contacts).unwrap();
+            let sender_device: u8 = Arbitrary::arbitrary(g);
+            let sender_device: DeviceId = sender_device.try_into().unwrap();
             let metadata = Metadata {
                 sender: ServiceId::Aci(sender_uuid.into()),
                 destination: ServiceId::Aci(destination_uuid.into()),
-                sender_device: Arbitrary::arbitrary(g),
+                sender_device,
                 server_guid: None,
                 timestamp,
                 needs_receipt: Arbitrary::arbitrary(g),

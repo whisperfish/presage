@@ -6,7 +6,7 @@ use presage::{
         Profile,
         content::Metadata,
         models::Attachment,
-        prelude::{AccessControl, Content, DeviceId, Member, phonenumber},
+        prelude::{AccessControl, Content, Member, phonenumber},
         profile_name::ProfileName,
         protocol::ServiceId,
         zkgroup::GroupMasterKeyBytes,
