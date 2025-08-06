@@ -23,14 +23,20 @@ use crate::{
 impl ContentsStore for SqliteStore {
     type ContentsStoreError = SqliteStoreError;
 
-    type ContactsIter = Box<dyn Iterator<Item = Result<Contact, Self::ContentsStoreError>>>;
+    type ContactsIter =
+        Box<dyn Iterator<Item = Result<Contact, Self::ContentsStoreError>> + Send + Sync>;
 
-    type GroupsIter =
-        Box<dyn Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>>;
+    type GroupsIter = Box<
+        dyn Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>
+            + Send
+            + Sync,
+    >;
 
-    type MessagesIter = Box<dyn Iterator<Item = Result<Content, Self::ContentsStoreError>>>;
+    type MessagesIter =
+        Box<dyn Iterator<Item = Result<Content, Self::ContentsStoreError>> + Send + Sync>;
 
-    type StickerPacksIter = Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>>;
+    type StickerPacksIter =
+        Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>> + Send + Sync>;
 
     async fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError> {
         todo!()

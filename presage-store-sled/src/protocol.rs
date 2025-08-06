@@ -49,8 +49,8 @@ impl SledProtocolStore<PniSledStore> {
 }
 
 impl<T: SledTrees> SledProtocolStore<T> {
-    fn next_key_id(&self, tree: &str) -> Result<u32, SignalProtocolError> {
-        Ok(self
+    fn max_key_id(&self, tree: &str) -> Result<Option<u32>, SignalProtocolError> {
+        let tree = self
             .store
             .db
             .read()
@@ -58,14 +58,18 @@ impl<T: SledTrees> SledProtocolStore<T> {
             .open_tree(tree)
             .map_err(|error| {
                 error!(%error, "sled error");
-                SignalProtocolError::InvalidState("next_key_id", "sled error".into())
-            })?
-            .into_iter()
+                SignalProtocolError::InvalidState("max_key_id", "sled error".into())
+            })?;
+        Ok(tree
+            .iter()
             .keys()
             .filter_map(Result::ok)
             .next_back()
-            .and_then(|data| Some(u32::from_be_bytes(data.as_ref().try_into().ok()?)))
-            .map_or(0, |id| id + 1))
+            .and_then(|data| Some(u32::from_be_bytes(data.as_ref().try_into().ok()?))))
+    }
+
+    fn next_key_id(&self, tree: &str) -> Result<u32, SignalProtocolError> {
+        Ok(Self::max_key_id(self, tree)?.map_or(0, |id| id + 1))
     }
 }
 
@@ -282,13 +286,15 @@ impl<T: SledTrees> PreKeysStore for SledProtocolStore<T> {
     }
 
     async fn signed_prekey_id(&self) -> Result<Option<SignedPreKeyId>, SignalProtocolError> {
-        todo!()
+        self.max_key_id(T::signed_pre_keys())
+            .map(|id| id.map(From::from))
     }
 
     async fn last_resort_kyber_prekey_id(
         &self,
     ) -> Result<Option<KyberPreKeyId>, SignalProtocolError> {
-        todo!()
+        self.max_key_id(T::kyber_pre_keys_last_resort())
+            .map(|id| id.map(From::from))
     }
 }
 

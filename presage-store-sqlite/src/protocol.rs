@@ -293,13 +293,28 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     async fn signed_prekey_id(&self) -> Result<Option<SignedPreKeyId>, SignalProtocolError> {
-        todo!()
+        query_scalar!(
+            "SELECT MAX(id) AS 'id: u32' FROM signed_pre_keys WHERE identity = ?",
+            self.identity
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .map(|id| id.map(From::from))
     }
 
     async fn last_resort_kyber_prekey_id(
         &self,
     ) -> Result<Option<KyberPreKeyId>, SignalProtocolError> {
-        todo!()
+        query_scalar!(
+            "SELECT MAX(id) AS 'id: u32' FROM kyber_pre_keys
+            WHERE identity = ? AND is_last_resort = TRUE",
+            self.identity
+        )
+        .fetch_one(&self.store.db)
+        .await
+        .into_protocol_error()
+        .map(|id| id.map(From::from))
     }
 }
 

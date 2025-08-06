@@ -36,7 +36,7 @@ use libsignal_service::{
     },
     AccountManager, Profile, ServiceIdExt,
 };
-use rand::rngs::ThreadRng;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
@@ -568,6 +568,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(Some(avatar))
     }
 
+    #[expect(clippy::result_large_err)]
     fn groups_manager(&self) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
         let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
@@ -605,7 +606,6 @@ impl<S: Store> Manager<S, Registered> {
         struct StreamState<Receiver, Store, AciStore, PniStore> {
             store: Store,
             push_service: PushService,
-            csprng: ThreadRng,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
             service_cipher_aci: ServiceCipher<AciStore>,
@@ -619,7 +619,6 @@ impl<S: Store> Manager<S, Registered> {
         let init = StreamState {
             store: self.store.clone(),
             push_service: push_service.clone(),
-            csprng: rand::rng(),
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
@@ -642,7 +641,7 @@ impl<S: Store> Manager<S, Registered> {
                                 None | Some(ServiceId::Aci(_)) => {
                                     state
                                         .service_cipher_aci
-                                        .open_envelope(envelope, &mut state.csprng)
+                                        .open_envelope(envelope, &mut rng())
                                         .await
                                 }
                                 Some(ServiceId::Pni(pni)) => {
@@ -654,7 +653,7 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                     state
                                         .service_cipher_pni
-                                        .open_envelope(envelope, &mut state.csprng)
+                                        .open_envelope(envelope, &mut rng())
                                         .await
                                 }
                             }
@@ -918,11 +917,7 @@ impl<S: Store> Manager<S, Registered> {
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
-            async move {
-                sender
-                    .upload_attachment(spec, contents, &mut rand::rng())
-                    .await
-            }
+            async move { sender.upload_attachment(spec, contents, &mut rng()).await }
         }));
         Ok(upload.await)
     }
