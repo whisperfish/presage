@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/68d5d83/src/groups_v2/manager.rs`."><title>manager.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-1a91846b.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0 (6b00bc388 2025-06-23)" data-channel="1.88.0" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../../../static.files/storage-4e99c027.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/groups_v2/</div>manager.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::{collections::HashMap, convert::TryInto};
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/c75044b/src/groups_v2/manager.rs`."><title>manager.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-1a91846b.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0 (6b00bc388 2025-06-23)" data-channel="1.88.0" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../../../static.files/storage-4e99c027.js"></script><script defer src="../../../static.files/src-script-63605ae7.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/groups_v2/</div>manager.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::{collections::HashMap, convert::TryInto};
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use crate</span>::{
 <a href=#4 id=4 data-nosnippet>4</a>    configuration::Endpoint,
@@ -20,7 +20,7 @@
 <a href=#20 id=20 data-nosnippet>20</a><span class="kw">use </span>reqwest::Method;
 <a href=#21 id=21 data-nosnippet>21</a><span class="kw">use </span>serde::Deserialize;
 <a href=#22 id=22 data-nosnippet>22</a><span class="kw">use </span>zkgroup::{
-<a href=#23 id=23 data-nosnippet>23</a>    auth::AuthCredentialWithPniResponse,
+<a href=#23 id=23 data-nosnippet>23</a>    auth::{AuthCredentialWithPni, AuthCredentialWithPniResponse},
 <a href=#24 id=24 data-nosnippet>24</a>    groups::{GroupMasterKey, GroupSecretParams},
 <a href=#25 id=25 data-nosnippet>25</a>    ServerPublicParams,
 <a href=#26 id=26 data-nosnippet>26</a>};
@@ -207,130 +207,126 @@
 <a href=#207 id=207 data-nosnippet>207</a>        credential_response: AuthCredentialWithPniResponse,
 <a href=#208 id=208 data-nosnippet>208</a>        today: u64,
 <a href=#209 id=209 data-nosnippet>209</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;HttpAuth, ServiceError&gt; {
-<a href=#210 id=210 data-nosnippet>210</a>        <span class="kw">let </span>auth_credential = <span class="self">self
-<a href=#211 id=211 data-nosnippet>211</a>            </span>.server_public_params
-<a href=#212 id=212 data-nosnippet>212</a>            .receive_auth_credential_with_pni_as_service_id(
-<a href=#213 id=213 data-nosnippet>213</a>                <span class="self">self</span>.service_ids.aci(),
-<a href=#214 id=214 data-nosnippet>214</a>                <span class="self">self</span>.service_ids.pni(),
-<a href=#215 id=215 data-nosnippet>215</a>                zkgroup::Timestamp::from_epoch_seconds(today),
-<a href=#216 id=216 data-nosnippet>216</a>                credential_response,
-<a href=#217 id=217 data-nosnippet>217</a>            )
-<a href=#218 id=218 data-nosnippet>218</a>            .map_err(|e| {
-<a href=#219 id=219 data-nosnippet>219</a>                <span class="macro">tracing::error!</span>(
-<a href=#220 id=220 data-nosnippet>220</a>                    <span class="string">"failed to receive auth credentials with PNI: {:?}"</span>,
-<a href=#221 id=221 data-nosnippet>221</a>                    e
-<a href=#222 id=222 data-nosnippet>222</a>                );
-<a href=#223 id=223 data-nosnippet>223</a>                ServiceError::GroupsV2Error
-<a href=#224 id=224 data-nosnippet>224</a>            })<span class="question-mark">?</span>;
-<a href=#225 id=225 data-nosnippet>225</a>
-<a href=#226 id=226 data-nosnippet>226</a>        <span class="kw">let </span><span class="kw-2">mut </span>random_bytes = [<span class="number">0u8</span>; <span class="number">32</span>];
-<a href=#227 id=227 data-nosnippet>227</a>        csprng.fill_bytes(<span class="kw-2">&amp;mut </span>random_bytes);
-<a href=#228 id=228 data-nosnippet>228</a>
-<a href=#229 id=229 data-nosnippet>229</a>        <span class="kw">let </span>auth_credential_presentation = <span class="self">self
-<a href=#230 id=230 data-nosnippet>230</a>            </span>.server_public_params
-<a href=#231 id=231 data-nosnippet>231</a>            .create_auth_credential_with_pni_presentation(
-<a href=#232 id=232 data-nosnippet>232</a>                random_bytes,
-<a href=#233 id=233 data-nosnippet>233</a>                group_secret_params,
-<a href=#234 id=234 data-nosnippet>234</a>                auth_credential,
-<a href=#235 id=235 data-nosnippet>235</a>            );
-<a href=#236 id=236 data-nosnippet>236</a>
-<a href=#237 id=237 data-nosnippet>237</a>        <span class="comment">// see simpleapi.rs GroupSecretParams_getPublicParams, everything is bincode encoded
-<a href=#238 id=238 data-nosnippet>238</a>        // across the boundary of Rust/Java
-<a href=#239 id=239 data-nosnippet>239</a>        </span><span class="kw">let </span>username = hex::encode(bincode::serialize(
-<a href=#240 id=240 data-nosnippet>240</a>            <span class="kw-2">&amp;</span>group_secret_params.get_public_params(),
-<a href=#241 id=241 data-nosnippet>241</a>        )<span class="question-mark">?</span>);
-<a href=#242 id=242 data-nosnippet>242</a>
-<a href=#243 id=243 data-nosnippet>243</a>        <span class="kw">let </span>password =
-<a href=#244 id=244 data-nosnippet>244</a>            hex::encode(bincode::serialize(<span class="kw-2">&amp;</span>auth_credential_presentation)<span class="question-mark">?</span>);
-<a href=#245 id=245 data-nosnippet>245</a>
-<a href=#246 id=246 data-nosnippet>246</a>        <span class="prelude-val">Ok</span>(HttpAuth { username, password })
-<a href=#247 id=247 data-nosnippet>247</a>    }
-<a href=#248 id=248 data-nosnippet>248</a>
-<a href=#249 id=249 data-nosnippet>249</a>    <span class="kw">pub async fn </span>fetch_encrypted_group&lt;R: Rng + CryptoRng&gt;(
-<a href=#250 id=250 data-nosnippet>250</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#251 id=251 data-nosnippet>251</a>        csprng: <span class="kw-2">&amp;mut </span>R,
-<a href=#252 id=252 data-nosnippet>252</a>        master_key_bytes: <span class="kw-2">&amp;</span>[u8],
-<a href=#253 id=253 data-nosnippet>253</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::Group, ServiceError&gt; {
-<a href=#254 id=254 data-nosnippet>254</a>        <span class="kw">let </span>group_master_key = GroupMasterKey::new(
-<a href=#255 id=255 data-nosnippet>255</a>            master_key_bytes
-<a href=#256 id=256 data-nosnippet>256</a>                .try_into()
-<a href=#257 id=257 data-nosnippet>257</a>                .map_err(|<span class="kw">_</span>| ServiceError::GroupsV2Error)<span class="question-mark">?</span>,
-<a href=#258 id=258 data-nosnippet>258</a>        );
-<a href=#259 id=259 data-nosnippet>259</a>        <span class="kw">let </span>group_secret_params =
-<a href=#260 id=260 data-nosnippet>260</a>            GroupSecretParams::derive_from_master_key(group_master_key);
-<a href=#261 id=261 data-nosnippet>261</a>        <span class="kw">let </span>authorization = <span class="self">self
-<a href=#262 id=262 data-nosnippet>262</a>            </span>.get_authorization_for_today(csprng, group_secret_params)
-<a href=#263 id=263 data-nosnippet>263</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#264 id=264 data-nosnippet>264</a>        <span class="self">self</span>.push_service.get_group(authorization).<span class="kw">await
-<a href=#265 id=265 data-nosnippet>265</a>    </span>}
-<a href=#266 id=266 data-nosnippet>266</a>
-<a href=#267 id=267 data-nosnippet>267</a>    <span class="attr">#[tracing::instrument(
-<a href=#268 id=268 data-nosnippet>268</a>        skip(<span class="self">self</span>, group_secret_params),
-<a href=#269 id=269 data-nosnippet>269</a>        fields(path = %path[..<span class="number">4</span>.min(path.len())]</span>),
-<a href=#270 id=270 data-nosnippet>270</a>    )]
-<a href=#271 id=271 data-nosnippet>271</a>    <span class="kw">pub async fn </span>retrieve_avatar(
-<a href=#272 id=272 data-nosnippet>272</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#273 id=273 data-nosnippet>273</a>        path: <span class="kw-2">&amp;</span>str,
-<a href=#274 id=274 data-nosnippet>274</a>        group_secret_params: GroupSecretParams,
-<a href=#275 id=275 data-nosnippet>275</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;, ServiceError&gt; {
-<a href=#276 id=276 data-nosnippet>276</a>        <span class="kw">let </span><span class="kw-2">mut </span>encrypted_avatar = <span class="self">self
-<a href=#277 id=277 data-nosnippet>277</a>            </span>.push_service
-<a href=#278 id=278 data-nosnippet>278</a>            .retrieve_groups_v2_profile_avatar(path)
-<a href=#279 id=279 data-nosnippet>279</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#280 id=280 data-nosnippet>280</a>        <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::with_capacity(<span class="number">10 </span>* <span class="number">1024 </span>* <span class="number">1024</span>);
-<a href=#281 id=281 data-nosnippet>281</a>        encrypted_avatar.read_to_end(<span class="kw-2">&amp;mut </span>result).<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#282 id=282 data-nosnippet>282</a>        <span class="prelude-val">Ok</span>(GroupOperations::new(group_secret_params).decrypt_avatar(<span class="kw-2">&amp;</span>result))
-<a href=#283 id=283 data-nosnippet>283</a>    }
-<a href=#284 id=284 data-nosnippet>284</a>
-<a href=#285 id=285 data-nosnippet>285</a>    <span class="kw">pub fn </span>decrypt_group_context(
-<a href=#286 id=286 data-nosnippet>286</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#287 id=287 data-nosnippet>287</a>        group_context: GroupContextV2,
-<a href=#288 id=288 data-nosnippet>288</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;GroupChanges&gt;, GroupDecodingError&gt; {
-<a href=#289 id=289 data-nosnippet>289</a>        <span class="kw">match </span>(group_context.master_key, group_context.group_change) {
-<a href=#290 id=290 data-nosnippet>290</a>            (<span class="prelude-val">Some</span>(master_key), <span class="prelude-val">Some</span>(group_change)) =&gt; {
-<a href=#291 id=291 data-nosnippet>291</a>                <span class="kw">let </span>master_key_bytes: [u8; <span class="number">32</span>] = master_key
-<a href=#292 id=292 data-nosnippet>292</a>                    .try_into()
-<a href=#293 id=293 data-nosnippet>293</a>                    .map_err(|<span class="kw">_</span>| GroupDecodingError::WrongBlob)<span class="question-mark">?</span>;
-<a href=#294 id=294 data-nosnippet>294</a>                <span class="kw">let </span>group_master_key = GroupMasterKey::new(master_key_bytes);
-<a href=#295 id=295 data-nosnippet>295</a>                <span class="kw">let </span>group_secret_params =
-<a href=#296 id=296 data-nosnippet>296</a>                    GroupSecretParams::derive_from_master_key(group_master_key);
-<a href=#297 id=297 data-nosnippet>297</a>                <span class="kw">let </span>encrypted_group_change =
-<a href=#298 id=298 data-nosnippet>298</a>                    prost::Message::decode(Bytes::from(group_change))<span class="question-mark">?</span>;
-<a href=#299 id=299 data-nosnippet>299</a>                <span class="kw">let </span>group_change = GroupOperations::new(group_secret_params)
-<a href=#300 id=300 data-nosnippet>300</a>                    .decrypt_group_change(encrypted_group_change)<span class="question-mark">?</span>;
-<a href=#301 id=301 data-nosnippet>301</a>                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group_change))
-<a href=#302 id=302 data-nosnippet>302</a>            },
-<a href=#303 id=303 data-nosnippet>303</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
-<a href=#304 id=304 data-nosnippet>304</a>        }
-<a href=#305 id=305 data-nosnippet>305</a>    }
-<a href=#306 id=306 data-nosnippet>306</a>}
-<a href=#307 id=307 data-nosnippet>307</a>
-<a href=#308 id=308 data-nosnippet>308</a><span class="attr">#[expect(clippy::result_large_err)]
-<a href=#309 id=309 data-nosnippet>309</a></span><span class="kw">pub fn </span>decrypt_group(
-<a href=#310 id=310 data-nosnippet>310</a>    master_key_bytes: <span class="kw-2">&amp;</span>[u8],
-<a href=#311 id=311 data-nosnippet>311</a>    encrypted_group: <span class="kw">crate</span>::proto::Group,
-<a href=#312 id=312 data-nosnippet>312</a>) -&gt; <span class="prelude-ty">Result</span>&lt;Group, ServiceError&gt; {
-<a href=#313 id=313 data-nosnippet>313</a>    <span class="kw">let </span>group_master_key = GroupMasterKey::new(
-<a href=#314 id=314 data-nosnippet>314</a>        master_key_bytes
-<a href=#315 id=315 data-nosnippet>315</a>            .try_into()
-<a href=#316 id=316 data-nosnippet>316</a>            .expect(<span class="string">"wrong master key bytes length"</span>),
-<a href=#317 id=317 data-nosnippet>317</a>    );
-<a href=#318 id=318 data-nosnippet>318</a>    <span class="kw">let </span>group_secret_params =
-<a href=#319 id=319 data-nosnippet>319</a>        GroupSecretParams::derive_from_master_key(group_master_key);
+<a href=#210 id=210 data-nosnippet>210</a>        <span class="kw">let </span>redemption_time = zkgroup::Timestamp::from_epoch_seconds(today);
+<a href=#211 id=211 data-nosnippet>211</a>
+<a href=#212 id=212 data-nosnippet>212</a>        <span class="kw">let </span>auth_credential_bytes =
+<a href=#213 id=213 data-nosnippet>213</a>            zkgroup::serialize(<span class="kw-2">&amp;</span>credential_response.receive(
+<a href=#214 id=214 data-nosnippet>214</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.server_public_params,
+<a href=#215 id=215 data-nosnippet>215</a>                <span class="self">self</span>.service_ids.aci(),
+<a href=#216 id=216 data-nosnippet>216</a>                <span class="self">self</span>.service_ids.pni(),
+<a href=#217 id=217 data-nosnippet>217</a>                redemption_time,
+<a href=#218 id=218 data-nosnippet>218</a>            )<span class="question-mark">?</span>);
+<a href=#219 id=219 data-nosnippet>219</a>
+<a href=#220 id=220 data-nosnippet>220</a>        <span class="kw">let </span>auth_credential =
+<a href=#221 id=221 data-nosnippet>221</a>            AuthCredentialWithPni::new(<span class="kw-2">&amp;</span>auth_credential_bytes)
+<a href=#222 id=222 data-nosnippet>222</a>                .expect(<span class="string">"just validated"</span>);
+<a href=#223 id=223 data-nosnippet>223</a>
+<a href=#224 id=224 data-nosnippet>224</a>        <span class="kw">let </span><span class="kw-2">mut </span>random_bytes = [<span class="number">0u8</span>; <span class="number">32</span>];
+<a href=#225 id=225 data-nosnippet>225</a>        csprng.fill_bytes(<span class="kw-2">&amp;mut </span>random_bytes);
+<a href=#226 id=226 data-nosnippet>226</a>
+<a href=#227 id=227 data-nosnippet>227</a>        <span class="kw">let </span>auth_credential_presentation =
+<a href=#228 id=228 data-nosnippet>228</a>            zkgroup::serialize(<span class="kw-2">&amp;</span>auth_credential.present(
+<a href=#229 id=229 data-nosnippet>229</a>                <span class="kw-2">&amp;</span><span class="self">self</span>.server_public_params,
+<a href=#230 id=230 data-nosnippet>230</a>                <span class="kw-2">&amp;</span>group_secret_params,
+<a href=#231 id=231 data-nosnippet>231</a>                random_bytes,
+<a href=#232 id=232 data-nosnippet>232</a>            ));
+<a href=#233 id=233 data-nosnippet>233</a>
+<a href=#234 id=234 data-nosnippet>234</a>        <span class="comment">// see simpleapi.rs GroupSecretParams_getPublicParams, everything is bincode encoded
+<a href=#235 id=235 data-nosnippet>235</a>        // across the boundary of Rust/Java
+<a href=#236 id=236 data-nosnippet>236</a>        </span><span class="kw">let </span>username = hex::encode(bincode::serialize(
+<a href=#237 id=237 data-nosnippet>237</a>            <span class="kw-2">&amp;</span>group_secret_params.get_public_params(),
+<a href=#238 id=238 data-nosnippet>238</a>        )<span class="question-mark">?</span>);
+<a href=#239 id=239 data-nosnippet>239</a>
+<a href=#240 id=240 data-nosnippet>240</a>        <span class="kw">let </span>password = hex::encode(<span class="kw-2">&amp;</span>auth_credential_presentation);
+<a href=#241 id=241 data-nosnippet>241</a>
+<a href=#242 id=242 data-nosnippet>242</a>        <span class="prelude-val">Ok</span>(HttpAuth { username, password })
+<a href=#243 id=243 data-nosnippet>243</a>    }
+<a href=#244 id=244 data-nosnippet>244</a>
+<a href=#245 id=245 data-nosnippet>245</a>    <span class="kw">pub async fn </span>fetch_encrypted_group&lt;R: Rng + CryptoRng&gt;(
+<a href=#246 id=246 data-nosnippet>246</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#247 id=247 data-nosnippet>247</a>        csprng: <span class="kw-2">&amp;mut </span>R,
+<a href=#248 id=248 data-nosnippet>248</a>        master_key_bytes: <span class="kw-2">&amp;</span>[u8],
+<a href=#249 id=249 data-nosnippet>249</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::Group, ServiceError&gt; {
+<a href=#250 id=250 data-nosnippet>250</a>        <span class="kw">let </span>group_master_key = GroupMasterKey::new(
+<a href=#251 id=251 data-nosnippet>251</a>            master_key_bytes
+<a href=#252 id=252 data-nosnippet>252</a>                .try_into()
+<a href=#253 id=253 data-nosnippet>253</a>                .map_err(|<span class="kw">_</span>| ServiceError::GroupsV2Error)<span class="question-mark">?</span>,
+<a href=#254 id=254 data-nosnippet>254</a>        );
+<a href=#255 id=255 data-nosnippet>255</a>        <span class="kw">let </span>group_secret_params =
+<a href=#256 id=256 data-nosnippet>256</a>            GroupSecretParams::derive_from_master_key(group_master_key);
+<a href=#257 id=257 data-nosnippet>257</a>        <span class="kw">let </span>authorization = <span class="self">self
+<a href=#258 id=258 data-nosnippet>258</a>            </span>.get_authorization_for_today(csprng, group_secret_params)
+<a href=#259 id=259 data-nosnippet>259</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#260 id=260 data-nosnippet>260</a>        <span class="self">self</span>.push_service.get_group(authorization).<span class="kw">await
+<a href=#261 id=261 data-nosnippet>261</a>    </span>}
+<a href=#262 id=262 data-nosnippet>262</a>
+<a href=#263 id=263 data-nosnippet>263</a>    <span class="attr">#[tracing::instrument(
+<a href=#264 id=264 data-nosnippet>264</a>        skip(<span class="self">self</span>, group_secret_params),
+<a href=#265 id=265 data-nosnippet>265</a>        fields(path = %path[..<span class="number">4</span>.min(path.len())]</span>),
+<a href=#266 id=266 data-nosnippet>266</a>    )]
+<a href=#267 id=267 data-nosnippet>267</a>    <span class="kw">pub async fn </span>retrieve_avatar(
+<a href=#268 id=268 data-nosnippet>268</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#269 id=269 data-nosnippet>269</a>        path: <span class="kw-2">&amp;</span>str,
+<a href=#270 id=270 data-nosnippet>270</a>        group_secret_params: GroupSecretParams,
+<a href=#271 id=271 data-nosnippet>271</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;, ServiceError&gt; {
+<a href=#272 id=272 data-nosnippet>272</a>        <span class="kw">let </span><span class="kw-2">mut </span>encrypted_avatar = <span class="self">self
+<a href=#273 id=273 data-nosnippet>273</a>            </span>.push_service
+<a href=#274 id=274 data-nosnippet>274</a>            .retrieve_groups_v2_profile_avatar(path)
+<a href=#275 id=275 data-nosnippet>275</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#276 id=276 data-nosnippet>276</a>        <span class="kw">let </span><span class="kw-2">mut </span>result = Vec::with_capacity(<span class="number">10 </span>* <span class="number">1024 </span>* <span class="number">1024</span>);
+<a href=#277 id=277 data-nosnippet>277</a>        encrypted_avatar.read_to_end(<span class="kw-2">&amp;mut </span>result).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#278 id=278 data-nosnippet>278</a>        <span class="prelude-val">Ok</span>(GroupOperations::new(group_secret_params).decrypt_avatar(<span class="kw-2">&amp;</span>result))
+<a href=#279 id=279 data-nosnippet>279</a>    }
+<a href=#280 id=280 data-nosnippet>280</a>
+<a href=#281 id=281 data-nosnippet>281</a>    <span class="kw">pub fn </span>decrypt_group_context(
+<a href=#282 id=282 data-nosnippet>282</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
+<a href=#283 id=283 data-nosnippet>283</a>        group_context: GroupContextV2,
+<a href=#284 id=284 data-nosnippet>284</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;GroupChanges&gt;, GroupDecodingError&gt; {
+<a href=#285 id=285 data-nosnippet>285</a>        <span class="kw">match </span>(group_context.master_key, group_context.group_change) {
+<a href=#286 id=286 data-nosnippet>286</a>            (<span class="prelude-val">Some</span>(master_key), <span class="prelude-val">Some</span>(group_change)) =&gt; {
+<a href=#287 id=287 data-nosnippet>287</a>                <span class="kw">let </span>master_key_bytes: [u8; <span class="number">32</span>] = master_key
+<a href=#288 id=288 data-nosnippet>288</a>                    .try_into()
+<a href=#289 id=289 data-nosnippet>289</a>                    .map_err(|<span class="kw">_</span>| GroupDecodingError::WrongBlob)<span class="question-mark">?</span>;
+<a href=#290 id=290 data-nosnippet>290</a>                <span class="kw">let </span>group_master_key = GroupMasterKey::new(master_key_bytes);
+<a href=#291 id=291 data-nosnippet>291</a>                <span class="kw">let </span>group_secret_params =
+<a href=#292 id=292 data-nosnippet>292</a>                    GroupSecretParams::derive_from_master_key(group_master_key);
+<a href=#293 id=293 data-nosnippet>293</a>                <span class="kw">let </span>encrypted_group_change =
+<a href=#294 id=294 data-nosnippet>294</a>                    prost::Message::decode(Bytes::from(group_change))<span class="question-mark">?</span>;
+<a href=#295 id=295 data-nosnippet>295</a>                <span class="kw">let </span>group_change = GroupOperations::new(group_secret_params)
+<a href=#296 id=296 data-nosnippet>296</a>                    .decrypt_group_change(encrypted_group_change)<span class="question-mark">?</span>;
+<a href=#297 id=297 data-nosnippet>297</a>                <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(group_change))
+<a href=#298 id=298 data-nosnippet>298</a>            },
+<a href=#299 id=299 data-nosnippet>299</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
+<a href=#300 id=300 data-nosnippet>300</a>        }
+<a href=#301 id=301 data-nosnippet>301</a>    }
+<a href=#302 id=302 data-nosnippet>302</a>}
+<a href=#303 id=303 data-nosnippet>303</a>
+<a href=#304 id=304 data-nosnippet>304</a><span class="attr">#[expect(clippy::result_large_err)]
+<a href=#305 id=305 data-nosnippet>305</a></span><span class="kw">pub fn </span>decrypt_group(
+<a href=#306 id=306 data-nosnippet>306</a>    master_key_bytes: <span class="kw-2">&amp;</span>[u8],
+<a href=#307 id=307 data-nosnippet>307</a>    encrypted_group: <span class="kw">crate</span>::proto::Group,
+<a href=#308 id=308 data-nosnippet>308</a>) -&gt; <span class="prelude-ty">Result</span>&lt;Group, ServiceError&gt; {
+<a href=#309 id=309 data-nosnippet>309</a>    <span class="kw">let </span>group_master_key = GroupMasterKey::new(
+<a href=#310 id=310 data-nosnippet>310</a>        master_key_bytes
+<a href=#311 id=311 data-nosnippet>311</a>            .try_into()
+<a href=#312 id=312 data-nosnippet>312</a>            .expect(<span class="string">"wrong master key bytes length"</span>),
+<a href=#313 id=313 data-nosnippet>313</a>    );
+<a href=#314 id=314 data-nosnippet>314</a>    <span class="kw">let </span>group_secret_params =
+<a href=#315 id=315 data-nosnippet>315</a>        GroupSecretParams::derive_from_master_key(group_master_key);
+<a href=#316 id=316 data-nosnippet>316</a>
+<a href=#317 id=317 data-nosnippet>317</a>    <span class="prelude-val">Ok</span>(GroupOperations::new(group_secret_params)
+<a href=#318 id=318 data-nosnippet>318</a>        .decrypt_group(encrypted_group)<span class="question-mark">?</span>)
+<a href=#319 id=319 data-nosnippet>319</a>}
 <a href=#320 id=320 data-nosnippet>320</a>
-<a href=#321 id=321 data-nosnippet>321</a>    <span class="prelude-val">Ok</span>(GroupOperations::new(group_secret_params)
-<a href=#322 id=322 data-nosnippet>322</a>        .decrypt_group(encrypted_group)<span class="question-mark">?</span>)
-<a href=#323 id=323 data-nosnippet>323</a>}
-<a href=#324 id=324 data-nosnippet>324</a>
-<a href=#325 id=325 data-nosnippet>325</a><span class="kw">fn </span>current_days_seconds() -&gt; (u64, u64) {
-<a href=#326 id=326 data-nosnippet>326</a>    <span class="kw">let </span>days_seconds = |date: NaiveDate| {
-<a href=#327 id=327 data-nosnippet>327</a>        date.and_time(NaiveTime::from_hms_opt(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>).unwrap())
-<a href=#328 id=328 data-nosnippet>328</a>            .and_utc()
-<a href=#329 id=329 data-nosnippet>329</a>            .timestamp() <span class="kw">as </span>u64
-<a href=#330 id=330 data-nosnippet>330</a>    };
-<a href=#331 id=331 data-nosnippet>331</a>
-<a href=#332 id=332 data-nosnippet>332</a>    <span class="kw">let </span>today = Utc::now().naive_utc().date();
-<a href=#333 id=333 data-nosnippet>333</a>    <span class="kw">let </span>today_plus_7_days = today + Days::new(<span class="number">7</span>);
-<a href=#334 id=334 data-nosnippet>334</a>
-<a href=#335 id=335 data-nosnippet>335</a>    (days_seconds(today), days_seconds(today_plus_7_days))
-<a href=#336 id=336 data-nosnippet>336</a>}</code></pre></div></section></main></body></html>
+<a href=#321 id=321 data-nosnippet>321</a><span class="kw">fn </span>current_days_seconds() -&gt; (u64, u64) {
+<a href=#322 id=322 data-nosnippet>322</a>    <span class="kw">let </span>days_seconds = |date: NaiveDate| {
+<a href=#323 id=323 data-nosnippet>323</a>        date.and_time(NaiveTime::from_hms_opt(<span class="number">0</span>, <span class="number">0</span>, <span class="number">0</span>).unwrap())
+<a href=#324 id=324 data-nosnippet>324</a>            .and_utc()
+<a href=#325 id=325 data-nosnippet>325</a>            .timestamp() <span class="kw">as </span>u64
+<a href=#326 id=326 data-nosnippet>326</a>    };
+<a href=#327 id=327 data-nosnippet>327</a>
+<a href=#328 id=328 data-nosnippet>328</a>    <span class="kw">let </span>today = Utc::now().naive_utc().date();
+<a href=#329 id=329 data-nosnippet>329</a>    <span class="kw">let </span>today_plus_7_days = today + Days::new(<span class="number">7</span>);
+<a href=#330 id=330 data-nosnippet>330</a>
+<a href=#331 id=331 data-nosnippet>331</a>    (days_seconds(today), days_seconds(today_plus_7_days))
+<a href=#332 id=332 data-nosnippet>332</a>}</code></pre></div></section></main></body></html>

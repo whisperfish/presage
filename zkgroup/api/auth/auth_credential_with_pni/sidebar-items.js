@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["AuthCredentialWithPni","AuthCredentialWithPniResponse","AuthCredentialWithPniVersion"],"struct":["AuthCredentialWithPniV0","AuthCredentialWithPniV0Response","AuthCredentialWithPniZkc","AuthCredentialWithPniZkcPresentation","AuthCredentialWithPniZkcResponse"]};
+window.SIDEBAR_ITEMS = {"enum":["AuthCredentialWithPni","AuthCredentialWithPniResponse","AuthCredentialWithPniVersion"],"struct":["AuthCredentialWithPniZkc","AuthCredentialWithPniZkcPresentation","AuthCredentialWithPniZkcResponse"]};

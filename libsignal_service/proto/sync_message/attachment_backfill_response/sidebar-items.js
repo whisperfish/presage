@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Data","Error"],"mod":["attachment_data"],"struct":["AttachmentData","AttachmentDataList"]};

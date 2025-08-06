@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["ServerPublicParams","ServerSecretParams"]};
+window.SIDEBAR_ITEMS = {"struct":["EndorsementPublicKey","EndorsementServerRootKeyPair","ServerPublicParams","ServerSecretParams"]};

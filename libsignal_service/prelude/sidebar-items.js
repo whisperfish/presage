@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"derive":["ProtobufMessage"],"struct":["DeviceId","GroupMasterKey","GroupSecretParams","ProfileKey","Uuid","UuidError"],"trait":["IdentityKeyStore","ProtobufMessage"]};
+window.SIDEBAR_ITEMS = {"derive":["ProtobufMessage"],"struct":["DeviceId","GroupMasterKey","GroupSecretParams","InvalidDeviceId","ProfileKey","Uuid","UuidError"],"trait":["IdentityKeyStore","ProtobufMessage"]};

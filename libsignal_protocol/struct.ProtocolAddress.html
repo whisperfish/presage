@@ -12,7 +12,7 @@ all clients for that user.</li>
  <span class="comment">// This is a unique id for some user, typically a UUID.
  </span><span class="kw">let </span>user_id: String = <span class="string">"04899A85-4C9E-44CC-8428-A02AB69335F1"</span>.to_string();
  <span class="comment">// Each client instance representing that user has a unique device id.
- </span><span class="kw">let </span>device_id: DeviceId = <span class="number">2_u32</span>.into();
+ </span><span class="kw">let </span>device_id: DeviceId = <span class="number">2_u32</span>.try_into().unwrap();
  <span class="kw">let </span>address = ProtocolAddress::new(user_id.clone(), device_id);
 
  <span class="macro">assert!</span>(address.name() == <span class="kw-2">&amp;</span>user_id);

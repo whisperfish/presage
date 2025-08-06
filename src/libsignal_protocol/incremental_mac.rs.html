@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-2a193a9867decbc4/e46841e/rust/protocol/src/incremental_mac.rs`."><title>incremental_mac.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-1a91846b.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0 (6b00bc388 2025-06-23)" data-channel="1.88.0" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../../static.files/storage-4e99c027.js"></script><script defer src="../../static.files/src-script-63605ae7.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_protocol/</div>incremental_mac.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">//
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-2a193a9867decbc4/f9ca652/rust/protocol/src/incremental_mac.rs`."><title>incremental_mac.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-1a91846b.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_protocol" data-themes="" data-resource-suffix="" data-rustdoc-version="1.88.0 (6b00bc388 2025-06-23)" data-channel="1.88.0" data-search-js="search-f7877310.js" data-settings-js="settings-5514c975.js" ><script src="../../static.files/storage-4e99c027.js"></script><script defer src="../../static.files/src-script-63605ae7.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-7ef8a74a.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-893ab5e7.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-6580c154.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer"></div><main><rustdoc-search></rustdoc-search><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_protocol/</div>incremental_mac.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">//
 <a href=#2 id=2 data-nosnippet>2</a>// Copyright 2023 Signal Messenger, LLC.
 <a href=#3 id=3 data-nosnippet>3</a>// SPDX-License-Identifier: AGPL-3.0-only
 <a href=#4 id=4 data-nosnippet>4</a>//
@@ -40,7 +40,7 @@
 <a href=#40 id=40 data-nosnippet>40</a>        <span class="kw">return </span>MINIMUM_CHUNK_SIZE;
 <a href=#41 id=41 data-nosnippet>41</a>    }
 <a href=#42 id=42 data-nosnippet>42</a>    <span class="kw">if </span>data_size &lt; target_chunk_count * MAXIMUM_CHUNK_SIZE {
-<a href=#43 id=43 data-nosnippet>43</a>        <span class="kw">return </span>(data_size + target_chunk_count - <span class="number">1</span>) / target_chunk_count;
+<a href=#43 id=43 data-nosnippet>43</a>        <span class="kw">return </span>data_size.div_ceil(target_chunk_count);
 <a href=#44 id=44 data-nosnippet>44</a>    }
 <a href=#45 id=45 data-nosnippet>45</a>    MAXIMUM_CHUNK_SIZE
 <a href=#46 id=46 data-nosnippet>46</a>}
@@ -136,10 +136,10 @@
 <a href=#136 id=136 data-nosnippet>136</a>
 <a href=#137 id=137 data-nosnippet>137</a><span class="attr">#[cfg(test)]
 <a href=#138 id=138 data-nosnippet>138</a></span><span class="kw">mod </span>test {
-<a href=#139 id=139 data-nosnippet>139</a>    <span class="kw">use </span>hex_literal::hex;
+<a href=#139 id=139 data-nosnippet>139</a>    <span class="kw">use </span>const_str::hex;
 <a href=#140 id=140 data-nosnippet>140</a>    <span class="kw">use </span>hmac::Hmac;
 <a href=#141 id=141 data-nosnippet>141</a>    <span class="kw">use </span>proptest::prelude::<span class="kw-2">*</span>;
-<a href=#142 id=142 data-nosnippet>142</a>    <span class="kw">use </span>rand::distributions::Uniform;
+<a href=#142 id=142 data-nosnippet>142</a>    <span class="kw">use </span>rand::distr::uniform::{UniformSampler <span class="kw">as _</span>, UniformUsize};
 <a href=#143 id=143 data-nosnippet>143</a>    <span class="kw">use </span>rand::prelude::{Rng, ThreadRng};
 <a href=#144 id=144 data-nosnippet>144</a>    <span class="kw">use </span>sha2::digest::OutputSizeUser;
 <a href=#145 id=145 data-nosnippet>145</a>    <span class="kw">use </span>sha2::Sha256;
@@ -397,7 +397,7 @@
 <a href=#397 id=397 data-nosnippet>397</a>    </span><span class="kw">fn </span>total_digest_size_is_never_too_big() {
 <a href=#398 id=398 data-nosnippet>398</a>        <span class="kw">fn </span>total_digest_size(data_size: usize) -&gt; usize {
 <a href=#399 id=399 data-nosnippet>399</a>            <span class="kw">let </span>chunk_size = calculate_chunk_size::&lt;Sha256&gt;(data_size);
-<a href=#400 id=400 data-nosnippet>400</a>            <span class="kw">let </span>num_chunks = std::cmp::max(<span class="number">1</span>, (data_size + chunk_size - <span class="number">1</span>) / chunk_size);
+<a href=#400 id=400 data-nosnippet>400</a>            <span class="kw">let </span>num_chunks = std::cmp::max(<span class="number">1</span>, data_size.div_ceil(chunk_size));
 <a href=#401 id=401 data-nosnippet>401</a>            num_chunks * &lt;Sha256 <span class="kw">as </span>OutputSizeUser&gt;::OutputSize::USIZE
 <a href=#402 id=402 data-nosnippet>402</a>        }
 <a href=#403 id=403 data-nosnippet>403</a>        <span class="kw">let </span>config = ProptestConfig::with_cases(<span class="number">10_000</span>);
@@ -412,7 +412,7 @@
 <a href=#412 id=412 data-nosnippet>412</a>    <span class="attr">#[derive(Clone)]
 <a href=#413 id=413 data-nosnippet>413</a>    </span><span class="kw">struct </span>RandomChunks&lt;<span class="lifetime">'a</span>, T, R: Rng&gt; {
 <a href=#414 id=414 data-nosnippet>414</a>        base: <span class="kw-2">&amp;</span><span class="lifetime">'a </span>[T],
-<a href=#415 id=415 data-nosnippet>415</a>        distribution: Uniform&lt;usize&gt;,
+<a href=#415 id=415 data-nosnippet>415</a>        distribution: UniformUsize,
 <a href=#416 id=416 data-nosnippet>416</a>        rng: R,
 <a href=#417 id=417 data-nosnippet>417</a>    }
 <a href=#418 id=418 data-nosnippet>418</a>
@@ -423,7 +423,7 @@
 <a href=#423 id=423 data-nosnippet>423</a>            <span class="kw">if </span><span class="self">self</span>.base.is_empty() {
 <a href=#424 id=424 data-nosnippet>424</a>                <span class="prelude-val">None
 <a href=#425 id=425 data-nosnippet>425</a>            </span>} <span class="kw">else </span>{
-<a href=#426 id=426 data-nosnippet>426</a>                <span class="kw">let </span>candidate = <span class="self">self</span>.rng.sample(<span class="self">self</span>.distribution);
+<a href=#426 id=426 data-nosnippet>426</a>                <span class="kw">let </span>candidate = <span class="self">self</span>.distribution.sample(<span class="kw-2">&amp;mut </span><span class="self">self</span>.rng);
 <a href=#427 id=427 data-nosnippet>427</a>                <span class="kw">let </span>chunk_size = std::cmp::min(candidate, <span class="self">self</span>.base.len());
 <a href=#428 id=428 data-nosnippet>428</a>                <span class="kw">let </span>(before, after) = <span class="self">self</span>.base.split_at(chunk_size);
 <a href=#429 id=429 data-nosnippet>429</a>                <span class="self">self</span>.base = after;
@@ -441,7 +441,7 @@
 <a href=#441 id=441 data-nosnippet>441</a>            <span class="macro">assert!</span>(max_size &gt; <span class="number">0</span>, <span class="string">"Maximal chunk size should be positive"</span>);
 <a href=#442 id=442 data-nosnippet>442</a>            RandomChunks {
 <a href=#443 id=443 data-nosnippet>443</a>                base: <span class="self">self</span>,
-<a href=#444 id=444 data-nosnippet>444</a>                distribution: Uniform::new(<span class="number">0</span>, max_size + <span class="number">1</span>),
+<a href=#444 id=444 data-nosnippet>444</a>                distribution: UniformUsize::new_inclusive(<span class="number">0</span>, max_size).expect(<span class="string">"valid range"</span>),
 <a href=#445 id=445 data-nosnippet>445</a>                rng: Default::default(),
 <a href=#446 id=446 data-nosnippet>446</a>            }
 <a href=#447 id=447 data-nosnippet>447</a>        }
