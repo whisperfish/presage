@@ -20,6 +20,7 @@ use sha2::{Digest, Sha256};
 use sled::IVec;
 use tracing::{debug, trace};
 
+#[allow(deprecated)]
 use crate::{protobuf::ContentProto, SledStore, SledStoreError};
 
 const SLED_TREE_PROFILE_AVATARS: &str = "profile_avatars";
@@ -31,6 +32,7 @@ const SLED_TREE_GROUPS: &str = "groups";
 const SLED_TREE_PROFILES: &str = "profiles";
 const SLED_TREE_THREADS_PREFIX: &str = "threads";
 
+#[allow(deprecated)]
 impl ContentsStore for SledStore {
     type ContentsStoreError = SledStoreError;
 
@@ -80,6 +82,7 @@ impl ContentsStore for SledStore {
         Ok(SledContactsIter {
             iter: self.read().open_tree(SLED_TREE_CONTACTS)?.iter(),
             #[cfg(feature = "encryption")]
+            #[allow(deprecated)]
             cipher: self.cipher.clone(),
         })
     }
@@ -101,6 +104,7 @@ impl ContentsStore for SledStore {
         Ok(SledGroupsIter {
             iter: self.read().open_tree(SLED_TREE_GROUPS)?.iter(),
             #[cfg(feature = "encryption")]
+            #[allow(deprecated)]
             cipher: self.cipher.clone(),
         })
     }
@@ -231,6 +235,7 @@ impl ContentsStore for SledStore {
 
         Ok(SledMessagesIter {
             #[cfg(feature = "encryption")]
+            #[allow(deprecated)]
             cipher: self.cipher.clone(),
             iter,
         })
@@ -303,6 +308,7 @@ impl ContentsStore for SledStore {
 
     async fn sticker_packs(&self) -> Result<Self::StickerPacksIter, SledStoreError> {
         Ok(SledStickerPacksIter {
+            #[allow(deprecated)]
             cipher: self.cipher.clone(),
             iter: self.read().open_tree(SLED_TREE_STICKER_PACKS)?.iter(),
         })
