@@ -2,10 +2,12 @@ use derivative::Derivative;
 use libsignal_service::{
     groups_v2::Role,
     prelude::{AccessControl, Member, ProfileKey, Timer, Uuid},
+    protocol::Aci,
 };
 use serde::{Deserialize, Serialize};
 
 use super::ServiceIdType;
+use libsignal_service::utils::serde_aci;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Group {
@@ -28,14 +30,16 @@ pub struct PendingMember {
     #[serde(default)]
     pub service_id_type: ServiceIdType,
     pub role: Role,
-    pub added_by_uuid: Uuid,
+    #[serde(alias = "added_by_uuid", with = "serde_aci")]
+    pub added_by_aci: Aci,
     pub timestamp: u64,
 }
 
 #[derive(Derivative, Clone, Deserialize, Serialize)]
 #[derivative(Debug)]
 pub struct RequestingMember {
-    pub uuid: Uuid,
+    #[serde(alias = "uuid", with = "serde_aci")]
+    pub aci: Aci,
     pub profile_key: ProfileKey,
     pub timestamp: u64,
 }
@@ -63,7 +67,7 @@ impl From<libsignal_service::groups_v2::PendingMember> for PendingMember {
             uuid: val.address.raw_uuid(),
             service_id_type: val.address.kind().into(),
             role: val.role,
-            added_by_uuid: val.added_by_uuid,
+            added_by_aci: val.added_by_aci,
             timestamp: val.timestamp,
         }
     }
@@ -72,7 +76,7 @@ impl From<libsignal_service::groups_v2::PendingMember> for PendingMember {
 impl From<libsignal_service::groups_v2::RequestingMember> for RequestingMember {
     fn from(val: libsignal_service::groups_v2::RequestingMember) -> Self {
         RequestingMember {
-            uuid: val.uuid,
+            aci: val.aci,
             profile_key: val.profile_key,
             timestamp: val.timestamp,
         }

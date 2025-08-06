@@ -3,8 +3,7 @@ use std::sync::Arc;
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::push_service::{PushService, VerificationTransport};
-use rand::distributions::{Alphanumeric, DistString};
-use rand::thread_rng;
+use rand::distr::{Alphanumeric, SampleString};
 use tracing::trace;
 
 use crate::store::Store;
@@ -83,7 +82,7 @@ impl<S: Store> Manager<S, Registration> {
         store.clear_registration().await?;
 
         // generate a random alphanumeric 24 chars password
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         let password = Alphanumeric.sample_string(&mut rng, 24);
 
         let service_configuration: ServiceConfiguration = signal_servers.into();

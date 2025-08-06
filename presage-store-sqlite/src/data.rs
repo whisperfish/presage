@@ -28,12 +28,10 @@ pub struct SqlContact {
     pub uuid: Uuid,
     pub phone_number: Option<String>,
     pub name: String,
-    pub color: Option<String>,
     pub profile_key: Vec<u8>,
     pub expire_timer: i64,
     pub expire_timer_version: i64,
     pub inbox_position: i64,
-    pub archived: bool,
     pub avatar: Option<Vec<u8>>,
 
     pub destination_aci: Option<String>,
@@ -53,7 +51,6 @@ impl TryInto<Contact> for SqlContact {
                 .map(|p| phonenumber::parse(None, &p))
                 .transpose()?,
             name: self.name,
-            color: self.color,
             verified: Verified {
                 destination_aci: self.destination_aci,
                 identity_key: self.identity_key,
@@ -70,7 +67,6 @@ impl TryInto<Contact> for SqlContact {
             expire_timer: self.expire_timer as u32,
             expire_timer_version: self.expire_timer_version as u32,
             inbox_position: self.inbox_position as u32,
-            archived: self.archived,
             avatar: self.avatar.map(|b| Attachment {
                 content_type: "application/octet-stream".to_owned(),
                 reader: Bytes::from(b),
@@ -184,7 +180,7 @@ pub struct SqlMessage {
     pub ts: u64,
 
     pub sender_service_id: String,
-    pub sender_device_id: u32,
+    pub sender_device_id: u8,
     pub destination_service_id: String,
     pub needs_receipt: bool,
     pub unidentified_sender: bool,
@@ -217,7 +213,7 @@ impl TryInto<Content> for SqlMessage {
         let metadata = Metadata {
             sender,
             destination,
-            sender_device: sender_device_id,
+            sender_device: sender_device_id.try_into()?,
             timestamp: ts,
             needs_receipt,
             unidentified_sender,

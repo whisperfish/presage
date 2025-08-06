@@ -1,5 +1,8 @@
 use presage::{
-    libsignal_service::{prelude::phonenumber, protocol::SignalProtocolError},
+    libsignal_service::{
+        prelude::{InvalidDeviceId, phonenumber},
+        protocol::SignalProtocolError,
+    },
     store::StoreError,
 };
 use tracing::error;
@@ -21,6 +24,8 @@ pub enum SqliteStoreError {
     InvalidFormat,
     #[error(transparent)]
     Protocol(#[from] SignalProtocolError),
+    #[error("invalid device ID: {0}")]
+    InvalidDeviceId(#[from] InvalidDeviceId),
 }
 
 impl StoreError for SqliteStoreError {}

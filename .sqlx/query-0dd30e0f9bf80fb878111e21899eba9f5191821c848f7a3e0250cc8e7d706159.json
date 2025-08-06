@@ -1,0 +1,80 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                uuid AS \"uuid: _\",\n                phone_number,\n                name,\n                profile_key,\n                expire_timer,\n                expire_timer_version,\n                inbox_position,\n                avatar,\n                destination_aci AS \"destination_aci: _\",\n                identity_key,\n                is_verified\n            FROM contacts c\n            LEFT JOIN contacts_verification_state cv ON c.uuid = cv.destination_aci\n            WHERE c.uuid = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "uuid: _",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "phone_number",
+        "ordinal": 1,
+        "type_info": "Text"
+      },
+      {
+        "name": "name",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "profile_key",
+        "ordinal": 3,
+        "type_info": "Blob"
+      },
+      {
+        "name": "expire_timer",
+        "ordinal": 4,
+        "type_info": "Integer"
+      },
+      {
+        "name": "expire_timer_version",
+        "ordinal": 5,
+        "type_info": "Integer"
+      },
+      {
+        "name": "inbox_position",
+        "ordinal": 6,
+        "type_info": "Integer"
+      },
+      {
+        "name": "avatar",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "destination_aci: _",
+        "ordinal": 8,
+        "type_info": "Blob"
+      },
+      {
+        "name": "identity_key",
+        "ordinal": 9,
+        "type_info": "Blob"
+      },
+      {
+        "name": "is_verified",
+        "ordinal": 10,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "0dd30e0f9bf80fb878111e21899eba9f5191821c848f7a3e0250cc8e7d706159"
+}

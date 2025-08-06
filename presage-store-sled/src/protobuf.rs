@@ -11,6 +11,7 @@ use presage::libsignal_service::content::Metadata;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto;
 use presage::libsignal_service::protocol::ServiceId;
+use presage::libsignal_service::push_service::DEFAULT_DEVICE_ID;
 
 use crate::SledStoreError;
 
@@ -41,7 +42,7 @@ impl From<Metadata> for MetadataProto {
     fn from(m: Metadata) -> Self {
         MetadataProto {
             address: Some(m.sender.into()),
-            sender_device: m.sender_device.try_into().ok(),
+            sender_device: m.sender_device.try_into().ok().map(|d: u8| d as i32),
             timestamp: m.timestamp.try_into().ok(),
             server_received_timestamp: None,
             server_delivered_timestamp: None,
@@ -69,7 +70,7 @@ impl TryFrom<MetadataProto> for Metadata {
             sender_device: metadata
                 .sender_device
                 .and_then(|m| m.try_into().ok())
-                .unwrap_or_default(),
+                .unwrap_or(*DEFAULT_DEVICE_ID),
             server_guid: metadata
                 .server_guid
                 .and_then(|u| crate::Uuid::from_str(&u).ok()),

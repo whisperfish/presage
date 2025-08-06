@@ -3,13 +3,13 @@ use chrono::{DateTime, Utc};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
-        prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
+        prelude::{DeviceId, IdentityKeyStore, SessionStoreExt, Uuid},
         protocol::{
-            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
-            KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-            ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, ServiceId,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
+            Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
+            KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
+            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
+            ServiceId, SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId,
+            SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
     },
@@ -52,7 +52,7 @@ impl SessionStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query!(
             "SELECT record FROM sessions
@@ -74,7 +74,7 @@ impl SessionStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         record: &SessionRecord,
     ) -> Result<(), SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         let record = record.serialize()?;
 
@@ -122,23 +122,30 @@ impl SessionStoreExt for SqliteProtocolStore {
     async fn get_sub_device_sessions(
         &self,
         name: &ServiceId,
-    ) -> Result<Vec<u32>, SignalProtocolError> {
-        let address = name.raw_uuid().to_string();
+    ) -> Result<Vec<DeviceId>, SignalProtocolError> {
+        let address: String = name.raw_uuid().to_string();
+        let device_id: u8 = (*DEFAULT_DEVICE_ID).into();
         query_scalar!(
             "SELECT device_id AS 'id: u32' FROM sessions
             WHERE address = ? AND device_id != ? AND identity = ?",
             address,
-            DEFAULT_DEVICE_ID,
+            device_id,
             self.identity,
         )
         .fetch_all(&self.store.db)
         .await
+        .map(|device_ids| {
+            device_ids
+                .into_iter()
+                .filter_map(|device_id| device_id.try_into().ok())
+                .collect()
+        })
         .into_protocol_error()
     }
 
     /// Remove a session record for a recipient ID + device ID tuple.
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query!(
             "DELETE FROM sessions WHERE address = ? AND device_id = ? AND identity = ?",
@@ -525,8 +532,8 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &mut self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-    ) -> Result<bool, SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+    ) -> Result<IdentityChange, SignalProtocolError> {
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         let bytes = identity.serialize();
 
@@ -564,7 +571,11 @@ impl IdentityKeyStore for SqliteProtocolStore {
 
         tx.commit().await.into_protocol_error()?;
 
-        Ok(is_replaced)
+        Ok(if is_replaced {
+            IdentityChange::ReplacedExisting
+        } else {
+            IdentityChange::NewOrUnchanged
+        })
     }
 
     /// Return whether an identity is trusted for the role specified by `direction`.
@@ -596,7 +607,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query_scalar!(
             "SELECT record FROM identities
@@ -623,7 +634,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         record: &SenderKeyRecord,
     ) -> Result<(), SignalProtocolError> {
         let address = sender.name();
-        let device_id: u32 = sender.device_id().into();
+        let device_id: u8 = sender.device_id().into();
         let record = record.serialize()?;
         query!(
             "INSERT INTO sender_keys
@@ -649,7 +660,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         distribution_id: Uuid,
     ) -> Result<Option<SenderKeyRecord>, SignalProtocolError> {
         let address = sender.name();
-        let device_id: u32 = sender.device_id().into();
+        let device_id: u8 = sender.device_id().into();
         query_scalar!(
             "SELECT record FROM sender_keys
             WHERE address = ? AND device_id = ? AND identity = ? AND distribution_id = ?",
