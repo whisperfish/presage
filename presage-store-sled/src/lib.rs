@@ -612,6 +612,7 @@ mod tests {
             let sender_uuid: Uuid = *g.choose(&contacts).unwrap();
             let destination_uuid: Uuid = *g.choose(&contacts).unwrap();
             let sender_device: u8 = Arbitrary::arbitrary(g);
+            let sender_device = sender_device % 126 + 1; // see MAX_DEVICE_ID in protocol.rs
             let sender_device: DeviceId = sender_device.try_into().unwrap();
             let metadata = Metadata {
                 sender: ServiceId::Aci(sender_uuid.into()),

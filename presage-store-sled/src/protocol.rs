@@ -725,7 +725,8 @@ mod tests {
         fn arbitrary(g: &mut Gen) -> Self {
             let name: String = Arbitrary::arbitrary(g);
             let device_id: u8 = Arbitrary::arbitrary(g);
-            let device_id: DeviceId = device_id.try_into().unwrap();
+            let device_id = device_id % 126 + 1; //  see MAX_DEVICE_ID in protocol.rs
+            let device_id: DeviceId = DeviceId::new(device_id).unwrap();
             ProtocolAddress(protocol::ProtocolAddress::new(name, device_id.into()))
         }
     }
