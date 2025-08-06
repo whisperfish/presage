@@ -3,38 +3,40 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
-use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
-use libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
-use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
-use libsignal_service::prelude::phonenumber::PhoneNumber;
-use libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
-use libsignal_service::profile_cipher::ProfileCipher;
-use libsignal_service::proto::data_message::Delete;
-use libsignal_service::proto::{
-    sync_message::{self, sticker_pack_operation, StickerPackOperation},
-    AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
-    Verified,
+use libsignal_service::{
+    attachment_cipher::decrypt_in_place,
+    cipher,
+    configuration::{ServiceConfiguration, SignalServers, SignalingKey},
+    content::{Content, ContentBody, DataMessageFlags, Metadata},
+    groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
+    messagepipe::{Incoming, MessagePipe, ServiceCredentials},
+    prelude::{phonenumber::PhoneNumber, DeviceId, MessageSenderError, ProtobufMessage, Uuid},
+    profile_cipher::ProfileCipher,
+    proto::{
+        data_message::Delete,
+        sync_message::{self, sticker_pack_operation, StickerPackOperation},
+        AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
+        Verified,
+    },
+    protocol::{Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind},
+    provisioning::{generate_registration_id, ProvisioningError},
+    push_service::{
+        AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIds,
+        WhoAmIResponse, DEFAULT_DEVICE_ID,
+    },
+    receiver::MessageReceiver,
+    sender::{AttachmentSpec, AttachmentUploadError},
+    sticker_cipher::derive_key,
+    unidentified_access::UnidentifiedAccess,
+    utils::serde_signaling_key,
+    websocket::SignalWebSocket,
+    zkgroup::{
+        groups::{GroupMasterKey, GroupSecretParams},
+        profiles::ProfileKey,
+    },
+    AccountManager, Profile, ServiceIdExt,
 };
-use libsignal_service::protocol::{
-    Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
-};
-use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
-use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIds,
-    WhoAmIResponse, DEFAULT_DEVICE_ID,
-};
-use libsignal_service::receiver::MessageReceiver;
-use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
-use libsignal_service::sticker_cipher::derive_key;
-use libsignal_service::unidentified_access::UnidentifiedAccess;
-use libsignal_service::utils::serde_signaling_key;
-use libsignal_service::websocket::SignalWebSocket;
-use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
-use libsignal_service::zkgroup::profiles::ProfileKey;
-use libsignal_service::{attachment_cipher::decrypt_in_place, sender::MessageSender};
-use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
-use rand::thread_rng;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
@@ -49,6 +51,7 @@ use crate::{model::groups::Group, AvatarBytes, Error, Manager};
 pub use crate::model::messages::Received;
 
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
+type MessageSender<S> = libsignal_service::prelude::MessageSender<S>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegistrationType {
@@ -89,8 +92,11 @@ impl Registered {
         self.data.signal_servers.into()
     }
 
-    pub fn device_id(&self) -> u32 {
-        self.data.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    pub fn device_id(&self) -> DeviceId {
+        self.data
+            .device_id
+            .and_then(|d| d.try_into().ok())
+            .unwrap_or(*DEFAULT_DEVICE_ID)
     }
 
     pub(crate) fn identified_push_service(&self) -> PushService {
@@ -112,7 +118,7 @@ impl Registered {
             phonenumber: self.data.phone_number.clone(),
             password: Some(self.data.password.clone()),
             signaling_key: Some(self.data.signaling_key),
-            device_id: self.data.device_id,
+            device_id: self.data.device_id.and_then(|d| d.try_into().ok()),
         }
     }
 
@@ -128,7 +134,7 @@ impl Registered {
             pni_registration_id
         } else {
             info!("migrating to PNI");
-            let pni_registration_id = generate_registration_id(&mut thread_rng());
+            let pni_registration_id = generate_registration_id(&mut rand::rng());
             store.save_registration_data(&self.data).await?;
             pni_registration_id
         };
@@ -322,7 +328,7 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         account_manager
             .update_pre_key_bundle(
@@ -356,7 +362,7 @@ impl<S: Store> Manager<S, Registered> {
             request: Some(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts.into()),
             }),
-            ..SyncMessage::with_padding(&mut thread_rng())
+            ..SyncMessage::with_padding(&mut rand::rng())
         };
 
         let timestamp = SystemTime::now()
@@ -423,7 +429,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(self.identified_push_service().whoami().await?)
     }
 
-    pub fn device_id(&self) -> u32 {
+    pub fn device_id(&self) -> DeviceId {
         self.state.device_id()
     }
 
@@ -635,7 +641,7 @@ impl<S: Store> Manager<S, Registered> {
                                 None | Some(ServiceId::Aci(_)) => {
                                     state
                                         .service_cipher_aci
-                                        .open_envelope(envelope, &mut thread_rng())
+                                        .open_envelope(envelope, &mut rng())
                                         .await
                                 }
                                 Some(ServiceId::Pni(pni)) => {
@@ -647,7 +653,7 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                     state
                                         .service_cipher_pni
-                                        .open_envelope(envelope, &mut thread_rng())
+                                        .open_envelope(envelope, &mut rng())
                                         .await
                                 }
                             }
@@ -842,14 +848,14 @@ impl<S: Store> Manager<S, Registered> {
         self.restore_thread_timer(&thread, &mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
-        let unidentified_access =
-            self.store
-                .profile_key(&recipient.raw_uuid())
-                .await?
-                .map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key().to_vec(),
-                    certificate: sender_certificate.clone(),
-                });
+        let unidentified_access = self
+            .store
+            .profile_key(&recipient)
+            .await?
+            .map(|profile_key| UnidentifiedAccess {
+                key: profile_key.derive_access_key().to_vec(),
+                certificate: sender_certificate.clone(),
+            });
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -904,11 +910,7 @@ impl<S: Store> Manager<S, Registered> {
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
-            async move {
-                sender
-                    .upload_attachment(spec, contents, &mut thread_rng())
-                    .await
-            }
+            async move { sender.upload_attachment(spec, contents, &mut rng()).await }
         }));
         Ok(upload.await)
     }
@@ -946,11 +948,11 @@ impl<S: Store> Manager<S, Registered> {
         for member in group
             .members
             .into_iter()
-            .filter(|m| m.uuid != self.state.data.service_ids.aci)
+            .filter(|m| m.aci != self.state.data.service_ids.aci())
         {
             let unidentified_access =
                 self.store
-                    .profile_key(&member.uuid)
+                    .profile_key(&member.aci.into())
                     .await?
                     .map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key().to_vec(),
@@ -958,7 +960,7 @@ impl<S: Store> Manager<S, Registered> {
                     });
             let include_pni_signature = false;
             recipients.push((
-                Aci::from(member.uuid).into(),
+                member.aci.into(),
                 unidentified_access,
                 include_pni_signature,
             ));
@@ -1205,7 +1207,7 @@ impl<S: Store> Manager<S, Registered> {
             self.state.data.service_ids.pni,
             aci_identity_keypair,
             Some(pni_identity_keypair),
-            self.state.device_id().into(),
+            self.state.device_id(),
         ))
     }
 
@@ -1278,7 +1280,7 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .link_device(
-                &mut thread_rng(),
+                &mut rand::rng(),
                 secondary,
                 &self.store.aci_protocol_store(),
                 &self.store.pni_protocol_store(),
@@ -1360,7 +1362,7 @@ async fn upsert_group<S: Store>(
     if upsert_group {
         debug!("fetching and saving group");
         match groups_manager
-            .fetch_encrypted_group(&mut thread_rng(), master_key_bytes)
+            .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
             .await
         {
             Ok(encrypted_group) => {
@@ -1497,7 +1499,7 @@ async fn save_message<S: Store>(
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
                 if store.contact_by_id(&sender.raw_uuid()).await?.is_none()
                     || store
-                        .profile_key(&sender.raw_uuid())
+                        .profile_key(&sender)
                         .await?
                         .is_none_or(|p| p.bytes != profile_key.bytes)
                 {
@@ -1524,11 +1526,9 @@ async fn save_message<S: Store>(
                                 })
                                 .unwrap_or_default(),
                             profile_key: profile_key.bytes.to_vec(),
-                            color: None,
                             expire_timer: data_message.expire_timer.unwrap_or_default(),
                             expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
                             inbox_position: 0,
-                            archived: false,
                             avatar: None,
                             verified: Verified::default(),
                         };

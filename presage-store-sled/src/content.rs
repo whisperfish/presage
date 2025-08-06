@@ -7,6 +7,7 @@ use presage::{
     libsignal_service::{
         content::Content,
         prelude::Uuid,
+        protocol::ServiceId,
         zkgroup::{profiles::ProfileKey, GroupMasterKeyBytes},
         Profile,
     },
@@ -249,8 +250,11 @@ impl ContentsStore for SledStore {
         self.insert(SLED_TREE_PROFILE_KEYS, uuid.as_bytes(), key)
     }
 
-    async fn profile_key(&self, uuid: &Uuid) -> Result<Option<ProfileKey>, SledStoreError> {
-        self.get(SLED_TREE_PROFILE_KEYS, uuid.as_bytes())
+    async fn profile_key(
+        &self,
+        service_id: &ServiceId,
+    ) -> Result<Option<ProfileKey>, SledStoreError> {
+        self.get(SLED_TREE_PROFILE_KEYS, service_id.raw_uuid().as_bytes())
     }
 
     async fn save_profile(

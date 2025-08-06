@@ -18,7 +18,6 @@ pub struct Contact {
     pub uuid: Uuid,
     pub phone_number: Option<PhoneNumber>,
     pub name: String,
-    pub color: Option<String>,
     #[serde(skip)]
     pub verified: Verified,
     pub profile_key: Vec<u8>,
@@ -26,7 +25,6 @@ pub struct Contact {
     #[serde(default = "default_expire_timer_version")]
     pub expire_timer_version: u32,
     pub inbox_position: u32,
-    pub archived: bool,
     #[serde(skip)]
     pub avatar: Option<Attachment<Bytes>>,
 }
@@ -37,13 +35,11 @@ impl From<libsignal_service::models::Contact> for Contact {
             uuid: c.uuid,
             phone_number: c.phone_number,
             name: c.name,
-            color: c.color,
-            verified: c.verified,
-            profile_key: c.profile_key,
+            verified: Default::default(),
+            profile_key: Default::default(),
             expire_timer: c.expire_timer,
             expire_timer_version: c.expire_timer_version,
             inbox_position: c.inbox_position,
-            archived: c.archived,
             avatar: c.avatar,
         }
     }
