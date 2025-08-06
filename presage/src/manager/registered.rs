@@ -902,7 +902,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(self
             .new_message_sender()
             .await?
-            .upload_attachment(spec, contents)
+            .upload_attachment(spec, contents, &mut thread_rng())
             .await)
     }
 
