@@ -2632,7 +2632,7 @@ dependencies = [
 
 [[package]]
 name = "presage"
-version = "0.7.0-dev"
+version = "0.8.0-dev"
 dependencies = [
  "base64",
  "bytes",
@@ -2655,7 +2655,7 @@ dependencies = [
 
 [[package]]
 name = "presage-cli"
-version = "0.6.0-dev"
+version = "0.8.0-dev"
 dependencies = [
  "anyhow",
  "base64",
@@ -2696,7 +2696,7 @@ dependencies = [
 
 [[package]]
 name = "presage-store-sled"
-version = "0.6.0-dev"
+version = "0.8.0-dev"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -2723,7 +2723,7 @@ dependencies = [
 
 [[package]]
 name = "presage-store-sqlite"
-version = "0.1.0"
+version = "0.8.0-dev"
 dependencies = [
  "async-trait",
  "bytes",

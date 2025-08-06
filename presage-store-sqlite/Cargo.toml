@@ -1,6 +1,6 @@
 [package]
 name = "presage-store-sqlite"
-version = "0.1.0"
+version = "0.8.0-dev"
 edition = "2024"
 license = "AGPL-3.0-only"
 

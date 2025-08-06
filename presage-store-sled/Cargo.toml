@@ -1,6 +1,6 @@
 [package]
 name = "presage-store-sled"
-version = "0.6.0-dev"
+version = "0.8.0-dev"
 edition = "2021"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 license = "AGPL-3.0-only"
