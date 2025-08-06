@@ -12,7 +12,8 @@ use libsignal_service::{
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
     protocol::{
-        IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderKeyStore, ServiceId,
+        IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderCertificate,
+        SenderKeyStore, ServiceId,
     },
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
@@ -53,6 +54,15 @@ pub trait StateStore {
     fn save_registration_data(
         &mut self,
         state: &RegistrationData,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+
+    fn sender_certificate(
+        &self,
+    ) -> impl Future<Output = Result<Option<SenderCertificate>, Self::StateStoreError>>;
+
+    fn save_sender_certificate(
+        &self,
+        certificate: &SenderCertificate,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     /// Returns whether this store contains registration data or not

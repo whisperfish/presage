@@ -5,7 +5,7 @@ mod linking;
 mod registered;
 mod registration;
 
-use std::fmt;
+use std::{fmt, sync::Arc};
 
 pub use self::confirmation::Confirmation;
 pub use self::linking::Linking;
@@ -19,12 +19,27 @@ pub use self::registration::{Registration, RegistrationOptions};
 /// manager: in registration, linking, TODO
 ///
 /// Depending on the state specific methods are available or not.
-#[derive(Clone)]
 pub struct Manager<Store, State> {
     /// Implementation of a metadata and messages store
     store: Store,
     /// Part of the manager which is persisted in the store.
-    state: State,
+    state: Arc<State>,
+}
+
+#[cfg(test)]
+#[allow(dead_code)]
+fn assert_registered_manager_is_send<S: Send>() {
+    fn check_send<T: Send>() {}
+    check_send::<Manager<S, Registered>>();
+}
+
+impl<Store: Clone, State> Clone for Manager<Store, State> {
+    fn clone(&self) -> Self {
+        Self {
+            store: self.store.clone(),
+            state: self.state.clone(),
+        }
+    }
 }
 
 impl<Store, State: fmt::Debug> fmt::Debug for Manager<Store, State> {

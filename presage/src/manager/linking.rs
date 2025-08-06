@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
@@ -158,7 +160,7 @@ impl<S: Store> Manager<S, Linking> {
 
                 let mut manager = Manager {
                     store: store.clone(),
-                    state: Registered::with_data(registration_data),
+                    state: Arc::new(Registered::with_data(registration_data)),
                 };
 
                 // Register pre-keys with the server. If this fails, this can lead to issues

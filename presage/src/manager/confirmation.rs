@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
 use libsignal_service::messagepipe::ServiceCredentials;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
@@ -21,6 +23,7 @@ use super::Registered;
 /// Manager state after a successful registration of new main device
 ///
 /// In this state, the user has to confirm the new registration via a validation code.
+#[derive(Clone)]
 pub struct Confirmation {
     pub(crate) signal_servers: SignalServers,
     pub(crate) phone_number: PhoneNumber,
@@ -50,13 +53,13 @@ impl<S: Store> Manager<S, Confirmation> {
             phone_number,
             password,
             session_id,
-        } = self.state;
+        } = &*self.state;
 
         let credentials = ServiceCredentials {
             aci: None,
             pni: None,
-            phonenumber: phone_number.clone(),
-            password: Some(password.clone()),
+            phonenumber: self.state.phone_number.clone(),
+            password: Some(self.state.password.clone()),
             signaling_key: None,
             device_id: None,
         };
@@ -66,7 +69,7 @@ impl<S: Store> Manager<S, Confirmation> {
             PushService::new(service_configuration, Some(credentials), crate::USER_AGENT);
 
         let session = identified_push_service
-            .submit_verification_code(&session_id, confirmation_code.as_ref())
+            .submit_verification_code(session_id, confirmation_code.as_ref())
             .await?;
 
         trace!("verification code submitted");
@@ -129,18 +132,18 @@ impl<S: Store> Manager<S, Confirmation> {
 
         let mut manager = Manager {
             store: self.store,
-            state: Registered::with_data(RegistrationData {
+            state: Arc::new(Registered::with_data(RegistrationData {
                 signal_servers: self.state.signal_servers,
                 device_name: None,
-                phone_number,
+                phone_number: phone_number.clone(),
                 service_ids: ServiceIds { aci, pni },
-                password,
+                password: password.clone(),
                 signaling_key,
                 device_id: None,
                 registration_id,
                 pni_registration_id: Some(pni_registration_id),
                 profile_key,
-            }),
+            })),
         };
 
         manager

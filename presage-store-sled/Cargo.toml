@@ -1,6 +1,6 @@
 [package]
 name = "presage-store-sled"
-version = "0.6.0-dev"
+version = "0.8.0-dev"
 edition = "2021"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 license = "AGPL-3.0-only"
@@ -31,7 +31,7 @@ futures = "0.3"
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
 rand = "0.8"
-tokio = { version = "1.35", default-features = false, features = ["time"] }
+tokio = { version = "1.43", default-features = false, features = ["time"] }
 
 [features]
 default = ["encryption"]
