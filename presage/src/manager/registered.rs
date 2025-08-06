@@ -798,13 +798,6 @@ impl<S: Store> Manager<S, Registered> {
                                     error!(%error, "error saving message to store");
                                 }
 
-                                // if let ContentBody::DataMessage(_) = &content.body {
-                                //     let delivery_receipt = ReceiptMessage {
-                                //         r#type: Some(receipt_message::Type::Delivery.into()),
-                                //         timestamp: vec![content.metadata.timestamp],
-                                //     };
-                                // }
-
                                 return Some((Received::Content(Box::new(content)), state));
                             }
                             Ok(None) => {
