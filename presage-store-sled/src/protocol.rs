@@ -696,6 +696,7 @@ mod tests {
     };
     use quickcheck::{Arbitrary, Gen, TestResult};
 
+    #[allow(deprecated)]
     use super::SledStore;
 
     #[derive(Debug, Clone)]
