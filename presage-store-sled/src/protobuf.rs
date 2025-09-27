@@ -42,7 +42,7 @@ impl From<Metadata> for MetadataProto {
     fn from(m: Metadata) -> Self {
         MetadataProto {
             address: Some(m.sender.into()),
-            sender_device: m.sender_device.try_into().ok().map(|d: u8| d as i32),
+            sender_device: Some(u8::from(m.sender_device).into()),
             timestamp: m.timestamp.try_into().ok(),
             server_received_timestamp: None,
             server_delivered_timestamp: None,

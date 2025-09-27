@@ -125,7 +125,7 @@ pub(crate) struct SqlGroup<'a> {
 
 impl SqlGroup<'_> {
     #[tracing::instrument]
-    pub fn from_group(master_key: &GroupMasterKeyBytes, group: Group) -> SqlGroup {
+    pub fn from_group(master_key: &GroupMasterKeyBytes, group: Group) -> SqlGroup<'_> {
         SqlGroup {
             master_key: Cow::Borrowed(master_key.as_slice()),
             title: group.title,

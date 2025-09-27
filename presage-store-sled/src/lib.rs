@@ -189,11 +189,11 @@ impl SledStore {
         })
     }
 
-    fn read(&self) -> RwLockReadGuard<sled::Db> {
+    fn read(&self) -> RwLockReadGuard<'_, sled::Db> {
         self.db.read().expect("poisoned rwlock")
     }
 
-    fn write(&self) -> RwLockWriteGuard<sled::Db> {
+    fn write(&self) -> RwLockWriteGuard<'_, sled::Db> {
         self.db.write().expect("poisoned rwlock")
     }
 
