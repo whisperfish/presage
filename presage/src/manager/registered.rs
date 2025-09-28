@@ -899,6 +899,19 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Uploads one attachment prior to linking them in a message.
+    pub async fn upload_attachment(
+        &self,
+        spec: AttachmentSpec,
+        contents: Vec<u8>,
+    ) -> Result<Result<AttachmentPointer, AttachmentUploadError>, Error<S::Error>> {
+        Ok(self
+            .new_message_sender()
+            .await?
+            .upload_attachment(spec, contents, &mut rng())
+            .await)
+    }
+
     /// Uploads attachments prior to linking them in a message.
     pub async fn upload_attachments(
         &self,
