@@ -6,9 +6,8 @@ use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
-use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, RegistrationMethod, ServiceIds, VerifyAccountResponse,
-};
+use libsignal_service::push_service::{RegistrationMethod, ServiceIds, VerifyAccountResponse};
+use libsignal_service::websocket::account::{AccountAttributes, DeviceCapabilities};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
 use rand::{thread_rng, RngCore};
@@ -65,8 +64,15 @@ impl<S: Store> Manager<S, Confirmation> {
         };
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut identified_push_service =
-            PushService::new(service_configuration, Some(credentials), crate::USER_AGENT);
+        let mut identified_push_service = PushService::new(
+            service_configuration,
+            Some(credentials.clone()),
+            crate::USER_AGENT,
+        );
+
+        let identified_websocket = identified_push_service
+            .ws("/v1/websocket/", "/v1/keepalive", &[], Some(credentials))
+            .await?;
 
         let session = identified_push_service
             .submit_verification_code(session_id, confirmation_code.as_ref())
@@ -96,7 +102,11 @@ impl<S: Store> Manager<S, Confirmation> {
             .await?;
 
         let skip_device_transfer = true;
-        let mut account_manager = AccountManager::new(identified_push_service, Some(profile_key));
+        let mut account_manager = AccountManager::new(
+            identified_push_service,
+            identified_websocket,
+            Some(profile_key),
+        );
 
         let VerifyAccountResponse {
             aci,

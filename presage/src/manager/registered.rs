@@ -21,15 +21,16 @@ use libsignal_service::protocol::{
 };
 use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
 use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, DeviceInfo, PushService, ServiceError, ServiceIds,
-    WhoAmIResponse, DEFAULT_DEVICE_ID,
+    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIds, WhoAmIResponse,
+    DEFAULT_DEVICE_ID,
 };
 use libsignal_service::receiver::MessageReceiver;
 use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
 use libsignal_service::sticker_cipher::derive_key;
 use libsignal_service::unidentified_access::UnidentifiedAccess;
 use libsignal_service::utils::serde_signaling_key;
-use libsignal_service::websocket::SignalWebSocket;
+use libsignal_service::websocket::account::DeviceInfo;
+use libsignal_service::websocket::{self, SignalWebSocket};
 use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::{attachment_cipher::decrypt_in_place, sender::MessageSender};
@@ -60,8 +61,8 @@ pub enum RegistrationType {
 pub struct Registered {
     pub(crate) identified_push_service: OnceLock<PushService>,
     pub(crate) unidentified_push_service: OnceLock<PushService>,
-    pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
-    pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket>>>,
+    pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Identified>>>>,
+    pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
 
     pub(crate) data: RegistrationData,
@@ -115,59 +116,6 @@ impl Registered {
             device_id: self.data.device_id,
         }
     }
-
-    pub(crate) async fn set_account_attributes<S: Store>(
-        &mut self,
-        store: &mut S,
-    ) -> Result<(), Error<S::Error>> {
-        trace!("setting account attributes");
-        let mut account_manager =
-            AccountManager::new(self.identified_push_service(), Some(self.data.profile_key));
-
-        let pni_registration_id = if let Some(pni_registration_id) = self.data.pni_registration_id {
-            pni_registration_id
-        } else {
-            info!("migrating to PNI");
-            let pni_registration_id = generate_registration_id(&mut thread_rng());
-            store.save_registration_data(&self.data).await?;
-            pni_registration_id
-        };
-
-        account_manager
-            .set_account_attributes(AccountAttributes {
-                name: self.data.device_name().map(|d| d.to_string()),
-                registration_id: self.data.registration_id,
-                pni_registration_id,
-                signaling_key: None,
-                voice: false,
-                video: false,
-                fetches_messages: true,
-                pin: None,
-                registration_lock: None,
-                unidentified_access_key: Some(self.data.profile_key.derive_access_key().to_vec()),
-                unrestricted_unidentified_access: false,
-                discoverable_by_phone_number: true,
-                capabilities: DeviceCapabilities {
-                    gift_badges: true,
-                    payment_activation: false,
-                    pni: true,
-                    sender_key: true,
-                    stories: false,
-                    ..Default::default()
-                },
-            })
-            .await?;
-
-        if self.data.pni_registration_id.is_none() {
-            debug!("fetching PNI UUID and updating state");
-            let whoami = self.identified_push_service().whoami().await?;
-            self.data.service_ids.pni = whoami.pni;
-            store.save_registration_data(&self.data).await?;
-        }
-
-        trace!("done setting account attributes");
-        Ok(())
-    }
 }
 
 /// Registration data like device name, and credentials to connect to Signal
@@ -205,16 +153,14 @@ impl<S: Store> Manager<S, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
     /// Returns a instance of [Manager] you can use to send & receive messages.
-    pub async fn load_registered(mut store: S) -> Result<Self, Error<S::Error>> {
+    pub async fn load_registered(store: S) -> Result<Self, Error<S::Error>> {
         let registration_data = store
             .load_registration_data()
             .await?
             .ok_or(Error::NotYetRegisteredError)?;
 
-        let mut registered = Registered::with_data(registration_data);
-        if registered.data.pni_registration_id.is_none() {
-            registered.set_account_attributes(&mut store).await?;
-        }
+        let registered = Registered::with_data(registration_data);
+
         if let Some(sender_certificate) = store.sender_certificate().await? {
             registered
                 .unidentified_sender_certificate
@@ -227,6 +173,10 @@ impl<S: Store> Manager<S, Registered> {
             store,
             state: Arc::new(registered),
         };
+
+        if manager.state.data.pni_registration_id.is_none() {
+            manager.set_account_attributes().await?;
+        }
 
         manager.register_pre_keys().await?;
 
@@ -268,7 +218,7 @@ impl<S: Store> Manager<S, Registered> {
     async fn identified_websocket(
         &self,
         require_unused: bool,
-    ) -> Result<SignalWebSocket, Error<S::Error>> {
+    ) -> Result<SignalWebSocket<websocket::Identified>, Error<S::Error>> {
         let mut identified_ws = self.state.identified_websocket.lock().await;
         match identified_ws
             .as_ref()
@@ -298,7 +248,9 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns the current unidentified websocket, or creates a new one
     ///
     /// A new one is created if the current websocket is closed, or if there is none yet.
-    async fn unidentified_websocket(&self) -> Result<SignalWebSocket, Error<S::Error>> {
+    async fn unidentified_websocket(
+        &self,
+    ) -> Result<SignalWebSocket<websocket::Unidentified>, Error<S::Error>> {
         let mut unidentified_ws = self.state.unidentified_websocket.lock().await;
         match unidentified_ws.as_ref().filter(|ws| !ws.is_closed()) {
             Some(ws) => Ok(ws.clone()),
@@ -319,6 +271,7 @@ impl<S: Store> Manager<S, Registered> {
         trace!("registering pre keys");
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
+            self.identified_websocket(false).await?,
             Some(self.state.data.profile_key),
         );
 
@@ -343,6 +296,62 @@ impl<S: Store> Manager<S, Registered> {
             .await?;
 
         trace!("registered pre keys");
+        Ok(())
+    }
+
+    pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<S::Error>> {
+        trace!("setting account attributes");
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            Some(self.state.data.profile_key),
+        );
+
+        let pni_registration_id =
+            if let Some(pni_registration_id) = self.state.data.pni_registration_id {
+                pni_registration_id
+            } else {
+                info!("migrating to PNI");
+                let pni_registration_id = generate_registration_id(&mut thread_rng());
+                self.store.save_registration_data(&self.state.data).await?;
+                pni_registration_id
+            };
+
+        account_manager
+            .set_account_attributes(AccountAttributes {
+                name: self.state.data.device_name().map(|d| d.to_string()),
+                registration_id: self.state.data.registration_id,
+                pni_registration_id,
+                signaling_key: None,
+                voice: false,
+                video: false,
+                fetches_messages: true,
+                pin: None,
+                registration_lock: None,
+                unidentified_access_key: Some(
+                    self.state.data.profile_key.derive_access_key().to_vec(),
+                ),
+                unrestricted_unidentified_access: false,
+                discoverable_by_phone_number: true,
+                capabilities: DeviceCapabilities {
+                    gift_badges: true,
+                    payment_activation: false,
+                    pni: true,
+                    sender_key: true,
+                    stories: false,
+                    ..Default::default()
+                },
+            })
+            .await?;
+
+        if self.state.data.pni_registration_id.is_none() {
+            debug!("fetching PNI UUID and updating state");
+            // let whoami = self.identified_push_service().whoami().await?;
+            // self.data.service_ids.pni = whoami.pni;
+            // store.save_registration_data(&self.data).await?;
+        }
+
+        trace!("done setting account attributes");
         Ok(())
     }
 
@@ -411,7 +420,11 @@ impl<S: Store> Manager<S, Registered> {
         token: &str,
         captcha: &str,
     ) -> Result<(), Error<S::Error>> {
-        let mut account_manager = AccountManager::new(self.identified_push_service(), None);
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            None,
+        );
         account_manager
             .submit_recaptcha_challenge(token, captcha)
             .await?;
@@ -420,7 +433,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Fetches basic information on the registered device.
     pub async fn whoami(&self) -> Result<WhoAmIResponse, Error<S::Error>> {
-        Ok(self.identified_push_service().whoami().await?)
+        Ok(self.identified_websocket(false).await?.whoami().await?)
     }
 
     pub fn device_id(&self) -> u32 {
@@ -454,8 +467,11 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(profile);
         }
 
-        let mut account_manager =
-            AccountManager::new(self.identified_push_service(), Some(profile_key));
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            Some(profile_key),
+        );
 
         let profile = account_manager.retrieve_profile(aci).await?;
 
@@ -1273,6 +1289,7 @@ impl<S: Store> Manager<S, Registered> {
         let credentials = self.credentials();
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
+            self.identified_websocket(false).await?,
             Some(self.state.data.profile_key),
         );
 
@@ -1306,6 +1323,7 @@ impl<S: Store> Manager<S, Registered> {
         let aci_protocol_store = self.store.aci_protocol_store();
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
+            self.identified_websocket(false).await?,
             Some(self.state.data.profile_key),
         );
 
