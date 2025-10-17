@@ -1,7 +1,7 @@
 use derivative::Derivative;
 use libsignal_service::{
     groups_v2::Role,
-    prelude::{AccessControl, Member, ProfileKey, Timer, Uuid},
+    prelude::{AccessControl, ProfileKey, Timer, Uuid},
     protocol::Aci,
 };
 use serde::{Deserialize, Serialize};
@@ -21,6 +21,15 @@ pub struct Group {
     pub requesting_members: Vec<RequestingMember>,
     pub invite_link_password: Vec<u8>,
     pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct Member {
+    #[serde(alias = "uuid", with = "serde_aci")]
+    pub aci: Aci,
+    pub role: Role,
+    pub profile_key: ProfileKey,
+    pub joined_at_revision: u32,
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -52,11 +61,22 @@ impl From<libsignal_service::groups_v2::Group> for Group {
             disappearing_messages_timer: val.disappearing_messages_timer,
             access_control: val.access_control,
             revision: val.revision,
-            members: val.members,
+            members: val.members.into_iter().map(Into::into).collect(),
             pending_members: val.pending_members.into_iter().map(Into::into).collect(),
             requesting_members: val.requesting_members.into_iter().map(Into::into).collect(),
             invite_link_password: val.invite_link_password,
             description: val.description,
+        }
+    }
+}
+
+impl From<libsignal_service::groups_v2::Member> for Member {
+    fn from(val: libsignal_service::groups_v2::Member) -> Self {
+        Member {
+            aci: val.aci,
+            role: val.role,
+            profile_key: val.profile_key,
+            joined_at_revision: val.joined_at_revision,
         }
     }
 }
