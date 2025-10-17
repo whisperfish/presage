@@ -9,7 +9,7 @@ use presage::{
         protocol::{
             Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
             IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, PublicKey, SenderKeyRecord,
             SenderKeyStore, ServiceId, SessionRecord, SessionStore, SignalProtocolError,
             SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
@@ -376,6 +376,8 @@ impl<T: SledTrees> KyberPreKeyStore for SledProtocolStore<T> {
     async fn mark_kyber_pre_key_used(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
+        _ec_prekey_id: SignedPreKeyId,
+        _base_key: &PublicKey,
     ) -> Result<(), SignalProtocolError> {
         let removed = self
             .store

@@ -7,9 +7,9 @@ use presage::{
         protocol::{
             Direction, GenericSignedPreKey, IdentityChange, IdentityKey, IdentityKeyPair,
             KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord,
-            PreKeyStore, ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore,
-            ServiceId, SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId,
-            SignedPreKeyRecord, SignedPreKeyStore,
+            PreKeyStore, ProtocolAddress, ProtocolStore, PublicKey, SenderKeyRecord,
+            SenderKeyStore, ServiceId, SessionRecord, SessionStore, SignalProtocolError,
+            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
     },
@@ -406,6 +406,8 @@ impl KyberPreKeyStore for SqliteProtocolStore {
     async fn mark_kyber_pre_key_used(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
+        _ec_prekey_id: SignedPreKeyId,
+        _base_key: &PublicKey,
     ) -> Result<(), SignalProtocolError> {
         let id: u32 = kyber_prekey_id.into();
         query!(
