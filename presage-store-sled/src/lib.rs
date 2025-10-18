@@ -48,6 +48,7 @@ const SLED_KEY_SENDER_CERTIFICATE: &str = "sender_certificate";
 pub struct SledStore {
     db: Arc<RwLock<sled::Db>>,
     #[cfg(feature = "encryption")]
+    #[allow(deprecated)]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     /// Whether to trust new identities automatically (for instance, when a somebody's phone has changed)
     trust_new_identities: OnNewIdentity,
