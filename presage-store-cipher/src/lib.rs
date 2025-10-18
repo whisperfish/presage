@@ -1,4 +1,5 @@
 // Based on `matrix-sdk-store-encryption` (License Apache-2.0)
+#![allow(deprecated)]
 
 use blake3::{derive_key, Hash};
 use chacha20poly1305::aead::Aead;
