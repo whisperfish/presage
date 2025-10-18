@@ -321,6 +321,7 @@ impl ContentsStore for SledStore {
 
 pub struct SledContactsIter {
     #[cfg(feature = "encryption")]
+    #[allow(deprecated)]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
 }
@@ -355,6 +356,7 @@ impl Iterator for SledContactsIter {
 
 pub struct SledGroupsIter {
     #[cfg(feature = "encryption")]
+    #[allow(deprecated)]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
 }
@@ -396,6 +398,7 @@ impl Iterator for SledGroupsIter {
 
 pub struct SledStickerPacksIter {
     #[cfg(feature = "encryption")]
+    #[allow(deprecated)]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
 }
@@ -430,6 +433,7 @@ impl Iterator for SledStickerPacksIter {
 
 pub struct SledMessagesIter {
     #[cfg(feature = "encryption")]
+    #[allow(deprecated)]
     cipher: Option<Arc<presage_store_cipher::StoreCipher>>,
     iter: sled::Iter,
 }
