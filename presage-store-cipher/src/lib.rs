@@ -24,6 +24,7 @@ const KDF_ROUNDS: u32 = 200_000;
 /// passphrase, and imported back from bytes.
 #[derive(Zeroize)]
 #[zeroize(drop)]
+#[deprecated(since = "0.2.0", note = "presage-store-cipher is deprecated")]
 pub struct StoreCipher {
     encryption_key: Box<[u8; 32]>,
     mac_key_seed: Box<[u8; 32]>,
