@@ -2799,9 +2799,11 @@ dependencies = [
  "chrono",
  "presage",
  "prost",
+ "rand 0.9.2",
  "serde_json",
  "sqlx",
  "thiserror 2.0.17",
+ "tokio",
  "tracing",
  "uuid",
 ]
