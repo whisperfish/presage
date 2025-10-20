@@ -433,10 +433,11 @@ impl KyberPreKeyStore for SqliteProtocolStore {
             let base_key = base_key.serialize();
 
             let result = query!(
-                "INSERT INTO base_keys_seen (kyber_pre_key_id, signed_pre_key_id, base_key)
-                VALUES (?1, ?2, ?3)",
+                "INSERT INTO base_keys_seen (kyber_pre_key_id, signed_pre_key_id, identity, base_key)
+                VALUES (?1, ?2, ?3, ?4)",
                 kyber_prekey_id,
                 ec_prekey_id,
+                self.identity,
                 base_key
             )
             .execute(&mut *transaction)
@@ -728,7 +729,7 @@ impl SenderKeyStore for SqliteProtocolStore {
 
 #[cfg(test)]
 mod test {
-    use presage::libsignal_service::protocol::{KeyPair, KyberPreKeyStore};
+    use presage::libsignal_service::protocol::{KeyPair, KyberPreKeyStore, Timestamp};
 
     use super::*;
 
@@ -761,6 +762,7 @@ mod test {
 
     #[tokio::test]
     async fn kyber_pre_keys_mark_used_last_resort() -> Result<(), Box<dyn std::error::Error>> {
+        let mut rng = rand::rng();
         let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
         let mut protocol_store = SqliteProtocolStore {
             store: sqlite_store,
@@ -769,15 +771,33 @@ mod test {
 
         let id = KyberPreKeyId::from(0);
         let keypair = KeyPair::generate(&mut rand::rng());
-        let record = KyberPreKeyRecord::generate(
+
+        // Signed pre key
+        let ec_pre_key_pair = KeyPair::generate(&mut rng);
+        let ec_pre_key_signature = keypair
+            .private_key
+            .calculate_signature(&ec_pre_key_pair.public_key.serialize(), &mut rng)?;
+        let ec_prekey_id = SignedPreKeyId::from(1);
+        let ec_prekey_record = SignedPreKeyRecord::new(
+            ec_prekey_id,
+            Timestamp::from_epoch_millis(1760968452908),
+            &ec_pre_key_pair,
+            &ec_pre_key_signature,
+        );
+
+        // Kyber pre key
+        let kyber_pre_key_record = KyberPreKeyRecord::generate(
             presage::libsignal_service::protocol::kem::KeyType::Kyber1024,
             id,
             &keypair.private_key,
         )?;
-        let ec_prekey_id = SignedPreKeyId::from(1);
 
         protocol_store
-            .store_last_resort_kyber_pre_key(id, &record)
+            .save_signed_pre_key(ec_prekey_id, &ec_prekey_record)
+            .await?;
+
+        protocol_store
+            .store_last_resort_kyber_pre_key(id, &kyber_pre_key_record)
             .await?;
         assert!(protocol_store.get_kyber_pre_key(id).await.is_ok());
         protocol_store
