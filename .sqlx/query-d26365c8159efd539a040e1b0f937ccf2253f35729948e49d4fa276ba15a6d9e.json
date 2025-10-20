@@ -1,0 +1,20 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT is_last_resort FROM kyber_pre_keys WHERE id = ? and identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "is_last_resort",
+        "ordinal": 0,
+        "type_info": "Integer"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d26365c8159efd539a040e1b0f937ccf2253f35729948e49d4fa276ba15a6d9e"
+}

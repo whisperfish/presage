@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ? AND is_last_resort = FALSE",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a15adc3e59473100b5c489bd8fd3025be312e92613a10d725a5f375536aebcc7"
+}
