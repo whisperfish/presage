@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM sender_keys",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "63576762221f65a8db164a63620cc66a1d7a3bf9fd9f22e05c2e905fd40a4070"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM group_avatars",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "a9089c88c534d503dff09df4d918344687a95999e41f7531671e134a7ad0f9df"
+}
