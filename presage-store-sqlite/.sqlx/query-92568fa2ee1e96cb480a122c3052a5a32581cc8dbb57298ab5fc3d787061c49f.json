@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM profile_avatars",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "92568fa2ee1e96cb480a122c3052a5a32581cc8dbb57298ab5fc3d787061c49f"
+}

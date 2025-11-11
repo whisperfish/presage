@@ -14,6 +14,8 @@ pub use error::SqliteStoreError;
 pub use presage::model::identity::OnNewIdentity;
 pub use sqlx::sqlite::SqliteConnectOptions;
 
+use crate::error::SqlxErrorExt;
+
 #[derive(Debug, Clone)]
 pub struct SqliteStore {
     pub(crate) db: SqlitePool,
@@ -118,9 +120,29 @@ impl StateStore for SqliteStore {
     }
 
     async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
+        let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM kv WHERE key = 'registration'")
-            .execute(&self.db)
+            .execute(&mut *transaction)
             .await?;
+        query!("DELETE FROM sessions")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM identities")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM pre_keys")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM signed_pre_keys")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM kyber_pre_keys")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM sender_keys")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await.into_protocol_error()?;
         Ok(())
     }
 
