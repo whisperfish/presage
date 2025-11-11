@@ -475,8 +475,8 @@ impl ContentsStore for SqliteStore {
         &self,
         service_id: &ServiceId,
     ) -> Result<Option<ProfileKey>, Self::ContentsStoreError> {
-        let service_id = service_id.service_id_string();
-        let profile_key = query_scalar!("SELECT key FROM profile_keys WHERE uuid = ?", service_id)
+        let uuid = service_id.raw_uuid();
+        let profile_key = query_scalar!("SELECT key FROM profile_keys WHERE uuid = ?", uuid)
             .fetch_optional(&self.db)
             .await?
             .and_then(|bytes| bytes.try_into().ok().map(ProfileKey::create));
