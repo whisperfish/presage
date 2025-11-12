@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM kyber_pre_keys",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "0b0a1c972959369c8ee3fb9756c49ad76e9cfe791b11dfc556df1ce0b807466c"
+}

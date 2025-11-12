@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM signed_pre_keys",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "1c2dde830066921a902c34ea82fe00996c856a254f5b4db0e217b3e0c3b39651"
+}

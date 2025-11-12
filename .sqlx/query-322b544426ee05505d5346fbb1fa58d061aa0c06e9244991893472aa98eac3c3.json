@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM pre_keys",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "322b544426ee05505d5346fbb1fa58d061aa0c06e9244991893472aa98eac3c3"
+}
