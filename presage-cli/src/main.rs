@@ -555,7 +555,10 @@ async fn receive<S: Store>(
 
     while let Some(content) = messages.next().await {
         match content {
-            Received::QueueEmpty => println!("done with synchronization"),
+            Received::QueueEmpty => {
+                println!("done with synchronization");
+                break;
+            }
             Received::Contacts => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
