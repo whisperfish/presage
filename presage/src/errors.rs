@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use libsignal_service::prelude::MessageSenderError;
+use libsignal_service::websocket::registration::RegistrationSessionMetadataResponse;
 use libsignal_service::{models::ParseContactError, protocol::SignalProtocolError};
 
 use crate::store::StoreError;
@@ -62,7 +63,7 @@ pub enum Error<S: std::error::Error> {
     #[error("push challenge required (not implemented)")]
     PushChallengeRequired,
     #[error("Not allowed to request verification code, reason unknown: {0:?}")]
-    RequestingCodeForbidden(libsignal_service::push_service::RegistrationSessionMetadataResponse),
+    RequestingCodeForbidden(RegistrationSessionMetadataResponse),
     #[error("attachment sha256 checksum did not match")]
     UnexpectedAttachmentChecksum,
     #[error("Unverified registration session (i.e. wrong verification code)")]

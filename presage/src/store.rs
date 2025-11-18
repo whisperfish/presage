@@ -15,6 +15,7 @@ use libsignal_service::{
         IdentityKey, IdentityKeyPair, ProtocolAddress, ProtocolStore, SenderCertificate,
         SenderKeyStore, ServiceId,
     },
+    push_service::DEFAULT_DEVICE_ID,
     session_store::SessionStoreExt,
     zkgroup::GroupMasterKeyBytes,
     Profile,
@@ -260,7 +261,7 @@ pub trait ContentsStore: Send + Sync {
     /// Get the profile key for a contact
     fn profile_key(
         &self,
-        uuid: &Uuid,
+        service_id: &ServiceId,
     ) -> impl Future<Output = Result<Option<ProfileKey>, Self::ContentsStoreError>>;
 
     /// Save a profile by [Uuid] and [ProfileKey].
@@ -554,7 +555,7 @@ pub async fn save_trusted_identity_message<S: Store>(
         metadata: Metadata {
             sender,
             destination: sender,
-            sender_device: 0,
+            sender_device: *DEFAULT_DEVICE_ID,
             server_guid: None,
             timestamp: SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)

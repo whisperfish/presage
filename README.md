@@ -8,9 +8,7 @@ A Rust library that helps building clients for the [Signal Messenger](https://si
 
 Features:
 
-- [x] Local storage with encryption:
-  - [x] with [sled](https://github.com/spacejam/sled)
-  - [ ] with [sqlx](https://crates.io/sqlx) and `sqlite` (see #287)
+- [x] Local storage with [sqlx](https://crates.io/sqlx) and `sqlite` (see #287) with optional encryption with `sqlcipher` (fixed in #335)
 - [x] Registration
   - [x] SMS
   - [x] Voice call

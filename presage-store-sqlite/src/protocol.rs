@@ -3,13 +3,13 @@ use chrono::{DateTime, Utc};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
-        prelude::{IdentityKeyStore, SessionStoreExt, Uuid},
+        prelude::{DeviceId, IdentityKeyStore, SessionStoreExt, Uuid},
         protocol::{
-            Direction, GenericSignedPreKey, IdentityKey, IdentityKeyPair, KyberPreKeyId,
-            KyberPreKeyRecord, KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore,
-            ProtocolAddress, ProtocolStore, SenderKeyRecord, SenderKeyStore, ServiceId,
-            SessionRecord, SessionStore, SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord,
-            SignedPreKeyStore,
+            CiphertextMessageType, Direction, GenericSignedPreKey, IdentityChange, IdentityKey,
+            IdentityKeyPair, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
+            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, PublicKey, SenderKeyRecord,
+            SenderKeyStore, ServiceId, SessionRecord, SessionStore, SignalProtocolError,
+            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
     },
@@ -52,7 +52,7 @@ impl SessionStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<SessionRecord>, SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query!(
             "SELECT record FROM sessions
@@ -74,7 +74,7 @@ impl SessionStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         record: &SessionRecord,
     ) -> Result<(), SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         let record = record.serialize()?;
 
@@ -122,23 +122,30 @@ impl SessionStoreExt for SqliteProtocolStore {
     async fn get_sub_device_sessions(
         &self,
         name: &ServiceId,
-    ) -> Result<Vec<u32>, SignalProtocolError> {
-        let address = name.raw_uuid().to_string();
+    ) -> Result<Vec<DeviceId>, SignalProtocolError> {
+        let address: String = name.raw_uuid().to_string();
+        let device_id: u8 = (*DEFAULT_DEVICE_ID).into();
         query_scalar!(
             "SELECT device_id AS 'id: u32' FROM sessions
             WHERE address = ? AND device_id != ? AND identity = ?",
             address,
-            DEFAULT_DEVICE_ID,
+            device_id,
             self.identity,
         )
         .fetch_all(&self.store.db)
         .await
+        .map(|device_ids| {
+            device_ids
+                .into_iter()
+                .filter_map(|device_id| device_id.try_into().ok())
+                .collect()
+        })
         .into_protocol_error()
     }
 
     /// Remove a session record for a recipient ID + device ID tuple.
     async fn delete_session(&self, address: &ProtocolAddress) -> Result<(), SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query!(
             "DELETE FROM sessions WHERE address = ? AND device_id = ? AND identity = ?",
@@ -395,20 +402,70 @@ impl KyberPreKeyStore for SqliteProtocolStore {
     }
 
     /// Mark the entry for `kyber_prekey_id` as "used".
-    /// This would mean different things for one-time and last-resort Kyber keys.
+    ///
+    /// This means different things for one-time and last-resort Kyber keys.
+    /// See the [trait documentation](https://github.com/signalapp/libsignal/blob/eb616f63ed053af83e577f36169f5cb5889bb904/rust/protocol/src/storage/traits.rs#L129), [reference implementation](https://github.com/signalapp/libsignal/blob/eb616f63ed053af83e577f36169f5cb5889bb904/rust/protocol/src/storage/inmem.rs#L247) (and the [comment for it](https://github.com/signalapp/libsignal/blob/eb616f63ed053af83e577f36169f5cb5889bb904/rust/protocol/src/storage/inmem.rs#L196)).
     async fn mark_kyber_pre_key_used(
         &mut self,
         kyber_prekey_id: KyberPreKeyId,
+        ec_prekey_id: SignedPreKeyId,
+        base_key: &PublicKey,
     ) -> Result<(), SignalProtocolError> {
-        let id: u32 = kyber_prekey_id.into();
-        query!(
-            "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ?",
-            id,
+        let mut transaction = self.store.db.begin().await.into_protocol_error()?;
+
+        let kyber_prekey_id: u32 = kyber_prekey_id.into();
+
+        // Check whether key is last resort
+        let is_last_resort = query_scalar!(
+            "SELECT is_last_resort FROM kyber_pre_keys WHERE id = ? and identity = ?",
+            kyber_prekey_id,
             self.identity,
         )
-        .execute(&self.store.db)
+        .fetch_one(&mut *transaction)
         .await
-        .into_protocol_error()?;
+        .into_protocol_error()?
+            != 0;
+
+        if is_last_resort {
+            // Mark last-resort keys as used with the corresponding ec_prekey_id and base_key in base_keys_seen table.
+
+            let ec_prekey_id: u32 = ec_prekey_id.into();
+            let base_key = base_key.serialize();
+
+            let result = query!(
+                "INSERT INTO base_keys_seen (kyber_pre_key_id, signed_pre_key_id, identity, base_key)
+                VALUES (?1, ?2, ?3, ?4)",
+                kyber_prekey_id,
+                ec_prekey_id,
+                self.identity,
+                base_key
+            )
+            .execute(&mut *transaction)
+            .await;
+
+            if matches!(result, Err(sqlx::Error::Database(ref e)) if e.kind() == sqlx::error::ErrorKind::UniqueViolation)
+            {
+                return Err(SignalProtocolError::InvalidMessage(
+                    CiphertextMessageType::PreKey,
+                    "reused base key",
+                ));
+            }
+
+            result.into_protocol_error()?;
+        } else {
+            // Delete only one-time (i.e. non-last-resort) pre keys.
+            query!(
+                "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ? AND is_last_resort = FALSE",
+                kyber_prekey_id,
+                self.identity,
+            )
+            .execute(&mut *transaction)
+            .await
+            .into_protocol_error()?;
+        }
+
+        transaction.commit().await.into_protocol_error()?;
+
         Ok(())
     }
 }
@@ -525,8 +582,8 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &mut self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-    ) -> Result<bool, SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+    ) -> Result<IdentityChange, SignalProtocolError> {
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         let bytes = identity.serialize();
 
@@ -564,7 +621,11 @@ impl IdentityKeyStore for SqliteProtocolStore {
 
         tx.commit().await.into_protocol_error()?;
 
-        Ok(is_replaced)
+        Ok(if is_replaced {
+            IdentityChange::ReplacedExisting
+        } else {
+            IdentityChange::NewOrUnchanged
+        })
     }
 
     /// Return whether an identity is trusted for the role specified by `direction`.
@@ -596,7 +657,7 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let device_id: u32 = address.device_id().into();
+        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query_scalar!(
             "SELECT record FROM identities
@@ -623,7 +684,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         record: &SenderKeyRecord,
     ) -> Result<(), SignalProtocolError> {
         let address = sender.name();
-        let device_id: u32 = sender.device_id().into();
+        let device_id: u8 = sender.device_id().into();
         let record = record.serialize()?;
         query!(
             "INSERT INTO sender_keys
@@ -649,7 +710,7 @@ impl SenderKeyStore for SqliteProtocolStore {
         distribution_id: Uuid,
     ) -> Result<Option<SenderKeyRecord>, SignalProtocolError> {
         let address = sender.name();
-        let device_id: u32 = sender.device_id().into();
+        let device_id: u8 = sender.device_id().into();
         query_scalar!(
             "SELECT record FROM sender_keys
             WHERE address = ? AND device_id = ? AND identity = ? AND distribution_id = ?",
@@ -663,5 +724,93 @@ impl SenderKeyStore for SqliteProtocolStore {
         .into_protocol_error()?
         .map(|record| SenderKeyRecord::deserialize(&record))
         .transpose()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use presage::libsignal_service::protocol::{KeyPair, KyberPreKeyStore, Timestamp};
+
+    use super::*;
+
+    #[tokio::test]
+    async fn kyber_pre_keys_mark_used_one_time() -> Result<(), Box<dyn std::error::Error>> {
+        let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let mut protocol_store = SqliteProtocolStore {
+            store: sqlite_store,
+            identity: IdentityType::Aci,
+        };
+
+        let id = KyberPreKeyId::from(0);
+        let keypair = KeyPair::generate(&mut rand::rng());
+        let record = KyberPreKeyRecord::generate(
+            presage::libsignal_service::protocol::kem::KeyType::Kyber1024,
+            id,
+            &keypair.private_key,
+        )?;
+        let ec_prekey_id = SignedPreKeyId::from(1);
+
+        protocol_store.save_kyber_pre_key(id, &record).await?;
+        assert!(protocol_store.get_kyber_pre_key(id).await.is_ok());
+        protocol_store
+            .mark_kyber_pre_key_used(id, ec_prekey_id, &keypair.public_key)
+            .await?;
+        assert!(protocol_store.get_kyber_pre_key(id).await.is_err());
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn kyber_pre_keys_mark_used_last_resort() -> Result<(), Box<dyn std::error::Error>> {
+        let mut rng = rand::rng();
+        let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let mut protocol_store = SqliteProtocolStore {
+            store: sqlite_store,
+            identity: IdentityType::Aci,
+        };
+
+        let id = KyberPreKeyId::from(0);
+        let keypair = KeyPair::generate(&mut rand::rng());
+
+        // Signed pre key
+        let ec_pre_key_pair = KeyPair::generate(&mut rng);
+        let ec_pre_key_signature = keypair
+            .private_key
+            .calculate_signature(&ec_pre_key_pair.public_key.serialize(), &mut rng)?;
+        let ec_prekey_id = SignedPreKeyId::from(1);
+        let ec_prekey_record = SignedPreKeyRecord::new(
+            ec_prekey_id,
+            Timestamp::from_epoch_millis(1760968452908),
+            &ec_pre_key_pair,
+            &ec_pre_key_signature,
+        );
+
+        // Kyber pre key
+        let kyber_pre_key_record = KyberPreKeyRecord::generate(
+            presage::libsignal_service::protocol::kem::KeyType::Kyber1024,
+            id,
+            &keypair.private_key,
+        )?;
+
+        protocol_store
+            .save_signed_pre_key(ec_prekey_id, &ec_prekey_record)
+            .await?;
+
+        protocol_store
+            .store_last_resort_kyber_pre_key(id, &kyber_pre_key_record)
+            .await?;
+        assert!(protocol_store.get_kyber_pre_key(id).await.is_ok());
+        protocol_store
+            .mark_kyber_pre_key_used(id, ec_prekey_id, &keypair.public_key)
+            .await?;
+        assert!(protocol_store.get_kyber_pre_key(id).await.is_ok());
+        assert!(
+            protocol_store
+                .mark_kyber_pre_key_used(id, ec_prekey_id, &keypair.public_key)
+                .await
+                .is_err()
+        );
+
+        Ok(())
     }
 }

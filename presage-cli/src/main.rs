@@ -17,6 +17,7 @@ use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
 use presage::libsignal_service::pre_keys::PreKeysStore;
 use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
+use presage::libsignal_service::prelude::DeviceId;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
@@ -39,8 +40,6 @@ use presage::{
     store::{Store, Thread},
     Manager,
 };
-use presage_store_sled::MigrationConflictStrategy;
-use presage_store_sled::SledStore;
 use presage_store_sqlite::SqliteStore;
 use tempfile::Builder;
 use tempfile::TempDir;
@@ -55,9 +54,6 @@ use url::Url;
 #[derive(Parser)]
 #[clap(about = "a basic signal CLI to try things out")]
 struct Args {
-    #[clap(long = "sled-db-path", group = "db")]
-    sled_db_path: Option<PathBuf>,
-
     #[clap(long = "sqlite-db-path", group = "db")]
     sqlite_db_path: Option<String>,
 
@@ -133,12 +129,19 @@ enum Cmd {
         profile_key: Option<ProfileKey>,
     },
     #[clap(about = "Receive all pending messages and saves them to disk")]
-    Receive {
+    Sync {
         #[clap(long = "notifications", short = 'n')]
         notifications: bool,
     },
     #[clap(about = "List groups")]
-    ListGroups,
+    ListGroups {
+        /// Name filter to only list groups which name contains this string
+        #[clap(long)]
+        name_filter: Option<String>,
+        /// Display the entire group metadata
+        #[clap(long, short = 'v')]
+        verbose: bool,
+    },
     #[clap(about = "List contacts")]
     ListContacts,
     #[clap(
@@ -236,36 +239,25 @@ fn init() -> Args {
 async fn main() -> anyhow::Result<()> {
     let args = init();
 
-    if let Some(sled_db_path) = args.sled_db_path {
-        debug!(sled_db_path =% sled_db_path.display(), "opening config database");
-        let config_store = SledStore::open_with_passphrase(
-            sled_db_path,
-            args.passphrase,
-            MigrationConflictStrategy::Raise,
-            OnNewIdentity::Trust,
-        )
-        .await?;
+    let sqlite_db_path = args.sqlite_db_path.unwrap_or_else(|| {
+        ProjectDirs::from("org", "whisperfish", "presage")
+            .unwrap()
+            .config_dir()
+            .join("cli.db3")
+            .display()
+            .to_string()
+    });
 
-        run(args.subcommand, config_store).await
-    } else {
-        let sqlite_db_path = args.sqlite_db_path.unwrap_or_else(|| {
-            ProjectDirs::from("org", "whisperfish", "presage")
-                .unwrap()
-                .config_dir()
-                .join("cli.db3")
-                .display()
-                .to_string()
-        });
-        debug!(sqlite_db_path, "opening config database");
-        let config_store = SqliteStore::open_with_passphrase(
-            &sqlite_db_path,
-            args.passphrase.as_deref(),
-            OnNewIdentity::Trust,
-        )
-        .await?;
+    debug!(sqlite_db_path, "opening config database");
+    let config_store = SqliteStore::open_with_passphrase(
+        &sqlite_db_path,
+        args.passphrase.as_deref(),
+        OnNewIdentity::Trust,
+    )
+    .await?;
 
-        run(args.subcommand, config_store).await
-    }
+    let local = tokio::task::LocalSet::new();
+    local.run_until(run(args.subcommand, config_store)).await
 }
 
 async fn send<S: Store>(
@@ -560,7 +552,7 @@ async fn print_message<S: Store>(
 }
 
 async fn receive<S: Store>(
-    manager: &mut Manager<S, Registered>,
+    mut manager: Manager<S, Registered>,
     notifications: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = attachments_tmp_dir()?;
@@ -576,7 +568,7 @@ async fn receive<S: Store>(
             Received::Contacts => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
-                    manager,
+                    &mut manager,
                     attachments_tmp_dir.path(),
                     notifications,
                     &content,
@@ -589,7 +581,7 @@ async fn receive<S: Store>(
     Ok(())
 }
 
-async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
+async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
     match subcommand {
         Cmd::Register {
             servers,
@@ -599,7 +591,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             force,
         } => {
             let manager = Manager::register(
-                config_store,
+                store,
                 RegistrationOptions {
                     signal_servers: servers,
                     phone_number,
@@ -630,7 +622,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             let (provisioning_link_tx, provisioning_link_rx) = oneshot::channel();
             let manager = future::join(
                 Manager::link_secondary_device(
-                    config_store,
+                    store,
                     servers,
                     device_name.clone(),
                     provisioning_link_tx,
@@ -650,7 +642,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
 
             match manager {
                 (Ok(manager), _) => {
-                    let whoami = manager.whoami().await.unwrap();
+                    let whoami = manager.whoami().await?;
                     println!("{whoami:?}");
                 }
                 (Err(err), _) => {
@@ -658,26 +650,30 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 }
             }
         }
+        Cmd::Sync { notifications } => {
+            let manager = Manager::load_registered(store).await?;
+            receive(manager, notifications).await?;
+        }
         Cmd::AddDevice { url } => {
-            let mut manager = Manager::load_registered(config_store).await?;
+            let mut manager = load_registered_and_receive(store).await?;
             manager.link_secondary(url).await?;
             println!("Added new secondary device");
         }
         Cmd::UnlinkDevice { device_id } => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             manager.unlink_secondary(device_id).await?;
             println!("Unlinked device with id: {}", device_id);
         }
         Cmd::ListDevices => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             let devices = manager.devices().await?;
-            let current_device_id = manager.device_id() as i64;
+            let current_device_id = manager.device_id();
 
             for device in devices {
                 let device_name = device
                     .name
                     .unwrap_or_else(|| "(no device name)".to_string());
-                let current_marker = if device.id == current_device_id {
+                let current_marker = if DeviceId::new(device.id)? == current_device_id {
                     "(this device)"
                 } else {
                     ""
@@ -689,16 +685,12 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 );
             }
         }
-        Cmd::Receive { notifications } => {
-            let mut manager = Manager::load_registered(config_store).await?;
-            receive(&mut manager, notifications).await?;
-        }
         Cmd::Send {
             uuid,
             message,
             attachment_filepath,
         } => {
-            let mut manager = Manager::load_registered(config_store).await?;
+            let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let data_message = DataMessage {
                 body: Some(message),
@@ -713,7 +705,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             master_key,
             attachment_filepath,
         } => {
-            let mut manager = Manager::load_registered(config_store).await?;
+            let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let data_message = DataMessage {
                 body: Some(message),
@@ -732,7 +724,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             uuid,
             mut profile_key,
         } => {
-            let mut manager = Manager::load_registered(config_store).await?;
+            let mut manager = load_registered_and_receive(store).await?;
             if profile_key.is_none() {
                 for contact in manager
                     .store()
@@ -756,8 +748,11 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             };
             println!("{profile:#?}");
         }
-        Cmd::ListGroups => {
-            let manager = Manager::load_registered(config_store).await?;
+        Cmd::ListGroups {
+            name_filter,
+            verbose,
+        } => {
+            let manager = load_registered_and_receive(store).await?;
             for group in manager.store().groups().await? {
                 match group {
                     Ok((
@@ -767,14 +762,39 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                             description,
                             revision,
                             members,
+                            disappearing_messages_timer,
+                            pending_members,
+                            requesting_members,
                             ..
                         },
                     )) => {
+                        if let Some(name_filter) = name_filter.as_ref() {
+                            if !title.contains(name_filter) {
+                                continue;
+                            }
+                        }
                         let key = hex::encode(group_master_key);
-                        println!(
-                            "{key} {title}: {description:?} / revision {revision} / {} members",
-                            members.len()
-                        );
+                        if verbose {
+                            println!("{key} (revision {revision})");
+                            println!("\tTitle: {title}");
+                            if let Some(description) = description {
+                                println!("\tDescription: {description}\n");
+                            }
+                            if !pending_members.is_empty() {
+                                println!("Has {} pending members", pending_members.len());
+                            }
+                            if !requesting_members.is_empty() {
+                                println!("Has {} requesting members", requesting_members.len());
+                            }
+                            if let Some(timer) = disappearing_messages_timer {
+                                println!("Disappearing messages timer: {} seconds", timer.duration);
+                            }
+                        } else {
+                            println!(
+                                "{key} {title}: {description:?} / revision {revision} / {} members",
+                                members.len()
+                            );
+                        }
                     }
                     Err(error) => {
                         error!(%error, "failed to deserialize group");
@@ -783,7 +803,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::ListContacts => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             for Contact {
                 name,
                 uuid,
@@ -795,7 +815,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::ListStickerPacks => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             for sticker_pack in manager.store().sticker_packs().await? {
                 match sticker_pack {
                     Ok(sticker_pack) => {
@@ -820,11 +840,11 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::Whoami => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             println!("{:?}", &manager.whoami().await?);
         }
         Cmd::GetContact { ref uuid } => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             match manager.store().contact_by_id(uuid).await? {
                 Some(contact) => println!("{contact:#?}"),
                 None => eprintln!("Could not find contact for {uuid}"),
@@ -835,7 +855,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             phone_number,
             ref name,
         } => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             for contact in manager
                 .store()
                 .contacts()
@@ -849,7 +869,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::SyncContacts => {
-            let mut manager = Manager::load_registered(config_store).await?;
+            let mut manager = load_registered_and_receive(store).await?;
             manager.request_contacts().await?;
 
             let messages = manager
@@ -873,7 +893,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             recipient_uuid,
             from,
         } => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
             let thread = match (group_master_key, recipient_uuid) {
                 (Some(master_key), _) => Thread::Group(master_key),
                 (_, Some(uuid)) => Thread::Contact(uuid),
@@ -889,7 +909,7 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::Stats => {
-            let manager = Manager::load_registered(config_store).await?;
+            let manager = load_registered_and_receive(store).await?;
 
             #[allow(unused)]
             #[derive(Debug)]
@@ -938,6 +958,15 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
         }
     }
     Ok(())
+}
+
+async fn load_registered_and_receive<S: Store + Send>(
+    store: S,
+) -> anyhow::Result<Manager<S, Registered>> {
+    let manager = Manager::load_registered(store).await?;
+    let manager_receive = manager.clone();
+    tokio::task::spawn_local(receive(manager_receive, false));
+    Ok(manager)
 }
 
 async fn upload_attachments<S: Store>(

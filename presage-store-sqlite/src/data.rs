@@ -6,14 +6,14 @@ use presage::{
         Profile,
         content::Metadata,
         models::Attachment,
-        prelude::{AccessControl, Content, Member, phonenumber},
+        prelude::{AccessControl, Content, phonenumber},
         profile_name::ProfileName,
         protocol::ServiceId,
         zkgroup::GroupMasterKeyBytes,
     },
     model::{
         contacts::Contact,
-        groups::{Group, PendingMember, RequestingMember},
+        groups::{Group, Member, PendingMember, RequestingMember},
     },
     proto::{self, Verified, verified},
     store::{StickerPack, StickerPackManifest},
@@ -28,12 +28,10 @@ pub struct SqlContact {
     pub uuid: Uuid,
     pub phone_number: Option<String>,
     pub name: String,
-    pub color: Option<String>,
     pub profile_key: Vec<u8>,
     pub expire_timer: i64,
     pub expire_timer_version: i64,
     pub inbox_position: i64,
-    pub archived: bool,
     pub avatar: Option<Vec<u8>>,
 
     pub destination_aci: Option<String>,
@@ -53,7 +51,6 @@ impl TryInto<Contact> for SqlContact {
                 .map(|p| phonenumber::parse(None, &p))
                 .transpose()?,
             name: self.name,
-            color: self.color,
             verified: Verified {
                 destination_aci: self.destination_aci,
                 identity_key: self.identity_key,
@@ -70,7 +67,6 @@ impl TryInto<Contact> for SqlContact {
             expire_timer: self.expire_timer as u32,
             expire_timer_version: self.expire_timer_version as u32,
             inbox_position: self.inbox_position as u32,
-            archived: self.archived,
             avatar: self.avatar.map(|b| Attachment {
                 content_type: "application/octet-stream".to_owned(),
                 reader: Bytes::from(b),
@@ -129,7 +125,7 @@ pub(crate) struct SqlGroup<'a> {
 
 impl SqlGroup<'_> {
     #[tracing::instrument]
-    pub fn from_group(master_key: &GroupMasterKeyBytes, group: Group) -> SqlGroup {
+    pub fn from_group(master_key: &GroupMasterKeyBytes, group: Group) -> SqlGroup<'_> {
         SqlGroup {
             master_key: Cow::Borrowed(master_key.as_slice()),
             title: group.title,
@@ -184,7 +180,7 @@ pub struct SqlMessage {
     pub ts: u64,
 
     pub sender_service_id: String,
-    pub sender_device_id: u32,
+    pub sender_device_id: u8,
     pub destination_service_id: String,
     pub needs_receipt: bool,
     pub unidentified_sender: bool,
@@ -217,7 +213,7 @@ impl TryInto<Content> for SqlMessage {
         let metadata = Metadata {
             sender,
             destination,
-            sender_device: sender_device_id,
+            sender_device: sender_device_id.try_into()?,
             timestamp: ts,
             needs_receipt,
             unidentified_sender,

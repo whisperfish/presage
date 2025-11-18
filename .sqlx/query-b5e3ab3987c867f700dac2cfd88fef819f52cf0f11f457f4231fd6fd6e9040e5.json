@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO base_keys_seen (kyber_pre_key_id, signed_pre_key_id, identity, base_key)\n                VALUES (?1, ?2, ?3, ?4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "b5e3ab3987c867f700dac2cfd88fef819f52cf0f11f457f4231fd6fd6e9040e5"
+}

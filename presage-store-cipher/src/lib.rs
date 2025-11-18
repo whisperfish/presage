@@ -1,11 +1,12 @@
 // Based on `matrix-sdk-store-encryption` (License Apache-2.0)
+#![allow(deprecated)]
 
 use blake3::{derive_key, Hash};
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{AeadCore, KeyInit, XChaCha20Poly1305, XNonce};
 use hmac::Hmac;
 use pbkdf2::pbkdf2;
-use rand::{thread_rng, RngCore};
+use rand::{rand_core, rng, RngCore};
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use sha2::Sha256;
@@ -23,6 +24,7 @@ const KDF_ROUNDS: u32 = 200_000;
 /// passphrase, and imported back from bytes.
 #[derive(Zeroize)]
 #[zeroize(drop)]
+#[deprecated(since = "0.2.0", note = "presage-store-cipher is deprecated")]
 pub struct StoreCipher {
     encryption_key: Box<[u8; 32]>,
     mac_key_seed: Box<[u8; 32]>,
@@ -30,7 +32,7 @@ pub struct StoreCipher {
 
 impl StoreCipher {
     pub fn new() -> Self {
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let mut store_cipher = Self::zero();
         rng.fill_bytes(store_cipher.encryption_key.as_mut_slice());
         rng.fill_bytes(store_cipher.mac_key_seed.as_mut_slice());
@@ -53,7 +55,7 @@ impl StoreCipher {
         passphrase: &str,
         rounds: u32,
     ) -> Result<Vec<u8>, StoreCipherError> {
-        let mut rng = thread_rng();
+        let mut rng = rng();
         let mut salt = [0u8; KDF_SALT_SIZE];
         rng.fill_bytes(&mut salt);
 
@@ -61,6 +63,7 @@ impl StoreCipher {
         let key = chacha20poly1305::Key::from(key);
         let cipher = XChaCha20Poly1305::new(&key);
 
+        let rng = Rng06Shiv(&mut rng);
         let nonce = XChaCha20Poly1305::generate_nonce(rng);
 
         let mut keys = Zeroizing::new([0u8; 64]);
@@ -132,7 +135,9 @@ impl StoreCipher {
     }
 
     fn encrypt_value_data(&self, mut data: Vec<u8>) -> Result<EncryptedValue, StoreCipherError> {
-        let nonce = XChaCha20Poly1305::generate_nonce(thread_rng());
+        let mut rng = rng();
+        let rng = Rng06Shiv(&mut rng);
+        let nonce = XChaCha20Poly1305::generate_nonce(rng);
         let cipher = XChaCha20Poly1305::new(self.encryption_key());
 
         let ciphertext = cipher.encrypt(&nonce, &*data)?;
@@ -250,6 +255,29 @@ pub enum StoreCipherError {
     #[error("invalid ciphertext length, expected {0}, got {1}")]
     Length(usize, usize),
 }
+
+struct Rng06Shiv<'a, T>(&'a mut T);
+
+impl<T: rand_core::RngCore> rand_core_06::RngCore for Rng06Shiv<'_, T> {
+    fn next_u32(&mut self) -> u32 {
+        self.0.next_u32()
+    }
+
+    fn next_u64(&mut self) -> u64 {
+        self.0.next_u64()
+    }
+
+    fn fill_bytes(&mut self, dest: &mut [u8]) {
+        self.0.fill_bytes(dest)
+    }
+
+    fn try_fill_bytes(&mut self, dest: &mut [u8]) -> Result<(), rand_core_06::Error> {
+        self.0.fill_bytes(dest);
+        Ok(())
+    }
+}
+
+impl<T: rand_core::CryptoRng> rand_core_06::CryptoRng for Rng06Shiv<'_, T> {}
 
 #[cfg(test)]
 mod tests {

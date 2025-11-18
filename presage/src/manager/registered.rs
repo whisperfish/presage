@@ -3,39 +3,41 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::configuration::{ServiceConfiguration, SignalServers, SignalingKey};
-use libsignal_service::content::{Content, ContentBody, DataMessageFlags, Metadata};
-use libsignal_service::groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache};
-use libsignal_service::messagepipe::{Incoming, MessagePipe, ServiceCredentials};
-use libsignal_service::prelude::phonenumber::PhoneNumber;
-use libsignal_service::prelude::{MessageSenderError, ProtobufMessage, Uuid};
-use libsignal_service::profile_cipher::ProfileCipher;
-use libsignal_service::proto::data_message::Delete;
-use libsignal_service::proto::{
-    sync_message::{self, sticker_pack_operation, StickerPackOperation},
-    AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
-    Verified,
+use libsignal_service::websocket::account::{
+    AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
-use libsignal_service::protocol::{
-    Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
+use libsignal_service::{
+    attachment_cipher::decrypt_in_place,
+    cipher,
+    configuration::{ServiceConfiguration, SignalServers, SignalingKey},
+    content::{Content, ContentBody, DataMessageFlags, Metadata},
+    groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
+    messagepipe::{Incoming, MessagePipe, ServiceCredentials},
+    prelude::{phonenumber::PhoneNumber, DeviceId, MessageSenderError, ProtobufMessage, Uuid},
+    profile_cipher::ProfileCipher,
+    proto::{
+        data_message::Delete,
+        sync_message::{self, sticker_pack_operation, StickerPackOperation},
+        AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
+        Verified,
+    },
+    protocol::{Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind},
+    provisioning::{generate_registration_id, ProvisioningError},
+    push_service::{PushService, ServiceError, ServiceIds, DEFAULT_DEVICE_ID},
+    receiver::MessageReceiver,
+    sender::{AttachmentSpec, AttachmentUploadError},
+    sticker_cipher::derive_key,
+    unidentified_access::UnidentifiedAccess,
+    utils::serde_signaling_key,
+    websocket,
+    websocket::SignalWebSocket,
+    zkgroup::{
+        groups::{GroupMasterKey, GroupSecretParams},
+        profiles::ProfileKey,
+    },
+    AccountManager, Profile, ServiceIdExt,
 };
-use libsignal_service::provisioning::{generate_registration_id, ProvisioningError};
-use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, PushService, ServiceError, ServiceIds, WhoAmIResponse,
-    DEFAULT_DEVICE_ID,
-};
-use libsignal_service::receiver::MessageReceiver;
-use libsignal_service::sender::{AttachmentSpec, AttachmentUploadError};
-use libsignal_service::sticker_cipher::derive_key;
-use libsignal_service::unidentified_access::UnidentifiedAccess;
-use libsignal_service::utils::serde_signaling_key;
-use libsignal_service::websocket::account::DeviceInfo;
-use libsignal_service::websocket::{self, SignalWebSocket};
-use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
-use libsignal_service::zkgroup::profiles::ProfileKey;
-use libsignal_service::{attachment_cipher::decrypt_in_place, sender::MessageSender};
-use libsignal_service::{cipher, AccountManager, Profile, ServiceIdExt};
-use rand::thread_rng;
+use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
@@ -50,6 +52,7 @@ use crate::{model::groups::Group, AvatarBytes, Error, Manager};
 pub use crate::model::messages::Received;
 
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
+type MessageSender<S> = libsignal_service::prelude::MessageSender<S>;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum RegistrationType {
@@ -90,8 +93,11 @@ impl Registered {
         self.data.signal_servers.into()
     }
 
-    pub fn device_id(&self) -> u32 {
-        self.data.device_id.unwrap_or(DEFAULT_DEVICE_ID)
+    pub fn device_id(&self) -> DeviceId {
+        self.data
+            .device_id
+            .and_then(|d| d.try_into().ok())
+            .unwrap_or(*DEFAULT_DEVICE_ID)
     }
 
     pub(crate) fn identified_push_service(&self) -> PushService {
@@ -113,7 +119,7 @@ impl Registered {
             phonenumber: self.data.phone_number.clone(),
             password: Some(self.data.password.clone()),
             signaling_key: Some(self.data.signaling_key),
-            device_id: self.data.device_id,
+            device_id: self.data.device_id.and_then(|d| d.try_into().ok()),
         }
     }
 }
@@ -169,16 +175,17 @@ impl<S: Store> Manager<S, Registered> {
                 .replace(sender_certificate);
         }
 
-        let mut manager = Self {
+        let manager = Self {
             store,
             state: Arc::new(registered),
         };
 
-        if manager.state.data.pni_registration_id.is_none() {
-            manager.set_account_attributes().await?;
-        }
+        // TODO: spawn these in jobs instead?
+        // if manager.state.data.pni_registration_id.is_none() {
+        //     manager.set_account_attributes().await?;
+        // }
 
-        manager.register_pre_keys().await?;
+        // manager.register_pre_keys().await?;
 
         Ok(manager)
     }
@@ -275,7 +282,7 @@ impl<S: Store> Manager<S, Registered> {
             Some(self.state.data.profile_key),
         );
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         account_manager
             .update_pre_key_bundle(
@@ -312,7 +319,7 @@ impl<S: Store> Manager<S, Registered> {
                 pni_registration_id
             } else {
                 info!("migrating to PNI");
-                let pni_registration_id = generate_registration_id(&mut thread_rng());
+                let pni_registration_id = generate_registration_id(&mut rand::rng());
                 self.store.save_registration_data(&self.state.data).await?;
                 pni_registration_id
             };
@@ -365,7 +372,7 @@ impl<S: Store> Manager<S, Registered> {
             request: Some(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts.into()),
             }),
-            ..SyncMessage::with_padding(&mut thread_rng())
+            ..SyncMessage::with_padding(&mut rand::rng())
         };
 
         let timestamp = SystemTime::now()
@@ -401,7 +408,8 @@ impl<S: Store> Manager<S, Registered> {
             self.state.unidentified_sender_certificate.lock().await;
         if needs_renewal(unidentified_sender_certificate.as_ref()) {
             let sender_certificate = self
-                .identified_push_service()
+                .identified_websocket(false)
+                .await?
                 .get_uuid_only_sender_certificate()
                 .await?;
             self.store
@@ -436,7 +444,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(self.identified_websocket(false).await?.whoami().await?)
     }
 
-    pub fn device_id(&self) -> u32 {
+    pub fn device_id(&self) -> DeviceId {
         self.state.device_id()
     }
 
@@ -503,7 +511,7 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(Some(avatar));
         }
 
-        let mut gm = self.groups_manager()?;
+        let mut gm = self.groups_manager().await?;
         let Some(group) = upsert_group(
             &self.store,
             &mut gm,
@@ -560,9 +568,9 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(None);
         };
 
-        let mut service = self.unidentified_push_service();
+        let mut websocket = self.unidentified_websocket().await?;
 
-        let mut avatar_stream = service.retrieve_profile_avatar(avatar).await?;
+        let mut avatar_stream = websocket.retrieve_profile_avatar(avatar).await?;
         // 10MB is what Signal Android allocates
         let mut contents = Vec::with_capacity(10 * 1024 * 1024);
         let len = avatar_stream.read_to_end(&mut contents).await?;
@@ -579,7 +587,9 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     #[expect(clippy::result_large_err)]
-    fn groups_manager(&self) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
+    async fn groups_manager(
+        &self,
+    ) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
         let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
@@ -587,6 +597,7 @@ impl<S: Store> Manager<S, Registered> {
         let groups_manager = GroupsManager::new(
             self.state.data.service_ids.clone(),
             self.identified_push_service(),
+            self.unidentified_websocket().await?,
             groups_credentials_cache,
             server_public_params,
         );
@@ -615,7 +626,8 @@ impl<S: Store> Manager<S, Registered> {
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
         struct StreamState<Receiver, Store, AciStore, PniStore> {
             store: Store,
-            push_service: PushService,
+            identified_websocket: SignalWebSocket<websocket::Identified>,
+            unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
             service_cipher_aci: ServiceCipher<AciStore>,
@@ -628,12 +640,13 @@ impl<S: Store> Manager<S, Registered> {
 
         let init = StreamState {
             store: self.store.clone(),
-            push_service: push_service.clone(),
+            identified_websocket: self.identified_websocket(false).await?.clone(),
+            unidentified_websocket: self.unidentified_websocket().await?.clone(),
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
-            groups_manager: self.groups_manager()?,
+            groups_manager: self.groups_manager().await?,
             service_ids: self.state.data.service_ids.clone(),
         };
 
@@ -651,7 +664,7 @@ impl<S: Store> Manager<S, Registered> {
                                 None | Some(ServiceId::Aci(_)) => {
                                     state
                                         .service_cipher_aci
-                                        .open_envelope(envelope, &mut thread_rng())
+                                        .open_envelope(envelope, &mut rng())
                                         .await
                                 }
                                 Some(ServiceId::Pni(pni)) => {
@@ -663,7 +676,7 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                     state
                                         .service_cipher_pni
-                                        .open_envelope(envelope, &mut thread_rng())
+                                        .open_envelope(envelope, &mut rng())
                                         .await
                                 }
                             }
@@ -707,14 +720,15 @@ impl<S: Store> Manager<S, Registered> {
                                         match operation.r#type() {
                                             sticker_pack_operation::Type::Install => {
                                                 let store = state.store.clone();
-                                                let push_service = state.push_service.clone();
+                                                let unidentified_websocket =
+                                                    state.unidentified_websocket.clone();
                                                 let operation = operation.clone();
 
                                                 // download stickers in the background
                                                 tokio::spawn(async move {
                                                     match download_sticker_pack(
                                                         store,
-                                                        push_service,
+                                                        unidentified_websocket,
                                                         &operation,
                                                     )
                                                     .await
@@ -799,7 +813,7 @@ impl<S: Store> Manager<S, Registered> {
 
                                 if let Err(error) = save_message(
                                     &mut state.store,
-                                    &mut state.push_service,
+                                    &mut state.identified_websocket,
                                     content.clone(),
                                     None,
                                 )
@@ -858,14 +872,14 @@ impl<S: Store> Manager<S, Registered> {
         self.restore_thread_timer(&thread, &mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
-        let unidentified_access =
-            self.store
-                .profile_key(&recipient.raw_uuid())
-                .await?
-                .map(|profile_key| UnidentifiedAccess {
-                    key: profile_key.derive_access_key().to_vec(),
-                    certificate: sender_certificate.clone(),
-                });
+        let unidentified_access = self
+            .store
+            .profile_key(&recipient)
+            .await?
+            .map(|profile_key| UnidentifiedAccess {
+                key: profile_key.derive_access_key().to_vec(),
+                certificate: sender_certificate.clone(),
+            });
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -903,10 +917,29 @@ impl<S: Store> Manager<S, Registered> {
             body: content_body,
         };
 
-        let mut push_service = self.identified_push_service();
-        save_message(&mut self.store, &mut push_service, content, Some(thread)).await?;
+        let mut identified_websocket = self.identified_websocket(false).await?;
+        save_message(
+            &mut self.store,
+            &mut identified_websocket,
+            content,
+            Some(thread),
+        )
+        .await?;
 
         Ok(())
+    }
+
+    /// Uploads one attachment prior to linking them in a message.
+    pub async fn upload_attachment(
+        &self,
+        spec: AttachmentSpec,
+        contents: Vec<u8>,
+    ) -> Result<Result<AttachmentPointer, AttachmentUploadError>, Error<S::Error>> {
+        Ok(self
+            .new_message_sender()
+            .await?
+            .upload_attachment(spec, contents, &mut rng())
+            .await)
     }
 
     /// Uploads attachments prior to linking them in a message.
@@ -920,11 +953,7 @@ impl<S: Store> Manager<S, Registered> {
         let sender = self.new_message_sender().await?;
         let upload = future::join_all(attachments.into_iter().map(move |(spec, contents)| {
             let mut sender = sender.clone();
-            async move {
-                sender
-                    .upload_attachment(spec, contents, &mut thread_rng())
-                    .await
-            }
+            async move { sender.upload_attachment(spec, contents, &mut rng()).await }
         }));
         Ok(upload.await)
     }
@@ -950,7 +979,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut sender = self.new_message_sender().await?;
 
-        let mut groups_manager = self.groups_manager()?;
+        let mut groups_manager = self.groups_manager().await?;
         let Some(group) =
             upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
         else {
@@ -962,11 +991,11 @@ impl<S: Store> Manager<S, Registered> {
         for member in group
             .members
             .into_iter()
-            .filter(|m| m.uuid != self.state.data.service_ids.aci)
+            .filter(|m| m.aci != self.state.data.service_ids.aci())
         {
             let unidentified_access =
                 self.store
-                    .profile_key(&member.uuid)
+                    .profile_key(&member.aci.into())
                     .await?
                     .map(|profile_key| UnidentifiedAccess {
                         key: profile_key.derive_access_key().to_vec(),
@@ -974,7 +1003,7 @@ impl<S: Store> Manager<S, Registered> {
                     });
             let include_pni_signature = false;
             recipients.push((
-                Aci::from(member.uuid).into(),
+                member.aci.into(),
                 unidentified_access,
                 include_pni_signature,
             ));
@@ -1014,8 +1043,14 @@ impl<S: Store> Manager<S, Registered> {
             body: content_body,
         };
 
-        let mut push_service = self.identified_push_service();
-        save_message(&mut self.store, &mut push_service, content, Some(thread)).await?;
+        let mut identified_websocket = self.identified_websocket(false).await?;
+        save_message(
+            &mut self.store,
+            &mut identified_websocket,
+            content,
+            Some(thread),
+        )
+        .await?;
 
         Ok(())
     }
@@ -1129,8 +1164,13 @@ impl<S: Store> Manager<S, Registered> {
             r#type: Some(sticker_pack_operation::Type::Install as i32),
         };
 
-        let push_service = self.unidentified_push_service();
-        download_sticker_pack(self.store.clone(), push_service, &sticker_pack_operation).await?;
+        let unidentified_websocket = self.unidentified_websocket().await?;
+        download_sticker_pack(
+            self.store.clone(),
+            unidentified_websocket,
+            &sticker_pack_operation,
+        )
+        .await?;
 
         // Sync the change with the other devices
         let sync_message = SyncMessage {
@@ -1221,7 +1261,7 @@ impl<S: Store> Manager<S, Registered> {
             self.state.data.service_ids.pni,
             aci_identity_keypair,
             Some(pni_identity_keypair),
-            self.state.device_id().into(),
+            self.state.device_id(),
         ))
     }
 
@@ -1295,7 +1335,7 @@ impl<S: Store> Manager<S, Registered> {
 
         account_manager
             .link_device(
-                &mut thread_rng(),
+                &mut rand::rng(),
                 secondary,
                 &self.store.aci_protocol_store(),
                 &self.store.pni_protocol_store(),
@@ -1312,7 +1352,8 @@ impl<S: Store> Manager<S, Registered> {
         if self.registration_type() != RegistrationType::Primary {
             return Err(Error::NotPrimaryDevice);
         }
-        self.identified_push_service()
+        self.identified_websocket(false)
+            .await?
             .unlink_device(device_id)
             .await?;
         Ok(())
@@ -1378,7 +1419,7 @@ async fn upsert_group<S: Store>(
     if upsert_group {
         debug!("fetching and saving group");
         match groups_manager
-            .fetch_encrypted_group(&mut thread_rng(), master_key_bytes)
+            .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
             .await
         {
             Ok(encrypted_group) => {
@@ -1399,7 +1440,7 @@ async fn upsert_group<S: Store>(
 /// Download and decrypt a sticker manifest
 async fn download_sticker_pack<C: ContentsStore>(
     mut store: C,
-    mut push_service: PushService,
+    mut unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
     operation: &StickerPackOperation,
 ) -> Result<StickerPack, Error<C::ContentsStoreError>> {
     debug!("downloading sticker pack");
@@ -1409,7 +1450,7 @@ async fn download_sticker_pack<C: ContentsStore>(
 
     let mut ciphertext = Vec::new();
 
-    let size_bytes = push_service
+    let size_bytes = unidentified_websocket
         .get_sticker_pack_manifest(&hex::encode(pack_id))
         .await?
         .read_to_end(&mut ciphertext)
@@ -1425,7 +1466,9 @@ async fn download_sticker_pack<C: ContentsStore>(
             .into();
 
     for sticker in &mut sticker_pack_manifest.stickers {
-        match download_sticker(&mut store, &mut push_service, pack_id, pack_key, sticker.id).await {
+        match download_sticker::<C>(&mut unidentified_websocket, pack_id, pack_key, sticker.id)
+            .await
+        {
             Ok(decrypted_sticker_bytes) => {
                 debug!(id = sticker.id, "downloaded sticker");
                 sticker.bytes = Some(decrypted_sticker_bytes);
@@ -1448,15 +1491,14 @@ async fn download_sticker_pack<C: ContentsStore>(
 
 /// Downloads and decrypts a single sticker
 async fn download_sticker<C: ContentsStore>(
-    _store: &mut C,
-    push_service: &mut PushService,
+    unidentified_websocket: &mut SignalWebSocket<websocket::Unidentified>,
     pack_id: &[u8],
     pack_key: &[u8],
     sticker_id: u32,
 ) -> Result<Vec<u8>, Error<C::ContentsStoreError>> {
     let key = derive_key(pack_key)?;
 
-    let mut sticker_stream = push_service
+    let mut sticker_stream = unidentified_websocket
         .get_sticker(&hex::encode(pack_id), sticker_id)
         .await?;
 
@@ -1475,7 +1517,7 @@ async fn download_sticker<C: ContentsStore>(
 /// This is required when storing outgoing messages, as in this case the appropriate storage place cannot be derived from the message itself.
 async fn save_message<S: Store>(
     store: &mut S,
-    push_service: &mut PushService,
+    identified_websocket: &mut websocket::SignalWebSocket<websocket::Identified>,
     message: Content,
     override_thread: Option<Thread>,
 ) -> Result<(), Error<S::Error>> {
@@ -1515,13 +1557,13 @@ async fn save_message<S: Store>(
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
                 if store.contact_by_id(&sender.raw_uuid()).await?.is_none()
                     || store
-                        .profile_key(&sender.raw_uuid())
+                        .profile_key(&sender)
                         .await?
                         .is_none_or(|p| p.bytes != profile_key.bytes)
                 {
                     if let Some(aci) = sender.aci() {
                         let sender_uuid: Uuid = aci.into();
-                        let encrypted_profile = push_service
+                        let encrypted_profile = identified_websocket
                             .retrieve_profile_by_id(aci, Some(profile_key))
                             .await?;
                         let profile_cipher = ProfileCipher::new(profile_key);
@@ -1542,11 +1584,9 @@ async fn save_message<S: Store>(
                                 })
                                 .unwrap_or_default(),
                             profile_key: profile_key.bytes.to_vec(),
-                            color: None,
                             expire_timer: data_message.expire_timer.unwrap_or_default(),
                             expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
                             inbox_position: 0,
-                            archived: false,
                             avatar: None,
                             verified: Verified::default(),
                         };

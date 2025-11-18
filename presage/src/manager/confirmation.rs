@@ -6,11 +6,12 @@ use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
-use libsignal_service::push_service::{RegistrationMethod, ServiceIds, VerifyAccountResponse};
+use libsignal_service::push_service::ServiceIds;
 use libsignal_service::websocket::account::{AccountAttributes, DeviceCapabilities};
+use libsignal_service::websocket::registration::{RegistrationMethod, VerifyAccountResponse};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
-use rand::{thread_rng, RngCore};
+use rand::RngCore;
 use tracing::trace;
 
 use crate::manager::registered::RegistrationData;
@@ -42,7 +43,7 @@ impl<S: Store> Manager<S, Confirmation> {
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
         trace!("confirming verification code");
 
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
 
         let registration_id = generate_registration_id(&mut rng);
         let pni_registration_id = generate_registration_id(&mut rng);
@@ -70,11 +71,11 @@ impl<S: Store> Manager<S, Confirmation> {
             crate::USER_AGENT,
         );
 
-        let identified_websocket = identified_push_service
+        let mut identified_websocket = identified_push_service
             .ws("/v1/websocket/", "/v1/keepalive", &[], Some(credentials))
             .await?;
 
-        let session = identified_push_service
+        let session = identified_websocket
             .submit_verification_code(session_id, confirmation_code.as_ref())
             .await?;
 
