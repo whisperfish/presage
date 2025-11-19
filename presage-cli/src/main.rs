@@ -559,8 +559,8 @@ async fn receive<S: Store>(
     while let Some(content) = messages.next().await {
         match content {
             Received::QueueEmpty => {
+                println!("done with synchronization");
                 if nostream {
-                        println!("done with synchronization");
                         break;
                     }
                 }
