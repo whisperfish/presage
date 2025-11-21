@@ -33,12 +33,11 @@ impl<S: Store> Manager<S, Linking> {
     /// use presage::libsignal_service::configuration::SignalServers;
     /// use presage::Manager;
     /// use presage::model::identity::OnNewIdentity;
-    /// use presage_store_sled::{MigrationConflictStrategy, SledStore};
+    /// use presage_store_sqlite::SqliteStore;
     ///
     /// #[tokio::main]
     /// async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    ///     let store =
-    ///         SledStore::open("/tmp/presage-example", MigrationConflictStrategy::Drop, OnNewIdentity::Trust).await?;
+    ///     let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
     ///
     ///     let (mut tx, mut rx) = oneshot::channel();
     ///     let (manager, err) = future::join(
