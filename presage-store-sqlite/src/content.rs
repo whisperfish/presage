@@ -18,6 +18,7 @@ use sqlx::{query, query_as, query_scalar, types::Json};
 use crate::{
     SqliteStore, SqliteStoreError,
     data::{SqlContact, SqlGroup, SqlMessage, SqlProfile, SqlStickerPack},
+    error::SqlxErrorExt,
 };
 
 impl ContentsStore for SqliteStore {
@@ -39,15 +40,57 @@ impl ContentsStore for SqliteStore {
         Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>> + Send + Sync>;
 
     async fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        query!("DELETE FROM profiles")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM profile_keys")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM profile_avatars")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await.into_protocol_error()?;
+        Ok(())
     }
 
     async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        query!("DELETE FROM thread_messages")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM threads")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM contacts")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM contacts_verification_state")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM groups")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM group_avatars")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM sticker_packs")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await.into_protocol_error()?;
+        Ok(())
     }
 
     async fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError> {
-        todo!()
+        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        query!("DELETE FROM thread_messages")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM threads")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await.into_protocol_error()?;
+        Ok(())
     }
 
     async fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::ContentsStoreError> {
@@ -237,7 +280,14 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
-        query!("DELETE FROM contacts").execute(&self.db).await?;
+        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        query!("DELETE FROM contacts")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM contacts_verification_state")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await.into_protocol_error()?;
         Ok(())
     }
 
@@ -346,7 +396,14 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError> {
-        query!("DELETE FROM groups").execute(&self.db).await?;
+        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        query!("DELETE FROM groups")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM group_avatars")
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await.into_protocol_error()?;
         Ok(())
     }
 

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM sticker_packs",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "7aeef727c93b2648119f0c3bea2b31a1087cba3a18bb4fcec6d547a86bb07364"
+}
