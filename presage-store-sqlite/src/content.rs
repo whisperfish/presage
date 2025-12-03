@@ -489,9 +489,9 @@ impl ContentsStore for SqliteStore {
     ) -> Result<(), Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query!(
-            "UPDATE group_avatars SET bytes = ? WHERE group_master_key = ?",
-            avatar,
+            "INSERT OR REPLACE INTO group_avatars(group_master_key, bytes) VALUES (?, ?)",
             master_key_bytes,
+            avatar,
         )
         .execute(&self.db)
         .await?;
@@ -604,9 +604,9 @@ impl ContentsStore for SqliteStore {
         profile: &AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         query!(
-            "UPDATE profile_avatars SET bytes = ? WHERE uuid = ?",
-            profile,
+            "INSERT OR REPLACE INTO profile_avatars(uuid, bytes) VALUES (?, ?)",
             uuid,
+            profile,
         )
         .execute(&self.db)
         .await?;
