@@ -1,4 +1,3 @@
-use derivative::Derivative;
 use libsignal_service::{
     groups_v2::Role,
     prelude::{AccessControl, ProfileKey, Timer, Uuid},
@@ -44,11 +43,11 @@ pub struct PendingMember {
     pub timestamp: u64,
 }
 
-#[derive(Derivative, Clone, Deserialize, Serialize)]
-#[derivative(Debug)]
+#[derive(derive_more::Debug, Clone, Deserialize, Serialize)]
 pub struct RequestingMember {
     #[serde(alias = "uuid", with = "serde_aci")]
     pub aci: Aci,
+    #[debug(ignore)]
     pub profile_key: ProfileKey,
     pub timestamp: u64,
 }

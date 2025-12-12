@@ -1,5 +1,5 @@
 [workspace]
-members = ["presage", "presage-cli", "presage-store-sled", "presage-store-cipher", "presage-store-sqlite"]
+members = ["presage", "presage-cli", "presage-store-sqlite"]
 resolver = "2"
 
 [patch.crates-io]
