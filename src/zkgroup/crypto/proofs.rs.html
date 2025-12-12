@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-2a193a9867decbc4/eb7e0e7/rust/zkgroup/src/crypto/proofs.rs`."><title>proofs.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-e56847b5.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.91.1 (ed61e7d7e 2025-11-07)" data-channel="1.91.1" data-search-js="search-e256b49e.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../../../static.files/src-script-813739b1.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-6dc2a7f3.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">zkgroup/crypto/</div>proofs.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">//
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-2a193a9867decbc4/4944955/rust/zkgroup/src/crypto/proofs.rs`."><title>proofs.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="zkgroup" data-themes="" data-resource-suffix="" data-rustdoc-version="1.92.0 (ded5c06cf 2025-12-08)" data-channel="1.92.0" data-search-js="search-d69d8955.js" data-stringdex-js="stringdex-c3e638e9.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../../../static.files/src-script-813739b1.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-ce535bd0.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">zkgroup/crypto/</div>proofs.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="comment">//
 <a href=#2 id=2 data-nosnippet>2</a>// Copyright 2020-2022 Signal Messenger, LLC.
 <a href=#3 id=3 data-nosnippet>3</a>// SPDX-License-Identifier: AGPL-3.0-only
 <a href=#4 id=4 data-nosnippet>4</a>//
@@ -140,7 +140,7 @@
 <a href=#140 id=140 data-nosnippet>140</a>                <span class="kw-2">&amp;</span>[],
 <a href=#141 id=141 data-nosnippet>141</a>                <span class="kw-2">&amp;</span>sho.squeeze_as_array::&lt;RANDOMNESS_LEN&gt;(),
 <a href=#142 id=142 data-nosnippet>142</a>            )
-<a href=#143 id=143 data-nosnippet>143</a>            .unwrap();
+<a href=#143 id=143 data-nosnippet>143</a>            .expect(<span class="string">"valid proof"</span>);
 <a href=#144 id=144 data-nosnippet>144</a>        ProfileKeyCredentialRequestProof { poksho_proof }
 <a href=#145 id=145 data-nosnippet>145</a>    }
 <a href=#146 id=146 data-nosnippet>146</a>
@@ -262,7 +262,7 @@
 <a href=#262 id=262 data-nosnippet>262</a>                <span class="kw-2">&amp;</span>[],
 <a href=#263 id=263 data-nosnippet>263</a>                <span class="kw-2">&amp;</span>sho.squeeze_as_array::&lt;RANDOMNESS_LEN&gt;(),
 <a href=#264 id=264 data-nosnippet>264</a>            )
-<a href=#265 id=265 data-nosnippet>265</a>            .unwrap();
+<a href=#265 id=265 data-nosnippet>265</a>            .expect(<span class="string">"valid proof"</span>);
 <a href=#266 id=266 data-nosnippet>266</a>        ExpiringProfileKeyCredentialIssuanceProof { poksho_proof }
 <a href=#267 id=267 data-nosnippet>267</a>    }
 <a href=#268 id=268 data-nosnippet>268</a>
@@ -390,7 +390,7 @@
 <a href=#390 id=390 data-nosnippet>390</a>                <span class="kw-2">&amp;</span>[],
 <a href=#391 id=391 data-nosnippet>391</a>                <span class="kw-2">&amp;</span>sho.squeeze_as_array::&lt;RANDOMNESS_LEN&gt;(),
 <a href=#392 id=392 data-nosnippet>392</a>            )
-<a href=#393 id=393 data-nosnippet>393</a>            .unwrap();
+<a href=#393 id=393 data-nosnippet>393</a>            .expect(<span class="string">"valid proof"</span>);
 <a href=#394 id=394 data-nosnippet>394</a>        <span class="self">Self </span>{ poksho_proof }
 <a href=#395 id=395 data-nosnippet>395</a>    }
 <a href=#396 id=396 data-nosnippet>396</a>
@@ -564,7 +564,7 @@
 <a href=#564 id=564 data-nosnippet>564</a>                <span class="kw-2">&amp;</span>[],
 <a href=#565 id=565 data-nosnippet>565</a>                <span class="kw-2">&amp;</span>sho.squeeze_as_array::&lt;RANDOMNESS_LEN&gt;(),
 <a href=#566 id=566 data-nosnippet>566</a>            )
-<a href=#567 id=567 data-nosnippet>567</a>            .unwrap();
+<a href=#567 id=567 data-nosnippet>567</a>            .expect(<span class="string">"valid proof"</span>);
 <a href=#568 id=568 data-nosnippet>568</a>
 <a href=#569 id=569 data-nosnippet>569</a>        ExpiringProfileKeyCredentialPresentationProof {
 <a href=#570 id=570 data-nosnippet>570</a>            C_y1,
@@ -723,7 +723,7 @@
 <a href=#723 id=723 data-nosnippet>723</a>                <span class="kw-2">&amp;</span>[],
 <a href=#724 id=724 data-nosnippet>724</a>                <span class="kw-2">&amp;</span>sho.squeeze_as_array::&lt;RANDOMNESS_LEN&gt;(),
 <a href=#725 id=725 data-nosnippet>725</a>            )
-<a href=#726 id=726 data-nosnippet>726</a>            .unwrap();
+<a href=#726 id=726 data-nosnippet>726</a>            .expect(<span class="string">"valid proof"</span>);
 <a href=#727 id=727 data-nosnippet>727</a>
 <a href=#728 id=728 data-nosnippet>728</a>        <span class="self">Self </span>{
 <a href=#729 id=729 data-nosnippet>729</a>            C_x0,
