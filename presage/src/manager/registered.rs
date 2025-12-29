@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::future::select;
 use futures::{future, pin_mut, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::prelude::MasterKey;
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
@@ -327,6 +328,18 @@ impl<S: Store> Manager<S, Registered> {
             .expect("logic error"))
     }
 
+    async fn master_key(&self) -> Result<MasterKey, Error<S::Error>> {
+        let from_store = self.store().fetch_master_key().await?;
+
+        if let Some(key) = from_store {
+            Ok(key)
+        } else {
+            let key = MasterKey::generate(&mut rand::rng());
+            self.store().store_master_key(Some(&key)).await?;
+            Ok(key)
+        }
+    }
+
     pub async fn submit_recaptcha_challenge(
         &self,
         token: &str,
@@ -550,6 +563,8 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_pni: ServiceCipher<PniStore>,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
             service_ids: ServiceIds,
+            message_sender: MessageSender<AciStore>,
+            master_key: MasterKey,
         }
 
         let identified_push_service = self.identified_push_service();
@@ -569,6 +584,8 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_pni: self.new_service_cipher_pni(),
             groups_manager: self.groups_manager().await?,
             service_ids: self.state.data.service_ids.clone(),
+            message_sender: self.new_message_sender().await?,
+            master_key: self.master_key().await?,
         };
 
         debug!("starting to consume incoming message stream");
@@ -638,6 +655,84 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        request: Some(request),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        use libsignal_service::content::sync_message::request::Type as RequestType;
+
+                                        match request.r#type() {
+                                            RequestType::Contacts => {
+                                                let contacts = state
+                                                    .store
+                                                    .contacts()
+                                                    .await
+                                                    .map(|i| {
+                                                        i.collect::<Result<Vec<_>, _>>()
+                                                            .unwrap_or_default()
+                                                    })
+                                                    .unwrap_or_default();
+                                                let result = state
+                                                    .message_sender
+                                                    .send_contact_details(
+                                                        &ServiceId::Aci(state.service_ids.aci()),
+                                                        None,
+                                                        contacts.into_iter().map(|c| libsignal_service::sender::ContactDetails {
+                                                            number: c.phone_number.map(|p| p.to_string()),
+                                                            aci: Some(c.uuid.to_string()),
+                                                            name: Some(c.name),
+                                                            avatar: c.avatar.map(|a| libsignal_service::proto::contact_details::Avatar {
+                                                                content_type: Some(a.content_type),
+                                                                length: a.reader.len().try_into().ok(),
+                                                            }),
+                                                            expire_timer: Some(c.expire_timer),
+                                                            expire_timer_version: Some(c.expire_timer_version),
+                                                            inbox_position: None,
+                                                        }),
+                                                        false,
+                                                        true,
+                                                    )
+                                                    .await;
+                                                if let Err(error) = result {
+                                                    warn!(%error, "Error sending contact details to other devices");
+                                                }
+                                            }
+                                            RequestType::Keys => {
+                                                let result = state.message_sender.send_sync_message(SyncMessage {
+                                                    keys: Some(libsignal_service::content::sync_message::Keys {
+                                                        master: Some(state.master_key.inner.to_vec()),
+                                                        account_entropy_pool: None,
+                                                        media_root_backup_key: None,
+                                                    }),
+                                                    ..SyncMessage::with_padding(&mut rand::rng())
+                                                }).await;
+
+                                                if let Err(error) = result {
+                                                    warn!(%error, "Error sending keys to other devices");
+                                                }
+                                            }
+                                            RequestType::Blocked => {
+                                                let result = state.message_sender.send_sync_message(SyncMessage {
+                                                    blocked: Some(libsignal_service::content::sync_message::Blocked {
+                                                        numbers: vec![],
+                                                        acis: vec![],
+                                                        group_ids: vec![],
+                                                    }),
+                                                    ..SyncMessage::with_padding(&mut rand::rng())
+                                                }).await;
+
+                                                if let Err(error) = result {
+                                                    warn!(%error, "Error sending blocked contacts to other devices");
+                                                }
+                                            }
+                                            // TODO: Configuration
+                                            t => {
+                                                info!(type = ?t, "Got sync request of currently unhandled type")
+                                            }
+                                        }
+                                    }
+
                                     // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
                                         contacts: Some(contacts),
@@ -871,8 +966,8 @@ impl<S: Store> Manager<S, Registered> {
                 unidentified_access,
                 content_body.clone(),
                 timestamp,
-                online_only,
                 include_pni_signature,
+                online_only,
             )
             .await?;
 
@@ -1314,7 +1409,7 @@ impl<S: Store> Manager<S, Registered> {
                 &self.store.aci_protocol_store(),
                 &self.store.pni_protocol_store(),
                 credentials,
-                None,
+                Some(self.master_key().await?),
             )
             .await?;
         Ok(())

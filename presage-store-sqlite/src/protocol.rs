@@ -583,7 +583,6 @@ impl IdentityKeyStore for SqliteProtocolStore {
         address: &ProtocolAddress,
         identity: &IdentityKey,
     ) -> Result<IdentityChange, SignalProtocolError> {
-        let device_id: u8 = address.device_id().into();
         let address = address.name();
         let bytes = identity.serialize();
 
@@ -592,10 +591,9 @@ impl IdentityKeyStore for SqliteProtocolStore {
         // Note: It is faster to do the update in a separate query and only insert the record if
         // the update did not do anything.
         let is_replaced = query!(
-            "UPDATE identities SET record = ?4
-            WHERE address = ?1 AND device_id = ?2 AND identity = ?3",
+            "UPDATE identities SET record = ?3
+            WHERE address = ?1 AND identity = ?2",
             address,
-            device_id,
             self.identity,
             bytes,
         )
@@ -607,10 +605,9 @@ impl IdentityKeyStore for SqliteProtocolStore {
 
         if !is_replaced {
             query!(
-                "INSERT INTO identities (address, device_id, identity, record)
-                VALUES (?1, ?2, ?3, ?4)",
+                "INSERT INTO identities (address, identity, record)
+                VALUES (?1, ?2, ?3)",
                 address,
-                device_id,
                 self.identity,
                 bytes,
             )
@@ -657,13 +654,11 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
     ) -> Result<Option<IdentityKey>, SignalProtocolError> {
-        let device_id: u8 = address.device_id().into();
         let address = address.name();
         query_scalar!(
             "SELECT record FROM identities
-            WHERE address = ? AND device_id = ? AND identity = ?",
+            WHERE address = ? AND identity = ?",
             address,
-            device_id,
             self.identity,
         )
         .fetch_optional(&self.store.db)

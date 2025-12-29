@@ -1,5 +1,5 @@
 use presage::{
-    libsignal_service::protocol::SenderCertificate,
+    libsignal_service::{prelude::MasterKey, protocol::SenderCertificate},
     store::{StateStore, Store},
 };
 use protocol::{IdentityType, SqliteProtocolStore};
@@ -79,6 +79,32 @@ impl SqliteStore {
         trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SqliteStoreError> {
         let db = SqlitePool::connect_with(options).await?;
+
+        use sqlx::migrate::{Migrate, Migration, MigrationType};
+        use std::borrow::Cow;
+
+        // A migration that caused errors for some users was sadly shipped.
+        // Revert this migration, which got instead replaced by 20260119182700_remove_device_id_from_identities.sql.
+        // This revert code should be removable once it was shipped to the affected users.
+        let mut connection = db.acquire().await?;
+        connection.ensure_migrations_table().await?;
+        if connection
+            .list_applied_migrations()
+            .await?
+            .iter()
+            .any(|m| m.version == 20260101163100)
+        {
+            connection
+                .revert(&Migration::new(
+                    20260101163100,
+                    Cow::Borrowed("revert broken identities migration"),
+                    MigrationType::ReversibleDown,
+                    Cow::Borrowed("ALTER TABLE identities ADD COLUMN device_id DEFAULT 1"),
+                    false,
+                ))
+                .await?;
+        }
+
         sqlx::migrate!().run(&db).await?;
         Ok(Self {
             db,
@@ -270,6 +296,29 @@ impl StateStore for SqliteStore {
         let value = certificate.serialized()?;
         query!(
             "INSERT OR REPLACE INTO kv (key, value) VALUES ('sender_certificate', ?)",
+            value
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    async fn fetch_master_key(&self) -> Result<Option<MasterKey>, Self::StateStoreError> {
+        query_scalar!("SELECT value FROM kv WHERE key = 'master_key' LIMIT 1")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|value| MasterKey::from_slice(&value))
+            .transpose()
+            .map_err(|_| SqliteStoreError::InvalidFormat)
+    }
+
+    async fn store_master_key(
+        &self,
+        master_key: Option<&MasterKey>,
+    ) -> Result<(), Self::StateStoreError> {
+        let value = master_key.map(|k| &k.inner[..]);
+        query!(
+            "INSERT OR REPLACE INTO kv (key, value) VALUES ('master_key', ?)",
             value
         )
         .execute(&self.db)
