@@ -1229,7 +1229,7 @@ impl<S: Store> Manager<S, Registered> {
             self.store.aci_protocol_store(),
             self.state
                 .service_configuration()
-                .unidentified_sender_trust_root,
+                .unidentified_sender_trust_roots,
             self.state.data.service_ids.aci,
             self.state.device_id(),
         )
@@ -1240,7 +1240,7 @@ impl<S: Store> Manager<S, Registered> {
             self.store.pni_protocol_store(),
             self.state
                 .service_configuration()
-                .unidentified_sender_trust_root,
+                .unidentified_sender_trust_roots,
             self.state.data.service_ids.pni,
             self.state.device_id(),
         )
