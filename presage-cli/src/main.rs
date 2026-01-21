@@ -381,16 +381,20 @@ async fn print_message<S: Store>(
         if !data_message.preview.is_empty() {
             preview_appendix = "\nLink previews:".to_string();
             for (i, preview) in data_message.preview.iter().enumerate() {
-                preview_appendix += &format!("\n(link #{}) url: {}; title: {}; description: {}; date: {}; ",
-                                             i+1,
-                                             preview.url.clone().unwrap_or("None".to_string()),
-                                             preview.title.clone().unwrap_or("None".to_string()),
-                                             preview.description.clone().unwrap_or("None".to_string()),
-                                             preview.date.clone().and_then(|x| Some(x.to_string())).unwrap_or("None".to_string()),
+                preview_appendix += &format!(
+                    "\n(link #{}) url: {}; title: {}; description: {}; date: {}; ",
+                    i + 1,
+                    preview.url.as_deref().unwrap_or("None"),
+                    preview.title.as_deref().unwrap_or("None"),
+                    preview.description.as_deref().unwrap_or("None"),
+                    preview
+                        .date
+                        .map(|x| x.to_string())
+                        .unwrap_or("None".to_string()),
                 )
             }
         }
-        
+
         match data_message {
             DataMessage {
                 quote:
@@ -400,7 +404,9 @@ async fn print_message<S: Store>(
                     }),
                 body: Some(body),
                 ..
-            } => Some(format!("Answer to message \"{quoted_text}\": {body}{preview_appendix}")),
+            } => Some(format!(
+                "Answer to message \"{quoted_text}\": {body}{preview_appendix}"
+            )),
             DataMessage {
                 reaction:
                     Some(Reaction {
