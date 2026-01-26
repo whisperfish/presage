@@ -376,6 +376,25 @@ async fn print_message<S: Store>(
         data_message: &DataMessage,
         manager: &Manager<S, Registered>,
     ) -> Option<String> {
+        // Create display of link previews, if available
+        let mut preview_appendix: String = "".to_string();
+        if !data_message.preview.is_empty() {
+            preview_appendix = "\nLink previews:".to_string();
+            for (i, preview) in data_message.preview.iter().enumerate() {
+                preview_appendix += &format!(
+                    "\n(link #{}) url: {}; title: {}; description: {}; date: {}; ",
+                    i + 1,
+                    preview.url.as_deref().unwrap_or("None"),
+                    preview.title.as_deref().unwrap_or("None"),
+                    preview.description.as_deref().unwrap_or("None"),
+                    preview
+                        .date
+                        .map(|x| x.to_string())
+                        .unwrap_or("None".to_string()),
+                )
+            }
+        }
+
         match data_message {
             DataMessage {
                 quote:
@@ -385,7 +404,9 @@ async fn print_message<S: Store>(
                     }),
                 body: Some(body),
                 ..
-            } => Some(format!("Answer to message \"{quoted_text}\": {body}")),
+            } => Some(format!(
+                "Answer to message \"{quoted_text}\": {body}{preview_appendix}"
+            )),
             DataMessage {
                 reaction:
                     Some(Reaction {
@@ -412,7 +433,7 @@ async fn print_message<S: Store>(
             }
             DataMessage {
                 body: Some(body), ..
-            } => Some(body.to_string()),
+            } => Some(format!("{body}{preview_appendix}")),
             _ => Some("Empty data message".to_string()),
         }
     }
