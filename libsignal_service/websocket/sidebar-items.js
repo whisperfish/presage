@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["SignalRequestStream","SignalWebSocket","WebSocketRequestMessageBuilder"]};
+window.SIDEBAR_ITEMS = {"mod":["account","keys","linking","profile","registration","stickers"],"struct":["Identified","SignalRequestStream","SignalWebSocket","Unidentified","WebSocketRequestMessageBuilder"],"trait":["WebSocketType"]};

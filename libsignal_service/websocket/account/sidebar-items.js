@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"struct":["AccountAttributes","DeviceCapabilities","DeviceId","DeviceInfo","WhoAmIResponse"]};
