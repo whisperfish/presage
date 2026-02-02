@@ -76,6 +76,8 @@ pub enum Error<S: std::error::Error> {
     NotPrimaryDevice,
     #[error("Failed to get initial messages after uploading pre-keys")]
     UpdatePreKeyFailure,
+    #[error("invalid device ID (out of bounds)")]
+    InvalidDeviceId,
 }
 
 impl<S: std::error::Error> From<MessageSenderError> for Error<S> {

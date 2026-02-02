@@ -17,7 +17,6 @@ use presage::libsignal_service::configuration::SignalServers;
 use presage::libsignal_service::content::Reaction;
 use presage::libsignal_service::pre_keys::PreKeysStore;
 use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
-use presage::libsignal_service::prelude::DeviceId;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
@@ -112,7 +111,7 @@ enum Cmd {
     #[clap(about = "Unlink device by device id")]
     UnlinkDevice {
         #[clap(long, short = 'd', help = "Device id")]
-        device_id: i64,
+        device_id: u32,
     },
     #[clap(about = "List all linked devices")]
     ListDevices,
@@ -694,7 +693,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 let device_name = device
                     .name
                     .unwrap_or_else(|| "(no device name)".to_string());
-                let current_marker = if DeviceId::new(device.id)? == current_device_id {
+                let current_marker = if device.id == current_device_id {
                     "(this device)"
                 } else {
                     ""
@@ -702,7 +701,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
 
                 println!(
                     "- Device {} {}\n  Name: {}\n  Created: {}\n  Last seen: {}",
-                    device.id, current_marker, device_name, device.created, device.last_seen,
+                    device.id, current_marker, device_name, device.created_at, device.last_seen,
                 );
             }
         }
