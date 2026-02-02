@@ -508,16 +508,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    // async fn accounts_manager(&self) -> Result<AccountManager, Error<S::Error>> {
-    //     let account_manager = AccountManager::new(
-    //         self.identified_push_service(),
-    //         self.identified_websocket(false).await?,
-    //         Some(self.state.data.profile_key),
-    //     );
-
-    //     Ok(account_manager)
-    // }
-
     async fn receive_messages_encrypted(
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
