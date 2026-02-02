@@ -1,10 +1,9 @@
 use std::fmt;
-use std::pin::pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use futures::future::join;
-use futures::{future, AsyncReadExt, Stream, StreamExt};
+use futures::future::select;
+use futures::{future, pin_mut, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
@@ -267,112 +266,6 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
-    async fn register_pre_keys(
-        &mut self,
-        account_manager: &mut AccountManager,
-    ) -> Result<(), Error<S::Error>> {
-        trace!("registering pre keys");
-
-        account_manager
-            .update_pre_key_bundle(
-                &mut self.store.aci_protocol_store(),
-                ServiceIdKind::Aci,
-                true,
-            )
-            .await?;
-
-        account_manager
-            .update_pre_key_bundle(
-                &mut self.store.pni_protocol_store(),
-                ServiceIdKind::Pni,
-                true,
-            )
-            .await?;
-
-        trace!("registered pre keys");
-        Ok(())
-    }
-
-    async fn set_account_attributes(
-        &self,
-        account_manager: &mut AccountManager,
-    ) -> Result<(), Error<S::Error>> {
-        trace!("setting account attributes");
-
-        let data = &self.state.data;
-
-        let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
-
-        account_manager
-            .set_account_attributes(AccountAttributes {
-                name: data.device_name().map(|d| d.to_string()),
-                registration_id: data.registration_id,
-                pni_registration_id,
-                signaling_key: None,
-                voice: false,
-                video: false,
-                fetches_messages: true,
-                pin: None,
-                registration_lock: None,
-                unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
-                unrestricted_unidentified_access: false,
-                discoverable_by_phone_number: true,
-                capabilities: DeviceCapabilities {
-                    gift_badges: true,
-                    payment_activation: false,
-                    pni: true,
-                    sender_key: true,
-                    stories: false,
-                    ..Default::default()
-                },
-            })
-            .await?;
-
-        trace!("done setting account attributes");
-        Ok(())
-    }
-
-    pub(crate) async fn finalize_registration(&mut self) -> Result<(), Error<S::Error>> {
-        let mut messages = pin!(self.receive_messages().await?);
-        let wait_for_empty_queue = async move {
-            while let Some(received) = messages.next().await {
-                if let Received::QueueEmpty = received {
-                    warn!("got QueueEmpty, continuing loop.");
-                    // return Ok(());
-                }
-
-                debug!(?received, "received stuff");
-            }
-            return Err(());
-        };
-
-        let mut account_manager = AccountManager::new(
-            self.identified_push_service(),
-            self.identified_websocket(false).await?,
-            None,
-        );
-
-        let finalize_registration_task = async move {
-            if let Err(error) = self.set_account_attributes(&mut account_manager).await {
-                error!(%error, "failed to set account attributes, this is problematic and should never happen!");
-                return Err(Error::RelinkNecessary);
-            }
-
-            if let Err(error) = self.register_pre_keys(&mut account_manager).await {
-                error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
-                return Err(Error::RelinkNecessary);
-            }
-
-            Ok(())
-        };
-
-        match join(finalize_registration_task, wait_for_empty_queue).await {
-            (Ok(()), Ok(())) => Ok(()),
-            (Ok(_), Err(())) => Err(Error::UpdatePreKeyFailure),
-            (Err(error), _) => Err(error),
-        }
-    }
-
     /// Request the primary device to encrypt & send all of its contacts.
     ///
     /// **Note**: If successful, the contacts are not yet received and stored, but will only be
@@ -597,7 +490,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(Some(avatar))
     }
 
-    #[expect(clippy::result_large_err)]
     async fn groups_manager(
         &self,
     ) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
@@ -646,7 +538,10 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
         struct StreamState<Receiver, Store, AciStore, PniStore> {
+            first_run: bool,
             store: Store,
+            registration_data: RegistrationData,
+            identified_push_service: PushService,
             identified_websocket: SignalWebSocket<websocket::Identified>,
             unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
             encrypted_messages: Receiver,
@@ -659,10 +554,15 @@ impl<S: Store> Manager<S, Registered> {
 
         let identified_push_service = self.identified_push_service();
 
+        let registration_data = self.registration_data().clone();
+
         let init = StreamState {
+            first_run: true,
             store: self.store.clone(),
-            identified_websocket: self.identified_websocket(false).await?.clone(),
-            unidentified_websocket: self.unidentified_websocket().await?.clone(),
+            registration_data,
+            identified_push_service: self.identified_push_service(),
+            identified_websocket: self.identified_websocket(false).await?,
+            unidentified_websocket: self.unidentified_websocket().await?,
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(identified_push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
@@ -673,103 +573,142 @@ impl<S: Store> Manager<S, Registered> {
 
         debug!("starting to consume incoming message stream");
 
-        Ok(futures::stream::unfold(init, |mut state| async move {
-            loop {
-                match state.encrypted_messages.next().await {
-                    Some(Ok(Incoming::Envelope(envelope))) => {
-                        let envelope = {
-                            // the permit is released at the end of the block (impl Drop)
-                            match ServiceId::parse_from_service_id_string(
-                                envelope.destination_service_id(),
-                            ) {
-                                None | Some(ServiceId::Aci(_)) => {
-                                    state
-                                        .service_cipher_aci
-                                        .open_envelope(envelope, &mut rng())
-                                        .await
-                                }
-                                Some(ServiceId::Pni(pni)) => {
-                                    if pni == state.service_ids.pni()
-                                        && envelope.source_service_id.is_none()
-                                    {
-                                        warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
-                                        continue;
+        Ok(Box::pin(futures::stream::unfold(init, |mut state| {
+            let mut account_manager = AccountManager::new(
+                state.identified_push_service.clone(),
+                state.identified_websocket.clone(),
+                None,
+            );
+
+            let first_run = state.first_run;
+            state.first_run = false;
+            let store_inner = state.store.clone();
+            let registration_data_inner = state.registration_data.clone();
+
+            let refresh_registration = async move {
+                if !first_run {
+                    trace!("skipping finalizing registration, receiving loop is alreay running");
+                    return Ok(());
+                }
+
+                if let Err(error) =
+                    set_account_attributes::<S>(&mut account_manager, &registration_data_inner)
+                        .await
+                {
+                    error!(%error, "failed to set account attributes, this is problematic and should never happen!");
+                    return Err(());
+                }
+
+                if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
+                    error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
+                    return Err(());
+                }
+
+                Ok(())
+            };
+
+            let incoming_messages_loop = async move {
+                loop {
+                    match state.encrypted_messages.next().await {
+                        Some(Ok(Incoming::Envelope(envelope))) => {
+                            let envelope = {
+                                // the permit is released at the end of the block (impl Drop)
+                                match ServiceId::parse_from_service_id_string(
+                                    envelope.destination_service_id(),
+                                ) {
+                                    None | Some(ServiceId::Aci(_)) => {
+                                        state
+                                            .service_cipher_aci
+                                            .open_envelope(envelope, &mut rng())
+                                            .await
                                     }
-                                    state
-                                        .service_cipher_pni
-                                        .open_envelope(envelope, &mut rng())
-                                        .await
+                                    Some(ServiceId::Pni(pni)) => {
+                                        if pni == state.service_ids.pni()
+                                            && envelope.source_service_id.is_none()
+                                        {
+                                            warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
+                                            continue;
+                                        }
+                                        state
+                                            .service_cipher_pni
+                                            .open_envelope(envelope, &mut rng())
+                                            .await
+                                    }
                                 }
-                            }
-                        };
-                        match envelope {
-                            Ok(Some(content)) => {
-                                // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                                if let ContentBody::SynchronizeMessage(SyncMessage {
-                                    contacts: Some(contacts),
-                                    ..
-                                }) = &content.body
-                                {
-                                    match state.message_receiver.retrieve_contacts(contacts).await {
-                                        Ok(contacts) => {
-                                            let _ = state.store.clear_contacts().await;
-                                            info!("saving contacts");
-                                            for contact in contacts.filter_map(Result::ok) {
-                                                if let Err(error) =
-                                                    state.store.save_contact(&contact.into()).await
-                                                {
-                                                    warn!(%error, "failed to save contacts");
-                                                    break;
+                            };
+                            match envelope {
+                                Ok(Some(content)) => {
+                                    // contacts synchronization sent from the primary device (happens after linking, or on demand)
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        contacts: Some(contacts),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        match state
+                                            .message_receiver
+                                            .retrieve_contacts(contacts)
+                                            .await
+                                        {
+                                            Ok(contacts) => {
+                                                let _ = state.store.clear_contacts().await;
+                                                info!("saving contacts");
+                                                for contact in contacts.filter_map(Result::ok) {
+                                                    if let Err(error) = state
+                                                        .store
+                                                        .save_contact(&contact.into())
+                                                        .await
+                                                    {
+                                                        warn!(%error, "failed to save contacts");
+                                                        break;
+                                                    }
                                                 }
                                             }
+                                            Err(error) => {
+                                                warn!(%error, "failed to retrieve contacts");
+                                            }
                                         }
-                                        Err(error) => {
-                                            warn!(%error, "failed to retrieve contacts");
-                                        }
+
+                                        return Some((Received::Contacts, state));
                                     }
 
-                                    return Some((Received::Contacts, state));
-                                }
+                                    // sticker pack operations
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        sticker_pack_operation,
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        for operation in sticker_pack_operation {
+                                            match operation.r#type() {
+                                                sticker_pack_operation::Type::Install => {
+                                                    let store = state.store.clone();
+                                                    let unidentified_websocket =
+                                                        state.unidentified_websocket.clone();
+                                                    let operation = operation.clone();
 
-                                // sticker pack operations
-                                if let ContentBody::SynchronizeMessage(SyncMessage {
-                                    sticker_pack_operation,
-                                    ..
-                                }) = &content.body
-                                {
-                                    for operation in sticker_pack_operation {
-                                        match operation.r#type() {
-                                            sticker_pack_operation::Type::Install => {
-                                                let store = state.store.clone();
-                                                let unidentified_websocket =
-                                                    state.unidentified_websocket.clone();
-                                                let operation = operation.clone();
-
-                                                // download stickers in the background
-                                                tokio::spawn(async move {
-                                                    match download_sticker_pack(
-                                                        store,
-                                                        unidentified_websocket,
-                                                        &operation,
-                                                    )
-                                                    .await
-                                                    {
-                                                        Ok(sticker_pack) => {
-                                                            debug!(
+                                                    // download stickers in the background
+                                                    tokio::spawn(async move {
+                                                        match download_sticker_pack(
+                                                            store,
+                                                            unidentified_websocket,
+                                                            &operation,
+                                                        )
+                                                        .await
+                                                        {
+                                                            Ok(sticker_pack) => {
+                                                                debug!(
                                                                 "downloaded sticker pack: {} made by {}",
                                                                 sticker_pack.manifest.title,
                                                                 sticker_pack.manifest.author
                                                             );
+                                                            }
+                                                            Err(error) => error!(
+                                                                %error,
+                                                                "failed to download sticker pack"
+                                                            ),
                                                         }
-                                                        Err(error) => error!(
-                                                            %error,
-                                                            "failed to download sticker pack"
-                                                        ),
-                                                    }
-                                                });
-                                            }
-                                            sticker_pack_operation::Type::Remove => {
-                                                match state
+                                                    });
+                                                }
+                                                sticker_pack_operation::Type::Remove => match state
                                                     .store
                                                     .remove_sticker_pack(operation.pack_id())
                                                     .await
@@ -783,87 +722,101 @@ impl<S: Store> Manager<S, Registered> {
                                                             "failed to remove sticker pack"
                                                         )
                                                     }
-                                                }
+                                                },
                                             }
                                         }
                                     }
-                                }
 
-                                // group update
-                                if let ContentBody::DataMessage(DataMessage {
-                                    group_v2:
-                                        Some(GroupContextV2 {
-                                            master_key: Some(master_key_bytes),
-                                            revision: Some(revision),
-                                            ..
-                                        }),
-                                    ..
-                                })
-                                | ContentBody::SynchronizeMessage(SyncMessage {
-                                    sent:
-                                        Some(sync_message::Sent {
-                                            message:
-                                                Some(DataMessage {
-                                                    group_v2:
-                                                        Some(GroupContextV2 {
-                                                            master_key: Some(master_key_bytes),
-                                                            revision: Some(revision),
-                                                            ..
-                                                        }),
-                                                    ..
-                                                }),
-                                            ..
-                                        }),
-                                    ..
-                                }) = &content.body
-                                {
-                                    // there's two things to implement: the group metadata (fetched from HTTP API)
-                                    // and the group changes, which are part of the protobuf messages
-                                    // this means we kinda need our own internal representation of groups inside of presage?
-                                    if let Ok(Some(group)) = upsert_group(
-                                        &state.store,
-                                        &mut state.groups_manager,
-                                        master_key_bytes,
-                                        revision,
+                                    // group update
+                                    if let ContentBody::DataMessage(DataMessage {
+                                        group_v2:
+                                            Some(GroupContextV2 {
+                                                master_key: Some(master_key_bytes),
+                                                revision: Some(revision),
+                                                ..
+                                            }),
+                                        ..
+                                    })
+                                    | ContentBody::SynchronizeMessage(SyncMessage {
+                                        sent:
+                                            Some(sync_message::Sent {
+                                                message:
+                                                    Some(DataMessage {
+                                                        group_v2:
+                                                            Some(GroupContextV2 {
+                                                                master_key: Some(master_key_bytes),
+                                                                revision: Some(revision),
+                                                                ..
+                                                            }),
+                                                        ..
+                                                    }),
+                                                ..
+                                            }),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        // there's two things to implement: the group metadata (fetched from HTTP API)
+                                        // and the group changes, which are part of the protobuf messages
+                                        // this means we kinda need our own internal representation of groups inside of presage?
+                                        if let Ok(Some(group)) = upsert_group(
+                                            &state.store,
+                                            &mut state.groups_manager,
+                                            master_key_bytes,
+                                            revision,
+                                        )
+                                        .await
+                                        {
+                                            trace!(?group, "upserted group");
+                                        }
+                                    }
+
+                                    if let Err(error) = save_message(
+                                        &mut state.store,
+                                        &mut state.identified_websocket,
+                                        content.clone(),
+                                        None,
                                     )
                                     .await
                                     {
-                                        trace!(?group, "upserted group");
+                                        error!(%error, "error saving message to store");
                                     }
-                                }
 
-                                if let Err(error) = save_message(
-                                    &mut state.store,
-                                    &mut state.identified_websocket,
-                                    content.clone(),
-                                    None,
-                                )
-                                .await
-                                {
-                                    error!(%error, "error saving message to store");
+                                    return Some((Received::Content(Box::new(content)), state));
                                 }
-
-                                return Some((Received::Content(Box::new(content)), state));
-                            }
-                            Ok(None) => {
-                                debug!("empty envelope, message will be skipped!")
-                            }
-                            Err(error) => {
-                                error!(%error, "error opening envelope, message will be skipped!");
+                                Ok(None) => {
+                                    debug!("empty envelope, message will be skipped!")
+                                }
+                                Err(error) => {
+                                    error!(%error, "error opening envelope, message will be skipped!");
+                                }
                             }
                         }
+                        Some(Ok(Incoming::QueueEmpty)) => {
+                            debug!("got empty queue");
+                            return Some((Received::QueueEmpty, state));
+                        }
+                        Some(Err(error)) => {
+                            error!(%error, "unexpected error in message receiving loop")
+                        }
+                        None => return None,
                     }
-                    Some(Ok(Incoming::QueueEmpty)) => {
-                        debug!("got empty queue");
-                        return Some((Received::QueueEmpty, state));
+                }
+            };
+
+            async move {
+                pin_mut!(refresh_registration);
+                pin_mut!(incoming_messages_loop);
+
+                match select(refresh_registration, incoming_messages_loop).await {
+                    future::Either::Left((Err(()), _)) => {
+                        error!("FATAL: failed to refresh keys and account attributes!");
+                        None
                     }
-                    Some(Err(error)) => {
-                        error!(%error, "unexpected error in message receiving loop")
-                    }
-                    None => return None,
+                    future::Either::Left((Ok(_), rx_loop)) => rx_loop.await,
+                    future::Either::Right((rx_loop_result, _)) => rx_loop_result,
                 }
             }
-        }))
+        })))
     }
 
     /// Sends a messages to the provided [ServiceId].
@@ -1746,5 +1699,60 @@ async fn upsert_contact_from_profile<S: Store>(
             debug!("not storing profile for PNI contact");
         }
     }
+    Ok(())
+}
+
+async fn set_account_attributes<S: Store>(
+    account_manager: &mut AccountManager,
+    data: &RegistrationData,
+) -> Result<(), Error<S::Error>> {
+    trace!("setting account attributes");
+
+    let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
+
+    account_manager
+        .set_account_attributes(AccountAttributes {
+            name: data.device_name().map(|d| d.to_string()),
+            registration_id: data.registration_id,
+            pni_registration_id,
+            signaling_key: None,
+            voice: false,
+            video: false,
+            fetches_messages: true,
+            pin: None,
+            registration_lock: None,
+            unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
+            unrestricted_unidentified_access: false,
+            discoverable_by_phone_number: true,
+            capabilities: DeviceCapabilities {
+                gift_badges: true,
+                payment_activation: false,
+                pni: true,
+                sender_key: true,
+                stories: false,
+                ..Default::default()
+            },
+        })
+        .await?;
+
+    trace!("done setting account attributes");
+    Ok(())
+}
+
+async fn register_pre_keys<S: Store>(
+    store: &S,
+    account_manager: &mut AccountManager,
+) -> Result<(), Error<S::Error>> {
+    trace!("registering pre keys");
+
+    account_manager
+        .update_pre_key_bundle(&mut store.aci_protocol_store(), ServiceIdKind::Aci, true)
+        .await?;
+
+    account_manager
+        .update_pre_key_bundle(&mut store.pni_protocol_store(), ServiceIdKind::Pni, true)
+        .await?;
+
+    trace!("registered pre keys");
     Ok(())
 }

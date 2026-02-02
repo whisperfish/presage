@@ -162,12 +162,6 @@ impl<S: Store> Manager<S, Confirmation> {
 
         trace!("confirmed! (and registered)");
 
-        if let Err(e) = manager.finalize_registration().await {
-            // clear the entire store on any error, there's no possible recovery here
-            manager.store.clear_registration().await?;
-            Err(e)
-        } else {
-            Ok(manager)
-        }
+        Ok(manager)
     }
 }
