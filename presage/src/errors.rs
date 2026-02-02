@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use libsignal_service::prelude::MessageSenderError;
+use libsignal_service::websocket::registration::RegistrationSessionMetadataResponse;
 use libsignal_service::{models::ParseContactError, protocol::SignalProtocolError};
 
 use crate::store::StoreError;
@@ -41,6 +42,8 @@ pub enum Error<S: std::error::Error> {
     NoProvisioningMessageReceived,
     #[error("qr code error")]
     LinkingError,
+    #[error("please relink your client")]
+    RelinkNecessary,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
     #[error("message pipe not started, you need to start receiving messages before you can send anything back")]
@@ -62,7 +65,7 @@ pub enum Error<S: std::error::Error> {
     #[error("push challenge required (not implemented)")]
     PushChallengeRequired,
     #[error("Not allowed to request verification code, reason unknown: {0:?}")]
-    RequestingCodeForbidden(libsignal_service::push_service::RegistrationSessionMetadataResponse),
+    RequestingCodeForbidden(RegistrationSessionMetadataResponse),
     #[error("attachment sha256 checksum did not match")]
     UnexpectedAttachmentChecksum,
     #[error("Unverified registration session (i.e. wrong verification code)")]
@@ -71,6 +74,10 @@ pub enum Error<S: std::error::Error> {
     ProfileCipherError(#[from] libsignal_service::profile_cipher::ProfileCipherError),
     #[error("An operation was requested that requires the registration to be primary, but it was only secondary")]
     NotPrimaryDevice,
+    #[error("Failed to get initial messages after uploading pre-keys")]
+    UpdatePreKeyFailure,
+    #[error("invalid device ID (out of bounds)")]
+    InvalidDeviceId,
 }
 
 impl<S: std::error::Error> From<MessageSenderError> for Error<S> {

@@ -6,9 +6,9 @@ use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
-use libsignal_service::push_service::{
-    AccountAttributes, DeviceCapabilities, RegistrationMethod, ServiceIds, VerifyAccountResponse,
-};
+use libsignal_service::push_service::ServiceIds;
+use libsignal_service::websocket::account::{AccountAttributes, DeviceCapabilities};
+use libsignal_service::websocket::registration::{RegistrationMethod, VerifyAccountResponse};
 use libsignal_service::zkgroup::profiles::ProfileKey;
 use libsignal_service::AccountManager;
 use rand::RngCore;
@@ -65,10 +65,17 @@ impl<S: Store> Manager<S, Confirmation> {
         };
 
         let service_configuration: ServiceConfiguration = signal_servers.into();
-        let mut identified_push_service =
-            PushService::new(service_configuration, Some(credentials), crate::USER_AGENT);
+        let mut identified_push_service = PushService::new(
+            service_configuration,
+            Some(credentials.clone()),
+            crate::USER_AGENT,
+        );
 
-        let session = identified_push_service
+        let mut identified_websocket = identified_push_service
+            .ws("/v1/websocket/", "/v1/keepalive", &[], Some(credentials))
+            .await?;
+
+        let session = identified_websocket
             .submit_verification_code(session_id, confirmation_code.as_ref())
             .await?;
 
@@ -96,7 +103,11 @@ impl<S: Store> Manager<S, Confirmation> {
             .await?;
 
         let skip_device_transfer = true;
-        let mut account_manager = AccountManager::new(identified_push_service, Some(profile_key));
+        let mut account_manager = AccountManager::new(
+            identified_push_service,
+            identified_websocket,
+            Some(profile_key),
+        );
 
         let VerifyAccountResponse {
             aci,
@@ -128,8 +139,6 @@ impl<S: Store> Manager<S, Confirmation> {
             )
             .await?;
 
-        trace!("confirmed! (and registered)");
-
         let mut manager = Manager {
             store: self.store,
             state: Arc::new(Registered::with_data(RegistrationData {
@@ -151,12 +160,8 @@ impl<S: Store> Manager<S, Confirmation> {
             .save_registration_data(&manager.state.data)
             .await?;
 
-        if let Err(e) = manager.register_pre_keys().await {
-            // clear the entire store on any error, there's no possible recovery here
-            manager.store.clear_registration().await?;
-            Err(e)
-        } else {
-            Ok(manager)
-        }
+        trace!("confirmed! (and registered)");
+
+        Ok(manager)
     }
 }
