@@ -1,7 +1,9 @@
 use std::fmt;
+use std::pin::pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use futures::future::join;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
@@ -22,7 +24,7 @@ use libsignal_service::{
         Verified,
     },
     protocol::{Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind},
-    provisioning::{generate_registration_id, ProvisioningError},
+    provisioning::ProvisioningError,
     push_service::{PushService, ServiceError, ServiceIds, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
@@ -175,19 +177,10 @@ impl<S: Store> Manager<S, Registered> {
                 .replace(sender_certificate);
         }
 
-        let manager = Self {
+        Ok(Self {
             store,
             state: Arc::new(registered),
-        };
-
-        // TODO: spawn these in jobs instead?
-        // if manager.state.data.pni_registration_id.is_none() {
-        //     manager.set_account_attributes().await?;
-        // }
-
-        // manager.register_pre_keys().await?;
-
-        Ok(manager)
+        })
     }
 
     /// Returns a handle to the [Store] implementation.
@@ -274,22 +267,17 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
-    pub(crate) async fn register_pre_keys(&mut self) -> Result<(), Error<S::Error>> {
+    async fn register_pre_keys(
+        &mut self,
+        account_manager: &mut AccountManager,
+    ) -> Result<(), Error<S::Error>> {
         trace!("registering pre keys");
-        let mut account_manager = AccountManager::new(
-            self.identified_push_service(),
-            self.identified_websocket(false).await?,
-            Some(self.state.data.profile_key),
-        );
-
-        let mut rng = rand::rng();
 
         account_manager
             .update_pre_key_bundle(
                 &mut self.store.aci_protocol_store(),
                 ServiceIdKind::Aci,
                 true,
-                &mut rng,
             )
             .await?;
 
@@ -298,7 +286,6 @@ impl<S: Store> Manager<S, Registered> {
                 &mut self.store.pni_protocol_store(),
                 ServiceIdKind::Pni,
                 true,
-                &mut rng,
             )
             .await?;
 
@@ -306,28 +293,20 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    pub(crate) async fn set_account_attributes(&mut self) -> Result<(), Error<S::Error>> {
+    async fn set_account_attributes(
+        &self,
+        account_manager: &mut AccountManager,
+    ) -> Result<(), Error<S::Error>> {
         trace!("setting account attributes");
-        let mut account_manager = AccountManager::new(
-            self.identified_push_service(),
-            self.identified_websocket(false).await?,
-            Some(self.state.data.profile_key),
-        );
 
-        let pni_registration_id =
-            if let Some(pni_registration_id) = self.state.data.pni_registration_id {
-                pni_registration_id
-            } else {
-                info!("migrating to PNI");
-                let pni_registration_id = generate_registration_id(&mut rand::rng());
-                self.store.save_registration_data(&self.state.data).await?;
-                pni_registration_id
-            };
+        let data = &self.state.data;
+
+        let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
 
         account_manager
             .set_account_attributes(AccountAttributes {
-                name: self.state.data.device_name().map(|d| d.to_string()),
-                registration_id: self.state.data.registration_id,
+                name: data.device_name().map(|d| d.to_string()),
+                registration_id: data.registration_id,
                 pni_registration_id,
                 signaling_key: None,
                 voice: false,
@@ -335,9 +314,7 @@ impl<S: Store> Manager<S, Registered> {
                 fetches_messages: true,
                 pin: None,
                 registration_lock: None,
-                unidentified_access_key: Some(
-                    self.state.data.profile_key.derive_access_key().to_vec(),
-                ),
+                unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
                 unrestricted_unidentified_access: false,
                 discoverable_by_phone_number: true,
                 capabilities: DeviceCapabilities {
@@ -351,15 +328,49 @@ impl<S: Store> Manager<S, Registered> {
             })
             .await?;
 
-        if self.state.data.pni_registration_id.is_none() {
-            debug!("fetching PNI UUID and updating state");
-            // let whoami = self.identified_push_service().whoami().await?;
-            // self.data.service_ids.pni = whoami.pni;
-            // store.save_registration_data(&self.data).await?;
-        }
-
         trace!("done setting account attributes");
         Ok(())
+    }
+
+    pub(crate) async fn finalize_registration(&mut self) -> Result<(), Error<S::Error>> {
+        let mut messages = pin!(self.receive_messages().await?);
+        let wait_for_empty_queue = async move {
+            while let Some(received) = messages.next().await {
+                if let Received::QueueEmpty = received {
+                    warn!("got QueueEmpty, continuing loop.");
+                    // return Ok(());
+                }
+
+                debug!(?received, "received stuff");
+            }
+            return Err(());
+        };
+
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            None,
+        );
+
+        let finalize_registration_task = async move {
+            if let Err(error) = self.set_account_attributes(&mut account_manager).await {
+                error!(%error, "failed to set account attributes, this is problematic and should never happen!");
+                return Err(Error::RelinkNecessary);
+            }
+
+            if let Err(error) = self.register_pre_keys(&mut account_manager).await {
+                error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
+                return Err(Error::RelinkNecessary);
+            }
+
+            Ok(())
+        };
+
+        match join(finalize_registration_task, wait_for_empty_queue).await {
+            (Ok(()), Ok(())) => Ok(()),
+            (Ok(_), Err(())) => Err(Error::UpdatePreKeyFailure),
+            (Err(error), _) => Err(error),
+        }
     }
 
     /// Request the primary device to encrypt & send all of its contacts.
@@ -605,6 +616,16 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
+    // async fn accounts_manager(&self) -> Result<AccountManager, Error<S::Error>> {
+    //     let account_manager = AccountManager::new(
+    //         self.identified_push_service(),
+    //         self.identified_websocket(false).await?,
+    //         Some(self.state.data.profile_key),
+    //     );
+
+    //     Ok(account_manager)
+    // }
+
     async fn receive_messages_encrypted(
         &mut self,
     ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
@@ -636,14 +657,14 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: ServiceIds,
         }
 
-        let push_service = self.identified_push_service();
+        let identified_push_service = self.identified_push_service();
 
         let init = StreamState {
             store: self.store.clone(),
             identified_websocket: self.identified_websocket(false).await?.clone(),
             unidentified_websocket: self.unidentified_websocket().await?.clone(),
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
-            message_receiver: MessageReceiver::new(push_service),
+            message_receiver: MessageReceiver::new(identified_push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
             groups_manager: self.groups_manager().await?,
@@ -1555,49 +1576,23 @@ async fn save_message<S: Store>(
                 // - insert a new contact with the profile information
                 // - update the contact if the profile key has changed
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
-                if store.contact_by_id(&sender.raw_uuid()).await?.is_none()
-                    || store
-                        .profile_key(&sender)
-                        .await?
-                        .is_none_or(|p| p.bytes != profile_key.bytes)
-                {
-                    if let Some(aci) = sender.aci() {
-                        let sender_uuid: Uuid = aci.into();
-                        let encrypted_profile = identified_websocket
-                            .retrieve_profile_by_id(aci, Some(profile_key))
-                            .await?;
-                        let profile_cipher = ProfileCipher::new(profile_key);
-                        let decrypted_profile = profile_cipher.decrypt(encrypted_profile).unwrap();
-
-                        let contact = Contact {
-                            uuid: sender_uuid,
-                            phone_number: None,
-                            name: decrypted_profile
-                                .name
-                                // FIXME: this assumes [firstname] [lastname]
-                                .map(|pn| {
-                                    if let Some(family_name) = pn.family_name {
-                                        format!("{} {}", pn.given_name, family_name)
-                                    } else {
-                                        pn.given_name
-                                    }
-                                })
-                                .unwrap_or_default(),
-                            profile_key: profile_key.bytes.to_vec(),
-                            expire_timer: data_message.expire_timer.unwrap_or_default(),
-                            expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
-                            inbox_position: 0,
-                            avatar: None,
-                            verified: Verified::default(),
-                        };
-
-                        info!(%sender_uuid, "saved contact on first sight");
-                        store.save_contact(&contact).await?;
-                        store.upsert_profile_key(&sender_uuid, profile_key).await?;
-                    } else {
-                        debug!("not storing profile for PNI contact");
+                // NOTE: this needs to happen in the background!
+                let store_inner = store.clone();
+                let websocket_inner = identified_websocket.clone();
+                let data_message_inner = data_message.clone();
+                tokio::spawn(async move {
+                    if let Err(error) = upsert_contact_from_profile(
+                        store_inner,
+                        websocket_inner,
+                        &data_message_inner,
+                        sender,
+                        profile_key,
+                    )
+                    .await
+                    {
+                        error!(%error, "failed to upsert newly seen contact!");
                     }
-                }
+                });
             }
 
             if let Some(expire_timer) = data_message.expire_timer {
@@ -1695,5 +1690,58 @@ async fn save_message<S: Store>(
         store.save_message(&thread, message).await?;
     }
 
+    Ok(())
+}
+
+async fn upsert_contact_from_profile<S: Store>(
+    mut store: S,
+    mut identified_websocket: SignalWebSocket<websocket::Identified>,
+    data_message: &DataMessage,
+    sender: ServiceId,
+    profile_key: ProfileKey,
+) -> Result<(), Error<<S as Store>::Error>> {
+    if store.contact_by_id(&sender.raw_uuid()).await?.is_none()
+        || store
+            .profile_key(&sender)
+            .await?
+            .is_none_or(|p| p.bytes != profile_key.bytes)
+    {
+        if let Some(aci) = sender.aci() {
+            let sender_uuid: Uuid = aci.into();
+            let encrypted_profile = identified_websocket
+                .retrieve_profile_by_id(aci, Some(profile_key))
+                .await?;
+            let profile_cipher = ProfileCipher::new(profile_key);
+            let decrypted_profile = profile_cipher.decrypt(encrypted_profile).unwrap();
+
+            let contact = Contact {
+                uuid: sender_uuid,
+                phone_number: None,
+                name: decrypted_profile
+                    .name
+                    // FIXME: this assumes [firstname] [lastname]
+                    .map(|pn| {
+                        if let Some(family_name) = pn.family_name {
+                            format!("{} {}", pn.given_name, family_name)
+                        } else {
+                            pn.given_name
+                        }
+                    })
+                    .unwrap_or_default(),
+                profile_key: profile_key.bytes.to_vec(),
+                expire_timer: data_message.expire_timer.unwrap_or_default(),
+                expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
+                inbox_position: 0,
+                avatar: None,
+                verified: Verified::default(),
+            };
+
+            info!(%sender_uuid, "saved contact on first sight");
+            store.save_contact(&contact).await?;
+            store.upsert_profile_key(&sender_uuid, profile_key).await?;
+        } else {
+            debug!("not storing profile for PNI contact");
+        }
+    }
     Ok(())
 }

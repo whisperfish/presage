@@ -139,8 +139,6 @@ impl<S: Store> Manager<S, Confirmation> {
             )
             .await?;
 
-        trace!("confirmed! (and registered)");
-
         let mut manager = Manager {
             store: self.store,
             state: Arc::new(Registered::with_data(RegistrationData {
@@ -162,7 +160,9 @@ impl<S: Store> Manager<S, Confirmation> {
             .save_registration_data(&manager.state.data)
             .await?;
 
-        if let Err(e) = manager.register_pre_keys().await {
+        trace!("confirmed! (and registered)");
+
+        if let Err(e) = manager.finalize_registration().await {
             // clear the entire store on any error, there's no possible recovery here
             manager.store.clear_registration().await?;
             Err(e)

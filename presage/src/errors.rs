@@ -42,6 +42,8 @@ pub enum Error<S: std::error::Error> {
     NoProvisioningMessageReceived,
     #[error("qr code error")]
     LinkingError,
+    #[error("please relink your client")]
+    RelinkNecessary,
     #[error("missing key {0} in config DB")]
     MissingKeyError(Cow<'static, str>),
     #[error("message pipe not started, you need to start receiving messages before you can send anything back")]
@@ -72,6 +74,8 @@ pub enum Error<S: std::error::Error> {
     ProfileCipherError(#[from] libsignal_service::profile_cipher::ProfileCipherError),
     #[error("An operation was requested that requires the registration to be primary, but it was only secondary")]
     NotPrimaryDevice,
+    #[error("Failed to get initial messages after uploading pre-keys")]
+    UpdatePreKeyFailure,
 }
 
 impl<S: std::error::Error> From<MessageSenderError> for Error<S> {

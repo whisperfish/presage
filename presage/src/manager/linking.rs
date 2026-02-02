@@ -166,7 +166,7 @@ impl<S: Store> Manager<S, Linking> {
 
                 // Register pre-keys with the server. If this fails, this can lead to issues
                 // receiving, in that case clear the registration and propagate the error.
-                if let Err(e) = manager.register_pre_keys().await {
+                if let Err(e) = manager.finalize_registration().await {
                     store.clear_registration().await?;
                     Err(e)
                 } else {
