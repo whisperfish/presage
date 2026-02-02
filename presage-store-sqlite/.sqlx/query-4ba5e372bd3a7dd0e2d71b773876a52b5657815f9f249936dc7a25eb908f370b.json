@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM thread_messages",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "4ba5e372bd3a7dd0e2d71b773876a52b5657815f9f249936dc7a25eb908f370b"
+}
