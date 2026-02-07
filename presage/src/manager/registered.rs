@@ -47,6 +47,7 @@ use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::model::contacts::Contact;
+use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -946,6 +947,10 @@ impl<S: Store> Manager<S, Registered> {
                 .profile_key
                 .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
             message.required_protocol_version = Some(0);
+            message.preview = previews::generate_previews_from_message(
+                &message.body.clone().unwrap_or("".to_string()),
+            )
+            .await;
         }
 
         ensure_data_message_timestamp(&mut content_body, timestamp);
