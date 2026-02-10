@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["Flags","ProtocolVersion"],"mod":["contact","payment","quote"],"struct":["Contact","Delete","GiftBadge","GroupCallUpdate","Payment","Quote","Reaction","Sticker","StoryContext"]};
+window.SIDEBAR_ITEMS = {"enum":["Flags","ProtocolVersion"],"mod":["contact","payment","pin_message","quote"],"struct":["Contact","Delete","GiftBadge","GroupCallUpdate","Payment","PinMessage","PollCreate","PollTerminate","PollVote","Quote","Reaction","Sticker","StoryContext","UnpinMessage"]};

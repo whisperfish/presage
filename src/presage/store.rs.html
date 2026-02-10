@@ -589,15 +589,16 @@
 <a href=#589 id=589 data-nosnippet>589</a>        body: SyncMessage {
 <a href=#590 id=590 data-nosnippet>590</a>            verified: <span class="prelude-val">Some</span>(Verified {
 <a href=#591 id=591 data-nosnippet>591</a>                destination_aci: <span class="prelude-val">None</span>,
-<a href=#592 id=592 data-nosnippet>592</a>                identity_key: <span class="prelude-val">Some</span>(right_identity_key.public_key().serialize().to_vec()),
-<a href=#593 id=593 data-nosnippet>593</a>                state: <span class="prelude-val">Some</span>(verified_state.into()),
-<a href=#594 id=594 data-nosnippet>594</a>                null_message: <span class="prelude-val">None</span>,
-<a href=#595 id=595 data-nosnippet>595</a>            }),
-<a href=#596 id=596 data-nosnippet>596</a>            ..Default::default()
-<a href=#597 id=597 data-nosnippet>597</a>        }
-<a href=#598 id=598 data-nosnippet>598</a>        .into(),
-<a href=#599 id=599 data-nosnippet>599</a>    };
-<a href=#600 id=600 data-nosnippet>600</a>
-<a href=#601 id=601 data-nosnippet>601</a>    store.save_message(<span class="kw-2">&amp;</span>thread, verified_sync_message).<span class="kw">await
-<a href=#602 id=602 data-nosnippet>602</a></span>}
+<a href=#592 id=592 data-nosnippet>592</a>                destination_aci_binary: <span class="prelude-val">None</span>,
+<a href=#593 id=593 data-nosnippet>593</a>                identity_key: <span class="prelude-val">Some</span>(right_identity_key.public_key().serialize().to_vec()),
+<a href=#594 id=594 data-nosnippet>594</a>                state: <span class="prelude-val">Some</span>(verified_state.into()),
+<a href=#595 id=595 data-nosnippet>595</a>                null_message: <span class="prelude-val">None</span>,
+<a href=#596 id=596 data-nosnippet>596</a>            }),
+<a href=#597 id=597 data-nosnippet>597</a>            ..Default::default()
+<a href=#598 id=598 data-nosnippet>598</a>        }
+<a href=#599 id=599 data-nosnippet>599</a>        .into(),
+<a href=#600 id=600 data-nosnippet>600</a>    };
+<a href=#601 id=601 data-nosnippet>601</a>
+<a href=#602 id=602 data-nosnippet>602</a>    store.save_message(<span class="kw-2">&amp;</span>thread, verified_sync_message).<span class="kw">await
+<a href=#603 id=603 data-nosnippet>603</a></span>}
 </code></pre></div></section></main></body></html>

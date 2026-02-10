@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/aebf607/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/</div>sender.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/8bbad87/src/sender.rs`."><title>sender.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/</div>sender.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-4"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="kw">use </span>std::{collections::HashSet, time::SystemTime};
 <a href=#2 id=2 data-nosnippet>2</a>
 <a href=#3 id=3 data-nosnippet>3</a><span class="kw">use </span>chrono::prelude::<span class="kw-2">*</span>;
 <a href=#4 id=4 data-nosnippet>4</a><span class="kw">use </span>libsignal_core::{curve::CurveError, InvalidDeviceId};
@@ -759,348 +759,353 @@
 <a href=#759 id=759 data-nosnippet>759</a>                );
 <a href=#760 id=760 data-nosnippet>760</a>                MessageRequestResponse {
 <a href=#761 id=761 data-nosnippet>761</a>                    thread_aci: <span class="prelude-val">Some</span>(aci.to_string()),
-<a href=#762 id=762 data-nosnippet>762</a>                    group_id: <span class="prelude-val">None</span>,
-<a href=#763 id=763 data-nosnippet>763</a>                    r#type: <span class="prelude-val">Some</span>(action.into()),
-<a href=#764 id=764 data-nosnippet>764</a>                }
-<a href=#765 id=765 data-nosnippet>765</a>            },
-<a href=#766 id=766 data-nosnippet>766</a>            ThreadIdentifier::Group(id) =&gt; {
-<a href=#767 id=767 data-nosnippet>767</a>                <span class="macro">tracing::debug!</span>(
-<a href=#768 id=768 data-nosnippet>768</a>                    <span class="string">"sending message request response {:?} for group {:?}"</span>,
-<a href=#769 id=769 data-nosnippet>769</a>                    action,
-<a href=#770 id=770 data-nosnippet>770</a>                    id
-<a href=#771 id=771 data-nosnippet>771</a>                );
-<a href=#772 id=772 data-nosnippet>772</a>                MessageRequestResponse {
-<a href=#773 id=773 data-nosnippet>773</a>                    thread_aci: <span class="prelude-val">None</span>,
-<a href=#774 id=774 data-nosnippet>774</a>                    group_id: <span class="prelude-val">Some</span>(id.to_vec()),
-<a href=#775 id=775 data-nosnippet>775</a>                    r#type: <span class="prelude-val">Some</span>(action.into()),
-<a href=#776 id=776 data-nosnippet>776</a>                }
-<a href=#777 id=777 data-nosnippet>777</a>            },
-<a href=#778 id=778 data-nosnippet>778</a>        });
-<a href=#779 id=779 data-nosnippet>779</a>
-<a href=#780 id=780 data-nosnippet>780</a>        <span class="kw">let </span>msg = SyncMessage {
-<a href=#781 id=781 data-nosnippet>781</a>            message_request_response,
-<a href=#782 id=782 data-nosnippet>782</a>            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>rng())
-<a href=#783 id=783 data-nosnippet>783</a>        };
-<a href=#784 id=784 data-nosnippet>784</a>
-<a href=#785 id=785 data-nosnippet>785</a>        <span class="kw">let </span>ts = Utc::now().timestamp_millis() <span class="kw">as </span>u64;
-<a href=#786 id=786 data-nosnippet>786</a>        <span class="self">self</span>.send_message(recipient, <span class="prelude-val">None</span>, msg, ts, <span class="bool-val">false</span>, <span class="bool-val">false</span>)
-<a href=#787 id=787 data-nosnippet>787</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#788 id=788 data-nosnippet>788</a>
-<a href=#789 id=789 data-nosnippet>789</a>        <span class="prelude-val">Ok</span>(())
-<a href=#790 id=790 data-nosnippet>790</a>    }
-<a href=#791 id=791 data-nosnippet>791</a>
-<a href=#792 id=792 data-nosnippet>792</a>    <span class="doccomment">/// Send a `SyncMessage` to own devices, if any.
-<a href=#793 id=793 data-nosnippet>793</a>    </span><span class="kw">pub async fn </span>send_sync_message(
-<a href=#794 id=794 data-nosnippet>794</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#795 id=795 data-nosnippet>795</a>        sync: SyncMessage,
-<a href=#796 id=796 data-nosnippet>796</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt; {
-<a href=#797 id=797 data-nosnippet>797</a>        <span class="kw">if </span><span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
-<a href=#798 id=798 data-nosnippet>798</a>            <span class="kw">let </span>content = sync.into();
-<a href=#799 id=799 data-nosnippet>799</a>            <span class="kw">let </span>timestamp = Utc::now().timestamp_millis() <span class="kw">as </span>u64;
-<a href=#800 id=800 data-nosnippet>800</a>            <span class="macro">debug!</span>(
-<a href=#801 id=801 data-nosnippet>801</a>                <span class="string">"sending multi-device sync message with content {content:?}"
-<a href=#802 id=802 data-nosnippet>802</a>            </span>);
-<a href=#803 id=803 data-nosnippet>803</a>            <span class="self">self</span>.try_send_message(
-<a href=#804 id=804 data-nosnippet>804</a>                <span class="self">self</span>.local_aci.into(),
-<a href=#805 id=805 data-nosnippet>805</a>                <span class="prelude-val">None</span>,
-<a href=#806 id=806 data-nosnippet>806</a>                <span class="kw-2">&amp;</span>content,
-<a href=#807 id=807 data-nosnippet>807</a>                timestamp,
-<a href=#808 id=808 data-nosnippet>808</a>                <span class="bool-val">false</span>,
-<a href=#809 id=809 data-nosnippet>809</a>                <span class="bool-val">false</span>,
-<a href=#810 id=810 data-nosnippet>810</a>            )
-<a href=#811 id=811 data-nosnippet>811</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#812 id=812 data-nosnippet>812</a>        }
-<a href=#813 id=813 data-nosnippet>813</a>        <span class="prelude-val">Ok</span>(())
-<a href=#814 id=814 data-nosnippet>814</a>    }
-<a href=#815 id=815 data-nosnippet>815</a>
-<a href=#816 id=816 data-nosnippet>816</a>    <span class="doccomment">/// Send a `SyncMessage` request message
-<a href=#817 id=817 data-nosnippet>817</a>    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>))]
-<a href=#818 id=818 data-nosnippet>818</a>    </span><span class="kw">pub async fn </span>send_sync_message_request(
-<a href=#819 id=819 data-nosnippet>819</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#820 id=820 data-nosnippet>820</a>        recipient: <span class="kw-2">&amp;</span>ServiceId,
-<a href=#821 id=821 data-nosnippet>821</a>        request_type: sync_message::request::Type,
-<a href=#822 id=822 data-nosnippet>822</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt; {
-<a href=#823 id=823 data-nosnippet>823</a>        <span class="kw">if </span><span class="self">self</span>.device_id == <span class="kw-2">*</span>DEFAULT_DEVICE_ID {
-<a href=#824 id=824 data-nosnippet>824</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::SendSyncMessageError(request_type));
-<a href=#825 id=825 data-nosnippet>825</a>        }
-<a href=#826 id=826 data-nosnippet>826</a>
-<a href=#827 id=827 data-nosnippet>827</a>        <span class="kw">let </span>msg = SyncMessage {
-<a href=#828 id=828 data-nosnippet>828</a>            request: <span class="prelude-val">Some</span>(sync_message::Request {
-<a href=#829 id=829 data-nosnippet>829</a>                r#type: <span class="prelude-val">Some</span>(request_type.into()),
-<a href=#830 id=830 data-nosnippet>830</a>            }),
-<a href=#831 id=831 data-nosnippet>831</a>            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>rng())
-<a href=#832 id=832 data-nosnippet>832</a>        };
-<a href=#833 id=833 data-nosnippet>833</a>        <span class="self">self</span>.send_sync_message(msg).<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#834 id=834 data-nosnippet>834</a>
-<a href=#835 id=835 data-nosnippet>835</a>        <span class="prelude-val">Ok</span>(())
-<a href=#836 id=836 data-nosnippet>836</a>    }
-<a href=#837 id=837 data-nosnippet>837</a>
-<a href=#838 id=838 data-nosnippet>838</a>    <span class="attr">#[tracing::instrument(level = <span class="string">"trace"</span>, skip(<span class="self">self</span>))]
-<a href=#839 id=839 data-nosnippet>839</a>    </span><span class="kw">fn </span>create_pni_signature(
-<a href=#840 id=840 data-nosnippet>840</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#841 id=841 data-nosnippet>841</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::PniSignatureMessage, MessageSenderError&gt; {
-<a href=#842 id=842 data-nosnippet>842</a>        <span class="kw">let </span><span class="kw-2">mut </span>rng = rng();
-<a href=#843 id=843 data-nosnippet>843</a>        <span class="kw">let </span>signature = <span class="self">self
-<a href=#844 id=844 data-nosnippet>844</a>            </span>.pni_identity
-<a href=#845 id=845 data-nosnippet>845</a>            .expect(<span class="string">"PNI key set when PNI signature requested"</span>)
-<a href=#846 id=846 data-nosnippet>846</a>            .sign_alternate_identity(
-<a href=#847 id=847 data-nosnippet>847</a>                <span class="self">self</span>.aci_identity.identity_key(),
-<a href=#848 id=848 data-nosnippet>848</a>                <span class="kw-2">&amp;mut </span>rng,
-<a href=#849 id=849 data-nosnippet>849</a>            )<span class="question-mark">?</span>;
-<a href=#850 id=850 data-nosnippet>850</a>        <span class="prelude-val">Ok</span>(<span class="kw">crate</span>::proto::PniSignatureMessage {
-<a href=#851 id=851 data-nosnippet>851</a>            pni: <span class="prelude-val">Some</span>(<span class="self">self</span>.local_pni.service_id_binary()),
-<a href=#852 id=852 data-nosnippet>852</a>            signature: <span class="prelude-val">Some</span>(signature.into()),
-<a href=#853 id=853 data-nosnippet>853</a>        })
-<a href=#854 id=854 data-nosnippet>854</a>    }
-<a href=#855 id=855 data-nosnippet>855</a>
-<a href=#856 id=856 data-nosnippet>856</a>    <span class="comment">// Equivalent with `getEncryptedMessages`
-<a href=#857 id=857 data-nosnippet>857</a>    </span><span class="attr">#[tracing::instrument(
-<a href=#858 id=858 data-nosnippet>858</a>        level = <span class="string">"trace"</span>,
-<a href=#859 id=859 data-nosnippet>859</a>        skip(<span class="self">self</span>, unidentified_access, content),
-<a href=#860 id=860 data-nosnippet>860</a>        fields(unidentified_access = unidentified_access.is_some(), recipient = recipient.service_id_string()),
-<a href=#861 id=861 data-nosnippet>861</a>    )]
-<a href=#862 id=862 data-nosnippet>862</a>    </span><span class="kw">async fn </span>create_encrypted_messages(
-<a href=#863 id=863 data-nosnippet>863</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#864 id=864 data-nosnippet>864</a>        recipient: <span class="kw-2">&amp;</span>ServiceId,
-<a href=#865 id=865 data-nosnippet>865</a>        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
-<a href=#866 id=866 data-nosnippet>866</a>        content: <span class="kw-2">&amp;</span>[u8],
-<a href=#867 id=867 data-nosnippet>867</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;EncryptedMessages&gt;, MessageSenderError&gt; {
-<a href=#868 id=868 data-nosnippet>868</a>        <span class="kw">let </span><span class="kw-2">mut </span>messages = <span class="macro">vec!</span>[];
-<a href=#869 id=869 data-nosnippet>869</a>
-<a href=#870 id=870 data-nosnippet>870</a>        <span class="kw">let </span><span class="kw-2">mut </span>devices: HashSet&lt;DeviceId&gt; = <span class="self">self
-<a href=#871 id=871 data-nosnippet>871</a>            </span>.protocol_store
-<a href=#872 id=872 data-nosnippet>872</a>            .get_sub_device_sessions(recipient)
-<a href=#873 id=873 data-nosnippet>873</a>            .<span class="kw">await</span><span class="question-mark">?
-<a href=#874 id=874 data-nosnippet>874</a>            </span>.into_iter()
-<a href=#875 id=875 data-nosnippet>875</a>            .collect();
-<a href=#876 id=876 data-nosnippet>876</a>
-<a href=#877 id=877 data-nosnippet>877</a>        <span class="comment">// always send to the primary device no matter what
-<a href=#878 id=878 data-nosnippet>878</a>        </span>devices.insert(<span class="kw-2">*</span>DEFAULT_DEVICE_ID);
-<a href=#879 id=879 data-nosnippet>879</a>
-<a href=#880 id=880 data-nosnippet>880</a>        <span class="comment">// never try to send messages to the sender device
-<a href=#881 id=881 data-nosnippet>881</a>        </span><span class="kw">match </span>recipient {
-<a href=#882 id=882 data-nosnippet>882</a>            ServiceId::Aci(aci) =&gt; {
-<a href=#883 id=883 data-nosnippet>883</a>                <span class="kw">if </span><span class="kw-2">*</span>aci == <span class="self">self</span>.local_aci {
-<a href=#884 id=884 data-nosnippet>884</a>                    devices.remove(<span class="kw-2">&amp;</span><span class="self">self</span>.device_id);
-<a href=#885 id=885 data-nosnippet>885</a>                }
-<a href=#886 id=886 data-nosnippet>886</a>            },
-<a href=#887 id=887 data-nosnippet>887</a>            ServiceId::Pni(pni) =&gt; {
-<a href=#888 id=888 data-nosnippet>888</a>                <span class="kw">if </span><span class="kw-2">*</span>pni == <span class="self">self</span>.local_pni {
-<a href=#889 id=889 data-nosnippet>889</a>                    devices.remove(<span class="kw-2">&amp;</span><span class="self">self</span>.device_id);
-<a href=#890 id=890 data-nosnippet>890</a>                }
-<a href=#891 id=891 data-nosnippet>891</a>            },
-<a href=#892 id=892 data-nosnippet>892</a>        };
-<a href=#893 id=893 data-nosnippet>893</a>
-<a href=#894 id=894 data-nosnippet>894</a>        <span class="kw">for </span>device_id <span class="kw">in </span>devices {
-<a href=#895 id=895 data-nosnippet>895</a>            <span class="macro">trace!</span>(<span class="string">"sending message to device {}"</span>, device_id);
-<a href=#896 id=896 data-nosnippet>896</a>            <span class="comment">// `create_encrypted_message` may fail with `SessionNotFound` if the session is corrupted;
-<a href=#897 id=897 data-nosnippet>897</a>            // see https://github.com/whisperfish/libsignal-client/commit/601454d20.
-<a href=#898 id=898 data-nosnippet>898</a>            // If this happens, delete the session and retry.
-<a href=#899 id=899 data-nosnippet>899</a>            </span><span class="kw">for </span>_attempt <span class="kw">in </span><span class="number">0</span>..<span class="number">2 </span>{
-<a href=#900 id=900 data-nosnippet>900</a>                <span class="kw">match </span><span class="self">self
-<a href=#901 id=901 data-nosnippet>901</a>                    </span>.create_encrypted_message(
-<a href=#902 id=902 data-nosnippet>902</a>                        recipient,
-<a href=#903 id=903 data-nosnippet>903</a>                        unidentified_access,
-<a href=#904 id=904 data-nosnippet>904</a>                        device_id,
-<a href=#905 id=905 data-nosnippet>905</a>                        content,
-<a href=#906 id=906 data-nosnippet>906</a>                    )
-<a href=#907 id=907 data-nosnippet>907</a>                    .<span class="kw">await
-<a href=#908 id=908 data-nosnippet>908</a>                </span>{
-<a href=#909 id=909 data-nosnippet>909</a>                    <span class="prelude-val">Ok</span>(message) =&gt; {
-<a href=#910 id=910 data-nosnippet>910</a>                        messages.push(message);
-<a href=#911 id=911 data-nosnippet>911</a>                        <span class="kw">break</span>;
-<a href=#912 id=912 data-nosnippet>912</a>                    },
-<a href=#913 id=913 data-nosnippet>913</a>                    <span class="prelude-val">Err</span>(MessageSenderError::ServiceError(
-<a href=#914 id=914 data-nosnippet>914</a>                        ServiceError::SignalProtocolError(
-<a href=#915 id=915 data-nosnippet>915</a>                            SignalProtocolError::SessionNotFound(addr),
-<a href=#916 id=916 data-nosnippet>916</a>                        ),
-<a href=#917 id=917 data-nosnippet>917</a>                    )) =&gt; {
-<a href=#918 id=918 data-nosnippet>918</a>                        <span class="comment">// SessionNotFound is returned on certain session corruption.
-<a href=#919 id=919 data-nosnippet>919</a>                        // Since delete_session *creates* a session if it doesn't exist,
-<a href=#920 id=920 data-nosnippet>920</a>                        // the NotFound error is an indicator of session corruption.
-<a href=#921 id=921 data-nosnippet>921</a>                        // Try to delete this session, if it gets succesfully deleted, retry.  Otherwise, fail.
-<a href=#922 id=922 data-nosnippet>922</a>                        </span><span class="macro">tracing::warn!</span>(<span class="string">"Potential session corruption for {}, deleting session"</span>, addr);
-<a href=#923 id=923 data-nosnippet>923</a>                        <span class="kw">match </span><span class="self">self</span>.protocol_store.delete_session(<span class="kw-2">&amp;</span>addr).<span class="kw">await </span>{
-<a href=#924 id=924 data-nosnippet>924</a>                            <span class="prelude-val">Ok</span>(()) =&gt; <span class="kw">continue</span>,
-<a href=#925 id=925 data-nosnippet>925</a>                            <span class="prelude-val">Err</span>(error) =&gt; {
-<a href=#926 id=926 data-nosnippet>926</a>                                <span class="macro">tracing::warn!</span>(%error, %addr, <span class="string">"failed to delete session"</span>);
-<a href=#927 id=927 data-nosnippet>927</a>                                <span class="kw">return </span><span class="prelude-val">Err</span>(
-<a href=#928 id=928 data-nosnippet>928</a>                                    SignalProtocolError::SessionNotFound(addr)
-<a href=#929 id=929 data-nosnippet>929</a>                                        .into(),
-<a href=#930 id=930 data-nosnippet>930</a>                                );
-<a href=#931 id=931 data-nosnippet>931</a>                            },
-<a href=#932 id=932 data-nosnippet>932</a>                        }
-<a href=#933 id=933 data-nosnippet>933</a>                    },
-<a href=#934 id=934 data-nosnippet>934</a>                    <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e),
-<a href=#935 id=935 data-nosnippet>935</a>                }
-<a href=#936 id=936 data-nosnippet>936</a>            }
-<a href=#937 id=937 data-nosnippet>937</a>        }
-<a href=#938 id=938 data-nosnippet>938</a>
-<a href=#939 id=939 data-nosnippet>939</a>        <span class="kw">if </span>messages.is_empty() {
-<a href=#940 id=940 data-nosnippet>940</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
-<a href=#941 id=941 data-nosnippet>941</a>        } <span class="kw">else </span>{
-<a href=#942 id=942 data-nosnippet>942</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EncryptedMessages {
-<a href=#943 id=943 data-nosnippet>943</a>                messages,
-<a href=#944 id=944 data-nosnippet>944</a>                used_identity_key: <span class="self">self
-<a href=#945 id=945 data-nosnippet>945</a>                    </span>.protocol_store
-<a href=#946 id=946 data-nosnippet>946</a>                    .get_identity(
-<a href=#947 id=947 data-nosnippet>947</a>                        <span class="kw-2">&amp;</span>recipient.to_protocol_address(<span class="kw-2">*</span>DEFAULT_DEVICE_ID),
-<a href=#948 id=948 data-nosnippet>948</a>                    )
-<a href=#949 id=949 data-nosnippet>949</a>                    .<span class="kw">await</span><span class="question-mark">?
-<a href=#950 id=950 data-nosnippet>950</a>                    </span>.ok_or(MessageSenderError::UntrustedIdentity {
-<a href=#951 id=951 data-nosnippet>951</a>                        address: <span class="kw-2">*</span>recipient,
-<a href=#952 id=952 data-nosnippet>952</a>                    })<span class="question-mark">?</span>,
-<a href=#953 id=953 data-nosnippet>953</a>            }))
-<a href=#954 id=954 data-nosnippet>954</a>        }
-<a href=#955 id=955 data-nosnippet>955</a>    }
-<a href=#956 id=956 data-nosnippet>956</a>
-<a href=#957 id=957 data-nosnippet>957</a>    <span class="doccomment">/// Equivalent to `getEncryptedMessage`
-<a href=#958 id=958 data-nosnippet>958</a>    ///
-<a href=#959 id=959 data-nosnippet>959</a>    /// When no session with the recipient exists, we need to create one.
-<a href=#960 id=960 data-nosnippet>960</a>    </span><span class="attr">#[tracing::instrument(
-<a href=#961 id=961 data-nosnippet>961</a>        level = <span class="string">"trace"</span>,
-<a href=#962 id=962 data-nosnippet>962</a>        skip(<span class="self">self</span>, unidentified_access, content),
-<a href=#963 id=963 data-nosnippet>963</a>        fields(unidentified_access = unidentified_access.is_some(), recipient = recipient.service_id_string()),
-<a href=#964 id=964 data-nosnippet>964</a>    )]
-<a href=#965 id=965 data-nosnippet>965</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_encrypted_message(
-<a href=#966 id=966 data-nosnippet>966</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#967 id=967 data-nosnippet>967</a>        recipient: <span class="kw-2">&amp;</span>ServiceId,
-<a href=#968 id=968 data-nosnippet>968</a>        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
-<a href=#969 id=969 data-nosnippet>969</a>        device_id: DeviceId,
-<a href=#970 id=970 data-nosnippet>970</a>        content: <span class="kw-2">&amp;</span>[u8],
-<a href=#971 id=971 data-nosnippet>971</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;OutgoingPushMessage, MessageSenderError&gt; {
-<a href=#972 id=972 data-nosnippet>972</a>        <span class="kw">let </span>recipient_protocol_address =
-<a href=#973 id=973 data-nosnippet>973</a>            recipient.to_protocol_address(device_id);
-<a href=#974 id=974 data-nosnippet>974</a>
-<a href=#975 id=975 data-nosnippet>975</a>        <span class="macro">tracing::trace!</span>(
-<a href=#976 id=976 data-nosnippet>976</a>            <span class="string">"encrypting message for {}"</span>,
-<a href=#977 id=977 data-nosnippet>977</a>            recipient_protocol_address
-<a href=#978 id=978 data-nosnippet>978</a>        );
-<a href=#979 id=979 data-nosnippet>979</a>
-<a href=#980 id=980 data-nosnippet>980</a>        <span class="comment">// establish a session with the recipient/device if necessary
-<a href=#981 id=981 data-nosnippet>981</a>        // no need to establish a session with ourselves (and our own current device)
-<a href=#982 id=982 data-nosnippet>982</a>        </span><span class="kw">if </span><span class="self">self
-<a href=#983 id=983 data-nosnippet>983</a>            </span>.protocol_store
-<a href=#984 id=984 data-nosnippet>984</a>            .load_session(<span class="kw-2">&amp;</span>recipient_protocol_address)
-<a href=#985 id=985 data-nosnippet>985</a>            .<span class="kw">await</span><span class="question-mark">?
-<a href=#986 id=986 data-nosnippet>986</a>            </span>.is_none()
-<a href=#987 id=987 data-nosnippet>987</a>        {
-<a href=#988 id=988 data-nosnippet>988</a>            <span class="macro">info!</span>(
-<a href=#989 id=989 data-nosnippet>989</a>                <span class="string">"establishing new session with {}"</span>,
-<a href=#990 id=990 data-nosnippet>990</a>                recipient_protocol_address
-<a href=#991 id=991 data-nosnippet>991</a>            );
-<a href=#992 id=992 data-nosnippet>992</a>            <span class="kw">let </span>pre_keys = <span class="kw">match </span><span class="self">self
-<a href=#993 id=993 data-nosnippet>993</a>                </span>.identified_ws
-<a href=#994 id=994 data-nosnippet>994</a>                .get_pre_keys(recipient, device_id)
-<a href=#995 id=995 data-nosnippet>995</a>                .<span class="kw">await
-<a href=#996 id=996 data-nosnippet>996</a>            </span>{
-<a href=#997 id=997 data-nosnippet>997</a>                <span class="prelude-val">Ok</span>(ok) =&gt; {
-<a href=#998 id=998 data-nosnippet>998</a>                    <span class="macro">tracing::trace!</span>(<span class="string">"Get prekeys OK"</span>);
-<a href=#999 id=999 data-nosnippet>999</a>                    ok
-<a href=#1000 id=1000 data-nosnippet>1000</a>                },
-<a href=#1001 id=1001 data-nosnippet>1001</a>                <span class="prelude-val">Err</span>(ServiceError::NotFoundError) =&gt; {
-<a href=#1002 id=1002 data-nosnippet>1002</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::NotFound {
-<a href=#1003 id=1003 data-nosnippet>1003</a>                        service_id: <span class="kw-2">*</span>recipient,
-<a href=#1004 id=1004 data-nosnippet>1004</a>                    });
-<a href=#1005 id=1005 data-nosnippet>1005</a>                },
-<a href=#1006 id=1006 data-nosnippet>1006</a>                <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e)<span class="question-mark">?</span>,
-<a href=#1007 id=1007 data-nosnippet>1007</a>            };
-<a href=#1008 id=1008 data-nosnippet>1008</a>
-<a href=#1009 id=1009 data-nosnippet>1009</a>            <span class="kw">let </span><span class="kw-2">mut </span>rng = rng();
+<a href=#762 id=762 data-nosnippet>762</a>                    thread_aci_binary: <span class="prelude-val">Some</span>(aci.into_bytes().to_vec()),
+<a href=#763 id=763 data-nosnippet>763</a>                    group_id: <span class="prelude-val">None</span>,
+<a href=#764 id=764 data-nosnippet>764</a>                    r#type: <span class="prelude-val">Some</span>(action.into()),
+<a href=#765 id=765 data-nosnippet>765</a>                }
+<a href=#766 id=766 data-nosnippet>766</a>            },
+<a href=#767 id=767 data-nosnippet>767</a>            ThreadIdentifier::Group(id) =&gt; {
+<a href=#768 id=768 data-nosnippet>768</a>                <span class="macro">tracing::debug!</span>(
+<a href=#769 id=769 data-nosnippet>769</a>                    <span class="string">"sending message request response {:?} for group {:?}"</span>,
+<a href=#770 id=770 data-nosnippet>770</a>                    action,
+<a href=#771 id=771 data-nosnippet>771</a>                    id
+<a href=#772 id=772 data-nosnippet>772</a>                );
+<a href=#773 id=773 data-nosnippet>773</a>                MessageRequestResponse {
+<a href=#774 id=774 data-nosnippet>774</a>                    thread_aci: <span class="prelude-val">None</span>,
+<a href=#775 id=775 data-nosnippet>775</a>                    thread_aci_binary: <span class="prelude-val">None</span>,
+<a href=#776 id=776 data-nosnippet>776</a>                    group_id: <span class="prelude-val">Some</span>(id.to_vec()),
+<a href=#777 id=777 data-nosnippet>777</a>                    r#type: <span class="prelude-val">Some</span>(action.into()),
+<a href=#778 id=778 data-nosnippet>778</a>                }
+<a href=#779 id=779 data-nosnippet>779</a>            },
+<a href=#780 id=780 data-nosnippet>780</a>        });
+<a href=#781 id=781 data-nosnippet>781</a>
+<a href=#782 id=782 data-nosnippet>782</a>        <span class="kw">let </span>msg = SyncMessage {
+<a href=#783 id=783 data-nosnippet>783</a>            message_request_response,
+<a href=#784 id=784 data-nosnippet>784</a>            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>rng())
+<a href=#785 id=785 data-nosnippet>785</a>        };
+<a href=#786 id=786 data-nosnippet>786</a>
+<a href=#787 id=787 data-nosnippet>787</a>        <span class="kw">let </span>ts = Utc::now().timestamp_millis() <span class="kw">as </span>u64;
+<a href=#788 id=788 data-nosnippet>788</a>        <span class="self">self</span>.send_message(recipient, <span class="prelude-val">None</span>, msg, ts, <span class="bool-val">false</span>, <span class="bool-val">false</span>)
+<a href=#789 id=789 data-nosnippet>789</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#790 id=790 data-nosnippet>790</a>
+<a href=#791 id=791 data-nosnippet>791</a>        <span class="prelude-val">Ok</span>(())
+<a href=#792 id=792 data-nosnippet>792</a>    }
+<a href=#793 id=793 data-nosnippet>793</a>
+<a href=#794 id=794 data-nosnippet>794</a>    <span class="doccomment">/// Send a `SyncMessage` to own devices, if any.
+<a href=#795 id=795 data-nosnippet>795</a>    </span><span class="kw">pub async fn </span>send_sync_message(
+<a href=#796 id=796 data-nosnippet>796</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#797 id=797 data-nosnippet>797</a>        sync: SyncMessage,
+<a href=#798 id=798 data-nosnippet>798</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt; {
+<a href=#799 id=799 data-nosnippet>799</a>        <span class="kw">if </span><span class="self">self</span>.is_multi_device().<span class="kw">await </span>{
+<a href=#800 id=800 data-nosnippet>800</a>            <span class="kw">let </span>content = sync.into();
+<a href=#801 id=801 data-nosnippet>801</a>            <span class="kw">let </span>timestamp = Utc::now().timestamp_millis() <span class="kw">as </span>u64;
+<a href=#802 id=802 data-nosnippet>802</a>            <span class="macro">debug!</span>(
+<a href=#803 id=803 data-nosnippet>803</a>                <span class="string">"sending multi-device sync message with content {content:?}"
+<a href=#804 id=804 data-nosnippet>804</a>            </span>);
+<a href=#805 id=805 data-nosnippet>805</a>            <span class="self">self</span>.try_send_message(
+<a href=#806 id=806 data-nosnippet>806</a>                <span class="self">self</span>.local_aci.into(),
+<a href=#807 id=807 data-nosnippet>807</a>                <span class="prelude-val">None</span>,
+<a href=#808 id=808 data-nosnippet>808</a>                <span class="kw-2">&amp;</span>content,
+<a href=#809 id=809 data-nosnippet>809</a>                timestamp,
+<a href=#810 id=810 data-nosnippet>810</a>                <span class="bool-val">false</span>,
+<a href=#811 id=811 data-nosnippet>811</a>                <span class="bool-val">false</span>,
+<a href=#812 id=812 data-nosnippet>812</a>            )
+<a href=#813 id=813 data-nosnippet>813</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#814 id=814 data-nosnippet>814</a>        }
+<a href=#815 id=815 data-nosnippet>815</a>        <span class="prelude-val">Ok</span>(())
+<a href=#816 id=816 data-nosnippet>816</a>    }
+<a href=#817 id=817 data-nosnippet>817</a>
+<a href=#818 id=818 data-nosnippet>818</a>    <span class="doccomment">/// Send a `SyncMessage` request message
+<a href=#819 id=819 data-nosnippet>819</a>    </span><span class="attr">#[tracing::instrument(skip(<span class="self">self</span>))]
+<a href=#820 id=820 data-nosnippet>820</a>    </span><span class="kw">pub async fn </span>send_sync_message_request(
+<a href=#821 id=821 data-nosnippet>821</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#822 id=822 data-nosnippet>822</a>        recipient: <span class="kw-2">&amp;</span>ServiceId,
+<a href=#823 id=823 data-nosnippet>823</a>        request_type: sync_message::request::Type,
+<a href=#824 id=824 data-nosnippet>824</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;(), MessageSenderError&gt; {
+<a href=#825 id=825 data-nosnippet>825</a>        <span class="kw">if </span><span class="self">self</span>.device_id == <span class="kw-2">*</span>DEFAULT_DEVICE_ID {
+<a href=#826 id=826 data-nosnippet>826</a>            <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::SendSyncMessageError(request_type));
+<a href=#827 id=827 data-nosnippet>827</a>        }
+<a href=#828 id=828 data-nosnippet>828</a>
+<a href=#829 id=829 data-nosnippet>829</a>        <span class="kw">let </span>msg = SyncMessage {
+<a href=#830 id=830 data-nosnippet>830</a>            request: <span class="prelude-val">Some</span>(sync_message::Request {
+<a href=#831 id=831 data-nosnippet>831</a>                r#type: <span class="prelude-val">Some</span>(request_type.into()),
+<a href=#832 id=832 data-nosnippet>832</a>            }),
+<a href=#833 id=833 data-nosnippet>833</a>            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>rng())
+<a href=#834 id=834 data-nosnippet>834</a>        };
+<a href=#835 id=835 data-nosnippet>835</a>        <span class="self">self</span>.send_sync_message(msg).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#836 id=836 data-nosnippet>836</a>
+<a href=#837 id=837 data-nosnippet>837</a>        <span class="prelude-val">Ok</span>(())
+<a href=#838 id=838 data-nosnippet>838</a>    }
+<a href=#839 id=839 data-nosnippet>839</a>
+<a href=#840 id=840 data-nosnippet>840</a>    <span class="attr">#[tracing::instrument(level = <span class="string">"trace"</span>, skip(<span class="self">self</span>))]
+<a href=#841 id=841 data-nosnippet>841</a>    </span><span class="kw">fn </span>create_pni_signature(
+<a href=#842 id=842 data-nosnippet>842</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#843 id=843 data-nosnippet>843</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="kw">crate</span>::proto::PniSignatureMessage, MessageSenderError&gt; {
+<a href=#844 id=844 data-nosnippet>844</a>        <span class="kw">let </span><span class="kw-2">mut </span>rng = rng();
+<a href=#845 id=845 data-nosnippet>845</a>        <span class="kw">let </span>signature = <span class="self">self
+<a href=#846 id=846 data-nosnippet>846</a>            </span>.pni_identity
+<a href=#847 id=847 data-nosnippet>847</a>            .expect(<span class="string">"PNI key set when PNI signature requested"</span>)
+<a href=#848 id=848 data-nosnippet>848</a>            .sign_alternate_identity(
+<a href=#849 id=849 data-nosnippet>849</a>                <span class="self">self</span>.aci_identity.identity_key(),
+<a href=#850 id=850 data-nosnippet>850</a>                <span class="kw-2">&amp;mut </span>rng,
+<a href=#851 id=851 data-nosnippet>851</a>            )<span class="question-mark">?</span>;
+<a href=#852 id=852 data-nosnippet>852</a>        <span class="prelude-val">Ok</span>(<span class="kw">crate</span>::proto::PniSignatureMessage {
+<a href=#853 id=853 data-nosnippet>853</a>            pni: <span class="prelude-val">Some</span>(<span class="self">self</span>.local_pni.service_id_binary()),
+<a href=#854 id=854 data-nosnippet>854</a>            signature: <span class="prelude-val">Some</span>(signature.into()),
+<a href=#855 id=855 data-nosnippet>855</a>        })
+<a href=#856 id=856 data-nosnippet>856</a>    }
+<a href=#857 id=857 data-nosnippet>857</a>
+<a href=#858 id=858 data-nosnippet>858</a>    <span class="comment">// Equivalent with `getEncryptedMessages`
+<a href=#859 id=859 data-nosnippet>859</a>    </span><span class="attr">#[tracing::instrument(
+<a href=#860 id=860 data-nosnippet>860</a>        level = <span class="string">"trace"</span>,
+<a href=#861 id=861 data-nosnippet>861</a>        skip(<span class="self">self</span>, unidentified_access, content),
+<a href=#862 id=862 data-nosnippet>862</a>        fields(unidentified_access = unidentified_access.is_some(), recipient = recipient.service_id_string()),
+<a href=#863 id=863 data-nosnippet>863</a>    )]
+<a href=#864 id=864 data-nosnippet>864</a>    </span><span class="kw">async fn </span>create_encrypted_messages(
+<a href=#865 id=865 data-nosnippet>865</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#866 id=866 data-nosnippet>866</a>        recipient: <span class="kw-2">&amp;</span>ServiceId,
+<a href=#867 id=867 data-nosnippet>867</a>        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+<a href=#868 id=868 data-nosnippet>868</a>        content: <span class="kw-2">&amp;</span>[u8],
+<a href=#869 id=869 data-nosnippet>869</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;EncryptedMessages&gt;, MessageSenderError&gt; {
+<a href=#870 id=870 data-nosnippet>870</a>        <span class="kw">let </span><span class="kw-2">mut </span>messages = <span class="macro">vec!</span>[];
+<a href=#871 id=871 data-nosnippet>871</a>
+<a href=#872 id=872 data-nosnippet>872</a>        <span class="kw">let </span><span class="kw-2">mut </span>devices: HashSet&lt;DeviceId&gt; = <span class="self">self
+<a href=#873 id=873 data-nosnippet>873</a>            </span>.protocol_store
+<a href=#874 id=874 data-nosnippet>874</a>            .get_sub_device_sessions(recipient)
+<a href=#875 id=875 data-nosnippet>875</a>            .<span class="kw">await</span><span class="question-mark">?
+<a href=#876 id=876 data-nosnippet>876</a>            </span>.into_iter()
+<a href=#877 id=877 data-nosnippet>877</a>            .collect();
+<a href=#878 id=878 data-nosnippet>878</a>
+<a href=#879 id=879 data-nosnippet>879</a>        <span class="comment">// always send to the primary device no matter what
+<a href=#880 id=880 data-nosnippet>880</a>        </span>devices.insert(<span class="kw-2">*</span>DEFAULT_DEVICE_ID);
+<a href=#881 id=881 data-nosnippet>881</a>
+<a href=#882 id=882 data-nosnippet>882</a>        <span class="comment">// never try to send messages to the sender device
+<a href=#883 id=883 data-nosnippet>883</a>        </span><span class="kw">match </span>recipient {
+<a href=#884 id=884 data-nosnippet>884</a>            ServiceId::Aci(aci) =&gt; {
+<a href=#885 id=885 data-nosnippet>885</a>                <span class="kw">if </span><span class="kw-2">*</span>aci == <span class="self">self</span>.local_aci {
+<a href=#886 id=886 data-nosnippet>886</a>                    devices.remove(<span class="kw-2">&amp;</span><span class="self">self</span>.device_id);
+<a href=#887 id=887 data-nosnippet>887</a>                }
+<a href=#888 id=888 data-nosnippet>888</a>            },
+<a href=#889 id=889 data-nosnippet>889</a>            ServiceId::Pni(pni) =&gt; {
+<a href=#890 id=890 data-nosnippet>890</a>                <span class="kw">if </span><span class="kw-2">*</span>pni == <span class="self">self</span>.local_pni {
+<a href=#891 id=891 data-nosnippet>891</a>                    devices.remove(<span class="kw-2">&amp;</span><span class="self">self</span>.device_id);
+<a href=#892 id=892 data-nosnippet>892</a>                }
+<a href=#893 id=893 data-nosnippet>893</a>            },
+<a href=#894 id=894 data-nosnippet>894</a>        };
+<a href=#895 id=895 data-nosnippet>895</a>
+<a href=#896 id=896 data-nosnippet>896</a>        <span class="kw">for </span>device_id <span class="kw">in </span>devices {
+<a href=#897 id=897 data-nosnippet>897</a>            <span class="macro">trace!</span>(<span class="string">"sending message to device {}"</span>, device_id);
+<a href=#898 id=898 data-nosnippet>898</a>            <span class="comment">// `create_encrypted_message` may fail with `SessionNotFound` if the session is corrupted;
+<a href=#899 id=899 data-nosnippet>899</a>            // see https://github.com/whisperfish/libsignal-client/commit/601454d20.
+<a href=#900 id=900 data-nosnippet>900</a>            // If this happens, delete the session and retry.
+<a href=#901 id=901 data-nosnippet>901</a>            </span><span class="kw">for </span>_attempt <span class="kw">in </span><span class="number">0</span>..<span class="number">2 </span>{
+<a href=#902 id=902 data-nosnippet>902</a>                <span class="kw">match </span><span class="self">self
+<a href=#903 id=903 data-nosnippet>903</a>                    </span>.create_encrypted_message(
+<a href=#904 id=904 data-nosnippet>904</a>                        recipient,
+<a href=#905 id=905 data-nosnippet>905</a>                        unidentified_access,
+<a href=#906 id=906 data-nosnippet>906</a>                        device_id,
+<a href=#907 id=907 data-nosnippet>907</a>                        content,
+<a href=#908 id=908 data-nosnippet>908</a>                    )
+<a href=#909 id=909 data-nosnippet>909</a>                    .<span class="kw">await
+<a href=#910 id=910 data-nosnippet>910</a>                </span>{
+<a href=#911 id=911 data-nosnippet>911</a>                    <span class="prelude-val">Ok</span>(message) =&gt; {
+<a href=#912 id=912 data-nosnippet>912</a>                        messages.push(message);
+<a href=#913 id=913 data-nosnippet>913</a>                        <span class="kw">break</span>;
+<a href=#914 id=914 data-nosnippet>914</a>                    },
+<a href=#915 id=915 data-nosnippet>915</a>                    <span class="prelude-val">Err</span>(MessageSenderError::ServiceError(
+<a href=#916 id=916 data-nosnippet>916</a>                        ServiceError::SignalProtocolError(
+<a href=#917 id=917 data-nosnippet>917</a>                            SignalProtocolError::SessionNotFound(addr),
+<a href=#918 id=918 data-nosnippet>918</a>                        ),
+<a href=#919 id=919 data-nosnippet>919</a>                    )) =&gt; {
+<a href=#920 id=920 data-nosnippet>920</a>                        <span class="comment">// SessionNotFound is returned on certain session corruption.
+<a href=#921 id=921 data-nosnippet>921</a>                        // Since delete_session *creates* a session if it doesn't exist,
+<a href=#922 id=922 data-nosnippet>922</a>                        // the NotFound error is an indicator of session corruption.
+<a href=#923 id=923 data-nosnippet>923</a>                        // Try to delete this session, if it gets succesfully deleted, retry.  Otherwise, fail.
+<a href=#924 id=924 data-nosnippet>924</a>                        </span><span class="macro">tracing::warn!</span>(<span class="string">"Potential session corruption for {}, deleting session"</span>, addr);
+<a href=#925 id=925 data-nosnippet>925</a>                        <span class="kw">match </span><span class="self">self</span>.protocol_store.delete_session(<span class="kw-2">&amp;</span>addr).<span class="kw">await </span>{
+<a href=#926 id=926 data-nosnippet>926</a>                            <span class="prelude-val">Ok</span>(()) =&gt; <span class="kw">continue</span>,
+<a href=#927 id=927 data-nosnippet>927</a>                            <span class="prelude-val">Err</span>(error) =&gt; {
+<a href=#928 id=928 data-nosnippet>928</a>                                <span class="macro">tracing::warn!</span>(%error, %addr, <span class="string">"failed to delete session"</span>);
+<a href=#929 id=929 data-nosnippet>929</a>                                <span class="kw">return </span><span class="prelude-val">Err</span>(
+<a href=#930 id=930 data-nosnippet>930</a>                                    SignalProtocolError::SessionNotFound(addr)
+<a href=#931 id=931 data-nosnippet>931</a>                                        .into(),
+<a href=#932 id=932 data-nosnippet>932</a>                                );
+<a href=#933 id=933 data-nosnippet>933</a>                            },
+<a href=#934 id=934 data-nosnippet>934</a>                        }
+<a href=#935 id=935 data-nosnippet>935</a>                    },
+<a href=#936 id=936 data-nosnippet>936</a>                    <span class="prelude-val">Err</span>(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e),
+<a href=#937 id=937 data-nosnippet>937</a>                }
+<a href=#938 id=938 data-nosnippet>938</a>            }
+<a href=#939 id=939 data-nosnippet>939</a>        }
+<a href=#940 id=940 data-nosnippet>940</a>
+<a href=#941 id=941 data-nosnippet>941</a>        <span class="kw">if </span>messages.is_empty() {
+<a href=#942 id=942 data-nosnippet>942</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
+<a href=#943 id=943 data-nosnippet>943</a>        } <span class="kw">else </span>{
+<a href=#944 id=944 data-nosnippet>944</a>            <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(EncryptedMessages {
+<a href=#945 id=945 data-nosnippet>945</a>                messages,
+<a href=#946 id=946 data-nosnippet>946</a>                used_identity_key: <span class="self">self
+<a href=#947 id=947 data-nosnippet>947</a>                    </span>.protocol_store
+<a href=#948 id=948 data-nosnippet>948</a>                    .get_identity(
+<a href=#949 id=949 data-nosnippet>949</a>                        <span class="kw-2">&amp;</span>recipient.to_protocol_address(<span class="kw-2">*</span>DEFAULT_DEVICE_ID),
+<a href=#950 id=950 data-nosnippet>950</a>                    )
+<a href=#951 id=951 data-nosnippet>951</a>                    .<span class="kw">await</span><span class="question-mark">?
+<a href=#952 id=952 data-nosnippet>952</a>                    </span>.ok_or(MessageSenderError::UntrustedIdentity {
+<a href=#953 id=953 data-nosnippet>953</a>                        address: <span class="kw-2">*</span>recipient,
+<a href=#954 id=954 data-nosnippet>954</a>                    })<span class="question-mark">?</span>,
+<a href=#955 id=955 data-nosnippet>955</a>            }))
+<a href=#956 id=956 data-nosnippet>956</a>        }
+<a href=#957 id=957 data-nosnippet>957</a>    }
+<a href=#958 id=958 data-nosnippet>958</a>
+<a href=#959 id=959 data-nosnippet>959</a>    <span class="doccomment">/// Equivalent to `getEncryptedMessage`
+<a href=#960 id=960 data-nosnippet>960</a>    ///
+<a href=#961 id=961 data-nosnippet>961</a>    /// When no session with the recipient exists, we need to create one.
+<a href=#962 id=962 data-nosnippet>962</a>    </span><span class="attr">#[tracing::instrument(
+<a href=#963 id=963 data-nosnippet>963</a>        level = <span class="string">"trace"</span>,
+<a href=#964 id=964 data-nosnippet>964</a>        skip(<span class="self">self</span>, unidentified_access, content),
+<a href=#965 id=965 data-nosnippet>965</a>        fields(unidentified_access = unidentified_access.is_some(), recipient = recipient.service_id_string()),
+<a href=#966 id=966 data-nosnippet>966</a>    )]
+<a href=#967 id=967 data-nosnippet>967</a>    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_encrypted_message(
+<a href=#968 id=968 data-nosnippet>968</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#969 id=969 data-nosnippet>969</a>        recipient: <span class="kw-2">&amp;</span>ServiceId,
+<a href=#970 id=970 data-nosnippet>970</a>        unidentified_access: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>SenderCertificate&gt;,
+<a href=#971 id=971 data-nosnippet>971</a>        device_id: DeviceId,
+<a href=#972 id=972 data-nosnippet>972</a>        content: <span class="kw-2">&amp;</span>[u8],
+<a href=#973 id=973 data-nosnippet>973</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;OutgoingPushMessage, MessageSenderError&gt; {
+<a href=#974 id=974 data-nosnippet>974</a>        <span class="kw">let </span>recipient_protocol_address =
+<a href=#975 id=975 data-nosnippet>975</a>            recipient.to_protocol_address(device_id);
+<a href=#976 id=976 data-nosnippet>976</a>
+<a href=#977 id=977 data-nosnippet>977</a>        <span class="macro">tracing::trace!</span>(
+<a href=#978 id=978 data-nosnippet>978</a>            <span class="string">"encrypting message for {}"</span>,
+<a href=#979 id=979 data-nosnippet>979</a>            recipient_protocol_address
+<a href=#980 id=980 data-nosnippet>980</a>        );
+<a href=#981 id=981 data-nosnippet>981</a>
+<a href=#982 id=982 data-nosnippet>982</a>        <span class="comment">// establish a session with the recipient/device if necessary
+<a href=#983 id=983 data-nosnippet>983</a>        // no need to establish a session with ourselves (and our own current device)
+<a href=#984 id=984 data-nosnippet>984</a>        </span><span class="kw">if </span><span class="self">self
+<a href=#985 id=985 data-nosnippet>985</a>            </span>.protocol_store
+<a href=#986 id=986 data-nosnippet>986</a>            .load_session(<span class="kw-2">&amp;</span>recipient_protocol_address)
+<a href=#987 id=987 data-nosnippet>987</a>            .<span class="kw">await</span><span class="question-mark">?
+<a href=#988 id=988 data-nosnippet>988</a>            </span>.is_none()
+<a href=#989 id=989 data-nosnippet>989</a>        {
+<a href=#990 id=990 data-nosnippet>990</a>            <span class="macro">info!</span>(
+<a href=#991 id=991 data-nosnippet>991</a>                <span class="string">"establishing new session with {}"</span>,
+<a href=#992 id=992 data-nosnippet>992</a>                recipient_protocol_address
+<a href=#993 id=993 data-nosnippet>993</a>            );
+<a href=#994 id=994 data-nosnippet>994</a>            <span class="kw">let </span>pre_keys = <span class="kw">match </span><span class="self">self
+<a href=#995 id=995 data-nosnippet>995</a>                </span>.identified_ws
+<a href=#996 id=996 data-nosnippet>996</a>                .get_pre_keys(recipient, device_id)
+<a href=#997 id=997 data-nosnippet>997</a>                .<span class="kw">await
+<a href=#998 id=998 data-nosnippet>998</a>            </span>{
+<a href=#999 id=999 data-nosnippet>999</a>                <span class="prelude-val">Ok</span>(ok) =&gt; {
+<a href=#1000 id=1000 data-nosnippet>1000</a>                    <span class="macro">tracing::trace!</span>(<span class="string">"Get prekeys OK"</span>);
+<a href=#1001 id=1001 data-nosnippet>1001</a>                    ok
+<a href=#1002 id=1002 data-nosnippet>1002</a>                },
+<a href=#1003 id=1003 data-nosnippet>1003</a>                <span class="prelude-val">Err</span>(ServiceError::NotFoundError) =&gt; {
+<a href=#1004 id=1004 data-nosnippet>1004</a>                    <span class="kw">return </span><span class="prelude-val">Err</span>(MessageSenderError::NotFound {
+<a href=#1005 id=1005 data-nosnippet>1005</a>                        service_id: <span class="kw-2">*</span>recipient,
+<a href=#1006 id=1006 data-nosnippet>1006</a>                    });
+<a href=#1007 id=1007 data-nosnippet>1007</a>                },
+<a href=#1008 id=1008 data-nosnippet>1008</a>                <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e)<span class="question-mark">?</span>,
+<a href=#1009 id=1009 data-nosnippet>1009</a>            };
 <a href=#1010 id=1010 data-nosnippet>1010</a>
-<a href=#1011 id=1011 data-nosnippet>1011</a>            <span class="kw">for </span>pre_key_bundle <span class="kw">in </span>pre_keys {
-<a href=#1012 id=1012 data-nosnippet>1012</a>                <span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_aci
-<a href=#1013 id=1013 data-nosnippet>1013</a>                    &amp;&amp; <span class="self">self</span>.device_id == pre_key_bundle.device_id()<span class="question-mark">?
-<a href=#1014 id=1014 data-nosnippet>1014</a>                </span>{
-<a href=#1015 id=1015 data-nosnippet>1015</a>                    <span class="macro">trace!</span>(<span class="string">"not establishing a session with myself!"</span>);
-<a href=#1016 id=1016 data-nosnippet>1016</a>                    <span class="kw">continue</span>;
-<a href=#1017 id=1017 data-nosnippet>1017</a>                }
-<a href=#1018 id=1018 data-nosnippet>1018</a>
-<a href=#1019 id=1019 data-nosnippet>1019</a>                <span class="kw">let </span>pre_key_address = get_preferred_protocol_address(
-<a href=#1020 id=1020 data-nosnippet>1020</a>                    <span class="kw-2">&amp;</span><span class="self">self</span>.protocol_store,
-<a href=#1021 id=1021 data-nosnippet>1021</a>                    recipient,
-<a href=#1022 id=1022 data-nosnippet>1022</a>                    pre_key_bundle.device_id()<span class="question-mark">?</span>,
-<a href=#1023 id=1023 data-nosnippet>1023</a>                )
-<a href=#1024 id=1024 data-nosnippet>1024</a>                .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#1025 id=1025 data-nosnippet>1025</a>
-<a href=#1026 id=1026 data-nosnippet>1026</a>                process_prekey_bundle(
-<a href=#1027 id=1027 data-nosnippet>1027</a>                    <span class="kw-2">&amp;</span>pre_key_address,
-<a href=#1028 id=1028 data-nosnippet>1028</a>                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
-<a href=#1029 id=1029 data-nosnippet>1029</a>                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store,
-<a href=#1030 id=1030 data-nosnippet>1030</a>                    <span class="kw-2">&amp;</span>pre_key_bundle,
-<a href=#1031 id=1031 data-nosnippet>1031</a>                    SystemTime::now(),
-<a href=#1032 id=1032 data-nosnippet>1032</a>                    <span class="kw-2">&amp;mut </span>rng,
-<a href=#1033 id=1033 data-nosnippet>1033</a>                )
-<a href=#1034 id=1034 data-nosnippet>1034</a>                .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#1035 id=1035 data-nosnippet>1035</a>            }
-<a href=#1036 id=1036 data-nosnippet>1036</a>        }
-<a href=#1037 id=1037 data-nosnippet>1037</a>
-<a href=#1038 id=1038 data-nosnippet>1038</a>        <span class="kw">let </span>message = <span class="self">self
-<a href=#1039 id=1039 data-nosnippet>1039</a>            </span>.cipher
-<a href=#1040 id=1040 data-nosnippet>1040</a>            .encrypt(
-<a href=#1041 id=1041 data-nosnippet>1041</a>                <span class="kw-2">&amp;</span>recipient_protocol_address,
-<a href=#1042 id=1042 data-nosnippet>1042</a>                unidentified_access,
-<a href=#1043 id=1043 data-nosnippet>1043</a>                content,
-<a href=#1044 id=1044 data-nosnippet>1044</a>                <span class="kw-2">&amp;mut </span>rng(),
-<a href=#1045 id=1045 data-nosnippet>1045</a>            )
-<a href=#1046 id=1046 data-nosnippet>1046</a>            .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">"encrypting message"</span>))
-<a href=#1047 id=1047 data-nosnippet>1047</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#1048 id=1048 data-nosnippet>1048</a>
-<a href=#1049 id=1049 data-nosnippet>1049</a>        <span class="prelude-val">Ok</span>(message)
-<a href=#1050 id=1050 data-nosnippet>1050</a>    }
-<a href=#1051 id=1051 data-nosnippet>1051</a>
-<a href=#1052 id=1052 data-nosnippet>1052</a>    <span class="kw">fn </span>create_multi_device_sent_transcript_content&lt;<span class="lifetime">'a</span>&gt;(
-<a href=#1053 id=1053 data-nosnippet>1053</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#1054 id=1054 data-nosnippet>1054</a>        recipient: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>ServiceId&gt;,
-<a href=#1055 id=1055 data-nosnippet>1055</a>        content_body: ContentBody,
-<a href=#1056 id=1056 data-nosnippet>1056</a>        timestamp: u64,
-<a href=#1057 id=1057 data-nosnippet>1057</a>        send_message_results: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>SendMessageResult&gt;,
-<a href=#1058 id=1058 data-nosnippet>1058</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;ContentBody&gt; {
-<a href=#1059 id=1059 data-nosnippet>1059</a>        <span class="kw">use </span>sync_message::sent::UnidentifiedDeliveryStatus;
-<a href=#1060 id=1060 data-nosnippet>1060</a>        <span class="kw">let </span>(message, edit_message) = <span class="kw">match </span>content_body {
-<a href=#1061 id=1061 data-nosnippet>1061</a>            ContentBody::DataMessage(m) =&gt; (<span class="prelude-val">Some</span>(m), <span class="prelude-val">None</span>),
-<a href=#1062 id=1062 data-nosnippet>1062</a>            ContentBody::EditMessage(m) =&gt; (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(m)),
-<a href=#1063 id=1063 data-nosnippet>1063</a>            <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
-<a href=#1064 id=1064 data-nosnippet>1064</a>        };
-<a href=#1065 id=1065 data-nosnippet>1065</a>        <span class="kw">let </span>unidentified_status: Vec&lt;UnidentifiedDeliveryStatus&gt; =
-<a href=#1066 id=1066 data-nosnippet>1066</a>            send_message_results
-<a href=#1067 id=1067 data-nosnippet>1067</a>                .into_iter()
-<a href=#1068 id=1068 data-nosnippet>1068</a>                .filter_map(|result| result.as_ref().ok())
-<a href=#1069 id=1069 data-nosnippet>1069</a>                .map(|sent| {
-<a href=#1070 id=1070 data-nosnippet>1070</a>                    <span class="kw">let </span>SentMessage {
-<a href=#1071 id=1071 data-nosnippet>1071</a>                        recipient,
-<a href=#1072 id=1072 data-nosnippet>1072</a>                        unidentified,
-<a href=#1073 id=1073 data-nosnippet>1073</a>                        used_identity_key,
-<a href=#1074 id=1074 data-nosnippet>1074</a>                        ..
-<a href=#1075 id=1075 data-nosnippet>1075</a>                    } = sent;
-<a href=#1076 id=1076 data-nosnippet>1076</a>                    UnidentifiedDeliveryStatus {
-<a href=#1077 id=1077 data-nosnippet>1077</a>                        destination_service_id: <span class="prelude-val">Some</span>(
-<a href=#1078 id=1078 data-nosnippet>1078</a>                            recipient.service_id_string(),
-<a href=#1079 id=1079 data-nosnippet>1079</a>                        ),
-<a href=#1080 id=1080 data-nosnippet>1080</a>                        unidentified: <span class="prelude-val">Some</span>(<span class="kw-2">*</span>unidentified),
-<a href=#1081 id=1081 data-nosnippet>1081</a>                        destination_pni_identity_key: <span class="prelude-val">Some</span>(
-<a href=#1082 id=1082 data-nosnippet>1082</a>                            used_identity_key.serialize().into(),
-<a href=#1083 id=1083 data-nosnippet>1083</a>                        ),
-<a href=#1084 id=1084 data-nosnippet>1084</a>                    }
-<a href=#1085 id=1085 data-nosnippet>1085</a>                })
-<a href=#1086 id=1086 data-nosnippet>1086</a>                .collect();
-<a href=#1087 id=1087 data-nosnippet>1087</a>        <span class="prelude-val">Some</span>(ContentBody::SynchronizeMessage(SyncMessage {
-<a href=#1088 id=1088 data-nosnippet>1088</a>            sent: <span class="prelude-val">Some</span>(sync_message::Sent {
-<a href=#1089 id=1089 data-nosnippet>1089</a>                destination_service_id: recipient
-<a href=#1090 id=1090 data-nosnippet>1090</a>                    .map(ServiceId::service_id_string),
-<a href=#1091 id=1091 data-nosnippet>1091</a>                destination_e164: <span class="prelude-val">None</span>,
-<a href=#1092 id=1092 data-nosnippet>1092</a>                expiration_start_timestamp: message
-<a href=#1093 id=1093 data-nosnippet>1093</a>                    .as_ref()
-<a href=#1094 id=1094 data-nosnippet>1094</a>                    .and_then(|m| m.expire_timer)
-<a href=#1095 id=1095 data-nosnippet>1095</a>                    .map(|<span class="kw">_</span>| timestamp),
-<a href=#1096 id=1096 data-nosnippet>1096</a>                message,
-<a href=#1097 id=1097 data-nosnippet>1097</a>                edit_message,
-<a href=#1098 id=1098 data-nosnippet>1098</a>                timestamp: <span class="prelude-val">Some</span>(timestamp),
-<a href=#1099 id=1099 data-nosnippet>1099</a>                unidentified_status,
-<a href=#1100 id=1100 data-nosnippet>1100</a>                ..Default::default()
-<a href=#1101 id=1101 data-nosnippet>1101</a>            }),
-<a href=#1102 id=1102 data-nosnippet>1102</a>            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>rng())
-<a href=#1103 id=1103 data-nosnippet>1103</a>        }))
-<a href=#1104 id=1104 data-nosnippet>1104</a>    }
-<a href=#1105 id=1105 data-nosnippet>1105</a>}
+<a href=#1011 id=1011 data-nosnippet>1011</a>            <span class="kw">let </span><span class="kw-2">mut </span>rng = rng();
+<a href=#1012 id=1012 data-nosnippet>1012</a>
+<a href=#1013 id=1013 data-nosnippet>1013</a>            <span class="kw">for </span>pre_key_bundle <span class="kw">in </span>pre_keys {
+<a href=#1014 id=1014 data-nosnippet>1014</a>                <span class="kw">if </span>recipient == <span class="kw-2">&amp;</span><span class="self">self</span>.local_aci
+<a href=#1015 id=1015 data-nosnippet>1015</a>                    &amp;&amp; <span class="self">self</span>.device_id == pre_key_bundle.device_id()<span class="question-mark">?
+<a href=#1016 id=1016 data-nosnippet>1016</a>                </span>{
+<a href=#1017 id=1017 data-nosnippet>1017</a>                    <span class="macro">trace!</span>(<span class="string">"not establishing a session with myself!"</span>);
+<a href=#1018 id=1018 data-nosnippet>1018</a>                    <span class="kw">continue</span>;
+<a href=#1019 id=1019 data-nosnippet>1019</a>                }
+<a href=#1020 id=1020 data-nosnippet>1020</a>
+<a href=#1021 id=1021 data-nosnippet>1021</a>                <span class="kw">let </span>pre_key_address = get_preferred_protocol_address(
+<a href=#1022 id=1022 data-nosnippet>1022</a>                    <span class="kw-2">&amp;</span><span class="self">self</span>.protocol_store,
+<a href=#1023 id=1023 data-nosnippet>1023</a>                    recipient,
+<a href=#1024 id=1024 data-nosnippet>1024</a>                    pre_key_bundle.device_id()<span class="question-mark">?</span>,
+<a href=#1025 id=1025 data-nosnippet>1025</a>                )
+<a href=#1026 id=1026 data-nosnippet>1026</a>                .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#1027 id=1027 data-nosnippet>1027</a>
+<a href=#1028 id=1028 data-nosnippet>1028</a>                process_prekey_bundle(
+<a href=#1029 id=1029 data-nosnippet>1029</a>                    <span class="kw-2">&amp;</span>pre_key_address,
+<a href=#1030 id=1030 data-nosnippet>1030</a>                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store.clone(),
+<a href=#1031 id=1031 data-nosnippet>1031</a>                    <span class="kw-2">&amp;mut </span><span class="self">self</span>.protocol_store,
+<a href=#1032 id=1032 data-nosnippet>1032</a>                    <span class="kw-2">&amp;</span>pre_key_bundle,
+<a href=#1033 id=1033 data-nosnippet>1033</a>                    SystemTime::now(),
+<a href=#1034 id=1034 data-nosnippet>1034</a>                    <span class="kw-2">&amp;mut </span>rng,
+<a href=#1035 id=1035 data-nosnippet>1035</a>                )
+<a href=#1036 id=1036 data-nosnippet>1036</a>                .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#1037 id=1037 data-nosnippet>1037</a>            }
+<a href=#1038 id=1038 data-nosnippet>1038</a>        }
+<a href=#1039 id=1039 data-nosnippet>1039</a>
+<a href=#1040 id=1040 data-nosnippet>1040</a>        <span class="kw">let </span>message = <span class="self">self
+<a href=#1041 id=1041 data-nosnippet>1041</a>            </span>.cipher
+<a href=#1042 id=1042 data-nosnippet>1042</a>            .encrypt(
+<a href=#1043 id=1043 data-nosnippet>1043</a>                <span class="kw-2">&amp;</span>recipient_protocol_address,
+<a href=#1044 id=1044 data-nosnippet>1044</a>                unidentified_access,
+<a href=#1045 id=1045 data-nosnippet>1045</a>                content,
+<a href=#1046 id=1046 data-nosnippet>1046</a>                <span class="kw-2">&amp;mut </span>rng(),
+<a href=#1047 id=1047 data-nosnippet>1047</a>            )
+<a href=#1048 id=1048 data-nosnippet>1048</a>            .instrument(<span class="macro">tracing::trace_span!</span>(<span class="string">"encrypting message"</span>))
+<a href=#1049 id=1049 data-nosnippet>1049</a>            .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#1050 id=1050 data-nosnippet>1050</a>
+<a href=#1051 id=1051 data-nosnippet>1051</a>        <span class="prelude-val">Ok</span>(message)
+<a href=#1052 id=1052 data-nosnippet>1052</a>    }
+<a href=#1053 id=1053 data-nosnippet>1053</a>
+<a href=#1054 id=1054 data-nosnippet>1054</a>    <span class="kw">fn </span>create_multi_device_sent_transcript_content&lt;<span class="lifetime">'a</span>&gt;(
+<a href=#1055 id=1055 data-nosnippet>1055</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#1056 id=1056 data-nosnippet>1056</a>        recipient: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>ServiceId&gt;,
+<a href=#1057 id=1057 data-nosnippet>1057</a>        content_body: ContentBody,
+<a href=#1058 id=1058 data-nosnippet>1058</a>        timestamp: u64,
+<a href=#1059 id=1059 data-nosnippet>1059</a>        send_message_results: <span class="kw">impl </span>IntoIterator&lt;Item = <span class="kw-2">&amp;</span><span class="lifetime">'a </span>SendMessageResult&gt;,
+<a href=#1060 id=1060 data-nosnippet>1060</a>    ) -&gt; <span class="prelude-ty">Option</span>&lt;ContentBody&gt; {
+<a href=#1061 id=1061 data-nosnippet>1061</a>        <span class="kw">use </span>sync_message::sent::UnidentifiedDeliveryStatus;
+<a href=#1062 id=1062 data-nosnippet>1062</a>        <span class="kw">let </span>(message, edit_message) = <span class="kw">match </span>content_body {
+<a href=#1063 id=1063 data-nosnippet>1063</a>            ContentBody::DataMessage(m) =&gt; (<span class="prelude-val">Some</span>(m), <span class="prelude-val">None</span>),
+<a href=#1064 id=1064 data-nosnippet>1064</a>            ContentBody::EditMessage(m) =&gt; (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(m)),
+<a href=#1065 id=1065 data-nosnippet>1065</a>            <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">None</span>,
+<a href=#1066 id=1066 data-nosnippet>1066</a>        };
+<a href=#1067 id=1067 data-nosnippet>1067</a>        <span class="kw">let </span>unidentified_status: Vec&lt;UnidentifiedDeliveryStatus&gt; =
+<a href=#1068 id=1068 data-nosnippet>1068</a>            send_message_results
+<a href=#1069 id=1069 data-nosnippet>1069</a>                .into_iter()
+<a href=#1070 id=1070 data-nosnippet>1070</a>                .filter_map(|result| result.as_ref().ok())
+<a href=#1071 id=1071 data-nosnippet>1071</a>                .map(|sent| {
+<a href=#1072 id=1072 data-nosnippet>1072</a>                    <span class="kw">let </span>SentMessage {
+<a href=#1073 id=1073 data-nosnippet>1073</a>                        recipient,
+<a href=#1074 id=1074 data-nosnippet>1074</a>                        unidentified,
+<a href=#1075 id=1075 data-nosnippet>1075</a>                        used_identity_key,
+<a href=#1076 id=1076 data-nosnippet>1076</a>                        ..
+<a href=#1077 id=1077 data-nosnippet>1077</a>                    } = sent;
+<a href=#1078 id=1078 data-nosnippet>1078</a>                    UnidentifiedDeliveryStatus {
+<a href=#1079 id=1079 data-nosnippet>1079</a>                        destination_service_id: <span class="prelude-val">Some</span>(
+<a href=#1080 id=1080 data-nosnippet>1080</a>                            recipient.service_id_string(),
+<a href=#1081 id=1081 data-nosnippet>1081</a>                        ),
+<a href=#1082 id=1082 data-nosnippet>1082</a>                        destination_service_id_binary: <span class="prelude-val">Some</span>(
+<a href=#1083 id=1083 data-nosnippet>1083</a>                            recipient.service_id_binary(),
+<a href=#1084 id=1084 data-nosnippet>1084</a>                        ),
+<a href=#1085 id=1085 data-nosnippet>1085</a>                        unidentified: <span class="prelude-val">Some</span>(<span class="kw-2">*</span>unidentified),
+<a href=#1086 id=1086 data-nosnippet>1086</a>                        destination_pni_identity_key: <span class="prelude-val">Some</span>(
+<a href=#1087 id=1087 data-nosnippet>1087</a>                            used_identity_key.serialize().into(),
+<a href=#1088 id=1088 data-nosnippet>1088</a>                        ),
+<a href=#1089 id=1089 data-nosnippet>1089</a>                    }
+<a href=#1090 id=1090 data-nosnippet>1090</a>                })
+<a href=#1091 id=1091 data-nosnippet>1091</a>                .collect();
+<a href=#1092 id=1092 data-nosnippet>1092</a>        <span class="prelude-val">Some</span>(ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#1093 id=1093 data-nosnippet>1093</a>            sent: <span class="prelude-val">Some</span>(sync_message::Sent {
+<a href=#1094 id=1094 data-nosnippet>1094</a>                destination_service_id: recipient
+<a href=#1095 id=1095 data-nosnippet>1095</a>                    .map(ServiceId::service_id_string),
+<a href=#1096 id=1096 data-nosnippet>1096</a>                destination_e164: <span class="prelude-val">None</span>,
+<a href=#1097 id=1097 data-nosnippet>1097</a>                expiration_start_timestamp: message
+<a href=#1098 id=1098 data-nosnippet>1098</a>                    .as_ref()
+<a href=#1099 id=1099 data-nosnippet>1099</a>                    .and_then(|m| m.expire_timer)
+<a href=#1100 id=1100 data-nosnippet>1100</a>                    .map(|<span class="kw">_</span>| timestamp),
+<a href=#1101 id=1101 data-nosnippet>1101</a>                message,
+<a href=#1102 id=1102 data-nosnippet>1102</a>                edit_message,
+<a href=#1103 id=1103 data-nosnippet>1103</a>                timestamp: <span class="prelude-val">Some</span>(timestamp),
+<a href=#1104 id=1104 data-nosnippet>1104</a>                unidentified_status,
+<a href=#1105 id=1105 data-nosnippet>1105</a>                ..Default::default()
+<a href=#1106 id=1106 data-nosnippet>1106</a>            }),
+<a href=#1107 id=1107 data-nosnippet>1107</a>            ..SyncMessage::with_padding(<span class="kw-2">&amp;mut </span>rng())
+<a href=#1108 id=1108 data-nosnippet>1108</a>        }))
+<a href=#1109 id=1109 data-nosnippet>1109</a>    }
+<a href=#1110 id=1110 data-nosnippet>1110</a>}
 </code></pre></div></section></main></body></html>
