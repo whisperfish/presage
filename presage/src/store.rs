@@ -589,6 +589,7 @@ pub async fn save_trusted_identity_message<S: Store>(
         body: SyncMessage {
             verified: Some(Verified {
                 destination_aci: None,
+                destination_aci_binary: None,
                 identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
                 state: Some(verified_state.into()),
                 null_message: None,

@@ -671,6 +671,7 @@ impl<S: Store> Manager<S, Registered> {
                                                         contacts.into_iter().map(|c| libsignal_service::sender::ContactDetails {
                                                             number: c.phone_number.map(|p| p.to_string()),
                                                             aci: Some(c.uuid.to_string()),
+                                                            aci_binary: Some(c.uuid.into_bytes().into()),
                                                             name: Some(c.name),
                                                             avatar: c.avatar.map(|a| libsignal_service::proto::contact_details::Avatar {
                                                                 content_type: Some(a.content_type),
@@ -703,10 +704,12 @@ impl<S: Store> Manager<S, Registered> {
                                                 }
                                             }
                                             RequestType::Blocked => {
+                                                warn!("storing blocked user is not implemented yet! we will not report blocked users to the device requesting the sync.");
                                                 let result = state.message_sender.send_sync_message(SyncMessage {
                                                     blocked: Some(libsignal_service::content::sync_message::Blocked {
                                                         numbers: vec![],
                                                         acis: vec![],
+                                                        acis_binary: vec![],
                                                         group_ids: vec![],
                                                     }),
                                                     ..SyncMessage::with_padding(&mut rand::rng())
@@ -716,7 +719,6 @@ impl<S: Store> Manager<S, Registered> {
                                                     warn!(%error, "Error sending blocked contacts to other devices");
                                                 }
                                             }
-                                            // TODO: Configuration
                                             t => {
                                                 info!(type = ?t, "Got sync request of currently unhandled type")
                                             }

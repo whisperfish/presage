@@ -8,7 +8,7 @@ use presage::{
         models::Attachment,
         prelude::{AccessControl, Content, phonenumber},
         profile_name::ProfileName,
-        protocol::ServiceId,
+        protocol::{Aci, ServiceId},
         zkgroup::GroupMasterKeyBytes,
     },
     model::{
@@ -52,6 +52,11 @@ impl TryInto<Contact> for SqlContact {
                 .transpose()?,
             name: self.name,
             verified: Verified {
+                destination_aci_binary: self
+                    .destination_aci
+                    .as_deref()
+                    .and_then(|a| Aci::parse_from_service_id_string(a))
+                    .map(|aci| aci.service_id_binary()),
                 destination_aci: self.destination_aci,
                 identity_key: self.identity_key,
                 state: self.is_verified.map(|v| {
