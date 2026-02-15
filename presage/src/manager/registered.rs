@@ -900,7 +900,13 @@ impl<S: Store> Manager<S, Registered> {
                         None
                     }
                     future::Either::Left((Ok(_), rx_loop)) => rx_loop.await,
-                    future::Either::Right((rx_loop_result, _)) => rx_loop_result,
+                    future::Either::Right((rx_loop_result, refresh)) => {
+                        if let Err(()) = refresh.await {
+                            error!("FATAL: failed to refresh keys and account attributes!");
+                            return None;
+                        }
+                        rx_loop_result
+                    }
                 }
             }
         })))
