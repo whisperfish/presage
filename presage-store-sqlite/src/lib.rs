@@ -1,9 +1,16 @@
+use std::borrow::Cow;
+
 use presage::{
     libsignal_service::{prelude::MasterKey, protocol::SenderCertificate},
     store::{StateStore, Store},
 };
 use protocol::{IdentityType, SqliteProtocolStore};
-use sqlx::{SqlitePool, query, query_scalar};
+use sqlx::{
+    SqlitePool,
+    migrate::{Migrate, Migration, MigrationType},
+    query, query_scalar,
+    sqlite::{SqliteJournalMode, SqliteSynchronous},
+};
 
 mod content;
 mod data;
@@ -78,10 +85,10 @@ impl SqliteStore {
         options: SqliteConnectOptions,
         trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SqliteStoreError> {
+        let options = options
+            .journal_mode(SqliteJournalMode::Wal)
+            .synchronous(SqliteSynchronous::Full);
         let db = SqlitePool::connect_with(options).await?;
-
-        use sqlx::migrate::{Migrate, Migration, MigrationType};
-        use std::borrow::Cow;
 
         // A migration that caused errors for some users was sadly shipped.
         // Revert this migration, which got instead replaced by 20260119182700_remove_device_id_from_identities.sql.

@@ -428,7 +428,7 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(Some(avatar));
         }
 
-        let mut gm = self.groups_manager().await?;
+        let mut gm = Box::pin(self.groups_manager()).await?;
         let Some(group) = upsert_group(
             &self.store,
             &mut gm,
@@ -572,7 +572,7 @@ impl<S: Store> Manager<S, Registered> {
             message_receiver: MessageReceiver::new(identified_push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
-            groups_manager: self.groups_manager().await?,
+            groups_manager: Box::pin(self.groups_manager()).await?,
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
             master_key: self.master_key().await?,
@@ -1046,7 +1046,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut sender = self.new_message_sender().await?;
 
-        let mut groups_manager = self.groups_manager().await?;
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
             upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
         else {
