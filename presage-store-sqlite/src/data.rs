@@ -55,7 +55,7 @@ impl TryInto<Contact> for SqlContact {
                 destination_aci_binary: self
                     .destination_aci
                     .as_deref()
-                    .and_then(|a| Aci::parse_from_service_id_string(a))
+                    .and_then(Aci::parse_from_service_id_string)
                     .map(|aci| aci.service_id_binary()),
                 destination_aci: self.destination_aci,
                 identity_key: self.identity_key,
