@@ -428,7 +428,7 @@
 <a href=#428 id=428 data-nosnippet>428</a>            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(avatar));
 <a href=#429 id=429 data-nosnippet>429</a>        }
 <a href=#430 id=430 data-nosnippet>430</a>
-<a href=#431 id=431 data-nosnippet>431</a>        <span class="kw">let </span><span class="kw-2">mut </span>gm = <span class="self">self</span>.groups_manager().<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#431 id=431 data-nosnippet>431</a>        <span class="kw">let </span><span class="kw-2">mut </span>gm = Box::pin(<span class="self">self</span>.groups_manager()).<span class="kw">await</span><span class="question-mark">?</span>;
 <a href=#432 id=432 data-nosnippet>432</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(group) = upsert_group(
 <a href=#433 id=433 data-nosnippet>433</a>            <span class="kw-2">&amp;</span><span class="self">self</span>.store,
 <a href=#434 id=434 data-nosnippet>434</a>            <span class="kw-2">&amp;mut </span>gm,
@@ -572,7 +572,7 @@
 <a href=#572 id=572 data-nosnippet>572</a>            message_receiver: MessageReceiver::new(identified_push_service),
 <a href=#573 id=573 data-nosnippet>573</a>            service_cipher_aci: <span class="self">self</span>.new_service_cipher_aci(),
 <a href=#574 id=574 data-nosnippet>574</a>            service_cipher_pni: <span class="self">self</span>.new_service_cipher_pni(),
-<a href=#575 id=575 data-nosnippet>575</a>            groups_manager: <span class="self">self</span>.groups_manager().<span class="kw">await</span><span class="question-mark">?</span>,
+<a href=#575 id=575 data-nosnippet>575</a>            groups_manager: Box::pin(<span class="self">self</span>.groups_manager()).<span class="kw">await</span><span class="question-mark">?</span>,
 <a href=#576 id=576 data-nosnippet>576</a>            service_ids: <span class="self">self</span>.state.data.service_ids.clone(),
 <a href=#577 id=577 data-nosnippet>577</a>            message_sender: <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>,
 <a href=#578 id=578 data-nosnippet>578</a>            master_key: <span class="self">self</span>.master_key().<span class="kw">await</span><span class="question-mark">?</span>,
@@ -1046,7 +1046,7 @@
 <a href=#1046 id=1046 data-nosnippet>1046</a>
 <a href=#1047 id=1047 data-nosnippet>1047</a>        <span class="kw">let </span><span class="kw-2">mut </span>sender = <span class="self">self</span>.new_message_sender().<span class="kw">await</span><span class="question-mark">?</span>;
 <a href=#1048 id=1048 data-nosnippet>1048</a>
-<a href=#1049 id=1049 data-nosnippet>1049</a>        <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = <span class="self">self</span>.groups_manager().<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#1049 id=1049 data-nosnippet>1049</a>        <span class="kw">let </span><span class="kw-2">mut </span>groups_manager = Box::pin(<span class="self">self</span>.groups_manager()).<span class="kw">await</span><span class="question-mark">?</span>;
 <a href=#1050 id=1050 data-nosnippet>1050</a>        <span class="kw">let </span><span class="prelude-val">Some</span>(group) =
 <a href=#1051 id=1051 data-nosnippet>1051</a>            upsert_group(<span class="kw-2">&amp;</span><span class="self">self</span>.store, <span class="kw-2">&amp;mut </span>groups_manager, <span class="kw-2">&amp;</span>master_key_bytes, <span class="kw-2">&amp;</span><span class="number">0</span>).<span class="kw">await</span><span class="question-mark">?
 <a href=#1052 id=1052 data-nosnippet>1052</a>        </span><span class="kw">else </span>{
