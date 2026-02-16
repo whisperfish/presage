@@ -1,9 +1,11 @@
 use std::fmt;
+use std::future::Future;
+use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use futures::future::select;
-use futures::{future, pin_mut, AsyncReadExt, Stream, StreamExt};
+use futures::future::poll_immediate;
+use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
@@ -541,10 +543,7 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
         struct StreamState<Receiver, Store, AciStore, PniStore> {
-            first_run: bool,
             store: Store,
-            registration_data: RegistrationData,
-            identified_push_service: PushService,
             identified_websocket: SignalWebSocket<websocket::Identified>,
             unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
             encrypted_messages: Receiver,
@@ -555,18 +554,39 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: ServiceIds,
             message_sender: MessageSender<AciStore>,
             master_key: MasterKey,
+            refresh_registration: Pin<Box<dyn Future<Output = Result<(), ()>>>>,
         }
 
         let identified_push_service = self.identified_push_service();
+        let identified_websocket = self.identified_websocket(false).await?;
 
-        let registration_data = self.registration_data().clone();
+        let mut account_manager = AccountManager::new(
+            identified_push_service.clone(),
+            identified_websocket.clone(),
+            None,
+        );
+
+        let store_inner = self.store.clone();
+        let registration_data_inner = self.registration_data().clone();
+        let refresh_registration = Box::pin(async move {
+            if let Err(error) =
+                set_account_attributes::<S>(&mut account_manager, &registration_data_inner).await
+            {
+                error!(%error, "failed to set account attributes, this is problematic and should never happen!");
+                return Err(());
+            }
+
+            if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
+                error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
+                return Err(());
+            }
+
+            Ok(())
+        });
 
         let init = StreamState {
-            first_run: true,
             store: self.store.clone(),
-            registration_data,
-            identified_push_service: self.identified_push_service(),
-            identified_websocket: self.identified_websocket(false).await?,
+            identified_websocket,
             unidentified_websocket: self.unidentified_websocket().await?,
             encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
             message_receiver: MessageReceiver::new(identified_push_service),
@@ -576,46 +596,23 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
             master_key: self.master_key().await?,
+            refresh_registration,
         };
 
         debug!("starting to consume incoming message stream");
 
         Ok(Box::pin(futures::stream::unfold(init, |mut state| {
-            let mut account_manager = AccountManager::new(
-                state.identified_push_service.clone(),
-                state.identified_websocket.clone(),
-                None,
-            );
-
-            let first_run = state.first_run;
-            state.first_run = false;
-            let store_inner = state.store.clone();
-            let registration_data_inner = state.registration_data.clone();
-
-            let refresh_registration = async move {
-                if !first_run {
-                    trace!("skipping finalizing registration, receiving loop is alreay running");
-                    return Ok(());
-                }
-
-                if let Err(error) =
-                    set_account_attributes::<S>(&mut account_manager, &registration_data_inner)
-                        .await
-                {
-                    error!(%error, "failed to set account attributes, this is problematic and should never happen!");
-                    return Err(());
-                }
-
-                if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
-                    error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
-                    return Err(());
-                }
-
-                Ok(())
-            };
-
-            let incoming_messages_loop = async move {
+            async move {
                 loop {
+                    match poll_immediate(&mut state.refresh_registration).await {
+                        Some(Err(())) => {
+                            error!("failed to refresh registration, this should never happen, closing messages receiver.");
+                            return None;
+                        }
+                        Some(Ok(_)) => debug!("done with refresh registration!"),
+                        None => trace!("still waiting"),
+                    }
+
                     match state.encrypted_messages.next().await {
                         Some(Ok(Incoming::Envelope(envelope))) => {
                             let envelope = {
@@ -887,20 +884,6 @@ impl<S: Store> Manager<S, Registered> {
                         }
                         None => return None,
                     }
-                }
-            };
-
-            async move {
-                pin_mut!(refresh_registration);
-                pin_mut!(incoming_messages_loop);
-
-                match select(refresh_registration, incoming_messages_loop).await {
-                    future::Either::Left((Err(()), _)) => {
-                        error!("FATAL: failed to refresh keys and account attributes!");
-                        None
-                    }
-                    future::Either::Left((Ok(_), rx_loop)) => rx_loop.await,
-                    future::Either::Right((rx_loop_result, _)) => rx_loop_result,
                 }
             }
         })))
