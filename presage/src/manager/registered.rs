@@ -1,11 +1,9 @@
 use std::fmt;
-use std::future::Future;
 use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use futures::future::poll_immediate;
-use futures::{future, AsyncReadExt, Stream, StreamExt};
+use futures::{future, stream, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
@@ -44,7 +42,7 @@ use libsignal_service::{
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use tokio::sync::Mutex;
+use tokio::sync::{oneshot, Mutex};
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
@@ -523,15 +521,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    async fn receive_messages_encrypted(
-        &mut self,
-    ) -> Result<impl Stream<Item = Result<Incoming, ServiceError>>, Error<S::Error>> {
-        let credentials = self.credentials();
-        let ws = self.identified_websocket(true).await?;
-        let pipe = MessagePipe::from_socket(ws, credentials);
-        Ok(pipe.stream())
-    }
-
     /// Starts receiving and storing messages.
     ///
     /// As a client, it is heavily recommended to process incoming messages and wait for the `Received::QueueEmpty` messages
@@ -554,11 +543,10 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: ServiceIds,
             message_sender: MessageSender<AciStore>,
             master_key: MasterKey,
-            refresh_registration: Pin<Box<dyn Future<Output = Result<(), ()>>>>,
         }
 
         let identified_push_service = self.identified_push_service();
-        let identified_websocket = self.identified_websocket(false).await?;
+        let identified_websocket = self.identified_websocket(true).await?;
 
         let mut account_manager = AccountManager::new(
             identified_push_service.clone(),
@@ -568,27 +556,29 @@ impl<S: Store> Manager<S, Registered> {
 
         let store_inner = self.store.clone();
         let registration_data_inner = self.registration_data().clone();
-        let refresh_registration = Box::pin(async move {
+        let refresh_registration_task = Box::pin(stream::once(async move {
             if let Err(error) =
                 set_account_attributes::<S>(&mut account_manager, &registration_data_inner).await
             {
                 error!(%error, "failed to set account attributes, this is problematic and should never happen!");
-                return Err(());
-            }
-
-            if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
+                return None;
+            } else if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
                 error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
-                return Err(());
+                return None;
             }
 
-            Ok(())
-        });
+            return Some(Received::Contacts); // TODO: lol
+        }).filter_map(|opt| async { opt }));
+
+        let credentials = self.credentials();
+        let encrypted_messages =
+            MessagePipe::from_socket(identified_websocket.clone(), credentials);
 
         let init = StreamState {
             store: self.store.clone(),
             identified_websocket,
             unidentified_websocket: self.unidentified_websocket().await?,
-            encrypted_messages: Box::pin(self.receive_messages_encrypted().await?),
+            encrypted_messages: Box::pin(encrypted_messages.stream()),
             message_receiver: MessageReceiver::new(identified_push_service),
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
@@ -596,23 +586,13 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
             master_key: self.master_key().await?,
-            refresh_registration,
         };
 
         debug!("starting to consume incoming message stream");
 
-        Ok(Box::pin(futures::stream::unfold(init, |mut state| {
+        let incoming_messages_stream = futures::stream::unfold(init, |mut state| {
             async move {
                 loop {
-                    match poll_immediate(&mut state.refresh_registration).await {
-                        Some(Err(())) => {
-                            error!("failed to refresh registration, this should never happen, closing messages receiver.");
-                            return None;
-                        }
-                        Some(Ok(_)) => debug!("done with refresh registration!"),
-                        None => trace!("still waiting"),
-                    }
-
                     match state.encrypted_messages.next().await {
                         Some(Ok(Incoming::Envelope(envelope))) => {
                             let envelope = {
@@ -886,7 +866,12 @@ impl<S: Store> Manager<S, Registered> {
                     }
                 }
             }
-        })))
+        });
+
+        Ok(Box::pin(stream::select(
+            refresh_registration_task,
+            incoming_messages_stream,
+        )))
     }
 
     /// Sends a messages to the provided [ServiceId].
