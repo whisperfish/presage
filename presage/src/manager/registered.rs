@@ -545,6 +545,7 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         let identified_push_service = self.identified_push_service();
+        // NB: here, we initialise a *fresh* Signal websocket, which means any other use of the previous one will go into nirvana
         let identified_websocket = self.identified_websocket(true).await?;
 
         let mut account_manager = AccountManager::new(
