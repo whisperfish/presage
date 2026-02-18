@@ -556,18 +556,24 @@ impl<S: Store> Manager<S, Registered> {
 
         let store_inner = self.store.clone();
         let registration_data_inner = self.registration_data().clone();
+
+        // we make a task to update the account attributes and refresh pre keys as needed
+        // that will only yield a value if one of the two operations fail (stop signal)
+        //
+        // this is necessary because in this context, we can't do the classic tokio::spawn
+        // with a oneshot::channel() or CancellationToken because of !Send constraints in the Store.
         let refresh_registration_task = async move {
             if let Err(error) =
                 set_account_attributes::<S>(&mut account_manager, &registration_data_inner).await
             {
                 error!(%error, "failed to set account attributes, this is problematic and should never happen!");
-                return Some(());
+                return Some(()); // stop signal
             } else if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
                 error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
-                return Some(());
+                return Some(()); // stop signal
             }
 
-            future::pending::<()>().await;
+            future::pending::<()>().await; // hack: wait forever (non-busy loop)
             None
         };
 
@@ -870,6 +876,8 @@ impl<S: Store> Manager<S, Registered> {
         });
 
         Ok(Box::pin(
+            // we use the returning of the async closure in take_until as a stop signal
+            // if the future resolves *anything* the stream will end
             incoming_messages_stream.take_until(refresh_registration_task),
         ))
     }
