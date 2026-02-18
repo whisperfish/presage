@@ -10,6 +10,9 @@ pub enum Received {
     /// Contacts can be later queried in the store.
     Contacts,
 
+    /// TODO: this shouldn't be here, I'm thinking about it
+    RefreshedRegistration,
+
     /// Incoming decrypted message with metadata and content
     Content(Box<Content>),
 }

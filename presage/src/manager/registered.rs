@@ -567,7 +567,7 @@ impl<S: Store> Manager<S, Registered> {
                 return None;
             }
 
-            return Some(Received::Contacts); // TODO: lol
+            return Some(Received::RefreshedRegistration);
         }).filter_map(|opt| async { opt }));
 
         let credentials = self.credentials();
