@@ -1,6 +1,6 @@
 use std::fmt;
 use std::sync::{Arc, OnceLock};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
@@ -566,7 +566,7 @@ impl<S: Store> Manager<S, Registered> {
                 return Some(());
             }
 
-            tokio::time::sleep(Duration::MAX).await; // future should always be pending
+            future::pending::<()>().await;
             None
         };
 
