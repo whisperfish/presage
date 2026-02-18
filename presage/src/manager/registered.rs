@@ -1,9 +1,8 @@
 use std::fmt;
-use std::pin::Pin;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use futures::{future, stream, AsyncReadExt, Stream, StreamExt};
+use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
@@ -25,7 +24,7 @@ use libsignal_service::{
     },
     protocol::{Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind},
     provisioning::ProvisioningError,
-    push_service::{PushService, ServiceError, ServiceIds, DEFAULT_DEVICE_ID},
+    push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
@@ -42,7 +41,7 @@ use libsignal_service::{
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
-use tokio::sync::{oneshot, Mutex};
+use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
@@ -548,27 +547,39 @@ impl<S: Store> Manager<S, Registered> {
         let identified_push_service = self.identified_push_service();
         let identified_websocket = self.identified_websocket(true).await?;
 
-        let mut account_manager = AccountManager::new(
+      
+
+        let store_inner = self.store.clone();
+        let registration_data_inner = self.registration_data().clone();
+        let refresh_registration_task = futures::stream::unfold(
+            false,
+            |already_fired| {
+                  let mut account_manager = AccountManager::new(
             identified_push_service.clone(),
             identified_websocket.clone(),
             None,
         );
+                async move {
+                if already_fired {
+                    return None;
+                }
 
-        let store_inner = self.store.clone();
-        let registration_data_inner = self.registration_data().clone();
-        let refresh_registration_task = Box::pin(stream::once(async move {
-            if let Err(error) =
-                set_account_attributes::<S>(&mut account_manager, &registration_data_inner).await
-            {
-                error!(%error, "failed to set account attributes, this is problematic and should never happen!");
-                return None;
-            } else if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
-                error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
-                return None;
-            }
-
-            return Some(Received::RefreshedRegistration);
-        }).filter_map(|opt| async { opt }));
+                if let Err(error) =
+                    set_account_attributes::<S>(&mut account_manager, &registration_data_inner)
+                        .await
+                {
+                    error!(%error, "failed to set account attributes, this is problematic and should never happen!");
+                    Some(((), true))
+                } else if let Err(error) =
+                    register_pre_keys(&store_inner, &mut account_manager).await
+                {
+                    error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
+                    Some(((), true))
+                } else {
+                    None
+                }
+            },
+    });
 
         let credentials = self.credentials();
         let encrypted_messages =
@@ -868,10 +879,9 @@ impl<S: Store> Manager<S, Registered> {
             }
         });
 
-        Ok(Box::pin(stream::select(
-            refresh_registration_task,
-            incoming_messages_stream,
-        )))
+        Ok(Box::pin(
+            incoming_messages_stream, // .take_until(refresh_registration_task),
+        ))
     }
 
     /// Sends a messages to the provided [ServiceId].
