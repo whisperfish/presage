@@ -8,7 +8,7 @@ use presage::{
         models::Attachment,
         prelude::{AccessControl, Content, phonenumber},
         profile_name::ProfileName,
-        protocol::ServiceId,
+        protocol::{Aci, ServiceId},
         zkgroup::GroupMasterKeyBytes,
     },
     model::{
@@ -52,6 +52,11 @@ impl TryInto<Contact> for SqlContact {
                 .transpose()?,
             name: self.name,
             verified: Verified {
+                destination_aci_binary: self
+                    .destination_aci
+                    .as_deref()
+                    .and_then(Aci::parse_from_service_id_string)
+                    .map(|aci| aci.service_id_binary()),
                 destination_aci: self.destination_aci,
                 identity_key: self.identity_key,
                 state: self.is_verified.map(|v| {
@@ -192,7 +197,7 @@ pub struct SqlMessage {
 impl TryInto<Content> for SqlMessage {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument]
+    #[tracing::instrument(skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
     fn try_into(self) -> Result<Content, Self::Error> {
         let Self {
             ts,

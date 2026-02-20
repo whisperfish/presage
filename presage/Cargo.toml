@@ -7,7 +7,7 @@ edition = "2021"
 license = "AGPL-3.0-only"
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "0a3bea3fb81599590bf3a54dc00f0a93f36f56e6" }
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "8bbad87b8878b9e4956cdad08d640def94c8a9cd" }
 
 base64 = "0.22"
 futures = "0.3"
@@ -17,17 +17,18 @@ serde = "1.0"
 serde_json = "1.0"
 sha2 = "0.10.8"
 thiserror = "1.0"
-tokio = { version = "1.43", default-features = false, features = [
+tokio = { version = "1.48", default-features = false, features = [
     "rt",
     "sync",
     "time",
 ] }
 tracing = "0.1"
 url = "2.5"
-derivative = "2.2.0"
+derive_more = { version = "2.1.0", features = ["debug"] }
 bytes = { version = "1.7.2", features = ["serde"] }
 
 [dev-dependencies]
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
-presage-store-sled = { path = "../presage-store-sled" }
+presage-store-sqlite = { path = "../presage-store-sqlite" }
+tokio = { version = "1.48.0", features = ["rt-multi-thread", "macros"] }

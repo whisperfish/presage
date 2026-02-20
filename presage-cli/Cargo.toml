@@ -7,7 +7,6 @@ license = "AGPL-3.0-only"
 
 [dependencies]
 presage = { path = "../presage" }
-presage-store-sled = { path = "../presage-store-sled" }
 presage-store-sqlite = { path = "../presage-store-sqlite" }
 
 anyhow = { version = "1.0", features = ["backtrace"] }
@@ -24,7 +23,7 @@ mime_guess = "2.0"
 notify-rust = "4.10.0"
 qr2term = { version = "0.3.1" }
 tempfile = "3.9"
-tokio = { version = "1.43", features = [
+tokio = { version = "1.48", features = [
     "macros",
     "rt-multi-thread",
     "io-std",

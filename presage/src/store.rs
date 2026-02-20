@@ -6,7 +6,7 @@ use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
     pre_keys::PreKeysStore,
-    prelude::{Content, ProfileKey, Uuid, UuidError},
+    prelude::{Content, MasterKey, ProfileKey, Uuid, UuidError},
     proto::{
         sync_message::{self, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
@@ -55,7 +55,7 @@ pub trait StateStore {
     fn save_registration_data(
         &mut self,
         state: &RegistrationData,
-    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>> + Send;
 
     fn sender_certificate(
         &self,
@@ -71,6 +71,15 @@ pub trait StateStore {
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+
+    fn fetch_master_key(
+        &self,
+    ) -> impl Future<Output = Result<Option<MasterKey>, Self::StateStoreError>>;
+
+    fn store_master_key(
+        &self,
+        master_key: Option<&MasterKey>,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 }
 
 /// Stores messages, contacts, groups and profiles
@@ -204,7 +213,7 @@ pub trait ContentsStore: Send + Sync {
     fn save_contact(
         &mut self,
         contacts: &Contact,
-    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
 
     /// Get an iterator on all stored (synchronized) contacts
     fn contacts(
@@ -215,7 +224,7 @@ pub trait ContentsStore: Send + Sync {
     fn contact_by_id(
         &self,
         id: &Uuid,
-    ) -> impl Future<Output = Result<Option<Contact>, Self::ContentsStoreError>>;
+    ) -> impl Future<Output = Result<Option<Contact>, Self::ContentsStoreError>> + Send;
 
     /// Delete all cached group data
     fn clear_groups(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
@@ -256,13 +265,13 @@ pub trait ContentsStore: Send + Sync {
         &mut self,
         uuid: &Uuid,
         key: ProfileKey,
-    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>> + Send;
 
     /// Get the profile key for a contact
     fn profile_key(
         &self,
         service_id: &ServiceId,
-    ) -> impl Future<Output = Result<Option<ProfileKey>, Self::ContentsStoreError>>;
+    ) -> impl Future<Output = Result<Option<ProfileKey>, Self::ContentsStoreError>> + Send;
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(
@@ -330,8 +339,20 @@ pub trait Store:
     + 'static
 {
     type Error: StoreError;
-    type AciStore: ProtocolStore + PreKeysStore + SenderKeyStore + SessionStoreExt + Sync + Clone;
-    type PniStore: ProtocolStore + PreKeysStore + SenderKeyStore + SessionStoreExt + Sync + Clone;
+    type AciStore: ProtocolStore
+        + PreKeysStore
+        + SenderKeyStore
+        + SessionStoreExt
+        + Send
+        + Sync
+        + Clone;
+    type PniStore: ProtocolStore
+        + PreKeysStore
+        + SenderKeyStore
+        + SessionStoreExt
+        + Send
+        + Sync
+        + Clone;
 
     /// Clear the entire store
     ///
@@ -568,6 +589,7 @@ pub async fn save_trusted_identity_message<S: Store>(
         body: SyncMessage {
             verified: Some(Verified {
                 destination_aci: None,
+                destination_aci_binary: None,
                 identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
                 state: Some(verified_state.into()),
                 null_message: None,
