@@ -131,8 +131,12 @@ enum Cmd {
     Receive {
         #[clap(long = "notifications", short = 'n')]
         notifications: bool,
-        #[clap(long, help = "If --nostream is set, receive will only process the messages currently in the queue")]
-        nostream: bool,
+        #[clap(
+            long,
+            short = 'q',
+            help = "Exit after processing the messages in the queue (similar to the syncing of Signal Desktop)"
+        )]
+        stop_after_empty_queue: bool,
     },
     #[clap(about = "List groups")]
     ListGroups,
@@ -561,9 +565,9 @@ async fn receive<S: Store>(
             Received::QueueEmpty => {
                 println!("done with synchronization");
                 if nostream {
-                        break;
-                    }
+                    break;
                 }
+            }
             Received::Contacts => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
@@ -680,7 +684,10 @@ async fn run<S: Store>(subcommand: Cmd, config_store: S) -> anyhow::Result<()> {
                 );
             }
         }
-        Cmd::Receive { notifications, nostream } => {
+        Cmd::Receive {
+            notifications,
+            stop_after_empty_queue: nostream,
+        } => {
             let mut manager = Manager::load_registered(config_store).await?;
             receive(&mut manager, notifications, nostream).await?;
         }
