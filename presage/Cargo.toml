@@ -26,6 +26,11 @@ tracing = "0.1"
 url = "2.5"
 derive_more = { version = "2.1.0", features = ["debug"] }
 bytes = { version = "1.7.2", features = ["serde"] }
+mime = "0.3.17"
+regex = "1.12.2"
+reqwest = "0.13.1"
+scraper = "0.25.0"
+chrono = { version = "0.4.43", default-features = false, features = ["alloc", "std"] }
 
 [dev-dependencies]
 quickcheck = "1.0.3"

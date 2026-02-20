@@ -46,6 +46,7 @@ use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::model::contacts::Contact;
+use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -919,11 +920,52 @@ impl<S: Store> Manager<S, Registered> {
             });
 
         // we need to put our profile key in DataMessage
+
         if let ContentBody::DataMessage(message) = &mut content_body {
+            let preview_contents: Vec<previews::PreviewContent> =
+                previews::generate_previews_from_message(
+                    &message.body.clone().unwrap_or("".to_string()),
+                )
+                .await;
+
+            let previews: Vec<libsignal_service::proto::Preview> =
+                future::join_all(preview_contents.iter().map(|content| async {
+                    libsignal_service::proto::Preview {
+                        url: content.url.clone(),
+                        title: content.title.clone(),
+                        image: match &content.image {
+                            Some(image) => self
+                                .upload_attachment(
+                                    AttachmentSpec {
+                                        content_type: mime::IMAGE.to_string(),
+                                        length: image.len(),
+                                        file_name: None,
+                                        preview: None,
+                                        voice_note: None,
+                                        borderless: None,
+                                        width: None,
+                                        height: None,
+                                        caption: None,
+                                        blur_hash: None,
+                                    },
+                                    image.to_vec(),
+                                )
+                                .await
+                                .ok()
+                                .and_then(Result::ok),
+                            None => None,
+                        },
+                        description: content.description.clone(),
+                        date: content.date,
+                    }
+                }))
+                .await;
+
             message
                 .profile_key
                 .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
             message.required_protocol_version = Some(0);
+            message.preview = previews;
         }
 
         ensure_data_message_timestamp(&mut content_body, timestamp);
@@ -1819,3 +1861,37 @@ async fn register_pre_keys<S: Store>(
     trace!("registered pre keys");
     Ok(())
 }
+
+// impl From<(crate::model::previews::PreviewContent, Manager<Store, Registered>)> for libsignal_service::proto::Preview {
+// impl From<crate::model::previews::PreviewContent> for libsignal_service::proto::Preview {
+//     fn from(item: crate::model::previews::PreviewContent) -> Self {
+//
+//         let image_attachment: Option<AttachmentPointer> = match item.image {
+//             Some(contents) => { let spec = AttachmentSpec {
+//                 content_type: mime::IMAGE.to_string(),
+//                 length: contents.len(),
+//                 file_name: None,
+//                 preview: None,
+//                 voice_note: None,
+//                 borderless: None,
+//                 width: None,
+//                 height: None,
+//                 caption: None,
+//                 blur_hash: None,
+//             };
+//                                 manager.upload_attachment(spec, contents)},
+//             None => None,
+//         };
+//
+//        // Manager.upload_attachment(spec, item.image)
+//
+//
+//         libsignal_service::proto::Preview  {
+//             url: item.url,
+//             title: item.title,
+//             image: image_attachment,
+//             description: item.description,
+//             date: item.date,
+//         }
+//     }
+// }
