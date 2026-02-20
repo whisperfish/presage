@@ -131,6 +131,12 @@ enum Cmd {
     Sync {
         #[clap(long = "notifications", short = 'n')]
         notifications: bool,
+        #[clap(
+            long,
+            short = 'q',
+            help = "Exit after processing the messages in the queue (similar to the syncing of Signal Desktop)"
+        )]
+        stop_after_empty_queue: bool,
     },
     #[clap(about = "List groups")]
     ListGroups {
@@ -226,7 +232,8 @@ fn attachments_tmp_dir() -> anyhow::Result<TempDir> {
 fn init() -> Args {
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .from_env_lossy();
+        .from_env_lossy()
+        .add_directive("libsignal=error".parse().unwrap());
     tracing_subscriber::fmt::fmt()
         .with_writer(std::io::stderr)
         .with_env_filter(filter)
@@ -574,6 +581,7 @@ async fn print_message<S: Store>(
 async fn receive<S: Store>(
     mut manager: Manager<S, Registered>,
     notifications: bool,
+    stop_after_empty_queue: bool,
 ) -> anyhow::Result<()> {
     let attachments_tmp_dir = attachments_tmp_dir()?;
     let messages = manager
@@ -584,7 +592,12 @@ async fn receive<S: Store>(
 
     while let Some(content) = messages.next().await {
         match content {
-            Received::QueueEmpty => println!("done with synchronization"),
+            Received::QueueEmpty => {
+                println!("done with synchronization");
+                if stop_after_empty_queue {
+                    break;
+                }
+            }
             Received::Contacts => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
@@ -670,9 +683,12 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 }
             }
         }
-        Cmd::Sync { notifications } => {
+        Cmd::Sync {
+            notifications,
+            stop_after_empty_queue,
+        } => {
             let manager = Manager::load_registered(store).await?;
-            receive(manager, notifications).await?;
+            receive(manager, notifications, stop_after_empty_queue).await?;
         }
         Cmd::AddDevice { url } => {
             let mut manager = load_registered_and_receive(store).await?;
@@ -985,7 +1001,7 @@ async fn load_registered_and_receive<S: Store + Send>(
 ) -> anyhow::Result<Manager<S, Registered>> {
     let manager = Manager::load_registered(store).await?;
     let manager_receive = manager.clone();
-    tokio::task::spawn_local(receive(manager_receive, false));
+    tokio::task::spawn_local(receive(manager_receive, false, false));
     Ok(manager)
 }
 
