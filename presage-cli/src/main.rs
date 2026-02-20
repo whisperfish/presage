@@ -232,7 +232,8 @@ fn attachments_tmp_dir() -> anyhow::Result<TempDir> {
 fn init() -> Args {
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
-        .from_env_lossy();
+        .from_env_lossy()
+        .add_directive("libsignal=error".parse().unwrap());
     tracing_subscriber::fmt::fmt()
         .with_writer(std::io::stderr)
         .with_env_filter(filter)
