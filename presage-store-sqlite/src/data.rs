@@ -197,7 +197,7 @@ pub struct SqlMessage {
 impl TryInto<Content> for SqlMessage {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument]
+    #[tracing::instrument(skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
     fn try_into(self) -> Result<Content, Self::Error> {
         let Self {
             ts,
