@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -303,32 +302,41 @@ async fn send<S: Store>(
 
     println!("done synchronizing, sending your message now!");
 
-    match recipient {
-        Recipient::Contact(uuid) => {
-            info!(recipient =% uuid, "sending message to contact");
-            manager
-                .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
-                .await
-                .expect("failed to send message");
-        }
-        Recipient::Group(master_key) => {
-            info!("sending message to group");
-            manager
-                .send_message_to_group(&master_key, content_body, timestamp)
-                .await
-                .expect("failed to send message");
-        }
-    }
-
-    tokio::time::timeout(Duration::from_secs(60), async move {
+    let keep_receiving_messages = async move {
         while let Some(msg) = messages.next().await {
             if let Received::Contacts = msg {
                 println!("got contacts sync!");
                 break;
             }
         }
-    })
-    .await?;
+    };
+
+    let send_message = async move {
+        match recipient {
+            Recipient::Contact(uuid) => {
+                info!(recipient =% uuid, "sending message to contact");
+                manager
+                    .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
+                    .await
+                    .expect("failed to send message")
+            }
+            Recipient::Group(master_key) => {
+                info!("sending message to group");
+                manager
+                    .send_message_to_group(&master_key, content_body, timestamp)
+                    .await
+                    .expect("failed to send message to group!")
+            }
+        }
+    };
+
+    pin_mut!(keep_receiving_messages);
+    pin_mut!(send_message);
+
+    match future::select(keep_receiving_messages, send_message).await {
+        future::Either::Left((_, _send_message)) => error!("receiving messages task aborted before message could be sent!"),
+        future::Either::Right((_, _keep_receiving_messages)) => info!("message sent, stopping receiving loop!"),
+    }
 
     Ok(())
 }
@@ -726,7 +734,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             message,
             attachment_filepath,
         } => {
-            let mut manager = load_registered_and_receive(store).await?;
+            let mut manager = Manager::load_registered(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let data_message = DataMessage {
                 body: Some(message),
