@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
+use libsignal_service::configuration::SignalServers;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::push_service::PushService;
 use libsignal_service::websocket::registration::VerificationTransport;
@@ -85,9 +85,8 @@ impl<S: Store> Manager<S, Registration> {
         let mut rng = rand::rng();
         let password = Alphanumeric.sample_string(&mut rng, 24);
 
-        let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut unidentified_push_service =
-            PushService::new(service_configuration, None, crate::USER_AGENT);
+            PushService::new(signal_servers, None, crate::USER_AGENT);
         let mut unidentified_websocket = unidentified_push_service
             .ws("/v1/websocket/", "/v1/keepalive", &[], None)
             .await?;

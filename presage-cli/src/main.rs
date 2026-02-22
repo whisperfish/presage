@@ -204,6 +204,13 @@ enum Cmd {
         attachment_filepath: Vec<PathBuf>,
     },
     SyncContacts,
+    #[clap(
+        about = "Resolves one or multiple phone numbers to their possible account identity identifier"
+    )]
+    ResolvePhoneNumber {
+        #[clap(long, short = 'p')]
+        phone_number: Vec<PhoneNumber>,
+    },
     #[clap(about = "Print various statistics useful for debugging")]
     Stats,
 }
@@ -944,6 +951,19 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 print_message(&manager, false, &msg).await;
             }
         }
+        Cmd::ResolvePhoneNumber { phone_number } => {
+            let mut manager = load_registered_and_receive(store).await?;
+            let resolved_account_identities = manager.resolve_phone_numbers(&phone_number).await?;
+            for (i, phone_number) in phone_number.iter().enumerate() {
+                let resolved_account_identity = resolved_account_identities[i];
+                match resolved_account_identity {
+                    Some(aci) => {
+                        println!("{phone_number} => {}", aci.service_id_string())
+                    },
+                    None => println!("{phone_number} => no Signal account found!"),
+                }
+            }
+        },
         Cmd::Stats => {
             let manager = load_registered_and_receive(store).await?;
 

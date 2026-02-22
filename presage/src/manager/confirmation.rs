@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
-use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
+use libsignal_service::configuration::SignalServers;
 use libsignal_service::messagepipe::ServiceCredentials;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::ServiceIds;
+use libsignal_service::utils::ToE164;
 use libsignal_service::websocket::account::{AccountAttributes, DeviceCapabilities};
 use libsignal_service::websocket::registration::{RegistrationMethod, VerifyAccountResponse};
 use libsignal_service::zkgroup::profiles::ProfileKey;
@@ -58,15 +59,14 @@ impl<S: Store> Manager<S, Confirmation> {
         let credentials = ServiceCredentials {
             aci: None,
             pni: None,
-            phonenumber: self.state.phone_number.clone(),
-            password: Some(self.state.password.clone()),
+            phonenumber: phone_number.to_e164(),
+            password: Some(password.clone()),
             signaling_key: None,
             device_id: None,
         };
 
-        let service_configuration: ServiceConfiguration = signal_servers.into();
         let mut identified_push_service = PushService::new(
-            service_configuration,
+            *signal_servers,
             Some(credentials.clone()),
             crate::USER_AGENT,
         );

@@ -30,6 +30,7 @@ use libsignal_service::{
     sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
     utils::serde_signaling_key,
+    utils::ToE164,
     websocket,
     websocket::SignalWebSocket,
     zkgroup::{
@@ -90,8 +91,12 @@ impl Registered {
         }
     }
 
+    fn servers(&self) -> SignalServers {
+        self.data.signal_servers
+    }
+
     fn service_configuration(&self) -> ServiceConfiguration {
-        self.data.signal_servers.into()
+        self.servers().into()
     }
 
     pub fn device_id(&self) -> DeviceId {
@@ -105,7 +110,7 @@ impl Registered {
         self.identified_push_service
             .get_or_init(|| {
                 PushService::new(
-                    self.service_configuration(),
+                    self.servers(),
                     Some(self.credentials()),
                     crate::USER_AGENT,
                 )
@@ -117,7 +122,7 @@ impl Registered {
         ServiceCredentials {
             aci: Some(self.data.service_ids.aci),
             pni: Some(self.data.service_ids.pni),
-            phonenumber: self.data.phone_number.clone(),
+            phonenumber: (&self.data.phone_number).to_e164(),
             password: Some(self.data.password.clone()),
             signaling_key: Some(self.data.signaling_key),
             device_id: self.data.device_id.and_then(|d| d.try_into().ok()),
@@ -206,7 +211,7 @@ impl<S: Store> Manager<S, Registered> {
         self.state
             .unidentified_push_service
             .get_or_init(|| {
-                PushService::new(self.state.service_configuration(), None, crate::USER_AGENT)
+                PushService::new(self.state.servers(), None, crate::USER_AGENT)
             })
             .clone()
     }
@@ -880,6 +885,13 @@ impl<S: Store> Manager<S, Registered> {
             // if the future resolves *anything* the stream will end
             incoming_messages_stream.take_until(refresh_registration_task),
         ))
+    }
+
+    /// Uses Signal's SGX contact discovery service to resolve a phone number to its matching account identity
+    pub async fn resolve_phone_numbers<P: ToE164>(&mut self, phone_numbers: impl IntoIterator<Item = P>) -> Result<Vec<Option<ServiceId>>, Error<S::Error>> {
+        let mut ws = self.identified_websocket(false).await?;
+        let resolved_identities = ws.resolve_phone_number(phone_numbers.into_iter().map(ToE164::to_e164)).await?;
+        Ok(resolved_identities)
     }
 
     /// Sends a messages to the provided [ServiceId].

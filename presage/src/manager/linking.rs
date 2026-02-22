@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
-use libsignal_service::configuration::{ServiceConfiguration, SignalServers};
+use libsignal_service::configuration::SignalServers;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::{
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
+use libsignal_service::utils::phonenumber_from_signal;
 use rand::{
     distr::{Alphanumeric, SampleString},
     rng, RngCore,
@@ -77,8 +78,7 @@ impl<S: Store> Manager<S, Linking> {
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
 
-        let service_configuration: ServiceConfiguration = signal_servers.into();
-        let push_service = PushService::new(service_configuration, None, crate::USER_AGENT);
+        let push_service = PushService::new(signal_servers, None, crate::USER_AGENT);
 
         let (tx, mut rx) = mpsc::channel(1);
 
@@ -130,7 +130,7 @@ impl<S: Store> Manager<S, Linking> {
                 let registration_data = RegistrationData {
                     signal_servers,
                     device_name: Some(device_name),
-                    phone_number,
+                    phone_number: phonenumber_from_signal(&phone_number),
                     service_ids,
                     password,
                     signaling_key,

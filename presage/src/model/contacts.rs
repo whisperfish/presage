@@ -1,8 +1,8 @@
 use bytes::Bytes;
 use libsignal_service::{
     models::Attachment,
-    prelude::{phonenumber::PhoneNumber, Uuid},
-    proto::Verified,
+    prelude::{Uuid, phonenumber::PhoneNumber},
+    proto::Verified, utils::phonenumber_from_signal,
 };
 use serde::{Deserialize, Serialize};
 
@@ -33,7 +33,7 @@ impl From<libsignal_service::models::Contact> for Contact {
     fn from(c: libsignal_service::models::Contact) -> Self {
         Self {
             uuid: c.uuid,
-            phone_number: c.phone_number,
+            phone_number: c.phone_number.as_ref().map(phonenumber_from_signal),
             name: c.name,
             verified: Default::default(),
             profile_key: Default::default(),
