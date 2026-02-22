@@ -228,6 +228,14 @@ fn attachments_tmp_dir() -> anyhow::Result<TempDir> {
     Ok(attachments_tmp_dir)
 }
 
+fn ensure_parent_dir_exists(path: &str) -> anyhow::Result<()> {
+    let parent = Path::new(path)
+        .parent()
+        .ok_or_else(|| anyhow::format_err!("database path has no parent directory: {path}"))?;
+    std::fs::create_dir_all(parent)?;
+    Ok(())
+}
+
 fn init() -> Args {
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
@@ -253,6 +261,7 @@ async fn main() -> anyhow::Result<()> {
             .to_string()
     });
 
+    ensure_parent_dir_exists(&sqlite_db_path)?;
     debug!(sqlite_db_path, "opening config database");
     let config_store = SqliteStore::open_with_passphrase(
         &sqlite_db_path,
@@ -1018,4 +1027,26 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
     Ok(ProfileKey::create(bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_parent_dir_exists;
+    use tempfile::tempdir;
+
+    #[test]
+    fn creates_missing_parent_directory_for_db_path() {
+        let tmp = tempdir().unwrap();
+        let db_path = tmp
+            .path()
+            .join("a")
+            .join("b")
+            .join("cli.db3")
+            .to_string_lossy()
+            .to_string();
+
+        ensure_parent_dir_exists(&db_path).unwrap();
+
+        assert!(tmp.path().join("a").join("b").is_dir());
+    }
 }
