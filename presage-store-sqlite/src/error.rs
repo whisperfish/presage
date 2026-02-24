@@ -1,7 +1,7 @@
 use presage::{
     libsignal_service::{
-        prelude::{InvalidDeviceId, phonenumber},
-        protocol::SignalProtocolError,
+        prelude::phonenumber,
+        protocol::{InvalidDeviceId, SignalProtocolError},
     },
     store::StoreError,
 };

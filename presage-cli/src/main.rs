@@ -954,16 +954,10 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
         Cmd::ResolvePhoneNumber { phone_number } => {
             let mut manager = load_registered_and_receive(store).await?;
             let resolved_account_identities = manager.resolve_phone_numbers(&phone_number).await?;
-            for (i, phone_number) in phone_number.iter().enumerate() {
-                let resolved_account_identity = resolved_account_identities[i];
-                match resolved_account_identity {
-                    Some(aci) => {
-                        println!("{phone_number} => {}", aci.service_id_string())
-                    },
-                    None => println!("{phone_number} => no Signal account found!"),
-                }
+            for (phone_number, identity) in resolved_account_identities {
+                println!("{phone_number} => {}", aci.service_id_string())
             }
-        },
+        }
         Cmd::Stats => {
             let manager = load_registered_and_receive(store).await?;
 

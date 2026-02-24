@@ -7,7 +7,7 @@ use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::ServiceIds;
-use libsignal_service::utils::ToE164;
+use libsignal_service::utils::TryIntoE164;
 use libsignal_service::websocket::account::{AccountAttributes, DeviceCapabilities};
 use libsignal_service::websocket::registration::{RegistrationMethod, VerifyAccountResponse};
 use libsignal_service::zkgroup::profiles::ProfileKey;
@@ -59,7 +59,7 @@ impl<S: Store> Manager<S, Confirmation> {
         let credentials = ServiceCredentials {
             aci: None,
             pni: None,
-            phonenumber: phone_number.to_e164(),
+            phonenumber: phone_number.try_into_e164().expect("valid phone number"),
             password: Some(password.clone()),
             signaling_key: None,
             device_id: None,

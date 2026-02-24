@@ -4,9 +4,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
+use libsignal_service::protocol::{DeviceId, E164};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
+use libsignal_service::websocket::directory::LookupRequest;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -14,7 +16,7 @@ use libsignal_service::{
     content::{Content, ContentBody, DataMessageFlags, Metadata},
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
-    prelude::{phonenumber::PhoneNumber, DeviceId, MessageSenderError, ProtobufMessage, Uuid},
+    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
@@ -30,7 +32,7 @@ use libsignal_service::{
     sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
     utils::serde_signaling_key,
-    utils::ToE164,
+    utils::TryIntoE164,
     websocket,
     websocket::SignalWebSocket,
     zkgroup::{
@@ -109,11 +111,7 @@ impl Registered {
     pub(crate) fn identified_push_service(&self) -> PushService {
         self.identified_push_service
             .get_or_init(|| {
-                PushService::new(
-                    self.servers(),
-                    Some(self.credentials()),
-                    crate::USER_AGENT,
-                )
+                PushService::new(self.servers(), Some(self.credentials()), crate::USER_AGENT)
             })
             .clone()
     }
@@ -122,7 +120,9 @@ impl Registered {
         ServiceCredentials {
             aci: Some(self.data.service_ids.aci),
             pni: Some(self.data.service_ids.pni),
-            phonenumber: (&self.data.phone_number).to_e164(),
+            phonenumber: (&self.data.phone_number)
+                .try_into_e164()
+                .expect("valid phone number"),
             password: Some(self.data.password.clone()),
             signaling_key: Some(self.data.signaling_key),
             device_id: self.data.device_id.and_then(|d| d.try_into().ok()),
@@ -210,9 +210,7 @@ impl<S: Store> Manager<S, Registered> {
     fn unidentified_push_service(&self) -> PushService {
         self.state
             .unidentified_push_service
-            .get_or_init(|| {
-                PushService::new(self.state.servers(), None, crate::USER_AGENT)
-            })
+            .get_or_init(|| PushService::new(self.state.servers(), None, crate::USER_AGENT))
             .clone()
     }
 
@@ -888,10 +886,21 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Uses Signal's SGX contact discovery service to resolve a phone number to its matching account identity
-    pub async fn resolve_phone_numbers<P: ToE164>(&mut self, phone_numbers: impl IntoIterator<Item = P>) -> Result<Vec<Option<ServiceId>>, Error<S::Error>> {
+    pub async fn resolve_phone_numbers<P: TryIntoE164>(
+        &mut self,
+        phone_numbers: impl IntoIterator<Item = P>,
+    ) -> Result<Vec<(E164, Option<ServiceId>)>, Error<S::Error>> {
         let mut ws = self.identified_websocket(false).await?;
-        let resolved_identities = ws.resolve_phone_number(phone_numbers.into_iter().map(ToE164::to_e164)).await?;
-        Ok(resolved_identities)
+
+        let lookup_request = LookupRequest {
+            new_e164s: phone_numbers
+                .into_iter()
+                .filter_map(|p| p.try_into_e164().ok())
+                .collect(),
+            ..Default::default()
+        };
+
+        Ok(ws.discover_contacts(lookup_request).await?)
     }
 
     /// Sends a messages to the provided [ServiceId].

@@ -3,13 +3,13 @@ use chrono::{DateTime, Utc};
 use presage::{
     libsignal_service::{
         pre_keys::{KyberPreKeyStoreExt, PreKeysStore},
-        prelude::{DeviceId, IdentityKeyStore, SessionStoreExt, Uuid},
+        prelude::{SessionStoreExt, Uuid},
         protocol::{
-            CiphertextMessageType, Direction, GenericSignedPreKey, IdentityChange, IdentityKey,
-            IdentityKeyPair, KyberPreKeyId, KyberPreKeyRecord, KyberPreKeyStore, PreKeyId,
-            PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore, PublicKey, SenderKeyRecord,
-            SenderKeyStore, ServiceId, SessionRecord, SessionStore, SignalProtocolError,
-            SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
+            CiphertextMessageType, DeviceId, Direction, GenericSignedPreKey, IdentityChange,
+            IdentityKey, IdentityKeyPair, IdentityKeyStore, KyberPreKeyId, KyberPreKeyRecord,
+            KyberPreKeyStore, PreKeyId, PreKeyRecord, PreKeyStore, ProtocolAddress, ProtocolStore,
+            PublicKey, SenderKeyRecord, SenderKeyStore, ServiceId, SessionRecord, SessionStore,
+            SignalProtocolError, SignedPreKeyId, SignedPreKeyRecord, SignedPreKeyStore,
         },
         push_service::DEFAULT_DEVICE_ID,
     },
