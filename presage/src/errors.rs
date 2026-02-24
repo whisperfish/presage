@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use libsignal_service::prelude::MessageSenderError;
+use libsignal_service::protocol::UsernameError;
 use libsignal_service::websocket::registration::RegistrationSessionMetadataResponse;
 use libsignal_service::{models::ParseContactError, protocol::SignalProtocolError};
 
@@ -78,6 +79,8 @@ pub enum Error<S: std::error::Error> {
     UpdatePreKeyFailure,
     #[error("invalid device ID (out of bounds)")]
     InvalidDeviceId,
+    #[error("invalid Signal username: {0}")]
+    InvalidUsername(#[from] UsernameError),
 }
 
 impl<S: std::error::Error> From<MessageSenderError> for Error<S> {

@@ -4,7 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
-use libsignal_service::protocol::{DeviceId, E164};
+use libsignal_service::protocol::{DeviceId, Username, E164};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
@@ -886,7 +886,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Uses Signal's SGX contact discovery service to resolve a phone number to its matching account identity
-    pub async fn resolve_phone_numbers<P: TryIntoE164>(
+    pub async fn discover_contacts_by_phone_number<P: TryIntoE164>(
         &mut self,
         phone_numbers: impl IntoIterator<Item = P>,
     ) -> Result<Vec<(E164, Option<ServiceId>)>, Error<S::Error>> {
@@ -901,6 +901,18 @@ impl<S: Store> Manager<S, Registered> {
         };
 
         Ok(ws.discover_contacts(lookup_request).await?)
+    }
+
+    /// Resolves a username (which has a text part and an additional random number) to its account identity
+    /// for sending messages.
+    pub async fn lookup_username(
+        &mut self,
+        username: &str,
+    ) -> Result<Option<Aci>, Error<S::Error>> {
+        let username = Username::new(username)?;
+        let mut ws = self.unidentified_websocket().await?;
+        let resolved_username = ws.look_up_username(&username).await?;
+        Ok(resolved_username)
     }
 
     /// Sends a messages to the provided [ServiceId].

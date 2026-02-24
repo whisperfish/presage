@@ -2399,7 +2399,7 @@ dependencies = [
 [[package]]
 name = "libsignal-service"
 version = "0.1.0"
-source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=e082a9144448e3ec9911ca465dc4099f81080bd2#e082a9144448e3ec9911ca465dc4099f81080bd2"
+source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=f5ec60055bc5430e52f0f3e09cd670e1dbd9a79e#f5ec60055bc5430e52f0f3e09cd670e1dbd9a79e"
 dependencies = [
  "aes",
  "aes-gcm",
@@ -2462,8 +2462,7 @@ dependencies = [
 [[package]]
 name = "libsqlite3-sys"
 version = "0.30.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2e99fb7a497b1e3339bc746195567ed8d3e24945ecd636e3619d20b9de9e9149"
+source = "git+https://github.com/whisperfish/rusqlite?rev=v0.30.1-libtomcrypt#c31da90c167b93eeb84a0cf4e0d1fe57af61226b"
 dependencies = [
  "cc",
  "pkg-config",
@@ -3862,7 +3861,7 @@ dependencies = [
  "security-framework",
  "security-framework-sys",
  "webpki-root-certs 0.26.11",
- "windows-sys 0.52.0",
+ "windows-sys 0.59.0",
 ]
 
 [[package]]
@@ -5306,7 +5305,7 @@ version = "0.1.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c2a7b1c03c876122aa43f3020e6c3c3ee5c05081c9a00739faf7503aeba10d22"
 dependencies = [
- "windows-sys 0.48.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
