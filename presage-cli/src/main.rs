@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 use std::path::Path;
 use std::path::PathBuf;
-use std::time::Duration;
 use std::time::UNIX_EPOCH;
 
 use anyhow::{anyhow, bail, Context as _};
@@ -240,6 +239,14 @@ fn attachments_tmp_dir() -> anyhow::Result<TempDir> {
     Ok(attachments_tmp_dir)
 }
 
+fn ensure_parent_dir_exists(path: &str) -> anyhow::Result<()> {
+    let parent = Path::new(path)
+        .parent()
+        .ok_or_else(|| anyhow::format_err!("database path has no parent directory: {path}"))?;
+    std::fs::create_dir_all(parent)?;
+    Ok(())
+}
+
 fn init() -> Args {
     let filter = tracing_subscriber::EnvFilter::builder()
         .with_default_directive(tracing::metadata::LevelFilter::INFO.into())
@@ -265,6 +272,7 @@ async fn main() -> anyhow::Result<()> {
             .to_string()
     });
 
+    ensure_parent_dir_exists(&sqlite_db_path)?;
     debug!(sqlite_db_path, "opening config database");
     let config_store = SqliteStore::open_with_passphrase(
         &sqlite_db_path,
@@ -282,8 +290,6 @@ async fn send<S: Store>(
     recipient: Recipient,
     msg: impl Into<ContentBody>,
 ) -> anyhow::Result<()> {
-    let attachments_tmp_dir = attachments_tmp_dir()?;
-
     let timestamp = std::time::SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("Time went backwards")
@@ -294,53 +300,24 @@ async fn send<S: Store>(
         d.timestamp = Some(timestamp);
     }
 
-    let messages = manager
-        .receive_messages()
-        .await
-        .context("failed to initialize messages stream")?;
-    pin_mut!(messages);
-
-    println!("synchronizing messages since last time");
-
-    while let Some(content) = messages.next().await {
-        match content {
-            Received::QueueEmpty => break,
-            Received::Contacts => continue,
-            Received::Content(content) => {
-                process_incoming_message(manager, attachments_tmp_dir.path(), false, &content).await
-            }
-        }
-    }
-
-    println!("done synchronizing, sending your message now!");
-
     match recipient {
         Recipient::Contact(uuid) => {
             info!(recipient =% uuid, "sending message to contact");
             manager
                 .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
                 .await
-                .expect("failed to send message");
+                .expect("failed to send message")
         }
         Recipient::Group(master_key) => {
             info!("sending message to group");
             manager
                 .send_message_to_group(&master_key, content_body, timestamp)
                 .await
-                .expect("failed to send message");
+                .expect("failed to send message to group!")
         }
     }
 
-    tokio::time::timeout(Duration::from_secs(60), async move {
-        while let Some(msg) = messages.next().await {
-            if let Received::Contacts = msg {
-                println!("got contacts sync!");
-                break;
-            }
-        }
-    })
-    .await?;
-
+    println!("message sent!");
     Ok(())
 }
 
@@ -1083,4 +1060,26 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
         .try_into()
         .map_err(|_| anyhow!("profile key of invalid length"))?;
     Ok(ProfileKey::create(bytes))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ensure_parent_dir_exists;
+    use tempfile::tempdir;
+
+    #[test]
+    fn creates_missing_parent_directory_for_db_path() {
+        let tmp = tempdir().unwrap();
+        let db_path = tmp
+            .path()
+            .join("a")
+            .join("b")
+            .join("cli.db3")
+            .to_string_lossy()
+            .to_string();
+
+        ensure_parent_dir_exists(&db_path).unwrap();
+
+        assert!(tmp.path().join("a").join("b").is_dir());
+    }
 }
