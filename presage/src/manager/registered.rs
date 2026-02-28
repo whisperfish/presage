@@ -8,8 +8,6 @@ use libsignal_service::protocol::{DeviceId, Username};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
-#[cfg(feature = "cdsi")]
-use libsignal_service::websocket::directory::LookupRequest;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
