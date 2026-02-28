@@ -6,6 +6,10 @@ authors = ["Gabriel Féron <g@leirbag.net>"]
 edition = "2021"
 license = "AGPL-3.0-only"
 
+[features]
+default = [] # not default until we make it compile
+cdsi = ["libsignal-service/cdsi"]
+
 [dependencies]
 libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "c0a3a8802c1cbe0a0e781850c4f6b1b9931b5ee9", features = ["phonenumber"] }
 

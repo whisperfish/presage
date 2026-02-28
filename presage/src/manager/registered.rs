@@ -1820,14 +1820,7 @@ async fn set_account_attributes<S: Store>(
             unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
             unrestricted_unidentified_access: false,
             discoverable_by_phone_number: true,
-            capabilities: DeviceCapabilities {
-                gift_badges: true,
-                payment_activation: false,
-                pni: true,
-                sender_key: true,
-                stories: false,
-                ..Default::default()
-            },
+            capabilities: DeviceCapabilities::default(),
         })
         .await?;
 
