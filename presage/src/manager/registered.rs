@@ -8,8 +8,6 @@ use libsignal_service::protocol::{DeviceId, Username};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
-#[cfg(feature = "cdsi")]
-use libsignal_service::websocket::directory::LookupRequest;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -647,10 +645,14 @@ impl<S: Store> Manager<S, Registered> {
                                                             .unwrap_or_default()
                                                     })
                                                     .unwrap_or_default();
-                                                let result = state
-                                                    .message_sender
+
+                                                let mut message_sender =
+                                                    state.message_sender.clone();
+                                                let aci = state.service_ids.aci();
+                                                tokio::task::spawn_local(async move {
+                                                    let result = message_sender
                                                     .send_contact_details(
-                                                        &ServiceId::Aci(state.service_ids.aci()),
+                                                        &ServiceId::Aci(aci),
                                                         None,
                                                         contacts.into_iter().map(|c| libsignal_service::sender::ContactDetails {
                                                             number: c.phone_number.map(|p| p.to_string()),
@@ -669,27 +671,36 @@ impl<S: Store> Manager<S, Registered> {
                                                         true,
                                                     )
                                                     .await;
-                                                if let Err(error) = result {
-                                                    warn!(%error, "Error sending contact details to other devices");
-                                                }
+
+                                                    if let Err(error) = result {
+                                                        warn!(%error, "Error sending contact details to other devices");
+                                                    }
+                                                });
                                             }
                                             RequestType::Keys => {
-                                                let result = state.message_sender.send_sync_message(SyncMessage {
-                                                    keys: Some(libsignal_service::content::sync_message::Keys {
-                                                        master: Some(state.master_key.inner.to_vec()),
-                                                        account_entropy_pool: None,
-                                                        media_root_backup_key: None,
-                                                    }),
-                                                    ..SyncMessage::with_padding(&mut rand::rng())
-                                                }).await;
+                                                let mut message_sender =
+                                                    state.message_sender.clone();
+                                                tokio::task::spawn_local(async move {
+                                                    let result = message_sender.send_sync_message(SyncMessage {
+                                                        keys: Some(libsignal_service::content::sync_message::Keys {
+                                                            master: Some(state.master_key.inner.to_vec()),
+                                                            account_entropy_pool: None,
+                                                            media_root_backup_key: None,
+                                                        }),
+                                                        ..SyncMessage::with_padding(&mut rand::rng())
+                                                    }).await;
 
-                                                if let Err(error) = result {
-                                                    warn!(%error, "Error sending keys to other devices");
-                                                }
+                                                    if let Err(error) = result {
+                                                        warn!(%error, "Error sending keys to other devices");
+                                                    }
+                                                });
                                             }
                                             RequestType::Blocked => {
                                                 warn!("storing blocked user is not implemented yet! we will not report blocked users to the device requesting the sync.");
-                                                let result = state.message_sender.send_sync_message(SyncMessage {
+                                                let mut message_sender =
+                                                    state.message_sender.clone();
+                                                tokio::task::spawn_local(async move {
+                                                    let result = message_sender.send_sync_message(SyncMessage {
                                                     blocked: Some(libsignal_service::content::sync_message::Blocked {
                                                         numbers: vec![],
                                                         acis: vec![],
@@ -699,9 +710,10 @@ impl<S: Store> Manager<S, Registered> {
                                                     ..SyncMessage::with_padding(&mut rand::rng())
                                                 }).await;
 
-                                                if let Err(error) = result {
-                                                    warn!(%error, "Error sending blocked contacts to other devices");
-                                                }
+                                                    if let Err(error) = result {
+                                                        warn!(%error, "Error sending blocked contacts to other devices");
+                                                    }
+                                                });
                                             }
                                             t => {
                                                 info!(type = ?t, "Got sync request of currently unhandled type")
