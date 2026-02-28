@@ -1,8 +1,9 @@
 use bytes::Bytes;
 use libsignal_service::{
     models::Attachment,
-    prelude::{Uuid, phonenumber::PhoneNumber},
-    proto::Verified, utils::phonenumber_from_signal,
+    prelude::{phonenumber::PhoneNumber, Uuid},
+    proto::Verified,
+    utils::phonenumber_from_signal,
 };
 use serde::{Deserialize, Serialize};
 
