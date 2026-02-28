@@ -4,15 +4,16 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::MasterKey;
-use libsignal_service::protocol::{DeviceId, Username, E164};
+use libsignal_service::protocol::{DeviceId, Username};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
-use libsignal_service::websocket::directory::LookupRequest;
+#[cfg(feature = "cdsi")]
+use libsignal_service::{websocket::directory::LookupRequest, protocol::E164};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
-    configuration::{ServiceConfiguration, SignalServers, SignalingKey},
+    configuration::{ServiceConfiguration, SignalServers},
     content::{Content, ContentBody, DataMessageFlags, Metadata},
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
@@ -31,7 +32,6 @@ use libsignal_service::{
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
-    utils::serde_signaling_key,
     utils::TryIntoE164,
     websocket,
     websocket::SignalWebSocket,
@@ -124,7 +124,6 @@ impl Registered {
                 .try_into_e164()
                 .expect("valid phone number"),
             password: Some(self.data.password.clone()),
-            signaling_key: Some(self.data.signaling_key),
             device_id: self.data.device_id.and_then(|d| d.try_into().ok()),
         }
     }
@@ -139,8 +138,6 @@ pub struct RegistrationData {
     #[serde(flatten)]
     pub service_ids: ServiceIds,
     pub(crate) password: String,
-    #[serde(with = "serde_signaling_key")]
-    pub(crate) signaling_key: SignalingKey,
     pub device_id: Option<u32>,
     pub registration_id: u32,
     #[serde(default)]
@@ -580,9 +577,8 @@ impl<S: Store> Manager<S, Registered> {
             None
         };
 
-        let credentials = self.credentials();
         let encrypted_messages =
-            MessagePipe::from_socket(identified_websocket.clone(), credentials);
+            MessagePipe::from_socket(identified_websocket.clone());
 
         let init = StreamState {
             store: self.store.clone(),
@@ -886,6 +882,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Uses Signal's SGX contact discovery service to resolve a phone number to its matching account identity
+    #[cfg(feature = "cdsi")]
     pub async fn discover_contacts_by_phone_number<P: TryIntoE164>(
         &mut self,
         phone_numbers: impl IntoIterator<Item = P>,

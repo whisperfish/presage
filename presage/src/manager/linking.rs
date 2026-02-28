@@ -133,7 +133,6 @@ impl<S: Store> Manager<S, Linking> {
                     phone_number: phonenumber_from_signal(&phone_number),
                     service_ids,
                     password,
-                    signaling_key,
                     device_id: Some(device_id.into()),
                     registration_id,
                     pni_registration_id: Some(pni_registration_id),

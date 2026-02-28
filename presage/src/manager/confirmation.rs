@@ -61,7 +61,6 @@ impl<S: Store> Manager<S, Confirmation> {
             pni: None,
             phonenumber: phone_number.try_into_e164().expect("valid phone number"),
             password: Some(password.clone()),
-            signaling_key: None,
             device_id: None,
         };
 
@@ -147,7 +146,6 @@ impl<S: Store> Manager<S, Confirmation> {
                 phone_number: phone_number.clone(),
                 service_ids: ServiceIds { aci, pni },
                 password: password.clone(),
-                signaling_key,
                 device_id: None,
                 registration_id,
                 pni_registration_id: Some(pni_registration_id),

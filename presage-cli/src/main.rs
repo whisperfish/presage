@@ -206,6 +206,7 @@ enum Cmd {
     #[clap(
         about = "Resolves one or multiple phone numbers to their possible account identity identifier"
     )]
+    #[cfg(feature = "cdsi")]
     ResolvePhoneNumber {
         #[clap(long, short = 'p')]
         phone_number: Vec<PhoneNumber>,
@@ -932,6 +933,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 print_message(&manager, false, &msg).await;
             }
         }
+        #[cfg(feature = "cdsi")]
         Cmd::ResolvePhoneNumber { phone_number } => {
             let mut manager = load_registered_and_receive(store).await?;
             let resolved_account_identities = manager

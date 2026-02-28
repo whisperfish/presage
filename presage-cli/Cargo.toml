@@ -5,6 +5,10 @@ edition = "2021"
 authors = ["Gabriel Féron <g@leirbag.net>"]
 license = "AGPL-3.0-only"
 
+[features]
+default = []
+cdsi = ["presage/cdsi"]
+
 [dependencies]
 presage = { path = "../presage" }
 presage-store-sqlite = { path = "../presage-store-sqlite" }
