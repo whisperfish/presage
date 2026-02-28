@@ -8,8 +8,6 @@ use libsignal_service::protocol::{DeviceId, Username};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
 };
-#[cfg(feature = "cdsi")]
-use libsignal_service::{websocket::directory::LookupRequest, protocol::E164};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -41,6 +39,8 @@ use libsignal_service::{
     },
     AccountManager, Profile, ServiceIdExt,
 };
+#[cfg(feature = "cdsi")]
+use libsignal_service::{protocol::E164, websocket::directory::LookupRequest};
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
@@ -577,8 +577,7 @@ impl<S: Store> Manager<S, Registered> {
             None
         };
 
-        let encrypted_messages =
-            MessagePipe::from_socket(identified_websocket.clone());
+        let encrypted_messages = MessagePipe::from_socket(identified_websocket.clone());
 
         let init = StreamState {
             store: self.store.clone(),
