@@ -40,7 +40,7 @@ use libsignal_service::{
     AccountManager, Profile, ServiceIdExt,
 };
 #[cfg(feature = "cdsi")]
-use libsignal_service::{protocol::E164, websocket::directory::LookupRequest};
+use libsignal_service::websocket::directory::LookupRequest;
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;

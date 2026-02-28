@@ -15,14 +15,14 @@ bytes = "1.9.0"
 chrono = "0.4.38"
 prost = "0.13.4"
 serde_json = "1.0.135"
-sqlx = { version = "0.8.2", features = ["json", "sqlite", "uuid", "runtime-tokio"] }
+# v0.8.6 with one unreleased patch to relax the version requirement for libsqlite3-sys
+sqlx = { version = "0.8.6", git = "https://github.com/gferon/sqlx", rev = "53c3a26c1b484175f3beb21853a1061b488bf7af", features = ["json", "sqlite", "uuid", "runtime-tokio"] }
 thiserror = "2.0.0"
 tracing = "0.1.41"
 uuid = "1.12.0"
 
 # Explicitly use the libsqlite3-sys crate with the bundled-sqlcipher feature
-# switch to bundled-sqlcipher-custom-crypto when we have a backport for 0.30.1
-libsqlite3-sys = { version = "0.30.1", features = ["bundled-sqlcipher"] }
+libsqlite3-sys = { version = "0.36.0", features = ["bundled-sqlcipher-custom-crypto"] }
 
 [dev-dependencies]
 tokio = { version = "1.48.0", features = ["rt", "macros"] }

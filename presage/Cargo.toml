@@ -7,8 +7,8 @@ edition = "2021"
 license = "AGPL-3.0-only"
 
 [features]
-default = [] # not default until we make it compile
-cdsi = ["libsignal-service/cdsi"]
+default = ["cdsi"]
+cdsi = ["libsignal-service/cdsi"] # brings libsignal-net and all its dependencies
 
 [dependencies]
 libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "24ce40428d4ce329307cee23cff9101f0168166e", default-features = false, features = ["phonenumber"] }
