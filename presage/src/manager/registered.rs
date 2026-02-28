@@ -898,6 +898,8 @@ impl<S: Store> Manager<S, Registered> {
         &mut self,
         phone_numbers: impl IntoIterator<Item = P>,
     ) -> Result<Vec<(PhoneNumber, Option<ServiceId>)>, Error<S::Error>> {
+        use libsignal_service::websocket::directory::LookupRequest;
+
         let mut ws = self.identified_websocket(false).await?;
 
         let lookup_request = LookupRequest {
