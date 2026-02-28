@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/8bbad87/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.1 (01f6ddf75 2026-02-11)" data-channel="1.93.1" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/</div>lib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-2"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="attr">#![recursion_limit = <span class="string">"256"</span>]
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/24ce404/src/lib.rs`."><title>lib.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.1 (01f6ddf75 2026-02-11)" data-channel="1.93.1" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../static.files/storage-e2aeef58.js"></script><script defer src="../../static.files/src-script-813739b1.js"></script><script defer src="../../src-files.js"></script><script defer src="../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/</div>lib.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-2"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="attr">#![recursion_limit = <span class="string">"256"</span>]
 <a href=#2 id=2 data-nosnippet>2</a>#![deny(clippy::dbg_macro)]
 <a href=#3 id=3 data-nosnippet>3</a></span><span class="comment">// TODO: we cannot use this until whisperfish builds with a newer Rust version
 <a href=#4 id=4 data-nosnippet>4</a></span><span class="attr">#![allow(clippy::uninlined_format_args)]
@@ -50,37 +50,38 @@
 <a href=#50 id=50 data-nosnippet>50</a><span class="kw">pub mod </span>prelude {
 <a href=#51 id=51 data-nosnippet>51</a>    <span class="kw">pub use crate</span>::{
 <a href=#52 id=52 data-nosnippet>52</a>        cipher::ServiceCipher,
-<a href=#53 id=53 data-nosnippet>53</a>        configuration::{
-<a href=#54 id=54 data-nosnippet>54</a>            ServiceConfiguration, ServiceCredentials, SignalingKey,
-<a href=#55 id=55 data-nosnippet>55</a>        },
-<a href=#56 id=56 data-nosnippet>56</a>        content::Content,
-<a href=#57 id=57 data-nosnippet>57</a>        envelope::Envelope,
-<a href=#58 id=58 data-nosnippet>58</a>        groups_v2::{
-<a href=#59 id=59 data-nosnippet>59</a>            AccessControl, Group, Member, PendingMember, RequestingMember,
-<a href=#60 id=60 data-nosnippet>60</a>            Timer,
-<a href=#61 id=61 data-nosnippet>61</a>        },
-<a href=#62 id=62 data-nosnippet>62</a>        master_key::{MasterKey, MasterKeyStore, StorageServiceKey},
-<a href=#63 id=63 data-nosnippet>63</a>        proto::{
-<a href=#64 id=64 data-nosnippet>64</a>            attachment_pointer::AttachmentIdentifier, sync_message::Contacts,
-<a href=#65 id=65 data-nosnippet>65</a>            AttachmentPointer,
-<a href=#66 id=66 data-nosnippet>66</a>        },
-<a href=#67 id=67 data-nosnippet>67</a>        push_service::{PushService, ServiceError},
-<a href=#68 id=68 data-nosnippet>68</a>        receiver::MessageReceiver,
-<a href=#69 id=69 data-nosnippet>69</a>        sender::{MessageSender, MessageSenderError},
-<a href=#70 id=70 data-nosnippet>70</a>        session_store::SessionStoreExt,
-<a href=#71 id=71 data-nosnippet>71</a>    };
-<a href=#72 id=72 data-nosnippet>72</a>    <span class="kw">pub use </span>phonenumber;
-<a href=#73 id=73 data-nosnippet>73</a>    <span class="kw">pub use </span>prost::Message <span class="kw">as </span>ProtobufMessage;
-<a href=#74 id=74 data-nosnippet>74</a>    <span class="kw">pub use </span>uuid::{Error <span class="kw">as </span>UuidError, Uuid};
-<a href=#75 id=75 data-nosnippet>75</a>    <span class="kw">pub use </span>zkgroup::{
-<a href=#76 id=76 data-nosnippet>76</a>        groups::{GroupMasterKey, GroupSecretParams},
-<a href=#77 id=77 data-nosnippet>77</a>        profiles::ProfileKey,
-<a href=#78 id=78 data-nosnippet>78</a>    };
+<a href=#53 id=53 data-nosnippet>53</a>        configuration::{ServiceConfiguration, ServiceCredentials},
+<a href=#54 id=54 data-nosnippet>54</a>        content::Content,
+<a href=#55 id=55 data-nosnippet>55</a>        envelope::Envelope,
+<a href=#56 id=56 data-nosnippet>56</a>        groups_v2::{
+<a href=#57 id=57 data-nosnippet>57</a>            AccessControl, Group, Member, PendingMember, RequestingMember,
+<a href=#58 id=58 data-nosnippet>58</a>            Timer,
+<a href=#59 id=59 data-nosnippet>59</a>        },
+<a href=#60 id=60 data-nosnippet>60</a>        master_key::{MasterKey, MasterKeyStore, StorageServiceKey},
+<a href=#61 id=61 data-nosnippet>61</a>        proto::{
+<a href=#62 id=62 data-nosnippet>62</a>            attachment_pointer::AttachmentIdentifier, sync_message::Contacts,
+<a href=#63 id=63 data-nosnippet>63</a>            AttachmentPointer,
+<a href=#64 id=64 data-nosnippet>64</a>        },
+<a href=#65 id=65 data-nosnippet>65</a>        push_service::{PushService, ServiceError},
+<a href=#66 id=66 data-nosnippet>66</a>        receiver::MessageReceiver,
+<a href=#67 id=67 data-nosnippet>67</a>        sender::{MessageSender, MessageSenderError},
+<a href=#68 id=68 data-nosnippet>68</a>        session_store::SessionStoreExt,
+<a href=#69 id=69 data-nosnippet>69</a>    };
+<a href=#70 id=70 data-nosnippet>70</a>    <span class="attr">#[cfg(feature = <span class="string">"phonenumber"</span>)]
+<a href=#71 id=71 data-nosnippet>71</a>    </span><span class="kw">pub use </span>phonenumber;
+<a href=#72 id=72 data-nosnippet>72</a>    <span class="kw">pub use </span>prost::Message <span class="kw">as </span>ProtobufMessage;
+<a href=#73 id=73 data-nosnippet>73</a>    <span class="kw">pub use </span>uuid::{Error <span class="kw">as </span>UuidError, Uuid};
+<a href=#74 id=74 data-nosnippet>74</a>    <span class="kw">pub use </span>zkgroup::{
+<a href=#75 id=75 data-nosnippet>75</a>        groups::{GroupMasterKey, GroupSecretParams},
+<a href=#76 id=76 data-nosnippet>76</a>        profiles::ProfileKey,
+<a href=#77 id=77 data-nosnippet>77</a>    };
+<a href=#78 id=78 data-nosnippet>78</a>}
 <a href=#79 id=79 data-nosnippet>79</a>
-<a href=#80 id=80 data-nosnippet>80</a>    <span class="kw">pub use </span>libsignal_core::InvalidDeviceId;
-<a href=#81 id=81 data-nosnippet>81</a>    <span class="kw">pub use </span>libsignal_protocol::{DeviceId, IdentityKeyStore};
-<a href=#82 id=82 data-nosnippet>82</a>}
-<a href=#83 id=83 data-nosnippet>83</a>
-<a href=#84 id=84 data-nosnippet>84</a><span class="kw">pub use </span>libsignal_protocol <span class="kw">as </span>protocol;
-<a href=#85 id=85 data-nosnippet>85</a><span class="kw">pub use </span>zkgroup;
+<a href=#80 id=80 data-nosnippet>80</a><span class="kw">pub mod </span>protocol {
+<a href=#81 id=81 data-nosnippet>81</a>    <span class="kw">pub use </span>libsignal_core::{InvalidDeviceId, E164};
+<a href=#82 id=82 data-nosnippet>82</a>    <span class="kw">pub use </span>libsignal_protocol::<span class="kw-2">*</span>;
+<a href=#83 id=83 data-nosnippet>83</a>    <span class="kw">pub use </span>usernames::{Username, UsernameError};
+<a href=#84 id=84 data-nosnippet>84</a>}
+<a href=#85 id=85 data-nosnippet>85</a>
+<a href=#86 id=86 data-nosnippet>86</a><span class="kw">pub use </span>zkgroup;
 </code></pre></div></section></main></body></html>

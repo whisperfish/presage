@@ -3,45 +3,46 @@
 <a href=#3 id=3 data-nosnippet>3</a>    models::Attachment,
 <a href=#4 id=4 data-nosnippet>4</a>    prelude::{phonenumber::PhoneNumber, Uuid},
 <a href=#5 id=5 data-nosnippet>5</a>    proto::Verified,
-<a href=#6 id=6 data-nosnippet>6</a>};
-<a href=#7 id=7 data-nosnippet>7</a><span class="kw">use </span>serde::{Deserialize, Serialize};
-<a href=#8 id=8 data-nosnippet>8</a>
-<a href=#9 id=9 data-nosnippet>9</a><span class="kw">const fn </span>default_expire_timer_version() -&gt; u32 {
-<a href=#10 id=10 data-nosnippet>10</a>    <span class="number">2
-<a href=#11 id=11 data-nosnippet>11</a></span>}
-<a href=#12 id=12 data-nosnippet>12</a>
-<a href=#13 id=13 data-nosnippet>13</a><span class="doccomment">/// Mirror of the protobuf ContactDetails message
-<a href=#14 id=14 data-nosnippet>14</a>/// but with stronger types (e.g. `ServiceAddress` instead of optional uuid and string phone numbers)
-<a href=#15 id=15 data-nosnippet>15</a>/// and some helper functions
-<a href=#16 id=16 data-nosnippet>16</a></span><span class="attr">#[derive(Debug, Serialize, Deserialize)]
-<a href=#17 id=17 data-nosnippet>17</a></span><span class="kw">pub struct </span>Contact {
-<a href=#18 id=18 data-nosnippet>18</a>    <span class="kw">pub </span>uuid: Uuid,
-<a href=#19 id=19 data-nosnippet>19</a>    <span class="kw">pub </span>phone_number: <span class="prelude-ty">Option</span>&lt;PhoneNumber&gt;,
-<a href=#20 id=20 data-nosnippet>20</a>    <span class="kw">pub </span>name: String,
-<a href=#21 id=21 data-nosnippet>21</a>    <span class="attr">#[serde(skip)]
-<a href=#22 id=22 data-nosnippet>22</a>    </span><span class="kw">pub </span>verified: Verified,
-<a href=#23 id=23 data-nosnippet>23</a>    <span class="kw">pub </span>profile_key: Vec&lt;u8&gt;,
-<a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">pub </span>expire_timer: u32,
-<a href=#25 id=25 data-nosnippet>25</a>    <span class="attr">#[serde(default = <span class="string">"default_expire_timer_version"</span>)]
-<a href=#26 id=26 data-nosnippet>26</a>    </span><span class="kw">pub </span>expire_timer_version: u32,
-<a href=#27 id=27 data-nosnippet>27</a>    <span class="kw">pub </span>inbox_position: u32,
-<a href=#28 id=28 data-nosnippet>28</a>    <span class="attr">#[serde(skip)]
-<a href=#29 id=29 data-nosnippet>29</a>    </span><span class="kw">pub </span>avatar: <span class="prelude-ty">Option</span>&lt;Attachment&lt;Bytes&gt;&gt;,
-<a href=#30 id=30 data-nosnippet>30</a>}
-<a href=#31 id=31 data-nosnippet>31</a>
-<a href=#32 id=32 data-nosnippet>32</a><span class="kw">impl </span>From&lt;libsignal_service::models::Contact&gt; <span class="kw">for </span>Contact {
-<a href=#33 id=33 data-nosnippet>33</a>    <span class="kw">fn </span>from(c: libsignal_service::models::Contact) -&gt; <span class="self">Self </span>{
-<a href=#34 id=34 data-nosnippet>34</a>        <span class="self">Self </span>{
-<a href=#35 id=35 data-nosnippet>35</a>            uuid: c.uuid,
-<a href=#36 id=36 data-nosnippet>36</a>            phone_number: c.phone_number,
-<a href=#37 id=37 data-nosnippet>37</a>            name: c.name,
-<a href=#38 id=38 data-nosnippet>38</a>            verified: Default::default(),
-<a href=#39 id=39 data-nosnippet>39</a>            profile_key: Default::default(),
-<a href=#40 id=40 data-nosnippet>40</a>            expire_timer: c.expire_timer,
-<a href=#41 id=41 data-nosnippet>41</a>            expire_timer_version: c.expire_timer_version,
-<a href=#42 id=42 data-nosnippet>42</a>            inbox_position: c.inbox_position,
-<a href=#43 id=43 data-nosnippet>43</a>            avatar: c.avatar,
-<a href=#44 id=44 data-nosnippet>44</a>        }
-<a href=#45 id=45 data-nosnippet>45</a>    }
-<a href=#46 id=46 data-nosnippet>46</a>}
+<a href=#6 id=6 data-nosnippet>6</a>    utils::phonenumber_from_signal,
+<a href=#7 id=7 data-nosnippet>7</a>};
+<a href=#8 id=8 data-nosnippet>8</a><span class="kw">use </span>serde::{Deserialize, Serialize};
+<a href=#9 id=9 data-nosnippet>9</a>
+<a href=#10 id=10 data-nosnippet>10</a><span class="kw">const fn </span>default_expire_timer_version() -&gt; u32 {
+<a href=#11 id=11 data-nosnippet>11</a>    <span class="number">2
+<a href=#12 id=12 data-nosnippet>12</a></span>}
+<a href=#13 id=13 data-nosnippet>13</a>
+<a href=#14 id=14 data-nosnippet>14</a><span class="doccomment">/// Mirror of the protobuf ContactDetails message
+<a href=#15 id=15 data-nosnippet>15</a>/// but with stronger types (e.g. `ServiceAddress` instead of optional uuid and string phone numbers)
+<a href=#16 id=16 data-nosnippet>16</a>/// and some helper functions
+<a href=#17 id=17 data-nosnippet>17</a></span><span class="attr">#[derive(Debug, Serialize, Deserialize)]
+<a href=#18 id=18 data-nosnippet>18</a></span><span class="kw">pub struct </span>Contact {
+<a href=#19 id=19 data-nosnippet>19</a>    <span class="kw">pub </span>uuid: Uuid,
+<a href=#20 id=20 data-nosnippet>20</a>    <span class="kw">pub </span>phone_number: <span class="prelude-ty">Option</span>&lt;PhoneNumber&gt;,
+<a href=#21 id=21 data-nosnippet>21</a>    <span class="kw">pub </span>name: String,
+<a href=#22 id=22 data-nosnippet>22</a>    <span class="attr">#[serde(skip)]
+<a href=#23 id=23 data-nosnippet>23</a>    </span><span class="kw">pub </span>verified: Verified,
+<a href=#24 id=24 data-nosnippet>24</a>    <span class="kw">pub </span>profile_key: Vec&lt;u8&gt;,
+<a href=#25 id=25 data-nosnippet>25</a>    <span class="kw">pub </span>expire_timer: u32,
+<a href=#26 id=26 data-nosnippet>26</a>    <span class="attr">#[serde(default = <span class="string">"default_expire_timer_version"</span>)]
+<a href=#27 id=27 data-nosnippet>27</a>    </span><span class="kw">pub </span>expire_timer_version: u32,
+<a href=#28 id=28 data-nosnippet>28</a>    <span class="kw">pub </span>inbox_position: u32,
+<a href=#29 id=29 data-nosnippet>29</a>    <span class="attr">#[serde(skip)]
+<a href=#30 id=30 data-nosnippet>30</a>    </span><span class="kw">pub </span>avatar: <span class="prelude-ty">Option</span>&lt;Attachment&lt;Bytes&gt;&gt;,
+<a href=#31 id=31 data-nosnippet>31</a>}
+<a href=#32 id=32 data-nosnippet>32</a>
+<a href=#33 id=33 data-nosnippet>33</a><span class="kw">impl </span>From&lt;libsignal_service::models::Contact&gt; <span class="kw">for </span>Contact {
+<a href=#34 id=34 data-nosnippet>34</a>    <span class="kw">fn </span>from(c: libsignal_service::models::Contact) -&gt; <span class="self">Self </span>{
+<a href=#35 id=35 data-nosnippet>35</a>        <span class="self">Self </span>{
+<a href=#36 id=36 data-nosnippet>36</a>            uuid: c.uuid,
+<a href=#37 id=37 data-nosnippet>37</a>            phone_number: c.phone_number.as_ref().map(phonenumber_from_signal),
+<a href=#38 id=38 data-nosnippet>38</a>            name: c.name,
+<a href=#39 id=39 data-nosnippet>39</a>            verified: Default::default(),
+<a href=#40 id=40 data-nosnippet>40</a>            profile_key: Default::default(),
+<a href=#41 id=41 data-nosnippet>41</a>            expire_timer: c.expire_timer,
+<a href=#42 id=42 data-nosnippet>42</a>            expire_timer_version: c.expire_timer_version,
+<a href=#43 id=43 data-nosnippet>43</a>            inbox_position: c.inbox_position,
+<a href=#44 id=44 data-nosnippet>44</a>            avatar: c.avatar,
+<a href=#45 id=45 data-nosnippet>45</a>        }
+<a href=#46 id=46 data-nosnippet>46</a>    }
+<a href=#47 id=47 data-nosnippet>47</a>}
 </code></pre></div></section></main></body></html>
