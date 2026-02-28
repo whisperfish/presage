@@ -38,13 +38,13 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Build
-        run: cargo build --all-targets
+        run: cargo build --all-targets --all-features
 
       - name: Test
-        run: cargo test --all-targets
+        run: cargo test --all-targets --all-features
 
       - name: Test docs
-        run: cargo test --doc
+        run: cargo test --doc --all-features
 
   rustfmt:
     name: rustfmt
