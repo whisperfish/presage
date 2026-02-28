@@ -4,6 +4,9 @@ version = "0.8.0-dev"
 edition = "2024"
 license = "AGPL-3.0-only"
 
+[lib]
+crate-type = ["rlib", "dylib"]
+
 [dependencies]
 presage = { path = "../presage" }
 
