@@ -16,7 +16,7 @@ pub(crate) mod serde_profile_key {
         D: Deserializer<'de>,
     {
         let bytes: [u8; 32] = general_purpose::STANDARD
-            .decode(String::deserialize(deserializer)?)
+            .decode(<&str>::deserialize(deserializer)?)
             .map_err(serde::de::Error::custom)?
             .try_into()
             .map_err(|e: Vec<u8>| serde::de::Error::invalid_length(e.len(), &"32 bytes"))?;

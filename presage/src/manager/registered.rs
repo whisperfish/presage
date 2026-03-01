@@ -3,19 +3,15 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::prelude::MasterKey;
-use libsignal_service::protocol::{DeviceId, Username};
-use libsignal_service::websocket::account::{
-    AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
-};
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
     configuration::{ServiceConfiguration, SignalServers},
     content::{Content, ContentBody, DataMessageFlags, Metadata},
+    encrypt_device_name,
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
-    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
+    prelude::{phonenumber::PhoneNumber, MasterKey, MessageSenderError, ProtobufMessage, Uuid},
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
@@ -23,7 +19,9 @@ use libsignal_service::{
         AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
         Verified,
     },
-    protocol::{Aci, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind},
+    protocol::{
+        Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
+    },
     provisioning::ProvisioningError,
     push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
@@ -31,8 +29,11 @@ use libsignal_service::{
     sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
     utils::TryIntoE164,
-    websocket,
-    websocket::SignalWebSocket,
+    websocket::{
+        self,
+        account::{AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse},
+        SignalWebSocket,
+    },
     zkgroup::{
         groups::{GroupMasterKey, GroupSecretParams},
         profiles::ProfileKey,
@@ -1817,6 +1818,7 @@ async fn upsert_contact_from_profile<S: Store>(
 }
 
 async fn set_account_attributes<S: Store>(
+    store: &S,
     account_manager: &mut AccountManager,
     data: &RegistrationData,
 ) -> Result<(), Error<S::Error>> {
@@ -1824,20 +1826,25 @@ async fn set_account_attributes<S: Store>(
 
     let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
 
+    let aci_identity_key_pair = store.aci_protocol_store().get_identity_key_pair().await?;
+    let encrypted_device_name = data
+        .device_name
+        .as_deref()
+        .map(|d| encrypt_device_name(&mut rand::rng(), d, aci_identity_key_pair.identity_key()))
+        .transpose()?;
+
     account_manager
         .set_account_attributes(AccountAttributes {
-            name: data.device_name().map(|d| d.to_string()),
+            fetches_messages: true,
             registration_id: data.registration_id,
             pni_registration_id,
-            signaling_key: None,
-            voice: false,
-            video: false,
-            fetches_messages: true,
+            name: encrypted_device_name,
             pin: None,
             registration_lock: None,
             unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
             unrestricted_unidentified_access: false,
             discoverable_by_phone_number: true,
+            recovery_password: None,
             capabilities: DeviceCapabilities::default(),
         })
         .await?;
