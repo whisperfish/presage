@@ -562,8 +562,12 @@ impl<S: Store> Manager<S, Registered> {
         // this is necessary because in this context, we can't do the classic tokio::spawn
         // with a oneshot::channel() or CancellationToken because of !Send constraints in the Store.
         tokio::task::spawn_local(async move {
-            if let Err(error) =
-                set_account_attributes::<S>(&mut account_manager, &registration_data_inner).await
+            if let Err(error) = set_account_attributes::<S>(
+                &store_inner,
+                &mut account_manager,
+                &registration_data_inner,
+            )
+            .await
             {
                 error!(%error, "failed to set account attributes, this is problematic and should never happen!");
             }
