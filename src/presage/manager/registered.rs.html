@@ -954,7 +954,7 @@
 <a href=#954 id=954 data-nosnippet>954</a>        //
 <a href=#955 id=955 data-nosnippet>955</a>        // Issue &lt;https://github.com/whisperfish/presage/issues/252&gt;
 <a href=#956 id=956 data-nosnippet>956</a>        </span><span class="kw">let </span>include_pni_signature = <span class="bool-val">false</span>;
-<a href=#957 id=957 data-nosnippet>957</a>        <span class="kw">let </span>thread = Thread::Contact(recipient.raw_uuid());
+<a href=#957 id=957 data-nosnippet>957</a>        <span class="kw">let </span>thread = Thread::Contact(recipient);
 <a href=#958 id=958 data-nosnippet>958</a>        <span class="kw">let </span><span class="kw-2">mut </span>content_body: ContentBody = message.into();
 <a href=#959 id=959 data-nosnippet>959</a>
 <a href=#960 id=960 data-nosnippet>960</a>        <span class="self">self</span>.restore_thread_timer(<span class="kw-2">&amp;</span>thread, <span class="kw-2">&amp;mut </span>content_body).<span class="kw">await</span>;
@@ -1378,17 +1378,17 @@
 <a href=#1378 id=1378 data-nosnippet>1378</a>    <span class="doccomment">/// Returns the title of a thread (contact or group).
 <a href=#1379 id=1379 data-nosnippet>1379</a>    </span><span class="kw">pub async fn </span>thread_title(<span class="kw-2">&amp;</span><span class="self">self</span>, thread: <span class="kw-2">&amp;</span>Thread) -&gt; <span class="prelude-ty">Result</span>&lt;String, Error&lt;S::Error&gt;&gt; {
 <a href=#1380 id=1380 data-nosnippet>1380</a>        <span class="kw">match </span>thread {
-<a href=#1381 id=1381 data-nosnippet>1381</a>            Thread::Contact(uuid) =&gt; {
-<a href=#1382 id=1382 data-nosnippet>1382</a>                <span class="kw">let </span>contact = <span class="kw">match </span><span class="self">self</span>.store.contact_by_id(uuid).<span class="kw">await </span>{
+<a href=#1381 id=1381 data-nosnippet>1381</a>            Thread::Contact(service_id) =&gt; {
+<a href=#1382 id=1382 data-nosnippet>1382</a>                <span class="kw">let </span>contact = <span class="kw">match </span><span class="self">self</span>.store.contact_by_id(service_id).<span class="kw">await </span>{
 <a href=#1383 id=1383 data-nosnippet>1383</a>                    <span class="prelude-val">Ok</span>(contact) =&gt; contact,
 <a href=#1384 id=1384 data-nosnippet>1384</a>                    <span class="prelude-val">Err</span>(error) =&gt; {
-<a href=#1385 id=1385 data-nosnippet>1385</a>                        <span class="macro">info!</span>(%error, %uuid, <span class="string">"error getting contact by id"</span>);
+<a href=#1385 id=1385 data-nosnippet>1385</a>                        <span class="macro">info!</span>(%error, service_id =% service_id.service_id_string(), <span class="string">"error getting contact by id"</span>);
 <a href=#1386 id=1386 data-nosnippet>1386</a>                        <span class="prelude-val">None
 <a href=#1387 id=1387 data-nosnippet>1387</a>                    </span>}
 <a href=#1388 id=1388 data-nosnippet>1388</a>                };
 <a href=#1389 id=1389 data-nosnippet>1389</a>                <span class="prelude-val">Ok</span>(<span class="kw">match </span>contact {
 <a href=#1390 id=1390 data-nosnippet>1390</a>                    <span class="prelude-val">Some</span>(contact) =&gt; contact.name,
-<a href=#1391 id=1391 data-nosnippet>1391</a>                    <span class="prelude-val">None </span>=&gt; uuid.to_string(),
+<a href=#1391 id=1391 data-nosnippet>1391</a>                    <span class="prelude-val">None </span>=&gt; service_id.service_id_string(),
 <a href=#1392 id=1392 data-nosnippet>1392</a>                })
 <a href=#1393 id=1393 data-nosnippet>1393</a>            }
 <a href=#1394 id=1394 data-nosnippet>1394</a>            Thread::Group(id) =&gt; <span class="kw">match </span><span class="self">self</span>.store.group(<span class="kw-2">*</span>id).<span class="kw">await</span><span class="question-mark">? </span>{
@@ -1770,7 +1770,7 @@
 <a href=#1770 id=1770 data-nosnippet>1770</a>    sender: ServiceId,
 <a href=#1771 id=1771 data-nosnippet>1771</a>    profile_key: ProfileKey,
 <a href=#1772 id=1772 data-nosnippet>1772</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), Error&lt;&lt;S <span class="kw">as </span>Store&gt;::Error&gt;&gt; {
-<a href=#1773 id=1773 data-nosnippet>1773</a>    <span class="kw">if </span>store.contact_by_id(<span class="kw-2">&amp;</span>sender.raw_uuid()).<span class="kw">await</span><span class="question-mark">?</span>.is_none()
+<a href=#1773 id=1773 data-nosnippet>1773</a>    <span class="kw">if </span>store.contact_by_id(<span class="kw-2">&amp;</span>sender).<span class="kw">await</span><span class="question-mark">?</span>.is_none()
 <a href=#1774 id=1774 data-nosnippet>1774</a>        || store
 <a href=#1775 id=1775 data-nosnippet>1775</a>            .profile_key(<span class="kw-2">&amp;</span>sender)
 <a href=#1776 id=1776 data-nosnippet>1776</a>            .<span class="kw">await</span><span class="question-mark">?

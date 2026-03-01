@@ -6,7 +6,7 @@
 <a href=#6 id=6 data-nosnippet>6</a>    content::{ContentBody, Metadata},
 <a href=#7 id=7 data-nosnippet>7</a>    groups_v2::Timer,
 <a href=#8 id=8 data-nosnippet>8</a>    pre_keys::PreKeysStore,
-<a href=#9 id=9 data-nosnippet>9</a>    prelude::{Content, MasterKey, ProfileKey, Uuid, UuidError},
+<a href=#9 id=9 data-nosnippet>9</a>    prelude::{Content, MasterKey, ProfileKey, Uuid},
 <a href=#10 id=10 data-nosnippet>10</a>    proto::{
 <a href=#11 id=11 data-nosnippet>11</a>        sync_message::{<span class="self">self</span>, Sent},
 <a href=#12 id=12 data-nosnippet>12</a>        verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
@@ -154,8 +154,8 @@
 <a href=#154 id=154 data-nosnippet>154</a>    ) -&gt; <span class="kw">impl </span>Future&lt;Output = <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(u32, u32)&gt;, <span class="self">Self</span>::ContentsStoreError&gt;&gt; {
 <a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">async move </span>{
 <a href=#156 id=156 data-nosnippet>156</a>            <span class="kw">match </span>thread {
-<a href=#157 id=157 data-nosnippet>157</a>                Thread::Contact(uuid) =&gt; <span class="prelude-val">Ok</span>(<span class="self">self
-<a href=#158 id=158 data-nosnippet>158</a>                    </span>.contact_by_id(uuid)
+<a href=#157 id=157 data-nosnippet>157</a>                Thread::Contact(service_id) =&gt; <span class="prelude-val">Ok</span>(<span class="self">self
+<a href=#158 id=158 data-nosnippet>158</a>                    </span>.contact_by_id(service_id)
 <a href=#159 id=159 data-nosnippet>159</a>                    .<span class="kw">await</span><span class="question-mark">?
 <a href=#160 id=160 data-nosnippet>160</a>                    </span>.map(|c| (c.expire_timer, c.expire_timer_version))),
 <a href=#161 id=161 data-nosnippet>161</a>                Thread::Group(key) =&gt; <span class="prelude-val">Ok</span>(<span class="self">self
@@ -220,10 +220,10 @@
 <a href=#220 id=220 data-nosnippet>220</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
 <a href=#221 id=221 data-nosnippet>221</a>    ) -&gt; <span class="kw">impl </span>Future&lt;Output = <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::ContactsIter, <span class="self">Self</span>::ContentsStoreError&gt;&gt;;
 <a href=#222 id=222 data-nosnippet>222</a>
-<a href=#223 id=223 data-nosnippet>223</a>    <span class="doccomment">/// Get contact data for a single user by its [Uuid].
+<a href=#223 id=223 data-nosnippet>223</a>    <span class="doccomment">/// Get contact data for a single user by its [ServiceId].
 <a href=#224 id=224 data-nosnippet>224</a>    </span><span class="kw">fn </span>contact_by_id(
 <a href=#225 id=225 data-nosnippet>225</a>        <span class="kw-2">&amp;</span><span class="self">self</span>,
-<a href=#226 id=226 data-nosnippet>226</a>        id: <span class="kw-2">&amp;</span>Uuid,
+<a href=#226 id=226 data-nosnippet>226</a>        id: <span class="kw-2">&amp;</span>ServiceId,
 <a href=#227 id=227 data-nosnippet>227</a>    ) -&gt; <span class="kw">impl </span>Future&lt;Output = <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Contact&gt;, <span class="self">Self</span>::ContentsStoreError&gt;&gt; + Send;
 <a href=#228 id=228 data-nosnippet>228</a>
 <a href=#229 id=229 data-nosnippet>229</a>    <span class="doccomment">/// Delete all cached group data
@@ -367,238 +367,256 @@
 <a href=#367 id=367 data-nosnippet>367</a>}
 <a href=#368 id=368 data-nosnippet>368</a>
 <a href=#369 id=369 data-nosnippet>369</a><span class="doccomment">/// A thread specifies where a message was sent, either to or from a contact or in a group.
-<a href=#370 id=370 data-nosnippet>370</a></span><span class="attr">#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
+<a href=#370 id=370 data-nosnippet>370</a></span><span class="attr">#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 <a href=#371 id=371 data-nosnippet>371</a></span><span class="kw">pub enum </span>Thread {
 <a href=#372 id=372 data-nosnippet>372</a>    <span class="doccomment">/// The message was sent inside a contact-chat.
-<a href=#373 id=373 data-nosnippet>373</a>    /// TODO: make this correctly either ACI or PNI (store the ServiceId)
-<a href=#374 id=374 data-nosnippet>374</a>    </span>Contact(Uuid),
-<a href=#375 id=375 data-nosnippet>375</a>    <span class="comment">// Cannot use GroupMasterKey as unable to extract the bytes.
-<a href=#376 id=376 data-nosnippet>376</a>    </span><span class="doccomment">/// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
-<a href=#377 id=377 data-nosnippet>377</a>    </span>Group(GroupMasterKeyBytes),
-<a href=#378 id=378 data-nosnippet>378</a>}
-<a href=#379 id=379 data-nosnippet>379</a>
-<a href=#380 id=380 data-nosnippet>380</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>Thread {
-<a href=#381 id=381 data-nosnippet>381</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
-<a href=#382 id=382 data-nosnippet>382</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#383 id=383 data-nosnippet>383</a>            Thread::Contact(uuid) =&gt; <span class="macro">write!</span>(f, <span class="string">"Thread(contact={uuid})"</span>),
-<a href=#384 id=384 data-nosnippet>384</a>            Thread::Group(master_key_bytes) =&gt; {
-<a href=#385 id=385 data-nosnippet>385</a>                <span class="macro">write!</span>(f, <span class="string">"Thread(group={:x?})"</span>, <span class="kw-2">&amp;</span>master_key_bytes[..<span class="number">4</span>])
-<a href=#386 id=386 data-nosnippet>386</a>            }
-<a href=#387 id=387 data-nosnippet>387</a>        }
-<a href=#388 id=388 data-nosnippet>388</a>    }
-<a href=#389 id=389 data-nosnippet>389</a>}
-<a href=#390 id=390 data-nosnippet>390</a>
-<a href=#391 id=391 data-nosnippet>391</a><span class="kw">impl </span>TryFrom&lt;<span class="kw-2">&amp;</span>Content&gt; <span class="kw">for </span>Thread {
-<a href=#392 id=392 data-nosnippet>392</a>    <span class="kw">type </span>Error = UuidError;
-<a href=#393 id=393 data-nosnippet>393</a>
-<a href=#394 id=394 data-nosnippet>394</a>    <span class="kw">fn </span>try_from(content: <span class="kw-2">&amp;</span>Content) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
-<a href=#395 id=395 data-nosnippet>395</a>        <span class="kw">match </span><span class="kw-2">&amp;</span>content.body {
-<a href=#396 id=396 data-nosnippet>396</a>            <span class="comment">// [1-1] Message sent by us with another device
-<a href=#397 id=397 data-nosnippet>397</a>            </span>ContentBody::SynchronizeMessage(SyncMessage {
-<a href=#398 id=398 data-nosnippet>398</a>                sent:
-<a href=#399 id=399 data-nosnippet>399</a>                    <span class="prelude-val">Some</span>(Sent {
-<a href=#400 id=400 data-nosnippet>400</a>                        destination_service_id: <span class="prelude-val">Some</span>(uuid),
-<a href=#401 id=401 data-nosnippet>401</a>                        ..
-<a href=#402 id=402 data-nosnippet>402</a>                    }),
-<a href=#403 id=403 data-nosnippet>403</a>                ..
-<a href=#404 id=404 data-nosnippet>404</a>            }) =&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Contact(Uuid::parse_str(uuid)<span class="question-mark">?</span>)),
-<a href=#405 id=405 data-nosnippet>405</a>            <span class="comment">// [Group] message from somebody else
-<a href=#406 id=406 data-nosnippet>406</a>            </span>ContentBody::DataMessage(DataMessage {
-<a href=#407 id=407 data-nosnippet>407</a>                group_v2:
-<a href=#408 id=408 data-nosnippet>408</a>                    <span class="prelude-val">Some</span>(GroupContextV2 {
-<a href=#409 id=409 data-nosnippet>409</a>                        master_key: <span class="prelude-val">Some</span>(key),
-<a href=#410 id=410 data-nosnippet>410</a>                        ..
-<a href=#411 id=411 data-nosnippet>411</a>                    }),
-<a href=#412 id=412 data-nosnippet>412</a>                ..
-<a href=#413 id=413 data-nosnippet>413</a>            })
-<a href=#414 id=414 data-nosnippet>414</a>            <span class="comment">// [Group] message sent by us with another device
-<a href=#415 id=415 data-nosnippet>415</a>            </span>| ContentBody::SynchronizeMessage(SyncMessage {
-<a href=#416 id=416 data-nosnippet>416</a>                sent:
-<a href=#417 id=417 data-nosnippet>417</a>                    <span class="prelude-val">Some</span>(Sent {
-<a href=#418 id=418 data-nosnippet>418</a>                        message:
-<a href=#419 id=419 data-nosnippet>419</a>                            <span class="prelude-val">Some</span>(DataMessage {
-<a href=#420 id=420 data-nosnippet>420</a>                                group_v2:
-<a href=#421 id=421 data-nosnippet>421</a>                                    <span class="prelude-val">Some</span>(GroupContextV2 {
-<a href=#422 id=422 data-nosnippet>422</a>                                        master_key: <span class="prelude-val">Some</span>(key),
-<a href=#423 id=423 data-nosnippet>423</a>                                        ..
-<a href=#424 id=424 data-nosnippet>424</a>                                    }),
-<a href=#425 id=425 data-nosnippet>425</a>                                ..
-<a href=#426 id=426 data-nosnippet>426</a>                            }),
-<a href=#427 id=427 data-nosnippet>427</a>                        ..
-<a href=#428 id=428 data-nosnippet>428</a>                    }),
-<a href=#429 id=429 data-nosnippet>429</a>                ..
-<a href=#430 id=430 data-nosnippet>430</a>            })
-<a href=#431 id=431 data-nosnippet>431</a>            <span class="comment">// [Group] message edit sent by us with another device
-<a href=#432 id=432 data-nosnippet>432</a>            </span>| ContentBody::SynchronizeMessage(SyncMessage {
-<a href=#433 id=433 data-nosnippet>433</a>                sent:
-<a href=#434 id=434 data-nosnippet>434</a>                    <span class="prelude-val">Some</span>(Sent {
-<a href=#435 id=435 data-nosnippet>435</a>                        edit_message:
-<a href=#436 id=436 data-nosnippet>436</a>                            <span class="prelude-val">Some</span>(EditMessage {
-<a href=#437 id=437 data-nosnippet>437</a>                                data_message:
-<a href=#438 id=438 data-nosnippet>438</a>                                    <span class="prelude-val">Some</span>(DataMessage {
-<a href=#439 id=439 data-nosnippet>439</a>                                        group_v2:
-<a href=#440 id=440 data-nosnippet>440</a>                                            <span class="prelude-val">Some</span>(GroupContextV2 {
-<a href=#441 id=441 data-nosnippet>441</a>                                                master_key: <span class="prelude-val">Some</span>(key),
-<a href=#442 id=442 data-nosnippet>442</a>                                                ..
-<a href=#443 id=443 data-nosnippet>443</a>                                            }),
-<a href=#444 id=444 data-nosnippet>444</a>                                        ..
-<a href=#445 id=445 data-nosnippet>445</a>                                    }),
-<a href=#446 id=446 data-nosnippet>446</a>                                ..
-<a href=#447 id=447 data-nosnippet>447</a>                            }),
-<a href=#448 id=448 data-nosnippet>448</a>                        ..
-<a href=#449 id=449 data-nosnippet>449</a>                    }),
-<a href=#450 id=450 data-nosnippet>450</a>                ..
-<a href=#451 id=451 data-nosnippet>451</a>            })
-<a href=#452 id=452 data-nosnippet>452</a>            <span class="comment">// [Group] Message edit sent by somebody else
-<a href=#453 id=453 data-nosnippet>453</a>            </span>| ContentBody::EditMessage(EditMessage {
-<a href=#454 id=454 data-nosnippet>454</a>                data_message:
-<a href=#455 id=455 data-nosnippet>455</a>                    <span class="prelude-val">Some</span>(DataMessage {
-<a href=#456 id=456 data-nosnippet>456</a>                        group_v2:
-<a href=#457 id=457 data-nosnippet>457</a>                            <span class="prelude-val">Some</span>(GroupContextV2 {
-<a href=#458 id=458 data-nosnippet>458</a>                                master_key: <span class="prelude-val">Some</span>(key),
-<a href=#459 id=459 data-nosnippet>459</a>                                ..
-<a href=#460 id=460 data-nosnippet>460</a>                            }),
-<a href=#461 id=461 data-nosnippet>461</a>                        ..
-<a href=#462 id=462 data-nosnippet>462</a>                    }),
-<a href=#463 id=463 data-nosnippet>463</a>                ..
-<a href=#464 id=464 data-nosnippet>464</a>            }) =&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Group(
-<a href=#465 id=465 data-nosnippet>465</a>                key.clone()
-<a href=#466 id=466 data-nosnippet>466</a>                    .try_into()
-<a href=#467 id=467 data-nosnippet>467</a>                    .expect(<span class="string">"Group master key to have 32 bytes"</span>),
-<a href=#468 id=468 data-nosnippet>468</a>            )),
-<a href=#469 id=469 data-nosnippet>469</a>            <span class="comment">// [1-1] Any other message directly to us
-<a href=#470 id=470 data-nosnippet>470</a>            </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(Thread::Contact(content.metadata.sender.raw_uuid())),
-<a href=#471 id=471 data-nosnippet>471</a>        }
-<a href=#472 id=472 data-nosnippet>472</a>    }
-<a href=#473 id=473 data-nosnippet>473</a>}
-<a href=#474 id=474 data-nosnippet>474</a>
-<a href=#475 id=475 data-nosnippet>475</a><span class="doccomment">/// Extension trait of [`Content`]
-<a href=#476 id=476 data-nosnippet>476</a></span><span class="kw">pub trait </span>ContentExt {
-<a href=#477 id=477 data-nosnippet>477</a>    <span class="kw">fn </span>timestamp(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64;
-<a href=#478 id=478 data-nosnippet>478</a>}
-<a href=#479 id=479 data-nosnippet>479</a>
-<a href=#480 id=480 data-nosnippet>480</a><span class="kw">impl </span>ContentExt <span class="kw">for </span>Content {
-<a href=#481 id=481 data-nosnippet>481</a>    <span class="doccomment">/// The original timestamp of the message.
-<a href=#482 id=482 data-nosnippet>482</a>    </span><span class="kw">fn </span>timestamp(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
-<a href=#483 id=483 data-nosnippet>483</a>        <span class="kw">match </span><span class="self">self</span>.body {
-<a href=#484 id=484 data-nosnippet>484</a>            ContentBody::SynchronizeMessage(SyncMessage {
-<a href=#485 id=485 data-nosnippet>485</a>                sent:
-<a href=#486 id=486 data-nosnippet>486</a>                    <span class="prelude-val">Some</span>(sync_message::Sent {
-<a href=#487 id=487 data-nosnippet>487</a>                        timestamp: <span class="prelude-val">Some</span>(ts),
-<a href=#488 id=488 data-nosnippet>488</a>                        ..
-<a href=#489 id=489 data-nosnippet>489</a>                    }),
-<a href=#490 id=490 data-nosnippet>490</a>                ..
-<a href=#491 id=491 data-nosnippet>491</a>            }) =&gt; ts,
-<a href=#492 id=492 data-nosnippet>492</a>            ContentBody::SynchronizeMessage(SyncMessage {
-<a href=#493 id=493 data-nosnippet>493</a>                sent:
-<a href=#494 id=494 data-nosnippet>494</a>                    <span class="prelude-val">Some</span>(sync_message::Sent {
-<a href=#495 id=495 data-nosnippet>495</a>                        edit_message:
-<a href=#496 id=496 data-nosnippet>496</a>                            <span class="prelude-val">Some</span>(EditMessage {
-<a href=#497 id=497 data-nosnippet>497</a>                                target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
-<a href=#498 id=498 data-nosnippet>498</a>                                ..
-<a href=#499 id=499 data-nosnippet>499</a>                            }),
-<a href=#500 id=500 data-nosnippet>500</a>                        ..
-<a href=#501 id=501 data-nosnippet>501</a>                    }),
-<a href=#502 id=502 data-nosnippet>502</a>                ..
-<a href=#503 id=503 data-nosnippet>503</a>            }) =&gt; ts,
-<a href=#504 id=504 data-nosnippet>504</a>            ContentBody::EditMessage(EditMessage {
-<a href=#505 id=505 data-nosnippet>505</a>                target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
-<a href=#506 id=506 data-nosnippet>506</a>                ..
-<a href=#507 id=507 data-nosnippet>507</a>            }) =&gt; ts,
-<a href=#508 id=508 data-nosnippet>508</a>            <span class="kw">_ </span>=&gt; <span class="self">self</span>.metadata.timestamp,
-<a href=#509 id=509 data-nosnippet>509</a>        }
-<a href=#510 id=510 data-nosnippet>510</a>    }
-<a href=#511 id=511 data-nosnippet>511</a>}
-<a href=#512 id=512 data-nosnippet>512</a>
-<a href=#513 id=513 data-nosnippet>513</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#514 id=514 data-nosnippet>514</a></span><span class="kw">pub struct </span>StickerPack {
-<a href=#515 id=515 data-nosnippet>515</a>    <span class="kw">pub </span>id: Vec&lt;u8&gt;,
-<a href=#516 id=516 data-nosnippet>516</a>    <span class="kw">pub </span>key: Vec&lt;u8&gt;,
-<a href=#517 id=517 data-nosnippet>517</a>    <span class="kw">pub </span>manifest: StickerPackManifest,
-<a href=#518 id=518 data-nosnippet>518</a>}
-<a href=#519 id=519 data-nosnippet>519</a>
-<a href=#520 id=520 data-nosnippet>520</a><span class="doccomment">/// equivalent to [Pack](crate::proto::Pack)
-<a href=#521 id=521 data-nosnippet>521</a></span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#522 id=522 data-nosnippet>522</a></span><span class="kw">pub struct </span>StickerPackManifest {
-<a href=#523 id=523 data-nosnippet>523</a>    <span class="kw">pub </span>title: String,
-<a href=#524 id=524 data-nosnippet>524</a>    <span class="kw">pub </span>author: String,
-<a href=#525 id=525 data-nosnippet>525</a>    <span class="kw">pub </span>cover: <span class="prelude-ty">Option</span>&lt;Sticker&gt;,
-<a href=#526 id=526 data-nosnippet>526</a>    <span class="kw">pub </span>stickers: Vec&lt;Sticker&gt;,
-<a href=#527 id=527 data-nosnippet>527</a>}
-<a href=#528 id=528 data-nosnippet>528</a>
-<a href=#529 id=529 data-nosnippet>529</a><span class="kw">impl </span>From&lt;libsignal_service::proto::Pack&gt; <span class="kw">for </span>StickerPackManifest {
-<a href=#530 id=530 data-nosnippet>530</a>    <span class="kw">fn </span>from(value: libsignal_service::proto::Pack) -&gt; <span class="self">Self </span>{
-<a href=#531 id=531 data-nosnippet>531</a>        <span class="self">Self </span>{
-<a href=#532 id=532 data-nosnippet>532</a>            title: value.title().to_owned(),
-<a href=#533 id=533 data-nosnippet>533</a>            author: value.author().to_owned(),
-<a href=#534 id=534 data-nosnippet>534</a>            cover: value.cover.map(Into::into),
-<a href=#535 id=535 data-nosnippet>535</a>            stickers: value.stickers.into_iter().map(|s| s.into()).collect(),
-<a href=#536 id=536 data-nosnippet>536</a>        }
-<a href=#537 id=537 data-nosnippet>537</a>    }
-<a href=#538 id=538 data-nosnippet>538</a>}
-<a href=#539 id=539 data-nosnippet>539</a>
-<a href=#540 id=540 data-nosnippet>540</a><span class="doccomment">/// equivalent to [Sticker](crate::proto::pack::Sticker)
-<a href=#541 id=541 data-nosnippet>541</a></span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
-<a href=#542 id=542 data-nosnippet>542</a></span><span class="kw">pub struct </span>Sticker {
-<a href=#543 id=543 data-nosnippet>543</a>    <span class="kw">pub </span>id: u32,
-<a href=#544 id=544 data-nosnippet>544</a>    <span class="kw">pub </span>emoji: <span class="prelude-ty">Option</span>&lt;String&gt;,
-<a href=#545 id=545 data-nosnippet>545</a>    <span class="kw">pub </span>content_type: <span class="prelude-ty">Option</span>&lt;String&gt;,
-<a href=#546 id=546 data-nosnippet>546</a>    <span class="kw">pub </span>bytes: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
-<a href=#547 id=547 data-nosnippet>547</a>}
-<a href=#548 id=548 data-nosnippet>548</a>
-<a href=#549 id=549 data-nosnippet>549</a><span class="kw">impl </span>From&lt;libsignal_service::proto::pack::Sticker&gt; <span class="kw">for </span>Sticker {
-<a href=#550 id=550 data-nosnippet>550</a>    <span class="kw">fn </span>from(value: libsignal_service::proto::pack::Sticker) -&gt; <span class="self">Self </span>{
-<a href=#551 id=551 data-nosnippet>551</a>        <span class="self">Self </span>{
-<a href=#552 id=552 data-nosnippet>552</a>            id: value.id(),
-<a href=#553 id=553 data-nosnippet>553</a>            emoji: value.emoji,
-<a href=#554 id=554 data-nosnippet>554</a>            content_type: value.content_type,
-<a href=#555 id=555 data-nosnippet>555</a>            bytes: <span class="prelude-val">None</span>,
-<a href=#556 id=556 data-nosnippet>556</a>        }
-<a href=#557 id=557 data-nosnippet>557</a>    }
-<a href=#558 id=558 data-nosnippet>558</a>}
-<a href=#559 id=559 data-nosnippet>559</a>
-<a href=#560 id=560 data-nosnippet>560</a><span class="doccomment">/// Saves a message that can show users when the identity of a contact has changed
-<a href=#561 id=561 data-nosnippet>561</a>/// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
-<a href=#562 id=562 data-nosnippet>562</a></span><span class="kw">pub async fn </span>save_trusted_identity_message&lt;S: Store&gt;(
-<a href=#563 id=563 data-nosnippet>563</a>    store: <span class="kw-2">&amp;</span>S,
-<a href=#564 id=564 data-nosnippet>564</a>    protocol_address: <span class="kw-2">&amp;</span>ProtocolAddress,
-<a href=#565 id=565 data-nosnippet>565</a>    right_identity_key: IdentityKey,
-<a href=#566 id=566 data-nosnippet>566</a>    verified_state: verified::State,
-<a href=#567 id=567 data-nosnippet>567</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), S::Error&gt; {
-<a href=#568 id=568 data-nosnippet>568</a>    <span class="kw">let </span><span class="prelude-val">Some</span>(sender) = ServiceId::parse_from_service_id_string(protocol_address.name()) <span class="kw">else </span>{
-<a href=#569 id=569 data-nosnippet>569</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(());
-<a href=#570 id=570 data-nosnippet>570</a>    };
-<a href=#571 id=571 data-nosnippet>571</a>
-<a href=#572 id=572 data-nosnippet>572</a>    <span class="comment">// TODO: this is a hack to save a message showing that the verification status changed
-<a href=#573 id=573 data-nosnippet>573</a>    // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
-<a href=#574 id=574 data-nosnippet>574</a>    </span><span class="kw">let </span>thread = Thread::Contact(sender.raw_uuid());
-<a href=#575 id=575 data-nosnippet>575</a>    <span class="kw">let </span>verified_sync_message = Content {
-<a href=#576 id=576 data-nosnippet>576</a>        metadata: Metadata {
-<a href=#577 id=577 data-nosnippet>577</a>            sender,
-<a href=#578 id=578 data-nosnippet>578</a>            destination: sender,
-<a href=#579 id=579 data-nosnippet>579</a>            sender_device: <span class="kw-2">*</span>DEFAULT_DEVICE_ID,
-<a href=#580 id=580 data-nosnippet>580</a>            server_guid: <span class="prelude-val">None</span>,
-<a href=#581 id=581 data-nosnippet>581</a>            timestamp: SystemTime::now()
-<a href=#582 id=582 data-nosnippet>582</a>                .duration_since(SystemTime::UNIX_EPOCH)
-<a href=#583 id=583 data-nosnippet>583</a>                .unwrap_or_default()
-<a href=#584 id=584 data-nosnippet>584</a>                .as_millis() <span class="kw">as </span>u64,
-<a href=#585 id=585 data-nosnippet>585</a>            needs_receipt: <span class="bool-val">false</span>,
-<a href=#586 id=586 data-nosnippet>586</a>            unidentified_sender: <span class="bool-val">false</span>,
-<a href=#587 id=587 data-nosnippet>587</a>            was_plaintext: <span class="bool-val">false</span>,
-<a href=#588 id=588 data-nosnippet>588</a>        },
-<a href=#589 id=589 data-nosnippet>589</a>        body: SyncMessage {
-<a href=#590 id=590 data-nosnippet>590</a>            verified: <span class="prelude-val">Some</span>(Verified {
-<a href=#591 id=591 data-nosnippet>591</a>                destination_aci: <span class="prelude-val">None</span>,
-<a href=#592 id=592 data-nosnippet>592</a>                destination_aci_binary: <span class="prelude-val">None</span>,
-<a href=#593 id=593 data-nosnippet>593</a>                identity_key: <span class="prelude-val">Some</span>(right_identity_key.public_key().serialize().to_vec()),
-<a href=#594 id=594 data-nosnippet>594</a>                state: <span class="prelude-val">Some</span>(verified_state.into()),
-<a href=#595 id=595 data-nosnippet>595</a>                null_message: <span class="prelude-val">None</span>,
-<a href=#596 id=596 data-nosnippet>596</a>            }),
-<a href=#597 id=597 data-nosnippet>597</a>            ..Default::default()
-<a href=#598 id=598 data-nosnippet>598</a>        }
-<a href=#599 id=599 data-nosnippet>599</a>        .into(),
-<a href=#600 id=600 data-nosnippet>600</a>    };
-<a href=#601 id=601 data-nosnippet>601</a>
-<a href=#602 id=602 data-nosnippet>602</a>    store.save_message(<span class="kw-2">&amp;</span>thread, verified_sync_message).<span class="kw">await
-<a href=#603 id=603 data-nosnippet>603</a></span>}
+<a href=#373 id=373 data-nosnippet>373</a>    </span>Contact(ServiceId),
+<a href=#374 id=374 data-nosnippet>374</a>    <span class="comment">// Cannot use GroupMasterKey as unable to extract the bytes.
+<a href=#375 id=375 data-nosnippet>375</a>    </span><span class="doccomment">/// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
+<a href=#376 id=376 data-nosnippet>376</a>    </span>Group(GroupMasterKeyBytes),
+<a href=#377 id=377 data-nosnippet>377</a>}
+<a href=#378 id=378 data-nosnippet>378</a>
+<a href=#379 id=379 data-nosnippet>379</a><span class="kw">impl </span>fmt::Display <span class="kw">for </span>Thread {
+<a href=#380 id=380 data-nosnippet>380</a>    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">'_</span>&gt;) -&gt; fmt::Result {
+<a href=#381 id=381 data-nosnippet>381</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#382 id=382 data-nosnippet>382</a>            Thread::Contact(service_id) =&gt; {
+<a href=#383 id=383 data-nosnippet>383</a>                <span class="macro">write!</span>(f, <span class="string">"Thread(contact={})"</span>, service_id.service_id_string())
+<a href=#384 id=384 data-nosnippet>384</a>            }
+<a href=#385 id=385 data-nosnippet>385</a>            Thread::Group(master_key_bytes) =&gt; {
+<a href=#386 id=386 data-nosnippet>386</a>                <span class="macro">write!</span>(f, <span class="string">"Thread(group={:x?})"</span>, <span class="kw-2">&amp;</span>master_key_bytes[..<span class="number">4</span>])
+<a href=#387 id=387 data-nosnippet>387</a>            }
+<a href=#388 id=388 data-nosnippet>388</a>        }
+<a href=#389 id=389 data-nosnippet>389</a>    }
+<a href=#390 id=390 data-nosnippet>390</a>}
+<a href=#391 id=391 data-nosnippet>391</a>
+<a href=#392 id=392 data-nosnippet>392</a><span class="attr">#[derive(Debug, thiserror::Error)]
+<a href=#393 id=393 data-nosnippet>393</a></span><span class="kw">pub enum </span>ThreadError {
+<a href=#394 id=394 data-nosnippet>394</a>    <span class="attr">#[error(<span class="string">"invalid service ID"</span>)]
+<a href=#395 id=395 data-nosnippet>395</a>    </span>InvalidServiceId,
+<a href=#396 id=396 data-nosnippet>396</a>}
+<a href=#397 id=397 data-nosnippet>397</a>
+<a href=#398 id=398 data-nosnippet>398</a><span class="kw">impl </span>TryFrom&lt;<span class="kw-2">&amp;</span>Content&gt; <span class="kw">for </span>Thread {
+<a href=#399 id=399 data-nosnippet>399</a>    <span class="kw">type </span>Error = ThreadError;
+<a href=#400 id=400 data-nosnippet>400</a>
+<a href=#401 id=401 data-nosnippet>401</a>    <span class="kw">fn </span>try_from(content: <span class="kw-2">&amp;</span>Content) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="self">Self</span>::Error&gt; {
+<a href=#402 id=402 data-nosnippet>402</a>        <span class="kw">match </span><span class="kw-2">&amp;</span>content.body {
+<a href=#403 id=403 data-nosnippet>403</a>            <span class="comment">// [1-1] Message sent by us with another device (with string service ID)
+<a href=#404 id=404 data-nosnippet>404</a>            // TODO: delete this later when we never hit this branch anymore, or when the field is retired
+<a href=#405 id=405 data-nosnippet>405</a>            </span>ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#406 id=406 data-nosnippet>406</a>                sent:
+<a href=#407 id=407 data-nosnippet>407</a>                    <span class="prelude-val">Some</span>(sent @ Sent {
+<a href=#408 id=408 data-nosnippet>408</a>                        destination_service_id: <span class="prelude-val">Some</span>(<span class="kw">_</span>),
+<a href=#409 id=409 data-nosnippet>409</a>                        ..
+<a href=#410 id=410 data-nosnippet>410</a>                    }),
+<a href=#411 id=411 data-nosnippet>411</a>                ..
+<a href=#412 id=412 data-nosnippet>412</a>            }) | ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#413 id=413 data-nosnippet>413</a>                sent:
+<a href=#414 id=414 data-nosnippet>414</a>                    <span class="prelude-val">Some</span>(sent @ Sent {
+<a href=#415 id=415 data-nosnippet>415</a>                        destination_service_id_binary: <span class="prelude-val">Some</span>(<span class="kw">_</span>),
+<a href=#416 id=416 data-nosnippet>416</a>                        ..
+<a href=#417 id=417 data-nosnippet>417</a>                    }),
+<a href=#418 id=418 data-nosnippet>418</a>                ..
+<a href=#419 id=419 data-nosnippet>419</a>            })=&gt; {
+<a href=#420 id=420 data-nosnippet>420</a>                <span class="kw">let </span>parsed_service_id = sent.parse_destination_service_id().ok_or(ThreadError::InvalidServiceId)<span class="question-mark">?</span>;
+<a href=#421 id=421 data-nosnippet>421</a>                <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Contact(parsed_service_id))
+<a href=#422 id=422 data-nosnippet>422</a>            },
+<a href=#423 id=423 data-nosnippet>423</a>            <span class="comment">// [Group] message from somebody else
+<a href=#424 id=424 data-nosnippet>424</a>            </span>ContentBody::DataMessage(DataMessage {
+<a href=#425 id=425 data-nosnippet>425</a>                group_v2:
+<a href=#426 id=426 data-nosnippet>426</a>                    <span class="prelude-val">Some</span>(GroupContextV2 {
+<a href=#427 id=427 data-nosnippet>427</a>                        master_key: <span class="prelude-val">Some</span>(key),
+<a href=#428 id=428 data-nosnippet>428</a>                        ..
+<a href=#429 id=429 data-nosnippet>429</a>                    }),
+<a href=#430 id=430 data-nosnippet>430</a>                ..
+<a href=#431 id=431 data-nosnippet>431</a>            })
+<a href=#432 id=432 data-nosnippet>432</a>            <span class="comment">// [Group] message sent by us with another device
+<a href=#433 id=433 data-nosnippet>433</a>            </span>| ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#434 id=434 data-nosnippet>434</a>                sent:
+<a href=#435 id=435 data-nosnippet>435</a>                    <span class="prelude-val">Some</span>(Sent {
+<a href=#436 id=436 data-nosnippet>436</a>                        message:
+<a href=#437 id=437 data-nosnippet>437</a>                            <span class="prelude-val">Some</span>(DataMessage {
+<a href=#438 id=438 data-nosnippet>438</a>                                group_v2:
+<a href=#439 id=439 data-nosnippet>439</a>                                    <span class="prelude-val">Some</span>(GroupContextV2 {
+<a href=#440 id=440 data-nosnippet>440</a>                                        master_key: <span class="prelude-val">Some</span>(key),
+<a href=#441 id=441 data-nosnippet>441</a>                                        ..
+<a href=#442 id=442 data-nosnippet>442</a>                                    }),
+<a href=#443 id=443 data-nosnippet>443</a>                                ..
+<a href=#444 id=444 data-nosnippet>444</a>                            }),
+<a href=#445 id=445 data-nosnippet>445</a>                        ..
+<a href=#446 id=446 data-nosnippet>446</a>                    }),
+<a href=#447 id=447 data-nosnippet>447</a>                ..
+<a href=#448 id=448 data-nosnippet>448</a>            })
+<a href=#449 id=449 data-nosnippet>449</a>            <span class="comment">// [Group] message edit sent by us with another device
+<a href=#450 id=450 data-nosnippet>450</a>            </span>| ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#451 id=451 data-nosnippet>451</a>                sent:
+<a href=#452 id=452 data-nosnippet>452</a>                    <span class="prelude-val">Some</span>(Sent {
+<a href=#453 id=453 data-nosnippet>453</a>                        edit_message:
+<a href=#454 id=454 data-nosnippet>454</a>                            <span class="prelude-val">Some</span>(EditMessage {
+<a href=#455 id=455 data-nosnippet>455</a>                                data_message:
+<a href=#456 id=456 data-nosnippet>456</a>                                    <span class="prelude-val">Some</span>(DataMessage {
+<a href=#457 id=457 data-nosnippet>457</a>                                        group_v2:
+<a href=#458 id=458 data-nosnippet>458</a>                                            <span class="prelude-val">Some</span>(GroupContextV2 {
+<a href=#459 id=459 data-nosnippet>459</a>                                                master_key: <span class="prelude-val">Some</span>(key),
+<a href=#460 id=460 data-nosnippet>460</a>                                                ..
+<a href=#461 id=461 data-nosnippet>461</a>                                            }),
+<a href=#462 id=462 data-nosnippet>462</a>                                        ..
+<a href=#463 id=463 data-nosnippet>463</a>                                    }),
+<a href=#464 id=464 data-nosnippet>464</a>                                ..
+<a href=#465 id=465 data-nosnippet>465</a>                            }),
+<a href=#466 id=466 data-nosnippet>466</a>                        ..
+<a href=#467 id=467 data-nosnippet>467</a>                    }),
+<a href=#468 id=468 data-nosnippet>468</a>                ..
+<a href=#469 id=469 data-nosnippet>469</a>            })
+<a href=#470 id=470 data-nosnippet>470</a>            <span class="comment">// [Group] Message edit sent by somebody else
+<a href=#471 id=471 data-nosnippet>471</a>            </span>| ContentBody::EditMessage(EditMessage {
+<a href=#472 id=472 data-nosnippet>472</a>                data_message:
+<a href=#473 id=473 data-nosnippet>473</a>                    <span class="prelude-val">Some</span>(DataMessage {
+<a href=#474 id=474 data-nosnippet>474</a>                        group_v2:
+<a href=#475 id=475 data-nosnippet>475</a>                            <span class="prelude-val">Some</span>(GroupContextV2 {
+<a href=#476 id=476 data-nosnippet>476</a>                                master_key: <span class="prelude-val">Some</span>(key),
+<a href=#477 id=477 data-nosnippet>477</a>                                ..
+<a href=#478 id=478 data-nosnippet>478</a>                            }),
+<a href=#479 id=479 data-nosnippet>479</a>                        ..
+<a href=#480 id=480 data-nosnippet>480</a>                    }),
+<a href=#481 id=481 data-nosnippet>481</a>                ..
+<a href=#482 id=482 data-nosnippet>482</a>            }) =&gt; <span class="prelude-val">Ok</span>(<span class="self">Self</span>::Group(
+<a href=#483 id=483 data-nosnippet>483</a>                key.clone()
+<a href=#484 id=484 data-nosnippet>484</a>                    .try_into()
+<a href=#485 id=485 data-nosnippet>485</a>                    .expect(<span class="string">"Group master key to have 32 bytes"</span>),
+<a href=#486 id=486 data-nosnippet>486</a>            )),
+<a href=#487 id=487 data-nosnippet>487</a>            <span class="comment">// [1-1] Any other message directly to us
+<a href=#488 id=488 data-nosnippet>488</a>            </span><span class="kw">_ </span>=&gt; <span class="prelude-val">Ok</span>(Thread::Contact(content.metadata.sender)),
+<a href=#489 id=489 data-nosnippet>489</a>        }
+<a href=#490 id=490 data-nosnippet>490</a>    }
+<a href=#491 id=491 data-nosnippet>491</a>}
+<a href=#492 id=492 data-nosnippet>492</a>
+<a href=#493 id=493 data-nosnippet>493</a><span class="doccomment">/// Extension trait of [`Content`]
+<a href=#494 id=494 data-nosnippet>494</a></span><span class="kw">pub trait </span>ContentExt {
+<a href=#495 id=495 data-nosnippet>495</a>    <span class="kw">fn </span>timestamp(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64;
+<a href=#496 id=496 data-nosnippet>496</a>}
+<a href=#497 id=497 data-nosnippet>497</a>
+<a href=#498 id=498 data-nosnippet>498</a><span class="kw">impl </span>ContentExt <span class="kw">for </span>Content {
+<a href=#499 id=499 data-nosnippet>499</a>    <span class="doccomment">/// The original timestamp of the message.
+<a href=#500 id=500 data-nosnippet>500</a>    </span><span class="kw">fn </span>timestamp(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+<a href=#501 id=501 data-nosnippet>501</a>        <span class="kw">match </span><span class="self">self</span>.body {
+<a href=#502 id=502 data-nosnippet>502</a>            ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#503 id=503 data-nosnippet>503</a>                sent:
+<a href=#504 id=504 data-nosnippet>504</a>                    <span class="prelude-val">Some</span>(sync_message::Sent {
+<a href=#505 id=505 data-nosnippet>505</a>                        timestamp: <span class="prelude-val">Some</span>(ts),
+<a href=#506 id=506 data-nosnippet>506</a>                        ..
+<a href=#507 id=507 data-nosnippet>507</a>                    }),
+<a href=#508 id=508 data-nosnippet>508</a>                ..
+<a href=#509 id=509 data-nosnippet>509</a>            }) =&gt; ts,
+<a href=#510 id=510 data-nosnippet>510</a>            ContentBody::SynchronizeMessage(SyncMessage {
+<a href=#511 id=511 data-nosnippet>511</a>                sent:
+<a href=#512 id=512 data-nosnippet>512</a>                    <span class="prelude-val">Some</span>(sync_message::Sent {
+<a href=#513 id=513 data-nosnippet>513</a>                        edit_message:
+<a href=#514 id=514 data-nosnippet>514</a>                            <span class="prelude-val">Some</span>(EditMessage {
+<a href=#515 id=515 data-nosnippet>515</a>                                target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
+<a href=#516 id=516 data-nosnippet>516</a>                                ..
+<a href=#517 id=517 data-nosnippet>517</a>                            }),
+<a href=#518 id=518 data-nosnippet>518</a>                        ..
+<a href=#519 id=519 data-nosnippet>519</a>                    }),
+<a href=#520 id=520 data-nosnippet>520</a>                ..
+<a href=#521 id=521 data-nosnippet>521</a>            }) =&gt; ts,
+<a href=#522 id=522 data-nosnippet>522</a>            ContentBody::EditMessage(EditMessage {
+<a href=#523 id=523 data-nosnippet>523</a>                target_sent_timestamp: <span class="prelude-val">Some</span>(ts),
+<a href=#524 id=524 data-nosnippet>524</a>                ..
+<a href=#525 id=525 data-nosnippet>525</a>            }) =&gt; ts,
+<a href=#526 id=526 data-nosnippet>526</a>            <span class="kw">_ </span>=&gt; <span class="self">self</span>.metadata.timestamp,
+<a href=#527 id=527 data-nosnippet>527</a>        }
+<a href=#528 id=528 data-nosnippet>528</a>    }
+<a href=#529 id=529 data-nosnippet>529</a>}
+<a href=#530 id=530 data-nosnippet>530</a>
+<a href=#531 id=531 data-nosnippet>531</a><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#532 id=532 data-nosnippet>532</a></span><span class="kw">pub struct </span>StickerPack {
+<a href=#533 id=533 data-nosnippet>533</a>    <span class="kw">pub </span>id: Vec&lt;u8&gt;,
+<a href=#534 id=534 data-nosnippet>534</a>    <span class="kw">pub </span>key: Vec&lt;u8&gt;,
+<a href=#535 id=535 data-nosnippet>535</a>    <span class="kw">pub </span>manifest: StickerPackManifest,
+<a href=#536 id=536 data-nosnippet>536</a>}
+<a href=#537 id=537 data-nosnippet>537</a>
+<a href=#538 id=538 data-nosnippet>538</a><span class="doccomment">/// equivalent to [Pack](crate::proto::Pack)
+<a href=#539 id=539 data-nosnippet>539</a></span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#540 id=540 data-nosnippet>540</a></span><span class="kw">pub struct </span>StickerPackManifest {
+<a href=#541 id=541 data-nosnippet>541</a>    <span class="kw">pub </span>title: String,
+<a href=#542 id=542 data-nosnippet>542</a>    <span class="kw">pub </span>author: String,
+<a href=#543 id=543 data-nosnippet>543</a>    <span class="kw">pub </span>cover: <span class="prelude-ty">Option</span>&lt;Sticker&gt;,
+<a href=#544 id=544 data-nosnippet>544</a>    <span class="kw">pub </span>stickers: Vec&lt;Sticker&gt;,
+<a href=#545 id=545 data-nosnippet>545</a>}
+<a href=#546 id=546 data-nosnippet>546</a>
+<a href=#547 id=547 data-nosnippet>547</a><span class="kw">impl </span>From&lt;libsignal_service::proto::Pack&gt; <span class="kw">for </span>StickerPackManifest {
+<a href=#548 id=548 data-nosnippet>548</a>    <span class="kw">fn </span>from(value: libsignal_service::proto::Pack) -&gt; <span class="self">Self </span>{
+<a href=#549 id=549 data-nosnippet>549</a>        <span class="self">Self </span>{
+<a href=#550 id=550 data-nosnippet>550</a>            title: value.title().to_owned(),
+<a href=#551 id=551 data-nosnippet>551</a>            author: value.author().to_owned(),
+<a href=#552 id=552 data-nosnippet>552</a>            cover: value.cover.map(Into::into),
+<a href=#553 id=553 data-nosnippet>553</a>            stickers: value.stickers.into_iter().map(|s| s.into()).collect(),
+<a href=#554 id=554 data-nosnippet>554</a>        }
+<a href=#555 id=555 data-nosnippet>555</a>    }
+<a href=#556 id=556 data-nosnippet>556</a>}
+<a href=#557 id=557 data-nosnippet>557</a>
+<a href=#558 id=558 data-nosnippet>558</a><span class="doccomment">/// equivalent to [Sticker](crate::proto::pack::Sticker)
+<a href=#559 id=559 data-nosnippet>559</a></span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<a href=#560 id=560 data-nosnippet>560</a></span><span class="kw">pub struct </span>Sticker {
+<a href=#561 id=561 data-nosnippet>561</a>    <span class="kw">pub </span>id: u32,
+<a href=#562 id=562 data-nosnippet>562</a>    <span class="kw">pub </span>emoji: <span class="prelude-ty">Option</span>&lt;String&gt;,
+<a href=#563 id=563 data-nosnippet>563</a>    <span class="kw">pub </span>content_type: <span class="prelude-ty">Option</span>&lt;String&gt;,
+<a href=#564 id=564 data-nosnippet>564</a>    <span class="kw">pub </span>bytes: <span class="prelude-ty">Option</span>&lt;Vec&lt;u8&gt;&gt;,
+<a href=#565 id=565 data-nosnippet>565</a>}
+<a href=#566 id=566 data-nosnippet>566</a>
+<a href=#567 id=567 data-nosnippet>567</a><span class="kw">impl </span>From&lt;libsignal_service::proto::pack::Sticker&gt; <span class="kw">for </span>Sticker {
+<a href=#568 id=568 data-nosnippet>568</a>    <span class="kw">fn </span>from(value: libsignal_service::proto::pack::Sticker) -&gt; <span class="self">Self </span>{
+<a href=#569 id=569 data-nosnippet>569</a>        <span class="self">Self </span>{
+<a href=#570 id=570 data-nosnippet>570</a>            id: value.id(),
+<a href=#571 id=571 data-nosnippet>571</a>            emoji: value.emoji,
+<a href=#572 id=572 data-nosnippet>572</a>            content_type: value.content_type,
+<a href=#573 id=573 data-nosnippet>573</a>            bytes: <span class="prelude-val">None</span>,
+<a href=#574 id=574 data-nosnippet>574</a>        }
+<a href=#575 id=575 data-nosnippet>575</a>    }
+<a href=#576 id=576 data-nosnippet>576</a>}
+<a href=#577 id=577 data-nosnippet>577</a>
+<a href=#578 id=578 data-nosnippet>578</a><span class="doccomment">/// Saves a message that can show users when the identity of a contact has changed
+<a href=#579 id=579 data-nosnippet>579</a>/// On Signal Android, this is usually displayed as: "Your safety number with XYZ has changed."
+<a href=#580 id=580 data-nosnippet>580</a></span><span class="kw">pub async fn </span>save_trusted_identity_message&lt;S: Store&gt;(
+<a href=#581 id=581 data-nosnippet>581</a>    store: <span class="kw-2">&amp;</span>S,
+<a href=#582 id=582 data-nosnippet>582</a>    protocol_address: <span class="kw-2">&amp;</span>ProtocolAddress,
+<a href=#583 id=583 data-nosnippet>583</a>    right_identity_key: IdentityKey,
+<a href=#584 id=584 data-nosnippet>584</a>    verified_state: verified::State,
+<a href=#585 id=585 data-nosnippet>585</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), S::Error&gt; {
+<a href=#586 id=586 data-nosnippet>586</a>    <span class="kw">let </span><span class="prelude-val">Some</span>(sender) = ServiceId::parse_from_service_id_string(protocol_address.name()) <span class="kw">else </span>{
+<a href=#587 id=587 data-nosnippet>587</a>        <span class="kw">return </span><span class="prelude-val">Ok</span>(());
+<a href=#588 id=588 data-nosnippet>588</a>    };
+<a href=#589 id=589 data-nosnippet>589</a>
+<a href=#590 id=590 data-nosnippet>590</a>    <span class="comment">// TODO: this is a hack to save a message showing that the verification status changed
+<a href=#591 id=591 data-nosnippet>591</a>    // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
+<a href=#592 id=592 data-nosnippet>592</a>    </span><span class="kw">let </span>thread = Thread::Contact(sender);
+<a href=#593 id=593 data-nosnippet>593</a>    <span class="kw">let </span>verified_sync_message = Content {
+<a href=#594 id=594 data-nosnippet>594</a>        metadata: Metadata {
+<a href=#595 id=595 data-nosnippet>595</a>            sender,
+<a href=#596 id=596 data-nosnippet>596</a>            destination: sender,
+<a href=#597 id=597 data-nosnippet>597</a>            sender_device: <span class="kw-2">*</span>DEFAULT_DEVICE_ID,
+<a href=#598 id=598 data-nosnippet>598</a>            server_guid: <span class="prelude-val">None</span>,
+<a href=#599 id=599 data-nosnippet>599</a>            timestamp: SystemTime::now()
+<a href=#600 id=600 data-nosnippet>600</a>                .duration_since(SystemTime::UNIX_EPOCH)
+<a href=#601 id=601 data-nosnippet>601</a>                .unwrap_or_default()
+<a href=#602 id=602 data-nosnippet>602</a>                .as_millis() <span class="kw">as </span>u64,
+<a href=#603 id=603 data-nosnippet>603</a>            needs_receipt: <span class="bool-val">false</span>,
+<a href=#604 id=604 data-nosnippet>604</a>            unidentified_sender: <span class="bool-val">false</span>,
+<a href=#605 id=605 data-nosnippet>605</a>            was_plaintext: <span class="bool-val">false</span>,
+<a href=#606 id=606 data-nosnippet>606</a>        },
+<a href=#607 id=607 data-nosnippet>607</a>        body: SyncMessage {
+<a href=#608 id=608 data-nosnippet>608</a>            verified: <span class="prelude-val">Some</span>(Verified {
+<a href=#609 id=609 data-nosnippet>609</a>                destination_aci: <span class="prelude-val">None</span>,
+<a href=#610 id=610 data-nosnippet>610</a>                destination_aci_binary: <span class="prelude-val">None</span>,
+<a href=#611 id=611 data-nosnippet>611</a>                identity_key: <span class="prelude-val">Some</span>(right_identity_key.public_key().serialize().to_vec()),
+<a href=#612 id=612 data-nosnippet>612</a>                state: <span class="prelude-val">Some</span>(verified_state.into()),
+<a href=#613 id=613 data-nosnippet>613</a>                null_message: <span class="prelude-val">None</span>,
+<a href=#614 id=614 data-nosnippet>614</a>            }),
+<a href=#615 id=615 data-nosnippet>615</a>            ..Default::default()
+<a href=#616 id=616 data-nosnippet>616</a>        }
+<a href=#617 id=617 data-nosnippet>617</a>        .into(),
+<a href=#618 id=618 data-nosnippet>618</a>    };
+<a href=#619 id=619 data-nosnippet>619</a>
+<a href=#620 id=620 data-nosnippet>620</a>    store.save_message(<span class="kw-2">&amp;</span>thread, verified_sync_message).<span class="kw">await
+<a href=#621 id=621 data-nosnippet>621</a></span>}
 </code></pre></div></section></main></body></html>
