@@ -3,7 +3,6 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::prelude::MasterKey;
 use libsignal_service::protocol::{DeviceId, Username};
 use libsignal_service::websocket::account::{
     AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse,
@@ -39,6 +38,7 @@ use libsignal_service::{
     },
     AccountManager, Profile, ServiceIdExt,
 };
+use libsignal_service::{encrypt_device_name, prelude::MasterKey};
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
@@ -555,14 +555,15 @@ impl<S: Store> Manager<S, Registered> {
         let store_inner = self.store.clone();
         let registration_data_inner = self.registration_data().clone();
 
-        // we make a task to update the account attributes and refresh pre keys as needed
-        // that will only yield a value if one of the two operations fail (stop signal)
+        // We make a task to update the account attributes and refresh pre keys as needed that will
+        // only yield a value if one of the two operations fail (stop signal).
         //
-        // this is necessary because in this context, we can't do the classic tokio::spawn
-        // with a oneshot::channel() or CancellationToken because of !Send constraints in the Store.
-        tokio::task::spawn_local(async move {
+        // This is necessary because in this context, we can't do the classic tokio::spawn with a
+        // oneshot::channel() or CancellationToken because of !Send constraints in the Store.
+        let refresh_registration_task = async move {
             if let Err(error) =
-                set_account_attributes::<S>(&mut account_manager, &registration_data_inner).await
+                set_account_attributes(&mut account_manager, &store_inner, &registration_data_inner)
+                    .await
             {
                 error!(%error, "failed to set account attributes, this is problematic and should never happen!");
             }
@@ -570,7 +571,10 @@ impl<S: Store> Manager<S, Registered> {
             if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
                 error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
             }
-        });
+
+            // Never return, which keeps the messages stream alive.
+            future::pending::<()>().await
+        };
 
         let encrypted_messages = MessagePipe::from_socket(identified_websocket.clone());
 
@@ -883,9 +887,9 @@ impl<S: Store> Manager<S, Registered> {
         });
 
         Ok(Box::pin(
-            // we use the returning of the async closure in take_until as a stop signal
-            // if the future resolves *anything* the stream will end
-            incoming_messages_stream,
+            // We use the returning of the async closure in take_until as a stop signal
+            // if the future resolves *anything* the stream will end.
+            incoming_messages_stream.take_until(refresh_registration_task),
         ))
     }
 
@@ -1815,20 +1819,30 @@ async fn upsert_contact_from_profile<S: Store>(
 
 async fn set_account_attributes<S: Store>(
     account_manager: &mut AccountManager,
+    store: &S,
     data: &RegistrationData,
 ) -> Result<(), Error<S::Error>> {
     trace!("setting account attributes");
 
     let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
 
+    let name = if let Some(device_name) = data.device_name() {
+        let aci_key_pair = store.aci_protocol_store().get_identity_key_pair().await?;
+        let mut rng = rng();
+        Some(encrypt_device_name(
+            &mut rng,
+            device_name,
+            aci_key_pair.identity_key(),
+        )?)
+    } else {
+        None
+    };
+
     account_manager
         .set_account_attributes(AccountAttributes {
-            name: data.device_name().map(|d| d.to_string()),
+            name,
             registration_id: data.registration_id,
             pni_registration_id,
-            signaling_key: None,
-            voice: false,
-            video: false,
             fetches_messages: true,
             pin: None,
             registration_lock: None,
@@ -1836,6 +1850,7 @@ async fn set_account_attributes<S: Store>(
             unrestricted_unidentified_access: false,
             discoverable_by_phone_number: true,
             capabilities: DeviceCapabilities::default(),
+            recovery_password: None,
         })
         .await?;
 
