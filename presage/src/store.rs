@@ -370,7 +370,6 @@ pub trait Store:
 #[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {
     /// The message was sent inside a contact-chat.
-    /// TODO: make this correctly either ACI or PNI (store the ServiceId)
     Contact(ServiceId),
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
@@ -405,25 +404,20 @@ impl TryFrom<&Content> for Thread {
             // TODO: delete this later when we never hit this branch anymore, or when the field is retired
             ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
-                    Some(Sent {
-                        destination_service_id: Some(service_id),
+                    Some(sent @ Sent {
+                        destination_service_id: Some(_),
                         ..
                     }),
                 ..
-            }) => {
-                let parsed_service_id = ServiceId::parse_from_service_id_string(&service_id).ok_or(ThreadError::InvalidServiceId)?;
-                Ok(Self::Contact(parsed_service_id))
-            },
-            // [1-1] Message sent by us with another device (with binary service ID)
-            ContentBody::SynchronizeMessage(SyncMessage {
+            }) | ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
-                    Some(Sent {
-                        destination_service_id_binary: Some(service_id_bytes),
+                    Some(sent @ Sent {
+                        destination_service_id_binary: Some(_),
                         ..
                     }),
                 ..
-            }) => {
-                let parsed_service_id = ServiceId::parse_from_service_id_binary(&service_id_bytes).ok_or(ThreadError::InvalidServiceId)?;
+            })=> {
+                let parsed_service_id = sent.parse_destination_service_id().ok_or(ThreadError::InvalidServiceId)?;
                 Ok(Self::Contact(parsed_service_id))
             },
             // [Group] message from somebody else
