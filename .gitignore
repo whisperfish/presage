@@ -11,7 +11,3 @@
 
 # VSCode debugger config
 .vscode/launch.json
-
-# Direnv
-.envrc
-.direnv
