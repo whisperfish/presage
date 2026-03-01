@@ -5,7 +5,7 @@ use libsignal_service::protocol::UsernameError;
 use libsignal_service::websocket::registration::RegistrationSessionMetadataResponse;
 use libsignal_service::{models::ParseContactError, protocol::SignalProtocolError};
 
-use crate::store::StoreError;
+use crate::store::{StoreError, ThreadError};
 
 /// The error type of Signal manager
 #[derive(thiserror::Error, Debug)]
@@ -25,6 +25,8 @@ pub enum Error<S: std::error::Error> {
     PhoneNumberError(#[from] libsignal_service::prelude::phonenumber::ParseError),
     #[error("UUID decoding error: {0}")]
     UuidError(#[from] libsignal_service::prelude::UuidError),
+    #[error("Invalid thread: {0}")]
+    InvalidThread(#[from] ThreadError),
     #[error("libsignal-protocol error: {0}")]
     ProtocolError(#[from] SignalProtocolError),
     #[error("libsignal-service error: {0}")]

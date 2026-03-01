@@ -954,7 +954,7 @@ impl<S: Store> Manager<S, Registered> {
         //
         // Issue <https://github.com/whisperfish/presage/issues/252>
         let include_pni_signature = false;
-        let thread = Thread::Contact(recipient.raw_uuid());
+        let thread = Thread::Contact(recipient);
         let mut content_body: ContentBody = message.into();
 
         self.restore_thread_timer(&thread, &mut content_body).await;
@@ -1378,17 +1378,17 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns the title of a thread (contact or group).
     pub async fn thread_title(&self, thread: &Thread) -> Result<String, Error<S::Error>> {
         match thread {
-            Thread::Contact(uuid) => {
-                let contact = match self.store.contact_by_id(uuid).await {
+            Thread::Contact(service_id) => {
+                let contact = match self.store.contact_by_id(service_id).await {
                     Ok(contact) => contact,
                     Err(error) => {
-                        info!(%error, %uuid, "error getting contact by id");
+                        info!(%error, service_id =% service_id.service_id_string(), "error getting contact by id");
                         None
                     }
                 };
                 Ok(match contact {
                     Some(contact) => contact.name,
-                    None => uuid.to_string(),
+                    None => service_id.service_id_string(),
                 })
             }
             Thread::Group(id) => match self.store.group(*id).await? {
@@ -1770,7 +1770,7 @@ async fn upsert_contact_from_profile<S: Store>(
     sender: ServiceId,
     profile_key: ProfileKey,
 ) -> Result<(), Error<<S as Store>::Error>> {
-    if store.contact_by_id(&sender.raw_uuid()).await?.is_none()
+    if store.contact_by_id(&sender).await?.is_none()
         || store
             .profile_key(&sender)
             .await?

@@ -6,7 +6,7 @@ use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
     pre_keys::PreKeysStore,
-    prelude::{Content, MasterKey, ProfileKey, Uuid, UuidError},
+    prelude::{Content, MasterKey, ProfileKey, Uuid},
     proto::{
         sync_message::{self, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
@@ -154,8 +154,8 @@ pub trait ContentsStore: Send + Sync {
     ) -> impl Future<Output = Result<Option<(u32, u32)>, Self::ContentsStoreError>> {
         async move {
             match thread {
-                Thread::Contact(uuid) => Ok(self
-                    .contact_by_id(uuid)
+                Thread::Contact(service_id) => Ok(self
+                    .contact_by_id(service_id)
                     .await?
                     .map(|c| (c.expire_timer, c.expire_timer_version))),
                 Thread::Group(key) => Ok(self
@@ -220,10 +220,10 @@ pub trait ContentsStore: Send + Sync {
         &self,
     ) -> impl Future<Output = Result<Self::ContactsIter, Self::ContentsStoreError>>;
 
-    /// Get contact data for a single user by its [Uuid].
+    /// Get contact data for a single user by its [ServiceId].
     fn contact_by_id(
         &self,
-        id: &Uuid,
+        id: &ServiceId,
     ) -> impl Future<Output = Result<Option<Contact>, Self::ContentsStoreError>> + Send;
 
     /// Delete all cached group data
@@ -367,11 +367,10 @@ pub trait Store:
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
-#[derive(Debug, Hash, Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[derive(Debug, Hash, Eq, PartialEq, Clone)]
 pub enum Thread {
     /// The message was sent inside a contact-chat.
-    /// TODO: make this correctly either ACI or PNI (store the ServiceId)
-    Contact(Uuid),
+    Contact(ServiceId),
     // Cannot use GroupMasterKey as unable to extract the bytes.
     /// The message was sent inside a groups-chat with the [`GroupMasterKeyBytes`] (specified as bytes).
     Group(GroupMasterKeyBytes),
@@ -380,7 +379,9 @@ pub enum Thread {
 impl fmt::Display for Thread {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Thread::Contact(uuid) => write!(f, "Thread(contact={uuid})"),
+            Thread::Contact(service_id) => {
+                write!(f, "Thread(contact={})", service_id.service_id_string())
+            }
             Thread::Group(master_key_bytes) => {
                 write!(f, "Thread(group={:x?})", &master_key_bytes[..4])
             }
@@ -388,20 +389,37 @@ impl fmt::Display for Thread {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum ThreadError {
+    #[error("invalid service ID")]
+    InvalidServiceId,
+}
+
 impl TryFrom<&Content> for Thread {
-    type Error = UuidError;
+    type Error = ThreadError;
 
     fn try_from(content: &Content) -> Result<Self, Self::Error> {
         match &content.body {
-            // [1-1] Message sent by us with another device
+            // [1-1] Message sent by us with another device (with string service ID)
+            // TODO: delete this later when we never hit this branch anymore, or when the field is retired
             ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
-                    Some(Sent {
-                        destination_service_id: Some(uuid),
+                    Some(sent @ Sent {
+                        destination_service_id: Some(_),
                         ..
                     }),
                 ..
-            }) => Ok(Self::Contact(Uuid::parse_str(uuid)?)),
+            }) | ContentBody::SynchronizeMessage(SyncMessage {
+                sent:
+                    Some(sent @ Sent {
+                        destination_service_id_binary: Some(_),
+                        ..
+                    }),
+                ..
+            })=> {
+                let parsed_service_id = sent.parse_destination_service_id().ok_or(ThreadError::InvalidServiceId)?;
+                Ok(Self::Contact(parsed_service_id))
+            },
             // [Group] message from somebody else
             ContentBody::DataMessage(DataMessage {
                 group_v2:
@@ -467,7 +485,7 @@ impl TryFrom<&Content> for Thread {
                     .expect("Group master key to have 32 bytes"),
             )),
             // [1-1] Any other message directly to us
-            _ => Ok(Thread::Contact(content.metadata.sender.raw_uuid())),
+            _ => Ok(Thread::Contact(content.metadata.sender)),
         }
     }
 }
@@ -571,7 +589,7 @@ pub async fn save_trusted_identity_message<S: Store>(
 
     // TODO: this is a hack to save a message showing that the verification status changed
     // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
-    let thread = Thread::Contact(sender.raw_uuid());
+    let thread = Thread::Contact(sender);
     let verified_sync_message = Content {
         metadata: Metadata {
             sender,

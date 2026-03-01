@@ -114,7 +114,8 @@ impl ContentsStore for SqliteStore {
         let mut tx = self.db.begin().await?;
 
         let thread_id = match thread {
-            Thread::Contact(uuid) => {
+            Thread::Contact(service_id) => {
+                let uuid = service_id.raw_uuid();
                 query_scalar!(
                     "INSERT INTO threads(recipient_id, group_master_key) VALUES (?1, NULL)
                     ON CONFLICT DO UPDATE SET recipient_id = ?1 RETURNING id",
@@ -369,7 +370,11 @@ impl ContentsStore for SqliteStore {
         Ok(Box::new(sql_contacts.into_iter().map(TryInto::try_into)))
     }
 
-    async fn contact_by_id(&self, id: &Uuid) -> Result<Option<Contact>, Self::ContentsStoreError> {
+    async fn contact_by_id(
+        &self,
+        id: &ServiceId,
+    ) -> Result<Option<Contact>, Self::ContentsStoreError> {
+        let id = id.raw_uuid();
         query_as!(
             SqlContact,
             r#"SELECT
@@ -691,7 +696,7 @@ impl ThreadExt for Thread {
 
     fn recipient_id(&self) -> Option<Uuid> {
         match self {
-            Thread::Contact(uuid) => Some(*uuid),
+            Thread::Contact(service_id) => Some(service_id.raw_uuid()),
             Thread::Group(_) => None,
         }
     }
