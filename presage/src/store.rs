@@ -401,7 +401,6 @@ impl TryFrom<&Content> for Thread {
     fn try_from(content: &Content) -> Result<Self, Self::Error> {
         match &content.body {
             // [1-1] Message sent by us with another device (with string service ID)
-            // TODO: delete this later when we never hit this branch anymore, or when the field is retired
             ContentBody::SynchronizeMessage(SyncMessage {
                 sent:
                     Some(sent @ Sent {
