@@ -979,6 +979,7 @@ impl<S: Store> Manager<S, Registered> {
             message.required_protocol_version = Some(0);
         }
 
+        promote_long_body_to_attachment(&mut sender, &mut content_body).await?;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
@@ -1068,6 +1069,7 @@ impl<S: Store> Manager<S, Registered> {
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
+        promote_long_body_to_attachment(&mut sender, &mut content_body).await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
@@ -1462,6 +1464,78 @@ impl<S: Store> Manager<S, Registered> {
         );
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
+    }
+}
+
+/// Maximum number of bytes that can be sent inline in a data message body.
+/// Bodies exceeding this limit are uploaded as `text/x-signal-plain` attachments.
+const MAX_INLINE_BODY_SIZE_BYTES: usize = 2048;
+
+/// If the body exceeds [`MAX_INLINE_BODY_SIZE_BYTES`], truncate it at a UTF-8
+/// boundary and upload the full text as a `text/x-signal-plain` attachment.
+async fn promote_long_body_to_attachment<P, E>(
+    sender: &mut MessageSender<P>,
+    content_body: &mut ContentBody,
+) -> Result<(), Error<E>>
+where
+    P: libsignal_service::protocol::ProtocolStore
+        + libsignal_service::protocol::SenderKeyStore
+        + libsignal_service::session_store::SessionStoreExt
+        + Send
+        + Sync
+        + Clone,
+    E: std::error::Error,
+{
+
+    let data_message = match content_body {
+        ContentBody::DataMessage(m) => m,
+        ContentBody::EditMessage(m) => match m.data_message.as_mut() {
+            Some(m) => m,
+            None => return Ok(()),
+        },
+        _ => return Ok(()),
+    };
+
+    let Some(body) = data_message.body.clone() else {
+        return Ok(());
+    };
+
+    if body.len() <= MAX_INLINE_BODY_SIZE_BYTES {
+        return Ok(());
+    }
+
+    let split = body.floor_char_boundary(MAX_INLINE_BODY_SIZE_BYTES);
+    data_message.body = Some(body[..split].to_owned());
+
+    let attachment = sender
+        .upload_attachment(
+            AttachmentSpec {
+                content_type: "text/x-signal-plain".to_owned(),
+                length: body.len(),
+                file_name: None,
+                preview: None,
+                voice_note: None,
+                borderless: None,
+                width: None,
+                height: None,
+                caption: None,
+                blur_hash: None,
+            },
+            body.into_bytes(),
+            &mut rng(),
+        )
+        .await
+        .map_err(map_attachment_upload_error)?;
+
+    data_message.attachments.insert(0, attachment);
+
+    Ok(())
+}
+
+fn map_attachment_upload_error<E: std::error::Error>(error: AttachmentUploadError) -> Error<E> {
+    match error {
+        AttachmentUploadError::ServiceError(error) => error.into(),
+        AttachmentUploadError::IoError(error) => error.into(),
     }
 }
 
