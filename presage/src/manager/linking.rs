@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::SignalServers;
@@ -160,7 +158,7 @@ impl<S: Store> Manager<S, Linking> {
 
                 let manager = Manager {
                     store: store.clone(),
-                    state: Arc::new(Registered::with_data(registration_data)),
+                    state: Registered::with_data(registration_data),
                 };
 
                 Ok(manager)

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use libsignal_service::configuration::SignalServers;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::push_service::PushService;
@@ -133,12 +131,13 @@ impl<S: Store> Manager<S, Registration> {
 
         let manager = Manager {
             store,
-            state: Arc::new(Confirmation {
+            state: Confirmation {
                 signal_servers,
                 phone_number,
                 password,
                 session_id: session.id,
-            }),
+                unidentified_websocket,
+            },
         };
 
         Ok(manager)

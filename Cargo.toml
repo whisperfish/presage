@@ -8,5 +8,5 @@ quickcheck_async = { git = 'https://github.com/nytopop/quickcheck_async', rev = 
 libsqlite3-sys = { version = "0.36.0", git = "https://github.com/whisperfish/rusqlite", rev = '2a42b3354c9194700d08aa070f70a131a470e7dc' }
 
 # Uncomment if you're working with a local checkout of libsignal-service, but DO NOT commit!
-# [patch."https://github.com/whisperfish/libsignal-service-rs.git"]
-# libsignal-service = { path = "../libsignal-service-rs" }
+[patch."https://github.com/whisperfish/libsignal-service-rs.git"]
+libsignal-service = { path = "../libsignal-service-rs" }

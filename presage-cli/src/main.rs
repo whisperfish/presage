@@ -635,7 +635,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
             if let Some(confirmation_code) = reader.lines().next_line().await? {
-                let registered_manager =
+                let registered_manager: Manager<S, Registered> =
                     manager.confirm_verification_code(confirmation_code).await?;
                 println!(
                     "Account identifiers: {}",
