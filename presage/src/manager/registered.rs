@@ -71,6 +71,7 @@ pub enum RegistrationType {
 }
 
 /// Manager state when the client is registered and can send and receive messages from Signal
+#[derive(Clone)]
 pub struct Registered {
     pub(crate) identified_push_service: OnceLock<PushService>,
     pub(crate) unidentified_push_service: OnceLock<PushService>,
@@ -78,7 +79,7 @@ pub struct Registered {
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
 
-    pub(crate) data: RegistrationData,
+    pub(crate) data: Arc<RegistrationData>,
 }
 
 impl fmt::Debug for Registered {
@@ -95,7 +96,7 @@ impl Registered {
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
-            data,
+            data: Arc::new(data),
         }
     }
 
@@ -186,7 +187,7 @@ impl<S: Store> Manager<S, Registered> {
 
         Ok(Self {
             store,
-            state: Arc::new(registered),
+            state: registered,
         })
     }
 
@@ -2089,17 +2090,18 @@ async fn set_account_attributes<S: Store>(
             registration_lock: None,
             unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
             unrestricted_unidentified_access: false,
-            capabilities: DeviceCapabilities {
+            capabilities: Some(DeviceCapabilities {
                 storage: true,
                 transfer: false,
                 attachment_backfill: false,
                 spqr: true,
                 profiles_v2: false,
                 username_change_sync_message: true,
-            },
+            }),
             discoverable_by_phone_number: true,
-            pin: None,
             recovery_password: None,
+            video: false,
+            voice: false,
         })
         .await?;
 
