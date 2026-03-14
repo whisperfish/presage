@@ -1756,6 +1756,10 @@ async fn save_message<S: Store>(
             debug!(?msg, "invalid edited");
             None
         }
+        ContentBody::DecryptionErrorMessage(msg) => {
+            debug!(?msg, "skipping decryption error message");
+            None
+        }
     };
 
     if let Some(message) = message {
