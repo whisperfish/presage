@@ -536,6 +536,10 @@ async fn print_message<S: Store>(
         ContentBody::PniSignatureMessage(_) => {
             Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
+        ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
+            &thread,
+            "failed to decrypt a messagee".into(),
+        )),
     } {
         let ts = content.timestamp();
         let (prefix, body) = match msg {

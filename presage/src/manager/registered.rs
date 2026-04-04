@@ -3,6 +3,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::protocol::ProtocolAddress;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -627,6 +628,14 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
+                                    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
+                                        error!(
+                                            error = ?e,
+                                            "got error decrypting a message"
+                                        );
+                                        continue;
+                                    }
+
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
                                         request: Some(request),
                                         ..
@@ -1361,8 +1370,10 @@ impl<S: Store> Manager<S, Registered> {
             self.state
                 .service_configuration()
                 .unidentified_sender_trust_roots,
-            self.state.data.service_ids.aci,
-            self.state.device_id(),
+            ProtocolAddress::new(
+                self.state.data.service_ids.aci.to_string(),
+                self.state.device_id(),
+            ),
         )
     }
 
@@ -1372,8 +1383,10 @@ impl<S: Store> Manager<S, Registered> {
             self.state
                 .service_configuration()
                 .unidentified_sender_trust_roots,
-            self.state.data.service_ids.pni,
-            self.state.device_id(),
+            ProtocolAddress::new(
+                self.state.data.service_ids.pni.to_string(),
+                self.state.device_id(),
+            ),
         )
     }
 
@@ -1619,6 +1632,10 @@ async fn save_message<S: Store>(
 
     // only save DataMessage and SynchronizeMessage (sent)
     let message = match message.body {
+        ContentBody::DecryptionErrorMessage(e) => {
+            warn!(error = ?e, "was asked to save a DecryptionErrorMessage; this should not happen");
+            None
+        }
         ContentBody::NullMessage(_) => Some(message),
         ContentBody::DataMessage(
             ref data_message @ DataMessage {
