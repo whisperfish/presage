@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/3d07d8d/src/websocket/directory.rs`."><title>directory.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.0 (4a4ef493e 2026-03-02)" data-channel="1.94.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../../../static.files/src-script-813739b1.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/websocket/</div>directory.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Contact Discovery Service (CDSI) authentication
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `/home/runner/.cargo/git/checkouts/libsignal-service-rs-7e457f3dfb9f3190/782c0d6/src/websocket/directory.rs`."><title>directory.rs - source</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-77263533.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="libsignal_service" data-themes="" data-resource-suffix="" data-rustdoc-version="1.94.1 (e408947bf 2026-03-25)" data-channel="1.94.1" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-b897f86f.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../../../static.files/src-script-813739b1.js"></script><script defer src="../../../src-files.js"></script><script defer src="../../../static.files/main-7bab91a1.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-ffcac47a.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc src"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="src-sidebar-title"><h2>Files</h2></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><section id="main-content" class="content"><div class="main-heading"><h1><div class="sub-heading">libsignal_service/websocket/</div>directory.rs</h1><rustdoc-toolbar></rustdoc-toolbar></div><div class="example-wrap digits-3"><pre class="rust"><code><a href=#1 id=1 data-nosnippet>1</a><span class="doccomment">//! Contact Discovery Service (CDSI) authentication
 <a href=#2 id=2 data-nosnippet>2</a>//!
 <a href=#3 id=3 data-nosnippet>3</a>//! Provides authentication credentials for CDSI contact lookup operations.
 <a href=#4 id=4 data-nosnippet>4</a>//!
@@ -105,58 +105,59 @@
 <a href=#105 id=105 data-nosnippet>105</a>        </span><span class="kw">let </span>cdsi_endpoint = <span class="kw-2">&amp;</span>env.cdsi;
 <a href=#106 id=106 data-nosnippet>106</a>        <span class="kw">let </span>cdsi_connection = CdsiConnection::connect_with(
 <a href=#107 id=107 data-nosnippet>107</a>            connection_resources,
-<a href=#108 id=108 data-nosnippet>108</a>            libsignal_net_infra::route::DirectOrProxyProvider::direct(
-<a href=#109 id=109 data-nosnippet>109</a>                cdsi_endpoint.enclave_websocket_provider(
-<a href=#110 id=110 data-nosnippet>110</a>                    libsignal_net_infra::EnableDomainFronting::No,
-<a href=#111 id=111 data-nosnippet>111</a>                ),
-<a href=#112 id=112 data-nosnippet>112</a>            ),
-<a href=#113 id=113 data-nosnippet>113</a>            cdsi_endpoint.ws_config,
-<a href=#114 id=114 data-nosnippet>114</a>            <span class="kw-2">&amp;</span>cdsi_endpoint.params,
-<a href=#115 id=115 data-nosnippet>115</a>            <span class="kw-2">&amp;</span>auth,
-<a href=#116 id=116 data-nosnippet>116</a>        )
-<a href=#117 id=117 data-nosnippet>117</a>        .<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#118 id=118 data-nosnippet>118</a>
-<a href=#119 id=119 data-nosnippet>119</a>        <span class="kw">let </span>(_token, collector) =
-<a href=#120 id=120 data-nosnippet>120</a>            cdsi_connection.send_request(lookup_request).<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#121 id=121 data-nosnippet>121</a>        <span class="kw">let </span>response = collector.collect().<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#122 id=122 data-nosnippet>122</a>
-<a href=#123 id=123 data-nosnippet>123</a>        <span class="prelude-val">Ok</span>(response.records.into_iter().map(|LookupResponseEntry { e164, aci, pni }| <span class="kw">match </span>(pni, aci) {
-<a href=#124 id=124 data-nosnippet>124</a>            (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; (e164, <span class="prelude-val">None</span>),
-<a href=#125 id=125 data-nosnippet>125</a>            (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(aci)) =&gt; (e164, <span class="prelude-val">Some</span>(aci.into())),
-<a href=#126 id=126 data-nosnippet>126</a>            (<span class="prelude-val">Some</span>(pni), <span class="prelude-val">None</span>) =&gt; (e164, <span class="prelude-val">Some</span>(pni.into())),
-<a href=#127 id=127 data-nosnippet>127</a>            (<span class="prelude-val">Some</span>(<span class="kw">_</span>), <span class="prelude-val">Some</span>(aci)) =&gt; {
-<a href=#128 id=128 data-nosnippet>128</a>                <span class="macro">warn!</span>(<span class="string">"got both ACI and PNI for a phone number, this is unexpected, using ACI!"</span>);
-<a href=#129 id=129 data-nosnippet>129</a>                (e164, <span class="prelude-val">Some</span>(aci.into()))
-<a href=#130 id=130 data-nosnippet>130</a>            },
-<a href=#131 id=131 data-nosnippet>131</a>        }).collect())
-<a href=#132 id=132 data-nosnippet>132</a>    }
-<a href=#133 id=133 data-nosnippet>133</a>
-<a href=#134 id=134 data-nosnippet>134</a>    <span class="doccomment">/// Resolve a single phone number (E.164 format, e.g., "+15551234567") to a ServiceId.
-<a href=#135 id=135 data-nosnippet>135</a>    ///
-<a href=#136 id=136 data-nosnippet>136</a>    /// Convenience wrapper that looks up a single phone number using CDSI.
-<a href=#137 id=137 data-nosnippet>137</a>    ///
-<a href=#138 id=138 data-nosnippet>138</a>    /// # Arguments
-<a href=#139 id=139 data-nosnippet>139</a>    /// * `phone_number` - Phone number in E.164 format (e.g., "+15551234567")
-<a href=#140 id=140 data-nosnippet>140</a>    ///
-<a href=#141 id=141 data-nosnippet>141</a>    /// # Returns
-<a href=#142 id=142 data-nosnippet>142</a>    /// * `Ok(Option&lt;ServiceId&gt;)` - The resolved ServiceId (None if not found)
-<a href=#143 id=143 data-nosnippet>143</a>    /// * `Err(ServiceError)` - Network or protocol error
-<a href=#144 id=144 data-nosnippet>144</a>    </span><span class="kw">pub async fn </span>discover_contact_by_phone_number(
-<a href=#145 id=145 data-nosnippet>145</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
-<a href=#146 id=146 data-nosnippet>146</a>        phone_number: <span class="kw">impl </span>TryIntoE164,
-<a href=#147 id=147 data-nosnippet>147</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ServiceId&gt;, ServiceError&gt; {
-<a href=#148 id=148 data-nosnippet>148</a>        <span class="kw">let </span>lookup_request = LookupRequest {
-<a href=#149 id=149 data-nosnippet>149</a>            new_e164s: <span class="macro">vec!</span>[phone_number
-<a href=#150 id=150 data-nosnippet>150</a>                .try_into_e164()
-<a href=#151 id=151 data-nosnippet>151</a>                .map_err(|<span class="kw">_</span>| ServiceError::InvalidPhoneNumber)<span class="question-mark">?</span>],
-<a href=#152 id=152 data-nosnippet>152</a>            ..Default::default()
-<a href=#153 id=153 data-nosnippet>153</a>        };
-<a href=#154 id=154 data-nosnippet>154</a>
-<a href=#155 id=155 data-nosnippet>155</a>        <span class="kw">let </span>results = <span class="self">self</span>.discover_contacts(lookup_request).<span class="kw">await</span><span class="question-mark">?</span>;
-<a href=#156 id=156 data-nosnippet>156</a>        <span class="prelude-val">Ok</span>(results
-<a href=#157 id=157 data-nosnippet>157</a>            .into_iter()
-<a href=#158 id=158 data-nosnippet>158</a>            .next()
-<a href=#159 id=159 data-nosnippet>159</a>            .and_then(|(<span class="kw">_</span>, service_id)| service_id))
-<a href=#160 id=160 data-nosnippet>160</a>    }
-<a href=#161 id=161 data-nosnippet>161</a>}
+<a href=#108 id=108 data-nosnippet>108</a>            env.cdsi.domain_config.connect.service,
+<a href=#109 id=109 data-nosnippet>109</a>            libsignal_net_infra::route::DirectOrProxyProvider::direct(
+<a href=#110 id=110 data-nosnippet>110</a>                cdsi_endpoint.enclave_websocket_provider(
+<a href=#111 id=111 data-nosnippet>111</a>                    libsignal_net_infra::EnableDomainFronting::No,
+<a href=#112 id=112 data-nosnippet>112</a>                ),
+<a href=#113 id=113 data-nosnippet>113</a>            ),
+<a href=#114 id=114 data-nosnippet>114</a>            cdsi_endpoint.ws_config,
+<a href=#115 id=115 data-nosnippet>115</a>            <span class="kw-2">&amp;</span>cdsi_endpoint.params,
+<a href=#116 id=116 data-nosnippet>116</a>            <span class="kw-2">&amp;</span>auth,
+<a href=#117 id=117 data-nosnippet>117</a>        )
+<a href=#118 id=118 data-nosnippet>118</a>        .<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#119 id=119 data-nosnippet>119</a>
+<a href=#120 id=120 data-nosnippet>120</a>        <span class="kw">let </span>(_token, collector) =
+<a href=#121 id=121 data-nosnippet>121</a>            cdsi_connection.send_request(lookup_request).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#122 id=122 data-nosnippet>122</a>        <span class="kw">let </span>response = collector.collect().<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#123 id=123 data-nosnippet>123</a>
+<a href=#124 id=124 data-nosnippet>124</a>        <span class="prelude-val">Ok</span>(response.records.into_iter().map(|LookupResponseEntry { e164, aci, pni }| <span class="kw">match </span>(pni, aci) {
+<a href=#125 id=125 data-nosnippet>125</a>            (<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; (e164, <span class="prelude-val">None</span>),
+<a href=#126 id=126 data-nosnippet>126</a>            (<span class="prelude-val">None</span>, <span class="prelude-val">Some</span>(aci)) =&gt; (e164, <span class="prelude-val">Some</span>(aci.into())),
+<a href=#127 id=127 data-nosnippet>127</a>            (<span class="prelude-val">Some</span>(pni), <span class="prelude-val">None</span>) =&gt; (e164, <span class="prelude-val">Some</span>(pni.into())),
+<a href=#128 id=128 data-nosnippet>128</a>            (<span class="prelude-val">Some</span>(<span class="kw">_</span>), <span class="prelude-val">Some</span>(aci)) =&gt; {
+<a href=#129 id=129 data-nosnippet>129</a>                <span class="macro">warn!</span>(<span class="string">"got both ACI and PNI for a phone number, this is unexpected, using ACI!"</span>);
+<a href=#130 id=130 data-nosnippet>130</a>                (e164, <span class="prelude-val">Some</span>(aci.into()))
+<a href=#131 id=131 data-nosnippet>131</a>            },
+<a href=#132 id=132 data-nosnippet>132</a>        }).collect())
+<a href=#133 id=133 data-nosnippet>133</a>    }
+<a href=#134 id=134 data-nosnippet>134</a>
+<a href=#135 id=135 data-nosnippet>135</a>    <span class="doccomment">/// Resolve a single phone number (E.164 format, e.g., "+15551234567") to a ServiceId.
+<a href=#136 id=136 data-nosnippet>136</a>    ///
+<a href=#137 id=137 data-nosnippet>137</a>    /// Convenience wrapper that looks up a single phone number using CDSI.
+<a href=#138 id=138 data-nosnippet>138</a>    ///
+<a href=#139 id=139 data-nosnippet>139</a>    /// # Arguments
+<a href=#140 id=140 data-nosnippet>140</a>    /// * `phone_number` - Phone number in E.164 format (e.g., "+15551234567")
+<a href=#141 id=141 data-nosnippet>141</a>    ///
+<a href=#142 id=142 data-nosnippet>142</a>    /// # Returns
+<a href=#143 id=143 data-nosnippet>143</a>    /// * `Ok(Option&lt;ServiceId&gt;)` - The resolved ServiceId (None if not found)
+<a href=#144 id=144 data-nosnippet>144</a>    /// * `Err(ServiceError)` - Network or protocol error
+<a href=#145 id=145 data-nosnippet>145</a>    </span><span class="kw">pub async fn </span>discover_contact_by_phone_number(
+<a href=#146 id=146 data-nosnippet>146</a>        <span class="kw-2">&amp;mut </span><span class="self">self</span>,
+<a href=#147 id=147 data-nosnippet>147</a>        phone_number: <span class="kw">impl </span>TryIntoE164,
+<a href=#148 id=148 data-nosnippet>148</a>    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ServiceId&gt;, ServiceError&gt; {
+<a href=#149 id=149 data-nosnippet>149</a>        <span class="kw">let </span>lookup_request = LookupRequest {
+<a href=#150 id=150 data-nosnippet>150</a>            new_e164s: <span class="macro">vec!</span>[phone_number
+<a href=#151 id=151 data-nosnippet>151</a>                .try_into_e164()
+<a href=#152 id=152 data-nosnippet>152</a>                .map_err(|<span class="kw">_</span>| ServiceError::InvalidPhoneNumber)<span class="question-mark">?</span>],
+<a href=#153 id=153 data-nosnippet>153</a>            ..Default::default()
+<a href=#154 id=154 data-nosnippet>154</a>        };
+<a href=#155 id=155 data-nosnippet>155</a>
+<a href=#156 id=156 data-nosnippet>156</a>        <span class="kw">let </span>results = <span class="self">self</span>.discover_contacts(lookup_request).<span class="kw">await</span><span class="question-mark">?</span>;
+<a href=#157 id=157 data-nosnippet>157</a>        <span class="prelude-val">Ok</span>(results
+<a href=#158 id=158 data-nosnippet>158</a>            .into_iter()
+<a href=#159 id=159 data-nosnippet>159</a>            .next()
+<a href=#160 id=160 data-nosnippet>160</a>            .and_then(|(<span class="kw">_</span>, service_id)| service_id))
+<a href=#161 id=161 data-nosnippet>161</a>    }
+<a href=#162 id=162 data-nosnippet>162</a>}
 </code></pre></div></section></main></body></html>

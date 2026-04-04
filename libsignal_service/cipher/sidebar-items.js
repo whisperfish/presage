@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["get_preferred_protocol_address"],"struct":["ServiceCipher"]};
+window.SIDEBAR_ITEMS = {"fn":["get_preferred_protocol_address"],"struct":["SealedSenderDecryptionError","ServiceCipher"]};
