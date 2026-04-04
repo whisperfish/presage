@@ -1497,33 +1497,44 @@ async fn upsert_group<S: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<S::Error>> {
-    let upsert_group = match store.group(master_key_bytes.try_into()?).await {
+    let existing_timer = match store.group(master_key_bytes.try_into()?).await {
         Ok(Some(group)) => {
             debug!(group_name =% group.title, "loaded group from local db");
-            group.revision < *revision
+            if group.revision < *revision {
+                // Preserve the timer — the server doesn't store it
+                Some(group.disappearing_messages_timer)
+            } else {
+                return Ok(Some(group));
+            }
         }
-        Ok(None) => true,
+        Ok(None) => None,
         Err(error) => {
             warn!(%error, "failed to retrieve group from local db");
-            true
+            None
         }
     };
 
-    if upsert_group {
-        debug!("fetching and saving group");
-        match groups_manager
-            .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
-            .await
-        {
-            Ok(encrypted_group) => {
-                let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
-                    error!(%error, "failed to save group");
+    debug!("fetching and saving group");
+    match groups_manager
+        .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
+        .await
+    {
+        Ok(encrypted_group) => {
+            let mut group = decrypt_group(master_key_bytes, encrypted_group)?;
+            // The server does not store disappearing_messages_timer, so the
+            // fetched group always has it as None. Restore the locally stored
+            // value if the server didn't provide one.
+            if group.disappearing_messages_timer.is_none() {
+                if let Some(timer) = existing_timer {
+                    group.disappearing_messages_timer = timer;
                 }
             }
-            Err(error) => {
-                warn!(%error, "failed to fetch encrypted group")
+            if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
+                error!(%error, "failed to save group");
             }
+        }
+        Err(error) => {
+            warn!(%error, "failed to fetch encrypted group")
         }
     }
 
