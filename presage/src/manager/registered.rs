@@ -603,27 +603,56 @@ impl<S: Store> Manager<S, Registered> {
                         Some(Ok(Incoming::Envelope(envelope))) => {
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
-                                match ServiceId::parse_from_service_id_string(
+                                //
+                                // Determine whether this envelope is destined for our ACI or PNI.
+                                // For first-contact messages, the destination may be our PNI UUID
+                                // without the "PNI:" prefix, causing parse_from_service_id_string
+                                // to return Aci. We check the raw UUID against our known PNI to
+                                // route correctly.
+                                let dest_sid = ServiceId::parse_from_service_id_string(
                                     envelope.destination_service_id(),
-                                ) {
-                                    None | Some(ServiceId::Aci(_)) => {
-                                        state
-                                            .service_cipher_aci
-                                            .open_envelope(envelope, &mut rng())
-                                            .await
+                                );
+                                let our_pni: ServiceId = state.service_ids.pni().into();
+                                let is_pni_dest = match &dest_sid {
+                                    Some(ServiceId::Pni(pni)) => *pni == state.service_ids.pni(),
+                                    Some(ServiceId::Aci(aci)) => {
+                                        // Bare UUID parsed as ACI — check if it's actually our PNI
+                                        let dest_as_sid: ServiceId = ServiceId::Aci(*aci);
+                                        dest_as_sid.raw_uuid() == our_pni.raw_uuid()
                                     }
-                                    Some(ServiceId::Pni(pni)) => {
-                                        if pni == state.service_ids.pni()
-                                            && envelope.source_service_id.is_none()
-                                        {
-                                            warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
-                                            continue;
+                                    None => false,
+                                };
+
+                                let our_aci: ServiceId = state.service_ids.aci().into();
+                                debug!(
+                                    dest_raw = envelope.destination_service_id(),
+                                    ?dest_sid,
+                                    our_aci = ?our_aci,
+                                    our_pni = ?our_pni,
+                                    is_pni_dest,
+                                    source = ?envelope.source_service_id,
+                                    r#type = ?envelope.r#type(),
+                                    "envelope routing decision"
+                                );
+
+                                if is_pni_dest {
+                                    if envelope.source_service_id.is_none() {
+                                        warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
+                                        continue;
+                                    }
+                                    debug!("routing envelope to PNI cipher");
+                                    match state.service_cipher_pni.open_envelope(envelope, &mut rng()).await {
+                                        Ok(content) => Ok(content),
+                                        Err(e) => {
+                                            warn!(error = ?e, "PNI cipher failed to open envelope");
+                                            Err(e)
                                         }
-                                        state
-                                            .service_cipher_pni
-                                            .open_envelope(envelope, &mut rng())
-                                            .await
                                     }
+                                } else {
+                                    state
+                                        .service_cipher_aci
+                                        .open_envelope(envelope, &mut rng())
+                                        .await
                                 }
                             };
                             match envelope {
@@ -1384,7 +1413,7 @@ impl<S: Store> Manager<S, Registered> {
                 .service_configuration()
                 .unidentified_sender_trust_roots,
             ProtocolAddress::new(
-                self.state.data.service_ids.pni.to_string(),
+                self.state.data.service_ids.pni().service_id_string(),
                 self.state.device_id(),
             ),
         )
