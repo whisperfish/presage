@@ -602,52 +602,18 @@ impl<S: Store> Manager<S, Registered> {
                     match state.encrypted_messages.next().await {
                         Some(Ok(Incoming::Envelope(envelope))) => {
                             let envelope = {
-                                // the permit is released at the end of the block (impl Drop)
-                                //
-                                // Determine whether this envelope is destined for our ACI or PNI.
-                                // For first-contact messages, the destination may be our PNI UUID
-                                // without the "PNI:" prefix, causing parse_from_service_id_string
-                                // to return Aci. We check the raw UUID against our known PNI to
-                                // route correctly.
-                                let dest_sid = ServiceId::parse_from_service_id_string(
+                                let is_pni_dest = is_pni_destination(
                                     envelope.destination_service_id(),
-                                );
-                                let our_pni: ServiceId = state.service_ids.pni().into();
-                                let is_pni_dest = match &dest_sid {
-                                    Some(ServiceId::Pni(pni)) => *pni == state.service_ids.pni(),
-                                    Some(ServiceId::Aci(aci)) => {
-                                        // Bare UUID parsed as ACI — check if it's actually our PNI
-                                        let dest_as_sid: ServiceId = ServiceId::Aci(*aci);
-                                        dest_as_sid.raw_uuid() == our_pni.raw_uuid()
-                                    }
-                                    None => false,
-                                };
-
-                                let our_aci: ServiceId = state.service_ids.aci().into();
-                                debug!(
-                                    dest_raw = envelope.destination_service_id(),
-                                    ?dest_sid,
-                                    our_aci = ?our_aci,
-                                    our_pni = ?our_pni,
-                                    is_pni_dest,
-                                    source = ?envelope.source_service_id,
-                                    r#type = ?envelope.r#type(),
-                                    "envelope routing decision"
+                                    state.service_ids.pni,
                                 );
 
                                 if is_pni_dest {
                                     if envelope.source_service_id.is_none() {
-                                        warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
+                                        warn!("sealed sender message to PNI, ignoring");
                                         continue;
                                     }
                                     debug!("routing envelope to PNI cipher");
-                                    match state.service_cipher_pni.open_envelope(envelope, &mut rng()).await {
-                                        Ok(content) => Ok(content),
-                                        Err(e) => {
-                                            warn!(error = ?e, "PNI cipher failed to open envelope");
-                                            Err(e)
-                                        }
-                                    }
+                                    state.service_cipher_pni.open_envelope(envelope, &mut rng()).await
                                 } else {
                                     state
                                         .service_cipher_aci
@@ -1921,4 +1887,74 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Check whether an envelope destination matches a PNI UUID.
+///
+/// `parse_from_service_id_string` treats bare UUIDs as ACI, so a first-contact
+/// envelope addressed to our PNI without the "PNI:" prefix would parse as
+/// `Aci(uuid)`. We compare raw UUIDs to handle both prefixed and bare forms.
+fn is_pni_destination(destination_service_id: &str, pni_uuid: Uuid) -> bool {
+    ServiceId::parse_from_service_id_string(destination_service_id)
+        .map(|sid| sid.raw_uuid() == pni_uuid)
+        .unwrap_or(false)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    const ACI_UUID: &str = "aabbccdd-1234-5678-abcd-aabbccddeeff";
+    const PNI_UUID: &str = "11223344-aabb-ccdd-eeff-112233445566";
+
+    fn pni_uuid() -> Uuid {
+        Uuid::parse_str(PNI_UUID).unwrap()
+    }
+
+    #[test]
+    fn pni_with_prefix_routes_to_pni() {
+        let dest = format!("PNI:{PNI_UUID}");
+        assert!(is_pni_destination(&dest, pni_uuid()));
+    }
+
+    #[test]
+    fn bare_pni_uuid_routes_to_pni() {
+        // First-contact envelopes may omit the PNI: prefix
+        assert!(is_pni_destination(PNI_UUID, pni_uuid()));
+    }
+
+    #[test]
+    fn aci_uuid_routes_to_aci() {
+        assert!(!is_pni_destination(ACI_UUID, pni_uuid()));
+    }
+
+    #[test]
+    fn aci_with_prefix_routes_to_aci() {
+        // ACI: prefix is not recognized by parse_from_service_id_string,
+        // so this returns None → false
+        let dest = format!("ACI:{ACI_UUID}");
+        assert!(!is_pni_destination(&dest, pni_uuid()));
+    }
+
+    #[test]
+    fn empty_destination_routes_to_aci() {
+        assert!(!is_pni_destination("", pni_uuid()));
+    }
+
+    #[test]
+    fn garbage_destination_routes_to_aci() {
+        assert!(!is_pni_destination("not-a-uuid", pni_uuid()));
+    }
+
+    #[test]
+    fn pni_prefix_wrong_uuid_routes_to_aci() {
+        let dest = format!("PNI:{ACI_UUID}");
+        assert!(!is_pni_destination(&dest, pni_uuid()));
+    }
+
+    #[test]
+    fn case_insensitive_uuid() {
+        let dest = PNI_UUID.to_uppercase();
+        assert!(is_pni_destination(&dest, pni_uuid()));
+    }
 }
