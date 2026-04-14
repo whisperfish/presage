@@ -1199,7 +1199,7 @@ impl<S: Store> Manager<S, Registered> {
         }) = content_body
         {
             if timer.is_none() {
-                *timer = store_expire_timer.map(|(t, _)| t);
+                *timer = store_expire_timer.and_then(|(t, _)| if t == 0 { None } else { Some(t) });
                 *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
             } else {
                 *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
@@ -1719,12 +1719,14 @@ async fn save_message<S: Store>(
                 });
             }
 
-            if let Some(expire_timer) = data_message.expire_timer {
-                let version = data_message.expire_timer_version.unwrap_or(1);
-                store
-                    .update_expire_timer(&thread, expire_timer, version)
-                    .await?;
-            }
+            let version = data_message.expire_timer_version.unwrap_or(1);
+            store
+                .update_expire_timer(
+                    &thread,
+                    data_message.expire_timer.unwrap_or_default(),
+                    version,
+                )
+                .await?;
 
             match data_message {
                 DataMessage {
