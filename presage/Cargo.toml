@@ -7,7 +7,7 @@ edition = "2021"
 license = "AGPL-3.0-only"
 
 [features]
-default = ["cdsi"]
+default = []
 # brings libsignal-net and all its dependencies
 cdsi = ["libsignal-service/cdsi"]
 

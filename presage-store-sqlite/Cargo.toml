@@ -5,8 +5,8 @@ edition = "2024"
 license = "AGPL-3.0-only"
 
 [features]
-default = ["cdsi"]
-cdsi = ["presage/cdsi"]
+default = []
+cdsi = ["presage/cdsi", "libsqlite3-sys/bundled-sqlcipher-custom-crypto"]
 
 [dependencies]
 presage = { path = "../presage", default-features = false }
@@ -23,7 +23,7 @@ tracing = "0.1.41"
 uuid = "1.12.0"
 
 # Explicitly use the libsqlite3-sys crate with the bundled-sqlcipher feature
-libsqlite3-sys = { version = "0.36.0", features = ["bundled-sqlcipher-custom-crypto"] }
+libsqlite3-sys = { version = "0.36.0", features = [] }
 
 [dev-dependencies]
 tokio = { version = "1.48.0", features = ["rt", "macros"] }
