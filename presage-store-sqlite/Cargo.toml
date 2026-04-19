@@ -5,7 +5,7 @@ edition = "2024"
 license = "AGPL-3.0-only"
 
 [features]
-default = []
+default = ["libsqlite3-sys/bundled-sqlcipher"]
 cdsi = ["presage/cdsi", "libsqlite3-sys/bundled-sqlcipher-custom-crypto"]
 
 [dependencies]
