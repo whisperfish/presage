@@ -131,6 +131,17 @@ enum Cmd {
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
     },
+    #[clap(about = "Update the user's profile name and privacy settings")]
+    UpdateProfile {
+        #[clap(long, help = "The given (first) name of the profile")]
+        given_name: Option<String>,
+        #[clap(long, help = "The family (last) name of the profile")]
+        family_name: Option<String>,
+        #[clap(long, help = "The 'about' text of the profile")]
+        about: Option<String>,
+        #[clap(long, help = "The 'emoji' of the profile")]
+        emoji: Option<String>,
+    },
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Sync {
         #[clap(long = "notifications", short = 'n')]
@@ -536,6 +547,10 @@ async fn print_message<S: Store>(
         ContentBody::PniSignatureMessage(_) => {
             Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
+        ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
+            &thread,
+            "failed to decrypt a messagee".into(),
+        )),
     } {
         let ts = content.timestamp();
         let (prefix, body) = match msg {
@@ -778,6 +793,24 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
             };
             println!("{profile:#?}");
+        }
+        Cmd::UpdateProfile {
+            given_name,
+            family_name,
+            about,
+            emoji,
+        } => {
+            let mut manager = load_registered_and_receive(store).await?;
+            if let Some(given_name) = given_name {
+                let profile_name = presage::libsignal_service::profile_name::ProfileName {
+                    given_name,
+                    family_name,
+                };
+                manager.update_profile(profile_name, about, emoji).await?;
+                println!("Profile updated.");
+            } else if family_name.is_some() || about.is_some() || emoji.is_some() {
+                bail!("The --given-name parameter is required when updating the profile fields (--family-name, --about or --emoji)");
+            }
         }
         Cmd::ListGroups {
             name_filter,

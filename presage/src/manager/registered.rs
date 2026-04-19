@@ -3,6 +3,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use futures::{future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::protocol::ProtocolAddress;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -405,6 +406,41 @@ impl<S: Store> Manager<S, Registered> {
         Ok(profile)
     }
 
+    /// Updates the user's profile information.
+    pub async fn update_profile(
+        &mut self,
+        name: libsignal_service::profile_name::ProfileName<String>,
+        about: Option<String>,
+        emoji: Option<String>,
+    ) -> Result<(), Error<S::Error>> {
+        let aci = self.state.data.service_ids.aci();
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            Some(self.state.data.profile_key),
+        );
+
+        account_manager
+            .upload_versioned_profile_without_avatar::<_, String>(
+                aci,
+                name,
+                about,
+                emoji,
+                true, // retain_avatar
+                &mut rand::rng(),
+            )
+            .await?;
+
+        // Retrieve and save locally so we have the updated version
+        let profile = account_manager.retrieve_profile(aci).await?;
+        let _ = self
+            .store
+            .save_profile(aci.into(), self.state.data.profile_key, profile)
+            .await;
+
+        Ok(())
+    }
+
     pub async fn retrieve_group_avatar(
         &mut self,
         context: GroupContextV2,
@@ -627,6 +663,14 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
+                                    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
+                                        error!(
+                                            error = ?e,
+                                            "got error decrypting a message"
+                                        );
+                                        continue;
+                                    }
+
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
                                         request: Some(request),
                                         ..
@@ -1155,7 +1199,7 @@ impl<S: Store> Manager<S, Registered> {
         }) = content_body
         {
             if timer.is_none() {
-                *timer = store_expire_timer.map(|(t, _)| t);
+                *timer = store_expire_timer.and_then(|(t, _)| if t == 0 { None } else { Some(t) });
                 *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default());
             } else {
                 *version = Some(store_expire_timer.map(|(_, v)| v).unwrap_or_default() + 1);
@@ -1361,8 +1405,10 @@ impl<S: Store> Manager<S, Registered> {
             self.state
                 .service_configuration()
                 .unidentified_sender_trust_roots,
-            self.state.data.service_ids.aci,
-            self.state.device_id(),
+            ProtocolAddress::new(
+                self.state.data.service_ids.aci.to_string(),
+                self.state.device_id(),
+            ),
         )
     }
 
@@ -1372,8 +1418,10 @@ impl<S: Store> Manager<S, Registered> {
             self.state
                 .service_configuration()
                 .unidentified_sender_trust_roots,
-            self.state.data.service_ids.pni,
-            self.state.device_id(),
+            ProtocolAddress::new(
+                self.state.data.service_ids.pni.to_string(),
+                self.state.device_id(),
+            ),
         )
     }
 
@@ -1630,6 +1678,10 @@ async fn save_message<S: Store>(
 
     // only save DataMessage and SynchronizeMessage (sent)
     let message = match message.body {
+        ContentBody::DecryptionErrorMessage(e) => {
+            warn!(error = ?e, "was asked to save a DecryptionErrorMessage; this should not happen");
+            None
+        }
         ContentBody::NullMessage(_) => Some(message),
         ContentBody::DataMessage(
             ref data_message @ DataMessage {
@@ -1678,12 +1730,14 @@ async fn save_message<S: Store>(
                 });
             }
 
-            if let Some(expire_timer) = data_message.expire_timer {
-                let version = data_message.expire_timer_version.unwrap_or(1);
-                store
-                    .update_expire_timer(&thread, expire_timer, version)
-                    .await?;
-            }
+            let version = data_message.expire_timer_version.unwrap_or(1);
+            store
+                .update_expire_timer(
+                    &thread,
+                    data_message.expire_timer.unwrap_or_default(),
+                    version,
+                )
+                .await?;
 
             match data_message {
                 DataMessage {

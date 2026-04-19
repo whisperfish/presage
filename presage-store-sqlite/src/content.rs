@@ -420,7 +420,7 @@ impl ContentsStore for SqliteStore {
         let g = SqlGroup::from_group(&master_key, group.into());
         let master_key = g.master_key.as_ref();
         query!(
-            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             master_key,
             g.title,
             g.revision,
@@ -431,6 +431,7 @@ impl ContentsStore for SqliteStore {
             g.members,
             g.pending_members,
             g.requesting_members,
+            g.disappearing_messages_timer,
         )
         .execute(&self.db)
         .await?;
@@ -450,7 +451,8 @@ impl ContentsStore for SqliteStore {
                 description,
                 members AS "members: _",
                 pending_members AS "pending_members: _",
-                requesting_members AS "requesting_members: _"
+                requesting_members AS "requesting_members: _",
+                disappearing_messages_timer
             FROM groups"#,
         )
         .fetch_all(&self.db)
@@ -475,7 +477,8 @@ impl ContentsStore for SqliteStore {
                 description,
                 members AS "members: _",
                 pending_members AS "pending_members: _",
-                requesting_members AS "requesting_members: _"
+                requesting_members AS "requesting_members: _",
+                disappearing_messages_timer
             FROM groups
             WHERE master_key = ?
             LIMIT 1"#,

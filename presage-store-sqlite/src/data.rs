@@ -126,6 +126,7 @@ pub(crate) struct SqlGroup<'a> {
     pub(crate) members: Json<Vec<Member>>,
     pub(crate) pending_members: Json<Vec<PendingMember>>,
     pub(crate) requesting_members: Json<Vec<RequestingMember>>,
+    pub(crate) disappearing_messages_timer: Option<i64>,
 }
 
 impl SqlGroup<'_> {
@@ -142,6 +143,9 @@ impl SqlGroup<'_> {
             members: Json(group.members),
             pending_members: Json(group.pending_members),
             requesting_members: Json(group.requesting_members),
+            disappearing_messages_timer: group
+                .disappearing_messages_timer
+                .map(|t| t.duration as i64),
         }
     }
 
@@ -158,6 +162,7 @@ impl SqlGroup<'_> {
             members: Json(members),
             pending_members: Json(pending_members),
             requesting_members: Json(requesting_members),
+            disappearing_messages_timer,
         } = self;
         let master_key = master_key
             .as_ref()
@@ -167,7 +172,8 @@ impl SqlGroup<'_> {
         let group = Group {
             title,
             avatar,
-            disappearing_messages_timer: None,
+            disappearing_messages_timer: disappearing_messages_timer
+                .map(|t| presage::libsignal_service::prelude::Timer { duration: t as u32 }),
             access_control,
             revision,
             members,
