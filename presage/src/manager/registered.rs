@@ -663,11 +663,7 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
-                                    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
-                                        error!(
-                                            error = ?e,
-                                            "got error decrypting a message"
-                                        );
+                                    if maybe_handle_decryption_error_message(&state.store, &content).await {
                                         continue;
                                     }
 
@@ -1209,16 +1205,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Clears all sessions established with [recipient](ServiceId).
     pub async fn clear_sessions(&self, recipient: &ServiceId) -> Result<(), Error<S::Error>> {
-        use libsignal_service::session_store::SessionStoreExt;
-        self.store
-            .aci_protocol_store()
-            .delete_all_sessions(recipient)
-            .await?;
-        self.store
-            .pni_protocol_store()
-            .delete_all_sessions(recipient)
-            .await?;
-        Ok(())
+        delete_all_sessions_for_recipient(&self.store, recipient).await
     }
 
     /// Downloads and decrypts a single attachment.
@@ -1927,4 +1914,56 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Delete every session with `recipient` from both the ACI and PNI protocol
+/// stores. The next outbound message to that recipient will fetch a fresh
+/// prekey bundle and establish a new session.
+#[doc(hidden)]
+pub async fn delete_all_sessions_for_recipient<S: Store>(
+    store: &S,
+    recipient: &ServiceId,
+) -> Result<(), Error<S::Error>> {
+    use libsignal_service::session_store::SessionStoreExt;
+    store
+        .aci_protocol_store()
+        .delete_all_sessions(recipient)
+        .await?;
+    store
+        .pni_protocol_store()
+        .delete_all_sessions(recipient)
+        .await?;
+    Ok(())
+}
+
+/// If `content` carries a [`ContentBody::DecryptionErrorMessage`], log it and
+/// archive (by deleting) every session we hold with the sender so the next
+/// outbound message re-establishes a session from a fresh prekey bundle,
+/// then return `true` to signal the caller should skip further handling of
+/// this envelope. Returns `false` for any other content body.
+///
+/// Factored out of the receive loop so the behaviour — "DEM arrives →
+/// sessions wiped" — is directly unit-testable.
+#[doc(hidden)]
+pub async fn maybe_handle_decryption_error_message<S: Store>(
+    store: &S,
+    content: &Content,
+) -> bool {
+    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
+        let sender = &content.metadata.sender;
+        error!(
+            error = ?e,
+            sender = ?sender,
+            "got DecryptionErrorMessage; archiving sender sessions so next outbound re-establishes from a fresh prekey bundle"
+        );
+        // Without this, both sides stay stuck in a decryption-failure loop:
+        // the peer keeps signalling that our session is bad, we keep reusing
+        // the same ratchet, and the peer keeps rejecting our messages.
+        if let Err(err) = delete_all_sessions_for_recipient(store, sender).await {
+            warn!(?err, "failed to archive sessions for DEM sender");
+        }
+        true
+    } else {
+        false
+    }
 }
