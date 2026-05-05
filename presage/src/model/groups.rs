@@ -1,12 +1,26 @@
 use libsignal_service::{
-    groups_v2::Role,
-    prelude::{AccessControl, ProfileKey, Timer, Uuid},
+    groups_v2::{AccessRequired, Role},
+    prelude::{ProfileKey, Timer, Uuid},
     protocol::Aci,
 };
 use serde::{Deserialize, Serialize};
 
 use super::ServiceIdType;
 use libsignal_service::utils::serde_aci;
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct AccessControl {
+    pub attributes: AccessRequired,
+    pub members: AccessRequired,
+    pub add_from_invite_link: AccessRequired,
+    #[serde(default = "default_access_required")]
+    pub member_label: AccessRequired,
+}
+
+/// According to https://github.com/signalapp/Signal-Desktop/blob/9c246150585a65b6c3be324e2c214cb4f62c6102/ts/groups.preload.ts#L503.
+fn default_access_required() -> AccessRequired {
+    AccessRequired::Member
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Group {
@@ -58,13 +72,21 @@ impl From<libsignal_service::groups_v2::Group> for Group {
             title: val.title,
             avatar: val.avatar,
             disappearing_messages_timer: val.disappearing_messages_timer,
-            access_control: val.access_control,
-            revision: val.revision,
+            access_control: val.access_control.map(Into::into),
+            revision: val.version,
             members: val.members.into_iter().map(Into::into).collect(),
-            pending_members: val.pending_members.into_iter().map(Into::into).collect(),
-            requesting_members: val.requesting_members.into_iter().map(Into::into).collect(),
+            pending_members: val
+                .members_pending_profile_key
+                .into_iter()
+                .map(Into::into)
+                .collect(),
+            requesting_members: val
+                .members_pending_admin_approval
+                .into_iter()
+                .map(Into::into)
+                .collect(),
             invite_link_password: val.invite_link_password,
-            description: val.description,
+            description: val.description_text,
         }
     }
 }
@@ -75,7 +97,7 @@ impl From<libsignal_service::groups_v2::Member> for Member {
             aci: val.aci,
             role: val.role,
             profile_key: val.profile_key,
-            joined_at_revision: val.joined_at_revision,
+            joined_at_revision: val.joined_at_version,
         }
     }
 }
@@ -98,6 +120,17 @@ impl From<libsignal_service::groups_v2::RequestingMember> for RequestingMember {
             aci: val.aci,
             profile_key: val.profile_key,
             timestamp: val.timestamp,
+        }
+    }
+}
+
+impl From<libsignal_service::groups_v2::AccessControl> for AccessControl {
+    fn from(val: libsignal_service::groups_v2::AccessControl) -> Self {
+        Self {
+            attributes: val.attributes,
+            members: val.members,
+            add_from_invite_link: val.add_from_invite_link,
+            member_label: val.member_label,
         }
     }
 }
