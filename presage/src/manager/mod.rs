@@ -26,13 +26,6 @@ pub struct Manager<Store, State> {
     state: Arc<State>,
 }
 
-#[cfg(test)]
-#[allow(dead_code)]
-fn assert_registered_manager_is_send<S: Send>() {
-    fn check_send<T: Send>() {}
-    check_send::<Manager<S, Registered>>();
-}
-
 impl<Store: Clone, State> Clone for Manager<Store, State> {
     fn clone(&self) -> Self {
         Self {
@@ -55,13 +48,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn managers_are_sync() {
-        fn is_sync<T: Sync>() {}
+    fn managers_are_send_sync() {
+        fn is_send_sync<T: Send + Sync>() {}
 
         // Store trait has Send + Sync as super-trait, test States only
-        is_sync::<Manager<(), Confirmation>>();
-        is_sync::<Manager<(), Linking>>();
-        is_sync::<Manager<(), Registration>>();
-        is_sync::<Manager<(), Registered>>();
+        is_send_sync::<Manager<(), Confirmation>>();
+        is_send_sync::<Manager<(), Linking>>();
+        is_send_sync::<Manager<(), Registration>>();
+        is_send_sync::<Manager<(), Registered>>();
     }
 }
