@@ -34,8 +34,7 @@ impl SqliteStore {
         url: &str,
         trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SqliteStoreError> {
-        let options: SqliteConnectOptions = url.parse()?;
-        Self::open_with_options(options, trust_new_identities).await
+        Self::open_with_passphrase(url, None, trust_new_identities).await
     }
 
     pub async fn open_with_passphrase(
