@@ -144,12 +144,27 @@ pub struct RegistrationData {
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
+    /// The account entropy pool (modern `accountEntropyPool`, provisioning
+    /// field 15), persisted verbatim so key-derived flows that need the AEP
+    /// itself — notably message backups / Link & Sync — can recover the
+    /// `BackupKey`. The master key derived from it is one-way, so the AEP
+    /// cannot be reconstructed and must be stored directly. `None` for legacy
+    /// links that only sent the deprecated `masterKey` field.
+    #[serde(default)]
+    pub account_entropy_pool: Option<String>,
 }
 
 impl RegistrationData {
     /// Our own profile key
     pub fn profile_key(&self) -> ProfileKey {
         self.profile_key
+    }
+
+    /// The stored account entropy pool, if this device was linked by a primary
+    /// that sent the modern `accountEntropyPool`. Needed to derive the
+    /// `BackupKey` for message backups / Link & Sync.
+    pub fn account_entropy_pool(&self) -> Option<&str> {
+        self.account_entropy_pool.as_deref()
     }
 
     /// The name of the device (if linked as secondary)
