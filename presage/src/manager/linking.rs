@@ -139,6 +139,7 @@ impl<S: Store> Manager<S, Linking> {
                     registration_id,
                     pni_registration_id: Some(pni_registration_id),
                     profile_key,
+                    account_entropy_pool: account_entropy_pool.clone(),
                 };
 
                 store
