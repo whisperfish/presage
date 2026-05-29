@@ -13,7 +13,7 @@ use rand::{
     distr::{Alphanumeric, SampleString},
     rng, RngCore,
 };
-use tracing::info;
+use tracing::{info, warn};
 use url::Url;
 
 use crate::manager::registered::RegistrationData;
@@ -126,6 +126,8 @@ impl<S: Store> Manager<S, Linking> {
                 pni_private_key,
                 pni_public_key,
                 profile_key,
+                master_key,
+                account_entropy_pool,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -137,6 +139,7 @@ impl<S: Store> Manager<S, Linking> {
                     registration_id,
                     pni_registration_id: Some(pni_registration_id),
                     profile_key,
+                    account_entropy_pool: account_entropy_pool.clone(),
                 };
 
                 store
@@ -153,6 +156,44 @@ impl<S: Store> Manager<S, Linking> {
                     .await?;
 
                 store.save_registration_data(&registration_data).await?;
+
+                // Persist the account master key. Prefer AEP-derived (the modern,
+                // canonical path) over the deprecated `masterKey` field 13. Both
+                // are sent by current iPhone/Android primaries; without one of
+                // them stored, Storage Service (and other key-derived flows like
+                // KBS / message backups) cannot be decrypted on this device.
+                let resolved_master_key = match (&account_entropy_pool, &master_key) {
+                    (Some(aep_str), _) => {
+                        match aep_str
+                            .parse::<libsignal_service::libsignal_account_keys::AccountEntropyPool>(
+                            ) {
+                            Ok(aep) => {
+                                info!("deriving master key from accountEntropyPool");
+                                Some(libsignal_service::master_key::MasterKey {
+                                    inner: aep.derive_svr_key(),
+                                })
+                            }
+                            Err(e) => {
+                                warn!("invalid accountEntropyPool from primary: {e}; falling back to deprecated masterKey field");
+                                master_key.as_ref().and_then(|mk| {
+                                    libsignal_service::master_key::MasterKey::from_slice(mk).ok()
+                                })
+                            }
+                        }
+                    }
+                    (None, Some(mk_bytes)) => {
+                        info!("using deprecated masterKey field (no AEP from primary)");
+                        libsignal_service::master_key::MasterKey::from_slice(mk_bytes).ok()
+                    }
+                    (None, None) => {
+                        warn!("primary sent neither masterKey nor accountEntropyPool; storage-service sync will be unavailable");
+                        None
+                    }
+                };
+                if let Some(mk) = &resolved_master_key {
+                    store.store_master_key(Some(mk)).await?;
+                }
+
                 info!(
                     "successfully registered device {}",
                     &registration_data.service_ids

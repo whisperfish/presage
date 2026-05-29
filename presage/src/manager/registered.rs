@@ -144,12 +144,27 @@ pub struct RegistrationData {
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
+    /// The account entropy pool (modern `accountEntropyPool`, provisioning
+    /// field 15), persisted verbatim so key-derived flows that need the AEP
+    /// itself — notably message backups / Link & Sync — can recover the
+    /// `BackupKey`. The master key derived from it is one-way, so the AEP
+    /// cannot be reconstructed and must be stored directly. `None` for legacy
+    /// links that only sent the deprecated `masterKey` field.
+    #[serde(default)]
+    pub account_entropy_pool: Option<String>,
 }
 
 impl RegistrationData {
     /// Our own profile key
     pub fn profile_key(&self) -> ProfileKey {
         self.profile_key
+    }
+
+    /// The stored account entropy pool, if this device was linked by a primary
+    /// that sent the modern `accountEntropyPool`. Needed to derive the
+    /// `BackupKey` for message backups / Link & Sync.
+    pub fn account_entropy_pool(&self) -> Option<&str> {
+        self.account_entropy_pool.as_deref()
     }
 
     /// The name of the device (if linked as secondary)
@@ -288,6 +303,169 @@ impl<S: Store> Manager<S, Registered> {
             .await?;
 
         Ok(())
+    }
+
+    /// Pull contact records from Signal Storage Service and persist them to
+    /// the local store via [`ContentsStore::save_contact`].
+    ///
+    /// Storage Service is the modern, server-stored, multi-device-shared state
+    /// that replaced the legacy `SyncMessage::Contacts` envelope (which is
+    /// still sent by primary devices but is increasingly an empty stub).
+    /// On a freshly-linked secondary this is the only reliable way to populate
+    /// the contact list.
+    ///
+    /// The method:
+    /// 1. Calls `GET /v1/storage/auth` for short-lived basic auth.
+    /// 2. Fetches and decrypts the [`StorageManifest`] with the account
+    ///    [`StorageServiceKey`] (derived from the master key).
+    /// 3. Pulls every storage item whose identifier type is `CONTACT`.
+    /// 4. Decrypts each item, maps the [`ContactRecord`] to a presage
+    ///    [`Contact`] and writes it to the store.
+    ///
+    /// Returns the number of contacts successfully saved. Items that fail
+    /// to decrypt or that have no usable ACI/PNI are logged as warnings and
+    /// skipped — partial sync is preferred to a hard failure.
+    pub async fn sync_storage(&mut self) -> Result<usize, Error<S::Error>> {
+        use libsignal_service::master_key::StorageServiceKey;
+        use libsignal_service::prelude::Uuid;
+        use libsignal_service::proto::{
+            manifest_record::identifier::Type as IdType, storage_record::Record,
+        };
+        use libsignal_service::StorageService;
+
+        debug!("starting storage service sync");
+
+        let master_key = self.master_key().await?;
+        let storage_key = StorageServiceKey::from_master_key(&master_key);
+        let storage = StorageService::new(self.identified_push_service(), storage_key).await?;
+
+        let manifest = storage.manifest().await?;
+        debug!(
+            version = manifest.version,
+            ids = manifest.identifiers.len(),
+            "fetched storage manifest"
+        );
+
+        // Filter to CONTACT identifiers.
+        let contact_keys: Vec<Vec<u8>> = manifest
+            .identifiers
+            .iter()
+            .filter(|id| id.r#type == IdType::Contact as i32)
+            .map(|id| id.raw.clone())
+            .collect();
+
+        if contact_keys.is_empty() {
+            debug!("no contact records in storage manifest");
+            return Ok(0);
+        }
+
+        let record_ikm: Option<&[u8]> = if manifest.record_ikm.is_empty() {
+            None
+        } else {
+            Some(&manifest.record_ikm)
+        };
+
+        let records = storage.read_items(contact_keys, record_ikm).await?;
+        debug!(items = records.len(), "fetched storage items");
+
+        // Map + save.
+        let mut saved = 0usize;
+        for record in records {
+            let Some(Record::Contact(contact_record)) = record.record else {
+                continue;
+            };
+
+            // Resolve the contact's Signal UUID. Prefer aciBinary (16 raw bytes),
+            // fall back to the deprecated string `aci`, then PNI.
+            let uuid = if !contact_record.aci_binary.is_empty() {
+                Uuid::from_slice(&contact_record.aci_binary).ok()
+            } else if !contact_record.aci.is_empty() {
+                Uuid::parse_str(&contact_record.aci).ok()
+            } else if !contact_record.pni_binary.is_empty() {
+                Uuid::from_slice(&contact_record.pni_binary).ok()
+            } else if !contact_record.pni.is_empty() {
+                Uuid::parse_str(&contact_record.pni).ok()
+            } else {
+                None
+            };
+            let Some(uuid) = uuid else {
+                warn!("contact record without ACI/PNI, skipping");
+                continue;
+            };
+
+            // Compose the best display name we can. Storage Service exposes
+            // user-set, system-address-book, nickname and username variants;
+            // fall back through them in roughly that order.
+            let join = |a: &str, b: &str| {
+                let s = format!("{a} {b}");
+                s.trim().to_string()
+            };
+            let name = if !contact_record.given_name.is_empty()
+                || !contact_record.family_name.is_empty()
+            {
+                join(&contact_record.given_name, &contact_record.family_name)
+            } else if let Some(nick) = contact_record.nickname.as_ref() {
+                let n = join(&nick.given, &nick.family);
+                if n.is_empty() {
+                    contact_record.username.clone()
+                } else {
+                    n
+                }
+            } else if !contact_record.system_given_name.is_empty()
+                || !contact_record.system_family_name.is_empty()
+            {
+                join(
+                    &contact_record.system_given_name,
+                    &contact_record.system_family_name,
+                )
+            } else if !contact_record.username.is_empty() {
+                contact_record.username.clone()
+            } else {
+                contact_record.e164.clone()
+            };
+
+            let phone_number = if !contact_record.e164.is_empty() {
+                libsignal_service::prelude::phonenumber::parse(None, &contact_record.e164).ok()
+            } else {
+                None
+            };
+
+            let contact = crate::model::contacts::Contact {
+                uuid,
+                phone_number,
+                name,
+                verified: Default::default(),
+                profile_key: contact_record.profile_key.clone(),
+                expire_timer: 0,
+                expire_timer_version: 2,
+                inbox_position: 0,
+                avatar: None,
+            };
+
+            match self.store.save_contact(&contact).await {
+                Ok(()) => {
+                    saved += 1;
+                    // Also populate the profile_keys table so sealed-sender
+                    // (UnidentifiedAccess) works for outbound messages and
+                    // receipts to this contact. presage's send path looks
+                    // up profile_key by service_id from this table; without
+                    // it, sends fall back to identified messaging which
+                    // modern Signal clients drop for receipt envelopes.
+                    if let Ok(pk_array) =
+                        <[u8; 32]>::try_from(contact_record.profile_key.as_slice())
+                    {
+                        let profile_key = libsignal_service::prelude::ProfileKey::create(pk_array);
+                        if let Err(e) = self.store.upsert_profile_key(&uuid, profile_key).await {
+                            warn!(error = %e, uuid = %uuid, "failed to upsert profile key");
+                        }
+                    }
+                }
+                Err(e) => warn!(error = %e, uuid = %uuid, "failed to save contact"),
+            }
+        }
+
+        info!(saved, "storage service sync complete");
+        Ok(saved)
     }
 
     async fn sender_certificate(&self) -> Result<SenderCertificate, Error<S::Error>> {
@@ -777,16 +955,28 @@ impl<S: Store> Manager<S, Registered> {
                                             .await
                                         {
                                             Ok(contacts) => {
-                                                let _ = state.store.clear_contacts().await;
-                                                info!("saving contacts");
-                                                for contact in contacts.filter_map(Result::ok) {
-                                                    if let Err(error) = state
-                                                        .store
-                                                        .save_contact(&contact.into())
-                                                        .await
-                                                    {
-                                                        warn!(%error, "failed to save contacts");
-                                                        break;
+                                                // Buffer first so we don't clear the store on
+                                                // an empty / stub blob. Modern primaries respond
+                                                // to legacy SyncMessage::Contacts with an empty
+                                                // iterator (real contacts live in Storage
+                                                // Service); clearing in that case would wipe
+                                                // every contact populated via sync_storage().
+                                                let buffered: Vec<_> =
+                                                    contacts.filter_map(Result::ok).collect();
+                                                if buffered.is_empty() {
+                                                    debug!("legacy contacts blob empty, leaving store untouched");
+                                                } else {
+                                                    let _ = state.store.clear_contacts().await;
+                                                    info!("saving contacts");
+                                                    for contact in buffered {
+                                                        if let Err(error) = state
+                                                            .store
+                                                            .save_contact(&contact.into())
+                                                            .await
+                                                        {
+                                                            warn!(%error, "failed to save contacts");
+                                                            break;
+                                                        }
                                                     }
                                                 }
                                             }
