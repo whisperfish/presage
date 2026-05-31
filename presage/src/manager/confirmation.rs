@@ -136,7 +136,7 @@ impl<S: Store> Manager<S, Confirmation> {
             )
             .await?;
 
-        let mut manager = Manager {
+        let manager = Manager {
             store: self.store,
             state: Arc::new(Registered::with_data(RegistrationData {
                 signal_servers: self.state.signal_servers,

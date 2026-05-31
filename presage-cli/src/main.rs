@@ -770,7 +770,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             uuid,
             mut profile_key,
         } => {
-            let mut manager = load_registered_and_receive(store).await?;
+            let manager = load_registered_and_receive(store).await?;
             if profile_key.is_none() {
                 for contact in manager
                     .store()

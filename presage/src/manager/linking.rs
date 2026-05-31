@@ -61,7 +61,7 @@ impl<S: Store> Manager<S, Linking> {
     /// }
     /// ```
     pub async fn link_secondary_device(
-        mut store: S,
+        store: S,
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,

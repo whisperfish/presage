@@ -365,14 +365,14 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
-    pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
+    pub async fn retrieve_profile(&self) -> Result<Profile, Error<S::Error>> {
         self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.data.profile_key)
             .await
     }
 
     /// Fetches the profile of the provided user by UUID and profile key.
     pub async fn retrieve_profile_by_uuid(
-        &mut self,
+        &self,
         aci: impl Into<Aci>,
         profile_key: ProfileKey,
     ) -> Result<Profile, Error<S::Error>> {
@@ -442,7 +442,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     pub async fn retrieve_group_avatar(
-        &mut self,
+        &self,
         context: GroupContextV2,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
         let master_key_bytes = context
@@ -492,7 +492,7 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     pub async fn retrieve_profile_avatar_by_uuid(
-        &mut self,
+        &self,
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
@@ -898,7 +898,7 @@ impl<S: Store> Manager<S, Registered> {
                                     }
 
                                     if let Err(error) = save_message(
-                                        &mut state.store,
+                                        &state.store,
                                         &mut state.identified_websocket,
                                         content.clone(),
                                         None,
@@ -1053,7 +1053,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut identified_websocket = self.identified_websocket(false).await?;
         save_message(
-            &mut self.store,
+            &self.store,
             &mut identified_websocket,
             content,
             Some(thread),
@@ -1179,7 +1179,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let mut identified_websocket = self.identified_websocket(false).await?;
         save_message(
-            &mut self.store,
+            &self.store,
             &mut identified_websocket,
             content,
             Some(thread),
@@ -1189,7 +1189,7 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    async fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
+    async fn restore_thread_timer(&self, thread: &Thread, content_body: &mut ContentBody) {
         let store_expire_timer = self.store.expire_timer(thread).await.unwrap_or_default();
 
         if let ContentBody::DataMessage(DataMessage {
@@ -1273,7 +1273,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Gets the metadata of a sticker
     pub async fn sticker_metadata(
-        &mut self,
+        &self,
         pack_id: &[u8],
         sticker_id: u32,
     ) -> Result<Option<Sticker>, Error<S::Error>> {
@@ -1580,7 +1580,7 @@ async fn upsert_group<S: Store>(
 
 /// Download and decrypt a sticker manifest
 async fn download_sticker_pack<C: ContentsStore>(
-    mut store: C,
+    store: C,
     mut unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
     operation: &StickerPackOperation,
 ) -> Result<StickerPack, Error<C::ContentsStoreError>> {
@@ -1657,7 +1657,7 @@ async fn download_sticker<C: ContentsStore>(
 /// Note that `override_thread` can be used to specify the thread the message will be stored in.
 /// This is required when storing outgoing messages, as in this case the appropriate storage place cannot be derived from the message itself.
 async fn save_message<S: Store>(
-    store: &mut S,
+    store: &S,
     identified_websocket: &mut websocket::SignalWebSocket<websocket::Identified>,
     message: Content,
     override_thread: Option<Thread>,
@@ -1820,7 +1820,7 @@ async fn save_message<S: Store>(
 }
 
 async fn upsert_contact_from_profile<S: Store>(
-    mut store: S,
+    store: S,
     mut identified_websocket: SignalWebSocket<websocket::Identified>,
     data_message: &DataMessage,
     sender: ServiceId,

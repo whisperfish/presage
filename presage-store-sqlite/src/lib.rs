@@ -175,7 +175,7 @@ impl Store for SqliteStore {
 
     type PniStore = SqliteProtocolStore;
 
-    async fn clear(&mut self) -> Result<(), SqliteStoreError> {
+    async fn clear(&self) -> Result<(), SqliteStoreError> {
         query!("DELETE FROM kv").execute(&self.db).await?;
         Ok(())
     }
@@ -210,7 +210,7 @@ impl StateStore for SqliteStore {
     }
 
     async fn save_registration_data(
-        &mut self,
+        &self,
         state: &presage::manager::RegistrationData,
     ) -> Result<(), Self::StateStoreError> {
         let value = serde_json::to_string(state)?;
@@ -227,7 +227,7 @@ impl StateStore for SqliteStore {
         self.load_registration_data().await.ok().flatten().is_some()
     }
 
-    async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
+    async fn clear_registration(&self) -> Result<(), Self::StateStoreError> {
         let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM kv WHERE key = 'registration'")
             .execute(&mut *transaction)

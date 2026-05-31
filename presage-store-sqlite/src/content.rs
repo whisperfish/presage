@@ -39,7 +39,7 @@ impl ContentsStore for SqliteStore {
     type StickerPacksIter =
         Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>> + Send + Sync>;
 
-    async fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError> {
+    async fn clear_profiles(&self) -> Result<(), Self::ContentsStoreError> {
         let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM profiles")
             .execute(&mut *transaction)
@@ -54,7 +54,7 @@ impl ContentsStore for SqliteStore {
         Ok(())
     }
 
-    async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
+    async fn clear_contents(&self) -> Result<(), Self::ContentsStoreError> {
         let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM thread_messages")
             .execute(&mut *transaction)
@@ -81,7 +81,7 @@ impl ContentsStore for SqliteStore {
         Ok(())
     }
 
-    async fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError> {
+    async fn clear_messages(&self) -> Result<(), Self::ContentsStoreError> {
         let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM thread_messages")
             .execute(&mut *transaction)
@@ -93,7 +93,7 @@ impl ContentsStore for SqliteStore {
         Ok(())
     }
 
-    async fn clear_thread(&mut self, thread: &Thread) -> Result<(), Self::ContentsStoreError> {
+    async fn clear_thread(&self, thread: &Thread) -> Result<(), Self::ContentsStoreError> {
         let (group_master_key, recipient_id) = thread.unzip();
         query!(
             "DELETE FROM thread_messages WHERE thread_id = (
@@ -187,7 +187,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn delete_message(
-        &mut self,
+        &self,
         thread: &Thread,
         timestamp: u64,
     ) -> Result<bool, Self::ContentsStoreError> {
@@ -280,7 +280,7 @@ impl ContentsStore for SqliteStore {
         Ok(Box::new(rows.into_iter().map(TryInto::try_into)))
     }
 
-    async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
+    async fn clear_contacts(&self) -> Result<(), Self::ContentsStoreError> {
         let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM contacts")
             .execute(&mut *transaction)
@@ -292,7 +292,7 @@ impl ContentsStore for SqliteStore {
         Ok(())
     }
 
-    async fn save_contact(&mut self, contact: &Contact) -> Result<(), Self::ContentsStoreError> {
+    async fn save_contact(&self, contact: &Contact) -> Result<(), Self::ContentsStoreError> {
         let profile_key: &[u8] = contact.profile_key.as_ref();
         let avatar_bytes = contact.avatar.as_ref().map(|a| a.reader.to_vec());
         let phone_number = contact.phone_number.as_ref().map(|p| p.to_string());
@@ -400,7 +400,7 @@ impl ContentsStore for SqliteStore {
         .transpose()
     }
 
-    async fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError> {
+    async fn clear_groups(&self) -> Result<(), Self::ContentsStoreError> {
         let mut transaction = self.db.begin().await.into_protocol_error()?;
         query!("DELETE FROM groups")
             .execute(&mut *transaction)
@@ -521,7 +521,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn upsert_profile_key(
-        &mut self,
+        &self,
         uuid: &Uuid,
         key: ProfileKey,
     ) -> Result<bool, Self::ContentsStoreError> {
@@ -549,7 +549,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn save_profile(
-        &mut self,
+        &self,
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
@@ -606,7 +606,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn save_profile_avatar(
-        &mut self,
+        &self,
         uuid: Uuid,
         _key: ProfileKey,
         profile: &AvatarBytes,
@@ -632,10 +632,7 @@ impl ContentsStore for SqliteStore {
             .map_err(From::from)
     }
 
-    async fn add_sticker_pack(
-        &mut self,
-        pack: &StickerPack,
-    ) -> Result<(), Self::ContentsStoreError> {
+    async fn add_sticker_pack(&self, pack: &StickerPack) -> Result<(), Self::ContentsStoreError> {
         let manifest_json = Json(&pack.manifest);
         query!(
             "INSERT OR REPLACE INTO sticker_packs(id, key, manifest) VALUES(?, ?, ?)",
@@ -662,7 +659,7 @@ impl ContentsStore for SqliteStore {
         Ok(pack.map(From::from))
     }
 
-    async fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError> {
+    async fn remove_sticker_pack(&self, id: &[u8]) -> Result<bool, Self::ContentsStoreError> {
         let res = query!("DELETE FROM sticker_packs WHERE id = ?", id)
             .execute(&self.db)
             .await?;

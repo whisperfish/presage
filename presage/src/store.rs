@@ -53,7 +53,7 @@ pub trait StateStore {
 
     /// Save registered (or linked) state
     fn save_registration_data(
-        &mut self,
+        &self,
         state: &RegistrationData,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>> + Send;
 
@@ -70,7 +70,7 @@ pub trait StateStore {
     fn is_registered(&self) -> impl Future<Output = bool>;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
-    fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+    fn clear_registration(&self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(
         &self,
@@ -101,19 +101,19 @@ pub trait ContentsStore: Send + Sync {
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
 
     // Clear all profiles
-    fn clear_profiles(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+    fn clear_profiles(&self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Clear all stored messages
-    fn clear_contents(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+    fn clear_contents(&self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Messages
 
     /// Clear all stored messages.
-    fn clear_messages(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+    fn clear_messages(&self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Clear the messages in a thread.
     fn clear_thread(
-        &mut self,
+        &self,
         thread: &Thread,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
@@ -127,7 +127,7 @@ pub trait ContentsStore: Send + Sync {
     /// Delete a single message, identified by its received timestamp from a thread.
     /// Useful when you want to delete a message locally only.
     fn delete_message(
-        &mut self,
+        &self,
         thread: &Thread,
         timestamp: u64,
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
@@ -171,7 +171,7 @@ pub trait ContentsStore: Send + Sync {
     /// Update the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
     /// or [Group::disappearing_messages_timer].
     fn update_expire_timer(
-        &mut self,
+        &self,
         thread: &Thread,
         timer: u32,
         version: u32,
@@ -207,11 +207,11 @@ pub trait ContentsStore: Send + Sync {
     // Contacts
 
     /// Clear all saved synchronized contact data
-    fn clear_contacts(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+    fn clear_contacts(&self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Save a contact
     fn save_contact(
-        &mut self,
+        &self,
         contacts: &Contact,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
 
@@ -227,7 +227,7 @@ pub trait ContentsStore: Send + Sync {
     ) -> impl Future<Output = Result<Option<Contact>, Self::ContentsStoreError>> + Send;
 
     /// Delete all cached group data
-    fn clear_groups(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+    fn clear_groups(&self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Save a group in the cache
     fn save_group(
@@ -262,7 +262,7 @@ pub trait ContentsStore: Send + Sync {
 
     /// Insert or update the profile key of a contact
     fn upsert_profile_key(
-        &mut self,
+        &self,
         uuid: &Uuid,
         key: ProfileKey,
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>> + Send;
@@ -275,7 +275,7 @@ pub trait ContentsStore: Send + Sync {
 
     /// Save a profile by [Uuid] and [ProfileKey].
     fn save_profile(
-        &mut self,
+        &self,
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
@@ -290,7 +290,7 @@ pub trait ContentsStore: Send + Sync {
 
     /// Save a profile avatar by [Uuid] and [ProfileKey].
     fn save_profile_avatar(
-        &mut self,
+        &self,
         uuid: Uuid,
         key: ProfileKey,
         profile: &AvatarBytes,
@@ -307,7 +307,7 @@ pub trait ContentsStore: Send + Sync {
 
     /// Add a sticker pack
     fn add_sticker_pack(
-        &mut self,
+        &self,
         pack: &StickerPack,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
 
@@ -319,7 +319,7 @@ pub trait ContentsStore: Send + Sync {
 
     /// Removes a sticker pack
     fn remove_sticker_pack(
-        &mut self,
+        &self,
         id: &[u8],
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
@@ -358,7 +358,7 @@ pub trait Store:
     ///
     /// This can be useful when resetting an existing client.
     fn clear(
-        &mut self,
+        &self,
     ) -> impl Future<Output = Result<(), <Self as StateStore>::StateStoreError>> + Send;
 
     fn aci_protocol_store(&self) -> Self::AciStore;

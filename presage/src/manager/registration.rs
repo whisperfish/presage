@@ -63,7 +63,7 @@ impl<S: Store> Manager<S, Registration> {
     /// }
     /// ```
     pub async fn register(
-        mut store: S,
+        store: S,
         registration_options: RegistrationOptions<'_>,
     ) -> Result<Manager<S, Confirmation>, Error<S::Error>> {
         let RegistrationOptions {
