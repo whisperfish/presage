@@ -1752,32 +1752,21 @@ async fn save_message<S: Store>(
             }
         }
         ContentBody::EditMessage(EditMessage {
-            target_sent_timestamp: Some(ts),
-            data_message: Some(data_message),
+            target_sent_timestamp: Some(_),
+            data_message: Some(_),
         })
         | ContentBody::SynchronizeMessage(SyncMessage {
             sent:
                 Some(sync_message::Sent {
                     edit_message:
                         Some(EditMessage {
-                            target_sent_timestamp: Some(ts),
-                            data_message: Some(data_message),
+                            target_sent_timestamp: Some(_),
+                            data_message: Some(_),
                         }),
                     ..
                 }),
             ..
-        }) => {
-            if let Some(mut existing_msg) = store.message(&thread, ts).await? {
-                existing_msg.metadata = message.metadata;
-                existing_msg.body = ContentBody::DataMessage(data_message);
-                // TODO: find a way to mark the message as edited (so that it's visible in a client)
-                trace!(%thread, ts, "message in thread edited");
-                Some(existing_msg)
-            } else {
-                warn!(%thread, ts, "could not find edited message");
-                None
-            }
-        }
+        }) => Some(message),
         ContentBody::CallMessage(_)
         | ContentBody::SynchronizeMessage(SyncMessage {
             call_event: Some(_),
