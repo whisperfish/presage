@@ -1779,10 +1779,7 @@ async fn save_message<S: Store>(
             );
             None
         }
-        ContentBody::ReceiptMessage(msg) => {
-            debug!(?msg, "skipping saving receipt message");
-            None
-        }
+        ContentBody::ReceiptMessage(_) => Some(message),
         ContentBody::TypingMessage(msg) => {
             debug!(?msg, "skipping saving typing message");
             None
