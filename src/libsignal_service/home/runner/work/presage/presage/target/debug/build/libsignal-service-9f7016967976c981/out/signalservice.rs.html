@@ -2510,200 +2510,200 @@
 <a href=#2510 id=2510 data-nosnippet>2510</a>    }
 <a href=#2511 id=2511 data-nosnippet>2511</a>}
 <a href=#2512 id=2512 data-nosnippet>2512</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2513 id=2513 data-nosnippet>2513</a></span><span class="kw">pub struct </span>WebSocketRequestMessage {
-<a href=#2514 id=2514 data-nosnippet>2514</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
-<a href=#2515 id=2515 data-nosnippet>2515</a>    </span><span class="kw">pub </span>verb: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2516 id=2516 data-nosnippet>2516</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
-<a href=#2517 id=2517 data-nosnippet>2517</a>    </span><span class="kw">pub </span>path: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2513 id=2513 data-nosnippet>2513</a></span><span class="kw">pub struct </span>DeviceName {
+<a href=#2514 id=2514 data-nosnippet>2514</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
+<a href=#2515 id=2515 data-nosnippet>2515</a>    </span><span class="kw">pub </span>ephemeral_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2516 id=2516 data-nosnippet>2516</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
+<a href=#2517 id=2517 data-nosnippet>2517</a>    </span><span class="kw">pub </span>synthetic_iv: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 <a href=#2518 id=2518 data-nosnippet>2518</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
-<a href=#2519 id=2519 data-nosnippet>2519</a>    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2520 id=2520 data-nosnippet>2520</a>    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
-<a href=#2521 id=2521 data-nosnippet>2521</a>    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
-<a href=#2522 id=2522 data-nosnippet>2522</a>    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"4"</span>)]
-<a href=#2523 id=2523 data-nosnippet>2523</a>    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
-<a href=#2524 id=2524 data-nosnippet>2524</a>}
-<a href=#2525 id=2525 data-nosnippet>2525</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2526 id=2526 data-nosnippet>2526</a></span><span class="kw">pub struct </span>WebSocketResponseMessage {
-<a href=#2527 id=2527 data-nosnippet>2527</a>    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
-<a href=#2528 id=2528 data-nosnippet>2528</a>    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
-<a href=#2529 id=2529 data-nosnippet>2529</a>    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"2"</span>)]
-<a href=#2530 id=2530 data-nosnippet>2530</a>    </span><span class="kw">pub </span>status: ::core::option::Option&lt;u32&gt;,
-<a href=#2531 id=2531 data-nosnippet>2531</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
-<a href=#2532 id=2532 data-nosnippet>2532</a>    </span><span class="kw">pub </span>message: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2533 id=2533 data-nosnippet>2533</a>    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
-<a href=#2534 id=2534 data-nosnippet>2534</a>    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
-<a href=#2535 id=2535 data-nosnippet>2535</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"4"</span>)]
-<a href=#2536 id=2536 data-nosnippet>2536</a>    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2537 id=2537 data-nosnippet>2537</a>}
-<a href=#2538 id=2538 data-nosnippet>2538</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2539 id=2539 data-nosnippet>2539</a></span><span class="kw">pub struct </span>WebSocketMessage {
-<a href=#2540 id=2540 data-nosnippet>2540</a>    <span class="attr">#[prost(enumeration = <span class="string">"web_socket_message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
-<a href=#2541 id=2541 data-nosnippet>2541</a>    </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
-<a href=#2542 id=2542 data-nosnippet>2542</a>    <span class="attr">#[prost(message, optional, tag = <span class="string">"2"</span>)]
-<a href=#2543 id=2543 data-nosnippet>2543</a>    </span><span class="kw">pub </span>request: ::core::option::Option&lt;WebSocketRequestMessage&gt;,
-<a href=#2544 id=2544 data-nosnippet>2544</a>    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
-<a href=#2545 id=2545 data-nosnippet>2545</a>    </span><span class="kw">pub </span>response: ::core::option::Option&lt;WebSocketResponseMessage&gt;,
+<a href=#2519 id=2519 data-nosnippet>2519</a>    </span><span class="kw">pub </span>ciphertext: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2520 id=2520 data-nosnippet>2520</a>}
+<a href=#2521 id=2521 data-nosnippet>2521</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2522 id=2522 data-nosnippet>2522</a></span><span class="kw">pub struct </span>WebSocketRequestMessage {
+<a href=#2523 id=2523 data-nosnippet>2523</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
+<a href=#2524 id=2524 data-nosnippet>2524</a>    </span><span class="kw">pub </span>verb: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2525 id=2525 data-nosnippet>2525</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
+<a href=#2526 id=2526 data-nosnippet>2526</a>    </span><span class="kw">pub </span>path: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2527 id=2527 data-nosnippet>2527</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
+<a href=#2528 id=2528 data-nosnippet>2528</a>    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2529 id=2529 data-nosnippet>2529</a>    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
+<a href=#2530 id=2530 data-nosnippet>2530</a>    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
+<a href=#2531 id=2531 data-nosnippet>2531</a>    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"4"</span>)]
+<a href=#2532 id=2532 data-nosnippet>2532</a>    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
+<a href=#2533 id=2533 data-nosnippet>2533</a>}
+<a href=#2534 id=2534 data-nosnippet>2534</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2535 id=2535 data-nosnippet>2535</a></span><span class="kw">pub struct </span>WebSocketResponseMessage {
+<a href=#2536 id=2536 data-nosnippet>2536</a>    <span class="attr">#[prost(uint64, optional, tag = <span class="string">"1"</span>)]
+<a href=#2537 id=2537 data-nosnippet>2537</a>    </span><span class="kw">pub </span>id: ::core::option::Option&lt;u64&gt;,
+<a href=#2538 id=2538 data-nosnippet>2538</a>    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"2"</span>)]
+<a href=#2539 id=2539 data-nosnippet>2539</a>    </span><span class="kw">pub </span>status: ::core::option::Option&lt;u32&gt;,
+<a href=#2540 id=2540 data-nosnippet>2540</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
+<a href=#2541 id=2541 data-nosnippet>2541</a>    </span><span class="kw">pub </span>message: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2542 id=2542 data-nosnippet>2542</a>    <span class="attr">#[prost(string, repeated, tag = <span class="string">"5"</span>)]
+<a href=#2543 id=2543 data-nosnippet>2543</a>    </span><span class="kw">pub </span>headers: ::prost::alloc::vec::Vec&lt;::prost::alloc::string::String&gt;,
+<a href=#2544 id=2544 data-nosnippet>2544</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"4"</span>)]
+<a href=#2545 id=2545 data-nosnippet>2545</a>    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
 <a href=#2546 id=2546 data-nosnippet>2546</a>}
-<a href=#2547 id=2547 data-nosnippet>2547</a><span class="doccomment">/// Nested message and enum types in `WebSocketMessage`.
-<a href=#2548 id=2548 data-nosnippet>2548</a></span><span class="kw">pub mod </span>web_socket_message {
-<a href=#2549 id=2549 data-nosnippet>2549</a>    <span class="attr">#[derive(
-<a href=#2550 id=2550 data-nosnippet>2550</a>        Clone,
-<a href=#2551 id=2551 data-nosnippet>2551</a>        Copy,
-<a href=#2552 id=2552 data-nosnippet>2552</a>        Debug,
-<a href=#2553 id=2553 data-nosnippet>2553</a>        PartialEq,
-<a href=#2554 id=2554 data-nosnippet>2554</a>        Eq,
-<a href=#2555 id=2555 data-nosnippet>2555</a>        Hash,
-<a href=#2556 id=2556 data-nosnippet>2556</a>        PartialOrd,
-<a href=#2557 id=2557 data-nosnippet>2557</a>        Ord,
-<a href=#2558 id=2558 data-nosnippet>2558</a>        ::prost::Enumeration
-<a href=#2559 id=2559 data-nosnippet>2559</a>    )]
-<a href=#2560 id=2560 data-nosnippet>2560</a>    #[repr(i32)]
-<a href=#2561 id=2561 data-nosnippet>2561</a>    </span><span class="kw">pub enum </span>Type {
-<a href=#2562 id=2562 data-nosnippet>2562</a>        Unknown = <span class="number">0</span>,
-<a href=#2563 id=2563 data-nosnippet>2563</a>        Request = <span class="number">1</span>,
-<a href=#2564 id=2564 data-nosnippet>2564</a>        Response = <span class="number">2</span>,
-<a href=#2565 id=2565 data-nosnippet>2565</a>    }
-<a href=#2566 id=2566 data-nosnippet>2566</a>    <span class="kw">impl </span>Type {
-<a href=#2567 id=2567 data-nosnippet>2567</a>        <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
-<a href=#2568 id=2568 data-nosnippet>2568</a>        ///
-<a href=#2569 id=2569 data-nosnippet>2569</a>        /// The values are not transformed in any way and thus are considered stable
-<a href=#2570 id=2570 data-nosnippet>2570</a>        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-<a href=#2571 id=2571 data-nosnippet>2571</a>        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-<a href=#2572 id=2572 data-nosnippet>2572</a>            <span class="kw">match </span><span class="self">self </span>{
-<a href=#2573 id=2573 data-nosnippet>2573</a>                <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
-<a href=#2574 id=2574 data-nosnippet>2574</a>                <span class="self">Self</span>::Request =&gt; <span class="string">"REQUEST"</span>,
-<a href=#2575 id=2575 data-nosnippet>2575</a>                <span class="self">Self</span>::Response =&gt; <span class="string">"RESPONSE"</span>,
-<a href=#2576 id=2576 data-nosnippet>2576</a>            }
-<a href=#2577 id=2577 data-nosnippet>2577</a>        }
-<a href=#2578 id=2578 data-nosnippet>2578</a>        <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
-<a href=#2579 id=2579 data-nosnippet>2579</a>        </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
-<a href=#2580 id=2580 data-nosnippet>2580</a>            <span class="kw">match </span>value {
-<a href=#2581 id=2581 data-nosnippet>2581</a>                <span class="string">"UNKNOWN" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
-<a href=#2582 id=2582 data-nosnippet>2582</a>                <span class="string">"REQUEST" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Request),
-<a href=#2583 id=2583 data-nosnippet>2583</a>                <span class="string">"RESPONSE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Response),
-<a href=#2584 id=2584 data-nosnippet>2584</a>                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#2547 id=2547 data-nosnippet>2547</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2548 id=2548 data-nosnippet>2548</a></span><span class="kw">pub struct </span>WebSocketMessage {
+<a href=#2549 id=2549 data-nosnippet>2549</a>    <span class="attr">#[prost(enumeration = <span class="string">"web_socket_message::Type"</span>, optional, tag = <span class="string">"1"</span>)]
+<a href=#2550 id=2550 data-nosnippet>2550</a>    </span><span class="kw">pub </span>r#type: ::core::option::Option&lt;i32&gt;,
+<a href=#2551 id=2551 data-nosnippet>2551</a>    <span class="attr">#[prost(message, optional, tag = <span class="string">"2"</span>)]
+<a href=#2552 id=2552 data-nosnippet>2552</a>    </span><span class="kw">pub </span>request: ::core::option::Option&lt;WebSocketRequestMessage&gt;,
+<a href=#2553 id=2553 data-nosnippet>2553</a>    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
+<a href=#2554 id=2554 data-nosnippet>2554</a>    </span><span class="kw">pub </span>response: ::core::option::Option&lt;WebSocketResponseMessage&gt;,
+<a href=#2555 id=2555 data-nosnippet>2555</a>}
+<a href=#2556 id=2556 data-nosnippet>2556</a><span class="doccomment">/// Nested message and enum types in `WebSocketMessage`.
+<a href=#2557 id=2557 data-nosnippet>2557</a></span><span class="kw">pub mod </span>web_socket_message {
+<a href=#2558 id=2558 data-nosnippet>2558</a>    <span class="attr">#[derive(
+<a href=#2559 id=2559 data-nosnippet>2559</a>        Clone,
+<a href=#2560 id=2560 data-nosnippet>2560</a>        Copy,
+<a href=#2561 id=2561 data-nosnippet>2561</a>        Debug,
+<a href=#2562 id=2562 data-nosnippet>2562</a>        PartialEq,
+<a href=#2563 id=2563 data-nosnippet>2563</a>        Eq,
+<a href=#2564 id=2564 data-nosnippet>2564</a>        Hash,
+<a href=#2565 id=2565 data-nosnippet>2565</a>        PartialOrd,
+<a href=#2566 id=2566 data-nosnippet>2566</a>        Ord,
+<a href=#2567 id=2567 data-nosnippet>2567</a>        ::prost::Enumeration
+<a href=#2568 id=2568 data-nosnippet>2568</a>    )]
+<a href=#2569 id=2569 data-nosnippet>2569</a>    #[repr(i32)]
+<a href=#2570 id=2570 data-nosnippet>2570</a>    </span><span class="kw">pub enum </span>Type {
+<a href=#2571 id=2571 data-nosnippet>2571</a>        Unknown = <span class="number">0</span>,
+<a href=#2572 id=2572 data-nosnippet>2572</a>        Request = <span class="number">1</span>,
+<a href=#2573 id=2573 data-nosnippet>2573</a>        Response = <span class="number">2</span>,
+<a href=#2574 id=2574 data-nosnippet>2574</a>    }
+<a href=#2575 id=2575 data-nosnippet>2575</a>    <span class="kw">impl </span>Type {
+<a href=#2576 id=2576 data-nosnippet>2576</a>        <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
+<a href=#2577 id=2577 data-nosnippet>2577</a>        ///
+<a href=#2578 id=2578 data-nosnippet>2578</a>        /// The values are not transformed in any way and thus are considered stable
+<a href=#2579 id=2579 data-nosnippet>2579</a>        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+<a href=#2580 id=2580 data-nosnippet>2580</a>        </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#2581 id=2581 data-nosnippet>2581</a>            <span class="kw">match </span><span class="self">self </span>{
+<a href=#2582 id=2582 data-nosnippet>2582</a>                <span class="self">Self</span>::Unknown =&gt; <span class="string">"UNKNOWN"</span>,
+<a href=#2583 id=2583 data-nosnippet>2583</a>                <span class="self">Self</span>::Request =&gt; <span class="string">"REQUEST"</span>,
+<a href=#2584 id=2584 data-nosnippet>2584</a>                <span class="self">Self</span>::Response =&gt; <span class="string">"RESPONSE"</span>,
 <a href=#2585 id=2585 data-nosnippet>2585</a>            }
 <a href=#2586 id=2586 data-nosnippet>2586</a>        }
-<a href=#2587 id=2587 data-nosnippet>2587</a>    }
-<a href=#2588 id=2588 data-nosnippet>2588</a>}
-<a href=#2589 id=2589 data-nosnippet>2589</a><span class="doccomment">/// An opaque address sent by the server when clients first open a provisioning
-<a href=#2590 id=2590 data-nosnippet>2590</a>/// WebSocket
-<a href=#2591 id=2591 data-nosnippet>2591</a></span><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2592 id=2592 data-nosnippet>2592</a></span><span class="kw">pub struct </span>ProvisioningAddress {
-<a href=#2593 id=2593 data-nosnippet>2593</a>    <span class="doccomment">/// The opaque provisioning address for the active provisioning WebSocket
-<a href=#2594 id=2594 data-nosnippet>2594</a>    /// session; clients should not attempt to interpret or modify the contents
-<a href=#2595 id=2595 data-nosnippet>2595</a>    /// of the address string
-<a href=#2596 id=2596 data-nosnippet>2596</a>    </span><span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
-<a href=#2597 id=2597 data-nosnippet>2597</a>    </span><span class="kw">pub </span>address: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2598 id=2598 data-nosnippet>2598</a>}
-<a href=#2599 id=2599 data-nosnippet>2599</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2600 id=2600 data-nosnippet>2600</a></span><span class="kw">pub struct </span>ProvisionEnvelope {
-<a href=#2601 id=2601 data-nosnippet>2601</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
-<a href=#2602 id=2602 data-nosnippet>2602</a>    </span><span class="kw">pub </span>public_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2603 id=2603 data-nosnippet>2603</a>    <span class="doccomment">/// Encrypted ProvisionMessage
-<a href=#2604 id=2604 data-nosnippet>2604</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
-<a href=#2605 id=2605 data-nosnippet>2605</a>    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2606 id=2606 data-nosnippet>2606</a>}
-<a href=#2607 id=2607 data-nosnippet>2607</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2608 id=2608 data-nosnippet>2608</a></span><span class="kw">pub struct </span>ProvisionMessage {
-<a href=#2609 id=2609 data-nosnippet>2609</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
-<a href=#2610 id=2610 data-nosnippet>2610</a>    </span><span class="kw">pub </span>aci_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2611 id=2611 data-nosnippet>2611</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
-<a href=#2612 id=2612 data-nosnippet>2612</a>    </span><span class="kw">pub </span>aci_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2613 id=2613 data-nosnippet>2613</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"11"</span>)]
-<a href=#2614 id=2614 data-nosnippet>2614</a>    </span><span class="kw">pub </span>pni_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2615 id=2615 data-nosnippet>2615</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"12"</span>)]
-<a href=#2616 id=2616 data-nosnippet>2616</a>    </span><span class="kw">pub </span>pni_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2617 id=2617 data-nosnippet>2617</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"8"</span>)]
-<a href=#2618 id=2618 data-nosnippet>2618</a>    </span><span class="kw">pub </span>aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2619 id=2619 data-nosnippet>2619</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"10"</span>)]
-<a href=#2620 id=2620 data-nosnippet>2620</a>    </span><span class="kw">pub </span>pni: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2621 id=2621 data-nosnippet>2621</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
-<a href=#2622 id=2622 data-nosnippet>2622</a>    </span><span class="kw">pub </span>number: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2623 id=2623 data-nosnippet>2623</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"4"</span>)]
-<a href=#2624 id=2624 data-nosnippet>2624</a>    </span><span class="kw">pub </span>provisioning_code: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2625 id=2625 data-nosnippet>2625</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"5"</span>)]
-<a href=#2626 id=2626 data-nosnippet>2626</a>    </span><span class="kw">pub </span>user_agent: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2627 id=2627 data-nosnippet>2627</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"6"</span>)]
-<a href=#2628 id=2628 data-nosnippet>2628</a>    </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2629 id=2629 data-nosnippet>2629</a>    <span class="attr">#[prost(bool, optional, tag = <span class="string">"7"</span>)]
-<a href=#2630 id=2630 data-nosnippet>2630</a>    </span><span class="kw">pub </span>read_receipts: ::core::option::Option&lt;bool&gt;,
-<a href=#2631 id=2631 data-nosnippet>2631</a>    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"9"</span>)]
-<a href=#2632 id=2632 data-nosnippet>2632</a>    </span><span class="kw">pub </span>provisioning_version: ::core::option::Option&lt;u32&gt;,
-<a href=#2633 id=2633 data-nosnippet>2633</a>    <span class="doccomment">/// Deprecated, but required by linked devices
-<a href=#2634 id=2634 data-nosnippet>2634</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"13"</span>)]
-<a href=#2635 id=2635 data-nosnippet>2635</a>    </span><span class="kw">pub </span>master_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2636 id=2636 data-nosnippet>2636</a>    <span class="doccomment">/// 32 bytes
-<a href=#2637 id=2637 data-nosnippet>2637</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"14"</span>)]
-<a href=#2638 id=2638 data-nosnippet>2638</a>    </span><span class="kw">pub </span>ephemeral_backup_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2639 id=2639 data-nosnippet>2639</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"15"</span>)]
-<a href=#2640 id=2640 data-nosnippet>2640</a>    </span><span class="kw">pub </span>account_entropy_pool: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2641 id=2641 data-nosnippet>2641</a>    <span class="doccomment">/// 32-bytes
-<a href=#2642 id=2642 data-nosnippet>2642</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"16"</span>)]
-<a href=#2643 id=2643 data-nosnippet>2643</a>    </span><span class="kw">pub </span>media_root_backup_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2644 id=2644 data-nosnippet>2644</a>    <span class="doccomment">/// 16-byte UUID
-<a href=#2645 id=2645 data-nosnippet>2645</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"17"</span>)]
-<a href=#2646 id=2646 data-nosnippet>2646</a>    </span><span class="kw">pub </span>aci_binary: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2647 id=2647 data-nosnippet>2647</a>    <span class="doccomment">/// 16-byte UUID
-<a href=#2648 id=2648 data-nosnippet>2648</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"18"</span>)]
-<a href=#2649 id=2649 data-nosnippet>2649</a>    </span><span class="kw">pub </span>pni_binary: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2650 id=2650 data-nosnippet>2650</a>}
-<a href=#2651 id=2651 data-nosnippet>2651</a><span class="attr">#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
-<a href=#2652 id=2652 data-nosnippet>2652</a>#[repr(i32)]
-<a href=#2653 id=2653 data-nosnippet>2653</a></span><span class="kw">pub enum </span>ProvisioningVersion {
-<a href=#2654 id=2654 data-nosnippet>2654</a>    Initial = <span class="number">0</span>,
-<a href=#2655 id=2655 data-nosnippet>2655</a>    TabletSupport = <span class="number">1</span>,
-<a href=#2656 id=2656 data-nosnippet>2656</a>}
-<a href=#2657 id=2657 data-nosnippet>2657</a><span class="kw">impl </span>ProvisioningVersion {
-<a href=#2658 id=2658 data-nosnippet>2658</a>    <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
-<a href=#2659 id=2659 data-nosnippet>2659</a>    ///
-<a href=#2660 id=2660 data-nosnippet>2660</a>    /// The values are not transformed in any way and thus are considered stable
-<a href=#2661 id=2661 data-nosnippet>2661</a>    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
-<a href=#2662 id=2662 data-nosnippet>2662</a>    </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
-<a href=#2663 id=2663 data-nosnippet>2663</a>        <span class="kw">match </span><span class="self">self </span>{
-<a href=#2664 id=2664 data-nosnippet>2664</a>            <span class="self">Self</span>::Initial =&gt; <span class="string">"INITIAL"</span>,
-<a href=#2665 id=2665 data-nosnippet>2665</a>            <span class="self">Self</span>::TabletSupport =&gt; <span class="string">"TABLET_SUPPORT"</span>,
-<a href=#2666 id=2666 data-nosnippet>2666</a>        }
-<a href=#2667 id=2667 data-nosnippet>2667</a>    }
-<a href=#2668 id=2668 data-nosnippet>2668</a>    <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
-<a href=#2669 id=2669 data-nosnippet>2669</a>    </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
-<a href=#2670 id=2670 data-nosnippet>2670</a>        <span class="kw">match </span>value {
-<a href=#2671 id=2671 data-nosnippet>2671</a>            <span class="string">"INITIAL" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Initial),
-<a href=#2672 id=2672 data-nosnippet>2672</a>            <span class="string">"TABLET_SUPPORT" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::TabletSupport),
-<a href=#2673 id=2673 data-nosnippet>2673</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-<a href=#2674 id=2674 data-nosnippet>2674</a>        }
-<a href=#2675 id=2675 data-nosnippet>2675</a>    }
-<a href=#2676 id=2676 data-nosnippet>2676</a>}
-<a href=#2677 id=2677 data-nosnippet>2677</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2678 id=2678 data-nosnippet>2678</a></span><span class="kw">pub struct </span>Pack {
-<a href=#2679 id=2679 data-nosnippet>2679</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
-<a href=#2680 id=2680 data-nosnippet>2680</a>    </span><span class="kw">pub </span>title: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2681 id=2681 data-nosnippet>2681</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
-<a href=#2682 id=2682 data-nosnippet>2682</a>    </span><span class="kw">pub </span>author: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2683 id=2683 data-nosnippet>2683</a>    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
-<a href=#2684 id=2684 data-nosnippet>2684</a>    </span><span class="kw">pub </span>cover: ::core::option::Option&lt;pack::Sticker&gt;,
-<a href=#2685 id=2685 data-nosnippet>2685</a>    <span class="attr">#[prost(message, repeated, tag = <span class="string">"4"</span>)]
-<a href=#2686 id=2686 data-nosnippet>2686</a>    </span><span class="kw">pub </span>stickers: ::prost::alloc::vec::Vec&lt;pack::Sticker&gt;,
-<a href=#2687 id=2687 data-nosnippet>2687</a>}
-<a href=#2688 id=2688 data-nosnippet>2688</a><span class="doccomment">/// Nested message and enum types in `Pack`.
-<a href=#2689 id=2689 data-nosnippet>2689</a></span><span class="kw">pub mod </span>pack {
-<a href=#2690 id=2690 data-nosnippet>2690</a>    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2691 id=2691 data-nosnippet>2691</a>    </span><span class="kw">pub struct </span>Sticker {
-<a href=#2692 id=2692 data-nosnippet>2692</a>        <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
-<a href=#2693 id=2693 data-nosnippet>2693</a>        </span><span class="kw">pub </span>id: ::core::option::Option&lt;u32&gt;,
-<a href=#2694 id=2694 data-nosnippet>2694</a>        <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
-<a href=#2695 id=2695 data-nosnippet>2695</a>        </span><span class="kw">pub </span>emoji: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2696 id=2696 data-nosnippet>2696</a>        <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
-<a href=#2697 id=2697 data-nosnippet>2697</a>        </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
-<a href=#2698 id=2698 data-nosnippet>2698</a>    }
-<a href=#2699 id=2699 data-nosnippet>2699</a>}
-<a href=#2700 id=2700 data-nosnippet>2700</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
-<a href=#2701 id=2701 data-nosnippet>2701</a></span><span class="kw">pub struct </span>DeviceName {
-<a href=#2702 id=2702 data-nosnippet>2702</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
-<a href=#2703 id=2703 data-nosnippet>2703</a>    </span><span class="kw">pub </span>ephemeral_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2704 id=2704 data-nosnippet>2704</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
-<a href=#2705 id=2705 data-nosnippet>2705</a>    </span><span class="kw">pub </span>synthetic_iv: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
-<a href=#2706 id=2706 data-nosnippet>2706</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"3"</span>)]
-<a href=#2707 id=2707 data-nosnippet>2707</a>    </span><span class="kw">pub </span>ciphertext: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2587 id=2587 data-nosnippet>2587</a>        <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
+<a href=#2588 id=2588 data-nosnippet>2588</a>        </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
+<a href=#2589 id=2589 data-nosnippet>2589</a>            <span class="kw">match </span>value {
+<a href=#2590 id=2590 data-nosnippet>2590</a>                <span class="string">"UNKNOWN" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Unknown),
+<a href=#2591 id=2591 data-nosnippet>2591</a>                <span class="string">"REQUEST" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Request),
+<a href=#2592 id=2592 data-nosnippet>2592</a>                <span class="string">"RESPONSE" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Response),
+<a href=#2593 id=2593 data-nosnippet>2593</a>                <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#2594 id=2594 data-nosnippet>2594</a>            }
+<a href=#2595 id=2595 data-nosnippet>2595</a>        }
+<a href=#2596 id=2596 data-nosnippet>2596</a>    }
+<a href=#2597 id=2597 data-nosnippet>2597</a>}
+<a href=#2598 id=2598 data-nosnippet>2598</a><span class="doccomment">/// An opaque address sent by the server when clients first open a provisioning
+<a href=#2599 id=2599 data-nosnippet>2599</a>/// WebSocket
+<a href=#2600 id=2600 data-nosnippet>2600</a></span><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2601 id=2601 data-nosnippet>2601</a></span><span class="kw">pub struct </span>ProvisioningAddress {
+<a href=#2602 id=2602 data-nosnippet>2602</a>    <span class="doccomment">/// The opaque provisioning address for the active provisioning WebSocket
+<a href=#2603 id=2603 data-nosnippet>2603</a>    /// session; clients should not attempt to interpret or modify the contents
+<a href=#2604 id=2604 data-nosnippet>2604</a>    /// of the address string
+<a href=#2605 id=2605 data-nosnippet>2605</a>    </span><span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
+<a href=#2606 id=2606 data-nosnippet>2606</a>    </span><span class="kw">pub </span>address: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2607 id=2607 data-nosnippet>2607</a>}
+<a href=#2608 id=2608 data-nosnippet>2608</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2609 id=2609 data-nosnippet>2609</a></span><span class="kw">pub struct </span>ProvisionEnvelope {
+<a href=#2610 id=2610 data-nosnippet>2610</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
+<a href=#2611 id=2611 data-nosnippet>2611</a>    </span><span class="kw">pub </span>public_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2612 id=2612 data-nosnippet>2612</a>    <span class="doccomment">/// Encrypted ProvisionMessage
+<a href=#2613 id=2613 data-nosnippet>2613</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
+<a href=#2614 id=2614 data-nosnippet>2614</a>    </span><span class="kw">pub </span>body: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2615 id=2615 data-nosnippet>2615</a>}
+<a href=#2616 id=2616 data-nosnippet>2616</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2617 id=2617 data-nosnippet>2617</a></span><span class="kw">pub struct </span>ProvisionMessage {
+<a href=#2618 id=2618 data-nosnippet>2618</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"1"</span>)]
+<a href=#2619 id=2619 data-nosnippet>2619</a>    </span><span class="kw">pub </span>aci_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2620 id=2620 data-nosnippet>2620</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"2"</span>)]
+<a href=#2621 id=2621 data-nosnippet>2621</a>    </span><span class="kw">pub </span>aci_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2622 id=2622 data-nosnippet>2622</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"11"</span>)]
+<a href=#2623 id=2623 data-nosnippet>2623</a>    </span><span class="kw">pub </span>pni_identity_key_public: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2624 id=2624 data-nosnippet>2624</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"12"</span>)]
+<a href=#2625 id=2625 data-nosnippet>2625</a>    </span><span class="kw">pub </span>pni_identity_key_private: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2626 id=2626 data-nosnippet>2626</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"8"</span>)]
+<a href=#2627 id=2627 data-nosnippet>2627</a>    </span><span class="kw">pub </span>aci: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2628 id=2628 data-nosnippet>2628</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"10"</span>)]
+<a href=#2629 id=2629 data-nosnippet>2629</a>    </span><span class="kw">pub </span>pni: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2630 id=2630 data-nosnippet>2630</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
+<a href=#2631 id=2631 data-nosnippet>2631</a>    </span><span class="kw">pub </span>number: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2632 id=2632 data-nosnippet>2632</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"4"</span>)]
+<a href=#2633 id=2633 data-nosnippet>2633</a>    </span><span class="kw">pub </span>provisioning_code: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2634 id=2634 data-nosnippet>2634</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"5"</span>)]
+<a href=#2635 id=2635 data-nosnippet>2635</a>    </span><span class="kw">pub </span>user_agent: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2636 id=2636 data-nosnippet>2636</a>    <span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"6"</span>)]
+<a href=#2637 id=2637 data-nosnippet>2637</a>    </span><span class="kw">pub </span>profile_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2638 id=2638 data-nosnippet>2638</a>    <span class="attr">#[prost(bool, optional, tag = <span class="string">"7"</span>)]
+<a href=#2639 id=2639 data-nosnippet>2639</a>    </span><span class="kw">pub </span>read_receipts: ::core::option::Option&lt;bool&gt;,
+<a href=#2640 id=2640 data-nosnippet>2640</a>    <span class="attr">#[prost(uint32, optional, tag = <span class="string">"9"</span>)]
+<a href=#2641 id=2641 data-nosnippet>2641</a>    </span><span class="kw">pub </span>provisioning_version: ::core::option::Option&lt;u32&gt;,
+<a href=#2642 id=2642 data-nosnippet>2642</a>    <span class="doccomment">/// Deprecated, but required by linked devices
+<a href=#2643 id=2643 data-nosnippet>2643</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"13"</span>)]
+<a href=#2644 id=2644 data-nosnippet>2644</a>    </span><span class="kw">pub </span>master_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2645 id=2645 data-nosnippet>2645</a>    <span class="doccomment">/// 32 bytes
+<a href=#2646 id=2646 data-nosnippet>2646</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"14"</span>)]
+<a href=#2647 id=2647 data-nosnippet>2647</a>    </span><span class="kw">pub </span>ephemeral_backup_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2648 id=2648 data-nosnippet>2648</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"15"</span>)]
+<a href=#2649 id=2649 data-nosnippet>2649</a>    </span><span class="kw">pub </span>account_entropy_pool: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2650 id=2650 data-nosnippet>2650</a>    <span class="doccomment">/// 32-bytes
+<a href=#2651 id=2651 data-nosnippet>2651</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"16"</span>)]
+<a href=#2652 id=2652 data-nosnippet>2652</a>    </span><span class="kw">pub </span>media_root_backup_key: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2653 id=2653 data-nosnippet>2653</a>    <span class="doccomment">/// 16-byte UUID
+<a href=#2654 id=2654 data-nosnippet>2654</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"17"</span>)]
+<a href=#2655 id=2655 data-nosnippet>2655</a>    </span><span class="kw">pub </span>aci_binary: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2656 id=2656 data-nosnippet>2656</a>    <span class="doccomment">/// 16-byte UUID
+<a href=#2657 id=2657 data-nosnippet>2657</a>    </span><span class="attr">#[prost(bytes = <span class="string">"vec"</span>, optional, tag = <span class="string">"18"</span>)]
+<a href=#2658 id=2658 data-nosnippet>2658</a>    </span><span class="kw">pub </span>pni_binary: ::core::option::Option&lt;::prost::alloc::vec::Vec&lt;u8&gt;&gt;,
+<a href=#2659 id=2659 data-nosnippet>2659</a>}
+<a href=#2660 id=2660 data-nosnippet>2660</a><span class="attr">#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+<a href=#2661 id=2661 data-nosnippet>2661</a>#[repr(i32)]
+<a href=#2662 id=2662 data-nosnippet>2662</a></span><span class="kw">pub enum </span>ProvisioningVersion {
+<a href=#2663 id=2663 data-nosnippet>2663</a>    Initial = <span class="number">0</span>,
+<a href=#2664 id=2664 data-nosnippet>2664</a>    TabletSupport = <span class="number">1</span>,
+<a href=#2665 id=2665 data-nosnippet>2665</a>}
+<a href=#2666 id=2666 data-nosnippet>2666</a><span class="kw">impl </span>ProvisioningVersion {
+<a href=#2667 id=2667 data-nosnippet>2667</a>    <span class="doccomment">/// String value of the enum field names used in the ProtoBuf definition.
+<a href=#2668 id=2668 data-nosnippet>2668</a>    ///
+<a href=#2669 id=2669 data-nosnippet>2669</a>    /// The values are not transformed in any way and thus are considered stable
+<a href=#2670 id=2670 data-nosnippet>2670</a>    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+<a href=#2671 id=2671 data-nosnippet>2671</a>    </span><span class="kw">pub fn </span>as_str_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">'static </span>str {
+<a href=#2672 id=2672 data-nosnippet>2672</a>        <span class="kw">match </span><span class="self">self </span>{
+<a href=#2673 id=2673 data-nosnippet>2673</a>            <span class="self">Self</span>::Initial =&gt; <span class="string">"INITIAL"</span>,
+<a href=#2674 id=2674 data-nosnippet>2674</a>            <span class="self">Self</span>::TabletSupport =&gt; <span class="string">"TABLET_SUPPORT"</span>,
+<a href=#2675 id=2675 data-nosnippet>2675</a>        }
+<a href=#2676 id=2676 data-nosnippet>2676</a>    }
+<a href=#2677 id=2677 data-nosnippet>2677</a>    <span class="doccomment">/// Creates an enum from field names used in the ProtoBuf definition.
+<a href=#2678 id=2678 data-nosnippet>2678</a>    </span><span class="kw">pub fn </span>from_str_name(value: <span class="kw-2">&amp;</span>str) -&gt; ::core::option::Option&lt;<span class="self">Self</span>&gt; {
+<a href=#2679 id=2679 data-nosnippet>2679</a>        <span class="kw">match </span>value {
+<a href=#2680 id=2680 data-nosnippet>2680</a>            <span class="string">"INITIAL" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::Initial),
+<a href=#2681 id=2681 data-nosnippet>2681</a>            <span class="string">"TABLET_SUPPORT" </span>=&gt; <span class="prelude-val">Some</span>(<span class="self">Self</span>::TabletSupport),
+<a href=#2682 id=2682 data-nosnippet>2682</a>            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
+<a href=#2683 id=2683 data-nosnippet>2683</a>        }
+<a href=#2684 id=2684 data-nosnippet>2684</a>    }
+<a href=#2685 id=2685 data-nosnippet>2685</a>}
+<a href=#2686 id=2686 data-nosnippet>2686</a><span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2687 id=2687 data-nosnippet>2687</a></span><span class="kw">pub struct </span>Pack {
+<a href=#2688 id=2688 data-nosnippet>2688</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"1"</span>)]
+<a href=#2689 id=2689 data-nosnippet>2689</a>    </span><span class="kw">pub </span>title: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2690 id=2690 data-nosnippet>2690</a>    <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
+<a href=#2691 id=2691 data-nosnippet>2691</a>    </span><span class="kw">pub </span>author: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2692 id=2692 data-nosnippet>2692</a>    <span class="attr">#[prost(message, optional, tag = <span class="string">"3"</span>)]
+<a href=#2693 id=2693 data-nosnippet>2693</a>    </span><span class="kw">pub </span>cover: ::core::option::Option&lt;pack::Sticker&gt;,
+<a href=#2694 id=2694 data-nosnippet>2694</a>    <span class="attr">#[prost(message, repeated, tag = <span class="string">"4"</span>)]
+<a href=#2695 id=2695 data-nosnippet>2695</a>    </span><span class="kw">pub </span>stickers: ::prost::alloc::vec::Vec&lt;pack::Sticker&gt;,
+<a href=#2696 id=2696 data-nosnippet>2696</a>}
+<a href=#2697 id=2697 data-nosnippet>2697</a><span class="doccomment">/// Nested message and enum types in `Pack`.
+<a href=#2698 id=2698 data-nosnippet>2698</a></span><span class="kw">pub mod </span>pack {
+<a href=#2699 id=2699 data-nosnippet>2699</a>    <span class="attr">#[derive(Clone, PartialEq, ::prost::Message)]
+<a href=#2700 id=2700 data-nosnippet>2700</a>    </span><span class="kw">pub struct </span>Sticker {
+<a href=#2701 id=2701 data-nosnippet>2701</a>        <span class="attr">#[prost(uint32, optional, tag = <span class="string">"1"</span>)]
+<a href=#2702 id=2702 data-nosnippet>2702</a>        </span><span class="kw">pub </span>id: ::core::option::Option&lt;u32&gt;,
+<a href=#2703 id=2703 data-nosnippet>2703</a>        <span class="attr">#[prost(string, optional, tag = <span class="string">"2"</span>)]
+<a href=#2704 id=2704 data-nosnippet>2704</a>        </span><span class="kw">pub </span>emoji: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2705 id=2705 data-nosnippet>2705</a>        <span class="attr">#[prost(string, optional, tag = <span class="string">"3"</span>)]
+<a href=#2706 id=2706 data-nosnippet>2706</a>        </span><span class="kw">pub </span>content_type: ::core::option::Option&lt;::prost::alloc::string::String&gt;,
+<a href=#2707 id=2707 data-nosnippet>2707</a>    }
 <a href=#2708 id=2708 data-nosnippet>2708</a>}
 </code></pre></div></section></main></body></html>
