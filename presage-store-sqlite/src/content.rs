@@ -678,6 +678,31 @@ impl ContentsStore for SqliteStore {
         .await?;
         Ok(Box::new(sql_packs.into_iter().map(|pack| Ok(pack.into()))))
     }
+
+    async fn thread_for_sender_and_timestamp(
+        &self,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> Result<Option<Thread>, Self::ContentsStoreError> {
+        let timestamp: i64 = timestamp
+            .try_into()
+            .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let sender_service_id = sender.service_id_string();
+        let thread = query!(r#"SELECT group_master_key, recipient_id AS "recipient_id: Uuid" FROM threads JOIN thread_messages ON threads.id = thread_messages.thread_id WHERE sender_service_id = ? AND ts = ?"#, sender_service_id, timestamp)
+            .fetch_optional(&self.db).await?;
+
+        let Some(thread) = thread else {
+            return Ok(None);
+        };
+
+        match (thread.group_master_key, thread.recipient_id) {
+            (Some(group_master_key), None) => {
+                Ok(group_master_key.try_into().ok().map(Thread::Group))
+            }
+            (None, Some(contact)) => Ok(Some(Thread::Contact(ServiceId::Aci(contact.into())))),
+            _ => panic!("Thread table stored both group master key and recipient"),
+        }
+    }
 }
 
 trait ThreadExt {

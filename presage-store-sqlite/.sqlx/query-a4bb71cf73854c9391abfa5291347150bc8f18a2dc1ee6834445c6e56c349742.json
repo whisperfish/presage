@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT group_master_key, recipient_id AS \"recipient_id: Uuid\" FROM threads JOIN thread_messages ON threads.id = thread_messages.thread_id WHERE sender_service_id = ? AND ts = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "group_master_key",
+        "ordinal": 0,
+        "type_info": "Blob"
+      },
+      {
+        "name": "recipient_id: Uuid",
+        "ordinal": 1,
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      true
+    ]
+  },
+  "hash": "a4bb71cf73854c9391abfa5291347150bc8f18a2dc1ee6834445c6e56c349742"
+}
