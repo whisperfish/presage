@@ -139,6 +139,13 @@ pub trait ContentsStore: Send + Sync {
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
 
+    /// Retrieve a message [Thread] from its sender and timestamp.
+    fn thread_for_sender_and_timestamp(
+        &self,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> impl Future<Output = Result<Option<Thread>, Self::ContentsStoreError>>;
+
     /// Retrieve all messages from a [Thread] within a range in time
     fn messages(
         &self,
