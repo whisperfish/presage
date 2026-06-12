@@ -1720,14 +1720,18 @@ async fn save_message<S: Store>(
                 });
             }
 
-            let version = data_message.expire_timer_version.unwrap_or(1);
-            store
-                .update_expire_timer(
-                    &thread,
-                    data_message.expire_timer.unwrap_or_default(),
-                    version,
-                )
-                .await?;
+            // Note: The expire timer fields of data messages are only for contacts.
+            // Expire timers are handled for groups via upsert_group due to a revision change.
+            if let Thread::Contact(_) = thread {
+                let version = data_message.expire_timer_version.unwrap_or(1);
+                store
+                    .update_expire_timer(
+                        &thread,
+                        dbg!(data_message.expire_timer).unwrap_or_default(),
+                        version,
+                    )
+                    .await?;
+            }
 
             match data_message {
                 DataMessage {
