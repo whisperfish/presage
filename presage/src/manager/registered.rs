@@ -1727,7 +1727,7 @@ async fn save_message<S: Store>(
                 store
                     .update_expire_timer(
                         &thread,
-                        dbg!(data_message.expire_timer).unwrap_or_default(),
+                        data_message.expire_timer.unwrap_or_default(),
                         version,
                     )
                     .await?;
