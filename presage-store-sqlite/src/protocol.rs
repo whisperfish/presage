@@ -164,7 +164,12 @@ impl SessionStoreExt for SqliteProtocolStore {
     ///
     /// Returns the number of deleted sessions.
     async fn delete_all_sessions(&self, name: &ServiceId) -> Result<usize, SignalProtocolError> {
-        let address = name.raw_uuid();
+        // Must match the address encoding used by store_session, which keys
+        // rows by ProtocolAddress::name() — i.e. ServiceId::service_id_string()
+        // ("<uuid>" for ACI, "PNI:<uuid>" for PNI). Previously this used
+        // raw_uuid(), which sqlx binds as a 16-byte BLOB, so DELETE never
+        // matched any stored row and the call was a silent no-op.
+        let address = name.service_id_string();
         let res = query!(
             "DELETE FROM sessions WHERE address = ? AND identity = ?",
             address,

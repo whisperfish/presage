@@ -2,7 +2,8 @@
 
 mod confirmation;
 mod linking;
-mod registered;
+#[doc(hidden)]
+pub mod registered;
 mod registration;
 
 use std::{fmt, sync::Arc};
