@@ -148,6 +148,8 @@ impl<S: Store> Manager<S, Confirmation> {
                 registration_id,
                 pni_registration_id: Some(pni_registration_id),
                 profile_key,
+                // Primary registration mints its own keys; no incoming AEP.
+                account_entropy_pool: None,
             })),
         };
 
