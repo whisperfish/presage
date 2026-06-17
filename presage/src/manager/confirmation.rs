@@ -9,9 +9,10 @@ use libsignal_service::provisioning::generate_registration_id;
 use libsignal_service::push_service::ServiceIds;
 use libsignal_service::utils::TryIntoE164;
 use libsignal_service::websocket::account::{AccountAttributes, DeviceCapabilities};
-use libsignal_service::websocket::registration::{RegistrationMethod, VerifyAccountResponse};
+use libsignal_service::websocket::registration::{
+    RegistrationMethod, VerifyAccountResponse,
+};
 use libsignal_service::zkgroup::profiles::ProfileKey;
-use libsignal_service::AccountManager;
 use rand::RngCore;
 use tracing::trace;
 
@@ -64,17 +65,10 @@ impl<S: Store> Manager<S, Confirmation> {
             device_id: None,
         };
 
-        let mut identified_push_service = PushService::new(
-            *signal_servers,
-            Some(credentials.clone()),
-            crate::USER_AGENT,
-        );
+        let identified_push_service =
+            PushService::new(*signal_servers, Some(credentials), crate::USER_AGENT);
 
-        let mut identified_websocket = identified_push_service
-            .ws("/v1/websocket/", "/v1/keepalive", &[], Some(credentials))
-            .await?;
-
-        let session = identified_websocket
+        let session = identified_push_service
             .submit_verification_code(session_id, confirmation_code.as_ref())
             .await?;
 
@@ -93,7 +87,7 @@ impl<S: Store> Manager<S, Confirmation> {
         rng.fill_bytes(&mut profile_key);
         let profile_key = ProfileKey::generate(profile_key);
 
-        // generate new identity keys used in `register_account` and below
+        // generate new identity keys used in registration
         self.store
             .set_aci_identity_key_pair(IdentityKeyPair::generate(&mut rng))
             .await?;
@@ -102,34 +96,30 @@ impl<S: Store> Manager<S, Confirmation> {
             .await?;
 
         let skip_device_transfer = true;
-        let mut account_manager = AccountManager::new(
-            identified_push_service,
-            identified_websocket,
-            Some(profile_key),
-        );
+        let account_attributes = AccountAttributes {
+            fetches_messages: true,
+            registration_id,
+            pni_registration_id,
+            name: None,
+            registration_lock: None,
+            unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
+            unrestricted_unidentified_access: false, // TODO: make this configurable?
+            capabilities: DeviceCapabilities::default(),
+            discoverable_by_phone_number: true,
+            pin: None,
+            recovery_password: None,
+        };
 
         let VerifyAccountResponse {
             aci,
             pni,
             storage_capable: _,
             number: _,
-        } = account_manager
+        } = identified_push_service
             .register_account(
                 &mut rng,
                 RegistrationMethod::SessionId(&session.id),
-                AccountAttributes {
-                    fetches_messages: true,
-                    registration_id,
-                    pni_registration_id,
-                    name: None,
-                    registration_lock: None,
-                    unidentified_access_key: Some(profile_key.derive_access_key().to_vec()),
-                    unrestricted_unidentified_access: false, // TODO: make this configurable?
-                    capabilities: DeviceCapabilities::default(),
-                    discoverable_by_phone_number: true,
-                    pin: None,
-                    recovery_password: None,
-                },
+                account_attributes,
                 &mut self.store.aci_protocol_store(),
                 &mut self.store.pni_protocol_store(),
                 skip_device_transfer,
