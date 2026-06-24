@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use bytes::Bytes;
+use chrono::{TimeZone, Utc};
 use presage::{
     libsignal_service::{
         Profile,
@@ -189,6 +190,7 @@ impl SqlGroup<'_> {
 #[derive(Debug)]
 pub struct SqlMessage {
     pub ts: u64,
+    pub server_ts: Option<u64>,
 
     pub sender_service_id: String,
     pub sender_device_id: u8,
@@ -203,10 +205,11 @@ pub struct SqlMessage {
 impl TryInto<Content> for SqlMessage {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument(skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
+    #[tracing::instrument(skip(self), fields(self.ts = %self.ts, self.server_ts = ?self.server_ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
     fn try_into(self) -> Result<Content, Self::Error> {
         let Self {
             ts,
+            server_ts,
             sender_service_id,
             sender_device_id,
             destination_service_id,
@@ -225,7 +228,11 @@ impl TryInto<Content> for SqlMessage {
             sender,
             destination,
             sender_device: sender_device_id.try_into()?,
-            timestamp: ts,
+            timestamp: Utc.timestamp_millis_opt(ts as i64).unwrap(),
+            // Not every message may have a server timestamp stored; fall back to the regular timestamp.
+            server_timestamp: Utc
+                .timestamp_millis_opt(server_ts.unwrap_or(ts) as i64)
+                .unwrap(),
             needs_receipt,
             unidentified_sender,
             server_guid: None,

@@ -145,6 +145,7 @@ impl ContentsStore for SqliteStore {
             unidentified_sender,
             server_guid: _,
             was_plaintext,
+            server_timestamp: _,
         } = metadata;
 
         let sender_device: u8 = sender_device.into();
@@ -152,9 +153,7 @@ impl ContentsStore for SqliteStore {
         let destination_service_id = destination.service_id_string();
 
         let proto_bytes = prost::Message::encode_to_vec(&body.into_proto());
-        let timestamp: i64 = timestamp
-            .try_into()
-            .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let timestamp = timestamp.timestamp_millis();
 
         query!(
             "INSERT OR REPLACE INTO thread_messages (
@@ -221,6 +220,7 @@ impl ContentsStore for SqliteStore {
             SqlMessage,
             r#"SELECT
                 ts AS "ts: _",
+                server_ts AS "server_ts: _",
                 sender_service_id,
                 sender_device_id AS "sender_device_id: _",
                 destination_service_id,
@@ -254,6 +254,7 @@ impl ContentsStore for SqliteStore {
             SqlMessage,
             r#"SELECT
                 ts AS "ts: _",
+                server_ts AS "server_ts: _",
                 sender_service_id,
                 sender_device_id AS "sender_device_id: _",
                 destination_service_id,

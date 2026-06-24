@@ -2,6 +2,7 @@ use std::fmt;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::proto::addressable_message::Author;
 use libsignal_service::protocol::ProtocolAddress;
@@ -1044,7 +1045,9 @@ impl<S: Store> Manager<S, Registered> {
                 sender_device: self.state.device_id(),
                 destination: recipient,
                 server_guid: None,
-                timestamp,
+                timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
+                // Note: Currently no way to get the timestamp the server received the message; just use our timestamp as a fallback.
+                server_timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
                 needs_receipt: false,
                 unidentified_sender: false,
                 was_plaintext: false,
@@ -1170,7 +1173,9 @@ impl<S: Store> Manager<S, Registered> {
                 destination: self.state.data.service_ids.aci().into(),
                 sender_device: self.state.device_id(),
                 server_guid: None,
-                timestamp,
+                timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
+                // Note: Currently no way to get the timestamp the server received the message; just use our timestamp as a fallback.
+                server_timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
                 was_plaintext: false,

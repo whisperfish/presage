@@ -1,0 +1,68 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                ts AS \"ts: _\",\n                server_ts AS \"server_ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext\n            FROM thread_messages\n            WHERE ts = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
+  "describe": {
+    "columns": [
+      {
+        "name": "ts: _",
+        "ordinal": 0,
+        "type_info": "Integer"
+      },
+      {
+        "name": "server_ts: _",
+        "ordinal": 1,
+        "type_info": "Integer"
+      },
+      {
+        "name": "sender_service_id",
+        "ordinal": 2,
+        "type_info": "Text"
+      },
+      {
+        "name": "sender_device_id: _",
+        "ordinal": 3,
+        "type_info": "Integer"
+      },
+      {
+        "name": "destination_service_id",
+        "ordinal": 4,
+        "type_info": "Text"
+      },
+      {
+        "name": "needs_receipt",
+        "ordinal": 5,
+        "type_info": "Bool"
+      },
+      {
+        "name": "unidentified_sender",
+        "ordinal": 6,
+        "type_info": "Bool"
+      },
+      {
+        "name": "content_body",
+        "ordinal": 7,
+        "type_info": "Blob"
+      },
+      {
+        "name": "was_plaintext",
+        "ordinal": 8,
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "412acc89a86a2d1f67ea5cdcd29d23b23ec71c7a27bf54b792e003d5722bd29c"
+}

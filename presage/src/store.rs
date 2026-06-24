@@ -1,6 +1,6 @@
 //! Traits that are used by the manager for storing the data.
 
-use std::{fmt, future::Future, ops::RangeBounds, time::SystemTime};
+use std::{fmt, future::Future, ops::RangeBounds};
 
 use libsignal_service::{
     content::{ContentBody, Metadata},
@@ -529,7 +529,7 @@ impl ContentExt for Content {
                 target_sent_timestamp: Some(ts),
                 ..
             }) => ts,
-            _ => self.metadata.timestamp,
+            _ => self.metadata.timestamp.timestamp_millis() as u64,
         }
     }
 }
@@ -602,10 +602,9 @@ pub async fn save_trusted_identity_message<S: Store>(
             destination: sender,
             sender_device: *DEFAULT_DEVICE_ID,
             server_guid: None,
-            timestamp: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            timestamp: chrono::Utc::now(),
+            // No messages were sent, just use the current time as the server timestamp.
+            server_timestamp: chrono::Utc::now(),
             needs_receipt: false,
             unidentified_sender: false,
             was_plaintext: false,

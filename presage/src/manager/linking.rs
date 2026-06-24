@@ -126,6 +126,8 @@ impl<S: Store> Manager<S, Linking> {
                 pni_private_key,
                 pni_public_key,
                 profile_key,
+                master_key: _,
+                account_entropy_pool: _,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
