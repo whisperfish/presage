@@ -42,7 +42,7 @@ pub struct SqlContact {
 impl TryInto<Contact> for SqlContact {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     fn try_into(self) -> Result<Contact, Self::Error> {
         Ok(Contact {
             uuid: self.uuid,
@@ -130,7 +130,7 @@ pub(crate) struct SqlGroup<'a> {
 }
 
 impl SqlGroup<'_> {
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     pub fn from_group(master_key: &GroupMasterKeyBytes, group: Group) -> SqlGroup<'_> {
         SqlGroup {
             master_key: Cow::Borrowed(master_key.as_slice()),
@@ -149,7 +149,7 @@ impl SqlGroup<'_> {
         }
     }
 
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     pub fn into_group(self) -> Result<(GroupMasterKeyBytes, Group), SqliteStoreError> {
         let Self {
             master_key,
@@ -203,7 +203,7 @@ pub struct SqlMessage {
 impl TryInto<Content> for SqlMessage {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument(skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
     fn try_into(self) -> Result<Content, Self::Error> {
         let Self {
             ts,
