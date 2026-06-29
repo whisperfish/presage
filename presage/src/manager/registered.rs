@@ -779,7 +779,6 @@ impl<S: Store> Manager<S, Registered> {
                                             .await
                                         {
                                             Ok(contacts) => {
-                                                let _ = state.store.clear_contacts().await;
                                                 info!("saving contacts");
                                                 for contact in contacts.filter_map(Result::ok) {
                                                     if let Err(error) = state
