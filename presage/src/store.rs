@@ -5,6 +5,7 @@ use std::{fmt, future::Future, ops::RangeBounds};
 use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
+    libsignal_account_keys::AccountEntropyPool,
     pre_keys::PreKeysStore,
     prelude::{Content, MasterKey, ProfileKey, Uuid},
     proto::{
@@ -79,6 +80,15 @@ pub trait StateStore {
     fn store_master_key(
         &self,
         master_key: Option<&MasterKey>,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+
+    fn fetch_account_entropy_pool(
+        &self,
+    ) -> impl Future<Output = Result<Option<AccountEntropyPool>, Self::StateStoreError>>;
+
+    fn store_account_entropy_pool(
+        &self,
+        aep: Option<&AccountEntropyPool>,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 }
 

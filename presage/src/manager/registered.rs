@@ -4,8 +4,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::libsignal_account_keys::AccountEntropyPool;
 use libsignal_service::proto::addressable_message::Author;
 use libsignal_service::protocol::ProtocolAddress;
+use libsignal_service::provisioning::ProvisioningSecrets;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -330,13 +332,28 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     async fn master_key(&self) -> Result<MasterKey, Error<S::Error>> {
+        // TODO: May need to get from the account entropy pool instead.
         let from_store = self.store().fetch_master_key().await?;
 
         if let Some(key) = from_store {
             Ok(key)
         } else {
+            // TODO: Should use key sync instead of generating for secondary devices.
             let key = MasterKey::generate(&mut rand::rng());
             self.store().store_master_key(Some(&key)).await?;
+            Ok(key)
+        }
+    }
+
+    async fn account_entropy_pool(&self) -> Result<AccountEntropyPool, Error<S::Error>> {
+        let from_store = self.store().fetch_account_entropy_pool().await?;
+
+        if let Some(key) = from_store {
+            Ok(key)
+        } else {
+            // TODO: Should use key sync instead of generating for secondary devices.
+            let key = AccountEntropyPool::generate(&mut rand::rng());
+            self.store().store_account_entropy_pool(Some(&key)).await?;
             Ok(key)
         }
     }
@@ -579,6 +596,7 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: ServiceIds,
             message_sender: MessageSender<AciStore>,
             master_key: MasterKey,
+            account_entropy_pool: AccountEntropyPool,
         }
 
         let identified_push_service = self.identified_push_service();
@@ -629,6 +647,7 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
             master_key: self.master_key().await?,
+            account_entropy_pool: self.account_entropy_pool().await?,
         };
 
         debug!("starting to consume incoming message stream");
@@ -726,11 +745,12 @@ impl<S: Store> Manager<S, Registered> {
                                             RequestType::Keys => {
                                                 let mut message_sender =
                                                     state.message_sender.clone();
+                                                let aep = state.account_entropy_pool.to_string();
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender.send_sync_message(SyncMessage {
                                                         keys: Some(libsignal_service::content::sync_message::Keys {
                                                             master: Some(state.master_key.inner.to_vec()),
-                                                            account_entropy_pool: None,
+                                                            account_entropy_pool: Some(aep),
                                                             media_root_backup_key: None,
                                                         }),
                                                         ..SyncMessage::with_padding(&mut rand::rng())
@@ -1482,8 +1502,13 @@ impl<S: Store> Manager<S, Registered> {
                 secondary,
                 &self.store.aci_protocol_store(),
                 &self.store.pni_protocol_store(),
-                credentials,
-                Some(self.master_key().await?),
+                ProvisioningSecrets {
+                    credentials,
+                    account_entropy_pool: self.account_entropy_pool().await?,
+                    master_key: Some(self.master_key().await?),
+                    ephemeral_backup_key: None,
+                    media_root_backup_key: None,
+                },
             )
             .await?;
         Ok(())

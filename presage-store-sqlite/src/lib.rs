@@ -1,7 +1,9 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, str::FromStr};
 
 use presage::{
-    libsignal_service::{prelude::MasterKey, protocol::SenderCertificate},
+    libsignal_service::{
+        libsignal_account_keys::AccountEntropyPool, prelude::MasterKey, protocol::SenderCertificate,
+    },
     store::{StateStore, Store},
 };
 use protocol::{IdentityType, SqliteProtocolStore};
@@ -325,6 +327,36 @@ impl StateStore for SqliteStore {
         let value = master_key.map(|k| &k.inner[..]);
         query!(
             "INSERT OR REPLACE INTO kv (key, value) VALUES ('master_key', ?)",
+            value
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    async fn fetch_account_entropy_pool(
+        &self,
+    ) -> Result<Option<AccountEntropyPool>, Self::StateStoreError> {
+        query_scalar!("SELECT value FROM kv WHERE key = 'account_entropy_pool' LIMIT 1")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|value| {
+                AccountEntropyPool::from_str(
+                    str::from_utf8(&value).map_err(|_| SqliteStoreError::InvalidFormat)?,
+                )
+                .map_err(|_| SqliteStoreError::InvalidFormat)
+            })
+            .transpose()
+            .map_err(|_| SqliteStoreError::InvalidFormat)
+    }
+
+    async fn store_account_entropy_pool(
+        &self,
+        aep: Option<&AccountEntropyPool>,
+    ) -> Result<(), Self::StateStoreError> {
+        let value = aep.map(|k| k.to_string().into_bytes());
+        query!(
+            "INSERT OR REPLACE INTO kv (key, value) VALUES ('account_entropy_pool', ?)",
             value
         )
         .execute(&self.db)
