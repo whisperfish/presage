@@ -1971,6 +1971,8 @@ async fn set_account_attributes<S: Store>(
                 transfer: false,
                 attachment_backfill: false,
                 spqr: true,
+                profiles_v2: false,
+                username_change_sync_message: false,
             },
             discoverable_by_phone_number: true,
             pin: None,

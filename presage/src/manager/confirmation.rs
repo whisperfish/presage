@@ -130,6 +130,8 @@ impl<S: Store> Manager<S, Confirmation> {
                         transfer: false,
                         attachment_backfill: false,
                         spqr: true,
+                        profiles_v2: false,
+                        username_change_sync_message: false,
                     },
                     discoverable_by_phone_number: true,
                     pin: None,
