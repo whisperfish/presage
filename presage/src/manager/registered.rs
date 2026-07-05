@@ -898,6 +898,26 @@ impl<S: Store> Manager<S, Registered> {
                                             warn!("received a key sync message as a primary device; ignoring")
                                         } else {
                                             match keys
+                                                .account_entropy_pool
+                                                .as_ref()
+                                                .map(|s| AccountEntropyPool::from_str(s))
+                                            {
+                                                Some(Ok(aep)) => {
+                                                    if let Err(error) = state
+                                                        .store
+                                                        .store_account_entropy_pool(Some(&aep))
+                                                        .await
+                                                    {
+                                                        error!(%error, "failed to store account entropy pool");
+                                                    }
+                                                    state.account_entropy_pool = Some(aep);
+                                                }
+                                                Some(Err(error)) => {
+                                                    warn!(%error, "cannot convert account entropy pool from string")
+                                                }
+                                                None => {}
+                                            }
+                                            match keys
                                                 .master
                                                 .as_ref()
                                                 .map(|m| MasterKey::from_slice(m.as_slice()))
@@ -910,30 +930,24 @@ impl<S: Store> Manager<S, Registered> {
                                                     {
                                                         error!(%error, "failed to store master key");
                                                     }
+                                                    state.master_key = Some(master);
                                                 }
                                                 Some(Err(error)) => {
-                                                    warn!(%error, "cannot convert master key from bytes")
-                                                }
-                                                None => {}
-                                            }
-                                            match keys
-                                                .account_entropy_pool
-                                                .as_ref()
-                                                .map(|s| AccountEntropyPool::from_str(&s))
-                                            {
-                                                Some(Ok(aep)) => {
-                                                    if let Err(error) = state
-                                                        .store
-                                                        .store_account_entropy_pool(Some(&aep))
-                                                        .await
+                                                    warn!(%error, "cannot convert master key from bytes; trying to populate from account entropy pool");
+                                                    if let Some(aep) =
+                                                        state.account_entropy_pool.as_ref()
                                                     {
-                                                        error!(%error, "failed to store account entropy pool");
+                                                        state.master_key = Some(MasterKey::from_slice(aep.derive_svr_key().as_slice()).expect("svr key derived from account entropy pool to be a master key"));
                                                     }
                                                 }
-                                                Some(Err(error)) => {
-                                                    warn!(%error, "cannot convert account entropy pool from string")
+                                                None => {
+                                                    trace!("master key not given in the sync message; trying to populate from account entropy pool");
+                                                    if let Some(aep) =
+                                                        state.account_entropy_pool.as_ref()
+                                                    {
+                                                        state.master_key = Some(MasterKey::from_slice(aep.derive_svr_key().as_slice()).expect("svr key derived from account entropy pool to be a master key"));
+                                                    }
                                                 }
-                                                None => {}
                                             }
                                         }
                                     }
@@ -1004,6 +1018,27 @@ impl<S: Store> Manager<S, Registered> {
                         }
                         Some(Ok(Incoming::QueueEmpty)) => {
                             debug!("got empty queue");
+                            if state.account_entropy_pool.is_none() {
+                                debug!("device does not have the needed keys; requesting from primary device");
+
+                                let mut message_sender = state.message_sender.clone();
+                                tokio::task::spawn_local(async move {
+                                    let result = message_sender
+                                        .send_sync_message(SyncMessage {
+                                            request: Some(sync_message::Request {
+                                                r#type: Some(
+                                                    sync_message::request::Type::Keys.into(),
+                                                ),
+                                            }),
+                                            ..SyncMessage::with_padding(&mut rand::rng())
+                                        })
+                                        .await;
+
+                                    if let Err(error) = result {
+                                        warn!(%error, "Error sending blocked contacts to other devices");
+                                    }
+                                });
+                            }
                             return Some((Received::QueueEmpty, state));
                         }
                         Some(Err(error)) => {
