@@ -333,7 +333,6 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     async fn master_key(&self) -> Result<Option<MasterKey>, Error<S::Error>> {
-        // TODO: May need to get from the account entropy pool instead.
         let from_store = self.store().fetch_master_key().await?;
 
         if let Some(key) = from_store {
