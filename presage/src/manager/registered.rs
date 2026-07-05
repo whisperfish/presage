@@ -1,4 +1,5 @@
 use std::fmt;
+use std::str::FromStr;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -599,6 +600,7 @@ impl<S: Store> Manager<S, Registered> {
             message_sender: MessageSender<AciStore>,
             master_key: Option<MasterKey>,
             account_entropy_pool: Option<AccountEntropyPool>,
+            registration_type: RegistrationType,
         }
 
         let identified_push_service = self.identified_push_service();
@@ -650,6 +652,7 @@ impl<S: Store> Manager<S, Registered> {
             message_sender: self.new_message_sender().await?,
             master_key: self.master_key().await?,
             account_entropy_pool: self.account_entropy_pool().await?,
+            registration_type: self.registration_type(),
         };
 
         debug!("starting to consume incoming message stream");
@@ -880,6 +883,57 @@ impl<S: Store> Manager<S, Registered> {
                                                         )
                                                     }
                                                 },
+                                            }
+                                        }
+                                    }
+
+                                    // key synchronization sent from the primary device
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        keys: Some(keys),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        debug!("received key sync message");
+                                        if state.registration_type == RegistrationType::Primary {
+                                            warn!("received a key sync message as a primary device; ignoring")
+                                        } else {
+                                            match keys
+                                                .master
+                                                .as_ref()
+                                                .map(|m| MasterKey::from_slice(m.as_slice()))
+                                            {
+                                                Some(Ok(master)) => {
+                                                    if let Err(error) = state
+                                                        .store
+                                                        .store_master_key(Some(&master))
+                                                        .await
+                                                    {
+                                                        error!(%error, "failed to store master key");
+                                                    }
+                                                }
+                                                Some(Err(error)) => {
+                                                    warn!(%error, "cannot convert master key from bytes")
+                                                }
+                                                None => {}
+                                            }
+                                            match keys
+                                                .account_entropy_pool
+                                                .as_ref()
+                                                .map(|s| AccountEntropyPool::from_str(&s))
+                                            {
+                                                Some(Ok(aep)) => {
+                                                    if let Err(error) = state
+                                                        .store
+                                                        .store_account_entropy_pool(Some(&aep))
+                                                        .await
+                                                    {
+                                                        error!(%error, "failed to store account entropy pool");
+                                                    }
+                                                }
+                                                Some(Err(error)) => {
+                                                    warn!(%error, "cannot convert account entropy pool from string")
+                                                }
+                                                None => {}
                                             }
                                         }
                                     }
