@@ -131,7 +131,7 @@ impl<S: Store> Manager<S, Confirmation> {
                         attachment_backfill: false,
                         spqr: true,
                         profiles_v2: false,
-                        username_change_sync_message: false,
+                        username_change_sync_message: true,
                     },
                     discoverable_by_phone_number: true,
                     pin: None,
