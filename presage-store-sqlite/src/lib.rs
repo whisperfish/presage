@@ -325,12 +325,18 @@ impl StateStore for SqliteStore {
         master_key: Option<&MasterKey>,
     ) -> Result<(), Self::StateStoreError> {
         let value = master_key.map(|k| &k.inner[..]);
-        query!(
-            "INSERT OR REPLACE INTO kv (key, value) VALUES ('master_key', ?)",
-            value
-        )
-        .execute(&self.db)
-        .await?;
+        if let Some(value) = value {
+            query!(
+                "INSERT OR REPLACE INTO kv (key, value) VALUES ('master_key', ?)",
+                value
+            )
+            .execute(&self.db)
+            .await?;
+        } else {
+            query!("DELETE FROM kv WHERE key = 'master_key'")
+                .execute(&self.db)
+                .await?;
+        }
         Ok(())
     }
 
@@ -355,12 +361,18 @@ impl StateStore for SqliteStore {
         aep: Option<&AccountEntropyPool>,
     ) -> Result<(), Self::StateStoreError> {
         let value = aep.map(|k| k.to_string().into_bytes());
-        query!(
-            "INSERT OR REPLACE INTO kv (key, value) VALUES ('account_entropy_pool', ?)",
-            value
-        )
-        .execute(&self.db)
-        .await?;
+        if let Some(value) = value {
+            query!(
+                "INSERT OR REPLACE INTO kv (key, value) VALUES ('account_entropy_pool', ?)",
+                value
+            )
+            .execute(&self.db)
+            .await?;
+        } else {
+            query!("DELETE FROM kv WHERE key = 'account_entropy_pool'")
+                .execute(&self.db)
+                .await?;
+        }
         Ok(())
     }
 }
