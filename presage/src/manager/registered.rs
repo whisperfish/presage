@@ -638,9 +638,7 @@ impl<S: Store> Manager<S, Registered> {
                         Some(Ok(Incoming::Envelope(envelope))) => {
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
-                                match ServiceId::parse_from_service_id_string(
-                                    envelope.destination_service_id(),
-                                ) {
+                                match envelope.parse_destination_service_id() {
                                     None | Some(ServiceId::Aci(_)) => {
                                         state
                                             .service_cipher_aci

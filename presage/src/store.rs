@@ -195,7 +195,12 @@ pub trait ContentsStore: Send + Sync {
                 Thread::Group(key) => {
                     let group = self.group(*key).await?;
                     if let Some(mut g) = group {
-                        g.disappearing_messages_timer = Some(Timer { duration: timer });
+                        // Convert timer=0 to None for groups (disable disappearing messages)
+                        g.disappearing_messages_timer = if timer == 0 {
+                            None
+                        } else {
+                            Some(Timer { duration: timer })
+                        };
                         self.save_group(*key, g).await?;
                     }
                     Ok(())
