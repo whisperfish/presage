@@ -6,7 +6,13 @@
       {
         "name": "is_last_resort",
         "ordinal": 0,
-        "type_info": "Integer"
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "kyber_pre_keys",
+            "name": "is_last_resort"
+          }
+        }
       }
     ],
     "parameters": {

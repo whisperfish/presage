@@ -6,12 +6,24 @@
       {
         "name": "group_master_key",
         "ordinal": 0,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "threads",
+            "name": "group_master_key"
+          }
+        }
       },
       {
         "name": "recipient_id: Uuid",
         "ordinal": 1,
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "threads",
+            "name": "recipient_id"
+          }
+        }
       }
     ],
     "parameters": {

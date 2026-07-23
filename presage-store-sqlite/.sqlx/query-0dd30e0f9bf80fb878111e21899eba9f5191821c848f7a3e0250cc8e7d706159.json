@@ -6,57 +6,123 @@
       {
         "name": "uuid: _",
         "ordinal": 0,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "uuid"
+          }
+        }
       },
       {
         "name": "phone_number",
         "ordinal": 1,
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "phone_number"
+          }
+        }
       },
       {
         "name": "name",
         "ordinal": 2,
-        "type_info": "Text"
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "name"
+          }
+        }
       },
       {
         "name": "profile_key",
         "ordinal": 3,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "profile_key"
+          }
+        }
       },
       {
         "name": "expire_timer",
         "ordinal": 4,
-        "type_info": "Integer"
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "expire_timer"
+          }
+        }
       },
       {
         "name": "expire_timer_version",
         "ordinal": 5,
-        "type_info": "Integer"
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "expire_timer_version"
+          }
+        }
       },
       {
         "name": "inbox_position",
         "ordinal": 6,
-        "type_info": "Integer"
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "inbox_position"
+          }
+        }
       },
       {
         "name": "avatar",
         "ordinal": 7,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "contacts",
+            "name": "avatar"
+          }
+        }
       },
       {
         "name": "destination_aci: _",
         "ordinal": 8,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "contacts_verification_state",
+            "name": "destination_aci"
+          }
+        }
       },
       {
         "name": "identity_key",
         "ordinal": 9,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "contacts_verification_state",
+            "name": "identity_key"
+          }
+        }
       },
       {
         "name": "is_verified",
         "ordinal": 10,
-        "type_info": "Bool"
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "contacts_verification_state",
+            "name": "is_verified"
+          }
+        }
       }
     ],
     "parameters": {
@@ -71,8 +137,8 @@
       false,
       false,
       true,
-      false,
-      false,
+      true,
+      true,
       true
     ]
   },
