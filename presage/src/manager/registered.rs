@@ -693,7 +693,10 @@ impl<S: Store> Manager<S, Registered> {
                                             error = ?e,
                                             "got error decrypting a message"
                                         );
-                                        continue;
+                                        return Some((
+                                            Received::DecryptionError(content.metadata.sender),
+                                            state,
+                                        ));
                                     }
 
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
@@ -1012,6 +1015,11 @@ impl<S: Store> Manager<S, Registered> {
                                 }
                                 Err(error) => {
                                     error!(%error, "error opening envelope, message will be skipped!");
+                                    if let libsignal_service::prelude::ServiceError::SealedSenderDecryptionError(libsignal_service::cipher::SealedSenderDecryptionError { sender: Some(sender), .. }) = &error {
+                                        if let Some(sender) = ServiceId::parse_from_service_id_string(sender.name()) {
+                                            return Some((Received::DecryptionError(sender), state));
+                                        }
+                                    }
                                 }
                             }
                         }
