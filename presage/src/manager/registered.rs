@@ -55,6 +55,7 @@ use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::model::contacts::Contact;
+use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -1134,7 +1135,10 @@ impl<S: Store> Manager<S, Registered> {
             });
 
         // we need to put our profile key in DataMessage
+
         if let ContentBody::DataMessage(message) = &mut content_body {
+            let body = message.body.clone().unwrap_or_default();
+            message.preview = self.build_protobuf_preview(&body).await;
             message
                 .profile_key
                 .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
@@ -1183,6 +1187,33 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Extracts URLs from `body`, fetches a preview (title, description, image) for each, and
+    /// uploads any preview image as an attachment, ready to be attached to a `DataMessage` as
+    /// its `preview` field. Used by both `send_message` and `send_message_to_group`.
+    async fn build_protobuf_preview(&self, body: &str) -> Vec<libsignal_service::proto::Preview> {
+        let preview_contents = previews::generate_previews_from_message(body).await;
+
+        future::join_all(preview_contents.iter().map(|content| async {
+            let image = match previews::build_preview_image(content) {
+                Some((spec, bytes)) => self
+                    .upload_attachment(spec, bytes)
+                    .await
+                    .ok()
+                    .and_then(Result::ok),
+                None => None,
+            };
+
+            libsignal_service::proto::Preview {
+                url: content.url.clone(),
+                title: content.title.clone(),
+                image,
+                description: content.description.clone(),
+                date: content.date,
+            }
+        }))
+        .await
+    }
+
     /// Uploads one attachment prior to linking them in a message.
     pub async fn upload_attachment(
         &self,
@@ -1229,6 +1260,10 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Group(master_key_bytes);
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        if let ContentBody::DataMessage(message) = &mut content_body {
+            let body = message.body.clone().unwrap_or_default();
+            message.preview = self.build_protobuf_preview(&body).await;
+        }
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
