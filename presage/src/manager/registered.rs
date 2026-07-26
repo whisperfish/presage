@@ -5,9 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::libsignal_account_keys::AccountEntropyPool;
 use libsignal_service::prelude::SessionStoreExt;
-use libsignal_service::proto::addressable_message::Author;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
 use libsignal_service::provisioning::ProvisioningSecrets;
 use libsignal_service::{
@@ -46,6 +44,9 @@ use libsignal_service::{
         profiles::ProfileKey,
     },
     AccountManager, Profile, ServiceIdExt,
+};
+use libsignal_service::{
+    libsignal_account_keys::AccountEntropyPool, proto::addressable_message::Author,
 };
 use rand::rng;
 use serde::{Deserialize, Serialize};
@@ -669,7 +670,7 @@ impl<S: Store> Manager<S, Registered> {
                                     None | Some(ServiceId::Aci(_)) => {
                                         state
                                             .service_cipher_aci
-                                            .open_envelope(envelope, &mut rng())
+                                            .open_envelope(envelope, &mut rand::rng())
                                             .await
                                     }
                                     Some(ServiceId::Pni(pni)) => {

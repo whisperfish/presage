@@ -905,7 +905,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
         }
         Cmd::Whoami => {
             let manager = load_registered_and_receive(store).await?;
-            println!("{:?}", &manager.whoami().await?);
+            println!("{:?}", manager.whoami().await?);
         }
         Cmd::GetContact { ref id } => {
             let manager = load_registered_and_receive(store).await?;
