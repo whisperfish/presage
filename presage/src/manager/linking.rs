@@ -74,7 +74,7 @@ impl<S: Store> Manager<S, Linking> {
             provisioning_link_channel,
         )
         .await
-        .map(|(manager, _, _)| manager)
+        .map(|(manager, _, _, _, _)| manager)
     }
 
     /// Links a secondary device and returns the optional one-time history
@@ -84,7 +84,7 @@ impl<S: Store> Manager<S, Linking> {
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
-    ) -> Result<(Manager<S, Registered>, Option<[u8; 32]>, Aci), Error<S::Error>> {
+    ) -> Result<(Manager<S, Registered>, Option<[u8; 32]>, Aci, u32, String), Error<S::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
         store.clear_registration().await?;
@@ -154,7 +154,7 @@ impl<S: Store> Manager<S, Linking> {
                     device_name: Some(device_name),
                     phone_number: phonenumber_from_signal(&phone_number),
                     service_ids,
-                    password,
+                    password: password.clone(),
                     device_id: Some(device_id.into()),
                     registration_id,
                     pni_registration_id: Some(pni_registration_id),
@@ -192,12 +192,19 @@ impl<S: Store> Manager<S, Linking> {
                 );
 
                 let aci = registration_data.service_ids.aci;
+                let device_id = registration_data.device_id.unwrap_or_default();
                 let manager = Manager {
                     store: store.clone(),
                     state: Arc::new(Registered::with_data(registration_data)),
                 };
 
-                Ok((manager, ephemeral_backup_key, aci.into()))
+                Ok((
+                    manager,
+                    ephemeral_backup_key,
+                    aci.into(),
+                    device_id,
+                    password,
+                ))
             }
             Err(e) => {
                 store.clear_registration().await?;
