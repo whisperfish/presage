@@ -62,11 +62,29 @@ impl<S: Store> Manager<S, Linking> {
     /// }
     /// ```
     pub async fn link_secondary_device(
-        mut store: S,
+        store: S,
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
     ) -> Result<Manager<S, Registered>, Error<S::Error>> {
+        Self::link_secondary_device_with_history(
+            store,
+            signal_servers,
+            device_name,
+            provisioning_link_channel,
+        )
+        .await
+        .map(|(manager, _)| manager)
+    }
+
+    /// Links a secondary device and returns the optional one-time history
+    /// transfer key supplied by the primary device.
+    pub async fn link_secondary_device_with_history(
+        mut store: S,
+        signal_servers: SignalServers,
+        device_name: String,
+        provisioning_link_channel: oneshot::Sender<Url>,
+    ) -> Result<(Manager<S, Registered>, Option<[u8; 32]>), Error<S::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
         store.clear_registration().await?;
@@ -129,6 +147,7 @@ impl<S: Store> Manager<S, Linking> {
                 profile_key,
                 master_key,
                 account_entropy_pool,
+                ephemeral_backup_key,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -177,7 +196,7 @@ impl<S: Store> Manager<S, Linking> {
                     state: Arc::new(Registered::with_data(registration_data)),
                 };
 
-                Ok(manager)
+                Ok((manager, ephemeral_backup_key))
             }
             Err(e) => {
                 store.clear_registration().await?;
