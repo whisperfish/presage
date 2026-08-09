@@ -5,7 +5,7 @@ use futures::{future, StreamExt};
 use libsignal_service::configuration::SignalServers;
 use libsignal_service::master_key::MasterKey;
 use libsignal_service::prelude::PushService;
-use libsignal_service::protocol::IdentityKeyPair;
+use libsignal_service::protocol::{Aci, IdentityKeyPair};
 use libsignal_service::provisioning::{
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
 };
@@ -74,7 +74,7 @@ impl<S: Store> Manager<S, Linking> {
             provisioning_link_channel,
         )
         .await
-        .map(|(manager, _)| manager)
+        .map(|(manager, _, _)| manager)
     }
 
     /// Links a secondary device and returns the optional one-time history
@@ -84,7 +84,7 @@ impl<S: Store> Manager<S, Linking> {
         signal_servers: SignalServers,
         device_name: String,
         provisioning_link_channel: oneshot::Sender<Url>,
-    ) -> Result<(Manager<S, Registered>, Option<[u8; 32]>), Error<S::Error>> {
+    ) -> Result<(Manager<S, Registered>, Option<[u8; 32]>, Aci), Error<S::Error>> {
         // clear the database: the moment we start the process, old API credentials are invalidated
         // and you won't be able to use this client anyways
         store.clear_registration().await?;
@@ -191,12 +191,13 @@ impl<S: Store> Manager<S, Linking> {
                     &registration_data.service_ids
                 );
 
+                let aci = registration_data.service_ids.aci;
                 let manager = Manager {
                     store: store.clone(),
                     state: Arc::new(Registered::with_data(registration_data)),
                 };
 
-                Ok((manager, ephemeral_backup_key))
+                Ok((manager, ephemeral_backup_key, aci.into()))
             }
             Err(e) => {
                 store.clear_registration().await?;
