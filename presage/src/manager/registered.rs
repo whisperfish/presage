@@ -1712,7 +1712,7 @@ const ATTACHMENT_DOWNLOAD_CHUNK_SIZE: usize = 64 * 1024;
 
 async fn read_attachment_with_progress<R, F>(
     mut reader: R,
-    total: Option<u64>,
+    mut total: Option<u64>,
     capacity: usize,
     on_progress: &mut F,
 ) -> std::io::Result<Vec<u8>>
@@ -1737,6 +1737,9 @@ where
 
         ciphertext.extend_from_slice(&buffer[..read]);
         downloaded += read as u64;
+        if total.is_some_and(|total| downloaded > total) {
+            total = None;
+        }
         on_progress(AttachmentDownloadProgress::Downloading { downloaded, total });
     }
 
@@ -1825,6 +1828,50 @@ mod tests {
                 downloaded: contents.len() as u64,
                 total: None,
             })
+        );
+    }
+
+    #[tokio::test]
+    async fn attachment_download_progress_discards_underreported_length() {
+        let advertised_total = ATTACHMENT_DOWNLOAD_CHUNK_SIZE as u64;
+        let contents = vec![0; ATTACHMENT_DOWNLOAD_CHUNK_SIZE * 2 + 7];
+        let expected_downloaded = contents.len() as u64;
+        let mut progress = Vec::new();
+
+        let ciphertext = read_attachment_with_progress(
+            Cursor::new(contents.clone()),
+            Some(advertised_total),
+            0,
+            &mut |event| progress.push(event),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(ciphertext, contents);
+        assert_eq!(
+            progress,
+            vec![
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: 0,
+                    total: Some(advertised_total),
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: advertised_total,
+                    total: Some(advertised_total),
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: ATTACHMENT_DOWNLOAD_CHUNK_SIZE as u64 * 2,
+                    total: None,
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: expected_downloaded,
+                    total: None,
+                },
+                AttachmentDownloadProgress::Processing {
+                    downloaded: expected_downloaded,
+                    total: None,
+                },
+            ]
         );
     }
 
