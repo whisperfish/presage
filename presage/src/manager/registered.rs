@@ -71,6 +71,18 @@ pub enum RegistrationType {
     Secondary,
 }
 
+/// Progress while downloading an attachment.
+///
+/// `downloaded` and `total` count encrypted CDN response bytes, not decrypted attachment bytes.
+/// `Processing` is emitted after the encrypted response reaches EOF. The final result still
+/// indicates whether digest validation and decryption succeeded.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AttachmentDownloadProgress {
+    Downloading { downloaded: u64, total: Option<u64> },
+    Processing { downloaded: u64, total: Option<u64> },
+}
+
 /// Manager state when the client is registered and can send and receive messages from Signal
 #[derive(Clone)]
 pub struct Registered {
@@ -1357,19 +1369,40 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         attachment_pointer: &AttachmentPointer,
     ) -> Result<Vec<u8>, Error<S::Error>> {
+        self.get_attachment_with_progress(attachment_pointer, |_| {})
+            .await
+    }
+
+    /// Downloads and decrypts a single attachment while reporting its progress.
+    pub async fn get_attachment_with_progress<F>(
+        &self,
+        attachment_pointer: &AttachmentPointer,
+        mut on_progress: F,
+    ) -> Result<Vec<u8>, Error<S::Error>>
+    where
+        F: FnMut(AttachmentDownloadProgress) + Send,
+    {
         let expected_digest = attachment_pointer
             .digest
             .as_ref()
             .ok_or_else(|| Error::UnexpectedAttachmentChecksum)?;
 
         let mut service = self.identified_push_service();
-        let mut attachment_stream = service.get_attachment(attachment_pointer).await?;
+        let attachment = service
+            .get_attachment_with_metadata(attachment_pointer)
+            .await?;
 
         let plaintext_len = attachment_pointer.size.and_then(|len| len.try_into().ok());
 
         // We need the whole file for the crypto to check out
-        let mut ciphertext = Vec::with_capacity(plaintext_len.unwrap_or(0));
-        let size_bytes = attachment_stream.read_to_end(&mut ciphertext).await?;
+        let mut ciphertext = read_attachment_with_progress(
+            attachment.stream,
+            attachment.content_length,
+            plaintext_len.unwrap_or(0),
+            &mut on_progress,
+        )
+        .await?;
+        let size_bytes = ciphertext.len();
         trace!(size_bytes, "downloaded encrypted attachment");
 
         let digest = sha2::Sha256::digest(&ciphertext);
@@ -1673,6 +1706,228 @@ impl<S: Store> Manager<S, Registered> {
         );
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
+    }
+}
+
+const ATTACHMENT_DOWNLOAD_CHUNK_SIZE: usize = 64 * 1024;
+
+async fn read_attachment_with_progress<R, F>(
+    mut reader: R,
+    mut total: Option<u64>,
+    capacity: usize,
+    on_progress: &mut F,
+) -> std::io::Result<Vec<u8>>
+where
+    R: futures::AsyncRead + Unpin,
+    F: FnMut(AttachmentDownloadProgress),
+{
+    on_progress(AttachmentDownloadProgress::Downloading {
+        downloaded: 0,
+        total,
+    });
+
+    let mut ciphertext = Vec::with_capacity(capacity);
+    let mut buffer = [0; ATTACHMENT_DOWNLOAD_CHUNK_SIZE];
+    let mut downloaded = 0;
+
+    loop {
+        let read = reader.read(&mut buffer).await?;
+        if read == 0 {
+            break;
+        }
+
+        ciphertext.extend_from_slice(&buffer[..read]);
+        downloaded += read as u64;
+        if total.is_some_and(|total| downloaded > total) {
+            total = None;
+        }
+        on_progress(AttachmentDownloadProgress::Downloading { downloaded, total });
+    }
+
+    on_progress(AttachmentDownloadProgress::Processing { downloaded, total });
+
+    Ok(ciphertext)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::{
+        io,
+        pin::Pin,
+        task::{Context, Poll},
+    };
+
+    use futures::io::{AsyncRead, Cursor};
+
+    use super::{
+        read_attachment_with_progress, AttachmentDownloadProgress, ATTACHMENT_DOWNLOAD_CHUNK_SIZE,
+    };
+
+    #[tokio::test]
+    async fn attachment_download_progress_reports_chunked_known_length() {
+        let contents = vec![0; ATTACHMENT_DOWNLOAD_CHUNK_SIZE * 2 + 7];
+        let expected_total = contents.len() as u64;
+        let mut progress = Vec::new();
+
+        let ciphertext = read_attachment_with_progress(
+            Cursor::new(contents.clone()),
+            Some(expected_total),
+            0,
+            &mut |event| progress.push(event),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(ciphertext, contents);
+        assert_eq!(
+            progress.first(),
+            Some(&AttachmentDownloadProgress::Downloading {
+                downloaded: 0,
+                total: Some(expected_total),
+            })
+        );
+
+        let downloaded = progress
+            .iter()
+            .filter_map(|event| match event {
+                AttachmentDownloadProgress::Downloading { downloaded, total } => {
+                    assert_eq!(*total, Some(expected_total));
+                    Some(*downloaded)
+                }
+                AttachmentDownloadProgress::Processing { .. } => None,
+            })
+            .collect::<Vec<_>>();
+        assert!(downloaded.windows(2).all(|window| window[0] <= window[1]));
+        assert_eq!(downloaded.last(), Some(&expected_total));
+        assert_eq!(
+            progress.last(),
+            Some(&AttachmentDownloadProgress::Processing {
+                downloaded: expected_total,
+                total: Some(expected_total),
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn attachment_download_progress_reports_missing_length() {
+        let contents = vec![0; 7];
+        let mut progress = Vec::new();
+
+        read_attachment_with_progress(Cursor::new(contents.clone()), None, 0, &mut |event| {
+            progress.push(event)
+        })
+        .await
+        .unwrap();
+
+        assert!(progress.iter().all(|event| match event {
+            AttachmentDownloadProgress::Downloading { total, .. }
+            | AttachmentDownloadProgress::Processing { total, .. } => total.is_none(),
+        }));
+        assert_eq!(
+            progress.last(),
+            Some(&AttachmentDownloadProgress::Processing {
+                downloaded: contents.len() as u64,
+                total: None,
+            })
+        );
+    }
+
+    #[tokio::test]
+    async fn attachment_download_progress_discards_underreported_length() {
+        let advertised_total = ATTACHMENT_DOWNLOAD_CHUNK_SIZE as u64;
+        let contents = vec![0; ATTACHMENT_DOWNLOAD_CHUNK_SIZE * 2 + 7];
+        let expected_downloaded = contents.len() as u64;
+        let mut progress = Vec::new();
+
+        let ciphertext = read_attachment_with_progress(
+            Cursor::new(contents.clone()),
+            Some(advertised_total),
+            0,
+            &mut |event| progress.push(event),
+        )
+        .await
+        .unwrap();
+
+        assert_eq!(ciphertext, contents);
+        assert_eq!(
+            progress,
+            vec![
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: 0,
+                    total: Some(advertised_total),
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: advertised_total,
+                    total: Some(advertised_total),
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: ATTACHMENT_DOWNLOAD_CHUNK_SIZE as u64 * 2,
+                    total: None,
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: expected_downloaded,
+                    total: None,
+                },
+                AttachmentDownloadProgress::Processing {
+                    downloaded: expected_downloaded,
+                    total: None,
+                },
+            ]
+        );
+    }
+
+    struct FailingReader {
+        bytes: Vec<u8>,
+        read: bool,
+    }
+
+    impl AsyncRead for FailingReader {
+        fn poll_read(
+            mut self: Pin<&mut Self>,
+            _: &mut Context<'_>,
+            buffer: &mut [u8],
+        ) -> Poll<io::Result<usize>> {
+            if self.read {
+                return Poll::Ready(Err(io::Error::other("read failed")));
+            }
+
+            let count = self.bytes.len();
+            buffer[..count].copy_from_slice(&self.bytes);
+            self.read = true;
+            Poll::Ready(Ok(count))
+        }
+    }
+
+    #[tokio::test]
+    async fn attachment_download_progress_does_not_process_after_read_failure() {
+        let mut progress = Vec::new();
+
+        let error = read_attachment_with_progress(
+            FailingReader {
+                bytes: vec![0; 3],
+                read: false,
+            },
+            Some(3),
+            0,
+            &mut |event| progress.push(event),
+        )
+        .await
+        .unwrap_err();
+
+        assert_eq!(error.kind(), io::ErrorKind::Other);
+        assert_eq!(
+            progress,
+            vec![
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: 0,
+                    total: Some(3),
+                },
+                AttachmentDownloadProgress::Downloading {
+                    downloaded: 3,
+                    total: Some(3),
+                },
+            ]
+        );
     }
 }
 
