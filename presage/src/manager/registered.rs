@@ -73,6 +73,7 @@ pub enum RegistrationType {
 
 /// Progress while downloading an attachment.
 ///
+/// `downloaded` and `total` count encrypted CDN response bytes, not decrypted attachment bytes.
 /// `Processing` is emitted after the encrypted response reaches EOF. The final result still
 /// indicates whether digest validation and decryption succeeded.
 #[derive(Clone, Debug, PartialEq, Eq)]
