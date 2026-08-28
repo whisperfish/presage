@@ -19,7 +19,7 @@ use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
-use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
 use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
@@ -505,25 +505,25 @@ async fn print_message<S: Store>(
             .map(|body| Msg::Received(&thread, body)),
         ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     message: Some(data_message),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
             .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     edit_message:
                         Some(EditMessage {
                             data_message: Some(data_message),
                             ..
                         }),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
@@ -543,9 +543,6 @@ async fn print_message<S: Store>(
         )),
         ContentBody::StoryMessage(story) => {
             Some(Msg::Received(&thread, format!("new story: {story:?}")))
-        }
-        ContentBody::PniSignatureMessage(_) => {
-            Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
         ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
             &thread,

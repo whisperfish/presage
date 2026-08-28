@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n                ts AS \"ts: _\",\n                server_ts AS \"server_ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext\n            FROM thread_messages\n            WHERE ts = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
+  "query": "SELECT\n                ts AS \"ts: _\",\n                server_ts AS \"server_ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext,\n                pni_verified\n            FROM thread_messages\n            WHERE ts = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,17 @@
             "name": "was_plaintext"
           }
         }
+      },
+      {
+        "name": "pni_verified",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "pni_verified"
+          }
+        }
       }
     ],
     "parameters": {
@@ -115,8 +126,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "412acc89a86a2d1f67ea5cdcd29d23b23ec71c7a27bf54b792e003d5722bd29c"
+  "hash": "3fb52795bcd799f3075078a8dc202fa6d412a92bbcf41b4f3c6e6ae4b625c25b"
 }

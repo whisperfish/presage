@@ -140,12 +140,13 @@ impl ContentsStore for SqliteStore {
             sender,
             destination,
             sender_device,
-            timestamp,
+            client_timestamp: timestamp,
             needs_receipt,
             unidentified_sender,
             server_guid: _,
             was_plaintext,
             server_timestamp: _,
+            pni_verified,
         } = metadata;
 
         let sender_device: u8 = sender_device.into();
@@ -165,9 +166,10 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             timestamp,
             thread_id,
             sender_service_id,
@@ -177,6 +179,7 @@ impl ContentsStore for SqliteStore {
             unidentified_sender,
             proto_bytes,
             was_plaintext,
+            pni_verified.as_ref().map(|p| p.service_id_string())
         )
         .execute(&mut *tx)
         .await?;
@@ -227,7 +230,8 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             FROM thread_messages
             WHERE ts = ? AND thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)"#,
@@ -261,7 +265,8 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             FROM thread_messages
             WHERE thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)

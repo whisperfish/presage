@@ -9,7 +9,7 @@ use libsignal_service::{
     pre_keys::PreKeysStore,
     prelude::{Content, MasterKey, ProfileKey, Uuid},
     proto::{
-        sync_message::{self, Sent},
+        sync_message::{self, Content as SyncContent, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
     protocol::{
@@ -424,18 +424,18 @@ impl TryFrom<&Content> for Thread {
         match &content.body {
             // [1-1] Message sent by us with another device (with string service ID)
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sent @ Sent {
+                content:
+                    Some(SyncContent::Sent(sent @ Sent {
                         destination_service_id: Some(_),
                         ..
-                    }),
+                    })),
                 ..
             }) | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sent @ Sent {
+                content:
+                    Some(SyncContent::Sent(sent @ Sent {
                         destination_service_id_binary: Some(_),
                         ..
-                    }),
+                    })),
                 ..
             })=> {
                 let parsed_service_id = sent.parse_destination_service_id().ok_or(ThreadError::InvalidServiceId)?;
@@ -452,8 +452,8 @@ impl TryFrom<&Content> for Thread {
             })
             // [Group] message sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
+                content:
+                    Some(SyncContent::Sent(Sent {
                         message:
                             Some(DataMessage {
                                 group_v2:
@@ -464,13 +464,13 @@ impl TryFrom<&Content> for Thread {
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             })
             // [Group] message edit sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
+                content:
+                    Some(SyncContent::Sent(Sent {
                         edit_message:
                             Some(EditMessage {
                                 data_message:
@@ -485,7 +485,7 @@ impl TryFrom<&Content> for Thread {
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             })
             // [Group] Message edit sent by somebody else
@@ -521,30 +521,30 @@ impl ContentExt for Content {
     fn timestamp(&self) -> u64 {
         match self.body {
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sync_message::Sent {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
                         timestamp: Some(ts),
                         ..
-                    }),
+                    })),
                 ..
             }) => ts,
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sync_message::Sent {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
                         edit_message:
                             Some(EditMessage {
                                 target_sent_timestamp: Some(ts),
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             }) => ts,
             ContentBody::EditMessage(EditMessage {
                 target_sent_timestamp: Some(ts),
                 ..
             }) => ts,
-            _ => self.metadata.timestamp.timestamp_millis() as u64,
+            _ => self.metadata.client_timestamp.timestamp_millis() as u64,
         }
     }
 }
@@ -617,21 +617,22 @@ pub async fn save_trusted_identity_message<S: Store>(
             destination: sender,
             sender_device: *DEFAULT_DEVICE_ID,
             server_guid: None,
-            timestamp: chrono::Utc::now(),
+            client_timestamp: chrono::Utc::now(),
             // No messages were sent, just use the current time as the server timestamp.
             server_timestamp: chrono::Utc::now(),
             needs_receipt: false,
             unidentified_sender: false,
             was_plaintext: false,
+            pni_verified: None,
         },
         body: SyncMessage {
-            verified: Some(Verified {
+            content: Some(SyncContent::Verified(Verified {
                 destination_aci: None,
                 destination_aci_binary: None,
                 identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
                 state: Some(verified_state.into()),
                 null_message: None,
-            }),
+            })),
             ..Default::default()
         }
         .into(),

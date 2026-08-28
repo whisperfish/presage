@@ -125,8 +125,8 @@ impl<S: Store> Manager<S, Linking> {
                 pni_private_key,
                 pni_public_key,
                 profile_key,
-                master_key,
                 account_entropy_pool,
+                ephemeral_backup_key: _,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -154,9 +154,11 @@ impl<S: Store> Manager<S, Linking> {
                     .await?;
                 store
                     .store_master_key(
-                        master_key
-                            .map(|v| MasterKey::from_slice(&v))
-                            .transpose()?
+                        account_entropy_pool
+                            .as_ref()
+                            .and_then(|aep| {
+                                MasterKey::from_slice(aep.derive_svr_key().as_slice()).ok()
+                            })
                             .as_ref(),
                     )
                     .await?;
