@@ -61,6 +61,9 @@ use crate::model::contacts::Contact;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
+use libsignal_service::master_key::StorageServiceKey;
+use libsignal_service::proto::{manifest_record, storage_record};
+use libsignal_service::StorageService;
 
 pub use crate::model::messages::Received;
 
@@ -574,6 +577,57 @@ impl<S: Store> Manager<S, Registered> {
         );
 
         Ok(groups_manager)
+    }
+
+    /// Fetches the groups listed in the account's Storage Service and saves them.
+    /// A linked device otherwise only learns about a group when a message arrives in it.
+    /// Groups that fail to fetch are skipped.
+    pub(super) async fn sync_groups_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+        const READ_CHUNK: usize = 100;
+
+        let master_key = self
+            .store
+            .fetch_master_key()
+            .await?
+            .ok_or(Error::MissingKeyError("master_key".into()))?;
+        let storage_key = StorageServiceKey::from_master_key(&master_key);
+        let storage = StorageService::new(self.identified_push_service(), storage_key).await?;
+
+        let manifest = storage.manifest().await?;
+        let group_ids: Vec<Vec<u8>> = manifest
+            .identifiers
+            .iter()
+            .filter(|id| id.r#type() == manifest_record::identifier::Type::Groupv2)
+            .map(|id| id.raw.clone())
+            .collect();
+        debug!(
+            count = group_ids.len(),
+            "groups listed in the storage service"
+        );
+
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        for chunk in group_ids.chunks(READ_CHUNK) {
+            let records = storage
+                .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
+                .await?;
+            for record in records {
+                let Some(storage_record::Record::GroupV2(record)) = record.record else {
+                    continue;
+                };
+                // Storage records carry no group revision: always fetch the latest state.
+                if let Err(error) = upsert_group(
+                    &self.store,
+                    &mut groups_manager,
+                    &record.master_key,
+                    &u32::MAX,
+                )
+                .await
+                {
+                    warn!(%error, "failed to fetch group listed in the storage service");
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Starts receiving and storing messages.
