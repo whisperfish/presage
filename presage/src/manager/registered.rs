@@ -154,6 +154,9 @@ pub struct RegistrationData {
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
+    /// Decrypts the link-time message history archive. Single-use, so not persisted.
+    #[serde(skip)]
+    pub(crate) ephemeral_backup_key: Option<[u8; 32]>,
 }
 
 impl RegistrationData {
@@ -165,6 +168,12 @@ impl RegistrationData {
     /// The name of the device (if linked as secondary)
     pub fn device_name(&self) -> Option<&str> {
         self.device_name.as_deref()
+    }
+
+    /// Set right after [`Manager::link_secondary_device`][crate::Manager::link_secondary_device]
+    /// if the primary device offered to transfer message history.
+    pub fn ephemeral_backup_key(&self) -> Option<[u8; 32]> {
+        self.ephemeral_backup_key
     }
 }
 

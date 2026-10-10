@@ -126,7 +126,7 @@ impl<S: Store> Manager<S, Linking> {
                 pni_public_key,
                 profile_key,
                 account_entropy_pool,
-                ephemeral_backup_key: _,
+                ephemeral_backup_key,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -138,6 +138,7 @@ impl<S: Store> Manager<S, Linking> {
                     registration_id,
                     pni_registration_id: Some(pni_registration_id),
                     profile_key,
+                    ephemeral_backup_key,
                 };
 
                 store
