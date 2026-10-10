@@ -21,6 +21,55 @@ use crate::{
     error::SqlxErrorExt,
 };
 
+impl SqliteStore {
+    /// Up to `limit` messages sent before `before` (or the newest), newest first.
+    pub async fn messages_before(
+        &self,
+        thread: &Thread,
+        before: Option<u64>,
+        limit: u32,
+    ) -> Result<Vec<Content>, SqliteStoreError> {
+        use sqlx::Row;
+        let (group_master_key, recipient_id) = thread.unzip();
+        let before = before.map_or(i64::MAX, |ts| ts.min(i64::MAX as u64) as i64);
+        let rows = query(
+            "SELECT ts, server_ts, sender_service_id, sender_device_id, destination_service_id,
+                needs_receipt, unidentified_sender, content_body, was_plaintext, pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND ts < ?
+            ORDER BY ts DESC
+            LIMIT ?",
+        )
+        .bind(group_master_key)
+        .bind(recipient_id)
+        .bind(before)
+        .bind(i64::from(limit))
+        .fetch_all(&self.db)
+        .await?;
+        rows.into_iter()
+            .map(|row| {
+                SqlMessage {
+                    ts: row.try_get::<i64, _>("ts")? as u64,
+                    server_ts: row
+                        .try_get::<Option<i64>, _>("server_ts")?
+                        .map(|ts| ts as u64),
+                    sender_service_id: row.try_get("sender_service_id")?,
+                    sender_device_id: row.try_get::<i64, _>("sender_device_id")? as u8,
+                    destination_service_id: row.try_get("destination_service_id")?,
+                    needs_receipt: row.try_get("needs_receipt")?,
+                    unidentified_sender: row.try_get("unidentified_sender")?,
+                    content_body: row.try_get("content_body")?,
+                    was_plaintext: row.try_get("was_plaintext")?,
+                    pni_verified: row.try_get("pni_verified")?,
+                }
+                .try_into()
+            })
+            .collect()
+    }
+}
+
 impl ContentsStore for SqliteStore {
     type ContentsStoreError = SqliteStoreError;
 
@@ -764,6 +813,57 @@ mod test {
         assert!(store.upsert_profile_key(&uuid, key).await?);
         assert!(store.upsert_profile_key(&uuid, key).await?);
 
+        Ok(())
+    }
+    #[tokio::test]
+    async fn messages_before_pages_newest_first() -> Result<(), Box<dyn std::error::Error>> {
+        use chrono::TimeZone;
+        use presage::libsignal_service::content::ContentBody;
+        use presage::proto::DataMessage;
+
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let sender = ServiceId::Aci(Uuid::from_u128(7).into());
+        let thread = Thread::Contact(sender);
+        for ts in 1..=5u64 {
+            let at = chrono::Utc.timestamp_millis_opt(ts as i64).unwrap();
+            let content = Content {
+                metadata: Metadata {
+                    sender,
+                    destination: sender,
+                    sender_device: 1.try_into()?,
+                    client_timestamp: at,
+                    server_timestamp: at,
+                    needs_receipt: false,
+                    unidentified_sender: false,
+                    server_guid: None,
+                    was_plaintext: false,
+                    pni_verified: None,
+                },
+                body: ContentBody::DataMessage(DataMessage {
+                    body: Some(format!("{ts}")),
+                    timestamp: Some(ts),
+                    ..Default::default()
+                }),
+            };
+            store.save_message(&thread, content).await?;
+        }
+        let times = |page: Vec<Content>| -> Vec<u64> {
+            page.iter()
+                .map(|c| c.metadata.client_timestamp.timestamp_millis() as u64)
+                .collect()
+        };
+        assert_eq!(
+            times(store.messages_before(&thread, None, 2).await?),
+            [5, 4]
+        );
+        assert_eq!(
+            times(store.messages_before(&thread, Some(4), 2).await?),
+            [3, 2]
+        );
+        assert_eq!(
+            times(store.messages_before(&thread, Some(2), 2).await?),
+            [1]
+        );
         Ok(())
     }
 }
