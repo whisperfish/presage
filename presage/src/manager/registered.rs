@@ -686,6 +686,18 @@ impl<S: Store> Manager<S, Registered> {
                                         ));
                                     }
 
+                                    // Only our own devices may send sync messages.
+                                    if matches!(content.body, ContentBody::SynchronizeMessage(_))
+                                        && content.metadata.sender
+                                            != ServiceId::Aci(state.service_ids.aci())
+                                    {
+                                        warn!(
+                                            sender = %content.metadata.sender.service_id_string(),
+                                            "dropping a sync message from another account"
+                                        );
+                                        continue;
+                                    }
+
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
                                         content: Some(SyncContent::Request(request)),
                                         ..
