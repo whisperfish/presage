@@ -630,8 +630,24 @@ impl IdentityKeyStore for SqliteProtocolStore {
         &self,
         address: &ProtocolAddress,
         identity: &IdentityKey,
-        _direction: Direction,
+        direction: Direction,
     ) -> Result<bool, SignalProtocolError> {
+        if direction == Direction::Sending {
+            let name = address.name();
+            let pinned: Option<Vec<u8>> = query_scalar!(
+                "SELECT record FROM pinned_identities WHERE address = ?",
+                name
+            )
+            .fetch_optional(&self.store.db)
+            .await
+            .into_protocol_error()?;
+            if let Some(pinned) = pinned
+                && *pinned != *identity.serialize()
+            {
+                warn!(%address, "not sending to an identity other than the pinned one");
+                return Ok(false);
+            }
+        }
         if let Some(trusted_key) = self.get_identity(address).await? {
             // when we encounter some identity we know, we need to decide whether we trust it or not
             if identity == &trusted_key {
@@ -727,6 +743,49 @@ mod test {
     use presage::libsignal_service::protocol::{KeyPair, KyberPreKeyStore, Timestamp};
 
     use super::*;
+
+    #[tokio::test]
+    async fn a_pinned_identity_is_the_only_one_to_send_to() -> Result<(), Box<dyn std::error::Error>>
+    {
+        let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let mut store = SqliteProtocolStore {
+            store: sqlite_store.clone(),
+            identity: IdentityType::Aci,
+        };
+        let contact =
+            ServiceId::parse_from_service_id_string("9d0652a3-dcc3-4d11-975f-74d61598733f")
+                .unwrap();
+        let address = ProtocolAddress::new(contact.service_id_string(), DeviceId::new(1).unwrap());
+        let verified = *IdentityKeyPair::generate(&mut rand::rng()).identity_key();
+        let other = *IdentityKeyPair::generate(&mut rand::rng()).identity_key();
+        store.save_identity(&address, &verified).await?;
+        let trusted = |key, direction| {
+            let store = store.clone();
+            let address = address.clone();
+            async move { store.is_trusted_identity(&address, &key, direction).await }
+        };
+
+        assert!(
+            trusted(other, Direction::Sending).await?,
+            "trusted before pinning"
+        );
+        sqlite_store.pin_identity(&contact, &verified).await?;
+        assert!(trusted(verified, Direction::Sending).await?);
+        assert!(
+            !trusted(other, Direction::Sending).await?,
+            "not to a key nobody approved"
+        );
+        assert!(
+            trusted(other, Direction::Receiving).await?,
+            "receiving is unaffected"
+        );
+        sqlite_store.unpin_identity(&contact).await?;
+        assert!(
+            trusted(other, Direction::Sending).await?,
+            "trusted again once unpinned"
+        );
+        Ok(())
+    }
 
     #[tokio::test]
     async fn kyber_pre_keys_mark_used_one_time() -> Result<(), Box<dyn std::error::Error>> {

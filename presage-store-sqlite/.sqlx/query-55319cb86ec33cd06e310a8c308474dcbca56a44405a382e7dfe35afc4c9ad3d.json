@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record FROM pinned_identities WHERE address = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "record",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "pinned_identities",
+            "name": "record"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "55319cb86ec33cd06e310a8c308474dcbca56a44405a382e7dfe35afc4c9ad3d"
+}
