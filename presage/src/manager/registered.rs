@@ -337,6 +337,45 @@ impl<S: Store> Manager<S, Registered> {
             .expect("logic error"))
     }
 
+    /// For editing records without decoding them. `None` as for [`Self::storage_service`].
+    pub async fn storage_access(
+        &self,
+    ) -> Result<
+        Option<(
+            libsignal_service::push_service::PushService,
+            libsignal_service::master_key::StorageServiceKey,
+        )>,
+        Error<S::Error>,
+    > {
+        use libsignal_service::master_key::{MasterKey, StorageServiceKey};
+        let Some(pool) = self.account_entropy_pool().await? else {
+            return Ok(None);
+        };
+        let master_key =
+            MasterKey::from_slice(&pool.derive_svr_key()).expect("master keys have 32 bytes");
+        Ok(Some((
+            self.identified_push_service(),
+            StorageServiceKey::from_master_key(&master_key),
+        )))
+    }
+
+    /// `None` until the primary device has sent the account entropy pool.
+    pub async fn storage_service(
+        &self,
+    ) -> Result<Option<libsignal_service::StorageService>, Error<S::Error>> {
+        let Some(pool) = self.account_entropy_pool().await? else {
+            return Ok(None);
+        };
+        use libsignal_service::master_key::{MasterKey, StorageServiceKey};
+        // The SVR key is the account's master key.
+        let master_key =
+            MasterKey::from_slice(&pool.derive_svr_key()).expect("master keys have 32 bytes");
+        let key = StorageServiceKey::from_master_key(&master_key);
+        let service =
+            libsignal_service::StorageService::new(self.identified_push_service(), key).await?;
+        Ok(Some(service))
+    }
+
     async fn account_entropy_pool(&self) -> Result<Option<AccountEntropyPool>, Error<S::Error>> {
         let from_store = self.store().fetch_account_entropy_pool().await?;
 
