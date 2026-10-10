@@ -11,7 +11,7 @@ use libsignal_service::provisioning::ProvisioningSecrets;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
-    configuration::{ServiceConfiguration, SignalServers},
+    configuration::{Endpoint, ServiceConfiguration, SignalServers},
     content::{Content, ContentBody, Metadata},
     encrypt_device_name,
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
@@ -30,7 +30,7 @@ use libsignal_service::{
         Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
     },
     provisioning::ProvisioningError,
-    push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
+    push_service::{HttpAuthOverride, PushService, ServiceError, ServiceIds, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
@@ -1628,6 +1628,30 @@ impl<S: Store> Manager<S, Registered> {
         );
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
+    }
+
+    /// Removes this linked device from the account, e.g. before linking again.
+    pub async fn unlink_self(&self) -> Result<(), Error<S::Error>> {
+        let device_id = self.device_id();
+        let response = self
+            .identified_push_service()
+            .request(
+                reqwest::Method::DELETE,
+                Endpoint::service(format!("/v1/devices/{}", u8::from(device_id))),
+                HttpAuthOverride::NoOverride,
+            )?
+            .send()
+            .await
+            .map_err(ServiceError::from)?;
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            Err(ServiceError::UnhandledResponseCode {
+                status: response.status(),
+                body: response.text().await.unwrap_or_default(),
+            }
+            .into())
+        }
     }
 }
 
