@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE identities SET record = ?4\n            WHERE address = ?1 AND identity = ?2 AND record = ?3",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "80abb170cc479ee77847f11b8b185817098dbbf18638de511dd7afe39d4c5d01"
+}
