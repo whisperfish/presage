@@ -1173,6 +1173,393 @@ impl<S: Store> Manager<S, Registered> {
         Ok(upload.await)
     }
 
+    /// Members without a known profile key are invited. Returns the master key and the
+    /// timestamp of the message telling the members.
+    pub async fn create_group(
+        &mut self,
+        title: &str,
+        members: &[Aci],
+    ) -> Result<([u8; 32], u64), Error<S::Error>> {
+        use libsignal_service::groups_v2::{
+            AccessControl, AccessRequired, GroupMemberCandidate, GroupOperations,
+        };
+        use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
+
+        let master_key: [u8; 32] = rand::random();
+        let operations = GroupOperations::new(GroupSecretParams::derive_from_master_key(
+            GroupMasterKey::new(master_key),
+        ));
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        let server_public_params = groups_manager.server_public_params().clone();
+        let own = self.state.data.service_ids.aci();
+        let own_credential = self
+            .profile_key_credential(own, self.state.data.profile_key(), &server_public_params)
+            .await?;
+        let mut candidates = Vec::new();
+        for member in members.iter().filter(|m| **m != own) {
+            let credential = match self.store.profile_key(&(*member).into()).await? {
+                Some(key) => self
+                    .profile_key_credential(*member, key, &server_public_params)
+                    .await
+                    .inspect_err(|error| warn!(%error, "no profile key credential; inviting"))
+                    .ok(),
+                None => None,
+            };
+            candidates.push(GroupMemberCandidate {
+                service_id: (*member).into(),
+                credential,
+            });
+        }
+        // Signal's defaults for new groups.
+        let access = AccessControl {
+            attributes: AccessRequired::Member,
+            members: AccessRequired::Member,
+            add_from_invite_link: AccessRequired::Unsatisfiable,
+            member_label: AccessRequired::Member,
+        };
+        let group = operations
+            .encrypt_group_with_credentials(
+                title,
+                None,
+                None,
+                Some(&access),
+                &own_credential,
+                &candidates,
+                &server_public_params,
+                String::new(),
+                &mut rng(),
+            )
+            .map_err(|e| Error::ServiceError(e.into()))?;
+        groups_manager
+            .create_group(&mut rng(), &master_key, group)
+            .await?;
+        upsert_group(&self.store, &mut groups_manager, &master_key, &0).await?;
+        let message = DataMessage {
+            group_v2: Some(GroupContextV2 {
+                master_key: Some(master_key.to_vec()),
+                revision: Some(0),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+        let recipients: Vec<ServiceId> = members
+            .iter()
+            .copied()
+            .filter(|m| *m != own)
+            .map(ServiceId::Aci)
+            .collect();
+        let timestamp = Self::now();
+        self.send_to_members(&master_key, &recipients, message, timestamp)
+            .await?;
+        Ok((master_key, timestamp))
+    }
+
+    /// Returns the timestamp of the message telling the members. Retried on a 409 conflict,
+    /// as Signal's apps do.
+    pub async fn change_group(
+        &mut self,
+        master_key: &[u8; 32],
+        change: GroupEdit,
+    ) -> Result<u64, Error<S::Error>> {
+        use libsignal_service::groups_v2::GroupOperations;
+        use libsignal_service::zkgroup::groups::{GroupMasterKey, GroupSecretParams};
+        const ATTEMPTS: usize = 3;
+
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        let operations = GroupOperations::new(GroupSecretParams::derive_from_master_key(
+            GroupMasterKey::new(*master_key),
+        ));
+        let own = self.state.data.service_ids.aci();
+        let pni = self.state.data.service_ids.pni();
+        let leaving = matches!(change, GroupEdit::Leave | GroupEdit::DeclineInvitation);
+        let mut attempt = 0;
+        let (group, revision, mut told, signed) = loop {
+            attempt += 1;
+            // The change must build on the latest revision.
+            let Some(group) =
+                upsert_group(&self.store, &mut groups_manager, master_key, &u32::MAX).await?
+            else {
+                return Err(Error::UnknownGroup);
+            };
+            let (actions, told) = self
+                .group_change_actions(&groups_manager, &operations, &group, change.clone())
+                .await?;
+            let revision = actions.version;
+            match groups_manager
+                .modify_group(&mut rng(), master_key, actions)
+                .await
+            {
+                Ok(signed) => break (group, revision, told, signed),
+                Err(error) if is_conflict(&error) && attempt < ATTEMPTS => {
+                    debug!(
+                        attempt,
+                        "the group changed meanwhile; building the change again"
+                    );
+                }
+                Err(error) => return Err(error.into()),
+            }
+        };
+        // After leaving, the server no longer shows us the group: update our copy here.
+        if leaving {
+            let mut left = group;
+            left.members.retain(|m| m.aci != own);
+            left.pending_members
+                .retain(|m| m.uuid != Uuid::from(own) && m.uuid != Uuid::from(pni));
+            left.revision = revision;
+            self.store.save_group(*master_key, left).await?;
+        } else {
+            upsert_group(&self.store, &mut groups_manager, master_key, &revision).await?;
+        }
+        let message = DataMessage {
+            group_v2: Some(GroupContextV2 {
+                master_key: Some(master_key.to_vec()),
+                revision: Some(revision),
+                group_change: Some(libsignal_service::prelude::ProtobufMessage::encode_to_vec(
+                    &signed,
+                )),
+            }),
+            ..Default::default()
+        };
+        told.retain(|member| *member != ServiceId::Aci(own));
+        told.sort();
+        told.dedup();
+        let timestamp = Self::now();
+        self.send_to_members(master_key, &told, message, timestamp)
+            .await?;
+        Ok(timestamp)
+    }
+
+    /// The actions, and who is told: members and invitees before the change, plus those added.
+    async fn group_change_actions(
+        &self,
+        groups_manager: &GroupsManager<InMemoryCredentialsCache>,
+        operations: &libsignal_service::groups_v2::GroupOperations,
+        group: &Group,
+        change: GroupEdit,
+    ) -> Result<
+        (
+            libsignal_service::proto::group_change::Actions,
+            Vec<ServiceId>,
+        ),
+        Error<S::Error>,
+    > {
+        use libsignal_service::groups_v2::Role;
+        use libsignal_service::proto::group_change::Actions;
+        let decoding =
+            |e| Error::ServiceError(libsignal_service::push_service::ServiceError::from(e));
+        let own = self.state.data.service_ids.aci();
+        let pni = self.state.data.service_ids.pni();
+        let invited_as = invited_as(group, own, pni);
+        let mut actions = Actions {
+            version: group.revision + 1,
+            ..Default::default()
+        };
+        let mut told: Vec<ServiceId> = group.members.iter().map(|m| m.aci.into()).collect();
+        told.extend(
+            group
+                .pending_members
+                .iter()
+                .map(|m| match m.service_id_type {
+                    crate::model::ServiceIdType::AccountIdentity => ServiceId::Aci(m.uuid.into()),
+                    crate::model::ServiceIdType::PhoneNumberIdentity => {
+                        ServiceId::Pni(m.uuid.into())
+                    }
+                }),
+        );
+        match change {
+            GroupEdit::Title(title) => {
+                actions.modify_title =
+                    Some(operations.build_modify_title_action(&title, &mut rng()));
+            }
+            GroupEdit::Description(description) => {
+                actions.modify_description =
+                    Some(operations.build_modify_description_action(&description, &mut rng()));
+            }
+            GroupEdit::Timer(seconds) => {
+                actions.modify_disappearing_message_timer = Some(
+                    operations.build_modify_disappearing_messages_timer_action(seconds, &mut rng()),
+                );
+            }
+            GroupEdit::AddMembers(members) => {
+                let server_public_params = groups_manager.server_public_params().clone();
+                for member in members {
+                    // Only an ACI with a profile key we have can be added outright.
+                    let credential = match member {
+                        ServiceId::Aci(aci) => match self.store.profile_key(&member).await? {
+                            Some(key) => self
+                                .profile_key_credential(aci, key, &server_public_params)
+                                .await
+                                .ok(),
+                            None => None,
+                        },
+                        ServiceId::Pni(_) => None,
+                    };
+                    match credential {
+                        Some(credential) => actions.add_members.push(
+                            operations.build_add_member_action_with_credential(
+                                &credential,
+                                Role::Default,
+                                &server_public_params,
+                            ),
+                        ),
+                        None => actions.add_members_pending_profile_key.push(
+                            operations
+                                .build_add_pending_member_action(member, own, Role::Default)
+                                .map_err(decoding)?,
+                        ),
+                    }
+                    told.push(member);
+                }
+            }
+            GroupEdit::RemoveMember(member) => {
+                actions.delete_members.push(
+                    operations
+                        .build_remove_member_action(member)
+                        .map_err(decoding)?,
+                );
+            }
+            GroupEdit::SetAdmin(member, admin) => {
+                let role = if admin {
+                    Role::Administrator
+                } else {
+                    Role::Default
+                };
+                actions.modify_member_roles.push(
+                    operations
+                        .build_modify_member_role_action(member, role)
+                        .map_err(decoding)?,
+                );
+            }
+            GroupEdit::Leave => {
+                actions.delete_members.push(
+                    operations
+                        .build_remove_member_action(own)
+                        .map_err(decoding)?,
+                );
+            }
+            GroupEdit::AcceptInvitation => {
+                use libsignal_service::proto::group_change::actions::{
+                    PromoteMemberPendingPniAciProfileKeyAction,
+                    PromoteMemberPendingProfileKeyAction,
+                };
+                let invited_as = invited_as.ok_or(Error::NotInvited)?;
+                // The server takes who we are and our profile key from the presentation.
+                let server_public_params = groups_manager.server_public_params().clone();
+                let credential = self
+                    .profile_key_credential(own, self.state.data.profile_key, &server_public_params)
+                    .await?;
+                let presentation =
+                    operations.create_member_presentation(&server_public_params, &credential);
+                match invited_as {
+                    ServiceId::Aci(_) => actions.promote_members_pending_profile_key.push(
+                        PromoteMemberPendingProfileKeyAction {
+                            presentation,
+                            ..Default::default()
+                        },
+                    ),
+                    // Invited by phone number: joining tells them our ACI too.
+                    ServiceId::Pni(_) => actions.promote_members_pending_pni_aci_profile_key.push(
+                        PromoteMemberPendingPniAciProfileKeyAction {
+                            presentation,
+                            ..Default::default()
+                        },
+                    ),
+                }
+            }
+            GroupEdit::DeclineInvitation => {
+                let invited_as = invited_as.ok_or(Error::NotInvited)?;
+                actions.delete_members_pending_profile_key.push(
+                    operations
+                        .build_remove_pending_member_action(invited_as)
+                        .map_err(decoding)?,
+                );
+            }
+        }
+        Ok((actions, told))
+    }
+
+    fn now() -> u64 {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("after 1970")
+            .as_millis() as u64
+    }
+
+    async fn profile_key_credential(
+        &self,
+        aci: Aci,
+        profile_key: ProfileKey,
+        server_public_params: &libsignal_service::zkgroup::ServerPublicParams,
+    ) -> Result<libsignal_service::zkgroup::profiles::ExpiringProfileKeyCredential, Error<S::Error>>
+    {
+        let mut websocket = self.identified_websocket(false).await?;
+        Ok(websocket
+            .retrieve_expiring_profile_key_credential(
+                &mut rng(),
+                aci,
+                profile_key,
+                server_public_params,
+            )
+            .await?)
+    }
+
+    /// For group changes, whose audience isn't the group as it is now. Failures are only
+    /// logged: the change is already made.
+    async fn send_to_members(
+        &mut self,
+        master_key: &[u8; 32],
+        members: &[ServiceId],
+        message: DataMessage,
+        timestamp: u64,
+    ) -> Result<(), Error<S::Error>> {
+        let mut content_body: ContentBody = message.into();
+        ensure_data_message_timestamp(&mut content_body, timestamp);
+        let mut sender = self.new_message_sender().await?;
+        let sender_certificate = self.sender_certificate().await?;
+        let mut recipients = Vec::new();
+        for member in members {
+            let unidentified_access =
+                self.store
+                    .profile_key(member)
+                    .await?
+                    .map(|profile_key| UnidentifiedAccess {
+                        key: profile_key.derive_access_key().to_vec(),
+                        certificate: sender_certificate.clone(),
+                    });
+            recipients.push((*member, unidentified_access, false));
+        }
+        let results = sender
+            .send_message_to_group(recipients, content_body.clone(), timestamp, false)
+            .await;
+        for result in results {
+            match result {
+                Ok(_) | Err(MessageSenderError::NotFound { .. }) => {}
+                Err(error) => warn!(%error, "failed to tell a member of a group change"),
+            }
+        }
+        let own = self.state.data.service_ids.aci();
+        let at = chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap();
+        let content = Content {
+            metadata: Metadata {
+                sender: own.into(),
+                destination: own.into(),
+                sender_device: self.state.device_id(),
+                server_guid: None,
+                client_timestamp: at,
+                server_timestamp: at,
+                needs_receipt: false,
+                unidentified_sender: false,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: content_body,
+        };
+        self.store
+            .save_message(&Thread::Group(*master_key), content)
+            .await?;
+        Ok(())
+    }
+
     /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
     ///
     /// This method will automatically update the [DataMessage::expire_timer] if it is set to
@@ -2085,4 +2472,108 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Whether a group change was refused because someone else changed the group meanwhile.
+fn is_conflict(error: &libsignal_service::push_service::ServiceError) -> bool {
+    matches!(
+        error,
+        libsignal_service::push_service::ServiceError::UnhandledResponseCode { status, .. }
+            if status.as_u16() == 409
+    )
+}
+
+/// Which of our identities `group` has an invitation for.
+fn invited_as(
+    group: &crate::model::groups::Group,
+    aci: Aci,
+    pni: libsignal_service::protocol::Pni,
+) -> Option<ServiceId> {
+    use crate::model::ServiceIdType;
+    group
+        .pending_members
+        .iter()
+        .find_map(|m| match m.service_id_type {
+            ServiceIdType::AccountIdentity if m.uuid == Uuid::from(aci) => {
+                Some(ServiceId::Aci(aci))
+            }
+            ServiceIdType::PhoneNumberIdentity if m.uuid == Uuid::from(pni) => {
+                Some(ServiceId::Pni(pni))
+            }
+            _ => None,
+        })
+}
+
+/// See [`Manager::change_group`].
+#[derive(Debug, Clone)]
+pub enum GroupEdit {
+    Title(String),
+    /// Empty clears it.
+    Description(String),
+    /// Seconds; 0 turns disappearing messages off.
+    Timer(u32),
+    /// Adds members we have a profile key for; invites the others, including PNIs.
+    AddMembers(Vec<ServiceId>),
+    RemoveMember(Aci),
+    /// Makes a member an administrator, or takes that back.
+    SetAdmin(Aci, bool),
+    Leave,
+    /// Joins a group we were invited to, by ACI or PNI.
+    AcceptInvitation,
+    /// Turns an invitation down.
+    DeclineInvitation,
+}
+
+#[cfg(test)]
+mod invitation_tests {
+    use super::*;
+    use crate::model::{
+        groups::{Group, PendingMember},
+        ServiceIdType,
+    };
+
+    fn pending(uuid: Uuid, service_id_type: ServiceIdType) -> PendingMember {
+        PendingMember {
+            uuid,
+            service_id_type,
+            role: libsignal_service::groups_v2::Role::Default,
+            added_by_aci: Aci::from(Uuid::from_u128(9)),
+            timestamp: 0,
+        }
+    }
+
+    #[test]
+    fn finds_our_invitation_by_either_identity() {
+        let aci = Aci::from(Uuid::from_u128(1));
+        let pni = libsignal_service::protocol::Pni::from(Uuid::from_u128(2));
+        let group = |pending_members| Group {
+            title: String::new(),
+            avatar: String::new(),
+            disappearing_messages_timer: None,
+            access_control: None,
+            revision: 0,
+            members: vec![],
+            pending_members,
+            requesting_members: vec![],
+            invite_link_password: vec![],
+            description: None,
+        };
+        assert_eq!(invited_as(&group(vec![]), aci, pni), None);
+        let by_aci = group(vec![pending(
+            Uuid::from_u128(1),
+            ServiceIdType::AccountIdentity,
+        )]);
+        assert_eq!(invited_as(&by_aci, aci, pni), Some(ServiceId::Aci(aci)));
+        let by_pni = group(vec![pending(
+            Uuid::from_u128(2),
+            ServiceIdType::PhoneNumberIdentity,
+        )]);
+        assert_eq!(invited_as(&by_pni, aci, pni), Some(ServiceId::Pni(pni)));
+        // Our ACI's UUID as someone's PNI (or the other way round) isn't us.
+        let mixed = group(vec![
+            pending(Uuid::from_u128(1), ServiceIdType::PhoneNumberIdentity),
+            pending(Uuid::from_u128(3), ServiceIdType::AccountIdentity),
+        ]);
+        assert_eq!(invited_as(&mixed, aci, pni), None);
+    }
 }
