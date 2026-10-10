@@ -2,7 +2,9 @@ use std::str::FromStr;
 
 use presage::{
     libsignal_service::{
-        libsignal_account_keys::AccountEntropyPool, prelude::MasterKey, protocol::SenderCertificate,
+        libsignal_account_keys::AccountEntropyPool,
+        prelude::MasterKey,
+        protocol::{IdentityKey, SenderCertificate, ServiceId},
     },
     store::{StateStore, Store},
 };
@@ -37,6 +39,33 @@ impl SqliteStore {
         &self,
     ) -> Result<sqlx::Transaction<'static, sqlx::Sqlite>, sqlx::Error> {
         self.db.begin_with("BEGIN IMMEDIATE").await
+    }
+
+    /// Until unpinned, sending to `address` with any other identity fails, whatever
+    /// [`OnNewIdentity`] says. Receiving isn't affected.
+    pub async fn pin_identity(
+        &self,
+        address: &ServiceId,
+        identity: &IdentityKey,
+    ) -> Result<(), SqliteStoreError> {
+        let address = address.service_id_string();
+        let record = identity.serialize();
+        query!(
+            "INSERT OR REPLACE INTO pinned_identities (address, record) VALUES (?, ?)",
+            address,
+            record,
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    pub async fn unpin_identity(&self, address: &ServiceId) -> Result<(), SqliteStoreError> {
+        let address = address.service_id_string();
+        query!("DELETE FROM pinned_identities WHERE address = ?", address)
+            .execute(&self.db)
+            .await?;
+        Ok(())
     }
 
     pub async fn open(
