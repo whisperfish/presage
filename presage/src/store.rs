@@ -611,15 +611,27 @@ pub async fn save_trusted_identity_message<S: Store>(
     // TODO: this is a hack to save a message showing that the verification status changed
     // It is possibly ok to do it like this, but rebuidling the metadata and content body feels dirty
     let thread = Thread::Contact(sender);
+    // Messages are keyed by time; don't overwrite one.
+    let mut millis = chrono::Utc::now().timestamp_millis() as u64;
+    while store
+        .messages(&thread, millis..=millis)
+        .await?
+        .next()
+        .is_some()
+    {
+        millis += 1;
+    }
+    let now =
+        chrono::DateTime::from_timestamp_millis(millis as i64).unwrap_or_else(chrono::Utc::now);
     let verified_sync_message = Content {
         metadata: Metadata {
             sender,
             destination: sender,
             sender_device: *DEFAULT_DEVICE_ID,
             server_guid: None,
-            client_timestamp: chrono::Utc::now(),
+            client_timestamp: now,
             // No messages were sent, just use the current time as the server timestamp.
-            server_timestamp: chrono::Utc::now(),
+            server_timestamp: now,
             needs_receipt: false,
             unidentified_sender: false,
             was_plaintext: false,
