@@ -68,6 +68,27 @@ impl SqliteStore {
         Ok(())
     }
 
+    /// The identity last refused for sending to `address` because another one is pinned:
+    /// theirs now, from the pre-key bundle the server gave, which the identity store never
+    /// saw (libsignal asks for trust before saving). Gone once `address` is unpinned or pinned
+    /// again, or once an identity of theirs is saved (they wrote first).
+    pub async fn offered_identity(
+        &self,
+        address: &ServiceId,
+    ) -> Result<Option<IdentityKey>, SqliteStoreError> {
+        let address = address.service_id_string();
+        let offered: Option<Option<Vec<u8>>> = query_scalar!(
+            "SELECT offered FROM pinned_identities WHERE address = ?",
+            address
+        )
+        .fetch_optional(&self.db)
+        .await?;
+        Ok(offered
+            .flatten()
+            .map(|bytes| IdentityKey::decode(&bytes))
+            .transpose()?)
+    }
+
     pub async fn open(
         url: &str,
         trust_new_identities: OnNewIdentity,

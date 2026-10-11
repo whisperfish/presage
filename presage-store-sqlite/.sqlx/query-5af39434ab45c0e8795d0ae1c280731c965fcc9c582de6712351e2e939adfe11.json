@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pinned_identities SET offered = NULL WHERE address = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5af39434ab45c0e8795d0ae1c280731c965fcc9c582de6712351e2e939adfe11"
+}
