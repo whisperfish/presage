@@ -1941,17 +1941,24 @@ async fn save_message<S: Store>(
                         }),
                     ..
                 } => {
-                    // replace an existing message by an empty NullMessage
-                    if let Some(mut existing_msg) = store.message(&thread, *ts).await? {
-                        existing_msg.metadata.sender = Aci::from(Uuid::nil()).into();
-                        existing_msg.body = NullMessage::default().into();
-                        store.save_message(&thread, existing_msg).await?;
-                        debug!(%thread, ts, "message in thread deleted");
-                        None
-                    } else {
-                        warn!(%thread, ts, "could not find message to delete in thread");
-                        None
+                    let sent = message.metadata.client_timestamp.timestamp_millis() as u64;
+                    match store.message(&thread, *ts).await? {
+                        // replace an existing message by an empty NullMessage
+                        Some(mut existing_msg)
+                            if existing_msg.metadata.sender == message.metadata.sender
+                                && sent.saturating_sub(*ts) < DELETE_FOR_EVERYONE_WINDOW_MS =>
+                        {
+                            existing_msg.metadata.sender = Aci::from(Uuid::nil()).into();
+                            existing_msg.body = NullMessage::default().into();
+                            store.save_message(&thread, existing_msg).await?;
+                            debug!(%thread, ts, "message in thread deleted");
+                        }
+                        Some(_) => {
+                            warn!(%thread, ts, "ignoring delete of a message by someone else or too old");
+                        }
+                        None => warn!(%thread, ts, "could not find message to delete in thread"),
                     }
+                    None
                 }
                 _ => Some(message),
             }
@@ -2001,7 +2008,7 @@ async fn save_message<S: Store>(
             None
         }
         ContentBody::EditMessage(EditMessage {
-            target_sent_timestamp: Some(_),
+            target_sent_timestamp: Some(target),
             data_message: Some(_),
         })
         | ContentBody::SynchronizeMessage(SyncMessage {
@@ -2009,13 +2016,24 @@ async fn save_message<S: Store>(
                 Some(SyncContent::Sent(sync_message::Sent {
                     edit_message:
                         Some(EditMessage {
-                            target_sent_timestamp: Some(_),
+                            target_sent_timestamp: Some(target),
                             data_message: Some(_),
                         }),
                     ..
                 })),
             ..
-        }) => Some(message),
+        }) => match store.message(&thread, target).await? {
+            // An edit takes the place of the message it edits, which must be its sender's.
+            Some(original) if original.metadata.sender == message.metadata.sender => {
+                let mut edit = message;
+                edit.metadata.client_timestamp = original.metadata.client_timestamp;
+                Some(edit)
+            }
+            _ => {
+                warn!(%thread, target, "ignoring edit of a message by someone else or not found");
+                None
+            }
+        },
         // Call signaling is transient; calls are recorded by `CallEvent`s instead.
         ContentBody::CallMessage(_) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
@@ -2045,11 +2063,23 @@ async fn save_message<S: Store>(
     };
 
     if let Some(message) = message {
-        store.save_message(&thread, message).await?;
+        // Messages are stored by thread and time, so a sender's message must not take the
+        // place of someone else's.
+        let ts = message.metadata.client_timestamp.timestamp_millis() as u64;
+        match store.message(&thread, ts).await? {
+            Some(existing) if existing.metadata.sender != message.metadata.sender => {
+                warn!(%thread, ts, "not saving a message in the place of someone else's");
+            }
+            _ => store.save_message(&thread, message).await?,
+        }
     }
 
     Ok(())
 }
+
+/// How long after sending a message its sender can still delete it for everyone, as received.
+/// See Signal-Android's [RemoteDeleteUtil](https://github.com/signalapp/Signal-Android/blob/main/app/src/main/java/org/thoughtcrime/securesms/util/RemoteDeleteUtil.kt).
+const DELETE_FOR_EVERYONE_WINDOW_MS: u64 = 2 * 24 * 60 * 60 * 1000;
 
 async fn upsert_contact_from_profile<S: Store>(
     mut store: S,
