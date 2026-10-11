@@ -1986,7 +1986,7 @@
 <a href=#1986 id=1986 data-nosnippet>1986</a>                .retrieve_profile_by_id(aci, <span class="prelude-val">Some</span>(profile_key))
 <a href=#1987 id=1987 data-nosnippet>1987</a>                .<span class="kw">await</span><span class="question-mark">?</span>;
 <a href=#1988 id=1988 data-nosnippet>1988</a>            <span class="kw">let </span>profile_cipher = ProfileCipher::new(profile_key);
-<a href=#1989 id=1989 data-nosnippet>1989</a>            <span class="kw">let </span>decrypted_profile = profile_cipher.decrypt(encrypted_profile).unwrap();
+<a href=#1989 id=1989 data-nosnippet>1989</a>            <span class="kw">let </span>decrypted_profile = profile_cipher.decrypt(encrypted_profile)<span class="question-mark">?</span>;
 <a href=#1990 id=1990 data-nosnippet>1990</a>
 <a href=#1991 id=1991 data-nosnippet>1991</a>            <span class="kw">let </span>contact = Contact {
 <a href=#1992 id=1992 data-nosnippet>1992</a>                uuid: sender_uuid,
