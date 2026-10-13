@@ -447,7 +447,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
             {
                 return Err(SignalProtocolError::InvalidMessage(
                     CiphertextMessageType::PreKey,
-                    "reused base key",
+                    "reused base key".to_owned(),
                 ));
             }
 

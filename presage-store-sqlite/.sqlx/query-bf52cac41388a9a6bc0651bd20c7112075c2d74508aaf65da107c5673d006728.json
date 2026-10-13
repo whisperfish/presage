@@ -6,7 +6,13 @@
       {
         "name": "record",
         "ordinal": 0,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "pre_keys",
+            "name": "record"
+          }
+        }
       }
     ],
     "parameters": {

@@ -19,7 +19,7 @@ use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
-use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
 use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
@@ -130,6 +130,17 @@ enum Cmd {
         /// Base64-encoded profile key of user to be able to access their profile
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
+    },
+    #[clap(about = "Update the user's profile name and privacy settings")]
+    UpdateProfile {
+        #[clap(long, help = "The given (first) name of the profile")]
+        given_name: Option<String>,
+        #[clap(long, help = "The family (last) name of the profile")]
+        family_name: Option<String>,
+        #[clap(long, help = "The 'about' text of the profile")]
+        about: Option<String>,
+        #[clap(long, help = "The 'emoji' of the profile")]
+        emoji: Option<String>,
     },
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Sync {
@@ -494,25 +505,25 @@ async fn print_message<S: Store>(
             .map(|body| Msg::Received(&thread, body)),
         ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     message: Some(data_message),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
             .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     edit_message:
                         Some(EditMessage {
                             data_message: Some(data_message),
                             ..
                         }),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
@@ -532,9 +543,6 @@ async fn print_message<S: Store>(
         )),
         ContentBody::StoryMessage(story) => {
             Some(Msg::Received(&thread, format!("new story: {story:?}")))
-        }
-        ContentBody::PniSignatureMessage(_) => {
-            Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
         ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
             &thread,
@@ -607,6 +615,9 @@ async fn receive<S: Store>(
                 )
                 .await
             }
+            Received::DecryptionError(c) => {
+                println!("failed to receive a message from a contact: {c:?}")
+            }
         }
     }
 
@@ -639,7 +650,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
             if let Some(confirmation_code) = reader.lines().next_line().await? {
-                let registered_manager =
+                let registered_manager: Manager<S, Registered> =
                     manager.confirm_verification_code(confirmation_code).await?;
                 println!(
                     "Account identifiers: {}",
@@ -783,6 +794,24 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             };
             println!("{profile:#?}");
         }
+        Cmd::UpdateProfile {
+            given_name,
+            family_name,
+            about,
+            emoji,
+        } => {
+            let mut manager = load_registered_and_receive(store).await?;
+            if let Some(given_name) = given_name {
+                let profile_name = presage::libsignal_service::profile_name::ProfileName {
+                    given_name,
+                    family_name,
+                };
+                manager.update_profile(profile_name, about, emoji).await?;
+                println!("Profile updated.");
+            } else if family_name.is_some() || about.is_some() || emoji.is_some() {
+                bail!("The --given-name parameter is required when updating the profile fields (--family-name, --about or --emoji)");
+            }
+        }
         Cmd::ListGroups {
             name_filter,
             verbose,
@@ -876,7 +905,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
         }
         Cmd::Whoami => {
             let manager = load_registered_and_receive(store).await?;
-            println!("{:?}", &manager.whoami().await?);
+            println!("{:?}", manager.whoami().await?);
         }
         Cmd::GetContact { ref id } => {
             let manager = load_registered_and_receive(store).await?;
@@ -920,6 +949,9 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     Received::QueueEmpty => break,
                     Received::Contacts => println!("got contacts! thank you, come again."),
                     Received::Content(_) => print!("."),
+                    Received::DecryptionError(_) => {
+                        println!("failed to receive a message from a contact")
+                    }
                 }
             }
         }

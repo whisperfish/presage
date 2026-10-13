@@ -1,8 +1,7 @@
-use std::sync::Arc;
-
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::SignalServers;
+use libsignal_service::master_key::MasterKey;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::{
@@ -126,6 +125,8 @@ impl<S: Store> Manager<S, Linking> {
                 pni_private_key,
                 pni_public_key,
                 profile_key,
+                account_entropy_pool,
+                ephemeral_backup_key: _,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -151,6 +152,19 @@ impl<S: Store> Manager<S, Linking> {
                         pni_private_key,
                     ))
                     .await?;
+                store
+                    .store_master_key(
+                        account_entropy_pool
+                            .as_ref()
+                            .and_then(|aep| {
+                                MasterKey::from_slice(aep.derive_svr_key().as_slice()).ok()
+                            })
+                            .as_ref(),
+                    )
+                    .await?;
+                store
+                    .store_account_entropy_pool(account_entropy_pool.as_ref())
+                    .await?;
 
                 store.save_registration_data(&registration_data).await?;
                 info!(
@@ -160,7 +174,7 @@ impl<S: Store> Manager<S, Linking> {
 
                 let manager = Manager {
                     store: store.clone(),
-                    state: Arc::new(Registered::with_data(registration_data)),
+                    state: Registered::with_data(registration_data),
                 };
 
                 Ok(manager)

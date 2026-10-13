@@ -140,11 +140,13 @@ impl ContentsStore for SqliteStore {
             sender,
             destination,
             sender_device,
-            timestamp,
+            client_timestamp: timestamp,
             needs_receipt,
             unidentified_sender,
             server_guid: _,
             was_plaintext,
+            server_timestamp: _,
+            pni_verified,
         } = metadata;
 
         let sender_device: u8 = sender_device.into();
@@ -152,9 +154,7 @@ impl ContentsStore for SqliteStore {
         let destination_service_id = destination.service_id_string();
 
         let proto_bytes = prost::Message::encode_to_vec(&body.into_proto());
-        let timestamp: i64 = timestamp
-            .try_into()
-            .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let timestamp = timestamp.timestamp_millis();
 
         query!(
             "INSERT OR REPLACE INTO thread_messages (
@@ -166,9 +166,10 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             timestamp,
             thread_id,
             sender_service_id,
@@ -178,6 +179,7 @@ impl ContentsStore for SqliteStore {
             unidentified_sender,
             proto_bytes,
             was_plaintext,
+            pni_verified.as_ref().map(|p| p.service_id_string())
         )
         .execute(&mut *tx)
         .await?;
@@ -221,13 +223,15 @@ impl ContentsStore for SqliteStore {
             SqlMessage,
             r#"SELECT
                 ts AS "ts: _",
+                server_ts AS "server_ts: _",
                 sender_service_id,
                 sender_device_id AS "sender_device_id: _",
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             FROM thread_messages
             WHERE ts = ? AND thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)"#,
@@ -254,13 +258,15 @@ impl ContentsStore for SqliteStore {
             SqlMessage,
             r#"SELECT
                 ts AS "ts: _",
+                server_ts AS "server_ts: _",
                 sender_service_id,
                 sender_device_id AS "sender_device_id: _",
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             FROM thread_messages
             WHERE thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
@@ -420,7 +426,7 @@ impl ContentsStore for SqliteStore {
         let g = SqlGroup::from_group(&master_key, group.into());
         let master_key = g.master_key.as_ref();
         query!(
-            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             master_key,
             g.title,
             g.revision,
@@ -431,6 +437,7 @@ impl ContentsStore for SqliteStore {
             g.members,
             g.pending_members,
             g.requesting_members,
+            g.disappearing_messages_timer,
         )
         .execute(&self.db)
         .await?;
@@ -450,7 +457,8 @@ impl ContentsStore for SqliteStore {
                 description,
                 members AS "members: _",
                 pending_members AS "pending_members: _",
-                requesting_members AS "requesting_members: _"
+                requesting_members AS "requesting_members: _",
+                disappearing_messages_timer
             FROM groups"#,
         )
         .fetch_all(&self.db)
@@ -475,7 +483,8 @@ impl ContentsStore for SqliteStore {
                 description,
                 members AS "members: _",
                 pending_members AS "pending_members: _",
-                requesting_members AS "requesting_members: _"
+                requesting_members AS "requesting_members: _",
+                disappearing_messages_timer
             FROM groups
             WHERE master_key = ?
             LIMIT 1"#,
@@ -530,7 +539,7 @@ impl ContentsStore for SqliteStore {
         )
         .execute(&self.db)
         .await?;
-        Ok(res.rows_affected() == 0)
+        Ok(res.rows_affected() > 0)
     }
 
     async fn profile_key(
@@ -675,6 +684,31 @@ impl ContentsStore for SqliteStore {
         .await?;
         Ok(Box::new(sql_packs.into_iter().map(|pack| Ok(pack.into()))))
     }
+
+    async fn thread_for_sender_and_timestamp(
+        &self,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> Result<Option<Thread>, Self::ContentsStoreError> {
+        let timestamp: i64 = timestamp
+            .try_into()
+            .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let sender_service_id = sender.service_id_string();
+        let thread = query!(r#"SELECT group_master_key, recipient_id AS "recipient_id: Uuid" FROM threads JOIN thread_messages ON threads.id = thread_messages.thread_id WHERE sender_service_id = ? AND ts = ?"#, sender_service_id, timestamp)
+            .fetch_optional(&self.db).await?;
+
+        let Some(thread) = thread else {
+            return Ok(None);
+        };
+
+        match (thread.group_master_key, thread.recipient_id) {
+            (Some(group_master_key), None) => {
+                Ok(group_master_key.try_into().ok().map(Thread::Group))
+            }
+            (None, Some(contact)) => Ok(Some(Thread::Contact(ServiceId::Aci(contact.into())))),
+            _ => panic!("Thread table stored both group master key and recipient"),
+        }
+    }
 }
 
 trait ThreadExt {
@@ -713,5 +747,23 @@ impl BoundExt for Bound<&u64> {
             Bound::Included(x) => (None, Some(*x as i64)),
             Bound::Unbounded => (None, None),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::OnNewIdentity;
+
+    #[tokio::test]
+    async fn upsert_profile_key_reports_the_write() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let uuid = Uuid::nil();
+        let key = ProfileKey::create([1u8; 32]);
+
+        assert!(store.upsert_profile_key(&uuid, key).await?);
+        assert!(store.upsert_profile_key(&uuid, key).await?);
+
+        Ok(())
     }
 }

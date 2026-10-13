@@ -7,23 +7,24 @@ edition = "2021"
 license = "AGPL-3.0-only"
 
 [features]
-default = ["cdsi"]
+default = []
 # brings libsignal-net and all its dependencies
 cdsi = ["libsignal-service/cdsi"]
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "782c0d6bf0c4a6ab52f98d7b6d950a13f28f3020", default-features = false, features = [
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "fb92b13c82fde40ba4d10696cf79aa4f36ce25f1", default-features = false, features = [
     "phonenumber",
 ] }
 
 base64 = "0.22"
+chrono = "0.4"
 futures = "0.3"
 hex = "0.4.3"
 rand = "0.9"
 serde = "1.0"
 serde_json = "1.0"
-sha2 = "0.10.8"
-thiserror = "1.0"
+sha2 = "0.11.0"
+thiserror = "2.0"
 tokio = { version = "1.48", default-features = false, features = [
     "rt",
     "sync",
