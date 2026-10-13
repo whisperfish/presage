@@ -1654,6 +1654,27 @@ impl<S: Store> Manager<S, Registered> {
             .await?;
         Ok(())
     }
+
+    /// Update the name of this device.
+    pub async fn update_device_name(&mut self, name: &str) -> Result<(), Error<S::Error>> {
+        let aci = self.state.data.service_ids.aci;
+        let aci_protocol_store = self.store.aci_protocol_store();
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            Some(self.state.data.profile_key),
+        );
+        account_manager
+            .update_device_name(
+                self.device_id(),
+                name,
+                aci.into(),
+                &aci_protocol_store,
+                &mut rng(),
+            )
+            .await?;
+        Ok(())
+    }
 }
 
 /// Set the timestamp in any DataMessage so it matches its envelope's
