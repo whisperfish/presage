@@ -267,17 +267,19 @@ pub trait ContentsStore: Send + Sync {
         master_key: GroupMasterKeyBytes,
     ) -> impl Future<Output = Result<Option<Group>, Self::ContentsStoreError>>;
 
-    /// Save a group avatar in the cache
+    /// Save a group avatar in the cache, with the path it was fetched from.
     fn save_group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: &str,
         avatar: &AvatarBytes,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Retrieve a group avatar from the cache.
+    /// Retrieve a group avatar from the cache. With a `path`, only if it was fetched from there.
     fn group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: Option<&str>,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     // Profiles
@@ -310,19 +312,22 @@ pub trait ContentsStore: Send + Sync {
         key: ProfileKey,
     ) -> impl Future<Output = Result<Option<Profile>, Self::ContentsStoreError>>;
 
-    /// Save a profile avatar by [Uuid] and [ProfileKey].
+    /// Save a profile avatar by [Uuid] and [ProfileKey], with the path it was fetched from.
     fn save_profile_avatar(
         &mut self,
         uuid: Uuid,
         key: ProfileKey,
-        profile: &AvatarBytes,
+        path: &str,
+        avatar: &AvatarBytes,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Retrieve a profile avatar by [Uuid] and [ProfileKey].
+    /// Retrieve a profile avatar by [Uuid] and [ProfileKey]. With a `path`, only if it was
+    /// fetched from there.
     fn profile_avatar(
         &self,
         uuid: Uuid,
         key: ProfileKey,
+        path: Option<&str>,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     // Stickers

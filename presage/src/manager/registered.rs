@@ -391,7 +391,9 @@ impl<S: Store> Manager<S, Registered> {
             .await
     }
 
-    /// Fetches the profile of the provided user by UUID and profile key.
+    /// Returns the stored profile of the provided user, or fetches it if there is none.
+    ///
+    /// The stored copy is never checked against the service, see `refresh_profile_by_uuid`.
     pub async fn retrieve_profile_by_uuid(
         &mut self,
         aci: impl Into<Aci>,
@@ -399,9 +401,7 @@ impl<S: Store> Manager<S, Registered> {
     ) -> Result<Profile, Error<S::Error>> {
         let aci = aci.into();
 
-        // Check if profile is cached.
         // TODO: Create a migration in the store removing all profiles.
-        // TODO: Is there some way to know if this is outdated?
         if let Some(profile) = self
             .store
             .profile(aci.into(), profile_key)
@@ -411,6 +411,19 @@ impl<S: Store> Manager<S, Registered> {
         {
             return Ok(profile);
         }
+
+        self.refresh_profile_by_uuid(aci, profile_key).await
+    }
+
+    /// Fetches the profile of the provided user from the service and stores it.
+    ///
+    /// A changed profile avatar is picked up by the next `retrieve_profile_avatar_by_uuid`.
+    pub async fn refresh_profile_by_uuid(
+        &mut self,
+        aci: impl Into<Aci>,
+        profile_key: ProfileKey,
+    ) -> Result<Profile, Error<S::Error>> {
+        let aci = aci.into();
 
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
@@ -471,16 +484,21 @@ impl<S: Store> Manager<S, Registered> {
             .try_into()
             .expect("Master key bytes to be of size 32.");
 
-        // Check if group avatar is cached.
-        // TODO: Is there some way to know if this is outdated?
-        if let Some(avatar) = self
-            .store
-            .group_avatar(master_key_bytes)
-            .await
-            .ok()
-            .flatten()
-        {
-            return Ok(Some(avatar));
+        // The avatar path changes with the avatar, so a copy cached from another path is outdated.
+        let stored_group = self.store.group(master_key_bytes).await.ok().flatten();
+        if let Some(group) = stored_group.filter(|group| group.revision >= context.revision()) {
+            if group.avatar.is_empty() {
+                return Ok(None);
+            }
+            if let Some(avatar) = self
+                .store
+                .group_avatar(master_key_bytes, Some(&group.avatar))
+                .await
+                .ok()
+                .flatten()
+            {
+                return Ok(Some(avatar));
+            }
         }
 
         let mut gm = Box::pin(self.groups_manager()).await?;
@@ -507,7 +525,10 @@ impl<S: Store> Manager<S, Registered> {
             )
             .await?;
         if let Some(avatar) = &avatar {
-            let _ = self.store.save_group_avatar(master_key_bytes, avatar).await;
+            let _ = self
+                .store
+                .save_group_avatar(master_key_bytes, &group.avatar, avatar)
+                .await;
         }
         Ok(avatar)
     }
@@ -517,18 +538,6 @@ impl<S: Store> Manager<S, Registered> {
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
-        // Check if profile avatar is cached.
-        // TODO: Is there some way to know if this is outdated?
-        if let Some(avatar) = self
-            .store
-            .profile_avatar(uuid, profile_key)
-            .await
-            .ok()
-            .flatten()
-        {
-            return Ok(Some(avatar));
-        }
-
         let profile =
             if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
                 profile
@@ -536,13 +545,24 @@ impl<S: Store> Manager<S, Registered> {
                 self.retrieve_profile_by_uuid(uuid, profile_key).await?
             };
 
-        let Some(avatar) = profile.avatar.as_ref() else {
+        let Some(path) = profile.avatar.as_ref() else {
             return Ok(None);
         };
 
+        // The avatar path changes with the avatar, so a copy cached from another path is outdated.
+        if let Some(avatar) = self
+            .store
+            .profile_avatar(uuid, profile_key, Some(path))
+            .await
+            .ok()
+            .flatten()
+        {
+            return Ok(Some(avatar));
+        }
+
         let mut websocket = self.unidentified_websocket().await?;
 
-        let mut avatar_stream = websocket.retrieve_profile_avatar(avatar).await?;
+        let mut avatar_stream = websocket.retrieve_profile_avatar(path).await?;
         // 10MB is what Signal Android allocates
         let mut contents = Vec::with_capacity(10 * 1024 * 1024);
         let len = avatar_stream.read_to_end(&mut contents).await?;
@@ -553,7 +573,7 @@ impl<S: Store> Manager<S, Registered> {
         let avatar = cipher.decrypt_avatar(&contents)?;
         let _ = self
             .store
-            .save_profile_avatar(uuid, profile_key, &avatar)
+            .save_profile_avatar(uuid, profile_key, path, &avatar)
             .await;
         Ok(Some(avatar))
     }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO profile_avatars(uuid, bytes, path) VALUES (?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "479f4ce4d774a034e40f0011ad57e4ff92110756b9deb101a55ccedbb1c8ab7a"
+}
