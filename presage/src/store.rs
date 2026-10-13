@@ -163,6 +163,15 @@ pub trait ContentsStore: Send + Sync {
         range: impl RangeBounds<u64>,
     ) -> impl Future<Output = Result<Self::MessagesIter, Self::ContentsStoreError>>;
 
+    /// Retrieve up to `limit` messages from a [Thread] sent before `before` (or the
+    /// newest), newest first.
+    fn messages_before(
+        &self,
+        thread: &Thread,
+        before: Option<u64>,
+        limit: u32,
+    ) -> impl Future<Output = Result<Vec<Content>, Self::ContentsStoreError>>;
+
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
     /// or [Group::disappearing_messages_timer].
     fn expire_timer(
