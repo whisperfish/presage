@@ -87,17 +87,8 @@ impl SqliteStore {
     ) -> Result<Self, SqliteStoreError> {
         let options = options
             .journal_mode(SqliteJournalMode::Wal)
-            .synchronous(SqliteSynchronous::Full)
-            // Cap per-connection SQLite page cache at 2 MB (negative = KiB).
-            // Default is 2000 pages × 4096 B = 8 MB; with sqlx's pool of N
-            // connections that explodes RSS for negligible read-performance
-            // gain on a chat workload. 2 MB is comfortable for hot tables
-            // (kv, contacts, threads) and lets the OS page-cache the rest.
-            .pragma("cache_size", "-2000");
-        // Cap the pool. sqlx defaults to 10 connections which each carry a
-        // page cache; on a chat workload (read-heavy, almost no concurrent
-        // writes) 3 is plenty. Combined with PRAGMA cache_size = -2000 this
-        // bounds the SQLite-side RSS to ~6 MB instead of ~80 MB.
+            .synchronous(SqliteSynchronous::Full);
+        // Each connection carries its own page cache; sqlx's default of 10 is more than we need.
         let db = SqlitePoolOptions::new()
             .max_connections(3)
             .connect_with(options)
