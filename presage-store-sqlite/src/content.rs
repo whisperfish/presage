@@ -21,55 +21,6 @@ use crate::{
     error::SqlxErrorExt,
 };
 
-impl SqliteStore {
-    /// Up to `limit` messages sent before `before` (or the newest), newest first.
-    pub async fn messages_before(
-        &self,
-        thread: &Thread,
-        before: Option<u64>,
-        limit: u32,
-    ) -> Result<Vec<Content>, SqliteStoreError> {
-        use sqlx::Row;
-        let (group_master_key, recipient_id) = thread.unzip();
-        let before = before.map_or(i64::MAX, |ts| ts.min(i64::MAX as u64) as i64);
-        let rows = query(
-            "SELECT ts, server_ts, sender_service_id, sender_device_id, destination_service_id,
-                needs_receipt, unidentified_sender, content_body, was_plaintext, pni_verified
-            FROM thread_messages
-            WHERE thread_id = (
-                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
-                AND ts < ?
-            ORDER BY ts DESC
-            LIMIT ?",
-        )
-        .bind(group_master_key)
-        .bind(recipient_id)
-        .bind(before)
-        .bind(i64::from(limit))
-        .fetch_all(&self.db)
-        .await?;
-        rows.into_iter()
-            .map(|row| {
-                SqlMessage {
-                    ts: row.try_get::<i64, _>("ts")? as u64,
-                    server_ts: row
-                        .try_get::<Option<i64>, _>("server_ts")?
-                        .map(|ts| ts as u64),
-                    sender_service_id: row.try_get("sender_service_id")?,
-                    sender_device_id: row.try_get::<i64, _>("sender_device_id")? as u8,
-                    destination_service_id: row.try_get("destination_service_id")?,
-                    needs_receipt: row.try_get("needs_receipt")?,
-                    unidentified_sender: row.try_get("unidentified_sender")?,
-                    content_body: row.try_get("content_body")?,
-                    was_plaintext: row.try_get("was_plaintext")?,
-                    pni_verified: row.try_get("pni_verified")?,
-                }
-                .try_into()
-            })
-            .collect()
-    }
-}
-
 impl ContentsStore for SqliteStore {
     type ContentsStoreError = SqliteStoreError;
 
@@ -333,6 +284,44 @@ impl ContentsStore for SqliteStore {
         .await?;
 
         Ok(Box::new(rows.into_iter().map(TryInto::try_into)))
+    }
+
+    async fn messages_before(
+        &self,
+        thread: &Thread,
+        before: Option<u64>,
+        limit: u32,
+    ) -> Result<Vec<Content>, Self::ContentsStoreError> {
+        let (group_master_key, recipient_id) = thread.unzip();
+        let before = before.map_or(i64::MAX, |ts| ts.min(i64::MAX as u64) as i64);
+        let rows = query_as!(
+            SqlMessage,
+            r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND ts < ?
+            ORDER BY ts DESC
+            LIMIT ?"#,
+            group_master_key,
+            recipient_id,
+            before,
+            i64::from(limit),
+        )
+        .fetch_all(&self.db)
+        .await?;
+
+        rows.into_iter().map(TryInto::try_into).collect()
     }
 
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
