@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
 use bytes::Bytes;
+use chrono::{TimeZone, Utc};
 use presage::{
     libsignal_service::{
         Profile,
@@ -8,7 +9,7 @@ use presage::{
         models::Attachment,
         prelude::{Content, phonenumber},
         profile_name::ProfileName,
-        protocol::{Aci, ServiceId},
+        protocol::{Aci, Pni, ServiceId},
         zkgroup::GroupMasterKeyBytes,
     },
     model::{
@@ -42,7 +43,7 @@ pub struct SqlContact {
 impl TryInto<Contact> for SqlContact {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     fn try_into(self) -> Result<Contact, Self::Error> {
         Ok(Contact {
             uuid: self.uuid,
@@ -130,7 +131,7 @@ pub(crate) struct SqlGroup<'a> {
 }
 
 impl SqlGroup<'_> {
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     pub fn from_group(master_key: &GroupMasterKeyBytes, group: Group) -> SqlGroup<'_> {
         SqlGroup {
             master_key: Cow::Borrowed(master_key.as_slice()),
@@ -149,7 +150,7 @@ impl SqlGroup<'_> {
         }
     }
 
-    #[tracing::instrument]
+    #[tracing::instrument(level = "trace")]
     pub fn into_group(self) -> Result<(GroupMasterKeyBytes, Group), SqliteStoreError> {
         let Self {
             master_key,
@@ -189,6 +190,7 @@ impl SqlGroup<'_> {
 #[derive(Debug)]
 pub struct SqlMessage {
     pub ts: u64,
+    pub server_ts: Option<u64>,
 
     pub sender_service_id: String,
     pub sender_device_id: u8,
@@ -198,15 +200,17 @@ pub struct SqlMessage {
 
     pub content_body: Vec<u8>,
     pub was_plaintext: bool,
+    pub pni_verified: Option<String>,
 }
 
 impl TryInto<Content> for SqlMessage {
     type Error = SqliteStoreError;
 
-    #[tracing::instrument(skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
+    #[tracing::instrument(level = "trace", skip(self), fields(self.ts = %self.ts, self.sender_service_id = %self.sender_service_id, self.sender_device_id = %self.sender_device_id, self.destination_service_id = %self.destination_service_id, self.needs_receipt = %self.needs_receipt, self.unidentified_sender = %self.unidentified_sender, self.was_plaintext = %self.was_plaintext, self.content_body = "[...]"))]
     fn try_into(self) -> Result<Content, Self::Error> {
         let Self {
             ts,
+            server_ts,
             sender_service_id,
             sender_device_id,
             destination_service_id,
@@ -214,6 +218,7 @@ impl TryInto<Content> for SqlMessage {
             unidentified_sender,
             content_body,
             was_plaintext,
+            pni_verified,
         } = self;
         let body: proto::Content =
             prost::Message::decode(&*content_body).map_err(|_| SqliteStoreError::InvalidFormat)?;
@@ -225,11 +230,22 @@ impl TryInto<Content> for SqlMessage {
             sender,
             destination,
             sender_device: sender_device_id.try_into()?,
-            timestamp: ts,
+            client_timestamp: Utc.timestamp_millis_opt(ts as i64).unwrap(),
+            // Not every message may have a server timestamp stored; fall back to the regular timestamp.
+            server_timestamp: Utc
+                .timestamp_millis_opt(server_ts.unwrap_or(ts) as i64)
+                .unwrap(),
             needs_receipt,
             unidentified_sender,
             server_guid: None,
             was_plaintext,
+            pni_verified: pni_verified
+                .as_ref()
+                .map(|p| {
+                    Pni::parse_from_service_id_string(p)
+                        .ok_or_else(|| SqliteStoreError::InvalidFormat)
+                })
+                .transpose()?,
         };
         Content::from_proto(body, metadata).map_err(|_| SqliteStoreError::InvalidFormat)
     }

@@ -43,6 +43,8 @@ pub struct Member {
     pub role: Role,
     pub profile_key: ProfileKey,
     pub joined_at_revision: u32,
+    pub label: Option<String>,
+    pub label_emoji: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -98,6 +100,8 @@ impl From<libsignal_service::groups_v2::Member> for Member {
             role: val.role,
             profile_key: val.profile_key,
             joined_at_revision: val.joined_at_version,
+            label: val.label,
+            label_emoji: val.label_emoji,
         }
     }
 }

@@ -1,14 +1,15 @@
 //! Traits that are used by the manager for storing the data.
 
-use std::{fmt, future::Future, ops::RangeBounds, time::SystemTime};
+use std::{fmt, future::Future, ops::RangeBounds};
 
 use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
+    libsignal_account_keys::AccountEntropyPool,
     pre_keys::PreKeysStore,
     prelude::{Content, MasterKey, ProfileKey, Uuid},
     proto::{
-        sync_message::{self, Sent},
+        sync_message::{self, Content as SyncContent, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
     protocol::{
@@ -80,6 +81,15 @@ pub trait StateStore {
         &self,
         master_key: Option<&MasterKey>,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+
+    fn fetch_account_entropy_pool(
+        &self,
+    ) -> impl Future<Output = Result<Option<AccountEntropyPool>, Self::StateStoreError>>;
+
+    fn store_account_entropy_pool(
+        &self,
+        aep: Option<&AccountEntropyPool>,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 }
 
 /// Stores messages, contacts, groups and profiles
@@ -139,6 +149,13 @@ pub trait ContentsStore: Send + Sync {
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
 
+    /// Retrieve a message [Thread] from its sender and timestamp.
+    fn thread_for_sender_and_timestamp(
+        &self,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> impl Future<Output = Result<Option<Thread>, Self::ContentsStoreError>>;
+
     /// Retrieve all messages from a [Thread] within a range in time
     fn messages(
         &self,
@@ -195,7 +212,12 @@ pub trait ContentsStore: Send + Sync {
                 Thread::Group(key) => {
                     let group = self.group(*key).await?;
                     if let Some(mut g) = group {
-                        g.disappearing_messages_timer = Some(Timer { duration: timer });
+                        // Convert timer=0 to None for groups (disable disappearing messages)
+                        g.disappearing_messages_timer = if timer == 0 {
+                            None
+                        } else {
+                            Some(Timer { duration: timer })
+                        };
                         self.save_group(*key, g).await?;
                     }
                     Ok(())
@@ -393,6 +415,8 @@ impl fmt::Display for Thread {
 pub enum ThreadError {
     #[error("invalid service ID")]
     InvalidServiceId,
+    #[error("invalid group master key")]
+    InvalidGroupMasterKey,
 }
 
 impl TryFrom<&Content> for Thread {
@@ -402,18 +426,18 @@ impl TryFrom<&Content> for Thread {
         match &content.body {
             // [1-1] Message sent by us with another device (with string service ID)
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sent @ Sent {
+                content:
+                    Some(SyncContent::Sent(sent @ Sent {
                         destination_service_id: Some(_),
                         ..
-                    }),
+                    })),
                 ..
             }) | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sent @ Sent {
+                content:
+                    Some(SyncContent::Sent(sent @ Sent {
                         destination_service_id_binary: Some(_),
                         ..
-                    }),
+                    })),
                 ..
             })=> {
                 let parsed_service_id = sent.parse_destination_service_id().ok_or(ThreadError::InvalidServiceId)?;
@@ -430,8 +454,8 @@ impl TryFrom<&Content> for Thread {
             })
             // [Group] message sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
+                content:
+                    Some(SyncContent::Sent(Sent {
                         message:
                             Some(DataMessage {
                                 group_v2:
@@ -442,13 +466,13 @@ impl TryFrom<&Content> for Thread {
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             })
             // [Group] message edit sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
+                content:
+                    Some(SyncContent::Sent(Sent {
                         edit_message:
                             Some(EditMessage {
                                 data_message:
@@ -463,7 +487,7 @@ impl TryFrom<&Content> for Thread {
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             })
             // [Group] Message edit sent by somebody else
@@ -479,9 +503,9 @@ impl TryFrom<&Content> for Thread {
                     }),
                 ..
             }) => Ok(Self::Group(
-                key.clone()
+                key.as_slice()
                     .try_into()
-                    .expect("Group master key to have 32 bytes"),
+                    .map_err(|_| ThreadError::InvalidGroupMasterKey)?,
             )),
             // [1-1] Any other message directly to us
             _ => Ok(Thread::Contact(content.metadata.sender)),
@@ -499,30 +523,30 @@ impl ContentExt for Content {
     fn timestamp(&self) -> u64 {
         match self.body {
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sync_message::Sent {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
                         timestamp: Some(ts),
                         ..
-                    }),
+                    })),
                 ..
             }) => ts,
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sync_message::Sent {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
                         edit_message:
                             Some(EditMessage {
                                 target_sent_timestamp: Some(ts),
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             }) => ts,
             ContentBody::EditMessage(EditMessage {
                 target_sent_timestamp: Some(ts),
                 ..
             }) => ts,
-            _ => self.metadata.timestamp,
+            _ => self.metadata.client_timestamp.timestamp_millis() as u64,
         }
     }
 }
@@ -595,22 +619,22 @@ pub async fn save_trusted_identity_message<S: Store>(
             destination: sender,
             sender_device: *DEFAULT_DEVICE_ID,
             server_guid: None,
-            timestamp: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            client_timestamp: chrono::Utc::now(),
+            // No messages were sent, just use the current time as the server timestamp.
+            server_timestamp: chrono::Utc::now(),
             needs_receipt: false,
             unidentified_sender: false,
             was_plaintext: false,
+            pni_verified: None,
         },
         body: SyncMessage {
-            verified: Some(Verified {
+            content: Some(SyncContent::Verified(Verified {
                 destination_aci: None,
                 destination_aci_binary: None,
                 identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
                 state: Some(verified_state.into()),
                 null_message: None,
-            }),
+            })),
             ..Default::default()
         }
         .into(),

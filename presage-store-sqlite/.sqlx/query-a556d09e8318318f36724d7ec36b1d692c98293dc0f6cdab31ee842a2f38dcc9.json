@@ -6,17 +6,35 @@
       {
         "name": "id",
         "ordinal": 0,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "sticker_packs",
+            "name": "id"
+          }
+        }
       },
       {
         "name": "key",
         "ordinal": 1,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "sticker_packs",
+            "name": "key"
+          }
+        }
       },
       {
         "name": "manifest: _",
         "ordinal": 2,
-        "type_info": "Blob"
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "sticker_packs",
+            "name": "manifest"
+          }
+        }
       }
     ],
     "parameters": {

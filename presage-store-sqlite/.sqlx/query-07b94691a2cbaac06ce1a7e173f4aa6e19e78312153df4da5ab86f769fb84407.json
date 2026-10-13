@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM kv WHERE key = 'account_entropy_pool'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "07b94691a2cbaac06ce1a7e173f4aa6e19e78312153df4da5ab86f769fb84407"
+}

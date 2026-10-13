@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use libsignal_service::configuration::SignalServers;
 use libsignal_service::prelude::phonenumber::PhoneNumber;
 use libsignal_service::push_service::PushService;
@@ -31,6 +29,8 @@ impl<S: Store> Manager<S, Registration> {
     /// The returned value is a [confirmation manager](Manager::confirm_verification_code) which you then
     /// have to use to send the confirmation code.
     ///
+    /// You will need to fill out a captcha and give it via [RegistrationOptions]; for production servers this can be done at [this website](https://signalcaptchas.org/registration/generate.html), for staging servers on [this website](https://signalcaptchas.org/staging/registration/generate)
+    ///
     /// ```no_run
     /// use std::str::FromStr;
     ///
@@ -53,7 +53,7 @@ impl<S: Store> Manager<S, Registration> {
     ///             signal_servers: SignalServers::Production,
     ///             phone_number: PhoneNumber::from_str("+16137827274")?,
     ///             use_voice_call: false,
-    ///             captcha: None,
+    ///             captcha: Some("signalcaptcha://..."),
     ///             force: false,
     ///         },
     ///     )
@@ -70,9 +70,15 @@ impl<S: Store> Manager<S, Registration> {
             signal_servers,
             phone_number,
             use_voice_call,
-            captcha,
+            mut captcha,
             force,
         } = registration_options;
+
+        if let Some(c) = captcha {
+            let no_prefix = c.strip_prefix("signalcaptcha://").unwrap_or(c);
+            let no_suffix = no_prefix.strip_suffix('/').unwrap_or(no_prefix);
+            captcha = Some(no_suffix);
+        }
 
         // check if we are already registered
         if !force && store.is_registered().await {
@@ -133,12 +139,13 @@ impl<S: Store> Manager<S, Registration> {
 
         let manager = Manager {
             store,
-            state: Arc::new(Confirmation {
+            state: Confirmation {
                 signal_servers,
                 phone_number,
                 password,
                 session_id: session.id,
-            }),
+                unidentified_websocket,
+            },
         };
 
         Ok(manager)

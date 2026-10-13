@@ -19,7 +19,7 @@ use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
-use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
 use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
@@ -505,25 +505,25 @@ async fn print_message<S: Store>(
             .map(|body| Msg::Received(&thread, body)),
         ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     message: Some(data_message),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
             .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     edit_message:
                         Some(EditMessage {
                             data_message: Some(data_message),
                             ..
                         }),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
@@ -543,9 +543,6 @@ async fn print_message<S: Store>(
         )),
         ContentBody::StoryMessage(story) => {
             Some(Msg::Received(&thread, format!("new story: {story:?}")))
-        }
-        ContentBody::PniSignatureMessage(_) => {
-            Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
         ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
             &thread,
@@ -618,6 +615,9 @@ async fn receive<S: Store>(
                 )
                 .await
             }
+            Received::DecryptionError(c) => {
+                println!("failed to receive a message from a contact: {c:?}")
+            }
         }
     }
 
@@ -650,7 +650,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
             if let Some(confirmation_code) = reader.lines().next_line().await? {
-                let registered_manager =
+                let registered_manager: Manager<S, Registered> =
                     manager.confirm_verification_code(confirmation_code).await?;
                 println!(
                     "Account identifiers: {}",
@@ -905,7 +905,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
         }
         Cmd::Whoami => {
             let manager = load_registered_and_receive(store).await?;
-            println!("{:?}", &manager.whoami().await?);
+            println!("{:?}", manager.whoami().await?);
         }
         Cmd::GetContact { ref id } => {
             let manager = load_registered_and_receive(store).await?;
@@ -949,6 +949,9 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     Received::QueueEmpty => break,
                     Received::Contacts => println!("got contacts! thank you, come again."),
                     Received::Content(_) => print!("."),
+                    Received::DecryptionError(_) => {
+                        println!("failed to receive a message from a contact")
+                    }
                 }
             }
         }
