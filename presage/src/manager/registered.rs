@@ -653,7 +653,11 @@ impl<S: Store> Manager<S, Registered> {
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
                                 match envelope.parse_destination_service_id() {
-                                    None | Some(ServiceId::Aci(_)) => {
+                                    None => {
+                                        warn!("Message has no destination service ID, dropping.");
+                                        continue;
+                                    }
+                                    Some(ServiceId::Aci(_)) => {
                                         state
                                             .service_cipher_aci
                                             .open_envelope(envelope, &mut rand::rng())
@@ -1517,7 +1521,7 @@ impl<S: Store> Manager<S, Registered> {
                 .service_configuration()
                 .unidentified_sender_trust_roots,
             ProtocolAddress::new(
-                self.state.data.service_ids.aci.to_string(),
+                self.state.data.service_ids.aci().service_id_string(),
                 self.state.device_id(),
             ),
         )
@@ -1530,7 +1534,7 @@ impl<S: Store> Manager<S, Registered> {
                 .service_configuration()
                 .unidentified_sender_trust_roots,
             ProtocolAddress::new(
-                self.state.data.service_ids.pni.to_string(),
+                self.state.data.service_ids.pni().service_id_string(),
                 self.state.device_id(),
             ),
         )
