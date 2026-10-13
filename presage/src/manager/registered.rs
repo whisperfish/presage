@@ -1620,7 +1620,7 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         device_id: impl TryInto<DeviceId>,
     ) -> Result<(), Error<S::Error>> {
-        // secondary devices cannot unlink themselves or other devices, it will fail with an unauthorized error
+        // secondary devices can only unlink themselves, see `unlink_self`
         if self.registration_type() != RegistrationType::Primary {
             return Err(Error::NotPrimaryDevice);
         }
@@ -1641,6 +1641,18 @@ impl<S: Store> Manager<S, Registered> {
         );
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
+    }
+
+    /// Removes this linked device from the account, e.g. before linking again.
+    pub async fn unlink_self(&self) -> Result<(), Error<S::Error>> {
+        if self.registration_type() == RegistrationType::Primary {
+            return Err(Error::NotSecondaryDevice);
+        }
+        self.identified_websocket(false)
+            .await?
+            .unlink_device(self.device_id())
+            .await?;
+        Ok(())
     }
 }
 
