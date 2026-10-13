@@ -654,7 +654,7 @@ impl<S: Store> Manager<S, Registered> {
                                 // the permit is released at the end of the block (impl Drop)
                                 match envelope.parse_destination_service_id() {
                                     None => {
-                                        warn!("Message has no destination service ID, ignoring.");
+                                        warn!("Message has no destination service ID, dropping.");
                                         continue;
                                     }
                                     Some(ServiceId::Aci(_)) => {
@@ -1521,7 +1521,7 @@ impl<S: Store> Manager<S, Registered> {
                 .service_configuration()
                 .unidentified_sender_trust_roots,
             ProtocolAddress::new(
-                self.state.data.service_ids.aci.service_id_string(),
+                self.state.data.service_ids.aci().service_id_string(),
                 self.state.device_id(),
             ),
         )
