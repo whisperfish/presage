@@ -9,7 +9,7 @@ use presage::{
 use protocol::{IdentityType, SqliteProtocolStore};
 use sqlx::{
     SqlitePool, query, query_scalar,
-    sqlite::{SqliteJournalMode, SqliteSynchronous},
+    sqlite::{SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
 
 mod content;
@@ -62,7 +62,11 @@ impl SqliteStore {
         let options = options
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Full);
-        let db = SqlitePool::connect_with(options).await?;
+        // Each connection carries its own page cache; sqlx's default of 10 is more than we need.
+        let db = SqlitePoolOptions::new()
+            .max_connections(3)
+            .connect_with(options)
+            .await?;
 
         sqlx::migrate!().run(&db).await?;
         Ok(Self {

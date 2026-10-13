@@ -415,6 +415,8 @@ impl fmt::Display for Thread {
 pub enum ThreadError {
     #[error("invalid service ID")]
     InvalidServiceId,
+    #[error("invalid group master key")]
+    InvalidGroupMasterKey,
 }
 
 impl TryFrom<&Content> for Thread {
@@ -501,9 +503,9 @@ impl TryFrom<&Content> for Thread {
                     }),
                 ..
             }) => Ok(Self::Group(
-                key.clone()
+                key.as_slice()
                     .try_into()
-                    .expect("Group master key to have 32 bytes"),
+                    .map_err(|_| ThreadError::InvalidGroupMasterKey)?,
             )),
             // [1-1] Any other message directly to us
             _ => Ok(Thread::Contact(content.metadata.sender)),
