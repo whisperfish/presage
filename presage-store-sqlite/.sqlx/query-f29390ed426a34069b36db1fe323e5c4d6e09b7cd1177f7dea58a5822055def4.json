@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT bytes FROM group_avatars WHERE group_master_key = ?",
+  "query": "SELECT bytes FROM profile_avatars WHERE uuid = ?1 AND (?2 IS NULL OR path = ?2)",
   "describe": {
     "columns": [
       {
@@ -9,18 +9,18 @@
         "type_info": "Blob",
         "origin": {
           "Table": {
-            "table": "group_avatars",
+            "table": "profile_avatars",
             "name": "bytes"
           }
         }
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false
     ]
   },
-  "hash": "92e6d334e1c9dc7c84054be8deeb14f7ca94450d414940f65308510450c6b416"
+  "hash": "f29390ed426a34069b36db1fe323e5c4d6e09b7cd1177f7dea58a5822055def4"
 }
