@@ -475,8 +475,7 @@ impl<S: Store> Manager<S, Registered> {
             .try_into()
             .expect("Master key bytes to be of size 32.");
 
-        // Check if group avatar is cached.
-        // TODO: Is there some way to know if this is outdated?
+        // Cached, and kept current by `upsert_group`; empty means the group has none.
         if let Some(avatar) = self
             .store
             .group_avatar(master_key_bytes)
@@ -484,7 +483,7 @@ impl<S: Store> Manager<S, Registered> {
             .ok()
             .flatten()
         {
-            return Ok(Some(avatar));
+            return Ok(Some(avatar).filter(|avatar| !avatar.is_empty()));
         }
 
         let mut gm = Box::pin(self.groups_manager()).await?;
@@ -1356,6 +1355,16 @@ impl<S: Store> Manager<S, Registered> {
         let own = self.state.data.service_ids.aci();
         let pni = self.state.data.service_ids.pni();
         let leaving = matches!(change, GroupEdit::Leave | GroupEdit::DeclineInvitation);
+        // Uploaded once, whatever the attempts below.
+        let avatar_key = match &change {
+            GroupEdit::Avatar(avatar) if avatar.is_empty() => Some(String::new()),
+            GroupEdit::Avatar(avatar) => Some(
+                groups_manager
+                    .upload_avatar(&mut rng(), master_key, avatar)
+                    .await?,
+            ),
+            _ => None,
+        };
         let mut attempt = 0;
         let (group, revision, mut told, signed) = loop {
             attempt += 1;
@@ -1366,7 +1375,13 @@ impl<S: Store> Manager<S, Registered> {
                 return Err(Error::UnknownGroup);
             };
             let (actions, told) = self
-                .group_change_actions(&groups_manager, &operations, &group, change.clone())
+                .group_change_actions(
+                    &groups_manager,
+                    &operations,
+                    &group,
+                    change.clone(),
+                    avatar_key.clone(),
+                )
                 .await?;
             let revision = actions.version;
             match groups_manager
@@ -1394,6 +1409,9 @@ impl<S: Store> Manager<S, Registered> {
         } else {
             upsert_group(&self.store, &mut groups_manager, master_key, &revision).await?;
         }
+        if let GroupEdit::Avatar(avatar) = &change {
+            self.store.save_group_avatar(*master_key, avatar).await?;
+        }
         let message = DataMessage {
             group_v2: Some(GroupContextV2 {
                 master_key: Some(master_key.to_vec()),
@@ -1420,6 +1438,7 @@ impl<S: Store> Manager<S, Registered> {
         operations: &libsignal_service::groups_v2::GroupOperations,
         group: &Group,
         change: GroupEdit,
+        avatar_key: Option<String>,
     ) -> Result<
         (
             libsignal_service::proto::group_change::Actions,
@@ -1458,6 +1477,10 @@ impl<S: Store> Manager<S, Registered> {
             GroupEdit::Description(description) => {
                 actions.modify_description =
                     Some(operations.build_modify_description_action(&description, &mut rng()));
+            }
+            GroupEdit::Avatar(_) => {
+                actions.modify_avatar =
+                    Some(operations.build_modify_avatar_action(avatar_key.unwrap_or_default()));
             }
             GroupEdit::Timer(seconds) => {
                 actions.modify_disappearing_message_timer = Some(
@@ -2204,15 +2227,16 @@ async fn upsert_group<S: Store>(
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<S::Error>> {
-    let upsert_group = match store.group(master_key_bytes.try_into()?).await {
+    let master_key: [u8; 32] = master_key_bytes.try_into()?;
+    let (upsert_group, avatar_path) = match store.group(master_key).await {
         Ok(Some(group)) => {
             debug!(group_name =% group.title, "loaded group from local db");
-            group.revision < *revision
+            (group.revision < *revision, Some(group.avatar))
         }
-        Ok(None) => true,
+        Ok(None) => (true, None),
         Err(error) => {
             warn!(%error, "failed to retrieve group from local db");
-            true
+            (true, None)
         }
     };
 
@@ -2224,7 +2248,28 @@ async fn upsert_group<S: Store>(
         {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
+                // A new picture, or none any more: the cached one is stale.
+                if avatar_path.is_some_and(|path| path != group.avatar) {
+                    let avatar = if group.avatar.is_empty() {
+                        Some(Vec::new())
+                    } else {
+                        groups_manager
+                            .retrieve_avatar(
+                                &group.avatar,
+                                GroupSecretParams::derive_from_master_key(GroupMasterKey::new(
+                                    master_key,
+                                )),
+                            )
+                            .await
+                            .unwrap_or_default()
+                    };
+                    if let Some(avatar) = avatar {
+                        if let Err(error) = store.save_group_avatar(master_key, &avatar).await {
+                            warn!(%error, "failed to save the group avatar");
+                        }
+                    }
+                }
+                if let Err(error) = store.save_group(master_key, group).await {
                     error!(%error, "failed to save group");
                 }
             }
@@ -2665,6 +2710,8 @@ pub enum GroupEdit {
     Title(String),
     /// Empty clears it.
     Description(String),
+    /// The picture's bytes (JPEG or PNG, as Signal's clients send); empty clears it.
+    Avatar(Vec<u8>),
     /// Seconds; 0 turns disappearing messages off.
     Timer(u32),
     /// Adds members we have a profile key for; invites the others, including PNIs.
