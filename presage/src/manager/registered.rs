@@ -659,6 +659,9 @@ impl<S: Store> Manager<S, Registered> {
                 loop {
                     match state.encrypted_messages.next().await {
                         Some(Ok(Incoming::Envelope(envelope))) => {
+                            // Who sent an unsealed envelope, as the server authenticated it:
+                            // names the sender of a message that fails to decrypt.
+                            let source = envelope.parse_source_service_id();
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
                                 match envelope.parse_destination_service_id() {
@@ -688,13 +691,21 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
-                                    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
-                                        error!(
-                                            error = ?e,
-                                            "got error decrypting a message"
+                                    if let ContentBody::DecryptionErrorMessage(message) =
+                                        content.body
+                                    {
+                                        warn!(
+                                            sender = %content.metadata.sender.service_id_string(),
+                                            device = %content.metadata.sender_device,
+                                            timestamp = message.timestamp,
+                                            "a device of theirs failed to decrypt a message of ours"
                                         );
                                         return Some((
-                                            Received::DecryptionError(content.metadata.sender),
+                                            Received::RetryReceipt {
+                                                sender: content.metadata.sender,
+                                                sender_device: content.metadata.sender_device,
+                                                message,
+                                            },
                                             state,
                                         ));
                                     }
@@ -978,10 +989,28 @@ impl<S: Store> Manager<S, Registered> {
                                 }
                                 Err(error) => {
                                     error!(%error, "error opening envelope, message will be skipped!");
-                                    if let libsignal_service::prelude::ServiceError::SealedSenderDecryptionError(libsignal_service::cipher::SealedSenderDecryptionError { sender: Some(sender), .. }) = &error {
-                                        if let Some(sender) = ServiceId::parse_from_service_id_string(sender.name()) {
-                                            return Some((Received::DecryptionError(sender), state));
+                                    use libsignal_service::cipher::SealedSenderDecryptionError;
+                                    use libsignal_service::prelude::ServiceError;
+                                    // A sealed sender is known once the certificate checked out;
+                                    // an unsealed one is in the envelope.
+                                    let failed = match error {
+                                        ServiceError::SealedSenderDecryptionError(
+                                            SealedSenderDecryptionError {
+                                                sender: Some(sender),
+                                                inner,
+                                            },
+                                        ) => ServiceId::parse_from_service_id_string(sender.name())
+                                            .map(|sender| (sender, inner)),
+                                        ServiceError::SignalProtocolError(error) => {
+                                            source.map(|sender| (sender, error))
                                         }
+                                        _ => None,
+                                    };
+                                    if let Some((sender, error)) = failed {
+                                        return Some((
+                                            Received::DecryptionError { sender, error },
+                                            state,
+                                        ));
                                     }
                                 }
                             }
