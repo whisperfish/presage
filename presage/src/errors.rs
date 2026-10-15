@@ -61,6 +61,8 @@ pub enum Error<S: std::error::Error> {
     UnknownGroup,
     #[error("not invited to this group")]
     NotInvited,
+    #[error("the group's invite link is turned off")]
+    InviteLinkClosed,
     #[error("unknown recipient")]
     UnknownRecipient,
     #[error("timeout: {0}")]

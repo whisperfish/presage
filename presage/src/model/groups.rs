@@ -1,5 +1,5 @@
 use libsignal_service::{
-    groups_v2::{AccessRequired, Role},
+    groups_v2::{AccessRequired, GroupInviteLink, Role},
     prelude::{ProfileKey, Timer, Uuid},
     protocol::Aci,
 };
@@ -34,6 +34,20 @@ pub struct Group {
     pub requesting_members: Vec<RequestingMember>,
     pub invite_link_password: Vec<u8>,
     pub description: Option<String>,
+}
+
+impl Group {
+    /// The group's invite link, if it is turned on.
+    pub fn invite_link(&self, master_key: [u8; 32]) -> Option<GroupInviteLink> {
+        let open = matches!(
+            self.access_control.as_ref()?.add_from_invite_link,
+            AccessRequired::Any | AccessRequired::Administrator
+        );
+        (open && !self.invite_link_password.is_empty()).then(|| GroupInviteLink {
+            master_key,
+            password: self.invite_link_password.clone(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
