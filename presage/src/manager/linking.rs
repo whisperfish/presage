@@ -12,7 +12,7 @@ use rand::{
     distr::{Alphanumeric, SampleString},
     rng, RngCore,
 };
-use tracing::info;
+use tracing::{debug, info};
 use url::Url;
 
 use crate::manager::registered::RegistrationData;
@@ -93,7 +93,7 @@ impl<S: Store> Manager<S, Linking> {
             ),
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
-                    info!("generating qrcode from provisioning link: {}", &url);
+                    debug!("generating qrcode from provisioning link: {}", &url);
                     if provisioning_link_channel.send(url).is_err() {
                         return Err(Error::LinkingError);
                     }
