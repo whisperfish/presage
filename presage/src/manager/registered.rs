@@ -14,7 +14,10 @@ use libsignal_service::{
     configuration::{ServiceConfiguration, SignalServers},
     content::{Content, ContentBody, Metadata},
     encrypt_device_name,
-    groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{
+        decrypt_group, AccessRequired, GroupInviteLink, GroupJoinInfo, GroupsManager,
+        InMemoryCredentialsCache,
+    },
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
     prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
     profile_cipher::ProfileCipher,
@@ -1375,7 +1378,7 @@ impl<S: Store> Manager<S, Registered> {
         ),
         Error<S::Error>,
     > {
-        use libsignal_service::groups_v2::Role;
+        use libsignal_service::groups_v2::{GroupInviteLink, Role};
         use libsignal_service::proto::group_change::Actions;
         let decoding =
             |e| Error::ServiceError(libsignal_service::push_service::ServiceError::from(e));
@@ -1510,8 +1513,241 @@ impl<S: Store> Manager<S, Registered> {
                         .map_err(decoding)?,
                 );
             }
+            GroupEdit::InviteLinkAccess(access) => {
+                actions.modify_add_from_invite_link_access =
+                    Some(operations.build_modify_invite_link_access_action(access));
+                if access != AccessRequired::Unsatisfiable && group.invite_link_password.is_empty()
+                {
+                    actions.modify_invite_link_password =
+                        Some(operations.build_modify_invite_link_password_action(
+                            GroupInviteLink::new_password(&mut rng()),
+                        ));
+                }
+            }
+            GroupEdit::ResetInviteLink => {
+                actions.modify_invite_link_password =
+                    Some(operations.build_modify_invite_link_password_action(
+                        GroupInviteLink::new_password(&mut rng()),
+                    ));
+            }
+            GroupEdit::ApproveRequest(aci) => {
+                actions.promote_members_pending_admin_approval.push(
+                    operations
+                        .build_promote_requesting_member_action(aci, Role::Default)
+                        .map_err(decoding)?,
+                );
+                told.push(ServiceId::Aci(aci));
+            }
+            GroupEdit::DenyRequest(aci) => {
+                actions.delete_members_pending_admin_approval.push(
+                    operations
+                        .build_remove_requesting_member_action(aci)
+                        .map_err(decoding)?,
+                );
+            }
         }
         Ok((actions, told))
+    }
+
+    /// What a group shows to whoever has its invite link, and whether we asked to join
+    /// already.
+    pub async fn group_join_info(
+        &mut self,
+        link: &GroupInviteLink,
+    ) -> Result<GroupJoinInfo, Error<S::Error>> {
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        Ok(groups_manager.group_join_info(&mut rng(), link).await?)
+    }
+
+    /// Joins a group through its invite link, or asks to where administrators approve
+    /// members. Retried on a 409 conflict, as Signal's apps do.
+    pub async fn join_group(
+        &mut self,
+        link: &GroupInviteLink,
+    ) -> Result<GroupJoin, Error<S::Error>> {
+        use libsignal_service::groups_v2::GroupOperations;
+        use libsignal_service::proto::group_change::Actions;
+        const ATTEMPTS: usize = 3;
+
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        let server_public_params = groups_manager.server_public_params().clone();
+        let operations = GroupOperations::new(GroupSecretParams::derive_from_master_key(
+            GroupMasterKey::new(link.master_key),
+        ));
+        let own = self.state.data.service_ids.aci();
+        let credential = self
+            .profile_key_credential(own, self.state.data.profile_key, &server_public_params)
+            .await?;
+        let mut attempt = 0;
+        let (info, joined) = loop {
+            attempt += 1;
+            let info = groups_manager.group_join_info(&mut rng(), link).await?;
+            if info.pending_admin_approval {
+                break (info, None);
+            }
+            let mut actions = Actions {
+                version: info.version + 1,
+                ..Default::default()
+            };
+            let member = match info.add_from_invite_link {
+                AccessRequired::Any => {
+                    actions.add_members.push(
+                        operations
+                            .build_join_from_invite_link_action(&credential, &server_public_params),
+                    );
+                    true
+                }
+                AccessRequired::Administrator => {
+                    actions.add_members_pending_admin_approval.push(
+                        operations.build_request_to_join_action(&credential, &server_public_params),
+                    );
+                    false
+                }
+                _ => return Err(Error::InviteLinkClosed),
+            };
+            let revision = actions.version;
+            match groups_manager
+                .modify_group_from_invite_link(&mut rng(), link, actions)
+                .await
+            {
+                Ok(signed) => break (info, member.then_some((signed, revision))),
+                Err(error) if is_conflict(&error) && attempt < ATTEMPTS => {
+                    debug!(attempt, "the group changed meanwhile; joining again");
+                }
+                Err(error) => return Err(error.into()),
+            }
+        };
+        let Some((signed, revision)) = joined else {
+            // Not a member: the server shows us nothing more until we are let in.
+            let group = Group {
+                title: info.title,
+                avatar: info.avatar.clone(),
+                disappearing_messages_timer: None,
+                access_control: Some(crate::model::groups::AccessControl {
+                    attributes: AccessRequired::Member,
+                    members: AccessRequired::Member,
+                    add_from_invite_link: info.add_from_invite_link,
+                    member_label: AccessRequired::Member,
+                }),
+                revision: info.version,
+                members: Vec::new(),
+                pending_members: Vec::new(),
+                requesting_members: vec![crate::model::groups::RequestingMember {
+                    aci: own,
+                    profile_key: self.state.data.profile_key,
+                    timestamp: Self::now(),
+                }],
+                invite_link_password: link.password.clone(),
+                description: info.description_text,
+            };
+            let mut group = group;
+            if !info.avatar.is_empty() {
+                match groups_manager
+                    .retrieve_avatar(&info.avatar, operations.group_secret_params)
+                    .await
+                {
+                    Ok(Some(avatar)) => {
+                        self.store
+                            .save_group_avatar(link.master_key, &avatar)
+                            .await?
+                    }
+                    // Not cached: leave the path out, so the next fetch of the group gets it.
+                    Ok(None) => group.avatar = String::new(),
+                    Err(error) => {
+                        warn!(%error, "failed to fetch the group's avatar");
+                        group.avatar = String::new();
+                    }
+                }
+            }
+            self.store.save_group(link.master_key, group).await?;
+            return Ok(GroupJoin::Requested);
+        };
+        let Some(group) = upsert_group(
+            &self.store,
+            &mut groups_manager,
+            &link.master_key,
+            &u32::MAX,
+        )
+        .await?
+        else {
+            return Err(Error::UnknownGroup);
+        };
+        let message = DataMessage {
+            group_v2: Some(GroupContextV2 {
+                master_key: Some(link.master_key.to_vec()),
+                revision: Some(revision),
+                group_change: Some(libsignal_service::prelude::ProtobufMessage::encode_to_vec(
+                    &signed,
+                )),
+            }),
+            ..Default::default()
+        };
+        let told: Vec<ServiceId> = group
+            .members
+            .iter()
+            .map(|m| ServiceId::Aci(m.aci))
+            .filter(|m| *m != ServiceId::Aci(own))
+            .collect();
+        let timestamp = Self::now();
+        self.send_to_members(&link.master_key, &told, message, timestamp)
+            .await?;
+        Ok(GroupJoin::Joined { timestamp })
+    }
+
+    /// Withdraws the request made with [`Self::join_group`].
+    pub async fn cancel_join_request(
+        &mut self,
+        master_key: &[u8; 32],
+    ) -> Result<(), Error<S::Error>> {
+        use libsignal_service::groups_v2::GroupOperations;
+        use libsignal_service::proto::group_change::Actions;
+
+        let Some(group) = self.store.group(*master_key).await? else {
+            return Err(Error::UnknownGroup);
+        };
+        let link = GroupInviteLink {
+            master_key: *master_key,
+            password: group.invite_link_password,
+        };
+        let own = self.state.data.service_ids.aci();
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        let info = groups_manager.group_join_info(&mut rng(), &link).await?;
+        if info.pending_admin_approval {
+            let operations = GroupOperations::new(GroupSecretParams::derive_from_master_key(
+                GroupMasterKey::new(*master_key),
+            ));
+            let mut actions = Actions {
+                version: info.version + 1,
+                ..Default::default()
+            };
+            actions.delete_members_pending_admin_approval.push(
+                operations
+                    .build_remove_requesting_member_action(own)
+                    .map_err(|e| Error::ServiceError(e.into()))?,
+            );
+            groups_manager
+                .modify_group_from_invite_link(&mut rng(), &link, actions)
+                .await?;
+        }
+        // Read again: receiving may have replaced the group meanwhile.
+        let Some(mut group) = self.store.group(*master_key).await? else {
+            return Err(Error::UnknownGroup);
+        };
+        group.requesting_members.retain(|m| m.aci != own);
+        self.store.save_group(*master_key, group).await?;
+        Ok(())
+    }
+
+    /// Fetches the group from the server whatever revision is stored, and stores it; an
+    /// error (403) if we are not in it.
+    pub async fn fetch_group(&mut self, master_key: &[u8; 32]) -> Result<Group, Error<S::Error>> {
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        let avatar_path = self.store.group(*master_key).await?.map(|g| g.avatar);
+        fetch_group(&self.store, &mut groups_manager, *master_key, avatar_path).await?;
+        self.store
+            .group(*master_key)
+            .await?
+            .ok_or(Error::UnknownGroup)
     }
 
     fn now() -> u64 {
@@ -2113,44 +2349,49 @@ async fn upsert_group<S: Store>(
 
     if upsert_group {
         debug!("fetching and saving group");
-        match groups_manager
-            .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
-            .await
-        {
-            Ok(encrypted_group) => {
-                let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                // A new picture, or none any more: the cached one is stale.
-                if avatar_path.is_some_and(|path| path != group.avatar) {
-                    let avatar = if group.avatar.is_empty() {
-                        Some(Vec::new())
-                    } else {
-                        groups_manager
-                            .retrieve_avatar(
-                                &group.avatar,
-                                GroupSecretParams::derive_from_master_key(GroupMasterKey::new(
-                                    master_key,
-                                )),
-                            )
-                            .await
-                            .unwrap_or_default()
-                    };
-                    if let Some(avatar) = avatar {
-                        if let Err(error) = store.save_group_avatar(master_key, &avatar).await {
-                            warn!(%error, "failed to save the group avatar");
-                        }
-                    }
-                }
-                if let Err(error) = store.save_group(master_key, group).await {
-                    error!(%error, "failed to save group");
-                }
-            }
-            Err(error) => {
-                warn!(%error, "failed to fetch encrypted group")
-            }
+        if let Err(error) = fetch_group(store, groups_manager, master_key, avatar_path).await {
+            warn!(%error, "failed to fetch encrypted group");
         }
     }
 
     Ok(store.group(master_key_bytes.try_into()?).await?)
+}
+
+/// Fetches the group and stores it, refreshing the cached avatar if `avatar_path` (the stored
+/// one) is no longer the group's.
+async fn fetch_group<S: Store>(
+    store: &S,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    master_key: [u8; 32],
+    avatar_path: Option<String>,
+) -> Result<(), Error<S::Error>> {
+    let encrypted_group = groups_manager
+        .fetch_encrypted_group(&mut rand::rng(), &master_key)
+        .await?;
+    let group = decrypt_group(&master_key, encrypted_group)?;
+    // A new picture, or none any more: the cached one is stale.
+    if avatar_path.is_some_and(|path| path != group.avatar) {
+        let avatar = if group.avatar.is_empty() {
+            Some(Vec::new())
+        } else {
+            groups_manager
+                .retrieve_avatar(
+                    &group.avatar,
+                    GroupSecretParams::derive_from_master_key(GroupMasterKey::new(master_key)),
+                )
+                .await
+                .unwrap_or_default()
+        };
+        if let Some(avatar) = avatar {
+            if let Err(error) = store.save_group_avatar(master_key, &avatar).await {
+                warn!(%error, "failed to save the group avatar");
+            }
+        }
+    }
+    if let Err(error) = store.save_group(master_key, group).await {
+        error!(%error, "failed to save group");
+    }
+    Ok(())
 }
 
 /// Download and decrypt a sticker manifest
@@ -2594,6 +2835,25 @@ pub enum GroupEdit {
     AcceptInvitation,
     /// Turns an invitation down.
     DeclineInvitation,
+    /// Who the invite link lets in: `Unsatisfiable` turns it off, `Any` lets anyone join,
+    /// `Administrator` makes them ask. Turning it on makes a password if there is none.
+    InviteLinkAccess(AccessRequired),
+    /// A new password: the links given out so far stop working.
+    ResetInviteLink,
+    /// Lets someone in who asked to join.
+    ApproveRequest(Aci),
+    /// Turns their request down.
+    DenyRequest(Aci),
+}
+
+/// How [`Manager::join_group`] went.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GroupJoin {
+    /// We are in; the members were told at this timestamp.
+    Joined { timestamp: u64 },
+    /// An administrator has to let us in. Meanwhile the group is stored with what the link
+    /// shows of it, and us among its requesting members.
+    Requested,
 }
 
 #[cfg(test)]
