@@ -256,7 +256,7 @@ impl<S: Store> Manager<S, Registered> {
                     )
                     .await?;
                 identified_ws.replace(ws.clone());
-                debug!("initialized identified websocket");
+                info!("initialized identified websocket");
 
                 Ok(ws)
             }
@@ -278,7 +278,7 @@ impl<S: Store> Manager<S, Registered> {
                     .ws("/v1/websocket/", "/v1/keepalive", &[], None)
                     .await?;
                 unidentified_ws.replace(ws.clone());
-                debug!("initialized unidentified websocket");
+                info!("initialized unidentified websocket");
 
                 Ok(ws)
             }
