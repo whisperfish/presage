@@ -12,7 +12,7 @@
 <a href=#12 id=12 data-nosnippet>12</a>    distr::{Alphanumeric, SampleString},
 <a href=#13 id=13 data-nosnippet>13</a>    rng, RngCore,
 <a href=#14 id=14 data-nosnippet>14</a>};
-<a href=#15 id=15 data-nosnippet>15</a><span class="kw">use </span>tracing::info;
+<a href=#15 id=15 data-nosnippet>15</a><span class="kw">use </span>tracing::{debug, info};
 <a href=#16 id=16 data-nosnippet>16</a><span class="kw">use </span>url::Url;
 <a href=#17 id=17 data-nosnippet>17</a>
 <a href=#18 id=18 data-nosnippet>18</a><span class="kw">use </span><span class="kw">crate</span>::manager::registered::RegistrationData;
@@ -93,7 +93,7 @@
 <a href=#93 id=93 data-nosnippet>93</a>            ),
 <a href=#94 id=94 data-nosnippet>94</a>            <span class="kw">async move </span>{
 <a href=#95 id=95 data-nosnippet>95</a>                <span class="kw">if let </span><span class="prelude-val">Some</span>(SecondaryDeviceProvisioning::Url(url)) = rx.next().<span class="kw">await </span>{
-<a href=#96 id=96 data-nosnippet>96</a>                    <span class="macro">info!</span>(<span class="string">"generating qrcode from provisioning link: {}"</span>, <span class="kw-2">&amp;</span>url);
+<a href=#96 id=96 data-nosnippet>96</a>                    <span class="macro">debug!</span>(<span class="string">"generating qrcode from provisioning link: {}"</span>, <span class="kw-2">&amp;</span>url);
 <a href=#97 id=97 data-nosnippet>97</a>                    <span class="kw">if </span>provisioning_link_channel.send(url).is_err() {
 <a href=#98 id=98 data-nosnippet>98</a>                        <span class="kw">return </span><span class="prelude-val">Err</span>(Error::LinkingError);
 <a href=#99 id=99 data-nosnippet>99</a>                    }
