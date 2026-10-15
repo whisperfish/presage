@@ -525,7 +525,11 @@ impl ContentExt for Content {
             ContentBody::SynchronizeMessage(SyncMessage {
                 content:
                     Some(SyncContent::Sent(sync_message::Sent {
-                        timestamp: Some(ts),
+                        edit_message:
+                            Some(EditMessage {
+                                target_sent_timestamp: Some(ts),
+                                ..
+                            }),
                         ..
                     })),
                 ..
@@ -533,11 +537,7 @@ impl ContentExt for Content {
             ContentBody::SynchronizeMessage(SyncMessage {
                 content:
                     Some(SyncContent::Sent(sync_message::Sent {
-                        edit_message:
-                            Some(EditMessage {
-                                target_sent_timestamp: Some(ts),
-                                ..
-                            }),
+                        timestamp: Some(ts),
                         ..
                     })),
                 ..
