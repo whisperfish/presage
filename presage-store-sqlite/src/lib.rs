@@ -74,6 +74,12 @@ impl SqliteStore {
             trust_new_identities,
         })
     }
+
+    /// Closes the pool, waiting for all connections to close.
+    /// Call before exit: SQLCipher's atexit cleanup races connections still closing.
+    pub async fn close(&self) {
+        self.db.close().await;
+    }
 }
 
 impl Store for SqliteStore {
@@ -280,5 +286,22 @@ impl StateStore for SqliteStore {
                 .await?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn close_closes_the_pool() {
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust)
+            .await
+            .unwrap();
+        let clone = store.clone();
+
+        store.close().await;
+
+        assert!(clone.db.is_closed());
     }
 }
