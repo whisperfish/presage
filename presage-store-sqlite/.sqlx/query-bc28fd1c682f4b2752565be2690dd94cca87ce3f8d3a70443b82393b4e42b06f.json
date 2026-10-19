@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pre_key_metadata SET next_signed_pre_key_id = ? WHERE identity = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "bc28fd1c682f4b2752565be2690dd94cca87ce3f8d3a70443b82393b4e42b06f"
+}
