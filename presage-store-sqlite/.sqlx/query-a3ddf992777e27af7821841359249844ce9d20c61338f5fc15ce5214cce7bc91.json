@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pre_key_metadata SET last_pre_key_rotation_at = ? WHERE identity = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "a3ddf992777e27af7821841359249844ce9d20c61338f5fc15ce5214cce7bc91"
+}

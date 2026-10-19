@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pre_keys\n            SET stale_at = ?1\n            WHERE identity = ?2 AND stale_at = NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c2379d3adc5824ed2653ed59732c7f1b3c471f98c78ba8c99592a5d52fbc0147"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE pre_key_metadata SET last_ec_pre_key_id = ? WHERE identity = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "d8a40781e3dd8e284722eb94ee8f87166a7852590c276947944b4956e526549c"
+}
