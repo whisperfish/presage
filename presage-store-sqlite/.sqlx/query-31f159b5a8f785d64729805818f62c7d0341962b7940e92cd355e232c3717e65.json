@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT last_signed_pre_key_id FROM pre_key_metadata WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "last_signed_pre_key_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pre_key_metadata",
+            "name": "last_signed_pre_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "31f159b5a8f785d64729805818f62c7d0341962b7940e92cd355e232c3717e65"
+}

@@ -21,6 +21,7 @@ sqlx = { version = "0.9.0", features = [
     "sqlite",
     "uuid",
     "runtime-tokio",
+    "chrono",
 ] }
 thiserror = "2.0.0"
 tracing = "0.1.41"

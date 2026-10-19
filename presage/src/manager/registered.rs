@@ -1808,6 +1808,7 @@ impl<S: Store> Manager<S, Registered> {
                         .expect("Primary device to always have an account entropy pool"),
                     ephemeral_backup_key: None,
                     media_root_backup_key: None,
+                    read_receipts: None,
                 },
             )
             .await?;
@@ -2458,11 +2459,11 @@ async fn register_pre_keys<S: Store>(
     trace!("registering pre keys");
 
     account_manager
-        .update_pre_key_bundle(&mut store.aci_protocol_store(), ServiceIdKind::Aci, true)
+        .update_pre_key_bundle(&mut store.aci_protocol_store(), ServiceIdKind::Aci)
         .await?;
 
     account_manager
-        .update_pre_key_bundle(&mut store.pni_protocol_store(), ServiceIdKind::Pni, true)
+        .update_pre_key_bundle(&mut store.pni_protocol_store(), ServiceIdKind::Pni)
         .await?;
 
     trace!("registered pre keys");
