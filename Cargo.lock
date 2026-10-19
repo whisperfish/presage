@@ -2845,7 +2845,7 @@ dependencies = [
 [[package]]
 name = "libsignal-service"
 version = "0.1.0"
-source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=7a7526741dfd9ad4c4894717f22651eb0506fb7e#7a7526741dfd9ad4c4894717f22651eb0506fb7e"
+source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=aa03d9a89b64342eea1f42fb37fb57ceb8cfaa50#aa03d9a89b64342eea1f42fb37fb57ceb8cfaa50"
 dependencies = [
  "aes 0.9.1",
  "aes-gcm",
@@ -4744,6 +4744,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "cfg-if",
+ "chrono",
  "crc",
  "crossbeam-queue",
  "either",
@@ -4818,6 +4819,7 @@ dependencies = [
  "bitflags",
  "byteorder",
  "bytes",
+ "chrono",
  "crc",
  "digest 0.11.3",
  "dotenvy",
@@ -4846,6 +4848,7 @@ dependencies = [
  "base64 0.22.1",
  "bitflags",
  "byteorder",
+ "chrono",
  "crc",
  "dotenvy",
  "etcetera",
@@ -4879,6 +4882,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "488e99c397a62007e4229aec669a179816339afc6d2620ca6fa420dbee2e982c"
 dependencies = [
  "atoi",
+ "chrono",
  "flume",
  "form_urlencoded",
  "futures-channel",
