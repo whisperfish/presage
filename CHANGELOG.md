@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add `Manager::refresh_group` to fetch a group's state regardless of the stored revision
+
 ### Fixed
 
 ### Changed
