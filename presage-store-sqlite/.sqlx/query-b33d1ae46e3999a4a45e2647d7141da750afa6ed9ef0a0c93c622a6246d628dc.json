@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT record FROM signed_pre_keys WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "record",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "signed_pre_keys",
+            "name": "record"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "b33d1ae46e3999a4a45e2647d7141da750afa6ed9ef0a0c93c622a6246d628dc"
+}
