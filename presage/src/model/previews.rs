@@ -436,18 +436,59 @@ mod tests {
 // Expected behaviour, mostly from what Signal clients accept when receiving a preview:
 // https://github.com/signalapp/Signal-Android/blob/main/app/src/main/java/org/thoughtcrime/securesms/messages/DataMessageProcessor.kt
 // https://github.com/signalapp/Signal-Android/blob/main/app/src/main/java/org/thoughtcrime/securesms/util/LinkUtil.kt
+// and defences from https://github.com/whisperfish/presage/pull/465
 #[cfg(test)]
 mod signal_compat {
-    use std::io::{BufRead, BufReader, Write};
-    use std::net::TcpListener;
-    use std::sync::{Arc, Mutex};
+    use std::io::{BufRead, BufReader, Read, Write};
+    use std::net::{TcpListener, TcpStream};
+    use std::sync::{Arc, LazyLock, Mutex};
     use std::time::Duration;
+
+    use rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 
     use super::*;
 
+    // a public-looking https host, resolved to localhost by `client()`
+    const HOST: &str = "preview.whisperfish.org";
+
+    struct Tls {
+        cert: CertificateDer<'static>,
+        config: Arc<rustls::ServerConfig>,
+    }
+
+    static TLS: LazyLock<Tls> = LazyLock::new(|| {
+        let rcgen::CertifiedKey { cert, signing_key } =
+            rcgen::generate_simple_self_signed(vec![HOST.to_owned(), "127.0.0.1".to_owned()])
+                .unwrap();
+        let cert = cert.der().clone();
+        let key = PrivatePkcs8KeyDer::from(signing_key.serialize_der());
+        let config = rustls::ServerConfig::builder_with_provider(Arc::new(
+            rustls::crypto::ring::default_provider(),
+        ))
+        .with_safe_default_protocol_versions()
+        .unwrap()
+        .with_no_client_auth()
+        .with_single_cert(vec![cert.clone()], key.into())
+        .unwrap();
+        Tls {
+            cert,
+            config: Arc::new(config),
+        }
+    });
+
+    fn client() -> reqwest::Client {
+        reqwest::Client::builder()
+            .tls_certs_only([reqwest::Certificate::from_der(&TLS.cert).unwrap()])
+            .resolve(HOST, "127.0.0.1:0".parse().unwrap())
+            .build()
+            .unwrap()
+    }
+
     struct Route {
         path: &'static str,
+        status: &'static str,
         content_type: &'static str,
+        headers: String,
         body: Vec<u8>,
         hang: bool,
     }
@@ -456,58 +497,109 @@ mod signal_compat {
         fn new(path: &'static str, content_type: &'static str, body: impl Into<Vec<u8>>) -> Self {
             Self {
                 path,
+                status: "200 OK",
                 content_type,
+                headers: String::new(),
                 body: body.into(),
                 hang: false,
             }
         }
+
+        fn redirect(path: &'static str, location: String) -> Self {
+            Self {
+                status: "302 Found",
+                headers: format!("Location: {location}\r\n"),
+                ..Self::new(path, "text/html", "")
+            }
+        }
     }
 
-    /// Serves `routes` on localhost, returns the base url and the user agents seen.
-    fn serve(routes: Vec<Route>) -> (String, Arc<Mutex<Vec<String>>>) {
+    struct Request {
+        headers: Vec<(String, String)>,
+    }
+
+    impl Request {
+        fn header(&self, name: &str) -> Option<&str> {
+            self.headers
+                .iter()
+                .find(|(n, _)| n.eq_ignore_ascii_case(name))
+                .map(|(_, v)| v.as_str())
+        }
+    }
+
+    type Requests = Arc<Mutex<Vec<Request>>>;
+
+    /// Serves `routes` over https, returns the base url and the requests seen.
+    fn serve(routes: Vec<Route>) -> (String, Requests) {
+        serve_on("https", routes)
+    }
+
+    fn serve_http(routes: Vec<Route>) -> (String, Requests) {
+        serve_on("http", routes)
+    }
+
+    fn serve_on(scheme: &'static str, routes: Vec<Route>) -> (String, Requests) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
-        let base = format!("http://{}", listener.local_addr().unwrap());
+        let base = format!(
+            "{scheme}://{HOST}:{}",
+            listener.local_addr().unwrap().port()
+        );
         let routes = Arc::new(routes);
-        let user_agents = Arc::new(Mutex::new(Vec::new()));
-        let seen = user_agents.clone();
+        let requests = Requests::default();
+        let seen = requests.clone();
         std::thread::spawn(move || {
             for stream in listener.incoming() {
-                let mut stream = stream.unwrap();
+                let stream = stream.unwrap();
                 let routes = routes.clone();
                 let seen = seen.clone();
                 std::thread::spawn(move || {
-                    let mut reader = BufReader::new(stream.try_clone().unwrap());
-                    let mut request_line = String::new();
-                    reader.read_line(&mut request_line).unwrap();
-                    let path = request_line.split(' ').nth(1).unwrap_or("/").to_owned();
-                    let mut line = String::new();
-                    while reader.read_line(&mut line).unwrap() > 2 {
-                        if let Some((name, value)) = line.split_once(':') {
-                            if name.eq_ignore_ascii_case("user-agent") {
-                                seen.lock().unwrap().push(value.trim().to_owned());
-                            }
-                        }
-                        line.clear();
+                    if scheme == "https" {
+                        let conn = rustls::ServerConnection::new(TLS.config.clone()).unwrap();
+                        handle(rustls::StreamOwned::new(conn, stream), &routes, &seen);
+                    } else {
+                        handle::<TcpStream>(stream, &routes, &seen);
                     }
-                    let Some(route) = routes.iter().find(|r| r.path == path) else {
-                        let _ = stream
-                            .write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
-                        return;
-                    };
-                    if route.hang {
-                        std::thread::sleep(Duration::from_secs(3600));
-                    }
-                    let header = format!(
-                        "HTTP/1.1 200 OK\r\nContent-Type: {}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                        route.content_type,
-                        route.body.len()
-                    );
-                    let _ = stream.write_all(header.as_bytes());
-                    let _ = stream.write_all(&route.body);
                 });
             }
         });
-        (base, user_agents)
+        (base, requests)
+    }
+
+    fn handle<S: Read + Write>(stream: S, routes: &[Route], seen: &Requests) {
+        let mut reader = BufReader::new(stream);
+        let mut request_line = String::new();
+        if reader.read_line(&mut request_line).is_err() {
+            return;
+        }
+        let path = request_line.split(' ').nth(1).unwrap_or("/").to_owned();
+        let mut headers = Vec::new();
+        let mut line = String::new();
+        while reader.read_line(&mut line).is_ok_and(|n| n > 2) {
+            if let Some((name, value)) = line.split_once(':') {
+                headers.push((name.trim().to_owned(), value.trim().to_owned()));
+            }
+            line.clear();
+        }
+        seen.lock().unwrap().push(Request { headers });
+
+        let stream = reader.get_mut();
+        let Some(route) = routes.iter().find(|r| r.path == path) else {
+            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
+            return;
+        };
+        if route.hang {
+            std::thread::sleep(Duration::from_secs(3600));
+        }
+        let header = format!(
+            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}Connection: close\r\n\r\n",
+            route.status,
+            route.content_type,
+            route.body.len(),
+            route.headers,
+        );
+        let _ = stream.write_all(header.as_bytes());
+        let _ = stream.write_all(&route.body);
+        let _ = stream.flush();
     }
 
     fn extracted(body: &str) -> Vec<String> {
@@ -566,7 +658,7 @@ mod signal_compat {
     #[tokio::test]
     async fn title_entities_are_decoded() {
         let html = "<html><head><title>Signal &amp; you</title></head></html>";
-        let preview = generate_preview_from_html(html, &reqwest::Client::new()).await;
+        let preview = generate_preview_from_html(html, &client()).await;
         assert_eq!(preview.title.as_deref(), Some("Signal & you"));
     }
 
@@ -576,7 +668,7 @@ mod signal_compat {
             <meta property="og:title" content="t">
             <meta property="article:published_time" content="2024-01-01T00:00:00Z">
         </head></html>"#;
-        let preview = generate_preview_from_html(html, &reqwest::Client::new()).await;
+        let preview = generate_preview_from_html(html, &client()).await;
         assert_eq!(preview.date, Some(1_704_067_200_000));
     }
 
@@ -590,7 +682,7 @@ mod signal_compat {
             r#"<meta property="og:url" content="https://signal.org/other"><title>t</title>"#,
         )]);
         let url = format!("{base}/page");
-        let preview = generate_preview_from_url(url.as_str(), &reqwest::Client::new())
+        let preview = generate_preview_from_url(url.as_str(), &client())
             .await
             .unwrap();
         assert_eq!(preview.url.as_deref(), Some(url.as_str()));
@@ -600,7 +692,7 @@ mod signal_compat {
     async fn preview_url_is_the_link_not_the_host() {
         let (base, _) = serve(vec![Route::new("/page", "text/html", "<title>t</title>")]);
         let url = format!("{base}/page");
-        let preview = generate_preview_from_url(url.as_str(), &reqwest::Client::new())
+        let preview = generate_preview_from_url(url.as_str(), &client())
             .await
             .unwrap();
         assert_eq!(preview.url.as_deref(), Some(url.as_str()));
@@ -610,8 +702,7 @@ mod signal_compat {
     async fn untitled_page_has_no_preview() {
         // receivers drop previews without a title
         let (base, _) = serve(vec![Route::new("/page", "text/html", "<p>no title</p>")]);
-        let result =
-            generate_preview_from_url(format!("{base}/page"), &reqwest::Client::new()).await;
+        let result = generate_preview_from_url(format!("{base}/page"), &client()).await;
         assert!(result.is_err() || result.unwrap().title.is_some());
     }
 
@@ -622,10 +713,9 @@ mod signal_compat {
             "image/png",
             b"\x89PNG\r\n\x1a\n".to_vec(),
         )]);
-        let preview =
-            generate_preview_from_url(format!("{base}/logo.png"), &reqwest::Client::new())
-                .await
-                .unwrap();
+        let preview = generate_preview_from_url(format!("{base}/logo.png"), &client())
+            .await
+            .unwrap();
         assert_eq!(preview.title.as_deref(), Some("logo.png"));
         assert!(preview.image.is_some());
     }
@@ -640,7 +730,7 @@ mod signal_compat {
             ),
             Route::new("/img.png", "image/png", b"\x89PNG\r\n\x1a\n".to_vec()),
         ]);
-        let preview = generate_preview_from_url(format!("{base}/page"), &reqwest::Client::new())
+        let preview = generate_preview_from_url(format!("{base}/page"), &client())
             .await
             .unwrap();
         assert!(preview.image.is_some());
@@ -657,7 +747,7 @@ mod signal_compat {
             "text/html",
             format!(r#"<meta property="og:image" content="{image_base}/big.png"><title>t</title>"#),
         )]);
-        let preview = generate_preview_from_url(format!("{base}/page"), &reqwest::Client::new())
+        let preview = generate_preview_from_url(format!("{base}/page"), &client())
             .await
             .unwrap();
         assert!(preview.image.is_none());
@@ -665,9 +755,10 @@ mod signal_compat {
 
     #[tokio::test]
     async fn requests_use_whatsapp_user_agent() {
-        let (base, user_agents) = serve(vec![Route::new("/page", "text/html", "<title>t</title>")]);
-        let _ = generate_preview_from_url(format!("{base}/page"), &reqwest::Client::new()).await;
-        assert_eq!(*user_agents.lock().unwrap(), vec!["WhatsApp/2"]);
+        let (base, requests) = serve(vec![Route::new("/page", "text/html", "<title>t</title>")]);
+        let _ = generate_preview_from_url(format!("{base}/page"), &client()).await;
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests[0].header("user-agent"), Some("WhatsApp/2"));
     }
 
     #[tokio::test]
@@ -676,7 +767,7 @@ mod signal_compat {
             hang: true,
             ..Route::new("/page", "text/html", "")
         }]);
-        let client = reqwest::Client::new();
+        let client = client();
         let fetch = generate_preview_from_url(format!("{base}/page"), &client);
         assert!(
             tokio::time::timeout(Duration::from_secs(30), fetch)
@@ -684,5 +775,76 @@ mod signal_compat {
                 .is_ok(),
             "fetching a preview must not hang the send"
         );
+    }
+
+    // defences
+
+    #[test]
+    fn reserved_domains_are_case_insensitive() {
+        assert!(extracted("https://Example.COM/x https://foo.I2P https://bar.Onion").is_empty());
+    }
+
+    #[test]
+    fn private_ip_literals_are_not_previewed() {
+        for url in [
+            "https://10.0.0.1/",
+            "https://172.16.0.1/",
+            "https://192.168.1.1/",
+            "https://169.254.169.254/latest/meta-data/",
+            "https://127.0.0.1/",
+            "https://0.0.0.0/",
+            "https://[::1]/",
+            "https://[fc00::1]/",
+            "https://[fe80::1]/",
+            "https://[::ffff:127.0.0.1]/",
+        ] {
+            assert!(extracted(url).is_empty(), "{url}");
+        }
+    }
+
+    #[tokio::test]
+    async fn redirect_to_internal_host_is_not_followed() {
+        let (internal, requests) = serve(vec![Route::new(
+            "/admin",
+            "text/html",
+            "<title>internal</title>",
+        )]);
+        let internal = internal.replace(HOST, "127.0.0.1");
+        let (base, _) = serve(vec![Route::redirect("/page", format!("{internal}/admin"))]);
+        let _ = generate_preview_from_url(format!("{base}/page"), &client()).await;
+        assert!(requests.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn og_image_must_be_https() {
+        let (image_base, requests) = serve_http(vec![Route::new(
+            "/img.png",
+            "image/png",
+            b"\x89PNG\r\n\x1a\n".to_vec(),
+        )]);
+        let (base, _) = serve(vec![Route::new(
+            "/page",
+            "text/html",
+            format!(r#"<meta property="og:image" content="{image_base}/img.png"><title>t</title>"#),
+        )]);
+        let preview = generate_preview_from_url(format!("{base}/page"), &client())
+            .await
+            .unwrap();
+        assert!(preview.image.is_none());
+        assert!(requests.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn cookies_are_not_sent_back() {
+        let (base, requests) = serve(vec![Route {
+            headers: "Set-Cookie: session=secret\r\n".to_owned(),
+            ..Route::new("/page", "text/html", "<title>t</title>")
+        }]);
+        let client = client();
+        let _ = generate_preview_from_url(format!("{base}/page"), &client).await;
+        let _ = generate_preview_from_url(format!("{base}/page"), &client).await;
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests.len(), 2);
+        assert!(requests.iter().all(|r| r.header("cookie").is_none()));
     }
 }
