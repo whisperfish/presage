@@ -359,6 +359,18 @@ pub trait ContentsStore: Send + Sync {
         async move { Ok(self.sticker_pack(id).await?.is_some()) }
     }
 
+    /// The ids of the installed sticker packs
+    fn sticker_pack_ids(
+        &self,
+    ) -> impl Future<Output = Result<Vec<Vec<u8>>, Self::ContentsStoreError>> {
+        async move {
+            self.sticker_packs()
+                .await?
+                .map(|p| p.map(|p| p.id))
+                .collect()
+        }
+    }
+
     /// Removes a sticker pack
     fn remove_sticker_pack(
         &mut self,
