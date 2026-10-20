@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT last_pre_key_rotation_at FROM pre_key_metadata WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "last_pre_key_rotation_at",
+        "ordinal": 0,
+        "type_info": "Datetime",
+        "origin": {
+          "Table": {
+            "table": "pre_key_metadata",
+            "name": "last_pre_key_rotation_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "b1e2e0bec2e5665cbec5fb8cdc45557314a83a16e79c65e0db1bc1ff9f7ce63e"
+}

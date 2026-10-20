@@ -6,7 +6,7 @@
       {
         "name": "is_last_resort",
         "ordinal": 0,
-        "type_info": "Integer",
+        "type_info": "Bool",
         "origin": {
           "Table": {
             "table": "kyber_pre_keys",
