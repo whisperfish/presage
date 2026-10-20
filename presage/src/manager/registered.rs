@@ -856,6 +856,16 @@ impl<S: Store> Manager<S, Registered> {
                                         for operation in sticker_pack_operation {
                                             match operation.r#type() {
                                                 sticker_pack_operation::Type::Install => {
+                                                    // the primary lists every installed pack in
+                                                    // reply to a configuration request
+                                                    if let Ok(true) = state
+                                                        .store
+                                                        .has_sticker_pack(operation.pack_id())
+                                                        .await
+                                                    {
+                                                        debug!("sticker pack already installed");
+                                                        continue;
+                                                    }
                                                     let store = state.store.clone();
                                                     let unidentified_websocket =
                                                         state.unidentified_websocket.clone();
