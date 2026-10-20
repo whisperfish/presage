@@ -858,6 +858,7 @@ mod test {
         assert!(!store.has_sticker_pack(&pack.id).await?);
         store.add_sticker_pack(&pack).await?;
         assert!(store.has_sticker_pack(&pack.id).await?);
+        assert!(!store.has_sticker_pack(&[3; 16]).await?);
         store.remove_sticker_pack(&pack.id).await?;
         assert!(!store.has_sticker_pack(&pack.id).await?);
 

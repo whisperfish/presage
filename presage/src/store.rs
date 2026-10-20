@@ -351,7 +351,7 @@ pub trait ContentsStore: Send + Sync {
         id: &[u8],
     ) -> impl Future<Output = Result<Option<StickerPack>, Self::ContentsStoreError>>;
 
-    /// Whether a sticker pack is installed; stores can answer without reading its stickers
+    /// Whether a sticker pack is installed
     fn has_sticker_pack(
         &self,
         id: &[u8],
