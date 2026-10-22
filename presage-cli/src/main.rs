@@ -605,7 +605,7 @@ async fn receive<S: Store>(
                     break;
                 }
             }
-            Received::Contacts => println!("got contacts synchronization"),
+            Received::Contacts { .. } => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
                     &mut manager,
@@ -955,7 +955,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             while let Some(content) = messages.next().await {
                 match content {
                     Received::QueueEmpty => break,
-                    Received::Contacts => println!("got contacts! thank you, come again."),
+                    Received::Contacts { .. } => println!("got contacts! thank you, come again."),
                     Received::Content(_) => print!("."),
                     Received::DecryptionError(_) => {
                         println!("failed to receive a message from a contact")
