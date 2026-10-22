@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::models::ParseContactError;
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
 use libsignal_service::provisioning::ProvisioningSecrets;
@@ -802,30 +803,17 @@ impl<S: Store> Manager<S, Registered> {
                                         ..
                                     }) = &content.body
                                     {
-                                        match state
-                                            .message_receiver
-                                            .retrieve_contacts(contacts)
-                                            .await
-                                        {
-                                            Ok(contacts) => {
-                                                info!("saving contacts");
-                                                for contact in contacts.filter_map(Result::ok) {
-                                                    if let Err(error) = state
-                                                        .store
-                                                        .save_contact(&contact.into())
-                                                        .await
-                                                    {
-                                                        warn!(%error, "failed to save contacts");
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            Err(error) => {
-                                                warn!(%error, "failed to retrieve contacts");
-                                            }
-                                        }
-
-                                        return Some((Received::Contacts, state));
+                                        let saved = save_contacts(
+                                            &mut state.message_receiver,
+                                            &mut state.store,
+                                            contacts,
+                                        )
+                                        .await;
+                                        let complete = contacts.complete();
+                                        return Some((
+                                            Received::Contacts { complete, saved },
+                                            state,
+                                        ));
                                     }
 
                                     // sticker pack operations
@@ -1990,6 +1978,48 @@ async fn save_message<S: Store>(
     }
 
     Ok(())
+}
+
+/// Saves the contacts of a sync; returns them, or `None` if not all could be read, parsed
+/// and saved.
+async fn save_contacts<S: Store>(
+    receiver: &mut MessageReceiver,
+    store: &mut S,
+    contacts: &sync_message::Contacts,
+) -> Option<Vec<Uuid>> {
+    if contacts.blob.is_none() {
+        warn!("contacts sync without contacts");
+        return None;
+    }
+    let parsed = match receiver.retrieve_contacts(contacts).await {
+        Ok(parsed) => parsed,
+        Err(error) => {
+            warn!(%error, "failed to retrieve contacts");
+            return None;
+        }
+    };
+    info!("saving contacts");
+    let mut saved = Some(Vec::new());
+    for contact in parsed {
+        match contact {
+            Ok(contact) => {
+                let uuid = contact.uuid;
+                if let Err(error) = store.save_contact(&contact.into()).await {
+                    warn!(%error, "failed to save contacts");
+                    return None;
+                }
+                if let Some(saved) = &mut saved {
+                    saved.push(uuid);
+                }
+            }
+            Err(ParseContactError::MissingUuid) => {}
+            Err(error) => {
+                warn!(%error, "failed to parse contact");
+                saved = None;
+            }
+        }
+    }
+    saved
 }
 
 async fn upsert_contact_from_profile<S: Store>(
