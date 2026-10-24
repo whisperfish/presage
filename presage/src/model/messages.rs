@@ -17,8 +17,11 @@ pub enum Received {
     /// Failed to decrypt a message from the specified service ID; `error` says why.
     /// A session reset with the contact may fix this, unless the error is
     /// [`SignalProtocolError::DuplicatedMessage`]: a message delivered again, already handled.
+    /// `sender_device` and `timestamp` (the envelope's) name the message, as a retry receipt does.
     DecryptionError {
         sender: ServiceId,
+        sender_device: DeviceId,
+        timestamp: u64,
         error: SignalProtocolError,
     },
 
