@@ -662,6 +662,9 @@ impl<S: Store> Manager<S, Registered> {
                             // Who sent an unsealed envelope, as the server authenticated it:
                             // names the sender of a message that fails to decrypt.
                             let source = envelope.parse_source_service_id();
+                            // What a retry receipt names the message by.
+                            let timestamp = envelope.client_timestamp();
+                            let source_device = envelope.source_device_id();
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
                                 match envelope.parse_destination_service_id() {
@@ -1000,15 +1003,20 @@ impl<S: Store> Manager<S, Registered> {
                                                 inner,
                                             },
                                         ) => ServiceId::parse_from_service_id_string(sender.name())
-                                            .map(|sender| (sender, inner)),
-                                        ServiceError::SignalProtocolError(error) => {
-                                            source.map(|sender| (sender, error))
-                                        }
+                                            .map(|id| (id, sender.device_id(), inner)),
+                                        ServiceError::SignalProtocolError(error) => source
+                                            .zip(DeviceId::try_from(source_device).ok())
+                                            .map(|(sender, device)| (sender, device, error)),
                                         _ => None,
                                     };
-                                    if let Some((sender, error)) = failed {
+                                    if let Some((sender, sender_device, error)) = failed {
                                         return Some((
-                                            Received::DecryptionError { sender, error },
+                                            Received::DecryptionError {
+                                                sender,
+                                                sender_device,
+                                                timestamp,
+                                                error,
+                                            },
                                             state,
                                         ));
                                     }
