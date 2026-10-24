@@ -39,6 +39,7 @@ use libsignal_service::{
     websocket::{
         self,
         account::{AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse},
+        calling::TurnServer,
         SignalWebSocket,
     },
     zkgroup::{
@@ -1538,6 +1539,15 @@ impl<S: Store> Manager<S, Registered> {
         )
         .await?;
         Ok(content)
+    }
+
+    /// Fetches short-lived TURN credentials for 1:1 calls.
+    pub async fn calling_relays(&self) -> Result<Vec<TurnServer>, Error<S::Error>> {
+        Ok(self
+            .identified_websocket(false)
+            .await?
+            .get_calling_relays()
+            .await?)
     }
 
     fn credentials(&self) -> ServiceCredentials {
