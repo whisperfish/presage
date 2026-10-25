@@ -60,7 +60,9 @@ use url::Url;
 
 use crate::model::contacts::Contact;
 use crate::serde::serde_profile_key;
-use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
+use crate::store::{
+    ContentExt, ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread,
+};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
 
 pub use crate::model::messages::Received;
@@ -1942,7 +1944,7 @@ async fn save_message<S: Store>(
                     ..
                 } => {
                     let sent = message.metadata.client_timestamp.timestamp_millis() as u64;
-                    match store.message(&thread, *ts).await? {
+                    match store.message_sent_or_edited_at(&thread, *ts).await? {
                         // replace an existing message by an empty NullMessage
                         Some(mut existing_msg)
                             if existing_msg.metadata.sender == message.metadata.sender
@@ -2022,11 +2024,13 @@ async fn save_message<S: Store>(
                     ..
                 })),
             ..
-        }) => match store.message(&thread, target).await? {
-            // An edit takes the place of the message it edits, which must be its sender's.
+        }) => match store.message_sent_or_edited_at(&thread, target).await? {
+            // An edit takes the place of the message it edits, which must be its sender's, and
+            // names it by its first time, also when it came naming an earlier edit's.
             Some(original) if original.metadata.sender == message.metadata.sender => {
                 let mut edit = message;
                 edit.metadata.client_timestamp = original.metadata.client_timestamp;
+                retarget_edit(&mut edit, original.timestamp());
                 Some(edit)
             }
             _ => {
@@ -2075,6 +2079,22 @@ async fn save_message<S: Store>(
     }
 
     Ok(())
+}
+
+/// Points an edit at `original`, the first time of the message it edits.
+fn retarget_edit(edit: &mut Content, original: u64) {
+    match &mut edit.body {
+        ContentBody::SynchronizeMessage(SyncMessage {
+            content:
+                Some(SyncContent::Sent(sync_message::Sent {
+                    edit_message: Some(edit),
+                    ..
+                })),
+            ..
+        })
+        | ContentBody::EditMessage(edit) => edit.target_sent_timestamp = Some(original),
+        _ => {}
+    }
 }
 
 /// How long after sending a message its sender can still delete it for everyone, as received.

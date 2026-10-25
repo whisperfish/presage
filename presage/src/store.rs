@@ -149,6 +149,29 @@ pub trait ContentsStore: Send + Sync {
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
 
+    /// Retrieve the message `timestamp` names in a [Thread]: the one sent then, or else the one
+    /// whose latest edit was. Signal's apps name an edited message by its latest edit's time,
+    /// and an edit comes within [EDIT_WINDOW_MS] of the message.
+    fn message_sent_or_edited_at(
+        &self,
+        thread: &Thread,
+        timestamp: u64,
+    ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>> {
+        async move {
+            if let Some(message) = self.message(thread, timestamp).await? {
+                return Ok(Some(message));
+            }
+            let since = timestamp.saturating_sub(EDIT_WINDOW_MS);
+            for message in self.messages(thread, since..timestamp).await? {
+                let message = message?;
+                if message.edited_at() == Some(timestamp) {
+                    return Ok(Some(message));
+                }
+            }
+            Ok(None)
+        }
+    }
+
     /// Retrieve a message [Thread] from its sender and timestamp.
     fn thread_for_sender_and_timestamp(
         &self,
@@ -524,9 +547,15 @@ impl TryFrom<&Content> for Thread {
     }
 }
 
+/// How long after sending a message Signal's apps let its sender edit it.
+pub const EDIT_WINDOW_MS: u64 = 24 * 60 * 60 * 1000;
+
 /// Extension trait of [`Content`]
 pub trait ContentExt {
     fn timestamp(&self) -> u64;
+
+    /// For an edit, when it was sent.
+    fn edited_at(&self) -> Option<u64>;
 }
 
 impl ContentExt for Content {
@@ -558,6 +587,21 @@ impl ContentExt for Content {
                 ..
             }) => ts,
             _ => self.metadata.client_timestamp.timestamp_millis() as u64,
+        }
+    }
+
+    fn edited_at(&self) -> Option<u64> {
+        match &self.body {
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
+                        edit_message: Some(edit),
+                        ..
+                    })),
+                ..
+            })
+            | ContentBody::EditMessage(edit) => edit.data_message.as_ref()?.timestamp,
+            _ => None,
         }
     }
 }

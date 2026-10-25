@@ -766,4 +766,62 @@ mod test {
 
         Ok(())
     }
+    #[tokio::test]
+    async fn finds_a_message_by_its_latest_edit() -> Result<(), Box<dyn std::error::Error>> {
+        use chrono::TimeZone;
+        use presage::libsignal_service::content::ContentBody;
+        use presage::proto::{DataMessage, EditMessage};
+        use presage::store::ContentExt;
+
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let sender = ServiceId::Aci(Uuid::from_u128(7).into());
+        let thread = Thread::Contact(sender);
+        let content = |body| {
+            let at = chrono::Utc.timestamp_millis_opt(1_000).unwrap();
+            Content {
+                metadata: Metadata {
+                    sender,
+                    destination: sender,
+                    sender_device: 1.try_into().unwrap(),
+                    client_timestamp: at,
+                    server_timestamp: at,
+                    needs_receipt: false,
+                    unidentified_sender: false,
+                    server_guid: None,
+                    was_plaintext: false,
+                    pni_verified: None,
+                },
+                body,
+            }
+        };
+        let data = |timestamp| DataMessage {
+            body: Some(format!("{timestamp}")),
+            timestamp: Some(timestamp),
+            ..Default::default()
+        };
+        store
+            .save_message(&thread, content(ContentBody::DataMessage(data(1_000))))
+            .await?;
+        // An edit takes its message's place, as presage stores it.
+        store
+            .save_message(
+                &thread,
+                content(ContentBody::EditMessage(EditMessage {
+                    target_sent_timestamp: Some(1_000),
+                    data_message: Some(data(2_000)),
+                })),
+            )
+            .await?;
+        let found = |timestamp| store.message_sent_or_edited_at(&thread, timestamp);
+        assert_eq!(
+            found(1_000).await?.map(|c| c.edited_at()),
+            Some(Some(2_000))
+        );
+        assert_eq!(
+            found(2_000).await?.map(|c| c.edited_at()),
+            Some(Some(2_000))
+        );
+        assert!(found(3_000).await?.is_none());
+        Ok(())
+    }
 }
