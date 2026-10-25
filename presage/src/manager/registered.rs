@@ -1492,6 +1492,54 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Records a finished call in the thread with the peer of `event` and tells our other
+    /// devices about it, so their call logs agree. Returns the stored content.
+    pub async fn send_call_event(
+        &mut self,
+        event: sync_message::CallEvent,
+    ) -> Result<Content, Error<S::Error>> {
+        let sync_message = SyncMessage {
+            content: Some(SyncContent::CallEvent(event.clone())),
+            ..SyncMessage::with_padding(&mut rand::rng())
+        };
+        self.new_message_sender()
+            .await?
+            .send_sync_message(sync_message.clone())
+            .await?;
+
+        let aci = self.state.data.service_ids.aci();
+        // Filed under the start of the call.
+        let timestamp = event
+            .timestamp
+            .and_then(|ts| chrono::Utc.timestamp_millis_opt(ts as i64).single())
+            .unwrap_or_else(chrono::Utc::now);
+        let content = Content {
+            metadata: Metadata {
+                sender: aci.into(),
+                sender_device: self.state.device_id(),
+                destination: aci.into(),
+                server_guid: None,
+                client_timestamp: timestamp,
+                server_timestamp: timestamp,
+                needs_receipt: false,
+                unidentified_sender: false,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: ContentBody::SynchronizeMessage(sync_message),
+        };
+
+        let mut identified_websocket = self.identified_websocket(false).await?;
+        save_message(
+            &mut self.store,
+            &mut identified_websocket,
+            content.clone(),
+            None,
+        )
+        .await?;
+        Ok(content)
+    }
+
     fn credentials(&self) -> ServiceCredentials {
         self.state.credentials()
     }
@@ -1958,8 +2006,9 @@ async fn save_message<S: Store>(
                 })),
             ..
         }) => Some(message),
-        ContentBody::CallMessage(_)
-        | ContentBody::SynchronizeMessage(SyncMessage {
+        // Call signaling is transient; calls are recorded by `CallEvent`s instead.
+        ContentBody::CallMessage(_) => None,
+        ContentBody::SynchronizeMessage(SyncMessage {
             content: Some(SyncContent::CallEvent(_)),
             ..
         }) => Some(message),
