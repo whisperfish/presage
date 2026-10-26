@@ -12,8 +12,8 @@ default = []
 cdsi = ["libsignal-service/cdsi"]
 
 [dependencies]
-# Until whisperfish/libsignal-service-rs#488 lands.
-libsignal-service = { git = "https://github.com/barafael/libsignal-service-rs", rev = "746dfed8c921de73b484f060f0fc8cd712cb0c2f", default-features = false, features = [
+# Until whisperfish/libsignal-service-rs#488, #442 and #489 land.
+libsignal-service = { git = "https://github.com/barafael/libsignal-service-rs", rev = "8058cbc5917ecb3a16080387c301f194500732b7", default-features = false, features = [
     "phonenumber",
 ] }
 
