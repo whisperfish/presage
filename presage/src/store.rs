@@ -149,6 +149,23 @@ pub trait ContentsStore: Send + Sync {
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
 
+    /// Keeps `content`, just decrypted, until it is [handled](ContentsStore::handled). Kept in
+    /// the [transaction](Store::transaction) that decrypted it, it isn't lost when the receiver
+    /// stops before handling it: the receiver handles it when it starts again
+    /// ([ContentsStore::decrypted]).
+    fn keep_decrypted(
+        &mut self,
+        content: &Content,
+    ) -> impl Future<Output = Result<u64, Self::ContentsStoreError>>;
+
+    /// What was decrypted and kept, and not handled yet, in the order it came.
+    fn decrypted(
+        &self,
+    ) -> impl Future<Output = Result<Vec<(u64, Content)>, Self::ContentsStoreError>>;
+
+    /// Forgets the decrypted content `id`, now handled.
+    fn handled(&mut self, id: u64) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
     /// Retrieve a message [Thread] from its sender and timestamp.
     fn thread_for_sender_and_timestamp(
         &self,
@@ -382,6 +399,17 @@ pub trait Store:
     fn clear(
         &mut self,
     ) -> impl Future<Output = Result<(), <Self as StateStore>::StateStoreError>> + Send;
+
+    /// The same store, its writes from here on in one transaction: [Store::commit] writes all
+    /// of them, and dropping it instead writes none. Decrypting an envelope moves its session
+    /// on, so the message it held is kept in the same transaction
+    /// ([ContentsStore::keep_decrypted]): a receiver stopping in between would otherwise have
+    /// used up the message's key without keeping the message. Other writers wait until it ends,
+    /// so keep it short. A store already in a transaction gives that one.
+    fn transaction(&self) -> impl Future<Output = Result<Self, Self::Error>>;
+
+    /// Writes the transaction begun with [Store::transaction]; does nothing for a store in none.
+    fn commit(self) -> impl Future<Output = Result<(), Self::Error>>;
 
     fn aci_protocol_store(&self) -> Self::AciStore;
 

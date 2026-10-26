@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO decrypted_contents (\n                ts,\n                server_ts,\n                sender_service_id,\n                sender_device_id,\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext,\n                pni_verified\n            )\n            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)\n            RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d88df8477670448f1396a962b51d2cc8969fa758aa4242bbe3f276d67b681d4b"
+}

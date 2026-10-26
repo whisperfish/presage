@@ -188,6 +188,104 @@ impl ContentsStore for SqliteStore {
         Ok(())
     }
 
+    async fn keep_decrypted(&mut self, content: &Content) -> Result<u64, Self::ContentsStoreError> {
+        let Metadata {
+            sender,
+            destination,
+            sender_device,
+            client_timestamp,
+            needs_receipt,
+            unidentified_sender,
+            server_guid: _,
+            was_plaintext,
+            server_timestamp,
+            pni_verified,
+        } = &content.metadata;
+        let timestamp = client_timestamp.timestamp_millis();
+        let server_timestamp = server_timestamp.timestamp_millis();
+        let sender_device: u8 = (*sender_device).into();
+        let sender_service_id = sender.service_id_string();
+        let destination_service_id = destination.service_id_string();
+        let proto_bytes = prost::Message::encode_to_vec(&content.body.clone().into_proto());
+        let pni_verified = pni_verified.as_ref().map(|p| p.service_id_string());
+        let id = query_scalar!(
+            "INSERT INTO decrypted_contents (
+                ts,
+                server_ts,
+                sender_service_id,
+                sender_device_id,
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            )
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            RETURNING id",
+            timestamp,
+            server_timestamp,
+            sender_service_id,
+            sender_device,
+            destination_service_id,
+            needs_receipt,
+            unidentified_sender,
+            proto_bytes,
+            was_plaintext,
+            pni_verified,
+        )
+        .fetch_one(&self.db)
+        .await?;
+        u64::try_from(id).map_err(|_| SqliteStoreError::InvalidFormat)
+    }
+
+    async fn decrypted(&self) -> Result<Vec<(u64, Content)>, Self::ContentsStoreError> {
+        let rows = query!(
+            r#"SELECT
+                id AS "id!: i64",
+                ts AS "ts: u64",
+                server_ts AS "server_ts: u64",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: u8",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM decrypted_contents
+            ORDER BY id"#
+        )
+        .fetch_all(&self.db)
+        .await?;
+        rows.into_iter()
+            .map(|row| {
+                let id = u64::try_from(row.id).map_err(|_| SqliteStoreError::InvalidFormat)?;
+                let message = SqlMessage {
+                    ts: row.ts,
+                    server_ts: row.server_ts,
+                    sender_service_id: row.sender_service_id,
+                    sender_device_id: row.sender_device_id,
+                    destination_service_id: row.destination_service_id,
+                    needs_receipt: row.needs_receipt,
+                    unidentified_sender: row.unidentified_sender,
+                    content_body: row.content_body,
+                    was_plaintext: row.was_plaintext,
+                    pni_verified: row.pni_verified,
+                };
+                Ok((id, message.try_into()?))
+            })
+            .collect()
+    }
+
+    async fn handled(&mut self, id: u64) -> Result<(), Self::ContentsStoreError> {
+        let id = i64::try_from(id).map_err(|_| SqliteStoreError::InvalidFormat)?;
+        query!("DELETE FROM decrypted_contents WHERE id = ?", id)
+            .execute(&self.db)
+            .await?;
+        Ok(())
+    }
+
     async fn delete_message(
         &mut self,
         thread: &Thread,

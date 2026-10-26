@@ -1,0 +1,146 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                id AS \"id!: i64\",\n                ts AS \"ts: u64\",\n                server_ts AS \"server_ts: u64\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: u8\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext,\n                pni_verified\n            FROM decrypted_contents\n            ORDER BY id",
+  "describe": {
+    "columns": [
+      {
+        "name": "id!: i64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "id"
+          }
+        }
+      },
+      {
+        "name": "ts: u64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "name": "server_ts: u64",
+        "ordinal": 2,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "server_ts"
+          }
+        }
+      },
+      {
+        "name": "sender_service_id",
+        "ordinal": 3,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "sender_service_id"
+          }
+        }
+      },
+      {
+        "name": "sender_device_id: u8",
+        "ordinal": 4,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "sender_device_id"
+          }
+        }
+      },
+      {
+        "name": "destination_service_id",
+        "ordinal": 5,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "destination_service_id"
+          }
+        }
+      },
+      {
+        "name": "needs_receipt",
+        "ordinal": 6,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "needs_receipt"
+          }
+        }
+      },
+      {
+        "name": "unidentified_sender",
+        "ordinal": 7,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "unidentified_sender"
+          }
+        }
+      },
+      {
+        "name": "content_body",
+        "ordinal": 8,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "content_body"
+          }
+        }
+      },
+      {
+        "name": "was_plaintext",
+        "ordinal": 9,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "was_plaintext"
+          }
+        }
+      },
+      {
+        "name": "pni_verified",
+        "ordinal": 10,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "pni_verified"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "ea5b2721d88fbe233bd8e04f10c1ae08d29a441ce0ef465348ee55fc4c75b08e"
+}
