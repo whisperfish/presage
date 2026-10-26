@@ -6,7 +6,24 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::IntoUrl;
 use scraper::{Html, Selector};
 use std::str::FromStr;
-use url::Url;
+use std::time::Duration;
+use url::{Host, Url};
+
+// same limit as Signal-Android
+const MAX_IMAGE_SIZE: usize = 2 * 1024 * 1024;
+
+// Signal clients don't preview links to these
+const RESERVED_DOMAINS: &[&str] = &[
+    "example",
+    "example.com",
+    "example.net",
+    "example.org",
+    "i2p",
+    "invalid",
+    "localhost",
+    "onion",
+    "test",
+];
 
 #[derive(thiserror::Error, Debug)]
 #[non_exhaustive]
@@ -25,6 +42,10 @@ pub enum Error {
     ToStrtError(#[from] reqwest::header::ToStrError),
     #[error("FromStr error: {0}")]
     FromStrError(#[from] mime::FromStrError),
+    #[error("The page has no title")]
+    MissingTitleError,
+    #[error("The image is larger than {MAX_IMAGE_SIZE} bytes")]
+    ImageTooLargeError,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -39,20 +60,46 @@ pub struct PreviewContent {
     pub date: Option<u64>,
 }
 
-pub async fn generate_preview_from_url<T: IntoUrl>(
+/// Client for fetching previews: https only, no internal hosts, and a timeout.
+pub fn client_builder() -> reqwest::ClientBuilder {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(10))
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            if attempt.previous().len() >= 10 {
+                attempt.error("too many redirects")
+            } else if is_previewable(attempt.url()) {
+                attempt.follow()
+            } else {
+                attempt.stop()
+            }
+        }))
+}
+
+/// Whether Signal clients accept a preview for `url`: https, and a public domain name.
+fn is_previewable(url: &Url) -> bool {
+    let Some(Host::Domain(domain)) = url.host() else {
+        return false;
+    };
+    url.scheme() == "https"
+        && !RESERVED_DOMAINS
+            .iter()
+            .any(|reserved| domain == *reserved || domain.ends_with(&format!(".{reserved}")))
+}
+
+pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
     url: T,
     client: &reqwest::Client,
 ) -> Result<PreviewContent, Error> {
+    // receivers drop the preview if its url is not exactly as in the message body
+    let link = url.as_ref().to_owned();
     let url = url.into_url()?;
-    // a default url value in case the og:url tag is missing
-    let default_url_preview = url.clone().host_str().map(|y| y.to_string());
 
     let mut preview: PreviewContent = {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("user-agent", "WhatsApp/2".parse().unwrap());
 
         let response = client
-            .get(url)
+            .get(url.clone())
             .headers(headers)
             .send()
             .await?
@@ -68,9 +115,16 @@ pub async fn generate_preview_from_url<T: IntoUrl>(
                 match (content_type.type_(), content_type.subtype()) {
                     (mime::TEXT, mime::HTML) => {
                         let html = response.text().await?;
-                        generate_preview_from_html(&html, client).await
+                        generate_preview_from_html(&html, &url, client).await
                     }
                     (mime::IMAGE, _) => {
+                        // like Signal-Android, use the file name as title
+                        let title = response
+                            .url()
+                            .path_segments()
+                            .and_then(|mut segments| segments.next_back())
+                            .filter(|name| !name.is_empty())
+                            .map(str::to_owned);
                         let (image, image_content_type) =
                             match fetch_image_from_response(response).await {
                                 Ok((bytes, content_type)) => (Some(bytes), Some(content_type)),
@@ -78,7 +132,7 @@ pub async fn generate_preview_from_url<T: IntoUrl>(
                             };
                         PreviewContent {
                             url: None,
-                            title: None,
+                            title,
                             image,
                             image_content_type,
                             description: None,
@@ -96,9 +150,10 @@ pub async fn generate_preview_from_url<T: IntoUrl>(
         }
     };
 
-    if preview.url.is_none() {
-        preview.url = default_url_preview;
+    if preview.title.as_deref().is_none_or(str::is_empty) {
+        return Err(Error::MissingTitleError);
     }
+    preview.url = Some(link);
     Ok(preview)
 }
 
@@ -109,6 +164,7 @@ pub async fn generate_preview_from_url<T: IntoUrl>(
 /// The description is taken from the  <meta name="description"> tag (if available).
 pub async fn generate_preview_from_html(
     html_doc: &str,
+    url: &Url,
     client: &reqwest::Client,
 ) -> PreviewContent {
     let document = Html::parse_document(html_doc);
@@ -139,6 +195,10 @@ pub async fn generate_preview_from_html(
 
         // get fields from <meta property="og:"
         let property = element.value().attr("property").unwrap_or("").to_string();
+        if let "article:published_time" | "article:modified_time" = property.as_str() {
+            let content = element.value().attr("content").unwrap_or("");
+            preview.date = std::cmp::max(preview.date, timestamp_from_iso(content))
+        }
         if let Some(capture) = property.strip_prefix("og:") {
             let field = capture.trim();
             let content = element.value().attr("content").unwrap_or("").to_string();
@@ -146,15 +206,19 @@ pub async fn generate_preview_from_html(
                 "url" => preview.url = Some(content),
                 "title" => preview.title = Some(content),
                 "image" => {
-                    if let Ok((bytes, content_type)) = fetch_image_from_url(content, client).await {
-                        preview.image = Some(bytes);
-                        preview.image_content_type = Some(content_type);
+                    // og:image may be relative to the page
+                    let image_url = url.join(&content).ok().filter(is_previewable);
+                    if let Some(image_url) = image_url {
+                        if let Ok((bytes, content_type)) =
+                            fetch_image_from_url(image_url, client).await
+                        {
+                            preview.image = Some(bytes);
+                            preview.image_content_type = Some(content_type);
+                        }
                     }
                 }
                 "description" => preview.description = Some(content),
-                "date" | "article:published_time" | "article:modified_time" => {
-                    preview.date = std::cmp::max(preview.date, timestamp_from_iso(&content))
-                }
+                "date" => preview.date = std::cmp::max(preview.date, timestamp_from_iso(&content)),
                 _ => (),
             }
         }
@@ -182,7 +246,7 @@ pub async fn generate_preview_from_html(
         let title = document
             .select(&selector)
             .next()
-            .map(|x| x.inner_html().trim().to_owned());
+            .map(|x| x.text().collect::<String>().trim().to_owned());
         preview.title = title;
     }
     preview
@@ -193,12 +257,12 @@ pub async fn generate_preview_from_html(
 /// by punctuation. This here function tries to strike a balance, taking
 /// into account that punctuations as well as parentheses might
 /// appear within valid urls.
-pub fn extract_urls_from_text_block(message: &str) -> Vec<Url> {
+pub fn extract_urls_from_text_block(message: &str) -> Vec<String> {
     let re = Regex::new(
         r#"(?xi)
         \b
         (
-            (?:https?://)?              # Optional scheme
+            https://                    # Signal clients only preview https links
             (?:www\.)?
             [a-z0-9.-]+\.[a-z]{2,}
             [^\s]*                      # Capture everything until whitespace
@@ -235,15 +299,8 @@ pub fn extract_urls_from_text_block(message: &str) -> Vec<Url> {
             }
         }
 
-        // Add scheme
-        let url = if candidate.starts_with("http://") || candidate.starts_with("https://") {
-            candidate.clone()
-        } else {
-            format!("https://{}", candidate)
-        };
-
-        if let Ok(url) = Url::parse(&url) {
-            urls.push(url);
+        if Url::parse(&candidate).is_ok_and(|url| is_previewable(&url)) {
+            urls.push(candidate);
         }
     }
     urls
@@ -251,7 +308,9 @@ pub fn extract_urls_from_text_block(message: &str) -> Vec<Url> {
 
 pub async fn generate_previews_from_message(message: &str) -> Vec<PreviewContent> {
     let urls = extract_urls_from_text_block(message);
-    let client = reqwest::Client::new();
+    let Ok(client) = client_builder().build() else {
+        return Vec::new();
+    };
 
     stream::iter(urls)
         .map(|url| generate_preview_from_url(url, &client))
@@ -305,7 +364,7 @@ async fn fetch_image_from_url<T: IntoUrl>(
 /// (e.g. `image/jpeg`), preferring the response's own `Content-Type` header and falling
 /// back to sniffing the file signature when that header is missing or not an image type.
 async fn fetch_image_from_response(
-    response: reqwest::Response,
+    mut response: reqwest::Response,
 ) -> Result<(Vec<u8>, String), Error> {
     let header_content_type = response
         .headers()
@@ -315,7 +374,13 @@ async fn fetch_image_from_response(
         .filter(|mime| mime.type_() == mime::IMAGE)
         .map(|mime| mime.essence_str().to_string());
 
-    let bytes = response.bytes().await?;
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await? {
+        if bytes.len() + chunk.len() > MAX_IMAGE_SIZE {
+            return Err(Error::ImageTooLargeError);
+        }
+        bytes.extend_from_slice(&chunk);
+    }
 
     let Some(content_type) =
         header_content_type.or_else(|| sniff_image_mime_type(&bytes).map(str::to_string))
@@ -323,12 +388,12 @@ async fn fetch_image_from_response(
         return Err(Error::NonImageBytesError);
     };
 
-    Ok((bytes.into(), content_type))
+    Ok((bytes, content_type))
 }
 
 fn timestamp_from_iso(datetime_str: &str) -> Option<u64> {
     let datetime = chrono::DateTime::parse_from_rfc3339(datetime_str).ok()?;
-    let timestamp = chrono::DateTime::timestamp(&datetime);
+    let timestamp = chrono::DateTime::timestamp_millis(&datetime);
     Some(timestamp as u64)
 }
 
@@ -356,26 +421,23 @@ mod tests {
     #[test]
     fn test_extract_urls_from_text_block() {
         assert_eq!(
-            extract_urls_from_text_block("check this out: https://example.com/foo"),
-            vec![Url::parse("https://example.com/foo").unwrap()]
+            extract_urls_from_text_block("check this out: https://signal.org/foo"),
+            vec!["https://signal.org/foo"]
         );
 
         assert_eq!(
-            extract_urls_from_text_block("see (https://example.com/foo) for details"),
-            vec![Url::parse("https://example.com/foo").unwrap()]
+            extract_urls_from_text_block("see (https://signal.org/foo) for details"),
+            vec!["https://signal.org/foo"]
         );
 
         assert_eq!(
-            extract_urls_from_text_block("visit example.com."),
-            vec![Url::parse("https://example.com").unwrap()]
+            extract_urls_from_text_block("visit https://signal.org."),
+            vec!["https://signal.org"]
         );
 
         assert_eq!(
             extract_urls_from_text_block("https://a.com and https://b.com/path?x=1"),
-            vec![
-                Url::parse("https://a.com").unwrap(),
-                Url::parse("https://b.com/path?x=1").unwrap()
-            ]
+            vec!["https://a.com", "https://b.com/path?x=1"]
         );
 
         assert!(extract_urls_from_text_block("no links in this message").is_empty());
@@ -410,7 +472,8 @@ mod tests {
             </head></html>
         "#;
         let client = reqwest::Client::new();
-        let preview = generate_preview_from_html(html, &client).await;
+        let url = Url::parse("https://signal.org").unwrap();
+        let preview = generate_preview_from_html(html, &url, &client).await;
 
         assert_eq!(preview.title.as_deref(), Some("Example title"));
         assert_eq!(preview.description.as_deref(), Some("Example description"));
@@ -426,7 +489,8 @@ mod tests {
             </head></html>
         "#;
         let client = reqwest::Client::new();
-        let preview = generate_preview_from_html(html, &client).await;
+        let url = Url::parse("https://signal.org").unwrap();
+        let preview = generate_preview_from_html(html, &url, &client).await;
 
         assert_eq!(preview.title.as_deref(), Some("Fallback title"));
         assert_eq!(preview.description.as_deref(), Some("Meta description"));
@@ -477,7 +541,7 @@ mod signal_compat {
     });
 
     fn client() -> reqwest::Client {
-        reqwest::Client::builder()
+        client_builder()
             .tls_certs_only([reqwest::Certificate::from_der(&TLS.cert).unwrap()])
             .resolve(HOST, "127.0.0.1:0".parse().unwrap())
             .build()
@@ -658,7 +722,8 @@ mod signal_compat {
     #[tokio::test]
     async fn title_entities_are_decoded() {
         let html = "<html><head><title>Signal &amp; you</title></head></html>";
-        let preview = generate_preview_from_html(html, &client()).await;
+        let url = Url::parse("https://signal.org").unwrap();
+        let preview = generate_preview_from_html(html, &url, &client()).await;
         assert_eq!(preview.title.as_deref(), Some("Signal & you"));
     }
 
@@ -668,7 +733,8 @@ mod signal_compat {
             <meta property="og:title" content="t">
             <meta property="article:published_time" content="2024-01-01T00:00:00Z">
         </head></html>"#;
-        let preview = generate_preview_from_html(html, &client()).await;
+        let url = Url::parse("https://signal.org").unwrap();
+        let preview = generate_preview_from_html(html, &url, &client()).await;
         assert_eq!(preview.date, Some(1_704_067_200_000));
     }
 
