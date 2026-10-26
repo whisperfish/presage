@@ -666,7 +666,10 @@ impl<S: Store> Manager<S, Registered> {
             async move {
                 loop {
                     match state.encrypted_messages.next().await {
-                        Some(Ok(Incoming::Envelope(envelope))) => {
+                        Some(Ok(Incoming::Envelope { envelope, ack })) => {
+                            // Acknowledges the envelope when the arm ends, once the message is
+                            // stored: one acknowledged before that is lost if the process dies.
+                            let _ack = ack;
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
                                 match envelope.parse_destination_service_id() {
