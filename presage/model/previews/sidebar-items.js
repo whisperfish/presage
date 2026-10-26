@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["Error"],"fn":["build_preview_image","client_builder","extract_urls_from_text_block","fetch_preview_from_html","generate_preview_from_message","generate_preview_from_url"],"struct":["PreviewContent"]};
