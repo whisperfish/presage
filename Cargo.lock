@@ -3621,6 +3621,7 @@ dependencies = [
  "hex",
  "libsignal-service",
  "mime",
+ "percent-encoding",
  "presage-store-sqlite",
  "quickcheck",
  "quickcheck_async",

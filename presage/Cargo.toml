@@ -36,8 +36,9 @@ derive_more = { version = "2.1.0", features = ["debug"] }
 bytes = { version = "1.7.2", features = ["serde"] }
 mime = "0.3.17"
 regex = "1.12.2"
-reqwest = { version = "0.13", default-features = false, features = ["rustls"] }
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "system-proxy"] }
 scraper = "0.25.0"
+percent-encoding = "2"
 
 [dev-dependencies]
 quickcheck = "1.0.3"

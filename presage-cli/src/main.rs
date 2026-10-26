@@ -29,6 +29,7 @@ use presage::model::identity::OnNewIdentity;
 use presage::model::messages::Received;
 use presage::proto::receipt_message;
 use presage::proto::EditMessage;
+use presage::proto::Preview;
 use presage::proto::ReceiptMessage;
 use presage::proto::SyncMessage;
 use presage::store::ContentExt;
@@ -347,6 +348,23 @@ async fn send<S: Store>(
 
     println!("message sent!");
     Ok(())
+}
+
+async fn link_preview_or_warn<S: Store>(
+    manager: &Manager<S, Registered>,
+    message: &str,
+) -> Vec<Preview> {
+    match manager.link_preview(message).await {
+        Ok(Some(preview)) => vec![preview],
+        Ok(None) => {
+            warn!("no link to preview in the message");
+            Vec::new()
+        }
+        Err(error) => {
+            warn!(%error, "failed to build link preview, sending without");
+            Vec::new()
+        }
+    }
 }
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
@@ -758,7 +776,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let preview = if link_preview {
-                manager.build_protobuf_preview(&message).await
+                link_preview_or_warn(&manager, &message).await
             } else {
                 Vec::new()
             };
@@ -780,7 +798,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
             let preview = if link_preview {
-                manager.build_protobuf_preview(&message).await
+                link_preview_or_warn(&manager, &message).await
             } else {
                 Vec::new()
             };

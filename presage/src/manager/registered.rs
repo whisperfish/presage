@@ -1165,48 +1165,49 @@ impl<S: Store> Manager<S, Registered> {
     /// uploads its image as an attachment, ready to be set as the `preview` of the
     /// `DataMessage` sending `body`.
     ///
+    /// Returns `None` if `body` has no link to preview.
+    ///
     /// This fetches the linked page, which reveals the user's IP address to its server.
-    pub async fn build_protobuf_preview(
+    pub async fn link_preview(
         &self,
         body: &str,
-    ) -> Vec<libsignal_service::proto::Preview> {
+    ) -> Result<Option<libsignal_service::proto::Preview>, Error<S::Error>> {
         let client = match self.state.link_preview_client.get() {
             Some(client) => client,
-            None => match previews::client_builder().build() {
-                Ok(client) => self.state.link_preview_client.get_or_init(|| client),
+            None => {
+                let client = previews::client_builder()
+                    .build()
+                    .map_err(previews::Error::from)?;
+                self.state.link_preview_client.get_or_init(|| client)
+            }
+        };
+        let Some(content) = previews::generate_preview_from_message(body, client).await? else {
+            return Ok(None);
+        };
+
+        // the preview is still useful without its image
+        let image = match previews::build_preview_image(&content) {
+            Some((spec, bytes)) => match self.upload_attachment(spec, bytes).await {
+                Ok(Ok(pointer)) => Some(pointer),
+                Ok(Err(error)) => {
+                    warn!(%error, "failed to upload link preview image");
+                    None
+                }
                 Err(error) => {
-                    warn!(%error, "failed to build link preview client");
-                    return Vec::new();
+                    warn!(%error, "failed to upload link preview image");
+                    None
                 }
             },
+            None => None,
         };
-        let preview_contents = previews::generate_previews_from_message(body, client).await;
 
-        future::join_all(preview_contents.iter().map(|content| async {
-            let image = match previews::build_preview_image(content) {
-                Some((spec, bytes)) => match self.upload_attachment(spec, bytes).await {
-                    Ok(Ok(pointer)) => Some(pointer),
-                    Ok(Err(error)) => {
-                        warn!(%error, "failed to upload link preview image");
-                        None
-                    }
-                    Err(error) => {
-                        warn!(%error, "failed to upload link preview image");
-                        None
-                    }
-                },
-                None => None,
-            };
-
-            libsignal_service::proto::Preview {
-                url: content.url.clone(),
-                title: content.title.clone(),
-                image,
-                description: content.description.clone(),
-                date: content.date,
-            }
+        Ok(Some(libsignal_service::proto::Preview {
+            url: content.url,
+            title: content.title,
+            image,
+            description: content.description,
+            date: content.date,
         }))
-        .await
     }
 
     /// Uploads one attachment prior to linking them in a message.

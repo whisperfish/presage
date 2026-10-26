@@ -43,6 +43,8 @@ pub enum Error {
     FromStrError(#[from] mime::FromStrError),
     #[error("The page has no title")]
     MissingTitleError,
+    #[error("The page is larger than {MAX_HTML_SIZE} bytes")]
+    HtmlTooLargeError,
     #[error("The image is larger than {MAX_IMAGE_SIZE} bytes")]
     ImageTooLargeError,
     #[error("Redirect to a url that can't be previewed")]
@@ -119,17 +121,15 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
                 let content_type = Mime::from_str(content_type)?;
                 match (content_type.type_(), content_type.subtype()) {
                     (mime::TEXT, mime::HTML) => {
-                        // like Signal-Android, only parse the beginning of large pages
                         let mut html = Vec::new();
                         while let Some(chunk) = response.chunk().await? {
-                            html.extend_from_slice(&chunk);
-                            if html.len() >= MAX_HTML_SIZE {
-                                html.truncate(MAX_HTML_SIZE);
-                                break;
+                            if html.len() + chunk.len() > MAX_HTML_SIZE {
+                                return Err(Error::HtmlTooLargeError);
                             }
+                            html.extend_from_slice(&chunk);
                         }
                         let html = String::from_utf8_lossy(&html);
-                        generate_preview_from_html(&html, &url, client).await
+                        fetch_preview_from_html(&html, &url, client).await
                     }
                     (mime::IMAGE, _) => {
                         // like Signal-Android, use the file name as title
@@ -138,7 +138,11 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
                             .path_segments()
                             .and_then(|mut segments| segments.next_back())
                             .filter(|name| !name.is_empty())
-                            .map(str::to_owned);
+                            .map(|name| {
+                                percent_encoding::percent_decode_str(name)
+                                    .decode_utf8_lossy()
+                                    .into_owned()
+                            });
                         let (image, image_content_type) =
                             match fetch_image_from_response(response).await {
                                 Ok((bytes, content_type)) => (Some(bytes), Some(content_type)),
@@ -170,7 +174,7 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
 /// If some of these are unavailable, it resorts to other tags to fill the preview's fields.
 /// The title is taken from the <title> tag (if available).
 /// The description is taken from the  <meta name="description"> tag (if available).
-pub async fn generate_preview_from_html(
+pub async fn fetch_preview_from_html(
     html_doc: &str,
     url: &Url,
     client: &reqwest::Client,
@@ -185,6 +189,15 @@ pub async fn generate_preview_from_html(
         description: None,
         date: None,
     };
+
+    // like Signal-Android, the first date found in this order
+    let date_properties = [
+        "og:published_time",
+        "article:published_time",
+        "og:modified_time",
+        "article:modified_time",
+    ];
+    let mut dates = [None; 4];
 
     for element in document.select(&selector) {
         // get description from <meta name="description">
@@ -202,10 +215,13 @@ pub async fn generate_preview_from_html(
         }
 
         // get fields from <meta property="og:"
-        let property = element.value().attr("property").unwrap_or("").to_string();
-        if let "article:published_time" | "article:modified_time" = property.as_str() {
-            let content = element.value().attr("content").unwrap_or("");
-            preview.date = std::cmp::max(preview.date, timestamp_from_iso(content))
+        let property = element
+            .value()
+            .attr("property")
+            .unwrap_or("")
+            .to_ascii_lowercase();
+        if let Some(i) = date_properties.iter().position(|p| *p == property) {
+            dates[i] = timestamp_from_iso(element.value().attr("content").unwrap_or(""));
         }
         if let Some(capture) = property.strip_prefix("og:") {
             let field = capture.trim();
@@ -225,26 +241,11 @@ pub async fn generate_preview_from_html(
                     }
                 }
                 "description" => preview.description = Some(content),
-                "date" => preview.date = std::cmp::max(preview.date, timestamp_from_iso(&content)),
                 _ => (),
             }
         }
-
-        // Check whether the preview is still missing any fields; if not, break.
-        // in practice, since date is essentially never set on real pages, this rarely breaks
-        // early and we scan the whole `<head>`.
-        if [
-            preview.title.is_none(),
-            preview.image.is_none(),
-            preview.description.is_none(),
-            preview.date.is_none(),
-        ]
-        .iter()
-        .all(|&is_missing| !is_missing)
-        {
-            break;
-        }
     }
+    preview.date = dates.into_iter().flatten().next();
 
     // in case no og:title was found, get the value from <title>
     if preview.title.is_none() | (preview.title == Some("".to_string())) {
@@ -258,75 +259,88 @@ pub async fn generate_preview_from_html(
     preview
 }
 
-/// The task of extracting urls from a text message is not trivial, since
-/// they might be enclosed within parentheses or be immediately followed
-/// by punctuation. This here function tries to strike a balance, taking
-/// into account that punctuations as well as parentheses might
-/// appear within valid urls.
+// Characters that end a link, as in Signal-Android's `Linkifier`
+const LINK_END: &str = r#"\s\x{85}\x{A0}\x{1680}\x{2000}-\x{200D}\x{2028}\x{2029}\x{202A}-\x{202F}\x{205F}\x{2066}-\x{2069}\x{3000}\x{FEFF}<>"`|\\"#;
+
+/// Bidi controls and zero-width characters, used to spoof links.
+fn is_format_char(c: char) -> bool {
+    matches!(c, '\u{200B}'..='\u{200D}' | '\u{FEFF}' | '\u{202A}'..='\u{202E}' | '\u{2066}'..='\u{2069}')
+}
+
+/// Finds links the way Signal-Android's `Linkifier` does: receivers drop a preview whose url
+/// isn't exactly one of the links they find in the message body.
 pub fn extract_urls_from_text_block(message: &str) -> Vec<String> {
     static RE: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(
-            r#"(?xi)
-        \b
-        (
-            https://                    # Signal clients only preview https links
-            (?:www\.)?
-            [a-z0-9.-]+\.[a-z]{2,}
-            [^\s]*                      # Capture everything until whitespace
-        )
-        "#,
-        )
+        // scheme, host (which can't contain an apostrophe), then path, query or fragment
+        Regex::new(&format!(
+            r"(?i)https?://[^{LINK_END}'/?#]+(?:[/?#][^{LINK_END}]*)?"
+        ))
         .unwrap()
     });
 
     let mut urls = Vec::new();
 
-    for cap in RE.captures_iter(message) {
-        let mut candidate = cap[1].to_string();
+    for m in RE.find_iter(message) {
+        let before = message[..m.start()].chars().next_back();
+        if before.is_some_and(|c| c.is_alphanumeric() || c == '_' || c == '@' || is_format_char(c))
+        {
+            continue;
+        }
 
-        // Trim wrapping punctuation
-        candidate = candidate
-            .trim_matches(|c: char| {
-                matches!(
-                    c,
-                    '[' | ']' | '{' | '}' | '<' | '>' | '"' | '\'' | ',' | '.' | '!' | '?' | ':'
-                )
-            })
-            .to_string();
+        // a comma or semicolon right before another link ends this one
+        let mut candidate = m.as_str();
+        if let Some((i, _)) = candidate.match_indices([',', ';']).find(|(i, _)| {
+            let next = candidate[i + 1..].to_ascii_lowercase();
+            ["http://", "https://", "www."]
+                .iter()
+                .any(|p| next.starts_with(p))
+        }) {
+            candidate = &candidate[..i];
+        }
 
-        // Balance parentheses
-        loop {
-            let opens = candidate.matches('(').count();
-            let closes = candidate.matches(')').count();
-
-            if closes > opens && candidate.ends_with(')') {
-                // remove closing parenthesis
-                candidate.pop();
+        // trim punctuation, and closing brackets without an opening one
+        while let Some(last) = candidate.chars().next_back() {
+            let rest = &candidate[..candidate.len() - last.len_utf8()];
+            let opener = match last {
+                '.' | ',' | '!' | '?' | ';' | ':' | '\'' | '"' | '`' | '|' | '<' | '>' => {
+                    candidate = rest;
+                    continue;
+                }
+                ')' => '(',
+                ']' => '[',
+                '}' => '{',
+                _ => break,
+            };
+            if rest.matches(last).count() >= rest.matches(opener).count() {
+                candidate = rest;
             } else {
                 break;
             }
         }
 
-        if Url::parse(&candidate).is_ok_and(|url| is_previewable(&url)) {
-            urls.push(candidate);
+        let after = message[m.start() + candidate.len()..].chars().next();
+        if after.is_some_and(is_format_char) {
+            continue;
+        }
+
+        if Url::parse(candidate).is_ok_and(|url| is_previewable(&url)) {
+            urls.push(candidate.to_owned());
         }
     }
     urls
 }
 
-pub async fn generate_previews_from_message(
+/// Returns `None` if `message` has no link to preview.
+pub async fn generate_preview_from_message(
     message: &str,
     client: &reqwest::Client,
-) -> Vec<PreviewContent> {
+) -> Result<Option<PreviewContent>, Error> {
     // like Signal clients, only preview the first link
     let Some(url) = extract_urls_from_text_block(message).into_iter().next() else {
-        return Vec::new();
+        return Ok(None);
     };
 
-    generate_preview_from_url(url, client)
-        .await
-        .into_iter()
-        .collect()
+    generate_preview_from_url(url, client).await.map(Some)
 }
 
 /// Builds the `AttachmentSpec` and raw bytes needed to upload `content`'s image as an
@@ -395,7 +409,9 @@ async fn fetch_image_from_response(
 fn timestamp_from_iso(datetime_str: &str) -> Option<u64> {
     let datetime = chrono::DateTime::parse_from_rfc3339(datetime_str).ok()?;
     let timestamp = chrono::DateTime::timestamp_millis(&datetime);
-    u64::try_from(timestamp).ok()
+    u64::try_from(timestamp)
+        .ok()
+        .filter(|&timestamp| timestamp > 0)
 }
 
 /// Detects the image MIME essence (e.g. `image/jpeg`) from a file's magic bytes.
@@ -464,7 +480,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_preview_from_html_uses_og_tags() {
+    async fn test_fetch_preview_from_html_uses_og_tags() {
         let html = r#"
             <html><head>
                 <meta property="og:title" content="Example title">
@@ -474,7 +490,7 @@ mod tests {
         "#;
         let client = reqwest::Client::new();
         let url = Url::parse("https://signal.org").unwrap();
-        let preview = generate_preview_from_html(html, &url, &client).await;
+        let preview = fetch_preview_from_html(html, &url, &client).await;
 
         assert_eq!(preview.title.as_deref(), Some("Example title"));
         assert_eq!(preview.description.as_deref(), Some("Example description"));
@@ -482,7 +498,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_preview_from_html_falls_back_to_title_tag() {
+    async fn test_fetch_preview_from_html_falls_back_to_title_tag() {
         let html = r#"
             <html><head>
                 <meta name="description" content="Meta description">
@@ -491,7 +507,7 @@ mod tests {
         "#;
         let client = reqwest::Client::new();
         let url = Url::parse("https://signal.org").unwrap();
-        let preview = generate_preview_from_html(html, &url, &client).await;
+        let preview = fetch_preview_from_html(html, &url, &client).await;
 
         assert_eq!(preview.title.as_deref(), Some("Fallback title"));
         assert_eq!(preview.description.as_deref(), Some("Meta description"));
@@ -692,6 +708,41 @@ mod signal_compat {
     }
 
     #[test]
+    fn links_match_signal_android_linkifier() {
+        for (body, link) in [
+            ("see https://signal.org;", "https://signal.org"),
+            ("see https://signal.org|", "https://signal.org"),
+            ("https://signal.org/x[1]", "https://signal.org/x[1]"),
+            ("[https://signal.org/x]", "https://signal.org/x"),
+            ("https://signal.org's blog", "https://signal.org"),
+            ("<https://signal.org/x>", "https://signal.org/x"),
+            ("\"https://signal.org/x\"", "https://signal.org/x"),
+            ("https://signal.org/a,https://b.org", "https://signal.org/a"),
+            ("https://signal.org/a,b", "https://signal.org/a,b"),
+            ("HTTPS://signal.org", "HTTPS://signal.org"),
+        ] {
+            assert_eq!(
+                extracted(body).first().map(String::as_str),
+                Some(link),
+                "{body}"
+            );
+        }
+    }
+
+    #[test]
+    fn links_glued_to_other_text_are_ignored() {
+        for body in [
+            "xhttps://signal.org",
+            "@https://signal.org",
+            "\u{202E}https://signal.org",
+            "https://signal.org\u{200B}",
+            "http://a.org/https://signal.org",
+        ] {
+            assert!(extracted(body).is_empty(), "{body:?}");
+        }
+    }
+
+    #[test]
     fn link_is_kept_as_written_in_the_body() {
         // receivers drop the preview if its url is not in the message body
         assert_eq!(
@@ -706,7 +757,7 @@ mod signal_compat {
     async fn title_entities_are_decoded() {
         let html = "<html><head><title>Signal &amp; you</title></head></html>";
         let url = Url::parse("https://signal.org").unwrap();
-        let preview = generate_preview_from_html(html, &url, &client()).await;
+        let preview = fetch_preview_from_html(html, &url, &client()).await;
         assert_eq!(preview.title.as_deref(), Some("Signal & you"));
     }
 
@@ -717,7 +768,18 @@ mod signal_compat {
             <meta property="article:published_time" content="2024-01-01T00:00:00Z">
         </head></html>"#;
         let url = Url::parse("https://signal.org").unwrap();
-        let preview = generate_preview_from_html(html, &url, &client()).await;
+        let preview = fetch_preview_from_html(html, &url, &client()).await;
+        assert_eq!(preview.date, Some(1_704_067_200_000));
+    }
+
+    #[tokio::test]
+    async fn date_prefers_published_over_modified() {
+        let html = r#"<html><head>
+            <meta property="article:modified_time" content="2024-02-01T00:00:00Z">
+            <meta property="og:published_time" content="2024-01-01T00:00:00Z">
+        </head></html>"#;
+        let url = Url::parse("https://signal.org").unwrap();
+        let preview = fetch_preview_from_html(html, &url, &client()).await;
         assert_eq!(preview.date, Some(1_704_067_200_000));
     }
 
@@ -770,6 +832,20 @@ mod signal_compat {
     }
 
     #[tokio::test]
+    async fn image_file_name_is_decoded() {
+        let (base, _) = serve(vec![Route::new(
+            "/my%20logo.png",
+            "image/png",
+            b"\x89PNG\r\n\x1a\n".to_vec(),
+        )]);
+        let preview = generate_preview_from_url(format!("{base}/my%20logo.png"), &client())
+            .await
+            .unwrap();
+        assert_eq!(preview.title.as_deref(), Some("my logo.png"));
+        assert!(preview.image.is_some());
+    }
+
+    #[tokio::test]
     async fn relative_og_image_is_fetched() {
         let (base, _) = serve(vec![
             Route::new(
@@ -803,13 +879,13 @@ mod signal_compat {
     }
 
     #[tokio::test]
-    async fn large_page_is_truncated() {
-        // Signal-Android only reads the first 2 MB of a page
-        let mut html = vec![b' '; 3 * 1024 * 1024];
-        html.extend_from_slice(b"<title>t</title>");
+    async fn large_page_is_rejected() {
+        // Signal-Android gives up on pages over 2 MB
+        let mut html = b"<title>t</title>".to_vec();
+        html.resize(3 * 1024 * 1024, b' ');
         let (base, _) = serve(vec![Route::new("/page", "text/html", html)]);
         let result = generate_preview_from_url(format!("{base}/page"), &client()).await;
-        assert!(matches!(result, Err(Error::MissingTitleError)));
+        assert!(matches!(result, Err(Error::HtmlTooLargeError)));
     }
 
     #[tokio::test]
@@ -892,7 +968,7 @@ mod signal_compat {
     async fn dates_before_1970_are_ignored() {
         let html = r#"<meta property="article:published_time" content="1969-01-01T00:00:00Z">"#;
         let url = Url::parse("https://signal.org").unwrap();
-        let preview = generate_preview_from_html(html, &url, &client()).await;
+        let preview = fetch_preview_from_html(html, &url, &client()).await;
         assert_eq!(preview.date, None);
     }
 
