@@ -1135,10 +1135,7 @@ impl<S: Store> Manager<S, Registered> {
             });
 
         // we need to put our profile key in DataMessage
-
         if let ContentBody::DataMessage(message) = &mut content_body {
-            let body = message.body.clone().unwrap_or_default();
-            message.preview = self.build_protobuf_preview(&body).await;
             message
                 .profile_key
                 .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
@@ -1187,19 +1184,30 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
-    /// Extracts URLs from `body`, fetches a preview (title, description, image) for each, and
-    /// uploads any preview image as an attachment, ready to be attached to a `DataMessage` as
-    /// its `preview` field. Used by both `send_message` and `send_message_to_group`.
-    async fn build_protobuf_preview(&self, body: &str) -> Vec<libsignal_service::proto::Preview> {
+    /// Fetches a preview (title, description, image) for the first link in `body`, and
+    /// uploads its image as an attachment, ready to be set as the `preview` of the
+    /// `DataMessage` sending `body`.
+    ///
+    /// This fetches the linked page, which reveals the user's IP address to its server.
+    pub async fn build_protobuf_preview(
+        &self,
+        body: &str,
+    ) -> Vec<libsignal_service::proto::Preview> {
         let preview_contents = previews::generate_previews_from_message(body).await;
 
         future::join_all(preview_contents.iter().map(|content| async {
             let image = match previews::build_preview_image(content) {
-                Some((spec, bytes)) => self
-                    .upload_attachment(spec, bytes)
-                    .await
-                    .ok()
-                    .and_then(Result::ok),
+                Some((spec, bytes)) => match self.upload_attachment(spec, bytes).await {
+                    Ok(Ok(pointer)) => Some(pointer),
+                    Ok(Err(error)) => {
+                        warn!(%error, "failed to upload link preview image");
+                        None
+                    }
+                    Err(error) => {
+                        warn!(%error, "failed to upload link preview image");
+                        None
+                    }
+                },
                 None => None,
             };
 
@@ -1260,10 +1268,6 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Group(master_key_bytes);
 
         self.restore_thread_timer(&thread, &mut content_body).await;
-        if let ContentBody::DataMessage(message) = &mut content_body {
-            let body = message.body.clone().unwrap_or_default();
-            message.preview = self.build_protobuf_preview(&body).await;
-        }
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
