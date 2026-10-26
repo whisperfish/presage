@@ -59,6 +59,7 @@ use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::model::contacts::Contact;
+use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -82,6 +83,7 @@ pub struct Registered {
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Identified>>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
+    pub(crate) link_preview_client: OnceLock<reqwest::Client>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -100,6 +102,7 @@ impl Registered {
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
+            link_preview_client: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -1096,6 +1099,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut content_body: ContentBody = message.into();
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        self.fetch_link_previews(&mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
@@ -1158,6 +1162,72 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Fetches a preview (title, description, image) for the first link in `body`, and
+    /// uploads its image as an attachment, ready to be set as the `preview` of the
+    /// `DataMessage` sending `body`.
+    ///
+    /// Returns `None` if `body` has no link to preview.
+    ///
+    /// This fetches the linked page, which reveals the user's IP address to its server.
+    pub async fn link_preview(
+        &self,
+        body: &str,
+    ) -> Result<Option<libsignal_service::proto::Preview>, Error<S::Error>> {
+        let client = match self.state.link_preview_client.get() {
+            Some(client) => client,
+            None => {
+                let client = previews::client_builder()
+                    .build()
+                    .map_err(previews::Error::from)?;
+                self.state.link_preview_client.get_or_init(|| client)
+            }
+        };
+        let Some(content) = previews::generate_preview_from_message(body, client).await? else {
+            return Ok(None);
+        };
+
+        // the preview is still useful without its image
+        let image = match previews::build_preview_image(&content) {
+            Some((spec, bytes)) => match self.upload_attachment(spec, bytes).await {
+                Ok(Ok(pointer)) => Some(pointer),
+                Ok(Err(error)) => {
+                    warn!(%error, "failed to upload link preview image");
+                    None
+                }
+                Err(error) => {
+                    warn!(%error, "failed to upload link preview image");
+                    None
+                }
+            },
+            None => None,
+        };
+
+        Ok(Some(libsignal_service::proto::Preview {
+            url: content.url,
+            title: content.title,
+            image,
+            description: content.description,
+            date: content.date,
+        }))
+    }
+
+    /// Sets a preview of the first link of a data message that has no preview yet.
+    async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
+        let ContentBody::DataMessage(message) = content_body else {
+            return;
+        };
+        if !message.preview.is_empty() {
+            return;
+        }
+        let Some(body) = message.body.as_deref() else {
+            return;
+        };
+        match self.link_preview(body).await {
+            Ok(preview) => message.preview.extend(preview),
+            Err(error) => warn!(%error, "failed to build link preview, sending without"),
+        }
+    }
+
     /// Uploads one attachment prior to linking them in a message.
     pub async fn upload_attachment(
         &self,
@@ -1204,6 +1274,7 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Group(master_key_bytes);
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        self.fetch_link_previews(&mut content_body).await;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
