@@ -12,7 +12,7 @@ use rand::{
     distr::{Alphanumeric, SampleString},
     rng, RngCore,
 };
-use tracing::info;
+use tracing::{debug, info};
 use url::Url;
 
 use crate::manager::registered::RegistrationData;
@@ -93,7 +93,7 @@ impl<S: Store> Manager<S, Linking> {
             ),
             async move {
                 if let Some(SecondaryDeviceProvisioning::Url(url)) = rx.next().await {
-                    info!("generating qrcode from provisioning link: {}", &url);
+                    debug!("generating qrcode from provisioning link: {}", &url);
                     if provisioning_link_channel.send(url).is_err() {
                         return Err(Error::LinkingError);
                     }
@@ -125,8 +125,8 @@ impl<S: Store> Manager<S, Linking> {
                 pni_private_key,
                 pni_public_key,
                 profile_key,
-                master_key,
                 account_entropy_pool,
+                ephemeral_backup_key,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -138,6 +138,7 @@ impl<S: Store> Manager<S, Linking> {
                     registration_id,
                     pni_registration_id: Some(pni_registration_id),
                     profile_key,
+                    ephemeral_backup_key,
                 };
 
                 store
@@ -154,9 +155,11 @@ impl<S: Store> Manager<S, Linking> {
                     .await?;
                 store
                     .store_master_key(
-                        master_key
-                            .map(|v| MasterKey::from_slice(&v))
-                            .transpose()?
+                        account_entropy_pool
+                            .as_ref()
+                            .and_then(|aep| {
+                                MasterKey::from_slice(aep.derive_svr_key().as_slice()).ok()
+                            })
                             .as_ref(),
                     )
                     .await?;

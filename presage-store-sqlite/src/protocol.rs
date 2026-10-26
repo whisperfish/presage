@@ -123,7 +123,7 @@ impl SessionStoreExt for SqliteProtocolStore {
         &self,
         name: &ServiceId,
     ) -> Result<Vec<DeviceId>, SignalProtocolError> {
-        let address: String = name.raw_uuid().to_string();
+        let address = name.service_id_string();
         let device_id: u8 = (*DEFAULT_DEVICE_ID).into();
         query_scalar!(
             "SELECT device_id AS 'id: u32' FROM sessions
@@ -164,7 +164,7 @@ impl SessionStoreExt for SqliteProtocolStore {
     ///
     /// Returns the number of deleted sessions.
     async fn delete_all_sessions(&self, name: &ServiceId) -> Result<usize, SignalProtocolError> {
-        let address = name.raw_uuid();
+        let address = name.service_id_string();
         let res = query!(
             "DELETE FROM sessions WHERE address = ? AND identity = ?",
             address,
@@ -447,7 +447,7 @@ impl KyberPreKeyStore for SqliteProtocolStore {
             {
                 return Err(SignalProtocolError::InvalidMessage(
                     CiphertextMessageType::PreKey,
-                    "reused base key",
+                    "reused base key".to_owned(),
                 ));
             }
 
@@ -805,6 +805,46 @@ mod test {
                 .await
                 .is_err()
         );
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn sessions_by_service_id() -> Result<(), Box<dyn std::error::Error>> {
+        let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let mut protocol_store = SqliteProtocolStore {
+            store: sqlite_store,
+            identity: IdentityType::Aci,
+        };
+
+        let uuid = Uuid::from_u128(1);
+        let aci: ServiceId = presage::libsignal_service::protocol::Aci::from(uuid).into();
+        let pni: ServiceId = presage::libsignal_service::protocol::Pni::from(uuid).into();
+        let record = SessionRecord::new_fresh();
+
+        for (service_id, device_id) in [(aci, 1), (aci, 2), (pni, 1), (pni, 3)] {
+            let address =
+                ProtocolAddress::new(service_id.service_id_string(), device_id.try_into()?);
+            protocol_store.store_session(&address, &record).await?;
+        }
+
+        assert_eq!(
+            protocol_store.get_sub_device_sessions(&aci).await?,
+            vec![2.try_into()?]
+        );
+        assert_eq!(
+            protocol_store.get_sub_device_sessions(&pni).await?,
+            vec![3.try_into()?]
+        );
+
+        assert_eq!(protocol_store.delete_all_sessions(&aci).await?, 2);
+        assert!(
+            protocol_store
+                .get_sub_device_sessions(&aci)
+                .await?
+                .is_empty()
+        );
+        assert_eq!(protocol_store.delete_all_sessions(&pni).await?, 2);
 
         Ok(())
     }

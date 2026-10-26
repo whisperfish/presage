@@ -19,7 +19,7 @@ use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
-use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
 use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
@@ -112,10 +112,10 @@ enum Cmd {
         )]
         url: Url,
     },
-    #[clap(about = "Unlink device by device id")]
+    #[clap(about = "Unlink device by device id, or this (secondary) device if omitted")]
     UnlinkDevice {
         #[clap(long, short = 'd', help = "Device id")]
-        device_id: u32,
+        device_id: Option<u32>,
     },
     #[clap(about = "List all linked devices")]
     ListDevices,
@@ -515,25 +515,25 @@ async fn print_message<S: Store>(
             .map(|body| Msg::Received(&thread, body)),
         ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     message: Some(data_message),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
             .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     edit_message:
                         Some(EditMessage {
                             data_message: Some(data_message),
                             ..
                         }),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
@@ -553,9 +553,6 @@ async fn print_message<S: Store>(
         )),
         ContentBody::StoryMessage(story) => {
             Some(Msg::Received(&thread, format!("new story: {story:?}")))
-        }
-        ContentBody::PniSignatureMessage(_) => {
-            Some(Msg::Received(&thread, "got PNI signature message".into()))
         }
         ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
             &thread,
@@ -627,6 +624,9 @@ async fn receive<S: Store>(
                     &content,
                 )
                 .await
+            }
+            Received::DecryptionError(c) => {
+                println!("failed to receive a message from a contact: {c:?}")
             }
         }
     }
@@ -715,10 +715,18 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             manager.link_secondary(url).await?;
             println!("Added new secondary device");
         }
-        Cmd::UnlinkDevice { device_id } => {
+        Cmd::UnlinkDevice {
+            device_id: Some(device_id),
+        } => {
             let manager = load_registered_and_receive(store).await?;
             manager.unlink_secondary(device_id).await?;
             println!("Unlinked device with id: {}", device_id);
+        }
+        Cmd::UnlinkDevice { device_id: None } => {
+            let manager = Manager::load_registered(store).await?;
+            let device_id = manager.device_id();
+            manager.unlink_self().await?;
+            println!("Unlinked this device (id: {})", device_id);
         }
         Cmd::ListDevices => {
             let manager = load_registered_and_receive(store).await?;
@@ -929,7 +937,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
         }
         Cmd::Whoami => {
             let manager = load_registered_and_receive(store).await?;
-            println!("{:?}", &manager.whoami().await?);
+            println!("{:?}", manager.whoami().await?);
         }
         Cmd::GetContact { ref id } => {
             let manager = load_registered_and_receive(store).await?;
@@ -973,6 +981,9 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     Received::QueueEmpty => break,
                     Received::Contacts => println!("got contacts! thank you, come again."),
                     Received::Content(_) => print!("."),
+                    Received::DecryptionError(_) => {
+                        println!("failed to receive a message from a contact")
+                    }
                 }
             }
         }

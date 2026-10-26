@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT\n                ts AS \"ts: _\",\n                server_ts AS \"server_ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext\n            FROM thread_messages\n            WHERE thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)\n                AND coalesce(ts > ?, ts >= ?, true)\n                AND coalesce(ts < ?, ts <= ?, true)\n            ORDER BY ts DESC",
+  "query": "SELECT\n                ts AS \"ts: _\",\n                server_ts AS \"server_ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext,\n                pni_verified\n            FROM thread_messages\n            WHERE thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)\n                AND coalesce(ts > ?, ts >= ?, true)\n                AND coalesce(ts < ?, ts <= ?, true)\n            ORDER BY ts DESC",
   "describe": {
     "columns": [
       {
@@ -101,6 +101,17 @@
             "name": "was_plaintext"
           }
         }
+      },
+      {
+        "name": "pni_verified",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "pni_verified"
+          }
+        }
       }
     ],
     "parameters": {
@@ -115,8 +126,9 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
-  "hash": "f345720a14ff0183e0edad4d364455bd17c6a75593d7a7facfed7ef07c7f611c"
+  "hash": "dc394b6d7920e42ed0d71b26cc3a99d11dd032c88bf11c98406544a246fed223"
 }

@@ -5,9 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::libsignal_account_keys::AccountEntropyPool;
 use libsignal_service::prelude::SessionStoreExt;
-use libsignal_service::proto::addressable_message::Author;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
 use libsignal_service::provisioning::ProvisioningSecrets;
 use libsignal_service::{
@@ -18,11 +16,13 @@ use libsignal_service::{
     encrypt_device_name,
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
-    prelude::{phonenumber::PhoneNumber, MasterKey, MessageSenderError, ProtobufMessage, Uuid},
+    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
-        sync_message::{self, sticker_pack_operation, StickerPackOperation},
+        sync_message::{
+            self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
+        },
         AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
         Verified,
     },
@@ -39,6 +39,7 @@ use libsignal_service::{
     websocket::{
         self,
         account::{AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse},
+        calling::TurnServer,
         SignalWebSocket,
     },
     zkgroup::{
@@ -46,6 +47,9 @@ use libsignal_service::{
         profiles::ProfileKey,
     },
     AccountManager, Profile, ServiceIdExt,
+};
+use libsignal_service::{
+    libsignal_account_keys::AccountEntropyPool, proto::addressable_message::Author,
 };
 use rand::rng;
 use serde::{Deserialize, Serialize};
@@ -154,6 +158,9 @@ pub struct RegistrationData {
     pub pni_registration_id: Option<u32>,
     #[serde(with = "serde_profile_key")]
     pub(crate) profile_key: ProfileKey,
+    /// Decrypts the link-time message history archive. Single-use, so not persisted.
+    #[serde(skip)]
+    pub(crate) ephemeral_backup_key: Option<[u8; 32]>,
 }
 
 impl RegistrationData {
@@ -165,6 +172,12 @@ impl RegistrationData {
     /// The name of the device (if linked as secondary)
     pub fn device_name(&self) -> Option<&str> {
         self.device_name.as_deref()
+    }
+
+    /// Set right after [`Manager::link_secondary_device`][crate::Manager::link_secondary_device]
+    /// if the primary device offered to transfer message history.
+    pub fn ephemeral_backup_key(&self) -> Option<[u8; 32]> {
+        self.ephemeral_backup_key
     }
 }
 
@@ -283,9 +296,9 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn request_contacts(&mut self) -> Result<(), Error<S::Error>> {
         trace!("requesting contacts sync");
         let sync_message = SyncMessage {
-            request: Some(sync_message::Request {
+            content: Some(SyncContent::Request(sync_message::Request {
                 r#type: Some(sync_message::request::Type::Contacts.into()),
-            }),
+            })),
             ..SyncMessage::with_padding(&mut rand::rng())
         };
 
@@ -335,20 +348,6 @@ impl<S: Store> Manager<S, Registered> {
         Ok(unidentified_sender_certificate
             .clone()
             .expect("logic error"))
-    }
-
-    async fn master_key(&self) -> Result<Option<MasterKey>, Error<S::Error>> {
-        let from_store = self.store().fetch_master_key().await?;
-
-        if let Some(key) = from_store {
-            Ok(Some(key))
-        } else {
-            let aep = self.account_entropy_pool().await?;
-            Ok(aep.map(|aep| {
-                MasterKey::from_slice(aep.derive_svr_key().as_slice())
-                    .expect("Derived SVR key from account entropy pool to be a valid master key")
-            }))
-        }
     }
 
     async fn account_entropy_pool(&self) -> Result<Option<AccountEntropyPool>, Error<S::Error>> {
@@ -602,7 +601,6 @@ impl<S: Store> Manager<S, Registered> {
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
             service_ids: ServiceIds,
             message_sender: MessageSender<AciStore>,
-            master_key: Option<MasterKey>,
             account_entropy_pool: Option<AccountEntropyPool>,
             registration_type: RegistrationType,
         }
@@ -654,7 +652,6 @@ impl<S: Store> Manager<S, Registered> {
             groups_manager: Box::pin(self.groups_manager()).await?,
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
-            master_key: self.master_key().await?,
             account_entropy_pool: self.account_entropy_pool().await?,
             registration_type: self.registration_type(),
         };
@@ -669,15 +666,19 @@ impl<S: Store> Manager<S, Registered> {
                             let envelope = {
                                 // the permit is released at the end of the block (impl Drop)
                                 match envelope.parse_destination_service_id() {
-                                    None | Some(ServiceId::Aci(_)) => {
+                                    None => {
+                                        warn!("Message has no destination service ID, dropping.");
+                                        continue;
+                                    }
+                                    Some(ServiceId::Aci(_)) => {
                                         state
                                             .service_cipher_aci
-                                            .open_envelope(envelope, &mut rng())
+                                            .open_envelope(envelope, &mut rand::rng())
                                             .await
                                     }
                                     Some(ServiceId::Pni(pni)) => {
                                         if pni == state.service_ids.pni()
-                                            && envelope.source_service_id.is_none()
+                                            && envelope.parse_source_service_id().is_none()
                                         {
                                             warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
                                             continue;
@@ -696,11 +697,14 @@ impl<S: Store> Manager<S, Registered> {
                                             error = ?e,
                                             "got error decrypting a message"
                                         );
-                                        continue;
+                                        return Some((
+                                            Received::DecryptionError(content.metadata.sender),
+                                            state,
+                                        ));
                                     }
 
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        request: Some(request),
+                                        content: Some(SyncContent::Request(request)),
                                         ..
                                     }) = &content.body
                                     {
@@ -756,17 +760,12 @@ impl<S: Store> Manager<S, Registered> {
                                                     .account_entropy_pool
                                                     .as_ref()
                                                     .map(|aep| aep.to_string());
-                                                let master = state
-                                                    .master_key
-                                                    .as_ref()
-                                                    .map(|m| m.inner.to_vec());
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender.send_sync_message(SyncMessage {
-                                                        keys: Some(libsignal_service::content::sync_message::Keys {
-                                                            master,
+                                                        content: Some(SyncContent::Keys(libsignal_service::content::sync_message::Keys {
                                                             account_entropy_pool,
                                                             media_root_backup_key: None,
-                                                        }),
+                                                        })),
                                                         ..SyncMessage::with_padding(&mut rand::rng())
                                                     }).await;
 
@@ -781,12 +780,12 @@ impl<S: Store> Manager<S, Registered> {
                                                     state.message_sender.clone();
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender.send_sync_message(SyncMessage {
-                                                    blocked: Some(libsignal_service::content::sync_message::Blocked {
+                                                    content: Some(SyncContent::Blocked(libsignal_service::content::sync_message::Blocked {
                                                         numbers: vec![],
                                                         acis: vec![],
                                                         acis_binary: vec![],
                                                         group_ids: vec![],
-                                                    }),
+                                                    })),
                                                     ..SyncMessage::with_padding(&mut rand::rng())
                                                 }).await;
 
@@ -803,7 +802,7 @@ impl<S: Store> Manager<S, Registered> {
 
                                     // contacts synchronization sent from the primary device (happens after linking, or on demand)
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        contacts: Some(contacts),
+                                        content: Some(SyncContent::Contacts(contacts)),
                                         ..
                                     }) = &content.body
                                     {
@@ -891,7 +890,7 @@ impl<S: Store> Manager<S, Registered> {
 
                                     // key synchronization sent from the primary device
                                     if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        keys: Some(keys),
+                                        content: Some(SyncContent::Keys(keys)),
                                         ..
                                     }) = &content.body
                                     {
@@ -919,38 +918,6 @@ impl<S: Store> Manager<S, Registered> {
                                                 }
                                                 None => {}
                                             }
-                                            match keys
-                                                .master
-                                                .as_ref()
-                                                .map(|m| MasterKey::from_slice(m.as_slice()))
-                                            {
-                                                Some(Ok(master)) => {
-                                                    if let Err(error) = state
-                                                        .store
-                                                        .store_master_key(Some(&master))
-                                                        .await
-                                                    {
-                                                        error!(%error, "failed to store master key");
-                                                    }
-                                                    state.master_key = Some(master);
-                                                }
-                                                Some(Err(error)) => {
-                                                    warn!(%error, "cannot convert master key from bytes; trying to populate from account entropy pool");
-                                                    if let Some(aep) =
-                                                        state.account_entropy_pool.as_ref()
-                                                    {
-                                                        state.master_key = Some(MasterKey::from_slice(aep.derive_svr_key().as_slice()).expect("svr key derived from account entropy pool to be a master key"));
-                                                    }
-                                                }
-                                                None => {
-                                                    trace!("master key not given in the sync message; trying to populate from account entropy pool");
-                                                    if let Some(aep) =
-                                                        state.account_entropy_pool.as_ref()
-                                                    {
-                                                        state.master_key = Some(MasterKey::from_slice(aep.derive_svr_key().as_slice()).expect("svr key derived from account entropy pool to be a master key"));
-                                                    }
-                                                }
-                                            }
                                         }
                                     }
 
@@ -965,8 +932,8 @@ impl<S: Store> Manager<S, Registered> {
                                         ..
                                     })
                                     | ContentBody::SynchronizeMessage(SyncMessage {
-                                        sent:
-                                            Some(sync_message::Sent {
+                                        content:
+                                            Some(SyncContent::Sent(sync_message::Sent {
                                                 message:
                                                     Some(DataMessage {
                                                         group_v2:
@@ -978,7 +945,7 @@ impl<S: Store> Manager<S, Registered> {
                                                         ..
                                                     }),
                                                 ..
-                                            }),
+                                            })),
                                         ..
                                     }) = &content.body
                                     {
@@ -1015,6 +982,11 @@ impl<S: Store> Manager<S, Registered> {
                                 }
                                 Err(error) => {
                                     error!(%error, "error opening envelope, message will be skipped!");
+                                    if let libsignal_service::prelude::ServiceError::SealedSenderDecryptionError(libsignal_service::cipher::SealedSenderDecryptionError { sender: Some(sender), .. }) = &error {
+                                        if let Some(sender) = ServiceId::parse_from_service_id_string(sender.name()) {
+                                            return Some((Received::DecryptionError(sender), state));
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1027,11 +999,13 @@ impl<S: Store> Manager<S, Registered> {
                                 tokio::task::spawn_local(async move {
                                     let result = message_sender
                                         .send_sync_message(SyncMessage {
-                                            request: Some(sync_message::Request {
-                                                r#type: Some(
-                                                    sync_message::request::Type::Keys.into(),
-                                                ),
-                                            }),
+                                            content: Some(SyncContent::Request(
+                                                sync_message::Request {
+                                                    r#type: Some(
+                                                        sync_message::request::Type::Keys.into(),
+                                                    ),
+                                                },
+                                            )),
                                             ..SyncMessage::with_padding(&mut rand::rng())
                                         })
                                         .await;
@@ -1149,7 +1123,7 @@ impl<S: Store> Manager<S, Registered> {
         sender
             .send_message(
                 &recipient,
-                unidentified_access,
+                unidentified_access.as_ref(),
                 content_body.clone(),
                 timestamp,
                 include_pni_signature,
@@ -1164,12 +1138,13 @@ impl<S: Store> Manager<S, Registered> {
                 sender_device: self.state.device_id(),
                 destination: recipient,
                 server_guid: None,
-                timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
+                client_timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
                 // Note: Currently no way to get the timestamp the server received the message; just use our timestamp as a fallback.
                 server_timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
                 needs_receipt: false,
                 unidentified_sender: false,
                 was_plaintext: false,
+                pni_verified: None,
             },
             body: content_body,
         };
@@ -1340,12 +1315,13 @@ impl<S: Store> Manager<S, Registered> {
                 destination: self.state.data.service_ids.aci().into(),
                 sender_device: self.state.device_id(),
                 server_guid: None,
-                timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
+                client_timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
                 // Note: Currently no way to get the timestamp the server received the message; just use our timestamp as a fallback.
                 server_timestamp: chrono::Utc.timestamp_millis_opt(timestamp as i64).unwrap(),
                 needs_receipt: false, // TODO: this is just wrong
                 unidentified_sender: false,
                 was_plaintext: false,
+                pni_verified: None,
             },
             body: content_body,
         };
@@ -1411,7 +1387,10 @@ impl<S: Store> Manager<S, Registered> {
 
         // We need the whole file for the crypto to check out
         let mut ciphertext = Vec::with_capacity(plaintext_len.unwrap_or(0));
-        let size_bytes = attachment_stream.read_to_end(&mut ciphertext).await?;
+        let size_bytes = attachment_stream
+            .stream
+            .read_to_end(&mut ciphertext)
+            .await?;
         trace!(size_bytes, "downloaded encrypted attachment");
 
         let digest = sha2::Sha256::digest(&ciphertext);
@@ -1565,6 +1544,63 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Records a finished call in the thread with the peer of `event` and tells our other
+    /// devices about it, so their call logs agree. Returns the stored content.
+    pub async fn send_call_event(
+        &mut self,
+        event: sync_message::CallEvent,
+    ) -> Result<Content, Error<S::Error>> {
+        let sync_message = SyncMessage {
+            content: Some(SyncContent::CallEvent(event.clone())),
+            ..SyncMessage::with_padding(&mut rand::rng())
+        };
+        self.new_message_sender()
+            .await?
+            .send_sync_message(sync_message.clone())
+            .await?;
+
+        let aci = self.state.data.service_ids.aci();
+        // Filed under the start of the call.
+        let timestamp = event
+            .timestamp
+            .and_then(|ts| chrono::Utc.timestamp_millis_opt(ts as i64).single())
+            .unwrap_or_else(chrono::Utc::now);
+        let content = Content {
+            metadata: Metadata {
+                sender: aci.into(),
+                sender_device: self.state.device_id(),
+                destination: aci.into(),
+                server_guid: None,
+                client_timestamp: timestamp,
+                server_timestamp: timestamp,
+                needs_receipt: false,
+                unidentified_sender: false,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: ContentBody::SynchronizeMessage(sync_message),
+        };
+
+        let mut identified_websocket = self.identified_websocket(false).await?;
+        save_message(
+            &mut self.store,
+            &mut identified_websocket,
+            content.clone(),
+            None,
+        )
+        .await?;
+        Ok(content)
+    }
+
+    /// Fetches short-lived TURN credentials for 1:1 calls.
+    pub async fn calling_relays(&self) -> Result<Vec<TurnServer>, Error<S::Error>> {
+        Ok(self
+            .identified_websocket(false)
+            .await?
+            .get_calling_relays()
+            .await?)
+    }
+
     fn credentials(&self) -> ServiceCredentials {
         self.state.credentials()
     }
@@ -1603,7 +1639,7 @@ impl<S: Store> Manager<S, Registered> {
                 .service_configuration()
                 .unidentified_sender_trust_roots,
             ProtocolAddress::new(
-                self.state.data.service_ids.aci.to_string(),
+                self.state.data.service_ids.aci().service_id_string(),
                 self.state.device_id(),
             ),
         )
@@ -1616,7 +1652,7 @@ impl<S: Store> Manager<S, Registered> {
                 .service_configuration()
                 .unidentified_sender_trust_roots,
             ProtocolAddress::new(
-                self.state.data.service_ids.pni.to_string(),
+                self.state.data.service_ids.pni().service_id_string(),
                 self.state.device_id(),
             ),
         )
@@ -1680,7 +1716,6 @@ impl<S: Store> Manager<S, Registered> {
                         .account_entropy_pool()
                         .await?
                         .expect("Primary device to always have an account entropy pool"),
-                    master_key: self.master_key().await?,
                     ephemeral_backup_key: None,
                     media_root_backup_key: None,
                 },
@@ -1694,7 +1729,7 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         device_id: impl TryInto<DeviceId>,
     ) -> Result<(), Error<S::Error>> {
-        // secondary devices cannot unlink themselves or other devices, it will fail with an unauthorized error
+        // secondary devices can only unlink themselves, see `unlink_self`
         if self.registration_type() != RegistrationType::Primary {
             return Err(Error::NotPrimaryDevice);
         }
@@ -1716,6 +1751,18 @@ impl<S: Store> Manager<S, Registered> {
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
     }
+
+    /// Removes this linked device from the account, e.g. before linking again.
+    pub async fn unlink_self(&self) -> Result<(), Error<S::Error>> {
+        if self.registration_type() == RegistrationType::Primary {
+            return Err(Error::NotSecondaryDevice);
+        }
+        self.identified_websocket(false)
+            .await?
+            .unlink_device(self.device_id())
+            .await?;
+        Ok(())
+    }
 }
 
 /// Set the timestamp in any DataMessage so it matches its envelope's
@@ -1731,11 +1778,11 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
             data_message.timestamp = Some(timestamp);
         }
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(sync_message::Sent {
+            content:
+                Some(SyncContent::Sent(sync_message::Sent {
                     message: Some(data_message),
                     ..
-                }),
+                })),
             ..
         }) => {
             data_message.timestamp = Some(timestamp);
@@ -1883,8 +1930,8 @@ async fn save_message<S: Store>(
             },
         )
         | ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(sync_message::Sent {
+            content:
+                Some(SyncContent::Sent(sync_message::Sent {
                     message:
                         Some(
                             ref data_message @ DataMessage {
@@ -1892,7 +1939,7 @@ async fn save_message<S: Store>(
                             },
                         ),
                     ..
-                }),
+                })),
             ..
         }) => {
             // update recipient profile key if changed
@@ -1961,17 +2008,17 @@ async fn save_message<S: Store>(
             }
         }
         ContentBody::SynchronizeMessage(SyncMessage {
-            delete_for_me: Some(ref delete),
+            content: Some(SyncContent::DeleteForMe(ref delete)),
             ..
         }) => {
             // TODO: Conversations, local-only deletes, attachments
             for d in delete.message_deletes.iter().flat_map(|m| &m.messages) {
                 let sender = match &d.author {
                     Some(Author::AuthorServiceId(id)) => {
-                        ServiceId::parse_from_service_id_string(id)
+                        ServiceId::parse_from_service_id_string(&id)
                     }
                     Some(Author::AuthorServiceIdBinary(id)) => {
-                        ServiceId::parse_from_service_id_binary(id)
+                        ServiceId::parse_from_service_id_binary(&id)
                     }
                     Some(Author::AuthorE164(_)) => None,
                     None => None,
@@ -2009,20 +2056,21 @@ async fn save_message<S: Store>(
             data_message: Some(_),
         })
         | ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(sync_message::Sent {
+            content:
+                Some(SyncContent::Sent(sync_message::Sent {
                     edit_message:
                         Some(EditMessage {
                             target_sent_timestamp: Some(_),
                             data_message: Some(_),
                         }),
                     ..
-                }),
+                })),
             ..
         }) => Some(message),
-        ContentBody::CallMessage(_)
-        | ContentBody::SynchronizeMessage(SyncMessage {
-            call_event: Some(_),
+        // Call signaling is transient; calls are recorded by `CallEvent`s instead.
+        ContentBody::CallMessage(_) => None,
+        ContentBody::SynchronizeMessage(SyncMessage {
+            content: Some(SyncContent::CallEvent(_)),
             ..
         }) => Some(message),
         ContentBody::SynchronizeMessage(msg) => {
@@ -2039,10 +2087,6 @@ async fn save_message<S: Store>(
         }
         ContentBody::StoryMessage(msg) => {
             debug!(?msg, "skipping story message");
-            None
-        }
-        ContentBody::PniSignatureMessage(msg) => {
-            debug!(?msg, "skipping PNI signature message");
             None
         }
         ContentBody::EditMessage(msg) => {
@@ -2077,7 +2121,7 @@ async fn upsert_contact_from_profile<S: Store>(
                 .retrieve_profile_by_id(aci, Some(profile_key))
                 .await?;
             let profile_cipher = ProfileCipher::new(profile_key);
-            let decrypted_profile = profile_cipher.decrypt(encrypted_profile).unwrap();
+            let decrypted_profile = profile_cipher.decrypt(encrypted_profile)?;
 
             let contact = Contact {
                 uuid: sender_uuid,

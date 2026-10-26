@@ -9,7 +9,7 @@ use presage::{
         models::Attachment,
         prelude::{Content, phonenumber},
         profile_name::ProfileName,
-        protocol::{Aci, ServiceId},
+        protocol::{Aci, Pni, ServiceId},
         zkgroup::GroupMasterKeyBytes,
     },
     model::{
@@ -200,6 +200,7 @@ pub struct SqlMessage {
 
     pub content_body: Vec<u8>,
     pub was_plaintext: bool,
+    pub pni_verified: Option<String>,
 }
 
 impl TryInto<Content> for SqlMessage {
@@ -217,6 +218,7 @@ impl TryInto<Content> for SqlMessage {
             unidentified_sender,
             content_body,
             was_plaintext,
+            pni_verified,
         } = self;
         let body: proto::Content =
             prost::Message::decode(&*content_body).map_err(|_| SqliteStoreError::InvalidFormat)?;
@@ -228,7 +230,7 @@ impl TryInto<Content> for SqlMessage {
             sender,
             destination,
             sender_device: sender_device_id.try_into()?,
-            timestamp: Utc.timestamp_millis_opt(ts as i64).unwrap(),
+            client_timestamp: Utc.timestamp_millis_opt(ts as i64).unwrap(),
             // Not every message may have a server timestamp stored; fall back to the regular timestamp.
             server_timestamp: Utc
                 .timestamp_millis_opt(server_ts.unwrap_or(ts) as i64)
@@ -237,6 +239,13 @@ impl TryInto<Content> for SqlMessage {
             unidentified_sender,
             server_guid: None,
             was_plaintext,
+            pni_verified: pni_verified
+                .as_ref()
+                .map(|p| {
+                    Pni::parse_from_service_id_string(p)
+                        .ok_or_else(|| SqliteStoreError::InvalidFormat)
+                })
+                .transpose()?,
         };
         Content::from_proto(body, metadata).map_err(|_| SqliteStoreError::InvalidFormat)
     }

@@ -9,7 +9,7 @@ use presage::{
 use protocol::{IdentityType, SqliteProtocolStore};
 use sqlx::{
     SqlitePool, query, query_scalar,
-    sqlite::{SqliteJournalMode, SqliteSynchronous},
+    sqlite::{SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
 
 mod content;
@@ -62,13 +62,23 @@ impl SqliteStore {
         let options = options
             .journal_mode(SqliteJournalMode::Wal)
             .synchronous(SqliteSynchronous::Full);
-        let db = SqlitePool::connect_with(options).await?;
+        // Each connection carries its own page cache; sqlx's default of 10 is more than we need.
+        let db = SqlitePoolOptions::new()
+            .max_connections(3)
+            .connect_with(options)
+            .await?;
 
         sqlx::migrate!().run(&db).await?;
         Ok(Self {
             db,
             trust_new_identities,
         })
+    }
+
+    /// Closes the pool, waiting for all connections to close.
+    /// Call before exit: SQLCipher's atexit cleanup races connections still closing.
+    pub async fn close(&self) {
+        self.db.close().await;
     }
 }
 
@@ -276,5 +286,22 @@ impl StateStore for SqliteStore {
                 .await?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn close_closes_the_pool() {
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust)
+            .await
+            .unwrap();
+        let clone = store.clone();
+
+        store.close().await;
+
+        assert!(clone.db.is_closed());
     }
 }
