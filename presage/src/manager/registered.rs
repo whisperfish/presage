@@ -1099,6 +1099,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut content_body: ContentBody = message.into();
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        self.fetch_link_previews(&mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
@@ -1210,6 +1211,23 @@ impl<S: Store> Manager<S, Registered> {
         }))
     }
 
+    /// Sets a preview of the first link of a data message that has no preview yet.
+    async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
+        let ContentBody::DataMessage(message) = content_body else {
+            return;
+        };
+        if !message.preview.is_empty() {
+            return;
+        }
+        let Some(body) = message.body.as_deref() else {
+            return;
+        };
+        match self.link_preview(body).await {
+            Ok(preview) => message.preview.extend(preview),
+            Err(error) => warn!(%error, "failed to build link preview, sending without"),
+        }
+    }
+
     /// Uploads one attachment prior to linking them in a message.
     pub async fn upload_attachment(
         &self,
@@ -1256,6 +1274,7 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Group(master_key_bytes);
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        self.fetch_link_previews(&mut content_body).await;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;

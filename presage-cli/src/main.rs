@@ -29,7 +29,6 @@ use presage::model::identity::OnNewIdentity;
 use presage::model::messages::Received;
 use presage::proto::receipt_message;
 use presage::proto::EditMessage;
-use presage::proto::Preview;
 use presage::proto::ReceiptMessage;
 use presage::proto::SyncMessage;
 use presage::store::ContentExt;
@@ -210,11 +209,6 @@ enum Cmd {
         message: String,
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
         attachment_filepath: Vec<PathBuf>,
-        #[clap(
-            long = "with-link-preview",
-            help = "Attach a preview of the first link in the message"
-        )]
-        link_preview: bool,
     },
     #[clap(about = "Send a message to group")]
     SendToGroup {
@@ -224,11 +218,6 @@ enum Cmd {
         master_key: GroupMasterKeyBytes,
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
         attachment_filepath: Vec<PathBuf>,
-        #[clap(
-            long = "with-link-preview",
-            help = "Attach a preview of the first link in the message"
-        )]
-        link_preview: bool,
     },
     SyncContacts,
     #[clap(
@@ -348,23 +337,6 @@ async fn send<S: Store>(
 
     println!("message sent!");
     Ok(())
-}
-
-async fn link_preview_or_warn<S: Store>(
-    manager: &Manager<S, Registered>,
-    message: &str,
-) -> Vec<Preview> {
-    match manager.link_preview(message).await {
-        Ok(Some(preview)) => vec![preview],
-        Ok(None) => {
-            warn!("no link to preview in the message");
-            Vec::new()
-        }
-        Err(error) => {
-            warn!(%error, "failed to build link preview, sending without");
-            Vec::new()
-        }
-    }
 }
 
 // Note to developers, this is a good example of a function you can use as a source of inspiration
@@ -771,19 +743,12 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             uuid,
             message,
             attachment_filepath,
-            link_preview,
         } => {
             let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
-            let preview = if link_preview {
-                link_preview_or_warn(&manager, &message).await
-            } else {
-                Vec::new()
-            };
             let data_message = DataMessage {
                 body: Some(message),
                 attachments,
-                preview,
                 ..Default::default()
             };
 
@@ -793,19 +758,12 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             message,
             master_key,
             attachment_filepath,
-            link_preview,
         } => {
             let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
-            let preview = if link_preview {
-                link_preview_or_warn(&manager, &message).await
-            } else {
-                Vec::new()
-            };
             let data_message = DataMessage {
                 body: Some(message),
                 attachments,
-                preview,
                 group_v2: Some(GroupContextV2 {
                     master_key: Some(master_key.to_vec()),
                     revision: Some(0),
