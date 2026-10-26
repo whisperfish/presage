@@ -209,6 +209,11 @@ enum Cmd {
         message: String,
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
         attachment_filepath: Vec<PathBuf>,
+        #[clap(
+            long = "with-link-preview",
+            help = "Attach a preview of the first link in the message"
+        )]
+        link_preview: bool,
     },
     #[clap(about = "Send a message to group")]
     SendToGroup {
@@ -218,6 +223,11 @@ enum Cmd {
         master_key: GroupMasterKeyBytes,
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
         attachment_filepath: Vec<PathBuf>,
+        #[clap(
+            long = "with-link-preview",
+            help = "Attach a preview of the first link in the message"
+        )]
+        link_preview: bool,
     },
     SyncContacts,
     #[clap(
@@ -735,12 +745,19 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             uuid,
             message,
             attachment_filepath,
+            link_preview,
         } => {
             let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
+            let preview = if link_preview {
+                manager.build_protobuf_preview(&message).await
+            } else {
+                Vec::new()
+            };
             let data_message = DataMessage {
                 body: Some(message),
                 attachments,
+                preview,
                 ..Default::default()
             };
 
@@ -750,12 +767,19 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             message,
             master_key,
             attachment_filepath,
+            link_preview,
         } => {
             let mut manager = load_registered_and_receive(store).await?;
             let attachments = upload_attachments(attachment_filepath, &manager).await?;
+            let preview = if link_preview {
+                manager.build_protobuf_preview(&message).await
+            } else {
+                Vec::new()
+            };
             let data_message = DataMessage {
                 body: Some(message),
                 attachments,
+                preview,
                 group_v2: Some(GroupContextV2 {
                     master_key: Some(master_key.to_vec()),
                     revision: Some(0),

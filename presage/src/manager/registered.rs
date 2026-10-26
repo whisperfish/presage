@@ -79,6 +79,7 @@ pub struct Registered {
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Identified>>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
+    pub(crate) link_preview_client: OnceLock<reqwest::Client>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -97,6 +98,7 @@ impl Registered {
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
+            link_preview_client: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -1193,7 +1195,17 @@ impl<S: Store> Manager<S, Registered> {
         &self,
         body: &str,
     ) -> Vec<libsignal_service::proto::Preview> {
-        let preview_contents = previews::generate_previews_from_message(body).await;
+        let client = match self.state.link_preview_client.get() {
+            Some(client) => client,
+            None => match previews::client_builder().build() {
+                Ok(client) => self.state.link_preview_client.get_or_init(|| client),
+                Err(error) => {
+                    warn!(%error, "failed to build link preview client");
+                    return Vec::new();
+                }
+            },
+        };
+        let preview_contents = previews::generate_previews_from_message(body, client).await;
 
         future::join_all(preview_contents.iter().map(|content| async {
             let image = match previews::build_preview_image(content) {

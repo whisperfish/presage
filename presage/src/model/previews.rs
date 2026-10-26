@@ -1,4 +1,3 @@
-use futures::stream::{self, StreamExt};
 use libsignal_service::sender::AttachmentSpec;
 use mime::Mime;
 use regex::Regex;
@@ -6,10 +5,12 @@ use reqwest::header::CONTENT_TYPE;
 use reqwest::IntoUrl;
 use scraper::{Html, Selector};
 use std::str::FromStr;
+use std::sync::LazyLock;
 use std::time::Duration;
 use url::{Host, Url};
 
-// same limit as Signal-Android
+// same limits as Signal-Android
+const MAX_HTML_SIZE: usize = 2 * 1024 * 1024;
 const MAX_IMAGE_SIZE: usize = 2 * 1024 * 1024;
 
 // Signal clients don't preview links to these
@@ -32,20 +33,22 @@ pub enum Error {
     ReqwestError(#[from] reqwest::Error),
     #[error("The response does not contain a Content-Type header")]
     MissingContentTypeHeadersError,
-    //#[error("Err error: {0}")]
-    //ConversionError,
-    #[error("Err error: {0}")]
+    #[error("Unsupported mime type: {0}")]
     UnsupportedMimeTypeError(String),
     #[error("Downloaded file does not look like an image")]
     NonImageBytesError,
     #[error("ToStr error: {0}")]
-    ToStrtError(#[from] reqwest::header::ToStrError),
+    ToStrError(#[from] reqwest::header::ToStrError),
     #[error("FromStr error: {0}")]
     FromStrError(#[from] mime::FromStrError),
     #[error("The page has no title")]
     MissingTitleError,
     #[error("The image is larger than {MAX_IMAGE_SIZE} bytes")]
     ImageTooLargeError,
+    #[error("Redirect to a url that can't be previewed")]
+    RedirectError,
+    #[error("The url can't be previewed")]
+    NotPreviewableError,
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -63,6 +66,7 @@ pub struct PreviewContent {
 /// Client for fetching previews: https only, no internal hosts, and a timeout.
 pub fn client_builder() -> reqwest::ClientBuilder {
     reqwest::Client::builder()
+        .user_agent("WhatsApp/2")
         .timeout(Duration::from_secs(10))
         .redirect(reqwest::redirect::Policy::custom(|attempt| {
             if attempt.previous().len() >= 10 {
@@ -80,6 +84,8 @@ fn is_previewable(url: &Url) -> bool {
     let Some(Host::Domain(domain)) = url.host() else {
         return false;
     };
+    // "localhost." is localhost
+    let domain = domain.trim_end_matches('.');
     url.scheme() == "https"
         && !RESERVED_DOMAINS
             .iter()
@@ -93,17 +99,16 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
     // receivers drop the preview if its url is not exactly as in the message body
     let link = url.as_ref().to_owned();
     let url = url.into_url()?;
+    if !is_previewable(&url) {
+        return Err(Error::NotPreviewableError);
+    }
 
     let mut preview: PreviewContent = {
-        let mut headers = reqwest::header::HeaderMap::new();
-        headers.insert("user-agent", "WhatsApp/2".parse().unwrap());
-
-        let response = client
-            .get(url.clone())
-            .headers(headers)
-            .send()
-            .await?
-            .error_for_status()?;
+        let mut response = client.get(url.clone()).send().await?.error_for_status()?;
+        // the client stopped at a redirect to an invalid url
+        if response.status().is_redirection() {
+            return Err(Error::RedirectError);
+        }
 
         let headers = &response.headers();
 
@@ -114,7 +119,16 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
                 let content_type = Mime::from_str(content_type)?;
                 match (content_type.type_(), content_type.subtype()) {
                     (mime::TEXT, mime::HTML) => {
-                        let html = response.text().await?;
+                        // like Signal-Android, only parse the beginning of large pages
+                        let mut html = Vec::new();
+                        while let Some(chunk) = response.chunk().await? {
+                            html.extend_from_slice(&chunk);
+                            if html.len() >= MAX_HTML_SIZE {
+                                html.truncate(MAX_HTML_SIZE);
+                                break;
+                            }
+                        }
+                        let html = String::from_utf8_lossy(&html);
                         generate_preview_from_html(&html, &url, client).await
                     }
                     (mime::IMAGE, _) => {
@@ -139,12 +153,7 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
                             date: None,
                         }
                     }
-                    _ => {
-                        return Err(Error::UnsupportedMimeTypeError(format!(
-                            "Got unsupported mime type:{}.",
-                            content_type
-                        )))
-                    }
+                    _ => return Err(Error::UnsupportedMimeTypeError(content_type.to_string())),
                 }
             }
         }
@@ -159,7 +168,6 @@ pub async fn generate_preview_from_url<T: IntoUrl + AsRef<str>>(
 
 /// The function builds a Preview primarily from the html's OG tags.
 /// If some of these are unavailable, it resorts to other tags to fill the preview's fields.
-/// The url is taken from the stemmed url of the page.
 /// The title is taken from the <title> tag (if available).
 /// The description is taken from the  <meta name="description"> tag (if available).
 pub async fn generate_preview_from_html(
@@ -203,9 +211,8 @@ pub async fn generate_preview_from_html(
             let field = capture.trim();
             let content = element.value().attr("content").unwrap_or("").to_string();
             match field {
-                "url" => preview.url = Some(content),
                 "title" => preview.title = Some(content),
-                "image" => {
+                "image" if preview.image.is_none() => {
                     // og:image may be relative to the page
                     let image_url = url.join(&content).ok().filter(is_previewable);
                     if let Some(image_url) = image_url {
@@ -227,7 +234,6 @@ pub async fn generate_preview_from_html(
         // in practice, since date is essentially never set on real pages, this rarely breaks
         // early and we scan the whole `<head>`.
         if [
-            preview.url.is_none(),
             preview.title.is_none(),
             preview.image.is_none(),
             preview.description.is_none(),
@@ -258,8 +264,9 @@ pub async fn generate_preview_from_html(
 /// into account that punctuations as well as parentheses might
 /// appear within valid urls.
 pub fn extract_urls_from_text_block(message: &str) -> Vec<String> {
-    let re = Regex::new(
-        r#"(?xi)
+    static RE: LazyLock<Regex> = LazyLock::new(|| {
+        Regex::new(
+            r#"(?xi)
         \b
         (
             https://                    # Signal clients only preview https links
@@ -268,12 +275,13 @@ pub fn extract_urls_from_text_block(message: &str) -> Vec<String> {
             [^\s]*                      # Capture everything until whitespace
         )
         "#,
-    )
-    .unwrap();
+        )
+        .unwrap()
+    });
 
     let mut urls = Vec::new();
 
-    for cap in re.captures_iter(message) {
+    for cap in RE.captures_iter(message) {
         let mut candidate = cap[1].to_string();
 
         // Trim wrapping punctuation
@@ -306,18 +314,19 @@ pub fn extract_urls_from_text_block(message: &str) -> Vec<String> {
     urls
 }
 
-pub async fn generate_previews_from_message(message: &str) -> Vec<PreviewContent> {
-    let urls = extract_urls_from_text_block(message);
-    let Ok(client) = client_builder().build() else {
+pub async fn generate_previews_from_message(
+    message: &str,
+    client: &reqwest::Client,
+) -> Vec<PreviewContent> {
+    // like Signal clients, only preview the first link
+    let Some(url) = extract_urls_from_text_block(message).into_iter().next() else {
         return Vec::new();
     };
 
-    stream::iter(urls)
-        .map(|url| generate_preview_from_url(url, &client))
-        .buffer_unordered(10)
-        .filter_map(|res| async move { res.ok() })
-        .collect()
+    generate_preview_from_url(url, client)
         .await
+        .into_iter()
+        .collect()
 }
 
 /// Builds the `AttachmentSpec` and raw bytes needed to upload `content`'s image as an
@@ -347,15 +356,7 @@ async fn fetch_image_from_url<T: IntoUrl>(
     url: T,
     client: &reqwest::Client,
 ) -> Result<(Vec<u8>, String), Error> {
-    let mut headers = reqwest::header::HeaderMap::new();
-    headers.insert("user-agent", "WhatsApp/2".parse().unwrap());
-
-    let response: reqwest::Response = client
-        .get(url)
-        .headers(headers)
-        .send()
-        .await?
-        .error_for_status()?;
+    let response: reqwest::Response = client.get(url).send().await?.error_for_status()?;
 
     fetch_image_from_response(response).await
 }
@@ -394,7 +395,7 @@ async fn fetch_image_from_response(
 fn timestamp_from_iso(datetime_str: &str) -> Option<u64> {
     let datetime = chrono::DateTime::parse_from_rfc3339(datetime_str).ok()?;
     let timestamp = chrono::DateTime::timestamp_millis(&datetime);
-    Some(timestamp as u64)
+    u64::try_from(timestamp).ok()
 }
 
 /// Detects the image MIME essence (e.g. `image/jpeg`) from a file's magic bytes.
@@ -503,11 +504,14 @@ mod tests {
 // and defences from https://github.com/whisperfish/presage/pull/465
 #[cfg(test)]
 mod signal_compat {
-    use std::io::{BufRead, BufReader, Read, Write};
-    use std::net::{TcpListener, TcpStream};
+    use std::net::TcpListener;
     use std::sync::{Arc, LazyLock, Mutex};
     use std::time::Duration;
 
+    use axum::extract::State;
+    use axum::http::{header, HeaderMap, StatusCode, Uri};
+    use axum::response::{IntoResponse, Response};
+    use axum_server::tls_rustls::RustlsConfig;
     use rustls::pki_types::{CertificateDer, PrivatePkcs8KeyDer};
 
     use super::*;
@@ -550,9 +554,9 @@ mod signal_compat {
 
     struct Route {
         path: &'static str,
-        status: &'static str,
+        status: StatusCode,
         content_type: &'static str,
-        headers: String,
+        headers: Vec<(&'static str, String)>,
         body: Vec<u8>,
         hang: bool,
     }
@@ -561,9 +565,9 @@ mod signal_compat {
         fn new(path: &'static str, content_type: &'static str, body: impl Into<Vec<u8>>) -> Self {
             Self {
                 path,
-                status: "200 OK",
+                status: StatusCode::OK,
                 content_type,
-                headers: String::new(),
+                headers: Vec::new(),
                 body: body.into(),
                 hang: false,
             }
@@ -571,23 +575,20 @@ mod signal_compat {
 
         fn redirect(path: &'static str, location: String) -> Self {
             Self {
-                status: "302 Found",
-                headers: format!("Location: {location}\r\n"),
+                status: StatusCode::FOUND,
+                headers: vec![("location", location)],
                 ..Self::new(path, "text/html", "")
             }
         }
     }
 
     struct Request {
-        headers: Vec<(String, String)>,
+        headers: HeaderMap,
     }
 
     impl Request {
         fn header(&self, name: &str) -> Option<&str> {
-            self.headers
-                .iter()
-                .find(|(n, _)| n.eq_ignore_ascii_case(name))
-                .map(|(_, v)| v.as_str())
+            self.headers.get(name)?.to_str().ok()
         }
     }
 
@@ -604,66 +605,48 @@ mod signal_compat {
 
     fn serve_on(scheme: &'static str, routes: Vec<Route>) -> (String, Requests) {
         let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+        listener.set_nonblocking(true).unwrap();
         let base = format!(
             "{scheme}://{HOST}:{}",
             listener.local_addr().unwrap().port()
         );
-        let routes = Arc::new(routes);
         let requests = Requests::default();
-        let seen = requests.clone();
-        std::thread::spawn(move || {
-            for stream in listener.incoming() {
-                let stream = stream.unwrap();
-                let routes = routes.clone();
-                let seen = seen.clone();
-                std::thread::spawn(move || {
-                    if scheme == "https" {
-                        let conn = rustls::ServerConnection::new(TLS.config.clone()).unwrap();
-                        handle(rustls::StreamOwned::new(conn, stream), &routes, &seen);
-                    } else {
-                        handle::<TcpStream>(stream, &routes, &seen);
-                    }
-                });
-            }
-        });
+        let app = axum::Router::new()
+            .fallback(handle)
+            .with_state((Arc::new(routes), requests.clone()))
+            .into_make_service();
+        if scheme == "https" {
+            let config = RustlsConfig::from_config(TLS.config.clone());
+            let server = axum_server::from_tcp_rustls(listener, config).unwrap();
+            tokio::spawn(server.serve(app));
+        } else {
+            tokio::spawn(axum_server::from_tcp(listener).unwrap().serve(app));
+        }
         (base, requests)
     }
 
-    fn handle<S: Read + Write>(stream: S, routes: &[Route], seen: &Requests) {
-        let mut reader = BufReader::new(stream);
-        let mut request_line = String::new();
-        if reader.read_line(&mut request_line).is_err() {
-            return;
-        }
-        let path = request_line.split(' ').nth(1).unwrap_or("/").to_owned();
-        let mut headers = Vec::new();
-        let mut line = String::new();
-        while reader.read_line(&mut line).is_ok_and(|n| n > 2) {
-            if let Some((name, value)) = line.split_once(':') {
-                headers.push((name.trim().to_owned(), value.trim().to_owned()));
-            }
-            line.clear();
-        }
+    async fn handle(
+        State((routes, seen)): State<(Arc<Vec<Route>>, Requests)>,
+        uri: Uri,
+        headers: HeaderMap,
+    ) -> Response {
         seen.lock().unwrap().push(Request { headers });
-
-        let stream = reader.get_mut();
-        let Some(route) = routes.iter().find(|r| r.path == path) else {
-            let _ = stream.write_all(b"HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n");
-            return;
+        let Some(route) = routes.iter().find(|r| r.path == uri.path()) else {
+            return StatusCode::NOT_FOUND.into_response();
         };
         if route.hang {
-            std::thread::sleep(Duration::from_secs(3600));
+            std::future::pending::<()>().await;
         }
-        let header = format!(
-            "HTTP/1.1 {}\r\nContent-Type: {}\r\nContent-Length: {}\r\n{}Connection: close\r\n\r\n",
+        let mut response = (
             route.status,
-            route.content_type,
-            route.body.len(),
-            route.headers,
-        );
-        let _ = stream.write_all(header.as_bytes());
-        let _ = stream.write_all(&route.body);
-        let _ = stream.flush();
+            [(header::CONTENT_TYPE, route.content_type)],
+            route.body.clone(),
+        )
+            .into_response();
+        for (name, value) in &route.headers {
+            response.headers_mut().insert(*name, value.parse().unwrap());
+        }
+        response
     }
 
     fn extracted(body: &str) -> Vec<String> {
@@ -820,6 +803,16 @@ mod signal_compat {
     }
 
     #[tokio::test]
+    async fn large_page_is_truncated() {
+        // Signal-Android only reads the first 2 MB of a page
+        let mut html = vec![b' '; 3 * 1024 * 1024];
+        html.extend_from_slice(b"<title>t</title>");
+        let (base, _) = serve(vec![Route::new("/page", "text/html", html)]);
+        let result = generate_preview_from_url(format!("{base}/page"), &client()).await;
+        assert!(matches!(result, Err(Error::MissingTitleError)));
+    }
+
+    #[tokio::test]
     async fn requests_use_whatsapp_user_agent() {
         let (base, requests) = serve(vec![Route::new("/page", "text/html", "<title>t</title>")]);
         let _ = generate_preview_from_url(format!("{base}/page"), &client()).await;
@@ -881,6 +874,58 @@ mod signal_compat {
         assert!(requests.lock().unwrap().is_empty());
     }
 
+    #[test]
+    fn trailing_dot_is_not_a_bypass() {
+        assert!(extracted("https://localhost./ https://example.com./").is_empty());
+    }
+
+    #[tokio::test]
+    async fn invalid_url_is_not_fetched() {
+        let (base, requests) =
+            serve_http(vec![Route::new("/page", "text/html", "<title>t</title>")]);
+        let result = generate_preview_from_url(format!("{base}/page"), &client()).await;
+        assert!(matches!(result, Err(Error::NotPreviewableError)));
+        assert!(requests.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn dates_before_1970_are_ignored() {
+        let html = r#"<meta property="article:published_time" content="1969-01-01T00:00:00Z">"#;
+        let url = Url::parse("https://signal.org").unwrap();
+        let preview = generate_preview_from_html(html, &url, &client()).await;
+        assert_eq!(preview.date, None);
+    }
+
+    #[tokio::test]
+    async fn stopped_redirect_is_not_previewed() {
+        let (base, _) = serve(vec![Route {
+            body: b"<title>Moved</title>".to_vec(),
+            ..Route::redirect("/page", "https://127.0.0.1/admin".to_owned())
+        }]);
+        let result = generate_preview_from_url(format!("{base}/page"), &client()).await;
+        assert!(matches!(result, Err(Error::RedirectError)));
+    }
+
+    #[tokio::test]
+    async fn only_first_og_image_is_fetched() {
+        let png = b"\x89PNG\r\n\x1a\n".to_vec();
+        let (base, requests) = serve(vec![
+            Route::new(
+                "/page",
+                "text/html",
+                r#"<meta property="og:image" content="/a.png">
+                <meta property="og:image" content="/b.png"><title>t</title>"#,
+            ),
+            Route::new("/a.png", "image/png", png.clone()),
+            Route::new("/b.png", "image/png", png),
+        ]);
+        let preview = generate_preview_from_url(format!("{base}/page"), &client())
+            .await
+            .unwrap();
+        assert!(preview.image.is_some());
+        assert_eq!(requests.lock().unwrap().len(), 2);
+    }
+
     #[tokio::test]
     async fn og_image_must_be_https() {
         let (image_base, requests) = serve_http(vec![Route::new(
@@ -903,7 +948,7 @@ mod signal_compat {
     #[tokio::test]
     async fn cookies_are_not_sent_back() {
         let (base, requests) = serve(vec![Route {
-            headers: "Set-Cookie: session=secret\r\n".to_owned(),
+            headers: vec![("set-cookie", "session=secret".to_owned())],
             ..Route::new("/page", "text/html", "<title>t</title>")
         }]);
         let client = client();
