@@ -324,14 +324,14 @@ async fn send<S: Store>(
             manager
                 .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
                 .await
-                .expect("failed to send message")
+                .expect("failed to send message");
         }
         Recipient::Group(master_key) => {
             info!("sending message to group");
             manager
                 .send_message_to_group(&master_key, content_body, timestamp)
                 .await
-                .expect("failed to send message to group!")
+                .expect("failed to send message to group!");
         }
     }
 
