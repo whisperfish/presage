@@ -499,13 +499,15 @@ impl ContentsStore for SqliteStore {
     async fn save_group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: &str,
         avatar: &AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query!(
-            "INSERT OR REPLACE INTO group_avatars(group_master_key, bytes) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO group_avatars(group_master_key, bytes, path) VALUES (?, ?, ?)",
             master_key_bytes,
             avatar,
+            path,
         )
         .execute(&self.db)
         .await?;
@@ -515,11 +517,13 @@ impl ContentsStore for SqliteStore {
     async fn group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: Option<&str>,
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query_scalar!(
-            "SELECT bytes FROM group_avatars WHERE group_master_key = ?",
+            "SELECT bytes FROM group_avatars WHERE group_master_key = ?1 AND (?2 IS NULL OR path = ?2)",
             master_key_bytes,
+            path,
         )
         .fetch_optional(&self.db)
         .await
@@ -615,12 +619,14 @@ impl ContentsStore for SqliteStore {
         &mut self,
         uuid: Uuid,
         _key: ProfileKey,
-        profile: &AvatarBytes,
+        path: &str,
+        avatar: &AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         query!(
-            "INSERT OR REPLACE INTO profile_avatars(uuid, bytes) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO profile_avatars(uuid, bytes, path) VALUES (?, ?, ?)",
             uuid,
-            profile,
+            avatar,
+            path,
         )
         .execute(&self.db)
         .await?;
@@ -631,11 +637,16 @@ impl ContentsStore for SqliteStore {
         &self,
         uuid: Uuid,
         _key: ProfileKey,
+        path: Option<&str>,
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError> {
-        query_scalar!("SELECT bytes FROM profile_avatars WHERE uuid = ?", uuid)
-            .fetch_optional(&self.db)
-            .await
-            .map_err(From::from)
+        query_scalar!(
+            "SELECT bytes FROM profile_avatars WHERE uuid = ?1 AND (?2 IS NULL OR path = ?2)",
+            uuid,
+            path,
+        )
+        .fetch_optional(&self.db)
+        .await
+        .map_err(From::from)
     }
 
     async fn add_sticker_pack(
@@ -763,6 +774,50 @@ mod test {
 
         assert!(store.upsert_profile_key(&uuid, key).await?);
         assert!(store.upsert_profile_key(&uuid, key).await?);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn avatars_are_cached_per_path() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let avatar = vec![1, 2, 3];
+
+        let uuid = Uuid::nil();
+        let key = ProfileKey::create([1u8; 32]);
+        store.upsert_profile_key(&uuid, key).await?;
+        store.save_profile_avatar(uuid, key, "old", &avatar).await?;
+        assert_eq!(
+            store.profile_avatar(uuid, key, Some("old")).await?,
+            Some(avatar.clone())
+        );
+        assert_eq!(store.profile_avatar(uuid, key, Some("new")).await?, None);
+        assert_eq!(
+            store.profile_avatar(uuid, key, None).await?,
+            Some(avatar.clone())
+        );
+
+        let master_key = [2u8; 32];
+        let group = Group {
+            title: "group".into(),
+            avatar: "old".into(),
+            disappearing_messages_timer: None,
+            access_control: None,
+            revision: 0,
+            members: vec![],
+            pending_members: vec![],
+            requesting_members: vec![],
+            invite_link_password: vec![],
+            description: None,
+        };
+        store.save_group(master_key, group).await?;
+        store.save_group_avatar(master_key, "old", &avatar).await?;
+        assert_eq!(
+            store.group_avatar(master_key, Some("old")).await?,
+            Some(avatar.clone())
+        );
+        assert_eq!(store.group_avatar(master_key, Some("new")).await?, None);
+        assert_eq!(store.group_avatar(master_key, None).await?, Some(avatar));
 
         Ok(())
     }
