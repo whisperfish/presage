@@ -30,7 +30,7 @@ use libsignal_service::{
         Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
     },
     provisioning::ProvisioningError,
-    push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
+    push_service::{PushService, ServiceError, ServiceIds, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
@@ -1968,10 +1968,21 @@ async fn upsert_group<S: Store>(
 
     if upsert_group {
         debug!("fetching and saving group");
-        match groups_manager
+        let mut fetched = groups_manager
             .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
-            .await
-        {
+            .await;
+        // Once more if the connection failed: nothing fetches the group again until its next
+        // message, and until then it stays as it was (a member who left, still listed). Not if
+        // the server answered: a refusal (we aren't a member) would be the same again.
+        if fetched.as_ref().is_err_and(transient) {
+            if let Err(error) = &fetched {
+                warn!(error = %Causes(error), "failed to fetch encrypted group, fetching it again");
+            }
+            fetched = groups_manager
+                .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
+                .await;
+        }
+        match fetched {
             Ok(encrypted_group) => {
                 let group = decrypt_group(master_key_bytes, encrypted_group)?;
                 if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
@@ -1979,12 +1990,39 @@ async fn upsert_group<S: Store>(
                 }
             }
             Err(error) => {
-                warn!(%error, "failed to fetch encrypted group")
+                warn!(error = %Causes(&error), "failed to fetch encrypted group")
             }
         }
     }
 
     Ok(store.group(master_key_bytes.try_into()?).await?)
+}
+
+/// Whether `error` is the connection's, not the server's answer: worth sending again.
+fn transient(error: &ServiceError) -> bool {
+    matches!(
+        error,
+        ServiceError::Http(_)
+            | ServiceError::Timeout { .. }
+            | ServiceError::SendError { .. }
+            | ServiceError::IO(_)
+    )
+}
+
+/// An error with its causes, each after a colon: reqwest's own message leaves them out ("error
+/// sending request for url" doesn't say that the connection closed under the request).
+struct Causes<'a>(&'a dyn std::error::Error);
+
+impl fmt::Display for Causes<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)?;
+        let mut source = self.0.source();
+        while let Some(cause) = source {
+            write!(f, ": {cause}")?;
+            source = cause.source();
+        }
+        Ok(())
+    }
 }
 
 /// Download and decrypt a sticker manifest
@@ -2377,4 +2415,37 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Causes;
+
+    /// A broken connection is worth fetching again; a refusal isn't.
+    #[test]
+    fn only_a_failed_connection_is_fetched_again() {
+        use super::{transient, ServiceError};
+        assert!(transient(&ServiceError::SendError {
+            reason: "closed".into()
+        }));
+        assert!(transient(&ServiceError::IO(std::io::Error::other("reset"))));
+        assert!(!transient(&ServiceError::Unauthorized));
+    }
+
+    /// The causes follow the error, as reqwest's own message leaves them out.
+    #[test]
+    fn an_error_is_logged_with_its_causes() {
+        #[derive(Debug, thiserror::Error)]
+        #[error("error sending request for url")]
+        struct Sending(#[source] std::io::Error);
+
+        let error = Sending(std::io::Error::other(
+            "connection closed before message completed",
+        ));
+        assert_eq!(
+            Causes(&error).to_string(),
+            "error sending request for url: connection closed before message completed"
+        );
+        assert_eq!(Causes(&std::io::Error::other("alone")).to_string(), "alone");
+    }
 }
