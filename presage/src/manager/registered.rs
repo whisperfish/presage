@@ -6,8 +6,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::SessionStoreExt;
-use libsignal_service::protocol::{ProtocolAddress, SessionStore};
+use libsignal_service::protocol::{ProtocolAddress, PublicKey, SessionStore};
 use libsignal_service::provisioning::ProvisioningSecrets;
+use libsignal_service::session_lock::SessionLock;
 use libsignal_service::{
     attachment_cipher::decrypt_in_place,
     cipher,
@@ -84,6 +85,8 @@ pub struct Registered {
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
+    /// Shared by every cipher and sender of this account, and by its clones.
+    pub(crate) session_lock: SessionLock,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -103,6 +106,7 @@ impl Registered {
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
+            session_lock: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -590,19 +594,305 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
-        struct StreamState<Receiver, Store, AciStore, PniStore> {
+        struct StreamState<Receiver, Store, AciStore> {
             store: Store,
             identified_websocket: SignalWebSocket<websocket::Identified>,
             unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
             encrypted_messages: Receiver,
             message_receiver: MessageReceiver,
-            service_cipher_aci: ServiceCipher<AciStore>,
-            service_cipher_pni: ServiceCipher<PniStore>,
+            /// Decrypting takes it for the session step and keeping what it decrypted.
+            session_lock: SessionLock,
+            trust_roots: Vec<PublicKey>,
+            aci_address: ProtocolAddress,
+            pni_address: ProtocolAddress,
+            /// Decrypted and kept, but not handled before the receiver stopped: handled first.
+            decrypted: std::collections::VecDeque<(u64, Content)>,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
             service_ids: ServiceIds,
             message_sender: MessageSender<AciStore>,
             account_entropy_pool: Option<AccountEntropyPool>,
             registration_type: RegistrationType,
+        }
+
+        /// Handles a decrypted content: stores it, and what else it asks for.
+        async fn handle_content<St: Store, Receiver>(
+            state: &mut StreamState<Receiver, St, St::AciStore>,
+            content: Content,
+        ) -> Option<Received> {
+            if let ContentBody::DecryptionErrorMessage(e) = &content.body {
+                error!(
+                    error = ?e,
+                    "got error decrypting a message"
+                );
+                return Some(Received::DecryptionError(content.metadata.sender));
+            }
+
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                content: Some(SyncContent::Request(request)),
+                ..
+            }) = &content.body
+            {
+                use libsignal_service::content::sync_message::request::Type as RequestType;
+
+                match request.r#type() {
+                    RequestType::Contacts => {
+                        let contacts = state
+                            .store
+                            .contacts()
+                            .await
+                            .map(|i| i.collect::<Result<Vec<_>, _>>().unwrap_or_default())
+                            .unwrap_or_default();
+
+                        let mut message_sender = state.message_sender.clone();
+                        let aci = state.service_ids.aci();
+                        tokio::task::spawn_local(async move {
+                            let result = message_sender
+                                .send_contact_details(
+                                    &ServiceId::Aci(aci),
+                                    None,
+                                    contacts.into_iter().map(|c| {
+                                        libsignal_service::sender::ContactDetails {
+                                            number: c.phone_number.map(|p| p.to_string()),
+                                            aci: Some(c.uuid.to_string()),
+                                            aci_binary: Some(c.uuid.into_bytes().into()),
+                                            name: Some(c.name),
+                                            avatar: c.avatar.map(|a| {
+                                                libsignal_service::proto::contact_details::Avatar {
+                                                    content_type: Some(a.content_type),
+                                                    length: a.reader.len().try_into().ok(),
+                                                }
+                                            }),
+                                            expire_timer: Some(c.expire_timer),
+                                            expire_timer_version: Some(c.expire_timer_version),
+                                            inbox_position: None,
+                                        }
+                                    }),
+                                    false,
+                                    true,
+                                )
+                                .await;
+
+                            if let Err(error) = result {
+                                warn!(%error, "Error sending contact details to other devices");
+                            }
+                        });
+                    }
+                    RequestType::Keys => {
+                        let mut message_sender = state.message_sender.clone();
+                        let account_entropy_pool = state
+                            .account_entropy_pool
+                            .as_ref()
+                            .map(|aep| aep.to_string());
+                        tokio::task::spawn_local(async move {
+                            let result = message_sender
+                                .send_sync_message(SyncMessage {
+                                    content: Some(SyncContent::Keys(
+                                        libsignal_service::content::sync_message::Keys {
+                                            account_entropy_pool,
+                                            media_root_backup_key: None,
+                                        },
+                                    )),
+                                    ..SyncMessage::with_padding(&mut rand::rng())
+                                })
+                                .await;
+
+                            if let Err(error) = result {
+                                warn!(%error, "Error sending keys to other devices");
+                            }
+                        });
+                    }
+                    RequestType::Blocked => {
+                        warn!("storing blocked user is not implemented yet! we will not report blocked users to the device requesting the sync.");
+                        let mut message_sender = state.message_sender.clone();
+                        tokio::task::spawn_local(async move {
+                            let result = message_sender
+                                .send_sync_message(SyncMessage {
+                                    content: Some(SyncContent::Blocked(
+                                        libsignal_service::content::sync_message::Blocked {
+                                            numbers: vec![],
+                                            acis: vec![],
+                                            acis_binary: vec![],
+                                            group_ids: vec![],
+                                        },
+                                    )),
+                                    ..SyncMessage::with_padding(&mut rand::rng())
+                                })
+                                .await;
+
+                            if let Err(error) = result {
+                                warn!(%error, "Error sending blocked contacts to other devices");
+                            }
+                        });
+                    }
+                    t => {
+                        info!(type = ?t, "Got sync request of currently unhandled type")
+                    }
+                }
+            }
+
+            // contacts synchronization sent from the primary device (happens after linking, or on demand)
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                content: Some(SyncContent::Contacts(contacts)),
+                ..
+            }) = &content.body
+            {
+                match state.message_receiver.retrieve_contacts(contacts).await {
+                    Ok(contacts) => {
+                        info!("saving contacts");
+                        for contact in contacts.filter_map(Result::ok) {
+                            if let Err(error) = state.store.save_contact(&contact.into()).await {
+                                warn!(%error, "failed to save contacts");
+                                break;
+                            }
+                        }
+                    }
+                    Err(error) => {
+                        warn!(%error, "failed to retrieve contacts");
+                    }
+                }
+
+                return Some(Received::Contacts);
+            }
+
+            // sticker pack operations
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                sticker_pack_operation,
+                ..
+            }) = &content.body
+            {
+                for operation in sticker_pack_operation {
+                    match operation.r#type() {
+                        sticker_pack_operation::Type::Install => {
+                            let store = state.store.clone();
+                            let unidentified_websocket = state.unidentified_websocket.clone();
+                            let operation = operation.clone();
+
+                            // download stickers in the background
+                            tokio::spawn(async move {
+                                match download_sticker_pack(
+                                    store,
+                                    unidentified_websocket,
+                                    &operation,
+                                )
+                                .await
+                                {
+                                    Ok(sticker_pack) => {
+                                        debug!(
+                                            "downloaded sticker pack: {} made by {}",
+                                            sticker_pack.manifest.title,
+                                            sticker_pack.manifest.author
+                                        );
+                                    }
+                                    Err(error) => error!(
+                                        %error,
+                                        "failed to download sticker pack"
+                                    ),
+                                }
+                            });
+                        }
+                        sticker_pack_operation::Type::Remove => {
+                            match state.store.remove_sticker_pack(operation.pack_id()).await {
+                                Ok(was_present) => {
+                                    debug!(was_present, "removed stick pack")
+                                }
+                                Err(error) => {
+                                    error!(
+                                        %error,
+                                        "failed to remove sticker pack"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // key synchronization sent from the primary device
+            if let ContentBody::SynchronizeMessage(SyncMessage {
+                content: Some(SyncContent::Keys(keys)),
+                ..
+            }) = &content.body
+            {
+                debug!("received key sync message");
+                if state.registration_type == RegistrationType::Primary {
+                    warn!("received a key sync message as a primary device; ignoring")
+                } else {
+                    match keys
+                        .account_entropy_pool
+                        .as_ref()
+                        .map(|s| AccountEntropyPool::from_str(s))
+                    {
+                        Some(Ok(aep)) => {
+                            if let Err(error) =
+                                state.store.store_account_entropy_pool(Some(&aep)).await
+                            {
+                                error!(%error, "failed to store account entropy pool");
+                            }
+                            state.account_entropy_pool = Some(aep);
+                        }
+                        Some(Err(error)) => {
+                            warn!(%error, "cannot convert account entropy pool from string")
+                        }
+                        None => {}
+                    }
+                }
+            }
+
+            // group update
+            if let ContentBody::DataMessage(DataMessage {
+                group_v2:
+                    Some(GroupContextV2 {
+                        master_key: Some(master_key_bytes),
+                        revision: Some(revision),
+                        ..
+                    }),
+                ..
+            })
+            | ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
+                        message:
+                            Some(DataMessage {
+                                group_v2:
+                                    Some(GroupContextV2 {
+                                        master_key: Some(master_key_bytes),
+                                        revision: Some(revision),
+                                        ..
+                                    }),
+                                ..
+                            }),
+                        ..
+                    })),
+                ..
+            }) = &content.body
+            {
+                // there's two things to implement: the group metadata (fetched from HTTP API)
+                // and the group changes, which are part of the protobuf messages
+                // this means we kinda need our own internal representation of groups inside of presage?
+                if let Ok(Some(group)) = upsert_group(
+                    &state.store,
+                    &mut state.groups_manager,
+                    master_key_bytes,
+                    revision,
+                )
+                .await
+                {
+                    trace!(?group, "upserted group");
+                }
+            }
+
+            if let Err(error) = save_message(
+                &mut state.store,
+                &mut state.identified_websocket,
+                content.clone(),
+                None,
+            )
+            .await
+            {
+                error!(%error, "error saving message to store");
+            }
+
+            Some(Received::Content(Box::new(content)))
         }
 
         let identified_push_service = self.identified_push_service();
@@ -647,8 +937,28 @@ impl<S: Store> Manager<S, Registered> {
             unidentified_websocket: self.unidentified_websocket().await?,
             encrypted_messages: Box::pin(encrypted_messages.stream()),
             message_receiver: MessageReceiver::new(identified_push_service),
-            service_cipher_aci: self.new_service_cipher_aci(),
-            service_cipher_pni: self.new_service_cipher_pni(),
+            session_lock: self.state.session_lock.clone(),
+            trust_roots: self
+                .state
+                .service_configuration()
+                .unidentified_sender_trust_roots,
+            aci_address: ProtocolAddress::new(
+                self.state.data.service_ids.aci().service_id_string(),
+                self.state.device_id(),
+            ),
+            pni_address: ProtocolAddress::new(
+                self.state.data.service_ids.pni().service_id_string(),
+                self.state.device_id(),
+            ),
+            decrypted: self
+                .store
+                .decrypted()
+                .await
+                .unwrap_or_else(|error| {
+                    error!(%error, "failed to load the messages decrypted and not handled");
+                    Vec::new()
+                })
+                .into(),
             groups_manager: Box::pin(self.groups_manager()).await?,
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
@@ -661,321 +971,100 @@ impl<S: Store> Manager<S, Registered> {
         let incoming_messages_stream = futures::stream::unfold(init, |mut state| {
             async move {
                 loop {
+                    if let Some((id, content)) = state.decrypted.pop_front() {
+                        debug!(
+                            id,
+                            "handling a message decrypted before the receiver stopped"
+                        );
+                        let received = handle_content(&mut state, content).await;
+                        if let Err(error) = state.store.handled(id).await {
+                            error!(%error, "failed to forget a handled message; it is handled again at the next start");
+                        }
+                        if let Some(received) = received {
+                            return Some((received, state));
+                        }
+                        continue;
+                    }
                     match state.encrypted_messages.next().await {
-                        Some(Ok(Incoming::Envelope(envelope))) => {
-                            let envelope = {
-                                // the permit is released at the end of the block (impl Drop)
-                                match envelope.parse_destination_service_id() {
-                                    None => {
-                                        warn!("Message has no destination service ID, dropping.");
-                                        continue;
-                                    }
-                                    Some(ServiceId::Aci(_)) => {
-                                        state
-                                            .service_cipher_aci
-                                            .open_envelope(envelope, &mut rand::rng())
-                                            .await
-                                    }
-                                    Some(ServiceId::Pni(pni)) => {
-                                        if pni == state.service_ids.pni()
-                                            && envelope.parse_source_service_id().is_none()
-                                        {
-                                            warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
-                                            continue;
-                                        }
-                                        state
-                                            .service_cipher_pni
-                                            .open_envelope(envelope, &mut rng())
-                                            .await
-                                    }
+                        Some(Ok(Incoming::Envelope { envelope, ack })) => {
+                            match envelope.parse_destination_service_id() {
+                                None => {
+                                    warn!("Message has no destination service ID, dropping.");
+                                    ack.ack();
+                                    continue;
+                                }
+                                Some(ServiceId::Pni(pni))
+                                    if pni == state.service_ids.pni()
+                                        && envelope.parse_source_service_id().is_none() =>
+                                {
+                                    warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
+                                    ack.ack();
+                                    continue;
+                                }
+                                Some(_) => {}
+                            }
+                            // One session step, in one transaction: the session moves on and what
+                            // the envelope held is kept, or neither. A receiver stopping before the
+                            // commit leaves the envelope unacknowledged and the session as it was,
+                            // to decrypt it again when it comes again.
+                            let session_lock = state.session_lock.clone();
+                            let step = session_lock.step().await;
+                            let mut transaction = match state.store.transaction().await {
+                                Ok(transaction) => transaction,
+                                Err(error) => {
+                                    error!(%error, "failed to begin a transaction; the envelope comes again");
+                                    continue;
                                 }
                             };
-                            match envelope {
-                                Ok(Some(content)) => {
-                                    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
-                                        error!(
-                                            error = ?e,
-                                            "got error decrypting a message"
-                                        );
-                                        return Some((
-                                            Received::DecryptionError(content.metadata.sender),
-                                            state,
-                                        ));
-                                    }
-
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Request(request)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        use libsignal_service::content::sync_message::request::Type as RequestType;
-
-                                        match request.r#type() {
-                                            RequestType::Contacts => {
-                                                let contacts = state
-                                                    .store
-                                                    .contacts()
-                                                    .await
-                                                    .map(|i| {
-                                                        i.collect::<Result<Vec<_>, _>>()
-                                                            .unwrap_or_default()
-                                                    })
-                                                    .unwrap_or_default();
-
-                                                let mut message_sender =
-                                                    state.message_sender.clone();
-                                                let aci = state.service_ids.aci();
-                                                tokio::task::spawn_local(async move {
-                                                    let result = message_sender
-                                                    .send_contact_details(
-                                                        &ServiceId::Aci(aci),
-                                                        None,
-                                                        contacts.into_iter().map(|c| libsignal_service::sender::ContactDetails {
-                                                            number: c.phone_number.map(|p| p.to_string()),
-                                                            aci: Some(c.uuid.to_string()),
-                                                            aci_binary: Some(c.uuid.into_bytes().into()),
-                                                            name: Some(c.name),
-                                                            avatar: c.avatar.map(|a| libsignal_service::proto::contact_details::Avatar {
-                                                                content_type: Some(a.content_type),
-                                                                length: a.reader.len().try_into().ok(),
-                                                            }),
-                                                            expire_timer: Some(c.expire_timer),
-                                                            expire_timer_version: Some(c.expire_timer_version),
-                                                            inbox_position: None,
-                                                        }),
-                                                        false,
-                                                        true,
-                                                    )
-                                                    .await;
-
-                                                    if let Err(error) = result {
-                                                        warn!(%error, "Error sending contact details to other devices");
-                                                    }
-                                                });
-                                            }
-                                            RequestType::Keys => {
-                                                let mut message_sender =
-                                                    state.message_sender.clone();
-                                                let account_entropy_pool = state
-                                                    .account_entropy_pool
-                                                    .as_ref()
-                                                    .map(|aep| aep.to_string());
-                                                tokio::task::spawn_local(async move {
-                                                    let result = message_sender.send_sync_message(SyncMessage {
-                                                        content: Some(SyncContent::Keys(libsignal_service::content::sync_message::Keys {
-                                                            account_entropy_pool,
-                                                            media_root_backup_key: None,
-                                                        })),
-                                                        ..SyncMessage::with_padding(&mut rand::rng())
-                                                    }).await;
-
-                                                    if let Err(error) = result {
-                                                        warn!(%error, "Error sending keys to other devices");
-                                                    }
-                                                });
-                                            }
-                                            RequestType::Blocked => {
-                                                warn!("storing blocked user is not implemented yet! we will not report blocked users to the device requesting the sync.");
-                                                let mut message_sender =
-                                                    state.message_sender.clone();
-                                                tokio::task::spawn_local(async move {
-                                                    let result = message_sender.send_sync_message(SyncMessage {
-                                                    content: Some(SyncContent::Blocked(libsignal_service::content::sync_message::Blocked {
-                                                        numbers: vec![],
-                                                        acis: vec![],
-                                                        acis_binary: vec![],
-                                                        group_ids: vec![],
-                                                    })),
-                                                    ..SyncMessage::with_padding(&mut rand::rng())
-                                                }).await;
-
-                                                    if let Err(error) = result {
-                                                        warn!(%error, "Error sending blocked contacts to other devices");
-                                                    }
-                                                });
-                                            }
-                                            t => {
-                                                info!(type = ?t, "Got sync request of currently unhandled type")
-                                            }
-                                        }
-                                    }
-
-                                    // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Contacts(contacts)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        match state
-                                            .message_receiver
-                                            .retrieve_contacts(contacts)
-                                            .await
-                                        {
-                                            Ok(contacts) => {
-                                                info!("saving contacts");
-                                                for contact in contacts.filter_map(Result::ok) {
-                                                    if let Err(error) = state
-                                                        .store
-                                                        .save_contact(&contact.into())
-                                                        .await
-                                                    {
-                                                        warn!(%error, "failed to save contacts");
-                                                        break;
-                                                    }
-                                                }
-                                            }
-                                            Err(error) => {
-                                                warn!(%error, "failed to retrieve contacts");
-                                            }
-                                        }
-
-                                        return Some((Received::Contacts, state));
-                                    }
-
-                                    // sticker pack operations
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        sticker_pack_operation,
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        for operation in sticker_pack_operation {
-                                            match operation.r#type() {
-                                                sticker_pack_operation::Type::Install => {
-                                                    let store = state.store.clone();
-                                                    let unidentified_websocket =
-                                                        state.unidentified_websocket.clone();
-                                                    let operation = operation.clone();
-
-                                                    // download stickers in the background
-                                                    tokio::spawn(async move {
-                                                        match download_sticker_pack(
-                                                            store,
-                                                            unidentified_websocket,
-                                                            &operation,
-                                                        )
-                                                        .await
-                                                        {
-                                                            Ok(sticker_pack) => {
-                                                                debug!(
-                                                                "downloaded sticker pack: {} made by {}",
-                                                                sticker_pack.manifest.title,
-                                                                sticker_pack.manifest.author
-                                                            );
-                                                            }
-                                                            Err(error) => error!(
-                                                                %error,
-                                                                "failed to download sticker pack"
-                                                            ),
-                                                        }
-                                                    });
-                                                }
-                                                sticker_pack_operation::Type::Remove => match state
-                                                    .store
-                                                    .remove_sticker_pack(operation.pack_id())
-                                                    .await
-                                                {
-                                                    Ok(was_present) => {
-                                                        debug!(was_present, "removed stick pack")
-                                                    }
-                                                    Err(error) => {
-                                                        error!(
-                                                            %error,
-                                                            "failed to remove sticker pack"
-                                                        )
-                                                    }
-                                                },
-                                            }
-                                        }
-                                    }
-
-                                    // key synchronization sent from the primary device
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Keys(keys)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        debug!("received key sync message");
-                                        if state.registration_type == RegistrationType::Primary {
-                                            warn!("received a key sync message as a primary device; ignoring")
-                                        } else {
-                                            match keys
-                                                .account_entropy_pool
-                                                .as_ref()
-                                                .map(|s| AccountEntropyPool::from_str(s))
-                                            {
-                                                Some(Ok(aep)) => {
-                                                    if let Err(error) = state
-                                                        .store
-                                                        .store_account_entropy_pool(Some(&aep))
-                                                        .await
-                                                    {
-                                                        error!(%error, "failed to store account entropy pool");
-                                                    }
-                                                    state.account_entropy_pool = Some(aep);
-                                                }
-                                                Some(Err(error)) => {
-                                                    warn!(%error, "cannot convert account entropy pool from string")
-                                                }
-                                                None => {}
-                                            }
-                                        }
-                                    }
-
-                                    // group update
-                                    if let ContentBody::DataMessage(DataMessage {
-                                        group_v2:
-                                            Some(GroupContextV2 {
-                                                master_key: Some(master_key_bytes),
-                                                revision: Some(revision),
-                                                ..
-                                            }),
-                                        ..
-                                    })
-                                    | ContentBody::SynchronizeMessage(SyncMessage {
-                                        content:
-                                            Some(SyncContent::Sent(sync_message::Sent {
-                                                message:
-                                                    Some(DataMessage {
-                                                        group_v2:
-                                                            Some(GroupContextV2 {
-                                                                master_key: Some(master_key_bytes),
-                                                                revision: Some(revision),
-                                                                ..
-                                                            }),
-                                                        ..
-                                                    }),
-                                                ..
-                                            })),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        // there's two things to implement: the group metadata (fetched from HTTP API)
-                                        // and the group changes, which are part of the protobuf messages
-                                        // this means we kinda need our own internal representation of groups inside of presage?
-                                        if let Ok(Some(group)) = upsert_group(
-                                            &state.store,
-                                            &mut state.groups_manager,
-                                            master_key_bytes,
-                                            revision,
-                                        )
-                                        .await
-                                        {
-                                            trace!(?group, "upserted group");
-                                        }
-                                    }
-
-                                    if let Err(error) = save_message(
-                                        &mut state.store,
-                                        &mut state.identified_websocket,
-                                        content.clone(),
-                                        None,
+                            // Their own session lock: this step holds the shared one.
+                            let envelope = match envelope.parse_destination_service_id() {
+                                Some(ServiceId::Pni(_)) => {
+                                    ServiceCipher::new(
+                                        transaction.pni_protocol_store(),
+                                        state.trust_roots.clone(),
+                                        state.pni_address.clone(),
                                     )
+                                    .open_envelope(envelope, &mut rng())
                                     .await
-                                    {
-                                        error!(%error, "error saving message to store");
+                                }
+                                _ => {
+                                    ServiceCipher::new(
+                                        transaction.aci_protocol_store(),
+                                        state.trust_roots.clone(),
+                                        state.aci_address.clone(),
+                                    )
+                                    .open_envelope(envelope, &mut rng())
+                                    .await
+                                }
+                            };
+                            let envelope = match envelope {
+                                Ok(Some(content)) => {
+                                    match transaction.keep_decrypted(&content).await {
+                                        Ok(id) => Ok(Some((id, content))),
+                                        Err(error) => {
+                                            error!(%error, "failed to keep a decrypted message; the envelope comes again");
+                                            continue;
+                                        }
                                     }
-
-                                    return Some((Received::Content(Box::new(content)), state));
+                                }
+                                Ok(None) => Ok(None),
+                                Err(error) => Err(error),
+                            };
+                            if let Err(error) = transaction.commit().await {
+                                error!(%error, "failed to commit a decrypted message; the envelope comes again");
+                                continue;
+                            }
+                            drop(step);
+                            ack.ack();
+                            match envelope {
+                                Ok(Some((id, content))) => {
+                                    let received = handle_content(&mut state, content).await;
+                                    if let Err(error) = state.store.handled(id).await {
+                                        error!(%error, "failed to forget a handled message; it is handled again at the next start");
+                                    }
+                                    if let Some(received) = received {
+                                        return Some((received, state));
+                                    }
                                 }
                                 Ok(None) => {
                                     debug!("empty envelope, message will be skipped!")
@@ -1379,6 +1468,7 @@ impl<S: Store> Manager<S, Registered> {
     /// Clears all sessions established with [recipient](ServiceId).
     pub async fn clear_sessions(&self, recipient: &ServiceId) -> Result<(), Error<S::Error>> {
         use libsignal_service::session_store::SessionStoreExt;
+        let _step = self.state.session_lock.step().await;
         self.store
             .aci_protocol_store()
             .delete_all_sessions(recipient)
@@ -1532,6 +1622,7 @@ impl<S: Store> Manager<S, Registered> {
         trace!(recipient = %recipient.service_id_string(), "resetting session for address");
 
         let mut store = self.store.aci_protocol_store();
+        let step = self.state.session_lock.step().await;
 
         // Archive all sessions with all receiver devices.
         // Note that the "get_sub_device_sessions" does not include the main device, therefore add it.
@@ -1553,6 +1644,7 @@ impl<S: Store> Manager<S, Registered> {
                 store.store_session(&address, &session).await?;
             }
         }
+        drop(step);
 
         // TODO: Signal Android also deletes entries in some sender_key_shared table; we don't have such a table yet.
         // Does not seem necessary though.
@@ -1663,19 +1755,7 @@ impl<S: Store> Manager<S, Registered> {
                 self.state.device_id(),
             ),
         )
-    }
-
-    fn new_service_cipher_pni(&self) -> ServiceCipher<S::PniStore> {
-        ServiceCipher::new(
-            self.store.pni_protocol_store(),
-            self.state
-                .service_configuration()
-                .unidentified_sender_trust_roots,
-            ProtocolAddress::new(
-                self.state.data.service_ids.pni().service_id_string(),
-                self.state.device_id(),
-            ),
-        )
+        .with_session_lock(self.state.session_lock.clone())
     }
 
     /// Returns the title of a thread (contact or group).

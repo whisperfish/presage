@@ -728,6 +728,129 @@ mod test {
 
     use super::*;
 
+    /// Stores a session with `their` identity, as fetching a pre-key bundle does.
+    async fn store_session_with(
+        store: &mut SqliteProtocolStore,
+        remote: &ProtocolAddress,
+        their: &IdentityKeyPair,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        use presage::libsignal_service::protocol::{
+            InMemSignalProtocolStore, PreKeyBundle, kem, process_prekey_bundle,
+        };
+        let mut rng = rand::rng();
+        let pre_key = KeyPair::generate(&mut rng);
+        let signed = KeyPair::generate(&mut rng);
+        let signed_signature = their
+            .private_key()
+            .calculate_signature(&signed.public_key.serialize(), &mut rng)?;
+        let kyber = kem::KeyPair::generate(kem::KeyType::Kyber1024, &mut rng);
+        let kyber_signature = their
+            .private_key()
+            .calculate_signature(&kyber.public_key.serialize(), &mut rng)?;
+        let bundle = PreKeyBundle::new(
+            7,
+            remote.device_id(),
+            Some((1.into(), pre_key.public_key)),
+            2.into(),
+            signed.public_key,
+            signed_signature.to_vec(),
+            3.into(),
+            kyber.public_key,
+            kyber_signature.to_vec(),
+            *their.identity_key(),
+        )?;
+        let mut us = InMemSignalProtocolStore::new(IdentityKeyPair::generate(&mut rng), 1)?;
+        let local = ProtocolAddress::new("us".into(), DeviceId::new(1).unwrap());
+        process_prekey_bundle(
+            remote,
+            &local,
+            &mut us.session_store,
+            &mut us.identity_store,
+            &bundle,
+            std::time::SystemTime::now(),
+            &mut rng,
+        )
+        .await?;
+        let record = us.load_session(remote).await?.expect("a session");
+        store.store_session(remote, &record).await?;
+        Ok(())
+    }
+
+    /// A session stored and a decrypted message kept in one transaction: both once it is
+    /// committed, neither when it is dropped, as when the receiver stops in between.
+    #[tokio::test]
+    async fn a_transaction_writes_all_or_nothing() -> Result<(), Box<dyn std::error::Error>> {
+        use chrono::TimeZone;
+        use presage::{
+            libsignal_service::content::{Content, ContentBody, Metadata},
+            proto::DataMessage,
+            store::{ContentsStore, Store},
+        };
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let sender = ServiceId::Aci(Uuid::from_u128(9).into());
+        let remote = ProtocolAddress::new(sender.service_id_string(), DeviceId::new(1).unwrap());
+        let their = IdentityKeyPair::generate(&mut rand::rng());
+        let at = chrono::Utc.timestamp_millis_opt(1000).unwrap();
+        let content = Content {
+            metadata: Metadata {
+                sender,
+                destination: sender,
+                sender_device: 1.try_into()?,
+                client_timestamp: at,
+                server_timestamp: at,
+                needs_receipt: true,
+                unidentified_sender: true,
+                server_guid: None,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: ContentBody::DataMessage(DataMessage {
+                body: Some("kept".into()),
+                timestamp: Some(1000),
+                ..Default::default()
+            }),
+        };
+
+        {
+            let mut transaction = store.transaction().await?;
+            store_session_with(&mut transaction.aci_protocol_store(), &remote, &their).await?;
+            transaction.keep_decrypted(&content).await?;
+        }
+        assert!(
+            store
+                .aci_protocol_store()
+                .load_session(&remote)
+                .await?
+                .is_none()
+        );
+        assert!(store.decrypted().await?.is_empty());
+
+        let mut transaction = store.transaction().await?;
+        store_session_with(&mut transaction.aci_protocol_store(), &remote, &their).await?;
+        let id = transaction.keep_decrypted(&content).await?;
+        transaction.commit().await?;
+        assert!(
+            store
+                .aci_protocol_store()
+                .load_session(&remote)
+                .await?
+                .is_some()
+        );
+        let decrypted = store.decrypted().await?;
+        assert_eq!(decrypted.len(), 1);
+        assert_eq!(decrypted[0].0, id);
+        let ContentBody::DataMessage(DataMessage { body, .. }) = &decrypted[0].1.body else {
+            panic!("not the message kept");
+        };
+        assert_eq!(body.as_deref(), Some("kept"));
+        assert_eq!(decrypted[0].1.metadata.sender, sender);
+        assert!(decrypted[0].1.metadata.needs_receipt);
+
+        store.clone().handled(id).await?;
+        assert!(store.decrypted().await?.is_empty());
+        Ok(())
+    }
+
     #[tokio::test]
     async fn kyber_pre_keys_mark_used_one_time() -> Result<(), Box<dyn std::error::Error>> {
         let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
