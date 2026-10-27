@@ -40,7 +40,7 @@ impl ContentsStore for SqliteStore {
         Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>> + Send + Sync>;
 
     async fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM profiles")
             .execute(&mut *transaction)
             .await?;
@@ -55,7 +55,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM thread_messages")
             .execute(&mut *transaction)
             .await?;
@@ -82,7 +82,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM thread_messages")
             .execute(&mut *transaction)
             .await?;
@@ -111,7 +111,7 @@ impl ContentsStore for SqliteStore {
         thread: &Thread,
         Content { metadata, body }: Content,
     ) -> Result<(), Self::ContentsStoreError> {
-        let mut tx = self.db.begin().await?;
+        let mut tx = self.begin_write().await?;
 
         let thread_id = match thread {
             Thread::Contact(service_id) => {
@@ -287,7 +287,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM contacts")
             .execute(&mut *transaction)
             .await?;
@@ -303,7 +303,7 @@ impl ContentsStore for SqliteStore {
         let avatar_bytes = contact.avatar.as_ref().map(|a| a.reader.to_vec());
         let phone_number = contact.phone_number.as_ref().map(|p| p.to_string());
 
-        let mut tx = self.db.begin().await?;
+        let mut tx = self.begin_write().await?;
 
         query!(
             "INSERT OR REPLACE INTO contacts
@@ -407,7 +407,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM groups")
             .execute(&mut *transaction)
             .await?;

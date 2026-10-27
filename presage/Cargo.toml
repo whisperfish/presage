@@ -12,7 +12,7 @@ default = []
 cdsi = ["libsignal-service/cdsi"]
 
 [dependencies]
-libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "fb92b13c82fde40ba4d10696cf79aa4f36ce25f1", default-features = false, features = [
+libsignal-service = { git = "https://github.com/whisperfish/libsignal-service-rs", rev = "72a098769009923fbe22a79372546ca7773255d4", default-features = false, features = [
     "phonenumber",
 ] }
 
@@ -34,9 +34,18 @@ tracing = "0.1"
 url = "2.5"
 derive_more = { version = "2.1.0", features = ["debug"] }
 bytes = { version = "1.7.2", features = ["serde"] }
+mime = "0.3.17"
+regex = "1.12.2"
+reqwest = { version = "0.13", default-features = false, features = ["rustls", "system-proxy"] }
+scraper = "0.25.0"
+percent-encoding = "2"
 
 [dev-dependencies]
 quickcheck = "1.0.3"
 quickcheck_async = "0.1"
 presage-store-sqlite = { path = "../presage-store-sqlite" }
 tokio = { version = "1.48.0", features = ["rt-multi-thread", "macros"] }
+rcgen = "0.14"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
+axum = { version = "0.8", default-features = false, features = ["tokio", "http1"] }
+axum-server = { version = "0.8", default-features = false, features = ["tls-rustls-no-provider"] }

@@ -30,6 +30,15 @@ pub struct SqliteStore {
 }
 
 impl SqliteStore {
+    /// Begins a transaction that writes, taking the write lock at once. A deferred transaction
+    /// that reads before it writes fails with `SQLITE_BUSY`, which no busy timeout waits out,
+    /// when another connection to the database writes in between.
+    pub(crate) async fn begin_write(
+        &self,
+    ) -> Result<sqlx::Transaction<'static, sqlx::Sqlite>, sqlx::Error> {
+        self.db.begin_with("BEGIN IMMEDIATE").await
+    }
+
     pub async fn open(
         url: &str,
         trust_new_identities: OnNewIdentity,
@@ -73,6 +82,12 @@ impl SqliteStore {
             db,
             trust_new_identities,
         })
+    }
+
+    /// Closes the pool, waiting for all connections to close.
+    /// Call before exit: SQLCipher's atexit cleanup races connections still closing.
+    pub async fn close(&self) {
+        self.db.close().await;
     }
 }
 
@@ -136,7 +151,7 @@ impl StateStore for SqliteStore {
     }
 
     async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM kv WHERE key = 'registration'")
             .execute(&mut *transaction)
             .await?;
@@ -280,5 +295,22 @@ impl StateStore for SqliteStore {
                 .await?;
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn close_closes_the_pool() {
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust)
+            .await
+            .unwrap();
+        let clone = store.clone();
+
+        store.close().await;
+
+        assert!(clone.db.is_closed());
     }
 }

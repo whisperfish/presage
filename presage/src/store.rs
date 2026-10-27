@@ -512,6 +512,17 @@ impl TryFrom<&Content> for Thread {
                     .try_into()
                     .map_err(|_| ThreadError::InvalidGroupMasterKey)?,
             )),
+            // [1-1] Call log entry from one of our devices
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::CallEvent(sync_message::CallEvent {
+                        conversation_id: Some(conversation_id),
+                        ..
+                    })),
+                ..
+            }) if let Some(service_id) = ServiceId::parse_from_service_id_binary(conversation_id) => {
+                Ok(Self::Contact(service_id))
+            }
             // [1-1] Any other message directly to us
             _ => Ok(Thread::Contact(content.metadata.sender)),
         }
@@ -646,4 +657,47 @@ pub async fn save_trusted_identity_message<S: Store>(
     };
 
     store.save_message(&thread, verified_sync_message).await
+}
+
+#[cfg(test)]
+mod tests {
+    use libsignal_service::{
+        content::{Content, ContentBody, Metadata},
+        prelude::Uuid,
+        proto::{sync_message, SyncMessage},
+        protocol::{Aci, ServiceId},
+    };
+
+    use super::Thread;
+
+    #[test]
+    fn call_event_thread() {
+        let own: ServiceId = Aci::from(Uuid::from_u128(1)).into();
+        let peer: ServiceId = Aci::from(Uuid::from_u128(2)).into();
+        let now = chrono::Utc::now();
+        let content = Content {
+            metadata: Metadata {
+                sender: own,
+                sender_device: 1.try_into().unwrap(),
+                destination: own,
+                server_guid: None,
+                client_timestamp: now,
+                server_timestamp: now,
+                needs_receipt: false,
+                unidentified_sender: false,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: ContentBody::SynchronizeMessage(SyncMessage {
+                content: Some(sync_message::Content::CallEvent(sync_message::CallEvent {
+                    conversation_id: Some(peer.service_id_binary()),
+                    call_id: Some(42),
+                    timestamp: Some(1_700_000_000_000),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }),
+        };
+        assert_eq!(Thread::try_from(&content).unwrap(), Thread::Contact(peer));
+    }
 }
