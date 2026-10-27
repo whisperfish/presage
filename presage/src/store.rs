@@ -251,7 +251,7 @@ pub trait ContentsStore: Send + Sync {
     /// Delete all cached group data
     fn clear_groups(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Save a group in the cache
+    /// Save a group in the cache. This clears its [left](Self::mark_group_left) mark.
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
@@ -266,6 +266,18 @@ pub trait ContentsStore: Send + Sync {
         &self,
         master_key: GroupMasterKeyBytes,
     ) -> impl Future<Output = Result<Option<Group>, Self::ContentsStoreError>>;
+
+    /// Mark a group as left: the group server refuses its state to this account.
+    fn mark_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Whether a group is [marked as left](Self::mark_group_left).
+    fn is_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
     /// Save a group avatar in the cache
     fn save_group_avatar(

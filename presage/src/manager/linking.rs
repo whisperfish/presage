@@ -12,7 +12,7 @@ use rand::{
     distr::{Alphanumeric, SampleString},
     rng, RngCore,
 };
-use tracing::{debug, info};
+use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::manager::registered::RegistrationData;
@@ -27,6 +27,7 @@ pub struct Linking;
 impl<S: Store> Manager<S, Linking> {
     /// Links this client as a secondary device from the device used to register the account (usually a phone).
     /// The URL to present to the user will be sent in the channel given as the argument.
+    /// Once linked, the groups listed in the account's Storage Service are saved in the store.
     ///
     /// ```no_run
     /// use futures::{channel::oneshot, future, StreamExt};
@@ -177,6 +178,10 @@ impl<S: Store> Manager<S, Linking> {
                     store: store.clone(),
                     state: Registered::with_data(registration_data),
                 };
+
+                if let Err(error) = Box::pin(manager.sync_groups_from_storage_service()).await {
+                    warn!(%error, "failed to sync groups from the storage service");
+                }
 
                 Ok(manager)
             }
