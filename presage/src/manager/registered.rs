@@ -1460,18 +1460,7 @@ impl<S: Store> Manager<S, Registered> {
             version: group.revision + 1,
             ..Default::default()
         };
-        let mut told: Vec<ServiceId> = group.members.iter().map(|m| m.aci.into()).collect();
-        told.extend(
-            group
-                .pending_members
-                .iter()
-                .map(|m| match m.service_id_type {
-                    crate::model::ServiceIdType::AccountIdentity => ServiceId::Aci(m.uuid.into()),
-                    crate::model::ServiceIdType::PhoneNumberIdentity => {
-                        ServiceId::Pni(m.uuid.into())
-                    }
-                }),
-        );
+        let mut told = told_of_changes(group, own, pni);
         match change {
             GroupEdit::Title(title) => {
                 actions.modify_title =
@@ -1650,7 +1639,7 @@ impl<S: Store> Manager<S, Registered> {
             .profile_key_credential(own, self.state.data.profile_key, &server_public_params)
             .await?;
         let mut attempt = 0;
-        let (info, joined) = loop {
+        let (info, change) = loop {
             attempt += 1;
             let info = groups_manager.group_join_info(&mut rng(), link).await?;
             if info.pending_admin_approval {
@@ -1681,15 +1670,20 @@ impl<S: Store> Manager<S, Registered> {
                 .modify_group_from_invite_link(&mut rng(), link, actions)
                 .await
             {
-                Ok(signed) => break (info, member.then_some((signed, revision))),
+                Ok(signed) => break (info, Some((signed, revision, member))),
                 Err(error) if is_conflict(&error) && attempt < ATTEMPTS => {
                     debug!(attempt, "the group changed meanwhile; joining again");
                 }
                 Err(error) => return Err(error.into()),
             }
         };
-        let Some((signed, revision)) = joined else {
-            // Not a member: the server shows us nothing more until we are let in.
+        let Some((signed, revision, true)) = change else {
+            // Not a member: the server shows us nothing more until we are let in. The members of
+            // a group we were in stay as we have them, to tell them we asked.
+            let known = self.store.group(link.master_key).await?;
+            let (members, pending_members) = known
+                .map(|known| (known.members, known.pending_members))
+                .unwrap_or_default();
             let group = Group {
                 title: info.title,
                 avatar: info.avatar.clone(),
@@ -1701,8 +1695,8 @@ impl<S: Store> Manager<S, Registered> {
                     member_label: AccessRequired::Member,
                 }),
                 revision: info.version,
-                members: Vec::new(),
-                pending_members: Vec::new(),
+                members,
+                pending_members,
                 requesting_members: vec![crate::model::groups::RequestingMember {
                     aci: own,
                     profile_key: self.state.data.profile_key,
@@ -1730,7 +1724,12 @@ impl<S: Store> Manager<S, Registered> {
                     }
                 }
             }
+            let told = told_of_changes(&group, own, self.state.data.service_ids.pni());
             self.store.save_group(link.master_key, group).await?;
+            if let Some((signed, revision, _)) = change {
+                self.tell_of_change(&link.master_key, &told, revision, &signed)
+                    .await?;
+            }
             return Ok(GroupJoin::Requested);
         };
         let Some(group) = upsert_group(
@@ -1743,26 +1742,40 @@ impl<S: Store> Manager<S, Registered> {
         else {
             return Err(Error::UnknownGroup);
         };
-        let message = DataMessage {
-            group_v2: Some(GroupContextV2 {
-                master_key: Some(link.master_key.to_vec()),
-                revision: Some(revision),
-                group_change: Some(libsignal_service::prelude::ProtobufMessage::encode_to_vec(
-                    &signed,
-                )),
-            }),
-            ..Default::default()
-        };
         let told: Vec<ServiceId> = group
             .members
             .iter()
             .map(|m| ServiceId::Aci(m.aci))
             .filter(|m| *m != ServiceId::Aci(own))
             .collect();
-        let timestamp = Self::now();
-        self.send_to_members(&link.master_key, &told, message, timestamp)
+        let timestamp = self
+            .tell_of_change(&link.master_key, &told, revision, &signed)
             .await?;
         Ok(GroupJoin::Joined { timestamp })
+    }
+
+    /// Sends a signed change of a group to `told`; returns the message's timestamp.
+    async fn tell_of_change(
+        &mut self,
+        master_key: &[u8; 32],
+        told: &[ServiceId],
+        revision: u32,
+        signed: &libsignal_service::proto::GroupChange,
+    ) -> Result<u64, Error<S::Error>> {
+        let message = DataMessage {
+            group_v2: Some(GroupContextV2 {
+                master_key: Some(master_key.to_vec()),
+                revision: Some(revision),
+                group_change: Some(libsignal_service::prelude::ProtobufMessage::encode_to_vec(
+                    signed,
+                )),
+            }),
+            ..Default::default()
+        };
+        let timestamp = Self::now();
+        self.send_to_members(master_key, told, message, timestamp)
+            .await?;
+        Ok(timestamp)
     }
 
     /// Withdraws the request made with [`Self::join_group`].
@@ -1783,6 +1796,7 @@ impl<S: Store> Manager<S, Registered> {
         let own = self.state.data.service_ids.aci();
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let info = groups_manager.group_join_info(&mut rng(), &link).await?;
+        let mut cancelled = None;
         if info.pending_admin_approval {
             let operations = GroupOperations::new(GroupSecretParams::derive_from_master_key(
                 GroupMasterKey::new(*master_key),
@@ -1796,16 +1810,23 @@ impl<S: Store> Manager<S, Registered> {
                     .build_remove_requesting_member_action(own)
                     .map_err(|e| Error::ServiceError(e.into()))?,
             );
-            groups_manager
+            let revision = actions.version;
+            let signed = groups_manager
                 .modify_group_from_invite_link(&mut rng(), &link, actions)
                 .await?;
+            cancelled = Some((signed, revision));
         }
         // Read again: receiving may have replaced the group meanwhile.
         let Some(mut group) = self.store.group(*master_key).await? else {
             return Err(Error::UnknownGroup);
         };
         group.requesting_members.retain(|m| m.aci != own);
+        let told = told_of_changes(&group, own, self.state.data.service_ids.pni());
         self.store.save_group(*master_key, group).await?;
+        if let Some((signed, revision)) = cancelled {
+            self.tell_of_change(master_key, &told, revision, &signed)
+                .await?;
+        }
         Ok(())
     }
 
@@ -2924,6 +2945,30 @@ fn is_conflict(error: &libsignal_service::push_service::ServiceError) -> bool {
     )
 }
 
+/// Who is told of a change to `group`: its members and invitees as stored, without us. Signal's
+/// apps tell the same, also when we only ask to join a group we were in.
+fn told_of_changes(
+    group: &crate::model::groups::Group,
+    aci: Aci,
+    pni: libsignal_service::protocol::Pni,
+) -> Vec<ServiceId> {
+    use crate::model::ServiceIdType;
+    let mut told: Vec<ServiceId> = group.members.iter().map(|m| m.aci.into()).collect();
+    told.extend(
+        group
+            .pending_members
+            .iter()
+            .map(|m| match m.service_id_type {
+                ServiceIdType::AccountIdentity => ServiceId::Aci(m.uuid.into()),
+                ServiceIdType::PhoneNumberIdentity => ServiceId::Pni(m.uuid.into()),
+            }),
+    );
+    told.retain(|m| *m != ServiceId::Aci(aci) && *m != ServiceId::Pni(pni));
+    told.sort();
+    told.dedup();
+    told
+}
+
 /// Which of our identities `group` has an invitation for.
 fn invited_as(
     group: &crate::model::groups::Group,
@@ -3002,6 +3047,43 @@ mod invitation_tests {
             added_by_aci: Aci::from(Uuid::from_u128(9)),
             timestamp: 0,
         }
+    }
+
+    #[test]
+    fn a_change_is_told_to_members_and_invitees_but_not_us() {
+        let aci = Aci::from(Uuid::from_u128(1));
+        let pni = libsignal_service::protocol::Pni::from(Uuid::from_u128(2));
+        let member = |n| crate::model::groups::Member {
+            aci: Aci::from(Uuid::from_u128(n)),
+            role: libsignal_service::groups_v2::Role::Default,
+            profile_key: ProfileKey::create([0; 32]),
+            joined_at_revision: 0,
+            label: None,
+            label_emoji: None,
+        };
+        let group = Group {
+            title: String::new(),
+            avatar: String::new(),
+            disappearing_messages_timer: None,
+            access_control: None,
+            revision: 0,
+            members: vec![member(1), member(3)],
+            pending_members: vec![
+                pending(Uuid::from_u128(2), ServiceIdType::PhoneNumberIdentity),
+                pending(Uuid::from_u128(4), ServiceIdType::PhoneNumberIdentity),
+                pending(Uuid::from_u128(3), ServiceIdType::AccountIdentity),
+            ],
+            requesting_members: vec![],
+            invite_link_password: vec![],
+            description: None,
+        };
+        assert_eq!(
+            told_of_changes(&group, aci, pni),
+            vec![
+                ServiceId::Aci(Aci::from(Uuid::from_u128(3))),
+                ServiceId::Pni(libsignal_service::protocol::Pni::from(Uuid::from_u128(4))),
+            ]
+        );
     }
 
     #[test]
