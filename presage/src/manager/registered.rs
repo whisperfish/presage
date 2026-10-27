@@ -566,6 +566,24 @@ impl<S: Store> Manager<S, Registered> {
         Ok(Some(avatar))
     }
 
+    /// Fetches the group's state from the server and stores it, whatever
+    /// revision is stored; returns it, with what the store doesn't keep,
+    /// such as whether the group was ended.
+    pub async fn refresh_group(
+        &self,
+        master_key_bytes: &[u8],
+    ) -> Result<libsignal_service::groups_v2::Group, Error<S::Error>> {
+        let mut groups_manager = Box::pin(self.groups_manager()).await?;
+        let encrypted_group = groups_manager
+            .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
+            .await?;
+        let group = decrypt_group(master_key_bytes, encrypted_group)?;
+        self.store
+            .save_group(master_key_bytes.try_into()?, group.clone())
+            .await?;
+        Ok(group)
+    }
+
     async fn groups_manager(
         &self,
     ) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
