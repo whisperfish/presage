@@ -1,5 +1,6 @@
 use std::fmt;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -88,6 +89,8 @@ pub struct Registered {
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
+    /// See [`Manager::set_automatic_link_previews`]; shared by the manager's clones.
+    pub(crate) automatic_link_previews: Arc<AtomicBool>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -107,8 +110,17 @@ impl Registered {
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
+            automatic_link_previews: Arc::new(AtomicBool::new(true)),
             data: Arc::new(data),
         }
+    }
+
+    /// The text of `message` to fetch a link preview for, if it gets one automatically.
+    fn automatic_link_preview_body<'a>(&self, message: &'a DataMessage) -> Option<&'a str> {
+        if !self.automatic_link_previews.load(Ordering::Relaxed) || !message.preview.is_empty() {
+            return None;
+        }
+        message.body.as_deref()
     }
 
     fn servers(&self) -> SignalServers {
@@ -182,6 +194,20 @@ impl RegistrationData {
     /// if the primary device offered to transfer message history.
     pub fn ephemeral_backup_key(&self) -> Option<[u8; 32]> {
         self.ephemeral_backup_key
+    }
+}
+
+impl<S> Manager<S, Registered> {
+    /// Whether [`Self::send_message`] and [`Self::send_message_to_group`] give a data message
+    /// without a preview one for its first link, as [`Self::link_preview`] does. On by default.
+    ///
+    /// Fetching the linked page reveals the user's IP address to its server. An app that leaves
+    /// this to its user turns it off, and sets a preview from [`Self::link_preview`] itself when
+    /// the user wants one. Applies to this manager's clones too.
+    pub fn set_automatic_link_previews(&self, enabled: bool) {
+        self.state
+            .automatic_link_previews
+            .store(enabled, Ordering::Relaxed);
     }
 }
 
@@ -1249,15 +1275,13 @@ impl<S: Store> Manager<S, Registered> {
         }))
     }
 
-    /// Sets a preview of the first link of a data message that has no preview yet.
+    /// Sets a preview of the first link of a data message that has no preview yet, unless
+    /// [automatic link previews](Self::set_automatic_link_previews) are off.
     async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
         let ContentBody::DataMessage(message) = content_body else {
             return;
         };
-        if !message.preview.is_empty() {
-            return;
-        }
-        let Some(body) = message.body.as_deref() else {
+        let Some(body) = self.state.automatic_link_preview_body(message) else {
             return;
         };
         match self.link_preview(body).await {
@@ -2377,4 +2401,76 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use libsignal_service::{
+        configuration::SignalServers,
+        prelude::{phonenumber::PhoneNumber, Uuid},
+        proto::DataMessage,
+        push_service::ServiceIds,
+        zkgroup::profiles::ProfileKey,
+    };
+
+    use super::{Registered, RegistrationData};
+    use crate::Manager;
+
+    fn manager() -> Manager<(), Registered> {
+        Manager {
+            store: (),
+            state: Registered::with_data(RegistrationData {
+                signal_servers: SignalServers::Production,
+                device_name: None,
+                phone_number: PhoneNumber::from_str("+15555550100").unwrap(),
+                service_ids: ServiceIds {
+                    aci: Uuid::from_u128(1),
+                    pni: Uuid::from_u128(2),
+                },
+                password: String::new(),
+                device_id: None,
+                registration_id: 1,
+                pni_registration_id: None,
+                profile_key: ProfileKey::create([0; 32]),
+                ephemeral_backup_key: None,
+            }),
+        }
+    }
+
+    fn message(body: &str) -> DataMessage {
+        DataMessage {
+            body: Some(body.to_owned()),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_message_gets_a_link_preview_by_default() {
+        let manager = manager();
+        let message = message("https://example.org");
+        assert_eq!(
+            manager.state.automatic_link_preview_body(&message),
+            Some("https://example.org")
+        );
+    }
+
+    #[test]
+    fn a_message_with_a_preview_gets_none() {
+        let manager = manager();
+        let mut message = message("https://example.org");
+        message.preview.push(Default::default());
+        assert_eq!(manager.state.automatic_link_preview_body(&message), None);
+    }
+
+    #[test]
+    fn automatic_link_previews_turned_off_fetch_nothing_in_any_clone() {
+        let manager = manager();
+        let clone = manager.clone();
+        manager.set_automatic_link_previews(false);
+        let message = message("https://example.org");
+        assert_eq!(manager.state.automatic_link_preview_body(&message), None);
+        assert_eq!(clone.state.automatic_link_preview_body(&message), None);
+    }
 }
