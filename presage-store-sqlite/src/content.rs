@@ -286,6 +286,44 @@ impl ContentsStore for SqliteStore {
         Ok(Box::new(rows.into_iter().map(TryInto::try_into)))
     }
 
+    async fn messages_before(
+        &self,
+        thread: &Thread,
+        before: Option<u64>,
+        limit: u32,
+    ) -> Result<Vec<Content>, Self::ContentsStoreError> {
+        let (group_master_key, recipient_id) = thread.unzip();
+        let before = before.map_or(i64::MAX, |ts| ts.min(i64::MAX as u64) as i64);
+        let rows = query_as!(
+            SqlMessage,
+            r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND ts < ?
+            ORDER BY ts DESC
+            LIMIT ?"#,
+            group_master_key,
+            recipient_id,
+            before,
+            i64::from(limit),
+        )
+        .fetch_all(&self.db)
+        .await?;
+
+        rows.into_iter().map(TryInto::try_into).collect()
+    }
+
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
         let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM contacts")
@@ -764,6 +802,57 @@ mod test {
         assert!(store.upsert_profile_key(&uuid, key).await?);
         assert!(store.upsert_profile_key(&uuid, key).await?);
 
+        Ok(())
+    }
+    #[tokio::test]
+    async fn messages_before_pages_newest_first() -> Result<(), Box<dyn std::error::Error>> {
+        use chrono::TimeZone;
+        use presage::libsignal_service::content::ContentBody;
+        use presage::proto::DataMessage;
+
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let sender = ServiceId::Aci(Uuid::from_u128(7).into());
+        let thread = Thread::Contact(sender);
+        for ts in 1..=5u64 {
+            let at = chrono::Utc.timestamp_millis_opt(ts as i64).unwrap();
+            let content = Content {
+                metadata: Metadata {
+                    sender,
+                    destination: sender,
+                    sender_device: 1.try_into()?,
+                    client_timestamp: at,
+                    server_timestamp: at,
+                    needs_receipt: false,
+                    unidentified_sender: false,
+                    server_guid: None,
+                    was_plaintext: false,
+                    pni_verified: None,
+                },
+                body: ContentBody::DataMessage(DataMessage {
+                    body: Some(format!("{ts}")),
+                    timestamp: Some(ts),
+                    ..Default::default()
+                }),
+            };
+            store.save_message(&thread, content).await?;
+        }
+        let times = |page: Vec<Content>| -> Vec<u64> {
+            page.iter()
+                .map(|c| c.metadata.client_timestamp.timestamp_millis() as u64)
+                .collect()
+        };
+        assert_eq!(
+            times(store.messages_before(&thread, None, 2).await?),
+            [5, 4]
+        );
+        assert_eq!(
+            times(store.messages_before(&thread, Some(4), 2).await?),
+            [3, 2]
+        );
+        assert_eq!(
+            times(store.messages_before(&thread, Some(2), 2).await?),
+            [1]
+        );
         Ok(())
     }
 }
