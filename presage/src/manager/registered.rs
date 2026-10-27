@@ -1706,7 +1706,13 @@ impl<S: Store> Manager<S, Registered> {
                 description: info.description_text,
             };
             let mut group = group;
-            if !info.avatar.is_empty() {
+            if info.avatar.is_empty() {
+                // None any more: a picture cached from before we left would stay, as later
+                // fetches find no picture on either side, and nothing to refresh.
+                self.store
+                    .save_group_avatar(link.master_key, &Vec::new())
+                    .await?;
+            } else {
                 match groups_manager
                     .retrieve_avatar(&info.avatar, operations.group_secret_params)
                     .await
