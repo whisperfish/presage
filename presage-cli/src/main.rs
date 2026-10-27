@@ -1116,7 +1116,7 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
 
 #[cfg(test)]
 mod tests {
-    use super::{Args, ensure_parent_dir_exists};
+    use super::{ensure_parent_dir_exists, Args};
     use clap::CommandFactory;
     use tempfile::tempdir;
 
