@@ -2151,10 +2151,10 @@ async fn save_message<S: Store>(
             for d in delete.message_deletes.iter().flat_map(|m| &m.messages) {
                 let sender = match &d.author {
                     Some(Author::AuthorServiceId(id)) => {
-                        ServiceId::parse_from_service_id_string(&id)
+                        ServiceId::parse_from_service_id_string(id)
                     }
                     Some(Author::AuthorServiceIdBinary(id)) => {
-                        ServiceId::parse_from_service_id_binary(&id)
+                        ServiceId::parse_from_service_id_binary(id)
                     }
                     Some(Author::AuthorE164(_)) => None,
                     None => None,
