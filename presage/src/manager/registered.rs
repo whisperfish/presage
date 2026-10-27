@@ -30,7 +30,7 @@ use libsignal_service::{
         Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
     },
     provisioning::ProvisioningError,
-    push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
+    push_service::{PushService, ServiceError, ServiceIds, DEFAULT_DEVICE_ID},
     receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
@@ -1971,10 +1971,13 @@ async fn upsert_group<S: Store>(
         let mut fetched = groups_manager
             .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
             .await;
-        // Once more: nothing fetches the group again until its next message, and until then it
-        // stays as it was (a member who left, still listed).
-        if let Err(error) = &fetched {
-            warn!(error = %Causes(error), "failed to fetch encrypted group, fetching it again");
+        // Once more if the connection failed: nothing fetches the group again until its next
+        // message, and until then it stays as it was (a member who left, still listed). Not if
+        // the server answered: a refusal (we aren't a member) would be the same again.
+        if fetched.as_ref().is_err_and(transient) {
+            if let Err(error) = &fetched {
+                warn!(error = %Causes(error), "failed to fetch encrypted group, fetching it again");
+            }
             fetched = groups_manager
                 .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
                 .await;
@@ -1993,6 +1996,17 @@ async fn upsert_group<S: Store>(
     }
 
     Ok(store.group(master_key_bytes.try_into()?).await?)
+}
+
+/// Whether `error` is the connection's, not the server's answer: worth sending again.
+fn transient(error: &ServiceError) -> bool {
+    matches!(
+        error,
+        ServiceError::Http(_)
+            | ServiceError::Timeout { .. }
+            | ServiceError::SendError { .. }
+            | ServiceError::IO(_)
+    )
 }
 
 /// An error with its causes, each after a colon: reqwest's own message leaves them out ("error
@@ -2406,6 +2420,17 @@ async fn register_pre_keys<S: Store>(
 #[cfg(test)]
 mod tests {
     use super::Causes;
+
+    /// A broken connection is worth fetching again; a refusal isn't.
+    #[test]
+    fn only_a_failed_connection_is_fetched_again() {
+        use super::{transient, ServiceError};
+        assert!(transient(&ServiceError::SendError {
+            reason: "closed".into()
+        }));
+        assert!(transient(&ServiceError::IO(std::io::Error::other("reset"))));
+        assert!(!transient(&ServiceError::Unauthorized));
+    }
 
     /// The causes follow the error, as reqwest's own message leaves them out.
     #[test]
