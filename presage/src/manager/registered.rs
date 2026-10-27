@@ -39,6 +39,7 @@ use libsignal_service::{
     websocket::{
         self,
         account::{AccountAttributes, DeviceCapabilities, DeviceInfo, WhoAmIResponse},
+        calling::TurnServer,
         SignalWebSocket,
     },
     zkgroup::{
@@ -58,6 +59,7 @@ use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
 use crate::model::contacts::Contact;
+use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -84,6 +86,7 @@ pub struct Registered {
     pub(crate) identified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Identified>>>>,
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
+    pub(crate) link_preview_client: OnceLock<reqwest::Client>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -102,6 +105,7 @@ impl Registered {
             identified_websocket: Default::default(),
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
+            link_preview_client: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -1149,6 +1153,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut content_body: ContentBody = message.into();
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        self.fetch_link_previews(&mut content_body).await;
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
@@ -1211,6 +1216,72 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Fetches a preview (title, description, image) for the first link in `body`, and
+    /// uploads its image as an attachment, ready to be set as the `preview` of the
+    /// `DataMessage` sending `body`.
+    ///
+    /// Returns `None` if `body` has no link to preview.
+    ///
+    /// This fetches the linked page, which reveals the user's IP address to its server.
+    pub async fn link_preview(
+        &self,
+        body: &str,
+    ) -> Result<Option<libsignal_service::proto::Preview>, Error<S::Error>> {
+        let client = match self.state.link_preview_client.get() {
+            Some(client) => client,
+            None => {
+                let client = previews::client_builder()
+                    .build()
+                    .map_err(previews::Error::from)?;
+                self.state.link_preview_client.get_or_init(|| client)
+            }
+        };
+        let Some(content) = previews::generate_preview_from_message(body, client).await? else {
+            return Ok(None);
+        };
+
+        // the preview is still useful without its image
+        let image = match previews::build_preview_image(&content) {
+            Some((spec, bytes)) => match self.upload_attachment(spec, bytes).await {
+                Ok(Ok(pointer)) => Some(pointer),
+                Ok(Err(error)) => {
+                    warn!(%error, "failed to upload link preview image");
+                    None
+                }
+                Err(error) => {
+                    warn!(%error, "failed to upload link preview image");
+                    None
+                }
+            },
+            None => None,
+        };
+
+        Ok(Some(libsignal_service::proto::Preview {
+            url: content.url,
+            title: content.title,
+            image,
+            description: content.description,
+            date: content.date,
+        }))
+    }
+
+    /// Sets a preview of the first link of a data message that has no preview yet.
+    async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
+        let ContentBody::DataMessage(message) = content_body else {
+            return;
+        };
+        if !message.preview.is_empty() {
+            return;
+        }
+        let Some(body) = message.body.as_deref() else {
+            return;
+        };
+        match self.link_preview(body).await {
+            Ok(preview) => message.preview.extend(preview),
+            Err(error) => warn!(%error, "failed to build link preview, sending without"),
+        }
+    }
+
     /// Uploads one attachment prior to linking them in a message.
     pub async fn upload_attachment(
         &self,
@@ -1257,6 +1328,7 @@ impl<S: Store> Manager<S, Registered> {
         let thread = Thread::Group(master_key_bytes);
 
         self.restore_thread_timer(&thread, &mut content_body).await;
+        self.fetch_link_previews(&mut content_body).await;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
@@ -1544,6 +1616,63 @@ impl<S: Store> Manager<S, Registered> {
         self.send_message(*recipient, message, timestamp).await?;
 
         Ok(())
+    }
+
+    /// Records a finished call in the thread with the peer of `event` and tells our other
+    /// devices about it, so their call logs agree. Returns the stored content.
+    pub async fn send_call_event(
+        &mut self,
+        event: sync_message::CallEvent,
+    ) -> Result<Content, Error<S::Error>> {
+        let sync_message = SyncMessage {
+            content: Some(SyncContent::CallEvent(event.clone())),
+            ..SyncMessage::with_padding(&mut rand::rng())
+        };
+        self.new_message_sender()
+            .await?
+            .send_sync_message(sync_message.clone())
+            .await?;
+
+        let aci = self.state.data.service_ids.aci();
+        // Filed under the start of the call.
+        let timestamp = event
+            .timestamp
+            .and_then(|ts| chrono::Utc.timestamp_millis_opt(ts as i64).single())
+            .unwrap_or_else(chrono::Utc::now);
+        let content = Content {
+            metadata: Metadata {
+                sender: aci.into(),
+                sender_device: self.state.device_id(),
+                destination: aci.into(),
+                server_guid: None,
+                client_timestamp: timestamp,
+                server_timestamp: timestamp,
+                needs_receipt: false,
+                unidentified_sender: false,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: ContentBody::SynchronizeMessage(sync_message),
+        };
+
+        let mut identified_websocket = self.identified_websocket(false).await?;
+        save_message(
+            &mut self.store,
+            &mut identified_websocket,
+            content.clone(),
+            None,
+        )
+        .await?;
+        Ok(content)
+    }
+
+    /// Fetches short-lived TURN credentials for 1:1 calls.
+    pub async fn calling_relays(&self) -> Result<Vec<TurnServer>, Error<S::Error>> {
+        Ok(self
+            .identified_websocket(false)
+            .await?
+            .get_calling_relays()
+            .await?)
     }
 
     fn credentials(&self) -> ServiceCredentials {
@@ -2012,8 +2141,9 @@ async fn save_message<S: Store>(
                 })),
             ..
         }) => Some(message),
-        ContentBody::CallMessage(_)
-        | ContentBody::SynchronizeMessage(SyncMessage {
+        // Call signaling is transient; calls are recorded by `CallEvent`s instead.
+        ContentBody::CallMessage(_) => None,
+        ContentBody::SynchronizeMessage(SyncMessage {
             content: Some(SyncContent::CallEvent(_)),
             ..
         }) => Some(message),
