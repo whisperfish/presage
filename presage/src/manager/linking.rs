@@ -179,8 +179,6 @@ impl<S: Store> Manager<S, Linking> {
                     state: Registered::with_data(registration_data),
                 };
 
-                // The device is linked by now: a failure only leaves the groups to be learnt
-                // from incoming messages.
                 if let Err(error) = Box::pin(manager.sync_groups_from_storage_service()).await {
                     warn!(%error, "failed to sync groups from the storage service");
                 }

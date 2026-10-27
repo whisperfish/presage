@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM left_groups WHERE master_key = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "e065c10402abc227ef0ba81197d801f39607186736b99de416ad97ffd130f6a6"
+}

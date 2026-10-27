@@ -1,0 +1,3 @@
+CREATE TABLE IF NOT EXISTS left_groups (
+  master_key BLOB NOT NULL PRIMARY KEY
+);

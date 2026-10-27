@@ -45,6 +45,7 @@ use libsignal_service::{
     zkgroup::{
         groups::{GroupMasterKey, GroupSecretParams},
         profiles::ProfileKey,
+        GroupMasterKeyBytes,
     },
     AccountManager, Profile, ServiceIdExt,
 };
@@ -583,55 +584,15 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    /// Fetches the groups listed in the account's Storage Service and saves them.
-    /// A linked device otherwise only learns about a group when a message arrives in it.
-    /// Groups that fail to fetch are skipped.
+    /// See [`sync_groups_from_storage_service`].
     pub(super) async fn sync_groups_from_storage_service(&self) -> Result<(), Error<S::Error>> {
-        const READ_CHUNK: usize = 100;
-
-        let master_key = self
-            .store
-            .fetch_master_key()
-            .await?
-            .ok_or(Error::MissingKeyError("master_key".into()))?;
-        let storage_key = StorageServiceKey::from_master_key(&master_key);
-        let storage = StorageService::new(self.identified_push_service(), storage_key).await?;
-
-        let manifest = storage.manifest().await?;
-        let group_ids: Vec<Vec<u8>> = manifest
-            .identifiers
-            .iter()
-            .filter(|id| id.r#type() == manifest_record::identifier::Type::Groupv2)
-            .map(|id| id.raw.clone())
-            .collect();
-        debug!(
-            count = group_ids.len(),
-            "groups listed in the storage service"
-        );
-
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
-        for chunk in group_ids.chunks(READ_CHUNK) {
-            let records = storage
-                .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
-                .await?;
-            for record in records {
-                let Some(storage_record::Record::GroupV2(record)) = record.record else {
-                    continue;
-                };
-                // Storage records carry no group revision: always fetch the latest state.
-                if let Err(error) = upsert_group(
-                    &self.store,
-                    &mut groups_manager,
-                    &record.master_key,
-                    &u32::MAX,
-                )
-                .await
-                {
-                    warn!(%error, "failed to fetch group listed in the storage service");
-                }
-            }
-        }
-        Ok(())
+        sync_groups_from_storage_service(
+            &self.store,
+            self.identified_push_service(),
+            &mut groups_manager,
+        )
+        .await
     }
 
     /// Starts receiving and storing messages.
@@ -653,6 +614,7 @@ impl<S: Store> Manager<S, Registered> {
             service_cipher_aci: ServiceCipher<AciStore>,
             service_cipher_pni: ServiceCipher<PniStore>,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
+            identified_push_service: PushService,
             service_ids: ServiceIds,
             message_sender: MessageSender<AciStore>,
             account_entropy_pool: Option<AccountEntropyPool>,
@@ -700,10 +662,11 @@ impl<S: Store> Manager<S, Registered> {
             identified_websocket,
             unidentified_websocket: self.unidentified_websocket().await?,
             encrypted_messages: Box::pin(encrypted_messages.stream()),
-            message_receiver: MessageReceiver::new(identified_push_service),
+            message_receiver: MessageReceiver::new(identified_push_service.clone()),
             service_cipher_aci: self.new_service_cipher_aci(),
             service_cipher_pni: self.new_service_cipher_pni(),
             groups_manager: Box::pin(self.groups_manager()).await?,
+            identified_push_service,
             service_ids: self.state.data.service_ids.clone(),
             message_sender: self.new_message_sender().await?,
             account_entropy_pool: self.account_entropy_pool().await?,
@@ -971,6 +934,27 @@ impl<S: Store> Manager<S, Registered> {
                                                     warn!(%error, "cannot convert account entropy pool from string")
                                                 }
                                                 None => {}
+                                            }
+                                        }
+                                    }
+
+                                    // The primary device told us to fetch stuff again from the storage service.
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        content: Some(SyncContent::FetchLatest(fetch_latest)),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        if fetch_latest.r#type()
+                                            == sync_message::fetch_latest::Type::StorageManifest
+                                        {
+                                            if let Err(error) = sync_groups_from_storage_service(
+                                                &state.store,
+                                                state.identified_push_service.clone(),
+                                                &mut state.groups_manager,
+                                            )
+                                            .await
+                                            {
+                                                warn!(%error, "failed to sync groups from the storage service");
                                             }
                                         }
                                     }
@@ -1863,6 +1847,84 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
         }
         _ => (),
     }
+}
+
+async fn sync_groups_from_storage_service<S: Store>(
+    store: &S,
+    push_service: PushService,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+) -> Result<(), Error<S::Error>> {
+    const READ_CHUNK: usize = 100;
+
+    let master_key = store
+        .fetch_master_key()
+        .await?
+        .ok_or(Error::MissingKeyError("master_key".into()))?;
+    let storage_key = StorageServiceKey::from_master_key(&master_key);
+    let storage = StorageService::new(push_service, storage_key).await?;
+
+    let manifest = storage.manifest().await?;
+    let group_ids: Vec<Vec<u8>> = manifest
+        .identifiers
+        .iter()
+        .filter(|id| id.r#type() == manifest_record::identifier::Type::Groupv2)
+        .map(|id| id.raw.clone())
+        .collect();
+    debug!(
+        count = group_ids.len(),
+        "groups listed in the storage service"
+    );
+
+    for chunk in group_ids.chunks(READ_CHUNK) {
+        let records = match storage
+            .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
+            .await
+        {
+            Ok(records) => records,
+            Err(error) => {
+                warn!(%error, "failed to read group records from the storage service");
+                continue;
+            }
+        };
+        for record in records {
+            let Some(storage_record::Record::GroupV2(record)) = record.record else {
+                continue;
+            };
+            if let Err(error) = save_unknown_group(store, groups_manager, &record.master_key).await
+            {
+                warn!(%error, "failed to fetch group listed in the storage service");
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Incoming messages keep known groups current, so only unknown ones are fetched.
+async fn save_unknown_group<S: Store>(
+    store: &S,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    master_key_bytes: &[u8],
+) -> Result<(), Error<S::Error>> {
+    let master_key: GroupMasterKeyBytes = master_key_bytes.try_into()?;
+    if store.group(master_key).await?.is_some() || store.is_group_left(master_key).await? {
+        return Ok(());
+    }
+    match groups_manager
+        .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
+        .await
+    {
+        Ok(encrypted_group) => {
+            let group = decrypt_group(master_key_bytes, encrypted_group)?;
+            store.save_group(master_key, group).await?;
+        }
+        // The group server refuses groups the account has left or was only invited to.
+        Err(libsignal_service::prelude::ServiceError::Unauthorized) => {
+            debug!("not a member of a group listed in the storage service");
+            store.mark_group_left(master_key).await?;
+        }
+        Err(error) => return Err(error.into()),
+    }
+    Ok(())
 }
 
 async fn upsert_group<S: Store>(
