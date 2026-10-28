@@ -5,6 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
+use libsignal_service::master_key::MasterKey;
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
 use libsignal_service::provisioning::ProvisioningSecrets;
@@ -1877,10 +1878,13 @@ async fn sync_groups_from_storage_service<S: Store>(
 ) -> Result<(), Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
-    let master_key = store
-        .fetch_master_key()
-        .await?
-        .ok_or(Error::MissingKeyError("master_key".into()))?;
+    // The account entropy pool is the source of the master key: a linked device that got it in a
+    // key sync, and a primary, have it without a stored master key.
+    let master_key = match store.fetch_account_entropy_pool().await? {
+        Some(aep) => MasterKey::from_slice(aep.derive_svr_key().as_slice()).ok(),
+        None => store.fetch_master_key().await?,
+    }
+    .ok_or(Error::MissingKeyError("master_key".into()))?;
     let storage_key = StorageServiceKey::from_master_key(&master_key);
     let storage = StorageService::new(push_service, storage_key).await?;
 
