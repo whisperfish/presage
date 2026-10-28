@@ -1706,32 +1706,37 @@ impl<S: Store> Manager<S, Registered> {
                 description: info.description_text,
             };
             let mut group = group;
-            if info.avatar.is_empty() {
+            let avatar = if info.avatar.is_empty() {
                 // None any more: a picture cached from before we left would stay, as later
                 // fetches find no picture on either side, and nothing to refresh.
-                self.store
-                    .save_group_avatar(link.master_key, &Vec::new())
-                    .await?;
+                Some(Vec::new())
             } else {
                 match groups_manager
                     .retrieve_avatar(&info.avatar, operations.group_secret_params)
                     .await
                 {
-                    Ok(Some(avatar)) => {
-                        self.store
-                            .save_group_avatar(link.master_key, &avatar)
-                            .await?
-                    }
+                    Ok(Some(avatar)) => Some(avatar),
                     // Not cached: leave the path out, so the next fetch of the group gets it.
-                    Ok(None) => group.avatar = String::new(),
+                    Ok(None) => {
+                        group.avatar = String::new();
+                        None
+                    }
                     Err(error) => {
                         warn!(%error, "failed to fetch the group's avatar");
                         group.avatar = String::new();
+                        None
                     }
                 }
-            }
+            };
             let told = told_of_changes(&group, own, self.state.data.service_ids.pni());
             self.store.save_group(link.master_key, group).await?;
+            // After the group: its picture refers to it, and a group asked to join for the first
+            // time isn't stored before.
+            if let Some(avatar) = avatar {
+                self.store
+                    .save_group_avatar(link.master_key, &avatar)
+                    .await?;
+            }
             if let Some((signed, revision, _)) = change {
                 self.tell_of_change(&link.master_key, &told, revision, &signed)
                     .await?;
