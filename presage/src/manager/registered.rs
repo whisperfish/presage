@@ -221,6 +221,13 @@ impl<S: Store> Manager<S, Registered> {
         &self.state.data
     }
 
+    /// The lock this manager and its clones take each session step under: a client that
+    /// changes a session in the store itself (archiving one, say) takes a step too, so that
+    /// it doesn't run into a decryption or a send.
+    pub fn session_lock(&self) -> &SessionLock {
+        &self.state.session_lock
+    }
+
     /// Returns a clone of a cached push service (with credentials).
     ///
     /// If no service is yet cached, it will create and cache one.
