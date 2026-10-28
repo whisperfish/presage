@@ -223,8 +223,9 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Returns a clone of a cached push service (with credentials).
     ///
-    /// If no service is yet cached, it will create and cache one.
-    fn identified_push_service(&self) -> PushService {
+    /// If no service is yet cached, it will create and cache one. Public for requests presage
+    /// doesn't make itself, such as asking for a sticker pack's upload forms.
+    pub fn identified_push_service(&self) -> PushService {
         self.state.identified_push_service()
     }
 
