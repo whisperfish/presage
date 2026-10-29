@@ -1,6 +1,7 @@
 //! Signal manager and its states
 
 mod confirmation;
+mod group_credentials;
 mod linking;
 mod registered;
 mod registration;
