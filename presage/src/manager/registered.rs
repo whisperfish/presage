@@ -128,9 +128,7 @@ impl Registered {
 
     pub(crate) fn identified_push_service(&self) -> PushService {
         self.identified_push_service
-            .get_or_init(|| {
-                PushService::new(self.servers(), Some(self.credentials()), crate::USER_AGENT)
-            })
+            .get_or_init(|| crate::client::push_service(self.servers(), Some(self.credentials())))
             .clone()
     }
 
@@ -234,7 +232,7 @@ impl<S: Store> Manager<S, Registered> {
     fn unidentified_push_service(&self) -> PushService {
         self.state
             .unidentified_push_service
-            .get_or_init(|| PushService::new(self.state.servers(), None, crate::USER_AGENT))
+            .get_or_init(|| crate::client::push_service(self.state.servers(), None))
             .clone()
     }
 
