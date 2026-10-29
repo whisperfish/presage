@@ -1269,7 +1269,8 @@ impl<S: Store> Manager<S, Registered> {
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
             .unidentified_access(&recipient, &sender_certificate)
-            .await?;
+            .await?
+            .or_else(|| story_access(&content_body, &sender_certificate));
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -1459,7 +1460,8 @@ impl<S: Store> Manager<S, Registered> {
         {
             let unidentified_access = self
                 .unidentified_access(&member.aci.into(), &sender_certificate)
-                .await?;
+                .await?
+                .or_else(|| story_access(&content_body, &sender_certificate));
             let include_pni_signature = false;
             recipients.push((
                 member.aci.into(),
@@ -2949,4 +2951,15 @@ async fn register_pre_keys_kind<S: PreKeysStore>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Stories are stored without their sender, and the server checks no access key for them.
+fn story_access(
+    content_body: &ContentBody,
+    sender_certificate: &SenderCertificate,
+) -> Option<UnidentifiedAccess> {
+    matches!(content_body, ContentBody::StoryMessage(_)).then(|| UnidentifiedAccess {
+        key: vec![0; 16],
+        certificate: sender_certificate.clone(),
+    })
 }
