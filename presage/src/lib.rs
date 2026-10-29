@@ -1,5 +1,6 @@
 #![warn(clippy::large_futures)]
 
+pub mod client;
 mod errors;
 pub mod manager;
 pub mod model;
@@ -10,6 +11,7 @@ pub use libsignal_service;
 /// Protobufs used in Signal protocol and service communication
 pub use libsignal_service::proto;
 
+pub use client::{set_client_identity, ClientIdentity};
 pub use errors::Error;
 pub use manager::Manager;
 
