@@ -2103,29 +2103,41 @@ async fn save_message<S: Store>(
             if let Some(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
                 let sender = message.metadata.sender;
                 let profile_key = ProfileKey::create(profile_key_bytes);
-                debug!(sender = %sender.service_id_string(), "inserting profile key for");
+                let changed = store
+                    .profile_key(&sender)
+                    .await?
+                    .is_none_or(|known| known.bytes != profile_key.bytes);
+
+                // The key now, before the message is handed on: sending to them by sealed
+                // sender needs it, and a task in the background may not get to finish.
+                if let (true, Some(aci)) = (changed, sender.aci()) {
+                    debug!(sender = %sender.service_id_string(), "inserting profile key for");
+                    store.upsert_profile_key(&aci.into(), profile_key).await?;
+                }
 
                 // Either:
                 // - insert a new contact with the profile information
                 // - update the contact if the profile key has changed
                 // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
-                // NOTE: this needs to happen in the background!
-                let store_inner = store.clone();
-                let websocket_inner = identified_websocket.clone();
-                let data_message_inner = data_message.clone();
-                tokio::spawn(async move {
-                    if let Err(error) = upsert_contact_from_profile(
-                        store_inner,
-                        websocket_inner,
-                        &data_message_inner,
-                        sender,
-                        profile_key,
-                    )
-                    .await
-                    {
-                        error!(%error, "failed to upsert newly seen contact!");
-                    }
-                });
+                // NOTE: fetching the profile needs to happen in the background!
+                if changed || store.contact_by_id(&sender).await?.is_none() {
+                    let store_inner = store.clone();
+                    let websocket_inner = identified_websocket.clone();
+                    let data_message_inner = data_message.clone();
+                    tokio::spawn(async move {
+                        if let Err(error) = upsert_contact_from_profile(
+                            store_inner,
+                            websocket_inner,
+                            &data_message_inner,
+                            sender,
+                            profile_key,
+                        )
+                        .await
+                        {
+                            error!(%error, "failed to upsert newly seen contact!");
+                        }
+                    });
+                }
             }
 
             // Note: The expire timer fields of data messages are only for contacts.
@@ -2266,48 +2278,40 @@ async fn upsert_contact_from_profile<S: Store>(
     sender: ServiceId,
     profile_key: ProfileKey,
 ) -> Result<(), Error<<S as Store>::Error>> {
-    if store.contact_by_id(&sender).await?.is_none()
-        || store
-            .profile_key(&sender)
-            .await?
-            .is_none_or(|p| p.bytes != profile_key.bytes)
-    {
-        if let Some(aci) = sender.aci() {
-            let sender_uuid: Uuid = aci.into();
-            let encrypted_profile = identified_websocket
-                .retrieve_profile_by_id(aci, Some(profile_key))
-                .await?;
-            let profile_cipher = ProfileCipher::new(profile_key);
-            let decrypted_profile = profile_cipher.decrypt(encrypted_profile)?;
+    if let Some(aci) = sender.aci() {
+        let sender_uuid: Uuid = aci.into();
+        let encrypted_profile = identified_websocket
+            .retrieve_profile_by_id(aci, Some(profile_key))
+            .await?;
+        let profile_cipher = ProfileCipher::new(profile_key);
+        let decrypted_profile = profile_cipher.decrypt(encrypted_profile)?;
 
-            let contact = Contact {
-                uuid: sender_uuid,
-                phone_number: None,
-                name: decrypted_profile
-                    .name
-                    // FIXME: this assumes [firstname] [lastname]
-                    .map(|pn| {
-                        if let Some(family_name) = pn.family_name {
-                            format!("{} {}", pn.given_name, family_name)
-                        } else {
-                            pn.given_name
-                        }
-                    })
-                    .unwrap_or_default(),
-                profile_key: profile_key.bytes.to_vec(),
-                expire_timer: data_message.expire_timer.unwrap_or_default(),
-                expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
-                inbox_position: 0,
-                avatar: None,
-                verified: Verified::default(),
-            };
+        let contact = Contact {
+            uuid: sender_uuid,
+            phone_number: None,
+            name: decrypted_profile
+                .name
+                // FIXME: this assumes [firstname] [lastname]
+                .map(|pn| {
+                    if let Some(family_name) = pn.family_name {
+                        format!("{} {}", pn.given_name, family_name)
+                    } else {
+                        pn.given_name
+                    }
+                })
+                .unwrap_or_default(),
+            profile_key: profile_key.bytes.to_vec(),
+            expire_timer: data_message.expire_timer.unwrap_or_default(),
+            expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
+            inbox_position: 0,
+            avatar: None,
+            verified: Verified::default(),
+        };
 
-            info!(%sender_uuid, "saved contact on first sight");
-            store.save_contact(&contact).await?;
-            store.upsert_profile_key(&sender_uuid, profile_key).await?;
-        } else {
-            debug!("not storing profile for PNI contact");
-        }
+        info!(%sender_uuid, "saved contact on first sight");
+        store.save_contact(&contact).await?;
+    } else {
+        debug!("not storing profile for PNI contact");
     }
     Ok(())
 }
