@@ -435,6 +435,45 @@ impl<S: Store> Manager<S, Registered> {
         Ok(profile)
     }
 
+    /// Fetches the profile of `aci` from the server even when one is cached, and caches it:
+    /// a new picture or name doesn't change the profile key, so the cached one may be out of
+    /// date. A changed avatar is downloaded and cached too.
+    pub async fn refresh_profile(
+        &mut self,
+        aci: impl Into<Aci>,
+        profile_key: ProfileKey,
+    ) -> Result<Profile, Error<S::Error>> {
+        let aci = aci.into();
+        let cached = self
+            .store
+            .profile(aci.into(), profile_key)
+            .await
+            .ok()
+            .flatten();
+
+        let mut account_manager = AccountManager::new(
+            self.identified_push_service(),
+            self.identified_websocket(false).await?,
+            Some(profile_key),
+        );
+        let profile = account_manager.retrieve_profile(aci).await?;
+        let _ = self
+            .store
+            .save_profile(aci.into(), profile_key, profile.clone())
+            .await;
+
+        let avatar_changed =
+            cached.as_ref().map(|cached| cached.avatar.as_ref()) != Some(profile.avatar.as_ref());
+        if let Some(avatar) = profile.avatar.as_ref().filter(|_| avatar_changed) {
+            let avatar = self.download_avatar(avatar, profile_key).await?;
+            let _ = self
+                .store
+                .save_profile_avatar(aci.into(), profile_key, &avatar)
+                .await;
+        }
+        Ok(profile)
+    }
+
     /// Updates the user's profile information.
     pub async fn update_profile(
         &mut self,
@@ -525,8 +564,19 @@ impl<S: Store> Manager<S, Registered> {
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
-        // Check if profile avatar is cached.
-        // TODO: Is there some way to know if this is outdated?
+        let profile =
+            if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
+                profile
+            } else {
+                self.retrieve_profile_by_uuid(uuid, profile_key).await?
+            };
+
+        // A profile without one has none, whatever was cached before it was removed.
+        let Some(avatar) = profile.avatar.as_ref() else {
+            return Ok(None);
+        };
+
+        // Kept up to date by `refresh_profile`.
         if let Some(avatar) = self
             .store
             .profile_avatar(uuid, profile_key)
@@ -537,17 +587,20 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(Some(avatar));
         }
 
-        let profile =
-            if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
-                profile
-            } else {
-                self.retrieve_profile_by_uuid(uuid, profile_key).await?
-            };
+        let avatar = self.download_avatar(avatar, profile_key).await?;
+        let _ = self
+            .store
+            .save_profile_avatar(uuid, profile_key, &avatar)
+            .await;
+        Ok(Some(avatar))
+    }
 
-        let Some(avatar) = profile.avatar.as_ref() else {
-            return Ok(None);
-        };
-
+    /// Downloads and decrypts the profile avatar at the CDN path `avatar`.
+    async fn download_avatar(
+        &mut self,
+        avatar: &str,
+        profile_key: ProfileKey,
+    ) -> Result<AvatarBytes, Error<S::Error>> {
         let mut websocket = self.unidentified_websocket().await?;
 
         let mut avatar_stream = websocket.retrieve_profile_avatar(avatar).await?;
@@ -557,13 +610,7 @@ impl<S: Store> Manager<S, Registered> {
         contents.truncate(len);
 
         let cipher = ProfileCipher::new(profile_key);
-
-        let avatar = cipher.decrypt_avatar(&contents)?;
-        let _ = self
-            .store
-            .save_profile_avatar(uuid, profile_key, &avatar)
-            .await;
-        Ok(Some(avatar))
+        Ok(cipher.decrypt_avatar(&contents)?)
     }
 
     async fn groups_manager(
