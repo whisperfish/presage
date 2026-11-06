@@ -1147,7 +1147,8 @@ impl<S: Store> Manager<S, Registered> {
             .map(|profile_key| UnidentifiedAccess {
                 key: profile_key.derive_access_key().to_vec(),
                 certificate: sender_certificate.clone(),
-            });
+            })
+            .or_else(|| story_access(&content_body, &sender_certificate));
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -1331,14 +1332,15 @@ impl<S: Store> Manager<S, Registered> {
             .into_iter()
             .filter(|m| m.aci != self.state.data.service_ids.aci())
         {
-            let unidentified_access =
-                self.store
-                    .profile_key(&member.aci.into())
-                    .await?
-                    .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key().to_vec(),
-                        certificate: sender_certificate.clone(),
-                    });
+            let unidentified_access = self
+                .store
+                .profile_key(&member.aci.into())
+                .await?
+                .map(|profile_key| UnidentifiedAccess {
+                    key: profile_key.derive_access_key().to_vec(),
+                    certificate: sender_certificate.clone(),
+                })
+                .or_else(|| story_access(&content_body, &sender_certificate));
             let include_pni_signature = false;
             recipients.push((
                 member.aci.into(),
@@ -2377,4 +2379,17 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Sealed sender for a story to someone whose profile key isn't known: the server stores a story
+/// without its sender, so it must be sealed, and it checks no access key for one
+/// (Signal-Server `MessageController`), so any key will do.
+fn story_access(
+    content_body: &ContentBody,
+    sender_certificate: &SenderCertificate,
+) -> Option<UnidentifiedAccess> {
+    matches!(content_body, ContentBody::StoryMessage(_)).then(|| UnidentifiedAccess {
+        key: vec![0; 16],
+        certificate: sender_certificate.clone(),
+    })
 }
