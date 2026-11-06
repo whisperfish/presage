@@ -1,5 +1,6 @@
 use std::fmt;
 use std::str::FromStr;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -88,6 +89,8 @@ pub struct Registered {
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
+    /// See [`Manager::set_receive_stories`]; shared by the manager's clones.
+    pub(crate) receive_stories: Arc<AtomicBool>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -107,6 +110,7 @@ impl Registered {
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
+            receive_stories: Arc::new(AtomicBool::new(false)),
             data: Arc::new(data),
         }
     }
@@ -185,6 +189,16 @@ impl RegistrationData {
     }
 }
 
+impl<S> Manager<S, Registered> {
+    /// Whether the server delivers stories to this device (`X-Signal-Receive-Stories`). Off by
+    /// default: the server then drops every story sent to it, unread. An app that shows stories
+    /// turns it on before it receives; it applies from the next connection on, and to this
+    /// manager's clones too.
+    pub fn set_receive_stories(&self, enabled: bool) {
+        self.state.receive_stories.store(enabled, Ordering::Relaxed);
+    }
+}
+
 impl<S: Store> Manager<S, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
@@ -253,7 +267,12 @@ impl<S: Store> Manager<S, Registered> {
         {
             Some(ws) => Ok(ws.clone()),
             None => {
-                let headers = &[("X-Signal-Receive-Stories", "false")];
+                let receive_stories = if self.state.receive_stories.load(Ordering::Relaxed) {
+                    "true"
+                } else {
+                    "false"
+                };
+                let headers = &[("X-Signal-Receive-Stories", receive_stories)];
                 let ws = self
                     .identified_push_service()
                     .ws(
