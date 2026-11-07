@@ -104,8 +104,8 @@ pub trait ContentsStore: Send + Sync {
     /// Each items is a tuple consisting of the group master key and its corresponding data.
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>;
 
-    /// Iterator over all stored messages
-    type MessagesIter: Iterator<Item = Result<Content, Self::ContentsStoreError>>;
+    /// Iterator over stored messages, newest first
+    type MessagesIter: DoubleEndedIterator<Item = Result<Content, Self::ContentsStoreError>>;
 
     /// Iterator over all stored sticker packs
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;

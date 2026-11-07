@@ -33,8 +33,9 @@ impl ContentsStore for SqliteStore {
             + Sync,
     >;
 
-    type MessagesIter =
-        Box<dyn Iterator<Item = Result<Content, Self::ContentsStoreError>> + Send + Sync>;
+    type MessagesIter = Box<
+        dyn DoubleEndedIterator<Item = Result<Content, Self::ContentsStoreError>> + Send + Sync,
+    >;
 
     type StickerPacksIter =
         Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>> + Send + Sync>;
