@@ -1,5 +1,7 @@
-use std::str::FromStr;
+use std::{str::FromStr, sync::Arc};
 
+use db::{Db, Write};
+use futures::lock::Mutex;
 use presage::{
     libsignal_service::{
         libsignal_account_keys::AccountEntropyPool, prelude::MasterKey, protocol::SenderCertificate,
@@ -8,12 +10,13 @@ use presage::{
 };
 use protocol::{IdentityType, SqliteProtocolStore};
 use sqlx::{
-    SqlitePool, query, query_scalar,
+    query, query_scalar,
     sqlite::{SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
 };
 
 mod content;
 mod data;
+mod db;
 mod error;
 mod protocol;
 
@@ -25,7 +28,7 @@ use crate::error::SqlxErrorExt;
 
 #[derive(Debug, Clone)]
 pub struct SqliteStore {
-    pub(crate) db: SqlitePool,
+    pub(crate) db: Db,
     pub(crate) trust_new_identities: OnNewIdentity,
 }
 
@@ -33,10 +36,8 @@ impl SqliteStore {
     /// Begins a transaction that writes, taking the write lock at once. A deferred transaction
     /// that reads before it writes fails with `SQLITE_BUSY`, which no busy timeout waits out,
     /// when another connection to the database writes in between.
-    pub(crate) async fn begin_write(
-        &self,
-    ) -> Result<sqlx::Transaction<'static, sqlx::Sqlite>, sqlx::Error> {
-        self.db.begin_with("BEGIN IMMEDIATE").await
+    pub(crate) async fn begin_write(&self) -> Result<Write, sqlx::Error> {
+        self.db.begin_write().await
     }
 
     pub async fn open(
@@ -79,7 +80,7 @@ impl SqliteStore {
 
         sqlx::migrate!().run(&db).await?;
         Ok(Self {
-            db,
+            db: Db::Pool(db),
             trust_new_identities,
         })
     }
@@ -87,7 +88,9 @@ impl SqliteStore {
     /// Closes the pool, waiting for all connections to close.
     /// Call before exit: SQLCipher's atexit cleanup races connections still closing.
     pub async fn close(&self) {
-        self.db.close().await;
+        if let Db::Pool(pool) = &self.db {
+            pool.close().await;
+        }
     }
 }
 
@@ -100,6 +103,28 @@ impl Store for SqliteStore {
 
     async fn clear(&mut self) -> Result<(), SqliteStoreError> {
         query!("DELETE FROM kv").execute(&self.db).await?;
+        Ok(())
+    }
+
+    async fn transaction(&self) -> Result<Self, SqliteStoreError> {
+        let Db::Pool(pool) = &self.db else {
+            // Already in one: its writes join it.
+            return Ok(self.clone());
+        };
+        let transaction = pool.begin_with("BEGIN IMMEDIATE").await?;
+        Ok(Self {
+            db: Db::Transaction(Arc::new(Mutex::new(Some(transaction)))),
+            trust_new_identities: self.trust_new_identities.clone(),
+        })
+    }
+
+    async fn commit(self) -> Result<(), SqliteStoreError> {
+        if let Db::Transaction(shared) = self.db {
+            let transaction = shared.lock().await.take();
+            if let Some(transaction) = transaction {
+                transaction.commit().await?;
+            }
+        }
         Ok(())
     }
 
@@ -311,6 +336,6 @@ mod tests {
 
         store.close().await;
 
-        assert!(clone.db.is_closed());
+        assert!(matches!(&clone.db, Db::Pool(pool) if pool.is_closed()));
     }
 }
