@@ -100,6 +100,7 @@ impl Store for SqliteStore {
 
     async fn clear(&mut self) -> Result<(), SqliteStoreError> {
         query!("DELETE FROM kv").execute(&self.db).await?;
+        query!("DELETE FROM jobs").execute(&self.db).await?;
         Ok(())
     }
 
@@ -171,6 +172,10 @@ impl StateStore for SqliteStore {
             .execute(&mut *transaction)
             .await?;
         query!("DELETE FROM sender_keys")
+            .execute(&mut *transaction)
+            .await?;
+        // The next registration owes nothing of this one's.
+        query!("DELETE FROM jobs")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
