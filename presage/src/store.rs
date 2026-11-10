@@ -135,27 +135,54 @@ pub trait ContentsStore: Send + Sync {
         thread: &Thread,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Save a message in a [Thread] identified by a timestamp.
+    /// Save a message in a [Thread], in the place of its sender's message at its timestamp.
     fn save_message(
         &self,
         thread: &Thread,
         message: Content,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Delete a single message, identified by its received timestamp from a thread.
+    /// Delete a single message from a thread, identified by its sender and timestamp.
     /// Useful when you want to delete a message locally only.
     fn delete_message(
         &mut self,
         thread: &Thread,
+        sender: &ServiceId,
         timestamp: u64,
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
-    /// Retrieve a message from a [Thread] by its timestamp.
+    /// Retrieve a message from a [Thread] by its sender and timestamp. A message is known by
+    /// both, as Signal's apps know it: two senders' messages can have the same timestamp.
     fn message(
         &self,
         thread: &Thread,
+        sender: &ServiceId,
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
+
+    /// Retrieve the message of `sender`'s that `timestamp` names in a [Thread]: the one sent
+    /// then, or else the one whose latest edit was. Signal's apps name an edited message by its
+    /// latest edit's time, and an edit comes within [EDIT_WINDOW_MS] of the message.
+    fn message_sent_or_edited_at(
+        &self,
+        thread: &Thread,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>> {
+        async move {
+            if let Some(message) = self.message(thread, sender, timestamp).await? {
+                return Ok(Some(message));
+            }
+            let since = timestamp.saturating_sub(EDIT_WINDOW_MS);
+            for message in self.messages(thread, since..timestamp).await? {
+                let message = message?;
+                if message.metadata.sender == *sender && message.edited_at() == Some(timestamp) {
+                    return Ok(Some(message));
+                }
+            }
+            Ok(None)
+        }
+    }
 
     /// Queues `job` until it is [finished](ContentsStore::finish_job), due at once. One job
     /// waits per [key](Job::key): this one takes the place of a different one waiting with
@@ -584,23 +611,21 @@ impl TryFrom<&Content> for Thread {
     }
 }
 
+/// How long after sending a message Signal's apps let its sender edit it.
+pub const EDIT_WINDOW_MS: u64 = 24 * 60 * 60 * 1000;
+
 /// Extension trait of [`Content`]
 pub trait ContentExt {
     fn timestamp(&self) -> u64;
+
+    /// For an edit, when it was sent.
+    fn edited_at(&self) -> Option<u64>;
 }
 
 impl ContentExt for Content {
     /// The original timestamp of the message.
     fn timestamp(&self) -> u64 {
         match self.body {
-            ContentBody::SynchronizeMessage(SyncMessage {
-                content:
-                    Some(SyncContent::Sent(sync_message::Sent {
-                        timestamp: Some(ts),
-                        ..
-                    })),
-                ..
-            }) => ts,
             ContentBody::SynchronizeMessage(SyncMessage {
                 content:
                     Some(SyncContent::Sent(sync_message::Sent {
@@ -613,11 +638,34 @@ impl ContentExt for Content {
                     })),
                 ..
             }) => ts,
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
+                        timestamp: Some(ts),
+                        ..
+                    })),
+                ..
+            }) => ts,
             ContentBody::EditMessage(EditMessage {
                 target_sent_timestamp: Some(ts),
                 ..
             }) => ts,
             _ => self.metadata.client_timestamp.timestamp_millis() as u64,
+        }
+    }
+
+    fn edited_at(&self) -> Option<u64> {
+        match &self.body {
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
+                        edit_message: Some(edit),
+                        ..
+                    })),
+                ..
+            })
+            | ContentBody::EditMessage(edit) => edit.data_message.as_ref()?.timestamp,
+            _ => None,
         }
     }
 }

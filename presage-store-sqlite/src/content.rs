@@ -208,17 +208,20 @@ impl ContentsStore for SqliteStore {
     async fn delete_message(
         &mut self,
         thread: &Thread,
+        sender: &ServiceId,
         timestamp: u64,
     ) -> Result<bool, Self::ContentsStoreError> {
         let timestamp: i64 = timestamp
             .try_into()
             .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let sender_service_id = sender.service_id_string();
         let (group_master_key, recipient_id) = thread.unzip();
         let res = query!(
             "DELETE FROM thread_messages
-            WHERE ts = ? AND thread_id = (
+            WHERE ts = ? AND sender_service_id = ? AND thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
             timestamp,
+            sender_service_id,
             group_master_key,
             recipient_id,
         )
@@ -230,11 +233,13 @@ impl ContentsStore for SqliteStore {
     async fn message(
         &self,
         thread: &Thread,
+        sender: &ServiceId,
         timestamp: u64,
     ) -> Result<Option<Content>, Self::ContentsStoreError> {
         let timestamp: i64 = timestamp
             .try_into()
             .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let sender_service_id = sender.service_id_string();
         let (group_master_key, recipient_id) = thread.unzip();
         let message = query_as!(
             SqlMessage,
@@ -250,9 +255,10 @@ impl ContentsStore for SqliteStore {
                 was_plaintext,
                 pni_verified
             FROM thread_messages
-            WHERE ts = ? AND thread_id = (
+            WHERE ts = ? AND sender_service_id = ? AND thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)"#,
             timestamp,
+            sender_service_id,
             group_master_key,
             recipient_id,
         )
@@ -969,6 +975,153 @@ mod test {
         store.save_group(master_key, group).await?;
         assert!(!store.is_group_left(master_key).await?);
 
+        Ok(())
+    }
+
+    fn message(sender: ServiceId, ts: u64, body: presage::proto::DataMessage) -> Content {
+        use chrono::TimeZone;
+        let at = chrono::Utc.timestamp_millis_opt(ts as i64).unwrap();
+        Content {
+            metadata: Metadata {
+                sender,
+                destination: sender,
+                sender_device: 1.try_into().unwrap(),
+                client_timestamp: at,
+                server_timestamp: at,
+                needs_receipt: false,
+                unidentified_sender: false,
+                server_guid: None,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: body.into(),
+        }
+    }
+
+    fn data(timestamp: u64) -> presage::proto::DataMessage {
+        presage::proto::DataMessage {
+            body: Some(format!("{timestamp}")),
+            timestamp: Some(timestamp),
+            ..Default::default()
+        }
+    }
+
+    #[tokio::test]
+    async fn finds_a_message_by_its_latest_edit() -> Result<(), Box<dyn std::error::Error>> {
+        use presage::libsignal_service::content::ContentBody;
+        use presage::proto::EditMessage;
+        use presage::store::ContentExt;
+
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let sender = ServiceId::Aci(Uuid::from_u128(7).into());
+        let other = ServiceId::Aci(Uuid::from_u128(8).into());
+        let thread = Thread::Contact(sender);
+        store
+            .save_message(&thread, message(sender, 1_000, data(1_000)))
+            .await?;
+        // An edit takes its message's place, as presage stores it.
+        let mut edit = message(sender, 1_000, data(1_000));
+        edit.body = ContentBody::EditMessage(EditMessage {
+            target_sent_timestamp: Some(1_000),
+            data_message: Some(data(2_000)),
+        });
+        store.save_message(&thread, edit).await?;
+
+        let (store, thread) = (&store, &thread);
+        let found = |sender, timestamp| async move {
+            let found = store.message_sent_or_edited_at(thread, sender, timestamp);
+            found.await.map(|found| found.map(|c| c.edited_at()))
+        };
+        assert_eq!(found(&sender, 1_000).await?, Some(Some(2_000)));
+        assert_eq!(found(&sender, 2_000).await?, Some(Some(2_000)));
+        assert_eq!(found(&sender, 3_000).await?, None);
+        // Only its sender's.
+        assert_eq!(found(&other, 1_000).await?, None);
+        assert_eq!(found(&other, 2_000).await?, None);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn stored_messages_survive_the_change_of_their_key()
+    -> Result<(), Box<dyn std::error::Error>> {
+        use sqlx::migrate::Migrator;
+        use sqlx::sqlite::SqlitePoolOptions;
+
+        // One connection: the database is in memory.
+        let db = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await?;
+        let all = sqlx::migrate!();
+        let before = Migrator {
+            migrations: all
+                .migrations
+                .iter()
+                .filter(|migration| migration.version < 20261110120000)
+                .cloned()
+                .collect(),
+            ..sqlx::migrate!()
+        };
+        before.run(&db).await?;
+
+        let sender = ServiceId::Aci(Uuid::from_u128(7).into());
+        let body = prost::Message::encode_to_vec(
+            &presage::libsignal_service::content::ContentBody::from(data(1_000)).into_proto(),
+        );
+        sqlx::query("INSERT INTO threads (id, recipient_id) VALUES (1, ?)")
+            .bind(sender.raw_uuid())
+            .execute(&db)
+            .await?;
+        sqlx::query(
+            "INSERT INTO thread_messages (ts, thread_id, sender_service_id, sender_device_id,
+                destination_service_id, needs_receipt, unidentified_sender, content_body,
+                was_plaintext)
+            VALUES (1000, 1, ?, 1, ?, false, false, ?, false)",
+        )
+        .bind(sender.service_id_string())
+        .bind(sender.service_id_string())
+        .bind(body)
+        .execute(&db)
+        .await?;
+
+        all.run(&db).await?;
+        let store = SqliteStore {
+            db,
+            trust_new_identities: OnNewIdentity::Trust,
+        };
+        let thread = Thread::Contact(sender);
+        let stored = store.message(&thread, &sender, 1_000).await?.unwrap();
+        assert_eq!(stored.metadata.sender, sender);
+        // Another sender's message at the same time is kept beside it now.
+        let other = ServiceId::Aci(Uuid::from_u128(8).into());
+        store
+            .save_message(&thread, message(other, 1_000, data(1_000)))
+            .await?;
+        assert_eq!(store.messages(&thread, ..).await?.count(), 2);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn keeps_two_senders_at_one_millisecond() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let (ann, bob) = (
+            ServiceId::Aci(Uuid::from_u128(7).into()),
+            ServiceId::Aci(Uuid::from_u128(8).into()),
+        );
+        let thread = Thread::Group([1; 32]);
+        for (sender, ts) in [(ann, 1), (ann, 2), (bob, 2), (ann, 3)] {
+            store
+                .save_message(&thread, message(sender, ts, data(ts)))
+                .await?;
+        }
+        let sender_at = |content: Option<Content>| content.map(|c| c.metadata.sender);
+        assert_eq!(sender_at(store.message(&thread, &ann, 2).await?), Some(ann));
+        assert_eq!(sender_at(store.message(&thread, &bob, 2).await?), Some(bob));
+        assert_eq!(store.messages(&thread, ..).await?.count(), 4);
+
+        assert!(store.delete_message(&thread, &bob, 2).await?);
+        assert!(store.message(&thread, &bob, 2).await?.is_none());
+        assert_eq!(sender_at(store.message(&thread, &ann, 2).await?), Some(ann));
         Ok(())
     }
 
