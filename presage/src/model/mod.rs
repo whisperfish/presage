@@ -7,6 +7,7 @@ pub mod identity;
 pub mod jobs;
 pub mod messages;
 pub mod previews;
+pub mod replicas;
 pub mod settings;
 pub mod stories;
 

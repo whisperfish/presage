@@ -64,6 +64,7 @@ use super::account_keys::AccountKeys;
 use super::keep::keep_profile_key;
 use crate::model::contacts::Contact;
 use crate::model::previews;
+use crate::model::replicas::{Freshness, Replica};
 use crate::model::settings::Settings;
 use crate::model::stories::Story;
 use crate::serde::serde_profile_key;
@@ -513,6 +514,16 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
+    /// Fetches the profile of `aci` from the server even when a current one is stored, and
+    /// stores it.
+    pub async fn refresh_profile(
+        &mut self,
+        aci: impl Into<Aci>,
+        profile_key: ProfileKey,
+    ) -> Result<Profile, Error<S::Error>> {
+        self.fetch_profile(aci.into(), profile_key).await
+    }
+
     async fn fetch_profile(
         &mut self,
         aci: Aci,
@@ -687,6 +698,11 @@ impl<S: Store> Manager<S, Registered> {
     ///
     /// Also runs after linking, and whenever another device reports a storage service change.
     pub async fn sync_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+        self.sync_storage().await.map(drop)
+    }
+
+    /// See [`sync_from_storage_service`].
+    pub(super) async fn sync_storage(&self) -> Result<Option<u64>, Error<S::Error>> {
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         sync_from_storage_service(
             &mut self.store.clone(),
@@ -1574,12 +1590,14 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
     }
 }
 
+/// Returns the version of the manifest read, `None` if it hadn't changed since it was last read
+/// in full.
 async fn sync_from_storage_service<S: Store>(
     store: &mut S,
     push_service: PushService,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
     settings: &RwLock<Settings>,
-) -> Result<(), Error<S::Error>> {
+) -> Result<Option<u64>, Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
     let keys = AccountKeys::load(store)
@@ -1587,7 +1605,20 @@ async fn sync_from_storage_service<S: Store>(
         .ok_or(Error::MissingKeyError("master_key".into()))?;
     let storage = StorageService::new(push_service, keys.storage_key()).await?;
 
-    let manifest = storage.manifest().await?;
+    let read = store
+        .replica(&Replica::StorageManifest)
+        .await?
+        .and_then(|read| read.version);
+    let manifest = match read {
+        Some(version) => match storage.manifest_if_changed(version).await? {
+            Some(manifest) => manifest,
+            None => {
+                debug!(version, "the storage manifest is unchanged");
+                return Ok(None);
+            }
+        },
+        None => storage.manifest().await?,
+    };
 
     use manifest_record::identifier::Type;
     let ids: Vec<Vec<u8>> = manifest
@@ -1659,8 +1690,17 @@ async fn sync_from_storage_service<S: Store>(
         }
     }
     debug!(contacts, groups, "synced from the storage service");
-    // Synced again unless all of it was read: the failure puts the job off.
-    failed.map_or(Ok(()), Err)
+    // Read again in full unless all of it was read: the failure puts the job off.
+    if let Some(error) = failed {
+        return Err(error);
+    }
+    store
+        .set_replica(
+            &Replica::StorageManifest,
+            Freshness::now(Some(manifest.version)),
+        )
+        .await?;
+    Ok(Some(manifest.version))
 }
 
 /// Returns whether the record was saved, i.e. it has an ACI.

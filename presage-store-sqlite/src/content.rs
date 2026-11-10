@@ -15,6 +15,7 @@ use presage::{
         contacts::Contact,
         groups::Group,
         jobs::{Job, QueuedJob},
+        replicas::{Freshness, Replica},
     },
     proto::{Verified, verified},
     store::{ContentsStore, MessageIterationOrder, MessagesQueryParams, StickerPack, Thread},
@@ -100,8 +101,11 @@ impl ContentsStore for SqliteStore {
         query!("DELETE FROM hidden_story_groups")
             .execute(&mut *transaction)
             .await?;
-        // Nothing is owed for what is gone.
+        // Nothing is owed for what is gone, and the storage manifest is read again.
         query!("DELETE FROM jobs")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM replicas WHERE kind = 'storage-manifest'")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
@@ -544,6 +548,10 @@ impl ContentsStore for SqliteStore {
             .execute(&mut *transaction)
             .await?;
         query!("DELETE FROM blocked_groups")
+            .execute(&mut *transaction)
+            .await?;
+        // The storage manifest is read again.
+        query!("DELETE FROM replicas WHERE kind = 'storage-manifest'")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
@@ -993,6 +1001,45 @@ impl ContentsStore for SqliteStore {
         Ok(Box::new(sql_packs.into_iter().map(|pack| Ok(pack.into()))))
     }
 
+    async fn replica(
+        &self,
+        replica: &Replica,
+    ) -> Result<Option<Freshness>, Self::ContentsStoreError> {
+        let (kind, id) = (replica.kind(), replica.id());
+        let row = query!(
+            r#"SELECT version AS "version: u64", fetched_at AS "fetched_at: u64"
+            FROM replicas WHERE kind = ? AND id = ?"#,
+            kind,
+            id,
+        )
+        .fetch_optional(&self.db)
+        .await?;
+        Ok(row.map(|row| Freshness {
+            version: row.version,
+            fetched_at: row.fetched_at,
+        }))
+    }
+
+    async fn set_replica(
+        &mut self,
+        replica: &Replica,
+        freshness: Freshness,
+    ) -> Result<(), Self::ContentsStoreError> {
+        let (kind, id) = (replica.kind(), replica.id());
+        let version = freshness.version.map(|version| version as i64);
+        let fetched_at = freshness.fetched_at as i64;
+        query!(
+            "INSERT OR REPLACE INTO replicas (kind, id, version, fetched_at) VALUES (?, ?, ?, ?)",
+            kind,
+            id,
+            version,
+            fetched_at,
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
     async fn enqueue_job(&mut self, job: &Job) -> Result<(), Self::ContentsStoreError> {
         let key = job.key();
         let job = serde_json::to_string(job)?;
@@ -1324,19 +1371,52 @@ mod test {
     }
 
     #[tokio::test]
-    async fn clearing_forgets_the_jobs() -> Result<(), Box<dyn std::error::Error>> {
+    async fn clearing_forgets_the_jobs_and_the_manifest_read()
+    -> Result<(), Box<dyn std::error::Error>> {
         use presage::store::{StateStore, Store};
 
         let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let manifest = Freshness {
+            version: Some(3),
+            fetched_at: 1_000,
+        };
         for clear in 0..3 {
             store.enqueue_job(&Job::SyncStorage).await?;
+            store
+                .set_replica(&Replica::StorageManifest, manifest)
+                .await?;
             match clear {
                 0 => store.clear_contents().await?,
                 1 => store.clear_registration().await?,
                 _ => store.clear().await?,
             }
             assert!(store.jobs().await?.is_empty());
+            assert_eq!(store.replica(&Replica::StorageManifest).await?, None);
         }
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_replica_is_as_fresh_as_last_noted() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        assert_eq!(store.replica(&Replica::StorageManifest).await?, None);
+
+        let read = |version| Freshness {
+            version: Some(version),
+            fetched_at: 1_000,
+        };
+        store
+            .set_replica(&Replica::StorageManifest, read(3))
+            .await?;
+        store
+            .set_replica(&Replica::StorageManifest, read(4))
+            .await?;
+        assert_eq!(
+            store.replica(&Replica::StorageManifest).await?,
+            Some(read(4))
+        );
+        store.clear_groups().await?;
+        assert_eq!(store.replica(&Replica::StorageManifest).await?, None);
         Ok(())
     }
 }
