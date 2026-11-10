@@ -30,6 +30,7 @@ use crate::{
         contacts::Contact,
         groups::Group,
         jobs::{Job, QueuedJob},
+        replicas::{Freshness, Replica},
     },
     AvatarBytes,
 };
@@ -75,7 +76,8 @@ pub trait StateStore {
     fn is_registered(&self) -> impl Future<Output = bool>;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
-    /// The queued jobs go too: they are the registration's.
+    /// The queued jobs go too, and the storage manifest counts as never read: both are the
+    /// registration's.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(
@@ -118,7 +120,8 @@ pub trait ContentsStore: Send + Sync {
     // Clear all profiles
     fn clear_profiles(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    // Clear all stored messages, contacts and groups, and with them the queued jobs
+    // Clear all stored messages, contacts and groups, and with them the queued jobs and the
+    // note of the storage manifest read
     fn clear_contents(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Messages
@@ -366,6 +369,21 @@ pub trait ContentsStore: Send + Sync {
         uuid: Uuid,
         key: ProfileKey,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
+
+    // Replicas
+
+    /// How current the copy of `replica` is, if it was ever fetched.
+    fn replica(
+        &self,
+        replica: &Replica,
+    ) -> impl Future<Output = Result<Option<Freshness>, Self::ContentsStoreError>> + Send;
+
+    /// Notes that the copy of `replica` was fetched.
+    fn set_replica(
+        &mut self,
+        replica: &Replica,
+        freshness: Freshness,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
 
     // Stickers
 

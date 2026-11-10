@@ -101,6 +101,9 @@ impl Store for SqliteStore {
     async fn clear(&mut self) -> Result<(), SqliteStoreError> {
         query!("DELETE FROM kv").execute(&self.db).await?;
         query!("DELETE FROM jobs").execute(&self.db).await?;
+        query!("DELETE FROM replicas WHERE kind = 'storage-manifest'")
+            .execute(&self.db)
+            .await?;
         Ok(())
     }
 
@@ -174,8 +177,11 @@ impl StateStore for SqliteStore {
         query!("DELETE FROM sender_keys")
             .execute(&mut *transaction)
             .await?;
-        // The next registration owes nothing of this one's.
+        // The next registration owes nothing of this one's, and reads its own storage manifest.
         query!("DELETE FROM jobs")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM replicas WHERE kind = 'storage-manifest'")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
