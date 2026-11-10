@@ -76,7 +76,6 @@ mod receive;
 // Signal-Android refetches profiles that are older than a day.
 const PROFILE_MAX_AGE: TimeDelta = TimeDelta::days(1);
 
-
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<S>;
 
