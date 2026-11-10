@@ -25,6 +25,7 @@ use libsignal_service::{
 use rand::rng;
 use tracing::{debug, error, info, trace, warn};
 
+use self::origin::{Origin, OwnSync};
 use super::{
     download_sticker_pack, register_pre_keys, save_message, set_account_attributes,
     sync_groups_from_storage_service, upsert_group, MessageSender, Registered, RegistrationType,
@@ -205,9 +206,27 @@ where
             return Some(Received::DecryptionError(content.metadata.sender));
         }
 
-        if let ContentBody::SynchronizeMessage(sync) = &content.body {
-            if let Some(received) = self.handle_sync(sync).await {
-                return Some(received);
+        match Origin::of(&content.metadata, &self.service_ids) {
+            Origin::Unauthenticated => {
+                warn!(
+                    sender = %content.metadata.sender.service_id_string(),
+                    "dropping plaintext content that is no decryption error"
+                );
+                return None;
+            }
+            Origin::Peer if matches!(content.body, ContentBody::SynchronizeMessage(_)) => {
+                warn!(
+                    sender = %content.metadata.sender.service_id_string(),
+                    "dropping a sync message from another account"
+                );
+                return None;
+            }
+            origin => {
+                if let Some(sync) = origin.own_sync(&content.body) {
+                    if let Some(received) = self.handle_sync(sync).await {
+                        return Some(received);
+                    }
+                }
             }
         }
 
@@ -227,8 +246,9 @@ where
         Some(Received::Content(Box::new(content)))
     }
 
-    /// Returns what to tell the client if the sync message is nothing more than that.
-    async fn handle_sync(&mut self, sync: &SyncMessage) -> Option<Received> {
+    /// What only our own devices may ask. Returns what to tell the client if the sync message
+    /// is nothing more than that.
+    async fn handle_sync(&mut self, sync: OwnSync<'_>) -> Option<Received> {
         match &sync.content {
             Some(SyncContent::Request(request)) => self.handle_sync_request(request).await,
             // contacts synchronization sent from the primary device (happens after linking, or on demand)
@@ -507,5 +527,112 @@ where
             });
         }
         Received::QueueEmpty
+    }
+}
+
+mod origin {
+    use libsignal_service::content::{ContentBody, Metadata};
+    use libsignal_service::proto::SyncMessage;
+    use libsignal_service::protocol::ServiceId;
+    use libsignal_service::push_service::ServiceIds;
+
+    /// Who a decrypted content is from, decided once: what it may ask of this device follows
+    /// from it.
+    #[derive(Debug, PartialEq, Eq)]
+    pub(super) enum Origin {
+        /// One of this account's devices, by a session with it.
+        Own,
+        /// Another account, by a session with it.
+        Peer,
+        /// A plaintext envelope: nothing shows who wrote it. Signal's apps take a decryption
+        /// error message from one and nothing else.
+        Unauthenticated,
+    }
+
+    impl Origin {
+        pub(super) fn of(metadata: &Metadata, own: &ServiceIds) -> Self {
+            if metadata.was_plaintext {
+                Self::Unauthenticated
+            } else if metadata.sender == ServiceId::from(own.aci()) {
+                Self::Own
+            } else {
+                Self::Peer
+            }
+        }
+
+        /// The sync message in `body`, if this is the origin that may send one.
+        pub(super) fn own_sync<'a>(&self, body: &'a ContentBody) -> Option<OwnSync<'a>> {
+            match (self, body) {
+                (Self::Own, ContentBody::SynchronizeMessage(sync)) => Some(OwnSync(sync)),
+                _ => None,
+            }
+        }
+    }
+
+    /// A sync message of [`Origin::Own`], which is the only way to make one: only our own
+    /// devices change the account's state on this one.
+    pub(super) struct OwnSync<'a>(&'a SyncMessage);
+
+    impl std::ops::Deref for OwnSync<'_> {
+        type Target = SyncMessage;
+
+        fn deref(&self) -> &SyncMessage {
+            self.0
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use libsignal_service::content::{ContentBody, Metadata};
+    use libsignal_service::prelude::Uuid;
+    use libsignal_service::proto::{NullMessage, SyncMessage};
+    use libsignal_service::protocol::{Aci, ServiceId};
+    use libsignal_service::push_service::ServiceIds;
+
+    use super::Origin;
+
+    const OWN: ServiceIds = ServiceIds {
+        aci: Uuid::from_u128(1),
+        pni: Uuid::from_u128(2),
+    };
+
+    fn metadata(sender: Uuid, was_plaintext: bool) -> Metadata {
+        let sender: ServiceId = Aci::from(sender).into();
+        let now = chrono::Utc::now();
+        Metadata {
+            sender,
+            sender_device: 1.try_into().unwrap(),
+            destination: sender,
+            server_guid: None,
+            client_timestamp: now,
+            server_timestamp: now,
+            needs_receipt: false,
+            unidentified_sender: false,
+            was_plaintext,
+            pni_verified: None,
+        }
+    }
+
+    #[test]
+    fn origin_is_decided_by_session_and_sender() {
+        let peer = Uuid::from_u128(3);
+        assert_eq!(Origin::of(&metadata(OWN.aci, false), &OWN), Origin::Own);
+        assert_eq!(Origin::of(&metadata(peer, false), &OWN), Origin::Peer);
+        // Not ours either, whoever the envelope names.
+        assert_eq!(
+            Origin::of(&metadata(OWN.aci, true), &OWN),
+            Origin::Unauthenticated
+        );
+    }
+
+    #[test]
+    fn only_our_own_devices_sync() {
+        let sync = ContentBody::SynchronizeMessage(SyncMessage::default());
+        assert!(Origin::Own.own_sync(&sync).is_some());
+        assert!(Origin::Peer.own_sync(&sync).is_none());
+        assert!(Origin::Unauthenticated.own_sync(&sync).is_none());
+        let other = ContentBody::NullMessage(NullMessage::default());
+        assert!(Origin::Own.own_sync(&other).is_none());
     }
 }
