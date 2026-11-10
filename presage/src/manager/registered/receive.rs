@@ -96,6 +96,7 @@ impl<S: Store> Manager<S, Registered> {
             service_ids: self.state.data.service_ids.clone(),
             registration_type: self.registration_type(),
             jobs_wake: self.state.jobs_wake.clone(),
+            session_step: self.state.session_step.clone(),
             jobs: JobsRunner {
                 manager: Some(Box::new(self.clone())),
                 told,
@@ -157,6 +158,7 @@ struct Receiver<S: Store, E> {
     service_ids: ServiceIds,
     registration_type: RegistrationType,
     jobs_wake: std::sync::Arc<tokio::sync::Notify>,
+    session_step: std::sync::Arc<tokio::sync::Mutex<()>>,
     jobs: JobsRunner<S>,
     /// What the jobs bring.
     background: mpsc::UnboundedReceiver<Received>,
@@ -202,6 +204,8 @@ where
     }
 
     async fn handle_envelope(&mut self, envelope: Envelope) -> Option<Received> {
+        // Not while a send steps the same session.
+        let step = self.session_step.clone().lock_owned().await;
         let opened = match envelope.parse_destination_service_id() {
             None => {
                 warn!("Message has no destination service ID, dropping.");
@@ -222,6 +226,7 @@ where
                     .await
             }
         };
+        drop(step);
         match opened {
             Ok(Some(content)) => self.handle_content(content).await,
             Ok(None) => {

@@ -116,8 +116,9 @@ impl<S: Store> Manager<S, Registered> {
                     .await?
                     .collect::<Result<Vec<_>, _>>()?;
                 let aci = self.state.data.service_ids.aci();
-                self.new_message_sender()
-                    .await?
+                let mut sender = self.new_message_sender().await?;
+                let _step = self.state.session_step.lock().await;
+                sender
                     .send_contact_details(
                         &ServiceId::Aci(aci),
                         None,
@@ -179,8 +180,9 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     async fn send_sync(&self, content: SyncContent) -> Result<(), Error<S::Error>> {
-        self.new_message_sender()
-            .await?
+        let mut sender = self.new_message_sender().await?;
+        let _step = self.state.session_step.lock().await;
+        sender
             .send_sync_message(SyncMessage {
                 content: Some(content),
                 ..SyncMessage::with_padding(&mut rand::rng())
