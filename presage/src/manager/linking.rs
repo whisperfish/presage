@@ -1,7 +1,6 @@
 use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::SignalServers;
-use libsignal_service::master_key::MasterKey;
 use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::{
@@ -15,6 +14,7 @@ use rand::{
 use tracing::{debug, info, warn};
 use url::Url;
 
+use crate::manager::account_keys::AccountKeys;
 use crate::manager::registered::RegistrationData;
 use crate::store::Store;
 use crate::{Error, Manager};
@@ -158,10 +158,9 @@ impl<S: Store> Manager<S, Linking> {
                     .store_master_key(
                         account_entropy_pool
                             .as_ref()
-                            .and_then(|aep| {
-                                MasterKey::from_slice(aep.derive_svr_key().as_slice()).ok()
-                            })
-                            .as_ref(),
+                            .map(AccountKeys::from_pool)
+                            .as_ref()
+                            .map(AccountKeys::master_key),
                     )
                     .await?;
                 store

@@ -57,12 +57,12 @@ use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
+use super::account_keys::AccountKeys;
 use crate::model::contacts::Contact;
 use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
-use libsignal_service::master_key::StorageServiceKey;
 use libsignal_service::proto::{manifest_record, storage_record};
 use libsignal_service::StorageService;
 
@@ -145,6 +145,28 @@ impl Registered {
     }
 }
 
+/// See [`Manager::services`].
+pub struct Services {
+    /// The cached push service presage uses itself, with the account's credentials.
+    pub identified_push_service: PushService,
+    /// `None` on a linked device until the primary has sent the account's keys.
+    pub account_keys: Option<AccountKeys>,
+}
+
+impl Services {
+    /// Connects to the storage service. `None` as for [`Self::account_keys`].
+    pub async fn storage_service(
+        &self,
+    ) -> Result<Option<StorageService>, libsignal_service::prelude::ServiceError> {
+        let Some(keys) = &self.account_keys else {
+            return Ok(None);
+        };
+        let service =
+            StorageService::new(self.identified_push_service.clone(), keys.storage_key()).await?;
+        Ok(Some(service))
+    }
+}
+
 /// Registration data like device name, and credentials to connect to Signal
 #[derive(Serialize, Deserialize, Clone)]
 pub struct RegistrationData {
@@ -224,6 +246,17 @@ impl<S: Store> Manager<S, Registered> {
     /// If no service is yet cached, it will create and cache one.
     fn identified_push_service(&self) -> PushService {
         self.state.identified_push_service()
+    }
+
+    /// What this manager connects to Signal with, for requests presage doesn't make itself:
+    /// authenticated requests, and reading or writing the storage service.
+    pub async fn services(&self) -> Result<Services, Error<S::Error>> {
+        // A primary makes its pool when first asked.
+        self.account_entropy_pool().await?;
+        Ok(Services {
+            identified_push_service: self.identified_push_service(),
+            account_keys: AccountKeys::load(&self.store).await?,
+        })
     }
 
     /// Returns a clone of a cached push service (without credentials).
@@ -1295,7 +1328,7 @@ impl<S: Store> Manager<S, Registered> {
                     account_entropy_pool: self
                         .account_entropy_pool()
                         .await?
-                        .expect("Primary device to always have an account entropy pool"),
+                        .ok_or(Error::MissingKeyError("account_entropy_pool".into()))?,
                     ephemeral_backup_key: None,
                     media_root_backup_key: None,
                 },
@@ -1399,12 +1432,10 @@ async fn sync_groups_from_storage_service<S: Store>(
 ) -> Result<(), Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
-    let master_key = store
-        .fetch_master_key()
+    let keys = AccountKeys::load(store)
         .await?
         .ok_or(Error::MissingKeyError("master_key".into()))?;
-    let storage_key = StorageServiceKey::from_master_key(&master_key);
-    let storage = StorageService::new(push_service, storage_key).await?;
+    let storage = StorageService::new(push_service, keys.storage_key()).await?;
 
     let manifest = storage.manifest().await?;
     let group_ids: Vec<Vec<u8>> = manifest
