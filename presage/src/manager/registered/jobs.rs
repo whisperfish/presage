@@ -2,7 +2,9 @@
 
 use std::collections::HashSet;
 use std::fmt;
+use std::future::Future;
 use std::panic::AssertUnwindSafe;
+use std::sync::Arc;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use futures::channel::mpsc;
@@ -217,6 +219,31 @@ fn now() -> u64 {
         .map_or(0, |since| since.as_millis() as u64)
 }
 
+/// What the runner needs of the store.
+trait Queue: Clone + 'static {
+    type Error: std::error::Error;
+
+    async fn queued(&self) -> Result<Vec<QueuedJob>, Self::Error>;
+    async fn finish(&mut self, job: &QueuedJob) -> Result<(), Self::Error>;
+    async fn retry(&mut self, job: &QueuedJob, due_at: u64) -> Result<(), Self::Error>;
+}
+
+impl<S: Store> Queue for S {
+    type Error = S::ContentsStoreError;
+
+    async fn queued(&self) -> Result<Vec<QueuedJob>, Self::Error> {
+        self.jobs().await
+    }
+
+    async fn finish(&mut self, job: &QueuedJob) -> Result<(), Self::Error> {
+        self.finish_job(job).await
+    }
+
+    async fn retry(&mut self, job: &QueuedJob, due_at: u64) -> Result<(), Self::Error> {
+        self.retry_job(job, due_at).await
+    }
+}
+
 /// Runs the queued jobs until dropped: each when it is due, all of them once at the start (the
 /// connection is new, whatever made them fail may be gone). A job that fails waits
 /// ([`backoff`]) and is given up after its last wait, unless it was the connection that failed.
@@ -227,12 +254,31 @@ pub(super) async fn run<S: Store>(
 ) {
     let wake = manager.state.jobs_wake.clone();
     let store = manager.store.clone();
+    let work = move |job: Job| {
+        let manager = manager.clone();
+        async move { manager.run_job(&job).await }
+    };
+    run_with(store, wake, told, work).await
+}
+
+/// [`run`], with `work` doing a job.
+async fn run_with<Q, E, W, F>(
+    queue: Q,
+    wake: Arc<tokio::sync::Notify>,
+    told: mpsc::UnboundedSender<Received>,
+    work: W,
+) where
+    Q: Queue,
+    E: std::error::Error + 'static,
+    W: Fn(Job) -> F,
+    F: Future<Output = Result<Vec<Received>, Error<E>>> + 'static,
+{
     let (finished, mut done) = mpsc::unbounded();
     let mut in_flight = HashSet::new();
     // Those queued at the start, until each has run once whatever its wait.
     let mut at_start: Option<HashSet<u64>> = None;
     loop {
-        let jobs = store.jobs().await.unwrap_or_else(|error| {
+        let jobs = queue.queued().await.unwrap_or_else(|error| {
             error!(%error, "failed to read the queued jobs");
             Vec::new()
         });
@@ -248,18 +294,17 @@ pub(super) async fn run<S: Store>(
             } else if in_flight.len() < CONCURRENT {
                 at_start.remove(&job.id);
                 in_flight.insert(job.id);
-                let (manager, told, finished) = (manager.clone(), told.clone(), finished.clone());
+                let (mut queue, told, finished) = (queue.clone(), told.clone(), finished.clone());
+                let run = AssertUnwindSafe(work(job.job.clone())).catch_unwind();
                 // A task of its own: a job goes on while this loop waits for the store.
                 tokio::task::spawn_local(async move {
-                    let mut store = manager.store.clone();
                     let id = job.id;
-                    let run = AssertUnwindSafe(manager.run_job(&job.job)).catch_unwind();
                     match run.await {
-                        Ok(result) => settle(&mut store, &told, job, result).await,
+                        Ok(result) => settle(&mut queue, &told, job, result).await,
                         // It would panic again.
                         Err(_) => {
                             error!(job = %job.job, "job panicked; giving up");
-                            if let Err(error) = store.finish_job(&job).await {
+                            if let Err(error) = queue.finish(&job).await {
                                 error!(%error, "failed to note a job's outcome; it runs again");
                             }
                         }
@@ -331,11 +376,11 @@ impl fmt::Display for Causes<'_> {
     }
 }
 
-async fn settle<S: Store>(
-    store: &mut S,
+async fn settle<Q: Queue, E: std::error::Error + 'static>(
+    store: &mut Q,
     told: &mpsc::UnboundedSender<Received>,
     job: QueuedJob,
-    result: Result<Vec<Received>, Error<S::Error>>,
+    result: Result<Vec<Received>, Error<E>>,
 ) {
     let stored = match result {
         Ok(received) => {
@@ -344,16 +389,16 @@ async fn settle<S: Store>(
                 // Fails only once the stream is gone.
                 let _ = told.unbounded_send(received);
             }
-            store.finish_job(&job).await
+            store.finish(&job).await
         }
         Err(error) => match backoff(job.attempts + 1, connection_failed(&error)) {
             Some(wait) => {
                 warn!(error = %Causes(&error), job = %job.job, ?wait, "job failed; trying again later");
-                store.retry_job(&job, now() + wait.as_millis() as u64).await
+                store.retry(&job, now() + wait.as_millis() as u64).await
             }
             None => {
                 error!(error = %Causes(&error), job = %job.job, "job failed; giving up");
-                store.finish_job(&job).await
+                store.finish(&job).await
             }
         },
     };
@@ -368,8 +413,146 @@ mod tests {
 
     use libsignal_service::prelude::ServiceError;
 
-    use super::{connection_failed, Causes};
+    use std::cell::{Cell, RefCell};
+    use std::rc::Rc;
+    use std::sync::Arc;
+
+    use futures::channel::mpsc;
+
+    use super::{connection_failed, now, run_with, Causes, Queue, CONCURRENT};
+    use crate::model::jobs::{Job, QueuedJob};
+    use crate::model::messages::Received;
     use crate::Error;
+
+    /// A queue in memory.
+    #[derive(Clone, Default)]
+    struct Queued(Rc<RefCell<Vec<QueuedJob>>>);
+
+    impl Queued {
+        fn of(jobs: impl IntoIterator<Item = (Job, u64)>) -> Self {
+            let jobs = jobs
+                .into_iter()
+                .zip(1..)
+                .map(|((job, due_at), id)| QueuedJob {
+                    id,
+                    job,
+                    generation: 0,
+                    attempts: 0,
+                    due_at,
+                });
+            Self(Rc::new(RefCell::new(jobs.collect())))
+        }
+    }
+
+    impl Queue for Queued {
+        type Error = Infallible;
+
+        async fn queued(&self) -> Result<Vec<QueuedJob>, Infallible> {
+            Ok(self.0.borrow().clone())
+        }
+
+        async fn finish(&mut self, job: &QueuedJob) -> Result<(), Infallible> {
+            self.0.borrow_mut().retain(|queued| queued.id != job.id);
+            Ok(())
+        }
+
+        async fn retry(&mut self, job: &QueuedJob, due_at: u64) -> Result<(), Infallible> {
+            for queued in self.0.borrow_mut().iter_mut().filter(|q| q.id == job.id) {
+                queued.attempts += 1;
+                queued.due_at = due_at;
+            }
+            Ok(())
+        }
+    }
+
+    /// Runs the runner over `queue` with `work` until `until` holds.
+    async fn run_until<F>(
+        queue: &Queued,
+        work: impl Fn(Job) -> F + 'static,
+        until: impl Fn(&[QueuedJob]) -> bool,
+    ) -> Vec<Received>
+    where
+        F: std::future::Future<Output = Result<Vec<Received>, Error<Infallible>>> + 'static,
+    {
+        let (told, mut brought) = mpsc::unbounded();
+        let local = tokio::task::LocalSet::new();
+        let wake = Arc::new(tokio::sync::Notify::new());
+        let runner = local.spawn_local(run_with(queue.clone(), wake, told, work));
+        local
+            .run_until(async {
+                for _ in 0..1000 {
+                    if until(&queue.0.borrow()) {
+                        break;
+                    }
+                    tokio::task::yield_now().await;
+                }
+            })
+            .await;
+        assert!(until(&queue.0.borrow()), "the runner didn't get there");
+        runner.abort();
+        let mut received = Vec::new();
+        while let Ok(one) = brought.try_recv() {
+            received.push(one);
+        }
+        received
+    }
+
+    /// All of them once at the start, due or not, and no more than `CONCURRENT` at once.
+    #[tokio::test]
+    async fn every_queued_job_runs_once_at_the_start_a_few_at_a_time() {
+        let later = now() + 3_600_000;
+        let queue = Queued::of([
+            (Job::SyncStorage, later),
+            (Job::AnswerContacts, later),
+            (Job::AnswerKeys, later),
+            (Job::AnswerBlocked, later),
+            (Job::RequestKeys, 0),
+        ]);
+        let running = Rc::new(Cell::new(0));
+        let most = Rc::new(Cell::new(0));
+        let work = {
+            let (running, most) = (running.clone(), most.clone());
+            move |_| {
+                let (running, most) = (running.clone(), most.clone());
+                async move {
+                    running.set(running.get() + 1);
+                    most.set(most.get().max(running.get()));
+                    tokio::task::yield_now().await;
+                    running.set(running.get() - 1);
+                    Ok(Vec::new())
+                }
+            }
+        };
+        run_until(&queue, work, |queued| queued.is_empty()).await;
+        assert_eq!(most.get(), CONCURRENT);
+    }
+
+    /// What a job brings is told and the job forgotten; one that fails waits and counts the
+    /// failure; one that panics is given up, and the others still run.
+    #[tokio::test]
+    async fn a_job_is_settled_by_how_it_went() {
+        let queue = Queued::of([
+            (Job::RequestKeys, 0),
+            (Job::AnswerKeys, 0),
+            (Job::AnswerContacts, 0),
+        ]);
+        let work = |job| async move {
+            match job {
+                Job::RequestKeys => panic!("a job that panics"),
+                Job::AnswerKeys => Err(Error::UnknownGroup),
+                _ => Ok(vec![Received::Contacts]),
+            }
+        };
+        let before = now();
+        let received = run_until(&queue, work, |queued| {
+            queued.len() == 1 && queued[0].attempts == 1
+        })
+        .await;
+        assert!(matches!(received[..], [Received::Contacts]));
+        let left = queue.0.borrow()[0].clone();
+        assert_eq!(left.job, Job::AnswerKeys);
+        assert!(left.due_at >= before + 5_000);
+    }
 
     /// A broken connection is worth fetching again; a refusal isn't.
     #[test]
