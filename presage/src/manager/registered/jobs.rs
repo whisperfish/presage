@@ -88,7 +88,15 @@ impl<S: Store> Manager<S, Registered> {
                 }])
             }
             Job::SyncStorage => {
-                self.sync_groups_from_storage_service().await?;
+                // Again while the manifest moves on: what tells of a change during the read
+                // queues this same job, which this run settles.
+                let mut read = None;
+                while let Some(version) = self.sync_groups_from_storage_service().await? {
+                    if read.is_some_and(|read| version <= read) {
+                        break;
+                    }
+                    read = Some(version);
+                }
                 Ok(Vec::new())
             }
             Job::SaveContacts { contacts } => {

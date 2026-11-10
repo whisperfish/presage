@@ -61,6 +61,7 @@ use super::account_keys::AccountKeys;
 use super::keep::keep_profile_key;
 use crate::model::contacts::Contact;
 use crate::model::previews;
+use crate::model::replicas::{self, stale, Freshness, Replica};
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -435,38 +436,88 @@ impl<S: Store> Manager<S, Registered> {
             .await
     }
 
-    /// Fetches the profile of the provided user by UUID and profile key.
+    /// The profile of the provided user by UUID and profile key: the stored one while it is
+    /// [current](Replica::max_age), fetched again once it isn't, and the stored one still when
+    /// that fails.
     pub async fn retrieve_profile_by_uuid(
         &mut self,
         aci: impl Into<Aci>,
         profile_key: ProfileKey,
     ) -> Result<Profile, Error<S::Error>> {
         let aci = aci.into();
-
-        // Check if profile is cached.
-        // TODO: Create a migration in the store removing all profiles.
-        // TODO: Is there some way to know if this is outdated?
-        if let Some(profile) = self
+        let replica = Replica::Profile(aci.into());
+        let cached = self
             .store
             .profile(aci.into(), profile_key)
             .await
             .ok()
-            .flatten()
-        {
-            return Ok(profile);
+            .flatten();
+        if let Some(profile) = cached {
+            let freshness = self.store.replica(&replica).await.ok().flatten();
+            if !stale(&replica, freshness, replicas::now()) {
+                return Ok(profile);
+            }
         }
+        match self.refresh_profile(aci, profile_key).await {
+            Ok(profile) => Ok(profile),
+            Err(error) => {
+                // Stored before, or just now without its picture, if that alone failed.
+                let stored = self.store.profile(aci.into(), profile_key).await;
+                let Some(stored) = stored.ok().flatten() else {
+                    return Err(error);
+                };
+                warn!(%error, "failed to fetch a profile; the stored one will do");
+                // As current as it gets for now: asked for again only when any other would be.
+                let _ = self.store.set_replica(&replica, Freshness::now(None)).await;
+                Ok(stored)
+            }
+        }
+    }
+
+    /// Fetches the profile of `aci` from the server even when one is stored, and stores it:
+    /// a new picture or name doesn't change the profile key, so the stored one may be out of
+    /// date. A changed avatar is downloaded and stored too.
+    pub async fn refresh_profile(
+        &mut self,
+        aci: impl Into<Aci>,
+        profile_key: ProfileKey,
+    ) -> Result<Profile, Error<S::Error>> {
+        let aci = aci.into();
+        let cached = self
+            .store
+            .profile(aci.into(), profile_key)
+            .await
+            .ok()
+            .flatten();
 
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             self.identified_websocket(false).await?,
             Some(profile_key),
         );
-
         let profile = account_manager.retrieve_profile(aci).await?;
 
+        let known_avatar = cached.map(|cached| cached.avatar);
+        let avatar = match &profile.avatar {
+            Some(avatar) if avatar_changed(known_avatar.as_ref(), &profile) => {
+                self.download_avatar(avatar, profile_key).await.map(Some)
+            }
+            _ => Ok(None),
+        };
+        let stored = profile_to_store(known_avatar, &profile, avatar.is_ok());
         let _ = self
             .store
-            .save_profile(aci.into(), profile_key, profile.clone())
+            .save_profile(aci.into(), profile_key, stored)
+            .await;
+        if let Some(avatar) = avatar? {
+            let _ = self
+                .store
+                .save_profile_avatar(aci.into(), profile_key, &avatar)
+                .await;
+        }
+        let _ = self
+            .store
+            .set_replica(&Replica::Profile(aci.into()), Freshness::now(None))
             .await;
         Ok(profile)
     }
@@ -501,6 +552,10 @@ impl<S: Store> Manager<S, Registered> {
         let _ = self
             .store
             .save_profile(aci.into(), self.state.data.profile_key, profile)
+            .await;
+        let _ = self
+            .store
+            .set_replica(&Replica::Profile(aci.into()), Freshness::now(None))
             .await;
 
         Ok(())
@@ -561,8 +616,14 @@ impl<S: Store> Manager<S, Registered> {
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
-        // Check if profile avatar is cached.
-        // TODO: Is there some way to know if this is outdated?
+        // Fetched again when no longer current, with its picture if that changed.
+        let profile = self.retrieve_profile_by_uuid(uuid, profile_key).await?;
+
+        // A profile without one has none, whatever was cached before it was removed.
+        let Some(avatar) = profile.avatar.as_ref() else {
+            return Ok(None);
+        };
+
         if let Some(avatar) = self
             .store
             .profile_avatar(uuid, profile_key)
@@ -573,17 +634,20 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(Some(avatar));
         }
 
-        let profile =
-            if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
-                profile
-            } else {
-                self.retrieve_profile_by_uuid(uuid, profile_key).await?
-            };
+        let avatar = self.download_avatar(avatar, profile_key).await?;
+        let _ = self
+            .store
+            .save_profile_avatar(uuid, profile_key, &avatar)
+            .await;
+        Ok(Some(avatar))
+    }
 
-        let Some(avatar) = profile.avatar.as_ref() else {
-            return Ok(None);
-        };
-
+    /// Downloads and decrypts the profile avatar at the CDN path `avatar`.
+    async fn download_avatar(
+        &mut self,
+        avatar: &str,
+        profile_key: ProfileKey,
+    ) -> Result<AvatarBytes, Error<S::Error>> {
         let mut websocket = self.unidentified_websocket().await?;
 
         let mut avatar_stream = websocket.retrieve_profile_avatar(avatar).await?;
@@ -593,13 +657,7 @@ impl<S: Store> Manager<S, Registered> {
         contents.truncate(len);
 
         let cipher = ProfileCipher::new(profile_key);
-
-        let avatar = cipher.decrypt_avatar(&contents)?;
-        let _ = self
-            .store
-            .save_profile_avatar(uuid, profile_key, &avatar)
-            .await;
-        Ok(Some(avatar))
+        Ok(cipher.decrypt_avatar(&contents)?)
     }
 
     async fn groups_manager(
@@ -621,7 +679,9 @@ impl<S: Store> Manager<S, Registered> {
     }
 
     /// See [`sync_groups_from_storage_service`].
-    pub(super) async fn sync_groups_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+    pub(super) async fn sync_groups_from_storage_service(
+        &self,
+    ) -> Result<Option<u64>, Error<S::Error>> {
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         sync_groups_from_storage_service(
             &self.store,
@@ -1427,11 +1487,13 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
     }
 }
 
+/// Fetches the groups the storage service lists and the store doesn't have. Returns the version
+/// of the manifest read, `None` if it hadn't changed since it was last read in full.
 async fn sync_groups_from_storage_service<S: Store>(
     store: &S,
     push_service: PushService,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
-) -> Result<(), Error<S::Error>> {
+) -> Result<Option<u64>, Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
     let keys = AccountKeys::load(store)
@@ -1439,7 +1501,19 @@ async fn sync_groups_from_storage_service<S: Store>(
         .ok_or(Error::MissingKeyError("master_key".into()))?;
     let storage = StorageService::new(push_service, keys.storage_key()).await?;
 
-    let manifest = storage.manifest().await?;
+    // Unchanged since it was read: no group is new.
+    let replica = Replica::StorageManifest;
+    let read = store.replica(&replica).await?.and_then(|read| read.version);
+    let manifest = match read {
+        Some(version) => match storage.manifest_if_changed(version).await? {
+            Some(manifest) => manifest,
+            None => {
+                debug!(version, "the storage manifest is unchanged");
+                return Ok(None);
+            }
+        },
+        None => storage.manifest().await?,
+    };
     let group_ids: Vec<Vec<u8>> = manifest
         .identifiers
         .iter()
@@ -1475,8 +1549,34 @@ async fn sync_groups_from_storage_service<S: Store>(
             }
         }
     }
-    // Synced again unless all of it was read: the failure puts the job off.
-    failed.map_or(Ok(()), Err)
+    // Read again in full unless all of it was read: the failure puts the job off.
+    if let Some(error) = failed {
+        return Err(error);
+    }
+    let freshness = Freshness::now(Some(manifest.version));
+    store.clone().set_replica(&replica, freshness).await?;
+    Ok(Some(manifest.version))
+}
+
+/// Whether the picture of the fetched `profile` is another than the stored profile's
+/// (`known_avatar`, `None` if no profile is stored).
+fn avatar_changed(known_avatar: Option<&Option<String>>, profile: &Profile) -> bool {
+    known_avatar != Some(&profile.avatar)
+}
+
+/// The fetched `profile` as it is stored. Without its new picture (`avatar_stored` is false:
+/// downloading it failed) it is stored as having the old one still, so that the next fetch
+/// finds the picture changed again.
+fn profile_to_store(
+    known_avatar: Option<Option<String>>,
+    profile: &Profile,
+    avatar_stored: bool,
+) -> Profile {
+    let mut stored = profile.clone();
+    if !avatar_stored {
+        stored.avatar = known_avatar.flatten();
+    }
+    stored
 }
 
 /// Incoming messages keep known groups current, so only unknown ones are fetched.
@@ -1896,4 +1996,47 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use libsignal_service::Profile;
+
+    use super::{avatar_changed, profile_to_store};
+
+    fn profile(avatar: Option<&str>) -> Profile {
+        Profile {
+            avatar: avatar.map(Into::into),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn a_picture_is_downloaded_when_its_path_changed() {
+        let known = |avatar: Option<&str>| Some(avatar.map(String::from));
+        // No profile stored yet.
+        assert!(avatar_changed(None, &profile(Some("a"))));
+        assert!(avatar_changed(known(None).as_ref(), &profile(Some("a"))));
+        assert!(avatar_changed(
+            known(Some("a")).as_ref(),
+            &profile(Some("b"))
+        ));
+        assert!(!avatar_changed(
+            known(Some("a")).as_ref(),
+            &profile(Some("a"))
+        ));
+    }
+
+    #[test]
+    fn a_profile_stored_without_its_new_picture_keeps_the_old_path() {
+        let known = Some(Some("old".to_string()));
+        let fetched = profile(Some("new"));
+        let stored = profile_to_store(known.clone(), &fetched, true);
+        assert_eq!(stored.avatar.as_deref(), Some("new"));
+        // The download failed: the next fetch finds the path changed again.
+        let stored = profile_to_store(known, &fetched, false);
+        assert_eq!(stored.avatar.as_deref(), Some("old"));
+        let stored = profile_to_store(None, &fetched, false);
+        assert_eq!(stored.avatar, None);
+    }
 }

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM replicas WHERE kind = 'storage-manifest'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "6e0290a1e7726d26f33ba512eee4825110c7173596a9076f8bf78002a29746c9"
+}
