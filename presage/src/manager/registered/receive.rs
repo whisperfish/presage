@@ -28,7 +28,7 @@ use tracing::{debug, error, info, trace, warn};
 use self::origin::{Origin, OwnSync};
 use super::{
     delivery_receipt_timestamp, is_blocked, jobs, register_pre_keys, save_message,
-    set_account_attributes, update_group, MessageSender, Registered, RegistrationType,
+    set_account_attributes, update_group_or_owe, MessageSender, Registered, RegistrationType,
 };
 use crate::model::jobs::Job;
 use crate::model::messages::Received;
@@ -446,30 +446,16 @@ impl<S: Store> Receiver<S> {
             // there's two things to implement: the group metadata (fetched from HTTP API)
             // and the group changes, which are part of the protobuf messages
             // this means we kinda need our own internal representation of groups inside of presage?
-            match update_group(
+            let updated = update_group_or_owe(
                 &self.manager.store,
+                &self.manager.state.jobs_wake,
                 &mut self.groups_manager,
                 master_key_bytes,
                 revision,
             )
-            .await
-            {
-                Ok(group) => trace!(?group, "upserted group"),
-                Err(error) => {
-                    warn!(error = %jobs::Causes(&error), "failed to fetch encrypted group");
-                    // Nothing else fetches the group again until its next message. Not if the
-                    // server answered: a refusal (we aren't a member) would be the same again.
-                    if let (true, Ok(master_key)) = (
-                        jobs::connection_failed(&error),
-                        <[u8; 32]>::try_from(master_key_bytes.as_slice()),
-                    ) {
-                        self.enqueue(Job::UpdateGroup {
-                            master_key,
-                            revision: *revision,
-                        })
-                        .await;
-                    }
-                }
+            .await;
+            if let Ok(group) = updated {
+                trace!(?group, "upserted group");
             }
         }
     }
