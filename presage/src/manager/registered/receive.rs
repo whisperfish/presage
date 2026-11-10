@@ -223,6 +223,8 @@ impl<S: Store> Receiver<S> {
     }
 
     async fn handle_envelope(&mut self, envelope: Envelope) -> Option<Received> {
+        // Not while a send steps the same session.
+        let step = self.manager.state.session_step.clone().lock_owned().await;
         let opened = match envelope.parse_destination_service_id() {
             None => {
                 warn!("Message has no destination service ID, dropping.");
@@ -247,6 +249,7 @@ impl<S: Store> Receiver<S> {
                     .await
             }
         };
+        drop(step);
         match opened {
             Ok(Some(content)) => self.handle_content(content).await,
             Ok(None) => {

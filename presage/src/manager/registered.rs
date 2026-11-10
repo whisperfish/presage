@@ -97,6 +97,11 @@ pub struct Registered {
     pub(crate) settings: Arc<RwLock<Settings>>,
     /// Wakes the runner of the queued jobs.
     pub(crate) jobs_wake: Arc<tokio::sync::Notify>,
+    /// Held while a session is stepped: by receiving while it decrypts an envelope, and by each
+    /// send until it is sent. A send and a decryption at once would both start from the session
+    /// as stored, the later to finish undoing the other's step, and a message would go out with
+    /// a counter already used, which its recipient drops as a duplicate.
+    pub(crate) session_step: Arc<Mutex<()>>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -118,6 +123,7 @@ impl Registered {
             link_preview_client: Default::default(),
             settings: Default::default(),
             jobs_wake: Default::default(),
+            session_step: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -415,6 +421,7 @@ impl<S: Store> Manager<S, Registered> {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis() as u64;
+        let _step = self.state.session_step.lock().await;
         message_sender
             .send_message(
                 &recipient,
@@ -795,6 +802,7 @@ impl<S: Store> Manager<S, Registered> {
 
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
+        let step = self.state.session_step.lock().await;
         sender
             .send_message(
                 &recipient,
@@ -805,6 +813,7 @@ impl<S: Store> Manager<S, Registered> {
                 online_only,
             )
             .await?;
+        drop(step);
 
         // save the message
         let content = Content {
@@ -988,9 +997,11 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         let online_only = false;
+        let step = self.state.session_step.lock().await;
         let results = sender
             .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
+        drop(step);
 
         // TODO: Handle the NotFound error in the future by removing all sessions to this UUID and marking it as unregistered, not sending any messages to this contact anymore.
         results
@@ -1303,6 +1314,7 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(false);
         }
         let mut message_sender = self.new_message_sender().await?;
+        let step = self.state.session_step.lock().await;
         message_sender
             .send_sync_message(SyncMessage {
                 viewed: vec![sync_message::Viewed {
@@ -1313,6 +1325,7 @@ impl<S: Store> Manager<S, Registered> {
                 ..SyncMessage::with_padding(&mut rand::rng())
             })
             .await?;
+        drop(step);
         if self.settings().story_view_receipts() {
             self.send_receipt(
                 &mut message_sender,
@@ -1336,10 +1349,10 @@ impl<S: Store> Manager<S, Registered> {
             content: Some(SyncContent::CallEvent(event.clone())),
             ..SyncMessage::with_padding(&mut rand::rng())
         };
-        self.new_message_sender()
-            .await?
-            .send_sync_message(sync_message.clone())
-            .await?;
+        let mut sender = self.new_message_sender().await?;
+        let step = self.state.session_step.lock().await;
+        sender.send_sync_message(sync_message.clone()).await?;
+        drop(step);
 
         let aci = self.state.data.service_ids.aci();
         // Filed under the start of the call.
