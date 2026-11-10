@@ -26,7 +26,12 @@ use tracing::trace;
 
 use crate::{
     manager::RegistrationData,
-    model::{contacts::Contact, groups::Group},
+    model::{
+        contacts::Contact,
+        groups::Group,
+        jobs::{Job, QueuedJob},
+        replicas::{Freshness, Replica},
+    },
     AvatarBytes,
 };
 
@@ -71,6 +76,8 @@ pub trait StateStore {
     fn is_registered(&self) -> impl Future<Output = bool>;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
+    /// The queued jobs go too, and the storage manifest counts as never read: both are the
+    /// registration's.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(
@@ -113,7 +120,8 @@ pub trait ContentsStore: Send + Sync {
     // Clear all profiles
     fn clear_profiles(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    // Clear all stored messages
+    // Clear all stored messages, contacts and groups, and with them the queued jobs and the
+    // note of the storage manifest read
     fn clear_contents(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Messages
@@ -127,27 +135,79 @@ pub trait ContentsStore: Send + Sync {
         thread: &Thread,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Save a message in a [Thread] identified by a timestamp.
+    /// Save a message in a [Thread], in the place of its sender's message at its timestamp.
     fn save_message(
         &self,
         thread: &Thread,
         message: Content,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Delete a single message, identified by its received timestamp from a thread.
+    /// Delete a single message from a thread, identified by its sender and timestamp.
     /// Useful when you want to delete a message locally only.
     fn delete_message(
         &mut self,
         thread: &Thread,
+        sender: &ServiceId,
         timestamp: u64,
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
-    /// Retrieve a message from a [Thread] by its timestamp.
+    /// Retrieve a message from a [Thread] by its sender and timestamp. A message is known by
+    /// both, as Signal's apps know it: two senders' messages can have the same timestamp.
     fn message(
         &self,
         thread: &Thread,
+        sender: &ServiceId,
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
+
+    /// Retrieve the message of `sender`'s that `timestamp` names in a [Thread]: the one sent
+    /// then, or else the one whose latest edit was. Signal's apps name an edited message by its
+    /// latest edit's time, and an edit comes within [EDIT_WINDOW_MS] of the message.
+    fn message_sent_or_edited_at(
+        &self,
+        thread: &Thread,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>> {
+        async move {
+            if let Some(message) = self.message(thread, sender, timestamp).await? {
+                return Ok(Some(message));
+            }
+            let since = timestamp.saturating_sub(EDIT_WINDOW_MS);
+            for message in self.messages(thread, since..timestamp).await? {
+                let message = message?;
+                if message.metadata.sender == *sender && message.edited_at() == Some(timestamp) {
+                    return Ok(Some(message));
+                }
+            }
+            Ok(None)
+        }
+    }
+
+    /// Queues `job` until it is [finished](ContentsStore::finish_job), due at once. One job
+    /// waits per [key](Job::key): this one takes the place of a different one waiting with
+    /// the same ([QueuedJob::generation] counts that), and leaves the same one waiting as it is.
+    fn enqueue_job(
+        &mut self,
+        job: &Job,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
+
+    /// The jobs queued, oldest first.
+    fn jobs(&self) -> impl Future<Output = Result<Vec<QueuedJob>, Self::ContentsStoreError>>;
+
+    /// Forgets `job`, done or given up, unless another took its place meanwhile.
+    fn finish_job(
+        &mut self,
+        job: &QueuedJob,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Notes that `job` failed once more, to be tried again at `due_at` (milliseconds since
+    /// the epoch), unless another took its place meanwhile.
+    fn retry_job(
+        &mut self,
+        job: &QueuedJob,
+        due_at: u64,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a message [Thread] from its sender and timestamp.
     fn thread_for_sender_and_timestamp(
@@ -336,6 +396,21 @@ pub trait ContentsStore: Send + Sync {
         uuid: Uuid,
         key: ProfileKey,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
+
+    // Replicas
+
+    /// How current the copy of `replica` is, if it was ever fetched.
+    fn replica(
+        &self,
+        replica: &Replica,
+    ) -> impl Future<Output = Result<Option<Freshness>, Self::ContentsStoreError>> + Send;
+
+    /// Notes that the copy of `replica` was fetched.
+    fn set_replica(
+        &mut self,
+        replica: &Replica,
+        freshness: Freshness,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
 
     // Stickers
 
@@ -536,23 +611,21 @@ impl TryFrom<&Content> for Thread {
     }
 }
 
+/// How long after sending a message Signal's apps let its sender edit it.
+pub const EDIT_WINDOW_MS: u64 = 24 * 60 * 60 * 1000;
+
 /// Extension trait of [`Content`]
 pub trait ContentExt {
     fn timestamp(&self) -> u64;
+
+    /// For an edit, when it was sent.
+    fn edited_at(&self) -> Option<u64>;
 }
 
 impl ContentExt for Content {
     /// The original timestamp of the message.
     fn timestamp(&self) -> u64 {
         match self.body {
-            ContentBody::SynchronizeMessage(SyncMessage {
-                content:
-                    Some(SyncContent::Sent(sync_message::Sent {
-                        timestamp: Some(ts),
-                        ..
-                    })),
-                ..
-            }) => ts,
             ContentBody::SynchronizeMessage(SyncMessage {
                 content:
                     Some(SyncContent::Sent(sync_message::Sent {
@@ -565,11 +638,34 @@ impl ContentExt for Content {
                     })),
                 ..
             }) => ts,
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
+                        timestamp: Some(ts),
+                        ..
+                    })),
+                ..
+            }) => ts,
             ContentBody::EditMessage(EditMessage {
                 target_sent_timestamp: Some(ts),
                 ..
             }) => ts,
             _ => self.metadata.client_timestamp.timestamp_millis() as u64,
+        }
+    }
+
+    fn edited_at(&self) -> Option<u64> {
+        match &self.body {
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
+                        edit_message: Some(edit),
+                        ..
+                    })),
+                ..
+            })
+            | ContentBody::EditMessage(edit) => edit.data_message.as_ref()?.timestamp,
+            _ => None,
         }
     }
 }

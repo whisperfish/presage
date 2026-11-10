@@ -1,0 +1,38 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT version AS \"version: u64\", fetched_at AS \"fetched_at: u64\"\n            FROM replicas WHERE kind = ? AND id = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "version: u64",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "replicas",
+            "name": "version"
+          }
+        }
+      },
+      {
+        "name": "fetched_at: u64",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "replicas",
+            "name": "fetched_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true,
+      false
+    ]
+  },
+  "hash": "1c39f57e3cc2340c4a515b3cf9fc04ab0e6528f9dd849024546141bc33970c04"
+}

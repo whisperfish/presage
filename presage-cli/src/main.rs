@@ -430,14 +430,21 @@ async fn print_message<S: Store>(
             )),
             DataMessage {
                 reaction:
-                    Some(Reaction {
-                        target_sent_timestamp: Some(ts),
-                        emoji: Some(emoji),
-                        ..
-                    }),
+                    Some(
+                        reaction @ Reaction {
+                            target_sent_timestamp: Some(ts),
+                            emoji: Some(emoji),
+                            ..
+                        },
+                    ),
                 ..
             } => {
-                let Ok(Some(message)) = manager.store().message(thread, *ts).await else {
+                let Some(author) = reaction.parse_target_author_aci() else {
+                    warn!(%thread, sent_at = ts, "reaction without its target's author");
+                    return None;
+                };
+                let author = ServiceId::Aci(author);
+                let Ok(Some(message)) = manager.store().message(thread, &author, *ts).await else {
                     warn!(%thread, sent_at = ts, "no message found in thread");
                     return None;
                 };
@@ -617,6 +624,9 @@ async fn receive<S: Store>(
             }
             Received::DecryptionError(c) => {
                 println!("failed to receive a message from a contact: {c:?}")
+            }
+            Received::StickerPackInstalled { pack_id } => {
+                println!("installed sticker pack {}", hex::encode(pack_id))
             }
         }
     }
@@ -960,6 +970,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     Received::DecryptionError(_) => {
                         println!("failed to receive a message from a contact")
                     }
+                    Received::StickerPackInstalled { .. } => {}
                 }
             }
         }

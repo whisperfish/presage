@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM jobs WHERE id = ? AND generation = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "f4b5ac9109508d44963109452e9b16720ea552a2cf4a0ded5e0284e3552f6edf"
+}

@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM replicas WHERE kind = 'profile'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "bb5eb01e35cca0110d978d1c9023d66d8ec00f88caaf5088c0115788d7484b82"
+}
