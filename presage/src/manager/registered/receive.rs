@@ -2,7 +2,9 @@ use std::collections::HashMap;
 use std::pin::Pin;
 use std::str::FromStr;
 
-use futures::{future, Stream, StreamExt};
+use futures::channel::mpsc;
+use futures::future::{self, Either};
+use futures::{Stream, StreamExt};
 use libsignal_service::{
     cipher::SealedSenderDecryptionError,
     content::{sync_message::request::Type as RequestType, Content, ContentBody},
@@ -13,13 +15,10 @@ use libsignal_service::{
     prelude::ServiceError,
     proto::{
         receipt_message,
-        sync_message::{
-            self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
-        },
+        sync_message::{self, sticker_pack_operation, Content as SyncContent},
         DataMessage, GroupContextV2, StoryMessage, SyncMessage,
     },
     protocol::ServiceId,
-    sender::ContactDetails,
     websocket::{self, SignalWebSocket},
     AccountManager,
 };
@@ -28,10 +27,10 @@ use tracing::{debug, error, info, trace, warn};
 
 use self::origin::{Origin, OwnSync};
 use super::{
-    blocked_sync_message, delivery_receipt_timestamp, download_sticker_pack, is_blocked,
-    register_pre_keys, save_message, set_account_attributes, sync_from_storage_service,
-    upsert_group, MessageSender, Registered, RegistrationType,
+    delivery_receipt_timestamp, is_blocked, jobs, register_pre_keys, save_message,
+    set_account_attributes, update_group, MessageSender, Registered, RegistrationType,
 };
+use crate::model::jobs::Job;
 use crate::model::messages::Received;
 use crate::store::Store;
 use crate::{Error, Manager};
@@ -44,6 +43,9 @@ impl<S: Store> Manager<S, Registered> {
     /// are processed _before_ trying to encrypt and send messages, which might get rejected by recipients otherwise.
     ///
     /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
+    ///
+    /// While the stream lives, the [jobs](Job) the store keeps run beside it in tasks of the
+    /// [`tokio::task::LocalSet`] the stream is first polled in. What they bring is yielded too.
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
@@ -80,6 +82,8 @@ impl<S: Store> Manager<S, Registered> {
             future::pending::<()>().await
         };
 
+        // A primary makes its pool when first asked.
+        self.account_entropy_pool().await?;
         let receiver = Receiver::new(self.clone(), identified_websocket).await?;
 
         debug!("starting to consume incoming message stream");
@@ -98,6 +102,32 @@ impl<S: Store> Manager<S, Registered> {
     }
 }
 
+/// The task that runs the queued jobs: started when the stream is first polled, aborted when
+/// it is dropped. A job that runs then is not interrupted.
+struct JobsRunner<S: Store> {
+    manager: Option<Box<Manager<S, Registered>>>,
+    /// Where the jobs tell what they bring.
+    told: mpsc::UnboundedSender<Received>,
+    running: Option<tokio::task::JoinHandle<()>>,
+}
+
+impl<S: Store> JobsRunner<S> {
+    fn start(&mut self) {
+        if let Some(manager) = self.manager.take() {
+            let run = jobs::run(*manager, self.told.clone());
+            self.running = Some(tokio::task::spawn_local(run));
+        }
+    }
+}
+
+impl<S: Store> Drop for JobsRunner<S> {
+    fn drop(&mut self) {
+        if let Some(runner) = &self.running {
+            runner.abort();
+        }
+    }
+}
+
 /// Decrypts, handles and stores what the message pipe brings, one envelope at a time.
 struct Receiver<S: Store> {
     manager: Manager<S, Registered>,
@@ -110,6 +140,11 @@ struct Receiver<S: Store> {
     pending_delivery_receipts: HashMap<ServiceId, Vec<u64>>,
     pending_delivery_receipts_count: usize,
     queue_empty: bool,
+    /// The stories setting the identified websocket was connected with.
+    stories: bool,
+    jobs: JobsRunner<S>,
+    /// What the jobs bring.
+    background: mpsc::UnboundedReceiver<Received>,
 }
 
 // Same batch size as Signal-Android's `IncomingMessageObserver`.
@@ -120,6 +155,7 @@ impl<S: Store> Receiver<S> {
         manager: Manager<S, Registered>,
         identified_websocket: SignalWebSocket<websocket::Identified>,
     ) -> Result<Self, Error<S::Error>> {
+        let (told, background) = mpsc::unbounded();
         Ok(Self {
             encrypted_messages: Box::pin(MessagePipe::from_socket(identified_websocket).stream()),
             groups_manager: Box::pin(manager.groups_manager()).await?,
@@ -127,14 +163,34 @@ impl<S: Store> Receiver<S> {
             pending_delivery_receipts: HashMap::new(),
             pending_delivery_receipts_count: 0,
             queue_empty: false,
+            stories: manager.settings().stories,
+            jobs: JobsRunner {
+                manager: Some(Box::new(manager.clone())),
+                told,
+                running: None,
+            },
+            background,
             manager,
         })
     }
 
     /// The next thing to tell the client, `None` once the message pipe has ended.
     async fn next(&mut self) -> Option<Received> {
+        self.jobs.start();
         loop {
-            match self.encrypted_messages.next().await {
+            self.reconnect_if_stories_changed().await;
+            // What a job brought, or the next envelope.
+            let incoming = match future::select(
+                self.background.next(),
+                self.encrypted_messages.next(),
+            )
+            .await
+            {
+                Either::Left((Some(received), _)) => return Some(received),
+                Either::Left((None, incoming)) => incoming.await,
+                Either::Right((incoming, _)) => incoming,
+            };
+            match incoming {
                 Some(Ok(Incoming::Envelope(envelope))) => {
                     if let Some(received) = self.handle_envelope(envelope).await {
                         return Some(received);
@@ -146,6 +202,23 @@ impl<S: Store> Receiver<S> {
                 }
                 None => return None,
             }
+        }
+    }
+
+    async fn enqueue(&mut self, job: Job) {
+        jobs::enqueue(&mut self.manager.store, &self.manager.state.jobs_wake, job).await;
+    }
+
+    /// The server reads the stories header only on connect: a changed setting takes a new socket.
+    async fn reconnect_if_stories_changed(&mut self) {
+        let stories = self.manager.settings().stories;
+        if stories == self.stories {
+            return;
+        }
+        debug!("stories setting changed, reconnecting identified websocket");
+        match self.reconnect_identified_websocket().await {
+            Ok(()) => self.stories = stories,
+            Err(error) => error!(%error, "failed to reconnect identified websocket"),
         }
     }
 
@@ -244,19 +317,14 @@ impl<S: Store> Receiver<S> {
             self.queue_delivery_receipt(content.metadata.sender, timestamp);
         }
 
-        let saved = match self.manager.identified_websocket(false).await {
-            Ok(mut websocket) => {
-                save_message(
-                    &mut self.manager.store,
-                    &mut websocket,
-                    content.clone(),
-                    None,
-                )
-                .await
-            }
-            Err(error) => Err(error),
-        };
-        if let Err(error) = saved {
+        if let Err(error) = save_message(
+            &mut self.manager.store,
+            &self.manager.state.jobs_wake,
+            content.clone(),
+            None,
+        )
+        .await
+        {
             error!(%error, "error saving message to store");
         }
 
@@ -265,12 +333,8 @@ impl<S: Store> Receiver<S> {
 
     /// What only our own devices may ask.
     async fn handle_sync(&mut self, sync: OwnSync<'_>) {
-        if let Some(SyncContent::Request(request)) = &sync.content {
-            self.handle_sync_request(request).await;
-        }
-
-        for operation in &sync.sticker_pack_operation {
-            self.handle_sticker_pack_operation(operation).await;
+        for job in jobs_of(&sync) {
+            self.enqueue(job).await;
         }
 
         match &sync.content {
@@ -279,167 +343,19 @@ impl<S: Store> Receiver<S> {
             Some(SyncContent::Configuration(configuration)) => {
                 self.handle_configuration(configuration).await
             }
-            // The primary device told us to fetch stuff again from the storage service.
-            Some(SyncContent::FetchLatest(fetch_latest)) => {
-                self.handle_fetch_latest(fetch_latest).await
-            }
             _ => {}
         }
-    }
 
-    async fn handle_sync_request(&mut self, request: &sync_message::Request) {
-        match request.r#type() {
-            RequestType::Contacts => {
-                let contacts = self
-                    .manager
-                    .store
-                    .contacts()
-                    .await
-                    .map(|i| i.collect::<Result<Vec<_>, _>>().unwrap_or_default())
-                    .unwrap_or_default();
-
-                let mut message_sender = self.message_sender.clone();
-                let aci = self.manager.state.data.service_ids.aci();
-                tokio::task::spawn_local(async move {
-                    let result = message_sender
-                        .send_contact_details(
-                            &ServiceId::Aci(aci),
-                            None,
-                            contacts.into_iter().map(|c| ContactDetails {
-                                number: c.phone_number.map(|p| p.to_string()),
-                                aci: Some(c.uuid.to_string()),
-                                aci_binary: Some(c.uuid.into_bytes().into()),
-                                name: Some(c.name),
-                                // send_contact_details doesn't write avatar data yet.
-                                avatar: None,
-                                expire_timer: Some(c.expire_timer),
-                                expire_timer_version: Some(c.expire_timer_version),
-                                inbox_position: None,
-                            }),
-                            false,
-                            true,
-                        )
-                        .await;
-
-                    if let Err(error) = result {
-                        warn!(%error, "Error sending contact details to other devices");
-                    }
-                });
-            }
-            RequestType::Keys => {
-                let mut message_sender = self.message_sender.clone();
-                let account_entropy_pool = match self.manager.account_entropy_pool().await {
-                    Ok(aep) => aep.map(|aep| aep.to_string()),
-                    Err(error) => {
-                        warn!(%error, "failed to load account entropy pool");
-                        None
-                    }
-                };
-                tokio::task::spawn_local(async move {
-                    let result = message_sender
-                        .send_sync_message(SyncMessage {
-                            content: Some(SyncContent::Keys(sync_message::Keys {
-                                account_entropy_pool,
-                                media_root_backup_key: None,
-                            })),
-                            ..SyncMessage::with_padding(&mut rand::rng())
-                        })
-                        .await;
-
-                    if let Err(error) = result {
-                        warn!(%error, "Error sending keys to other devices");
-                    }
-                });
-            }
-            RequestType::Blocked => {
-                let blocked = match self.manager.store.blocked().await {
-                    Ok(blocked) => blocked,
-                    Err(error) => {
-                        warn!(%error, "failed to load blocked contacts and groups");
-                        Vec::new()
-                    }
-                };
-                let mut message_sender = self.message_sender.clone();
-                tokio::task::spawn_local(async move {
-                    let result = message_sender
-                        .send_sync_message(SyncMessage {
-                            content: Some(SyncContent::Blocked(blocked_sync_message(&blocked))),
-                            ..SyncMessage::with_padding(&mut rand::rng())
-                        })
-                        .await;
-
-                    if let Err(error) = result {
-                        warn!(%error, "Error sending blocked contacts to other devices");
-                    }
-                });
-            }
-            t => {
-                info!(type = ?t, "Got sync request of currently unhandled type")
-            }
-        }
-    }
-
-    async fn handle_sticker_pack_operation(&mut self, operation: &StickerPackOperation) {
-        match operation.r#type() {
-            sticker_pack_operation::Type::Install => {
-                // the primary resends every installed pack on a configuration request
-                match self
-                    .manager
-                    .store
-                    .has_sticker_pack(operation.pack_id())
-                    .await
-                {
-                    Ok(true) => {
-                        debug!("sticker pack already installed");
-                        return;
-                    }
-                    Ok(false) => {}
-                    Err(error) => {
-                        warn!(%error, "failed to look up sticker pack, downloading it")
-                    }
-                }
-                let store = self.manager.store.clone();
-                let unidentified_websocket = match self.manager.unidentified_websocket().await {
-                    Ok(ws) => ws,
-                    Err(error) => {
-                        warn!(%error, "failed to open unidentified websocket, skipping sticker pack");
-                        return;
-                    }
-                };
-                let operation = operation.clone();
-
-                // download stickers in the background
-                tokio::spawn(async move {
-                    match download_sticker_pack(store, unidentified_websocket, &operation).await {
-                        Ok(sticker_pack) => {
-                            debug!(
-                                "downloaded sticker pack: {} made by {}",
-                                sticker_pack.manifest.title, sticker_pack.manifest.author
-                            );
-                        }
-                        Err(error) => error!(
-                            %error,
-                            "failed to download sticker pack"
-                        ),
-                    }
-                });
-            }
-            sticker_pack_operation::Type::Remove => {
+        for operation in &sync.sticker_pack_operation {
+            if operation.r#type() == sticker_pack_operation::Type::Remove {
                 match self
                     .manager
                     .store
                     .remove_sticker_pack(operation.pack_id())
                     .await
                 {
-                    Ok(was_present) => {
-                        debug!(was_present, "removed stick pack")
-                    }
-                    Err(error) => {
-                        error!(
-                            %error,
-                            "failed to remove sticker pack"
-                        )
-                    }
+                    Ok(was_present) => debug!(was_present, "removed stick pack"),
+                    Err(error) => error!(%error, "failed to remove sticker pack"),
                 }
             }
         }
@@ -488,32 +404,8 @@ impl<S: Store> Receiver<S> {
         }
     }
 
-    async fn handle_fetch_latest(&mut self, fetch_latest: &sync_message::FetchLatest) {
-        if fetch_latest.r#type() != sync_message::fetch_latest::Type::StorageManifest {
-            return;
-        }
-        let stories = self.manager.settings().stories;
-        if let Err(error) = sync_from_storage_service(
-            &mut self.manager.store,
-            self.manager.state.identified_push_service(),
-            &mut self.groups_manager,
-            &self.manager.state.settings,
-        )
-        .await
-        {
-            warn!(%error, "failed to sync from the storage service");
-        }
-
-        // The stories header is only read on connect; the server kicks the old socket.
-        if stories != self.manager.settings().stories {
-            debug!("stories setting changed, reconnecting identified websocket");
-            if let Err(error) = self.reconnect_identified_websocket().await {
-                error!(%error, "failed to reconnect identified websocket");
-            }
-        }
-    }
-
-    /// Brings the group a message was sent in up to the revision the message shows.
+    /// Brings the group a message was sent in up to the revision the message shows, by a job if
+    /// the connection fails.
     async fn handle_group_context(&mut self, content: &Content) {
         if let ContentBody::DataMessage(DataMessage {
             group_v2:
@@ -554,7 +446,7 @@ impl<S: Store> Receiver<S> {
             // there's two things to implement: the group metadata (fetched from HTTP API)
             // and the group changes, which are part of the protobuf messages
             // this means we kinda need our own internal representation of groups inside of presage?
-            if let Ok(Some(group)) = upsert_group(
+            match update_group(
                 &self.manager.store,
                 &mut self.groups_manager,
                 master_key_bytes,
@@ -562,7 +454,22 @@ impl<S: Store> Receiver<S> {
             )
             .await
             {
-                trace!(?group, "upserted group");
+                Ok(group) => trace!(?group, "upserted group"),
+                Err(error) => {
+                    warn!(error = %jobs::Causes(&error), "failed to fetch encrypted group");
+                    // Nothing else fetches the group again until its next message. Not if the
+                    // server answered: a refusal (we aren't a member) would be the same again.
+                    if let (true, Ok(master_key)) = (
+                        jobs::connection_failed(&error),
+                        <[u8; 32]>::try_from(master_key_bytes.as_slice()),
+                    ) {
+                        self.enqueue(Job::UpdateGroup {
+                            master_key,
+                            revision: *revision,
+                        })
+                        .await;
+                    }
+                }
             }
         }
     }
@@ -571,24 +478,13 @@ impl<S: Store> Receiver<S> {
         debug!("got empty queue");
         self.queue_empty = true;
         self.flush_delivery_receipts();
-        if matches!(self.manager.account_entropy_pool().await, Ok(None)) {
-            debug!("device does not have the needed keys; requesting from primary device");
-
-            let mut message_sender = self.message_sender.clone();
-            tokio::task::spawn_local(async move {
-                let result = message_sender
-                    .send_sync_message(SyncMessage {
-                        content: Some(SyncContent::Request(sync_message::Request {
-                            r#type: Some(sync_message::request::Type::Keys.into()),
-                        })),
-                        ..SyncMessage::with_padding(&mut rand::rng())
-                    })
-                    .await;
-
-                if let Err(error) = result {
-                    warn!(%error, "Error sending blocked contacts to other devices");
-                }
-            });
+        match self.manager.store.fetch_account_entropy_pool().await {
+            Ok(None) => {
+                debug!("device does not have the needed keys; requesting from primary device");
+                self.enqueue(Job::RequestKeys).await;
+            }
+            Ok(Some(_)) => {}
+            Err(error) => error!(%error, "failed to read the account entropy pool"),
         }
         Received::QueueEmpty
     }
@@ -634,6 +530,35 @@ impl<S: Store> Receiver<S> {
         debug!("reconnected identified websocket");
         Ok(())
     }
+}
+
+/// The work a sync message of ours asks for that is left to a [`Job`].
+fn jobs_of(sync: &OwnSync<'_>) -> Vec<Job> {
+    let mut jobs = Vec::new();
+    match &sync.content {
+        Some(SyncContent::Request(request)) => match request.r#type() {
+            RequestType::Contacts => jobs.push(Job::AnswerContacts),
+            RequestType::Keys => jobs.push(Job::AnswerKeys),
+            RequestType::Blocked => jobs.push(Job::AnswerBlocked),
+            t => info!(type = ?t, "Got sync request of currently unhandled type"),
+        },
+        // The primary device told us to fetch stuff again from the storage service.
+        Some(SyncContent::FetchLatest(fetch_latest))
+            if fetch_latest.r#type() == sync_message::fetch_latest::Type::StorageManifest =>
+        {
+            jobs.push(Job::SyncStorage)
+        }
+        _ => {}
+    }
+    for operation in &sync.sticker_pack_operation {
+        if operation.r#type() == sticker_pack_operation::Type::Install {
+            jobs.push(Job::InstallStickerPack {
+                pack_id: operation.pack_id().to_vec(),
+                pack_key: operation.pack_key().to_vec(),
+            });
+        }
+    }
+    jobs
 }
 
 mod origin {
