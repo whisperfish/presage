@@ -582,6 +582,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut gm = Box::pin(self.groups_manager()).await?;
         let Some(group) = upsert_group(
             &self.store,
+            &self.state.jobs_wake,
             &mut gm,
             context.master_key(),
             &context.revision(),
@@ -934,8 +935,14 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
-        let Some(group) =
-            upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
+        let Some(group) = upsert_group(
+            &self.store,
+            &self.state.jobs_wake,
+            &mut groups_manager,
+            &master_key_bytes,
+            &0,
+        )
+        .await?
         else {
             return Err(Error::UnknownGroup);
         };
@@ -1637,18 +1644,43 @@ async fn update_group<S: Store>(
     Ok(store.group(master_key_bytes.try_into()?).await?)
 }
 
-/// As [`update_group`], with the stored group if fetching fails.
-async fn upsert_group<S: Store>(
+/// As [`update_group`]; a fetch the connection failed is owed as a [`Job`](crate::model::jobs::Job), which fetches the
+/// group while receiving: until then it stays as it was (a member who left, still listed). Not
+/// if the server answered: a refusal (we aren't a member) would be the same again.
+async fn update_group_or_owe<S: Store>(
     store: &S,
+    jobs_wake: &tokio::sync::Notify,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<S::Error>> {
-    match update_group(store, groups_manager, master_key_bytes, revision).await {
-        Err(Error::ServiceError(error)) => {
-            warn!(error = %jobs::Causes(&error), "failed to fetch encrypted group");
-            Ok(store.group(master_key_bytes.try_into()?).await?)
+    let updated = update_group(store, groups_manager, master_key_bytes, revision).await;
+    if let Err(error) = &updated {
+        warn!(error = %jobs::Causes(error), "failed to fetch encrypted group");
+        if let (true, Ok(master_key)) = (
+            jobs::connection_failed(error),
+            <[u8; 32]>::try_from(master_key_bytes),
+        ) {
+            let job = crate::model::jobs::Job::UpdateGroup {
+                master_key,
+                revision: *revision,
+            };
+            jobs::enqueue(&mut store.clone(), jobs_wake, job).await;
         }
+    }
+    updated
+}
+
+/// As [`update_group_or_owe`], with the stored group if fetching fails.
+async fn upsert_group<S: Store>(
+    store: &S,
+    jobs_wake: &tokio::sync::Notify,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    master_key_bytes: &[u8],
+    revision: &u32,
+) -> Result<Option<Group>, Error<S::Error>> {
+    match update_group_or_owe(store, jobs_wake, groups_manager, master_key_bytes, revision).await {
+        Err(Error::ServiceError(_)) => Ok(store.group(master_key_bytes.try_into()?).await?),
         group => group,
     }
 }
