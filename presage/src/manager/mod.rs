@@ -1,5 +1,6 @@
 //! Signal manager and its states
 
+mod account_keys;
 mod confirmation;
 mod linking;
 mod registered;
@@ -8,9 +9,10 @@ mod settings;
 
 use std::fmt;
 
+pub use self::account_keys::AccountKeys;
 pub use self::confirmation::Confirmation;
 pub use self::linking::Linking;
-pub use self::registered::{Registered, RegistrationData, RegistrationType};
+pub use self::registered::{Registered, RegistrationData, RegistrationType, Services};
 pub use self::registration::{Registration, RegistrationOptions};
 
 /// Signal manager
