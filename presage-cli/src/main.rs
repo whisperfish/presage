@@ -618,6 +618,9 @@ async fn receive<S: Store>(
             Received::DecryptionError(c) => {
                 println!("failed to receive a message from a contact: {c:?}")
             }
+            Received::StickerPackInstalled { pack_id } => {
+                println!("installed sticker pack {}", hex::encode(pack_id))
+            }
         }
     }
 
@@ -960,6 +963,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     Received::DecryptionError(_) => {
                         println!("failed to receive a message from a contact")
                     }
+                    Received::StickerPackInstalled { .. } => {}
                 }
             }
         }

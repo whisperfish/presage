@@ -9,11 +9,16 @@ use presage::{
         protocol::ServiceId,
         zkgroup::GroupMasterKeyBytes,
     },
-    model::{contacts::Contact, groups::Group},
+    model::{
+        contacts::Contact,
+        groups::Group,
+        jobs::{Job, QueuedJob},
+    },
     proto::{Verified, verified},
     store::{ContentsStore, StickerPack, Thread},
 };
 use sqlx::{query, query_as, query_scalar, types::Json};
+use tracing::warn;
 
 use crate::{
     SqliteStore, SqliteStoreError,
@@ -75,6 +80,10 @@ impl ContentsStore for SqliteStore {
             .execute(&mut *transaction)
             .await?;
         query!("DELETE FROM sticker_packs")
+            .execute(&mut *transaction)
+            .await?;
+        // Nothing is owed for what is gone.
+        query!("DELETE FROM jobs")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
@@ -721,6 +730,87 @@ impl ContentsStore for SqliteStore {
         Ok(Box::new(sql_packs.into_iter().map(|pack| Ok(pack.into()))))
     }
 
+    async fn enqueue_job(&mut self, job: &Job) -> Result<(), Self::ContentsStoreError> {
+        let key = job.key();
+        let job = serde_json::to_string(job)?;
+        query!(
+            "INSERT INTO jobs (key, job) VALUES (?, ?)
+            ON CONFLICT (key) DO UPDATE SET
+                job = excluded.job, generation = generation + 1, attempts = 0, due_at = 0
+            WHERE job <> excluded.job",
+            key,
+            job,
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    async fn jobs(&self) -> Result<Vec<QueuedJob>, Self::ContentsStoreError> {
+        let rows = query!(
+            r#"SELECT
+                id AS "id!: i64",
+                job,
+                generation AS "generation: u64",
+                attempts AS "attempts: u32",
+                due_at AS "due_at: u64"
+            FROM jobs ORDER BY id"#
+        )
+        .fetch_all(&self.db)
+        .await?;
+        let mut jobs = Vec::with_capacity(rows.len());
+        for row in rows {
+            match serde_json::from_str(&row.job) {
+                Ok(job) => jobs.push(QueuedJob {
+                    id: u64::try_from(row.id).map_err(|_| SqliteStoreError::InvalidFormat)?,
+                    job,
+                    generation: row.generation,
+                    attempts: row.attempts,
+                    due_at: row.due_at,
+                }),
+                // Another version's: dropped, lest the others don't run for it.
+                Err(error) => {
+                    warn!(%error, id = row.id, "dropping a queued job that doesn't read");
+                    query!("DELETE FROM jobs WHERE id = ?", row.id)
+                        .execute(&self.db)
+                        .await?;
+                }
+            }
+        }
+        Ok(jobs)
+    }
+
+    async fn finish_job(&mut self, job: &QueuedJob) -> Result<(), Self::ContentsStoreError> {
+        let (id, generation) = (job.id as i64, job.generation as i64);
+        query!(
+            "DELETE FROM jobs WHERE id = ? AND generation = ?",
+            id,
+            generation
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    async fn retry_job(
+        &mut self,
+        job: &QueuedJob,
+        due_at: u64,
+    ) -> Result<(), Self::ContentsStoreError> {
+        let (id, generation) = (job.id as i64, job.generation as i64);
+        let due_at = due_at as i64;
+        query!(
+            "UPDATE jobs SET attempts = attempts + 1, due_at = ?
+            WHERE id = ? AND generation = ?",
+            due_at,
+            id,
+            generation,
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
     async fn thread_for_sender_and_timestamp(
         &self,
         sender: &ServiceId,
@@ -828,6 +918,136 @@ mod test {
         store.save_group(master_key, group).await?;
         assert!(!store.is_group_left(master_key).await?);
 
+        Ok(())
+    }
+
+    fn fetch_profile(profile_key: [u8; 32]) -> Job {
+        Job::FetchProfile {
+            aci: [1; 16],
+            profile_key,
+            expire_timer: 0,
+            expire_timer_version: 1,
+        }
+    }
+
+    #[tokio::test]
+    async fn a_job_waits_until_finished() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let install = Job::InstallStickerPack {
+            pack_id: vec![1; 16],
+            pack_key: vec![2; 32],
+        };
+        let update = Job::UpdateGroup {
+            master_key: [3; 32],
+            revision: 4,
+        };
+        store.enqueue_job(&install).await?;
+        store.enqueue_job(&update).await?;
+
+        let jobs = store.jobs().await?;
+        assert_eq!(
+            jobs.iter().map(|queued| &queued.job).collect::<Vec<_>>(),
+            [&install, &update]
+        );
+
+        store.retry_job(&jobs[0], 5_000).await?;
+        let retried = &store.jobs().await?[0];
+        assert_eq!((retried.attempts, retried.due_at), (1, 5_000));
+
+        store.finish_job(&jobs[0]).await?;
+        assert_eq!(store.jobs().await?.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_job_queued_again_takes_the_place_of_the_one_waiting()
+    -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        store.enqueue_job(&fetch_profile([2; 32])).await?;
+        let running = store.jobs().await?.remove(0);
+        store.retry_job(&running, 5_000).await?;
+
+        store.enqueue_job(&fetch_profile([3; 32])).await?;
+        let jobs = store.jobs().await?;
+        assert_eq!(jobs.len(), 1);
+        assert_eq!(jobs[0].job, fetch_profile([3; 32]));
+        assert_eq!((jobs[0].attempts, jobs[0].due_at), (0, 0));
+
+        // The one that ran meanwhile doesn't take the new one with it.
+        store.finish_job(&running).await?;
+        assert_eq!(store.jobs().await?.len(), 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn the_same_job_queued_again_keeps_waiting() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        store.enqueue_job(&Job::SyncStorage).await?;
+        let failed = store.jobs().await?.remove(0);
+        store.retry_job(&failed, 5_000).await?;
+
+        store.enqueue_job(&Job::SyncStorage).await?;
+        let waiting = &store.jobs().await?[0];
+        assert_eq!((waiting.attempts, waiting.due_at), (1, 5_000));
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_run_settles_only_the_job_it_began_with() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        store.enqueue_job(&fetch_profile([2; 32])).await?;
+        let running = store.jobs().await?.remove(0);
+
+        // Another took its place meanwhile, and one the same as it took that one's.
+        store.enqueue_job(&fetch_profile([3; 32])).await?;
+        store.enqueue_job(&fetch_profile([2; 32])).await?;
+        store.retry_job(&running, 5_000).await?;
+        store.finish_job(&running).await?;
+        let waiting = store.jobs().await?.remove(0);
+        assert_eq!(
+            (waiting.id, waiting.attempts, waiting.due_at),
+            (running.id, 0, 0)
+        );
+
+        store.finish_job(&waiting).await?;
+        assert!(store.jobs().await?.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_job_that_does_not_read_is_dropped() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        sqlx::query(r#"INSERT INTO jobs (key, job) VALUES ('later', '"OfALaterVersion"')"#)
+            .execute(&store.db)
+            .await?;
+        store.enqueue_job(&Job::AnswerKeys).await?;
+
+        let jobs = store.jobs().await?;
+        assert_eq!(
+            jobs.iter().map(|queued| &queued.job).collect::<Vec<_>>(),
+            [&Job::AnswerKeys]
+        );
+        let kept: i64 = sqlx::query_scalar("SELECT count(*) FROM jobs")
+            .fetch_one(&store.db)
+            .await?;
+        assert_eq!(kept, 1);
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn clearing_forgets_the_jobs() -> Result<(), Box<dyn std::error::Error>> {
+        use presage::store::{StateStore, Store};
+
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        for clear in 0..3 {
+            store.enqueue_job(&Job::SyncStorage).await?;
+            match clear {
+                0 => store.clear_contents().await?,
+                1 => store.clear_registration().await?,
+                _ => store.clear().await?,
+            }
+            assert!(store.jobs().await?.is_empty());
+        }
         Ok(())
     }
 }

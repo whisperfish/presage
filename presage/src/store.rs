@@ -26,7 +26,11 @@ use tracing::trace;
 
 use crate::{
     manager::RegistrationData,
-    model::{contacts::Contact, groups::Group},
+    model::{
+        contacts::Contact,
+        groups::Group,
+        jobs::{Job, QueuedJob},
+    },
     AvatarBytes,
 };
 
@@ -71,6 +75,7 @@ pub trait StateStore {
     fn is_registered(&self) -> impl Future<Output = bool>;
 
     /// Clear registration data (including keys), but keep received messages, groups and contacts.
+    /// The queued jobs go too: they are the registration's.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(
@@ -113,7 +118,7 @@ pub trait ContentsStore: Send + Sync {
     // Clear all profiles
     fn clear_profiles(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    // Clear all stored messages
+    // Clear all stored messages, contacts and groups, and with them the queued jobs
     fn clear_contents(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     // Messages
@@ -148,6 +153,31 @@ pub trait ContentsStore: Send + Sync {
         thread: &Thread,
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
+
+    /// Queues `job` until it is [finished](ContentsStore::finish_job), due at once. One job
+    /// waits per [key](Job::key): this one takes the place of a different one waiting with
+    /// the same ([QueuedJob::generation] counts that), and leaves the same one waiting as it is.
+    fn enqueue_job(
+        &mut self,
+        job: &Job,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>> + Send;
+
+    /// The jobs queued, oldest first.
+    fn jobs(&self) -> impl Future<Output = Result<Vec<QueuedJob>, Self::ContentsStoreError>>;
+
+    /// Forgets `job`, done or given up, unless another took its place meanwhile.
+    fn finish_job(
+        &mut self,
+        job: &QueuedJob,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Notes that `job` failed once more, to be tried again at `due_at` (milliseconds since
+    /// the epoch), unless another took its place meanwhile.
+    fn retry_job(
+        &mut self,
+        job: &QueuedJob,
+        due_at: u64,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a message [Thread] from its sender and timestamp.
     fn thread_for_sender_and_timestamp(
