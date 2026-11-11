@@ -23,8 +23,8 @@ use libsignal_service::{
         sync_message::{
             self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
         },
-        AttachmentPointer, DataMessage, EditMessage, GroupContextV2, NullMessage, SyncMessage,
-        Verified,
+        AttachmentPointer, CallMessage, DataMessage, EditMessage, GroupContextV2, NullMessage,
+        SyncMessage, Verified,
     },
     protocol::{
         Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
@@ -2072,6 +2072,7 @@ async fn save_message<S: Store>(
     override_thread: Option<Thread>,
 ) -> Result<(), Error<S::Error>> {
     // derive the thread from the message type
+    let received = override_thread.is_none();
     let thread = override_thread.unwrap_or(Thread::try_from(&message)?);
 
     // only save DataMessage and SynchronizeMessage (sent)
@@ -2224,7 +2225,12 @@ async fn save_message<S: Store>(
                 })),
             ..
         }) => Some(message),
-        // Call signaling is transient; calls are recorded by `CallEvent`s instead.
+        // Received offers and hangups start and end a call; the rest of the signaling is transient.
+        // Our own calls are recorded by `CallEvent`s.
+        ContentBody::CallMessage(CallMessage { offer: Some(_), .. })
+        | ContentBody::CallMessage(CallMessage {
+            hangup: Some(_), ..
+        }) if received => Some(message),
         ContentBody::CallMessage(_) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
             content: Some(SyncContent::CallEvent(_)),
