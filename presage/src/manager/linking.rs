@@ -2,7 +2,6 @@ use futures::channel::{mpsc, oneshot};
 use futures::{future, StreamExt};
 use libsignal_service::configuration::SignalServers;
 use libsignal_service::master_key::MasterKey;
-use libsignal_service::prelude::PushService;
 use libsignal_service::protocol::IdentityKeyPair;
 use libsignal_service::provisioning::{
     link_device, NewDeviceRegistration, SecondaryDeviceProvisioning,
@@ -78,7 +77,7 @@ impl<S: Store> Manager<S, Linking> {
         let mut signaling_key = [0u8; 52];
         rng.fill_bytes(&mut signaling_key);
 
-        let push_service = PushService::new(signal_servers, None, crate::USER_AGENT);
+        let push_service = crate::client::push_service(signal_servers, None);
 
         let (tx, mut rx) = mpsc::channel(1);
 
