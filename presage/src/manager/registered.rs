@@ -1118,13 +1118,14 @@ impl<S: Store> Manager<S, Registered> {
     ///
     /// This method will automatically update the [DataMessage::expire_timer] if it is set to
     /// [None] such that the chat will keep the current expire timer. If the expire timer is set,
-    /// it will be used as is, and the expire timer version will be incremented.
+    /// it will be used as is, and the expire timer version will be incremented. It will also
+    /// potentially attach link previews. The actually sent message is returned.
     pub async fn send_message(
         &mut self,
         recipient: impl Into<ServiceId>,
         message: impl Into<ContentBody>,
         timestamp: u64,
-    ) -> Result<(), Error<S::Error>> {
+    ) -> Result<Content, Error<S::Error>> {
         let mut sender = self.new_message_sender().await?;
         let recipient = recipient.into();
 
@@ -1192,12 +1193,12 @@ impl<S: Store> Manager<S, Registered> {
         save_message(
             &mut self.store,
             &mut identified_websocket,
-            content,
+            content.clone(),
             Some(thread),
         )
         .await?;
 
-        Ok(())
+        Ok(content)
     }
 
     /// Fetches a preview (title, description, image) for the first link in `body`, and
@@ -1298,13 +1299,14 @@ impl<S: Store> Manager<S, Registered> {
     /// Sends one message in a group (v2). The `master_key_bytes` is required to have 32 elements.
     ///
     /// This method will automatically update the [DataMessage::expire_timer] if it is set to
-    /// [None] such that the chat will keep the current expire timer.
+    /// [None] such that the chat will keep the current expire timer, as well as potentially attach
+    /// link previews. The actually sent message is returned.
     pub async fn send_message_to_group(
         &mut self,
         master_key_bytes: &[u8],
         message: impl Into<ContentBody>,
         timestamp: u64,
-    ) -> Result<(), Error<S::Error>> {
+    ) -> Result<Content, Error<S::Error>> {
         let mut content_body = message.into();
         let master_key_bytes = master_key_bytes
             .try_into()
@@ -1388,12 +1390,12 @@ impl<S: Store> Manager<S, Registered> {
         save_message(
             &mut self.store,
             &mut identified_websocket,
-            content,
+            content.clone(),
             Some(thread),
         )
         .await?;
 
-        Ok(())
+        Ok(content)
     }
 
     async fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
