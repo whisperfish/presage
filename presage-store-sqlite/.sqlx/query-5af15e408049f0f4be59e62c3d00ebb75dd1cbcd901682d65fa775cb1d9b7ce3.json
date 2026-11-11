@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id\n            FROM kyber_pre_keys\n            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at != NULL AND stale_at < ?2\n            ORDER BY stale_at ASC, id ASC",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "kyber_pre_keys",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "5af15e408049f0f4be59e62c3d00ebb75dd1cbcd901682d65fa775cb1d9b7ce3"
+}

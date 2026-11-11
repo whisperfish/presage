@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT active_last_resort_kyber_pre_key_id FROM pre_key_metadata WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "active_last_resort_kyber_pre_key_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pre_key_metadata",
+            "name": "active_last_resort_kyber_pre_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "572efa14ff7a09246e00937ca9be0e6e33b947c8d416829dd43f0632cc15246f"
+}

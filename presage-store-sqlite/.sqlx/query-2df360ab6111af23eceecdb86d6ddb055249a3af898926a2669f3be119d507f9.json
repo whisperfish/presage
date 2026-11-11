@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT MAX(id) AS 'id: u32' FROM kyber_pre_keys\n            WHERE identity = ? AND is_last_resort = TRUE",
+  "query": "SELECT COUNT(*) FROM kyber_pre_keys WHERE identity = ? AND is_last_resort = FALSE",
   "describe": {
     "columns": [
       {
-        "name": "id: u32",
+        "name": "COUNT(*)",
         "ordinal": 0,
         "type_info": "Integer",
         "origin": "Expression"
@@ -14,8 +14,8 @@
       "Right": 1
     },
     "nullable": [
-      true
+      false
     ]
   },
-  "hash": "c43d7811bbaf594d24199d8bfeeba5cca898975ead4edcb369b51664995d123e"
+  "hash": "2df360ab6111af23eceecdb86d6ddb055249a3af898926a2669f3be119d507f9"
 }

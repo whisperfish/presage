@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT next_ec_pre_key_id FROM pre_key_metadata WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "next_ec_pre_key_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pre_key_metadata",
+            "name": "next_ec_pre_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "519b19c454b801ea9c05959c2bfe01362deb68d6043986d005bc5cb61e42dbbc"
+}

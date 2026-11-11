@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT next_kyber_pre_key_id FROM pre_key_metadata WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "next_kyber_pre_key_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pre_key_metadata",
+            "name": "next_kyber_pre_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "0ac1014e251a03c37f65f34ecdf48c3f4fb99afe2341ad19d95f17c9166fe816"
+}
