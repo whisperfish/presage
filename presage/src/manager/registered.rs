@@ -752,10 +752,8 @@ impl<S: Store> Manager<S, Registered> {
                                                             aci: Some(c.uuid.to_string()),
                                                             aci_binary: Some(c.uuid.into_bytes().into()),
                                                             name: Some(c.name),
-                                                            avatar: c.avatar.map(|a| libsignal_service::proto::contact_details::Avatar {
-                                                                content_type: Some(a.content_type),
-                                                                length: a.reader.len().try_into().ok(),
-                                                            }),
+                                                            // send_contact_details doesn't write avatar data yet.
+                                                            avatar: None,
                                                             expire_timer: Some(c.expire_timer),
                                                             expire_timer_version: Some(c.expire_timer_version),
                                                             inbox_position: None,
