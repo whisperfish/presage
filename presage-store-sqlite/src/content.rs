@@ -11,7 +11,7 @@ use presage::{
     },
     model::{contacts::Contact, groups::Group},
     proto::{Verified, verified},
-    store::{ContentsStore, StickerPack, Thread},
+    store::{ContentsStore, MessageIterationOrder, StickerPack, Thread},
 };
 use sqlx::{query, query_as, query_scalar, types::Json};
 
@@ -249,15 +249,19 @@ impl ContentsStore for SqliteStore {
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
+        limit: Option<u64>,
+        sort: MessageIterationOrder,
     ) -> Result<Self::MessagesIter, Self::ContentsStoreError> {
         let (group_master_key, recipient_id) = thread.unzip();
 
         let (start_incl, start_excl) = range.start_bound().into_sql_bound();
         let (end_incl, end_excl) = range.end_bound().into_sql_bound();
 
-        let rows = query_as!(
-            SqlMessage,
-            r#"SELECT
+        let rows = match (limit, sort) {
+            (None, MessageIterationOrder::TimestampDescending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
                 ts AS "ts: _",
                 server_ts AS "server_ts: _",
                 sender_service_id,
@@ -274,15 +278,111 @@ impl ContentsStore for SqliteStore {
                 AND coalesce(ts > ?, ts >= ?, true)
                 AND coalesce(ts < ?, ts <= ?, true)
             ORDER BY ts DESC"#,
-            group_master_key,
-            recipient_id,
-            start_incl,
-            start_excl,
-            end_incl,
-            end_excl
-        )
-        .fetch_all(&self.db)
-        .await?;
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+            (None, MessageIterationOrder::TimestampAscending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND coalesce(ts > ?, ts >= ?, true)
+                AND coalesce(ts < ?, ts <= ?, true)
+            ORDER BY ts DESC"#,
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+            (Some(limit), MessageIterationOrder::TimestampDescending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND coalesce(ts > ?, ts >= ?, true)
+                AND coalesce(ts < ?, ts <= ?, true)
+            ORDER BY ts DESC
+            LIMIT ?"#,
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl,
+                    limit as i64
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+            (Some(limit), MessageIterationOrder::TimestampAscending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND coalesce(ts > ?, ts >= ?, true)
+                AND coalesce(ts < ?, ts <= ?, true)
+            ORDER BY ts ASC
+            LIMIT ?"#,
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl,
+                    limit as i64
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+        };
 
         Ok(Box::new(rows.into_iter().map(TryInto::try_into)))
     }

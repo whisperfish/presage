@@ -30,6 +30,12 @@ use crate::{
     AvatarBytes,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageIterationOrder {
+    TimestampAscending,
+    TimestampDescending,
+}
+
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send {}
 
@@ -161,6 +167,8 @@ pub trait ContentsStore: Send + Sync {
         &self,
         thread: &Thread,
         range: impl RangeBounds<u64>,
+        limit: Option<u64>,
+        sort: MessageIterationOrder,
     ) -> impl Future<Output = Result<Self::MessagesIter, Self::ContentsStoreError>>;
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]

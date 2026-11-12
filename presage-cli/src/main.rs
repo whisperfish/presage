@@ -32,6 +32,7 @@ use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
 use presage::proto::SyncMessage;
 use presage::store::ContentExt;
+use presage::store::MessageIterationOrder;
 use presage::{
     libsignal_service::content::{Content, ContentBody, DataMessage, GroupContextV2},
     manager::{Registered, RegistrationOptions},
@@ -976,7 +977,12 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             };
             for msg in manager
                 .store()
-                .messages(&thread, from.unwrap_or(0)..)
+                .messages(
+                    &thread,
+                    from.unwrap_or(0)..,
+                    None,
+                    MessageIterationOrder::TimestampDescending,
+                )
                 .await?
                 .filter_map(Result::ok)
             {
