@@ -100,6 +100,9 @@ pub struct Registered {
     pub(crate) settings: Arc<RwLock<Settings>>,
 
     pub(crate) data: Arc<RegistrationData>,
+    /// Whom our messages carry a PNI signature to: those who wrote to our PNI, until their
+    /// delivery receipt shows they took a message from our ACI.
+    pub(crate) pni_signature_to: Arc<std::sync::Mutex<std::collections::HashSet<ServiceId>>>,
 }
 
 impl fmt::Debug for Registered {
@@ -119,6 +122,7 @@ impl Registered {
             link_preview_client: Default::default(),
             settings: Default::default(),
             data: Arc::new(data),
+            pni_signature_to: Default::default(),
         }
     }
 
@@ -756,6 +760,10 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
+                                    note_pni_signature(
+                                        &state.manager.state.pni_signature_to,
+                                        &content,
+                                    );
                                     if let ContentBody::DecryptionErrorMessage(e) = &content.body {
                                         error!(
                                             error = ?e,
@@ -1256,10 +1264,15 @@ impl<S: Store> Manager<S, Registered> {
         let recipient = recipient.into();
 
         let online_only = false;
-        // TODO: Populate this flag based on the recipient information
-        //
-        // Issue <https://github.com/whisperfish/presage/issues/252>
-        let include_pni_signature = false;
+        // Someone who wrote to our PNI knows only our number: the signature ties our ACI to it,
+        // so that our answer joins their chat with our number (Signal-Desktop
+        // `shareMyPhoneNumber`).
+        let include_pni_signature = self
+            .state
+            .pni_signature_to
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .contains(&recipient);
         let thread = Thread::Contact(recipient);
         let mut content_body: ContentBody = message.into();
 
@@ -2949,4 +2962,81 @@ async fn register_pre_keys_kind<S: PreKeysStore>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Someone who wrote to our PNI gets our PNI signature with what we send, until their delivery
+/// receipt says they took a message from our ACI, as Signal-Desktop does.
+fn note_pni_signature(
+    to: &std::sync::Mutex<std::collections::HashSet<ServiceId>>,
+    content: &Content,
+) {
+    use libsignal_service::protocol::ServiceIdKind;
+    let sender = content.metadata.sender;
+    if sender.kind() != ServiceIdKind::Aci {
+        return;
+    }
+    let to_our_pni = content.metadata.destination.kind() == ServiceIdKind::Pni;
+    let delivered = matches!(
+        &content.body,
+        ContentBody::ReceiptMessage(receipt)
+            if receipt.r#type() == libsignal_service::proto::receipt_message::Type::Delivery
+    );
+    let mut to = to.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    if to_our_pni && !delivered {
+        to.insert(sender);
+    } else if delivered {
+        to.remove(&sender);
+    }
+}
+
+#[cfg(test)]
+mod pni_signature_tests {
+    use libsignal_service::{
+        content::{Content, Metadata},
+        prelude::Uuid,
+        proto::{receipt_message, DataMessage, ReceiptMessage},
+        protocol::{Aci, Pni, ServiceId},
+    };
+
+    use super::note_pni_signature;
+
+    fn content(sender: ServiceId, destination: ServiceId, receipt: bool) -> Content {
+        let metadata = Metadata {
+            sender,
+            destination,
+            sender_device: 1.try_into().unwrap(),
+            pni_verified: None,
+            client_timestamp: chrono::Utc::now(),
+            server_timestamp: chrono::Utc::now(),
+            needs_receipt: false,
+            unidentified_sender: false,
+            was_plaintext: false,
+            server_guid: None,
+        };
+        if receipt {
+            Content::from_body(
+                ReceiptMessage {
+                    r#type: Some(receipt_message::Type::Delivery.into()),
+                    timestamp: vec![1],
+                },
+                metadata,
+            )
+        } else {
+            Content::from_body(DataMessage::default(), metadata)
+        }
+    }
+
+    #[test]
+    fn whoever_wrote_to_our_pni_gets_our_signature_until_they_receive_from_our_aci() {
+        let them = ServiceId::Aci(Aci::from(Uuid::from_u128(1)));
+        let our_aci = ServiceId::Aci(Aci::from(Uuid::from_u128(2)));
+        let our_pni = ServiceId::Pni(Pni::from(Uuid::from_u128(3)));
+        let to = std::sync::Mutex::default();
+        note_pni_signature(&to, &content(them, our_aci, false));
+        assert!(to.lock().unwrap().is_empty());
+        note_pni_signature(&to, &content(them, our_pni, false));
+        assert!(to.lock().unwrap().contains(&them));
+        note_pni_signature(&to, &content(them, our_aci, true));
+        assert!(to.lock().unwrap().is_empty());
+    }
 }
