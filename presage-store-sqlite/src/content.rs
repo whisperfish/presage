@@ -427,9 +427,27 @@ impl ContentsStore for SqliteStore {
         master_key: GroupMasterKeyBytes,
         group: impl Into<Group>,
     ) -> Result<(), Self::ContentsStoreError> {
-        let g = SqlGroup::from_group(&master_key, group.into());
+        let group = group.into();
+        // Each member puts their own profile key in the group: sends, pictures and profiles
+        // take it from here, as Signal-Desktop does, for a member who never wrote to us alone.
+        let member_keys: Vec<(Uuid, [u8; 32])> = group
+            .members
+            .iter()
+            .map(|member| (member.aci.into(), member.profile_key.get_bytes()))
+            .collect();
+        let g = SqlGroup::from_group(&master_key, group);
         let master_key = g.master_key.as_ref();
         let mut transaction = self.begin_write().await?;
+        for (uuid, key) in &member_keys {
+            let key = key.as_slice();
+            query_scalar!(
+                "INSERT OR REPLACE INTO profile_keys (uuid, key) VALUES (?, ?)",
+                uuid,
+                key
+            )
+            .execute(&mut *transaction)
+            .await?;
+        }
         query!(
             "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             master_key,
@@ -828,6 +846,43 @@ mod test {
         };
         store.save_group(master_key, group).await?;
         assert!(!store.is_group_left(master_key).await?);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn a_groups_members_profile_keys_are_kept() -> Result<(), Box<dyn std::error::Error>> {
+        use presage::libsignal_service::{groups_v2::Role, protocol::Aci};
+        use presage::model::groups::Member;
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let aci = Aci::from(Uuid::from_bytes([7u8; 16]));
+        let key = ProfileKey::create([9u8; 32]);
+        let group = Group {
+            title: "group".into(),
+            avatar: String::new(),
+            disappearing_messages_timer: None,
+            access_control: None,
+            revision: 1,
+            members: vec![Member {
+                aci,
+                role: Role::Default,
+                profile_key: key,
+                joined_at_revision: 1,
+                label: None,
+                label_emoji: None,
+            }],
+            pending_members: vec![],
+            requesting_members: vec![],
+            invite_link_password: vec![],
+            description: None,
+        };
+        assert!(store.profile_key(&aci.into()).await?.is_none());
+        store.save_group([2u8; 32], group).await?;
+        let kept = store
+            .profile_key(&aci.into())
+            .await?
+            .expect("a member's key");
+        assert_eq!(kept.get_bytes(), key.get_bytes());
 
         Ok(())
     }
