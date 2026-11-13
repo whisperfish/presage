@@ -431,7 +431,7 @@ impl ContentsStore for SqliteStore {
         let master_key = g.master_key.as_ref();
         let mut transaction = self.begin_write().await?;
         query!(
-            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             master_key,
             g.title,
             g.revision,
@@ -443,6 +443,8 @@ impl ContentsStore for SqliteStore {
             g.pending_members,
             g.requesting_members,
             g.disappearing_messages_timer,
+            g.announcements_only,
+            g.terminated,
         )
         .execute(&mut *transaction)
         .await?;
@@ -495,7 +497,9 @@ impl ContentsStore for SqliteStore {
                 members AS "members: _",
                 pending_members AS "pending_members: _",
                 requesting_members AS "requesting_members: _",
-                disappearing_messages_timer
+                disappearing_messages_timer,
+                announcements_only AS "announcements_only: bool",
+                terminated AS "terminated: bool"
             FROM groups"#,
         )
         .fetch_all(&self.db)
@@ -521,7 +525,9 @@ impl ContentsStore for SqliteStore {
                 members AS "members: _",
                 pending_members AS "pending_members: _",
                 requesting_members AS "requesting_members: _",
-                disappearing_messages_timer
+                disappearing_messages_timer,
+                announcements_only AS "announcements_only: bool",
+                terminated AS "terminated: bool"
             FROM groups
             WHERE master_key = ?
             LIMIT 1"#,
@@ -825,6 +831,8 @@ mod test {
             requesting_members: vec![],
             invite_link_password: vec![],
             description: None,
+            announcements_only: false,
+            terminated: false,
         };
         store.save_group(master_key, group).await?;
         assert!(!store.is_group_left(master_key).await?);
