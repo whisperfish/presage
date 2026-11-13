@@ -1127,13 +1127,15 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
         let recipient = recipient.into();
 
-        let online_only = false;
         // TODO: Populate this flag based on the recipient information
         //
         // Issue <https://github.com/whisperfish/presage/issues/252>
         let include_pni_signature = false;
         let thread = Thread::Contact(recipient);
         let mut content_body: ContentBody = message.into();
+        // Only typing is for devices online now, as Signal-Desktop sends it; queued, it would
+        // reach an offline device when it no longer means anything.
+        let online_only = matches!(content_body, ContentBody::TypingMessage(_));
 
         self.restore_thread_timer(&thread, &mut content_body).await;
         self.fetch_link_previews(&mut content_body).await;
@@ -1146,7 +1148,8 @@ impl<S: Store> Manager<S, Registered> {
             .map(|profile_key| UnidentifiedAccess {
                 key: profile_key.derive_access_key().to_vec(),
                 certificate: sender_certificate.clone(),
-            });
+            })
+            .or_else(|| story_access(&content_body, &sender_certificate));
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -1305,7 +1308,7 @@ impl<S: Store> Manager<S, Registered> {
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<Content, Error<S::Error>> {
-        let mut content_body = message.into();
+        let mut content_body: ContentBody = message.into();
         let master_key_bytes = master_key_bytes
             .try_into()
             .expect("Master key bytes to be of size 32.");
@@ -1331,14 +1334,15 @@ impl<S: Store> Manager<S, Registered> {
             .into_iter()
             .filter(|m| m.aci != self.state.data.service_ids.aci())
         {
-            let unidentified_access =
-                self.store
-                    .profile_key(&member.aci.into())
-                    .await?
-                    .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key().to_vec(),
-                        certificate: sender_certificate.clone(),
-                    });
+            let unidentified_access = self
+                .store
+                .profile_key(&member.aci.into())
+                .await?
+                .map(|profile_key| UnidentifiedAccess {
+                    key: profile_key.derive_access_key().to_vec(),
+                    certificate: sender_certificate.clone(),
+                })
+                .or_else(|| story_access(&content_body, &sender_certificate));
             let include_pni_signature = false;
             recipients.push((
                 member.aci.into(),
@@ -1347,7 +1351,9 @@ impl<S: Store> Manager<S, Registered> {
             ));
         }
 
-        let online_only = false;
+        // Only typing is for devices online now, as Signal-Desktop sends it; queued, it would
+        // reach an offline device when it no longer means anything.
+        let online_only = matches!(content_body, ContentBody::TypingMessage(_));
         let results = sender
             .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
@@ -2383,4 +2389,17 @@ async fn register_pre_keys<S: Store>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Sealed sender for a story to someone whose profile key isn't known: the server stores a story
+/// without its sender, so it must be sealed, and it checks no access key for one
+/// (Signal-Server `MessageController`), so any key will do.
+fn story_access(
+    content_body: &ContentBody,
+    sender_certificate: &SenderCertificate,
+) -> Option<UnidentifiedAccess> {
+    matches!(content_body, ContentBody::StoryMessage(_)).then(|| UnidentifiedAccess {
+        key: vec![0; 16],
+        certificate: sender_certificate.clone(),
+    })
 }
