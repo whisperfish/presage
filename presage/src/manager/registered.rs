@@ -1019,10 +1019,12 @@ impl<S: Store> Manager<S, Registered> {
                             id,
                             "handling a message decrypted before the receiver stopped"
                         );
-                        let received = handle_content(&mut state, content).await;
+                        // Forgotten first: this is its second try, and if handling it is
+                        // what stopped the receiver, a third would stop it again at every start.
                         if let Err(error) = state.store.handled(id).await {
-                            error!(%error, "failed to forget a handled message; it is handled again at the next start");
+                            error!(%error, "failed to forget a message before its second try");
                         }
+                        let received = handle_content(&mut state, content).await;
                         if let Some(received) = received {
                             return Some((received, state));
                         }
