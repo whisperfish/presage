@@ -36,6 +36,13 @@ pub struct Group {
     pub requesting_members: Vec<RequestingMember>,
     pub invite_link_password: Vec<u8>,
     pub description: Option<String>,
+    /// Only admins may send messages; Signal's apps drop others' and don't let them write.
+    #[serde(default)]
+    pub announcements_only: bool,
+    /// An admin ended the group: the server takes no more changes, and Signal's apps drop
+    /// messages to it.
+    #[serde(default)]
+    pub terminated: bool,
 }
 
 impl Group {
@@ -155,11 +162,10 @@ impl Group {
                     None => return false,
                 }
             }
+            GroupChange::AnnouncementOnly(only) => self.announcements_only = *only,
+            GroupChange::TerminateGroup => self.terminated = true,
             // Not kept here.
-            GroupChange::AnnouncementOnly(_)
-            | GroupChange::AddBannedMember(_)
-            | GroupChange::DeleteBannedMember(_)
-            | GroupChange::TerminateGroup => {}
+            GroupChange::AddBannedMember(_) | GroupChange::DeleteBannedMember(_) => {}
         }
         true
     }
@@ -257,6 +263,8 @@ impl From<libsignal_service::groups_v2::Group> for Group {
                 .collect(),
             invite_link_password: val.invite_link_password,
             description: val.description_text,
+            announcements_only: val.announcements_only,
+            terminated: val.terminated,
         }
     }
 }
@@ -351,6 +359,8 @@ mod tests {
             }],
             invite_link_password: Vec::new(),
             description: None,
+            announcements_only: false,
+            terminated: false,
         }
     }
 
@@ -424,5 +434,14 @@ mod tests {
         )));
         assert_eq!(group.revision, 4);
         assert_eq!(group.title, "before");
+    }
+
+    #[test]
+    fn announcements_only_and_ending_are_kept() {
+        let mut group = group();
+        assert!(group.apply(&changes(5, vec![GroupChange::AnnouncementOnly(true)])));
+        assert!(group.announcements_only && !group.terminated);
+        assert!(group.apply(&changes(6, vec![GroupChange::TerminateGroup])));
+        assert!(group.terminated);
     }
 }
