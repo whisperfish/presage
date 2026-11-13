@@ -722,6 +722,11 @@ impl<S: Store> Manager<S, Registered> {
         let incoming_messages_stream = futures::stream::unfold(init, |mut state| {
             async move {
                 loop {
+                    if let Some(id) = state.owed.take() {
+                        if let Err(error) = state.manager.store.handled(id).await {
+                            error!(%error, "failed to forget a handled message; it is handled again at the next start");
+                        }
+                    }
                     if let Some((id, content)) = state.decrypted.pop_front() {
                         debug!(
                             id,
@@ -808,9 +813,7 @@ impl<S: Store> Manager<S, Registered> {
                             match envelope {
                                 Ok(Some((id, content))) => {
                                     let received = handle_content(&mut state, content).await;
-                                    if let Err(error) = state.manager.store.handled(id).await {
-                                        error!(%error, "failed to forget a handled message; it is handled again at the next start");
-                                    }
+                                    state.owed = Some(id);
                                     if let Some(received) = received {
                                         return Some((received, state));
                                     }
@@ -2401,6 +2404,8 @@ struct StreamState<S: Store> {
     pni_address: ProtocolAddress,
     /// Decrypted and kept, but not handled before the receiver stopped: handled first.
     decrypted: std::collections::VecDeque<(u64, Content)>,
+    /// The kept content the last item came from: forgotten once the consumer asks for the next.
+    owed: Option<u64>,
 }
 
 // Same batch size as Signal-Android's `IncomingMessageObserver`.
@@ -2439,6 +2444,7 @@ impl<S: Store> StreamState<S> {
                     Vec::new()
                 })
                 .into(),
+            owed: None,
             manager,
         })
     }
