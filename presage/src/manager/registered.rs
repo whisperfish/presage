@@ -629,6 +629,10 @@ impl<S: Store> Manager<S, Registered> {
             pni_address: ProtocolAddress,
             /// Decrypted and kept, but not handled before the receiver stopped: handled first.
             decrypted: std::collections::VecDeque<(u64, Content)>,
+            /// The kept content the last item came from: forgotten once the consumer asks
+            /// for the next one. A consumer that stops before (a crash, a quit while catching
+            /// up) gets it again at the next start, with whatever it hadn't done about it yet.
+            owed: Option<u64>,
             groups_manager: GroupsManager<InMemoryCredentialsCache>,
             identified_push_service: PushService,
             service_ids: ServiceIds,
@@ -1007,6 +1011,7 @@ impl<S: Store> Manager<S, Registered> {
                     Vec::new()
                 })
                 .into(),
+            owed: None,
         };
 
         debug!("starting to consume incoming message stream");
@@ -1014,6 +1019,11 @@ impl<S: Store> Manager<S, Registered> {
         let incoming_messages_stream = futures::stream::unfold(init, |mut state| {
             async move {
                 loop {
+                    if let Some(id) = state.owed.take() {
+                        if let Err(error) = state.store.handled(id).await {
+                            error!(%error, "failed to forget a handled message; it is handled again at the next start");
+                        }
+                    }
                     if let Some((id, content)) = state.decrypted.pop_front() {
                         debug!(
                             id,
@@ -1104,9 +1114,7 @@ impl<S: Store> Manager<S, Registered> {
                             match envelope {
                                 Ok(Some((id, content))) => {
                                     let received = handle_content(&mut state, content).await;
-                                    if let Err(error) = state.store.handled(id).await {
-                                        error!(%error, "failed to forget a handled message; it is handled again at the next start");
-                                    }
+                                    state.owed = Some(id);
                                     if let Some(received) = received {
                                         return Some((received, state));
                                     }
