@@ -351,6 +351,26 @@ pub trait ContentsStore: Send + Sync {
         id: &[u8],
     ) -> impl Future<Output = Result<Option<StickerPack>, Self::ContentsStoreError>>;
 
+    /// Whether a sticker pack is installed
+    fn has_sticker_pack(
+        &self,
+        id: &[u8],
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>> {
+        async move { Ok(self.sticker_pack(id).await?.is_some()) }
+    }
+
+    /// The ids of the installed sticker packs
+    fn sticker_pack_ids(
+        &self,
+    ) -> impl Future<Output = Result<Vec<Vec<u8>>, Self::ContentsStoreError>> {
+        async move {
+            self.sticker_packs()
+                .await?
+                .map(|p| p.map(|p| p.id))
+                .collect()
+        }
+    }
+
     /// Removes a sticker pack
     fn remove_sticker_pack(
         &mut self,

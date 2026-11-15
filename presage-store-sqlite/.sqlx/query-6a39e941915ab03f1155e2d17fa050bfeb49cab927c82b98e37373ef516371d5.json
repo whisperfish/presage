@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS(SELECT 1 FROM sticker_packs WHERE id = ?) AS \"installed: bool\"",
+  "describe": {
+    "columns": [
+      {
+        "name": "installed: bool",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "6a39e941915ab03f1155e2d17fa050bfeb49cab927c82b98e37373ef516371d5"
+}

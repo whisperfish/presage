@@ -856,6 +856,25 @@ impl<S: Store> Manager<S, Registered> {
                                         for operation in sticker_pack_operation {
                                             match operation.r#type() {
                                                 sticker_pack_operation::Type::Install => {
+                                                    // the primary resends every installed pack on
+                                                    // a configuration request
+                                                    match state
+                                                        .store
+                                                        .has_sticker_pack(operation.pack_id())
+                                                        .await
+                                                    {
+                                                        Ok(true) => {
+                                                            debug!(
+                                                                "sticker pack already installed"
+                                                            );
+                                                            continue;
+                                                        }
+                                                        Ok(false) => {}
+                                                        Err(error) => warn!(
+                                                            %error,
+                                                            "failed to look up sticker pack, downloading it"
+                                                        ),
+                                                    }
                                                     let store = state.store.clone();
                                                     let unidentified_websocket =
                                                         state.unidentified_websocket.clone();
@@ -2015,16 +2034,14 @@ async fn download_sticker_pack<C: ContentsStore>(
             .map_err(ProvisioningError::from)?
             .into();
 
+    // a pack is stored whole or not at all, so that an installed pack is never downloaded again
     for sticker in &mut sticker_pack_manifest.stickers {
-        match download_sticker::<C>(&mut unidentified_websocket, pack_id, pack_key, sticker.id)
-            .await
-        {
-            Ok(decrypted_sticker_bytes) => {
-                debug!(id = sticker.id, "downloaded sticker");
-                sticker.bytes = Some(decrypted_sticker_bytes);
-            }
-            Err(error) => error!(sticker.id, %error,"failed to download sticker"),
-        }
+        let decrypted_sticker_bytes =
+            download_sticker::<C>(&mut unidentified_websocket, pack_id, pack_key, sticker.id)
+                .await
+                .inspect_err(|error| error!(sticker.id, %error, "failed to download sticker"))?;
+        debug!(id = sticker.id, "downloaded sticker");
+        sticker.bytes = Some(decrypted_sticker_bytes);
     }
 
     let sticker_pack = StickerPack {
