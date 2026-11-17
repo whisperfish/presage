@@ -4,8 +4,10 @@ use serde::{Deserialize, Serialize};
 pub mod contacts;
 pub mod groups;
 pub mod identity;
+pub mod jobs;
 pub mod messages;
 pub mod previews;
+pub mod replicas;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ServiceIdType {
