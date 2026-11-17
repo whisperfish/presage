@@ -128,6 +128,8 @@ pub(crate) struct SqlGroup<'a> {
     pub(crate) pending_members: Json<Vec<PendingMember>>,
     pub(crate) requesting_members: Json<Vec<RequestingMember>>,
     pub(crate) disappearing_messages_timer: Option<i64>,
+    pub(crate) announcements_only: bool,
+    pub(crate) terminated: bool,
 }
 
 impl SqlGroup<'_> {
@@ -147,6 +149,8 @@ impl SqlGroup<'_> {
             disappearing_messages_timer: group
                 .disappearing_messages_timer
                 .map(|t| t.duration as i64),
+            announcements_only: group.announcements_only,
+            terminated: group.terminated,
         }
     }
 
@@ -164,6 +168,8 @@ impl SqlGroup<'_> {
             pending_members: Json(pending_members),
             requesting_members: Json(requesting_members),
             disappearing_messages_timer,
+            announcements_only,
+            terminated,
         } = self;
         let master_key = master_key
             .as_ref()
@@ -182,6 +188,8 @@ impl SqlGroup<'_> {
             requesting_members,
             invite_link_password: invite_link_password.unwrap_or_default(),
             description,
+            announcements_only,
+            terminated,
         };
         Ok((master_key, group))
     }
