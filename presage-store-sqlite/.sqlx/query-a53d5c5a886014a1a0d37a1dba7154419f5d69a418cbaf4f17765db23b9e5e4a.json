@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM pinned_identities WHERE address = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "a53d5c5a886014a1a0d37a1dba7154419f5d69a418cbaf4f17765db23b9e5e4a"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT offered FROM pinned_identities WHERE address = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "offered",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "pinned_identities",
+            "name": "offered"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "d3a5d2b66f69bc3195ead990046be5799a2446fdadb49bb7e3048161aab27efe"
+}
