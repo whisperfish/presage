@@ -1503,6 +1503,19 @@ impl<S: Store> Manager<S, Registered> {
         }))
     }
 
+    /// Downloads and decrypts one sticker of a pack, without installing the pack.
+    ///
+    /// A sticker message's attachment expires on the attachment CDN; the pack's copy doesn't.
+    pub async fn download_sticker(
+        &self,
+        pack_id: &[u8],
+        pack_key: &[u8],
+        sticker_id: u32,
+    ) -> Result<Vec<u8>, Error<S::Error>> {
+        let mut unidentified_websocket = self.unidentified_websocket().await?;
+        download_sticker::<S>(&mut unidentified_websocket, pack_id, pack_key, sticker_id).await
+    }
+
     /// Installs a sticker pack and notifies other registered devices
     pub async fn install_sticker_pack(
         &mut self,
