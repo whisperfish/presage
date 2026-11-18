@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT last_ec_pre_key_id FROM pre_key_metadata WHERE identity = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "last_ec_pre_key_id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pre_key_metadata",
+            "name": "last_ec_pre_key_id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3fe4476b2d0386cb65eb690097690c385a4b9c9fa2aeff020328db7e5fa4d915"
+}

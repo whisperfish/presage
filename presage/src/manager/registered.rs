@@ -6,6 +6,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::models::ParseContactError;
+use libsignal_service::pre_keys::PreKeysStore;
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
 use libsignal_service::provisioning::ProvisioningSecrets;
@@ -2433,13 +2434,45 @@ async fn register_pre_keys<S: Store>(
 ) -> Result<(), Error<S::Error>> {
     trace!("registering pre keys");
 
-    account_manager
-        .update_pre_key_bundle(&mut store.aci_protocol_store(), ServiceIdKind::Aci, true)
-        .await?;
+    register_pre_keys_kind(
+        account_manager,
+        &mut store.aci_protocol_store(),
+        ServiceIdKind::Aci,
+    )
+    .await
+    .map_err(Error::ServiceError)?;
+    register_pre_keys_kind(
+        account_manager,
+        &mut store.pni_protocol_store(),
+        ServiceIdKind::Pni,
+    )
+    .await
+    .map_err(Error::ServiceError)?;
 
-    account_manager
-        .update_pre_key_bundle(&mut store.pni_protocol_store(), ServiceIdKind::Pni, true)
-        .await?;
+    trace!("registered pre keys");
+    Ok(())
+}
+
+async fn register_pre_keys_kind<S: PreKeysStore>(
+    account_manager: &mut AccountManager,
+    store: &mut S,
+    kind: ServiceIdKind,
+) -> Result<(), libsignal_service::push_service::ServiceError> {
+    // Nothing to ask when the schedule rotates them anyway.
+    // let due = store.signed_pre_keys_due_for_rotation().await?;
+
+    // TODO: The following code does not seem to work.
+    // After rotation, the check pre keys still fails.
+    // if !due && !account_manager.check_pre_keys(store, kind).await? {
+    //     tracing::warn!(?kind, "active pre-keys do not match the server, rotating");
+    //     account_manager.rotate_signed_pre_keys(store, kind).await?;
+
+    //     if !account_manager.check_pre_keys(store, kind).await? {
+    //         tracing::error!(?kind, "active pre-keys do not match the server even after rotation, which should not happen");
+    //     }
+    // }
+
+    account_manager.update_pre_key_bundle(store, kind).await?;
 
     trace!("registered pre keys");
     Ok(())
