@@ -30,6 +30,51 @@ use crate::{
     AvatarBytes,
 };
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageIterationOrder {
+    TimestampAscending,
+    TimestampDescending,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MessagesQueryParams<R: RangeBounds<u64>> {
+    pub range: R,
+    pub limit: Option<u64>,
+    pub order: MessageIterationOrder,
+}
+
+impl Default for MessagesQueryParams<std::ops::RangeFull> {
+    fn default() -> Self {
+        Self {
+            range: ..,
+            limit: None,
+            order: MessageIterationOrder::TimestampDescending,
+        }
+    }
+}
+
+impl<R: RangeBounds<u64>> From<R> for MessagesQueryParams<R> {
+    fn from(value: R) -> Self {
+        Self {
+            range: value,
+            limit: None,
+            order: MessageIterationOrder::TimestampDescending,
+        }
+    }
+}
+
+impl<R: RangeBounds<u64>> MessagesQueryParams<R> {
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub fn ascending(mut self) -> Self {
+        self.order = MessageIterationOrder::TimestampAscending;
+        self
+    }
+}
+
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send {}
 
@@ -157,10 +202,10 @@ pub trait ContentsStore: Send + Sync {
     ) -> impl Future<Output = Result<Option<Thread>, Self::ContentsStoreError>>;
 
     /// Retrieve all messages from a [Thread] within a range in time
-    fn messages(
+    fn messages<R: RangeBounds<u64>, P: Into<MessagesQueryParams<R>>>(
         &self,
         thread: &Thread,
-        range: impl RangeBounds<u64>,
+        params: P,
     ) -> impl Future<Output = Result<Self::MessagesIter, Self::ContentsStoreError>>;
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
