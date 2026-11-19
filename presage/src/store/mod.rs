@@ -223,6 +223,10 @@ pub trait ContentsStore: Send + Sync {
         &self,
     ) -> impl Future<Output = Result<Vec<(u64, Content)>, Self::ContentsStoreError>>;
 
+    /// Notes a try at handling the decrypted content `id` after a stop of the receiver; how many
+    /// it has had, this one counted.
+    fn tried(&mut self, id: u64) -> impl Future<Output = Result<u32, Self::ContentsStoreError>>;
+
     /// Forgets the decrypted content `id`, now handled.
     fn handled(&mut self, id: u64) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 

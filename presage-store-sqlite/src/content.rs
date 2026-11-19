@@ -296,6 +296,17 @@ impl ContentsStore for SqliteStore {
             .collect()
     }
 
+    async fn tried(&mut self, id: u64) -> Result<u32, Self::ContentsStoreError> {
+        let id = i64::try_from(id).map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let tries = query_scalar!(
+            "UPDATE decrypted_contents SET tries = tries + 1 WHERE id = ? RETURNING tries",
+            id
+        )
+        .fetch_one(&self.db)
+        .await?;
+        u32::try_from(tries).map_err(|_| SqliteStoreError::InvalidFormat)
+    }
+
     async fn handled(&mut self, id: u64) -> Result<(), Self::ContentsStoreError> {
         let id = i64::try_from(id).map_err(|_| SqliteStoreError::InvalidFormat)?;
         query!("DELETE FROM decrypted_contents WHERE id = ?", id)

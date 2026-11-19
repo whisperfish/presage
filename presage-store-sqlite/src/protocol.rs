@@ -1205,6 +1205,12 @@ mod test {
         assert_eq!(decrypted[0].1.metadata.sender, sender);
         assert!(decrypted[0].1.metadata.needs_receipt);
 
+        // Tries are counted, and a kept content stays until it is handled.
+        let mut counting = store.clone();
+        assert_eq!(counting.tried(id).await?, 1);
+        assert_eq!(counting.tried(id).await?, 2);
+        assert_eq!(store.decrypted().await?.len(), 1);
+
         store.clone().handled(id).await?;
         assert!(store.decrypted().await?.is_empty());
         Ok(())
