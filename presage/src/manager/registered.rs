@@ -189,6 +189,10 @@ impl RegistrationData {
     }
 }
 
+/// How often a message decrypted before the receiver stopped is tried again, at a start each,
+/// before it is given up: its handling may be what stopped the receiver.
+const KEPT_TRIES: u32 = 5;
+
 impl<S: Store> Manager<S, Registered> {
     /// Loads a previously registered account from the implemented [Store].
     ///
@@ -1032,16 +1036,32 @@ impl<S: Store> Manager<S, Registered> {
                         }
                     }
                     if let Some((id, content)) = state.decrypted.pop_front() {
-                        debug!(
-                            id,
-                            "handling a message decrypted before the receiver stopped"
-                        );
-                        // Forgotten first: this is its second try, and if handling it is
-                        // what stopped the receiver, a third would stop it again at every start.
-                        if let Err(error) = state.store.handled(id).await {
-                            error!(%error, "failed to forget a message before its second try");
+                        // Tried again at each start until it is handled: a receiver may stop
+                        // again before it is done, and a message forgotten before then is lost.
+                        // One whose handling stops the receiver is given up after a few tries.
+                        match state.store.tried(id).await {
+                            Ok(tries) if tries > KEPT_TRIES => {
+                                warn!(
+                                    id,
+                                    tries,
+                                    "giving up on a message decrypted before the receiver stopped"
+                                );
+                                if let Err(error) = state.store.handled(id).await {
+                                    error!(%error, "failed to forget a message given up on");
+                                }
+                                continue;
+                            }
+                            Ok(tries) => debug!(
+                                id,
+                                tries, "handling a message decrypted before the receiver stopped"
+                            ),
+                            Err(error) => {
+                                error!(%error, "failed to count a try at a kept message; handling it")
+                            }
                         }
                         let received = handle_content(&mut state, content).await;
+                        // Forgotten once the consumer asks for the next, as one just decrypted.
+                        state.owed = Some(id);
                         if let Some(received) = received {
                             return Some((received, state));
                         }
