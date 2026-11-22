@@ -16,7 +16,7 @@ use presage::{
     model::identity::OnNewIdentity,
     store::StateStore,
 };
-use sqlx::{query, query_scalar};
+use sqlx::{SqliteExecutor, query, query_scalar};
 use tracing::warn;
 
 use crate::{SqliteStore, SqliteStoreError, error::SqlxErrorExt};
@@ -199,20 +199,7 @@ impl PreKeyStore for SqliteProtocolStore {
         prekey_id: PreKeyId,
         record: &PreKeyRecord,
     ) -> Result<(), SignalProtocolError> {
-        let id: u32 = prekey_id.into();
-        let record = record.serialize()?;
-        query!(
-            "INSERT INTO pre_keys (id, identity, record)
-            VALUES (?1, ?2, ?3)
-            ON CONFLICT DO UPDATE SET record = ?3",
-            id,
-            self.identity,
-            record,
-        )
-        .execute(&self.store.db)
-        .await
-        .into_protocol_error()?;
-        Ok(())
+        self.insert_pre_key(&self.store.db, prekey_id, record).await
     }
 
     /// Remove the entry for `prekey_id`.
@@ -233,15 +220,7 @@ impl PreKeyStore for SqliteProtocolStore {
 #[async_trait(?Send)]
 impl PreKeysStore for SqliteProtocolStore {
     async fn set_last_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
-        query!(
-            "UPDATE pre_key_metadata SET last_ec_pre_key_id = ? WHERE identity = ?",
-            id,
-            self.identity
-        )
-        .execute(&self.store.db)
-        .await
-        .into_protocol_error()?;
-        Ok(())
+        self.write_last_pre_key_id(&self.store.db, id).await
     }
 
     async fn set_last_signed_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
@@ -257,15 +236,7 @@ impl PreKeysStore for SqliteProtocolStore {
     }
 
     async fn set_last_pq_pre_key_id(&mut self, id: u32) -> Result<(), SignalProtocolError> {
-        query!(
-            "UPDATE pre_key_metadata SET last_kyber_pre_key_id = ? WHERE identity = ?",
-            id,
-            self.identity
-        )
-        .execute(&self.store.db)
-        .await
-        .into_protocol_error()?;
-        Ok(())
+        self.write_last_pq_pre_key_id(&self.store.db, id).await
     }
 
     /// ID of the next pre key
@@ -385,21 +356,8 @@ impl PreKeysStore for SqliteProtocolStore {
         &mut self,
         stale_time: DateTime<Utc>,
     ) -> Result<(), SignalProtocolError> {
-        let count = query!(
-            "UPDATE pre_keys
-            SET stale_at = ?1
-            WHERE identity = ?2 AND stale_at = NULL",
-            stale_time.naive_utc(),
-            self.identity,
-        )
-        .execute(&self.store.db)
-        .await
-        .into_protocol_error()?
-        .rows_affected();
-
-        tracing::debug!(count, "marked EC one-time pre-keys stale");
-
-        Ok(())
+        self.write_stale_one_time_ec_pre_keys(&self.store.db, stale_time)
+            .await
     }
 
     async fn delete_all_stale_one_time_ec_pre_keys(
@@ -446,6 +404,37 @@ impl PreKeysStore for SqliteProtocolStore {
         }
 
         Ok(())
+    }
+
+    /// All in one transaction: one sync to disk instead of one per key.
+    async fn store_one_time_pre_key_bundle(
+        &mut self,
+        pre_keys: &[PreKeyRecord],
+        pq_pre_keys: &[KyberPreKeyRecord],
+    ) -> Result<(), SignalProtocolError> {
+        let now = Utc::now();
+        let mut transaction = self.store.begin_write().await.into_protocol_error()?;
+        if let Some(last) = pre_keys.last() {
+            self.write_stale_one_time_ec_pre_keys(&mut *transaction, now)
+                .await?;
+            for key in pre_keys {
+                self.insert_pre_key(&mut *transaction, key.id()?, key)
+                    .await?;
+            }
+            self.write_last_pre_key_id(&mut *transaction, last.id()?.into())
+                .await?;
+        }
+        if let Some(last) = pq_pre_keys.last() {
+            self.write_stale_one_time_kyber_pre_keys(&mut *transaction, now)
+                .await?;
+            for key in pq_pre_keys {
+                self.insert_kyber_pre_key(&mut *transaction, key.id()?, key)
+                    .await?;
+            }
+            self.write_last_pq_pre_key_id(&mut *transaction, last.id()?.into())
+                .await?;
+        }
+        transaction.commit().await.into_protocol_error()
     }
 }
 
@@ -548,20 +537,8 @@ impl KyberPreKeyStore for SqliteProtocolStore {
         kyber_prekey_id: KyberPreKeyId,
         record: &KyberPreKeyRecord,
     ) -> Result<(), SignalProtocolError> {
-        let id: u32 = kyber_prekey_id.into();
-        let record = record.serialize()?;
-        query!(
-            "INSERT INTO kyber_pre_keys (id, identity, record)
-            VALUES (?1, ?2, ?3)
-            ON CONFLICT DO UPDATE SET record = ?3",
-            id,
-            self.identity,
-            record,
-        )
-        .execute(&self.store.db)
-        .await
-        .into_protocol_error()?;
-        Ok(())
+        self.insert_kyber_pre_key(&self.store.db, kyber_prekey_id, record)
+            .await
     }
 
     /// Mark the entry for `kyber_prekey_id` as "used".
@@ -742,20 +719,8 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         &mut self,
         stale_time: chrono::DateTime<chrono::Utc>,
     ) -> Result<(), SignalProtocolError> {
-        let count = query!(
-            "UPDATE kyber_pre_keys SET stale_at = ?2
-            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at = NULL",
-            self.identity,
-            &stale_time.timestamp_millis(),
-        )
-        .execute(&self.store.db)
-        .await
-        .into_protocol_error()?
-        .rows_affected();
-
-        tracing::debug!(count, "marked Kyber one-time pre-keys stale");
-
-        Ok(())
+        self.write_stale_one_time_kyber_pre_keys(&self.store.db, stale_time)
+            .await
     }
 }
 
@@ -989,11 +954,171 @@ impl SqliteProtocolStore {
     }
 }
 
+impl SqliteProtocolStore {
+    async fn insert_pre_key(
+        &self,
+        db: impl SqliteExecutor<'_>,
+        prekey_id: PreKeyId,
+        record: &PreKeyRecord,
+    ) -> Result<(), SignalProtocolError> {
+        let id: u32 = prekey_id.into();
+        let record = record.serialize()?;
+        query!(
+            "INSERT INTO pre_keys (id, identity, record)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT DO UPDATE SET record = ?3",
+            id,
+            self.identity,
+            record,
+        )
+        .execute(db)
+        .await
+        .into_protocol_error()?;
+        Ok(())
+    }
+
+    async fn write_last_pre_key_id(
+        &self,
+        db: impl SqliteExecutor<'_>,
+        id: u32,
+    ) -> Result<(), SignalProtocolError> {
+        query!(
+            "UPDATE pre_key_metadata SET last_ec_pre_key_id = ? WHERE identity = ?",
+            id,
+            self.identity
+        )
+        .execute(db)
+        .await
+        .into_protocol_error()?;
+        Ok(())
+    }
+
+    async fn write_last_pq_pre_key_id(
+        &self,
+        db: impl SqliteExecutor<'_>,
+        id: u32,
+    ) -> Result<(), SignalProtocolError> {
+        query!(
+            "UPDATE pre_key_metadata SET last_kyber_pre_key_id = ? WHERE identity = ?",
+            id,
+            self.identity
+        )
+        .execute(db)
+        .await
+        .into_protocol_error()?;
+        Ok(())
+    }
+
+    async fn write_stale_one_time_ec_pre_keys(
+        &self,
+        db: impl SqliteExecutor<'_>,
+        stale_time: DateTime<Utc>,
+    ) -> Result<(), SignalProtocolError> {
+        let count = query!(
+            "UPDATE pre_keys
+            SET stale_at = ?1
+            WHERE identity = ?2 AND stale_at = NULL",
+            stale_time.naive_utc(),
+            self.identity,
+        )
+        .execute(db)
+        .await
+        .into_protocol_error()?
+        .rows_affected();
+
+        tracing::debug!(count, "marked EC one-time pre-keys stale");
+
+        Ok(())
+    }
+
+    async fn insert_kyber_pre_key(
+        &self,
+        db: impl SqliteExecutor<'_>,
+        kyber_prekey_id: KyberPreKeyId,
+        record: &KyberPreKeyRecord,
+    ) -> Result<(), SignalProtocolError> {
+        let id: u32 = kyber_prekey_id.into();
+        let record = record.serialize()?;
+        query!(
+            "INSERT INTO kyber_pre_keys (id, identity, record)
+            VALUES (?1, ?2, ?3)
+            ON CONFLICT DO UPDATE SET record = ?3",
+            id,
+            self.identity,
+            record,
+        )
+        .execute(db)
+        .await
+        .into_protocol_error()?;
+        Ok(())
+    }
+
+    async fn write_stale_one_time_kyber_pre_keys(
+        &self,
+        db: impl SqliteExecutor<'_>,
+        stale_time: DateTime<Utc>,
+    ) -> Result<(), SignalProtocolError> {
+        let count = query!(
+            "UPDATE kyber_pre_keys SET stale_at = ?2
+            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at = NULL",
+            self.identity,
+            &stale_time.timestamp_millis(),
+        )
+        .execute(db)
+        .await
+        .into_protocol_error()?
+        .rows_affected();
+
+        tracing::debug!(count, "marked Kyber one-time pre-keys stale");
+
+        Ok(())
+    }
+}
 #[cfg(test)]
 mod test {
     use presage::libsignal_service::protocol::{KeyPair, KyberPreKeyStore, Timestamp};
 
     use super::*;
+
+    #[tokio::test]
+    async fn one_time_pre_key_bundle() -> Result<(), Box<dyn std::error::Error>> {
+        let sqlite_store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let mut protocol_store = SqliteProtocolStore {
+            store: sqlite_store,
+            identity: IdentityType::Aci,
+        };
+        let identity = IdentityKeyPair::generate(&mut rand::rng());
+        let (pre_keys, pq_pre_keys) =
+            presage::libsignal_service::pre_keys::generate_one_time_pre_keys(
+                &mut protocol_store,
+                &mut rand::rng(),
+                &identity,
+                3,
+                2,
+            )
+            .await?;
+
+        protocol_store
+            .store_one_time_pre_key_bundle(&pre_keys, &pq_pre_keys)
+            .await?;
+
+        for key in &pre_keys {
+            protocol_store.get_pre_key(key.id()?).await?;
+        }
+        for key in &pq_pre_keys {
+            protocol_store.get_kyber_pre_key(key.id()?).await?;
+        }
+        assert_eq!(
+            protocol_store.last_pre_key_id().await?,
+            u32::from(pre_keys.last().unwrap().id()?)
+        );
+        assert_eq!(
+            protocol_store.last_pq_pre_key_id().await?,
+            u32::from(pq_pre_keys.last().unwrap().id()?)
+        );
+
+        Ok(())
+    }
 
     #[tokio::test]
     async fn kyber_pre_keys_mark_used_one_time() -> Result<(), Box<dyn std::error::Error>> {
