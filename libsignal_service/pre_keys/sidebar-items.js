@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["KyberPreKeyEntity","PreKeyEntity","PreKeyState","SignedPreKeyEntity"],"trait":["KyberPreKeyStoreExt","PreKeysStore"]};
+window.SIDEBAR_ITEMS = {"constant":["PRE_KEY_ROTATION_INTERVAL"],"fn":["generate_one_time_pre_keys","generate_signed_pre_keys"],"struct":["KyberPreKeyEntity","PreKeyEntity","PreKeyState","SignedPreKeyEntity"],"trait":["KyberPreKeyStoreExt","PreKeysStore","SignedPreKeyStoreExt"]};

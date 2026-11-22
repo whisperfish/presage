@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["GenericServerPublicParams","GenericServerSecretParams"]};
+window.SIDEBAR_ITEMS = {"enum":["GenericServerParamsVersion","GenericServerPublicParams","GenericServerSecretParams"],"struct":["GenericServerPublicParamsImpl","GenericServerSecretParamsLegacy","GenericServerSecretParamsStandard"]};
