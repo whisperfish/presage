@@ -1516,6 +1516,18 @@ impl<S: Store> Manager<S, Registered> {
         download_sticker::<S>(&mut unidentified_websocket, pack_id, pack_key, sticker_id).await
     }
 
+    /// Downloads and decrypts a sticker pack's manifest, without installing the pack.
+    ///
+    /// The stickers come without their bytes; fetch them with [`Self::download_sticker`].
+    pub async fn sticker_pack_manifest(
+        &self,
+        pack_id: &[u8],
+        pack_key: &[u8],
+    ) -> Result<StickerPackManifest, Error<S::Error>> {
+        let mut unidentified_websocket = self.unidentified_websocket().await?;
+        download_sticker_pack_manifest::<S>(&mut unidentified_websocket, pack_id, pack_key).await
+    }
+
     /// Installs a sticker pack and notifies other registered devices
     pub async fn install_sticker_pack(
         &mut self,
@@ -2016,24 +2028,9 @@ async fn download_sticker_pack<C: ContentsStore>(
     debug!("downloading sticker pack");
     let pack_key = operation.pack_key();
     let pack_id = operation.pack_id();
-    let key = derive_key(pack_key)?;
 
-    let mut ciphertext = Vec::new();
-
-    let size_bytes = unidentified_websocket
-        .get_sticker_pack_manifest(&hex::encode(pack_id))
-        .await?
-        .read_to_end(&mut ciphertext)
-        .await?;
-
-    trace!(size_bytes, "downloaded encrypted sticker pack manifest");
-
-    decrypt_in_place(key, &mut ciphertext)?;
-
-    let mut sticker_pack_manifest: StickerPackManifest =
-        libsignal_service::proto::Pack::decode(ciphertext.as_slice())
-            .map_err(ProvisioningError::from)?
-            .into();
+    let mut sticker_pack_manifest =
+        download_sticker_pack_manifest::<C>(&mut unidentified_websocket, pack_id, pack_key).await?;
 
     // a pack is stored whole or not at all, so that an installed pack is never downloaded again
     for sticker in &mut sticker_pack_manifest.stickers {
@@ -2055,6 +2052,33 @@ async fn download_sticker_pack<C: ContentsStore>(
     store.add_sticker_pack(&sticker_pack).await?;
 
     Ok(sticker_pack)
+}
+
+/// Downloads and decrypts a sticker pack manifest
+async fn download_sticker_pack_manifest<C: ContentsStore>(
+    unidentified_websocket: &mut SignalWebSocket<websocket::Unidentified>,
+    pack_id: &[u8],
+    pack_key: &[u8],
+) -> Result<StickerPackManifest, Error<C::ContentsStoreError>> {
+    let key = derive_key(pack_key)?;
+
+    let mut ciphertext = Vec::new();
+
+    let size_bytes = unidentified_websocket
+        .get_sticker_pack_manifest(&hex::encode(pack_id))
+        .await?
+        .read_to_end(&mut ciphertext)
+        .await?;
+
+    trace!(size_bytes, "downloaded encrypted sticker pack manifest");
+
+    decrypt_in_place(key, &mut ciphertext)?;
+
+    Ok(
+        libsignal_service::proto::Pack::decode(ciphertext.as_slice())
+            .map_err(ProvisioningError::from)?
+            .into(),
+    )
 }
 
 /// Downloads and decrypts a single sticker
