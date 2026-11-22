@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM signed_pre_keys WHERE id = ? AND identity = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "c4a263735a323d0bdfc7415c6fb4d6498986424e5ff94d0977f17298d1067009"
+}
