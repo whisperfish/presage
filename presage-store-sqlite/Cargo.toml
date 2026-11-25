@@ -5,7 +5,9 @@ edition = "2024"
 license = "AGPL-3.0-only"
 
 [features]
-default = ["libsqlite3-sys/bundled-sqlcipher"]
+default = ["bundled-sqlcipher"]
+bundled-sqlcipher = ["libsqlite3-sys/bundled-sqlcipher", "sqlx/sqlite"]
+unbundled-sqlcipher = ["libsqlite3-sys/sqlcipher", "sqlx/sqlite-unbundled"]
 cdsi = ["presage/cdsi", "libsqlite3-sys/bundled-sqlcipher-custom-crypto"]
 
 [dependencies]
@@ -18,7 +20,6 @@ prost = "0.14.4"
 serde_json = "1.0.135"
 sqlx = { version = "0.9.0", features = [
     "json",
-    "sqlite",
     "uuid",
     "runtime-tokio",
     "chrono",
@@ -27,7 +28,6 @@ thiserror = "2.0.0"
 tracing = "0.1.41"
 uuid = "1.12.0"
 
-# Explicitly use the libsqlite3-sys crate with the bundled-sqlcipher feature
 libsqlite3-sys = { version = "0.36.0", features = [] }
 
 [dev-dependencies]

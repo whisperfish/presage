@@ -2672,6 +2672,7 @@ name = "libsqlite3-sys"
 version = "0.36.0"
 source = "git+https://github.com/whisperfish/rusqlite?rev=2a42b3354c9194700d08aa070f70a131a470e7dc#2a42b3354c9194700d08aa070f70a131a470e7dc"
 dependencies = [
+ "bindgen",
  "cc",
  "pkg-config",
  "sqlcipher-crypto-provider",
