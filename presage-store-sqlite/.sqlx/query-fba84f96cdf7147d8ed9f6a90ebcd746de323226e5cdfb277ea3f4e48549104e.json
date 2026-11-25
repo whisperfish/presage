@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE kyber_pre_keys SET stale_at = ?2\n            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at IS NULL",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "fba84f96cdf7147d8ed9f6a90ebcd746de323226e5cdfb277ea3f4e48549104e"
+}

@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT COUNT(*)\n            FROM kyber_pre_keys\n            WHERE identity = ?1 AND stale_at = NULL AND is_last_resort = FALSE",
+  "query": "SELECT COUNT(*) FROM pre_keys WHERE identity = ? AND stale_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -17,5 +17,5 @@
       false
     ]
   },
-  "hash": "18a8e4e3797a23d013590871da6fa84347833c2853fc25c2e1fe3c879c341611"
+  "hash": "2274eeaad36033b3180066a4832668648772eccc9681a46d9621a12bb3330d92"
 }
