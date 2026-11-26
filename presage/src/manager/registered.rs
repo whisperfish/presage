@@ -958,6 +958,10 @@ impl<S: Store> Manager<S, Registered> {
                                         ..
                                     }) = &content.body
                                     {
+                                        debug!(
+                                            ?configuration,
+                                            "received configuration sync message"
+                                        );
                                         if state.registration_type == RegistrationType::Primary {
                                             warn!("received a configuration sync message as a primary device; ignoring")
                                         } else if let Err(error) =
@@ -2312,7 +2316,7 @@ async fn save_message<S: Store>(
             ..
         }) => Some(message),
         ContentBody::SynchronizeMessage(msg) => {
-            debug!(
+            trace!(
                 ?msg,
                 "skipping saving sync message without interesting fields"
             );
