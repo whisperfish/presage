@@ -6,7 +6,7 @@ use presage::{
         Profile,
         content::Metadata,
         prelude::{Content, ProfileKey, Uuid},
-        protocol::ServiceId,
+        protocol::{Aci, ServiceId},
         zkgroup::GroupMasterKeyBytes,
     },
     model::{contacts::Contact, groups::Group},
@@ -76,6 +76,12 @@ impl ContentsStore for SqliteStore {
             .execute(&mut *transaction)
             .await?;
         query!("DELETE FROM sticker_packs")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM blocked_contacts")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM blocked_groups")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
@@ -391,6 +397,9 @@ impl ContentsStore for SqliteStore {
         query!("DELETE FROM contacts")
             .execute(&mut *transaction)
             .await?;
+        query!("DELETE FROM blocked_contacts")
+            .execute(&mut *transaction)
+            .await?;
         query!("DELETE FROM contacts_verification_state")
             .execute(&mut *transaction)
             .await?;
@@ -514,6 +523,9 @@ impl ContentsStore for SqliteStore {
         query!("DELETE FROM left_groups")
             .execute(&mut *transaction)
             .await?;
+        query!("DELETE FROM blocked_groups")
+            .execute(&mut *transaction)
+            .await?;
         transaction.commit().await.into_protocol_error()?;
         Ok(())
     }
@@ -575,6 +587,91 @@ impl ContentsStore for SqliteStore {
         .fetch_one(&self.db)
         .await?;
         Ok(left != 0)
+    }
+
+    async fn set_blocked(
+        &mut self,
+        thread: &Thread,
+        blocked: bool,
+    ) -> Result<(), Self::ContentsStoreError> {
+        match (thread, blocked) {
+            (Thread::Contact(service_id), true) => {
+                let uuid = service_id.raw_uuid();
+                query!(
+                    "INSERT OR IGNORE INTO blocked_contacts (uuid) VALUES (?)",
+                    uuid
+                )
+                .execute(&self.db)
+                .await?;
+            }
+            (Thread::Contact(service_id), false) => {
+                let uuid = service_id.raw_uuid();
+                query!("DELETE FROM blocked_contacts WHERE uuid = ?", uuid)
+                    .execute(&self.db)
+                    .await?;
+            }
+            (Thread::Group(master_key), true) => {
+                let master_key = master_key.as_slice();
+                query!(
+                    "INSERT OR IGNORE INTO blocked_groups (master_key) VALUES (?)",
+                    master_key
+                )
+                .execute(&self.db)
+                .await?;
+            }
+            (Thread::Group(master_key), false) => {
+                let master_key = master_key.as_slice();
+                query!(
+                    "DELETE FROM blocked_groups WHERE master_key = ?",
+                    master_key
+                )
+                .execute(&self.db)
+                .await?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn is_blocked(&self, thread: &Thread) -> Result<bool, Self::ContentsStoreError> {
+        let blocked = match thread {
+            Thread::Contact(service_id) => {
+                let uuid = service_id.raw_uuid();
+                query_scalar!(
+                    "SELECT EXISTS(SELECT 1 FROM blocked_contacts WHERE uuid = ?)",
+                    uuid
+                )
+                .fetch_one(&self.db)
+                .await?
+            }
+            Thread::Group(master_key) => {
+                let master_key = master_key.as_slice();
+                query_scalar!(
+                    "SELECT EXISTS(SELECT 1 FROM blocked_groups WHERE master_key = ?)",
+                    master_key
+                )
+                .fetch_one(&self.db)
+                .await?
+            }
+        };
+        Ok(blocked != 0)
+    }
+
+    async fn blocked(&self) -> Result<Vec<Thread>, Self::ContentsStoreError> {
+        let contacts = query_scalar!(r#"SELECT uuid AS "uuid: Uuid" FROM blocked_contacts"#)
+            .fetch_all(&self.db)
+            .await?;
+        let groups = query_scalar!("SELECT master_key FROM blocked_groups")
+            .fetch_all(&self.db)
+            .await?;
+        Ok(contacts
+            .into_iter()
+            .map(|uuid| Thread::Contact(Aci::from(uuid).into()))
+            .chain(
+                groups
+                    .into_iter()
+                    .filter_map(|master_key| Some(Thread::Group(master_key.try_into().ok()?))),
+            )
+            .collect())
     }
 
     async fn groups(&self) -> Result<Self::GroupsIter, Self::ContentsStoreError> {

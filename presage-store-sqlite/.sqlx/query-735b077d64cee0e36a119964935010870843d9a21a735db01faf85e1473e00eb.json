@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT master_key FROM blocked_groups",
+  "describe": {
+    "columns": [
+      {
+        "name": "master_key",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "blocked_groups",
+            "name": "master_key"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "735b077d64cee0e36a119964935010870843d9a21a735db01faf85e1473e00eb"
+}

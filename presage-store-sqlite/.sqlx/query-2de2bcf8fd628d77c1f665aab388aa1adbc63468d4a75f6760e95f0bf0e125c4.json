@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT EXISTS(SELECT 1 FROM blocked_contacts WHERE uuid = ?)",
+  "describe": {
+    "columns": [
+      {
+        "name": "EXISTS(SELECT 1 FROM blocked_contacts WHERE uuid = ?)",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "2de2bcf8fd628d77c1f665aab388aa1adbc63468d4a75f6760e95f0bf0e125c4"
+}

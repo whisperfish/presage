@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO blocked_contacts (uuid) VALUES (?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "527f50772fd56789907f6df048391198a29d1bf35c7f1c7fc22af125b9c6eea5"
+}

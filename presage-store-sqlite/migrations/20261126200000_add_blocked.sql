@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS blocked_contacts (
+  uuid BLOB NOT NULL PRIMARY KEY
+);
+
+CREATE TABLE IF NOT EXISTS blocked_groups (
+  master_key BLOB NOT NULL PRIMARY KEY
+);
