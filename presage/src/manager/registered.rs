@@ -671,6 +671,17 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
+                                    match is_blocked(&state.manager.store, &content).await {
+                                        Ok(true) => {
+                                            debug!(sender = %content.metadata.sender.service_id_string(), "dropping message from blocked contact or group");
+                                            continue;
+                                        }
+                                        Ok(false) => {}
+                                        Err(error) => {
+                                            warn!(%error, "failed to check blocked state")
+                                        }
+                                    }
+
                                     if let ContentBody::DecryptionErrorMessage(e) = &content.body {
                                         error!(
                                             error = ?e,
@@ -761,19 +772,31 @@ impl<S: Store> Manager<S, Registered> {
                                                 });
                                             }
                                             RequestType::Blocked => {
-                                                warn!("storing blocked user is not implemented yet! we will not report blocked users to the device requesting the sync.");
+                                                let blocked = match state
+                                                    .manager
+                                                    .store
+                                                    .blocked()
+                                                    .await
+                                                {
+                                                    Ok(blocked) => blocked,
+                                                    Err(error) => {
+                                                        warn!(%error, "failed to load blocked contacts and groups");
+                                                        Vec::new()
+                                                    }
+                                                };
                                                 let mut message_sender =
                                                     state.message_sender.clone();
                                                 tokio::task::spawn_local(async move {
-                                                    let result = message_sender.send_sync_message(SyncMessage {
-                                                    content: Some(SyncContent::Blocked(libsignal_service::content::sync_message::Blocked {
-                                                        numbers: vec![],
-                                                        acis: vec![],
-                                                        acis_binary: vec![],
-                                                        group_ids: vec![],
-                                                    })),
-                                                    ..SyncMessage::with_padding(&mut rand::rng())
-                                                }).await;
+                                                    let result = message_sender
+                                                        .send_sync_message(SyncMessage {
+                                                            content: Some(SyncContent::Blocked(
+                                                                blocked_sync_message(&blocked),
+                                                            )),
+                                                            ..SyncMessage::with_padding(
+                                                                &mut rand::rng(),
+                                                            )
+                                                        })
+                                                        .await;
 
                                                     if let Err(error) = result {
                                                         warn!(%error, "Error sending blocked contacts to other devices");
@@ -1970,6 +1993,14 @@ async fn sync_from_storage_service<S: Store>(
                     }
                 }
                 Some(storage_record::Record::GroupV2(record)) => {
+                    if let Ok(master_key) = GroupMasterKeyBytes::try_from(record.master_key.as_slice()) {
+                        if let Err(error) = store
+                            .set_blocked(&Thread::Group(master_key), record.blocked)
+                            .await
+                        {
+                            warn!(%error, "failed to store blocked state of group");
+                        }
+                    }
                     match save_unknown_group(store, groups_manager, &record.master_key).await {
                         Ok(_) => groups += 1,
                         Err(error) => {
@@ -1998,6 +2029,9 @@ async fn save_contact_record<S: Store>(
         return Ok(false);
     };
     store.save_contact(&contact).await?;
+    store
+        .set_blocked(&Thread::Contact(Aci::from(aci).into()), record.blocked)
+        .await?;
     if let Ok(bytes) = <[u8; 32]>::try_from(record.profile_key.as_slice()) {
         store
             .upsert_profile_key(&contact.uuid, ProfileKey::create(bytes))
@@ -2204,6 +2238,60 @@ impl<S: Store> StreamState<S> {
         debug!("reconnected identified websocket");
         Ok(())
     }
+}
+
+// Same rules as Signal-Android's `MessageContentProcessor.shouldIgnore`.
+async fn is_blocked<S: Store>(store: &S, content: &Content) -> Result<bool, S::Error> {
+    if matches!(
+        content.body,
+        ContentBody::SynchronizeMessage(_) | ContentBody::ReceiptMessage(_)
+    ) {
+        return Ok(false);
+    }
+    if store
+        .is_blocked(&Thread::Contact(content.metadata.sender))
+        .await?
+    {
+        return Ok(true);
+    }
+    let group = match &content.body {
+        ContentBody::DataMessage(message)
+        | ContentBody::EditMessage(EditMessage {
+            data_message: Some(message),
+            ..
+        }) => message.group_v2.as_ref(),
+        ContentBody::StoryMessage(story) => story.group.as_ref(),
+        _ => None,
+    };
+    match group
+        .and_then(|group| group.master_key.as_deref())
+        .and_then(|key| GroupMasterKeyBytes::try_from(key).ok())
+    {
+        Some(master_key) => store.is_blocked(&Thread::Group(master_key)).await,
+        None => Ok(false),
+    }
+}
+
+fn blocked_sync_message(blocked: &[Thread]) -> sync_message::Blocked {
+    let mut message = sync_message::Blocked::default();
+    for thread in blocked {
+        match thread {
+            Thread::Contact(service_id) => {
+                message.acis.push(service_id.service_id_string());
+                message
+                    .acis_binary
+                    .push(service_id.raw_uuid().into_bytes().to_vec());
+            }
+            Thread::Group(master_key) => {
+                let params =
+                    GroupSecretParams::derive_from_master_key(GroupMasterKey::new(*master_key));
+                message
+                    .group_ids
+                    .push(params.get_group_identifier().to_vec());
+            }
+        }
+    }
+    message
 }
 
 /// Save a message into the store.

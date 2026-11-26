@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM blocked_contacts WHERE uuid = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "0f12dee73a04877d4bc694a2eca9ec8c1038c6c4c484b27f8acce6e1973c3c7b"
+}

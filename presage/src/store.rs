@@ -333,6 +333,22 @@ pub trait ContentsStore: Send + Sync {
         master_key: GroupMasterKeyBytes,
     ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
 
+    /// Mark a contact or group as blocked, or unblock it.
+    fn set_blocked(
+        &mut self,
+        thread: &Thread,
+        blocked: bool,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Whether a contact or group is [blocked](Self::set_blocked).
+    fn is_blocked(
+        &self,
+        thread: &Thread,
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
+
+    /// All blocked contacts and groups.
+    fn blocked(&self) -> impl Future<Output = Result<Vec<Thread>, Self::ContentsStoreError>>;
+
     /// Save a group avatar in the cache
     fn save_group_avatar(
         &self,
