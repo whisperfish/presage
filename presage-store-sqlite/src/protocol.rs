@@ -388,7 +388,7 @@ impl PreKeysStore for SqliteProtocolStore {
         let count = query!(
             "UPDATE pre_keys
             SET stale_at = ?1
-            WHERE identity = ?2 AND stale_at = NULL",
+            WHERE identity = ?2 AND stale_at IS NULL",
             stale_time.naive_utc(),
             self.identity,
         )
@@ -410,7 +410,7 @@ impl PreKeysStore for SqliteProtocolStore {
         let fresh = query_scalar!(
             "SELECT COUNT(*)
             FROM pre_keys
-            WHERE identity = ?1 AND stale_at = NULL",
+            WHERE identity = ?1 AND stale_at IS NULL",
             self.identity,
         )
         .fetch_one(&self.store.db)
@@ -422,7 +422,7 @@ impl PreKeysStore for SqliteProtocolStore {
         let victims = query_scalar!(
             "SELECT id
             FROM pre_keys
-            WHERE identity = ?1 AND stale_at != NULL AND stale_at < ?2
+            WHERE identity = ?1 AND stale_at IS NOT NULL AND stale_at < ?2
             ORDER BY stale_at ASC, id ASC",
             self.identity,
             threshold.naive_utc(),
@@ -697,7 +697,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         let fresh = query_scalar!(
             "SELECT COUNT(*)
             FROM kyber_pre_keys
-            WHERE identity = ?1 AND stale_at = NULL AND is_last_resort = FALSE",
+            WHERE identity = ?1 AND stale_at IS NULL AND is_last_resort = FALSE",
             self.identity,
         )
         .fetch_one(&self.store.db)
@@ -709,7 +709,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
         let victims = query_scalar!(
             "SELECT id
             FROM kyber_pre_keys
-            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at != NULL AND stale_at < ?2
+            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at IS NOT NULL AND stale_at < ?2
             ORDER BY stale_at ASC, id ASC",
             self.identity,
             threshold.naive_utc(),
@@ -744,7 +744,7 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
     ) -> Result<(), SignalProtocolError> {
         let count = query!(
             "UPDATE kyber_pre_keys SET stale_at = ?2
-            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at = NULL",
+            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at IS NULL",
             self.identity,
             &stale_time.timestamp_millis(),
         )
@@ -941,7 +941,7 @@ impl SqliteProtocolStore {
     /// number of kyber pre-keys we currently have in store
     pub async fn ec_one_time_pre_keys_count(&self) -> Result<usize, SignalProtocolError> {
         query_scalar!(
-            "SELECT COUNT(*) FROM pre_keys WHERE identity = ? AND stale_at = NULL",
+            "SELECT COUNT(*) FROM pre_keys WHERE identity = ? AND stale_at IS NULL",
             self.identity
         )
         .fetch_one(&self.store.db)
@@ -969,7 +969,7 @@ impl SqliteProtocolStore {
     ) -> Result<usize, SignalProtocolError> {
         if last_resort {
             query_scalar!(
-                "SELECT COUNT(*) FROM kyber_pre_keys WHERE identity = ? AND stale_at = NULL AND is_last_resort = TRUE",
+                "SELECT COUNT(*) FROM kyber_pre_keys WHERE identity = ? AND stale_at IS NULL AND is_last_resort = TRUE",
                 self.identity
             )
             .fetch_one(&self.store.db)

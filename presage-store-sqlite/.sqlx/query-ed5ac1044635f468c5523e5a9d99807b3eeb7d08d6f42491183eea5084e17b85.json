@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT COUNT(*) FROM pre_keys WHERE identity = ? AND stale_at = NULL",
+  "query": "SELECT COUNT(*)\n            FROM pre_keys\n            WHERE identity = ?1 AND stale_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -17,5 +17,5 @@
       false
     ]
   },
-  "hash": "fe85be52220365af2131d723cef7882cffb441e32235db80ec40a03e69c9a22f"
+  "hash": "ed5ac1044635f468c5523e5a9d99807b3eeb7d08d6f42491183eea5084e17b85"
 }

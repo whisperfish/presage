@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id\n            FROM pre_keys\n            WHERE identity = ?1 AND stale_at != NULL AND stale_at < ?2\n            ORDER BY stale_at ASC, id ASC",
+  "query": "SELECT id\n            FROM pre_keys\n            WHERE identity = ?1 AND stale_at IS NOT NULL AND stale_at < ?2\n            ORDER BY stale_at ASC, id ASC",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       false
     ]
   },
-  "hash": "60e09565cee28ee26a266e8314b3505e47202b090ecc65d499244dbf1576e30b"
+  "hash": "796605795d216c53af3ff12ead0471b654d4a303c6e787c9465b7e128d1f6fa6"
 }

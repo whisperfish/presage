@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT id\n            FROM kyber_pre_keys\n            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at != NULL AND stale_at < ?2\n            ORDER BY stale_at ASC, id ASC",
+  "query": "SELECT id\n            FROM kyber_pre_keys\n            WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at IS NOT NULL AND stale_at < ?2\n            ORDER BY stale_at ASC, id ASC",
   "describe": {
     "columns": [
       {
@@ -22,5 +22,5 @@
       null
     ]
   },
-  "hash": "5af15e408049f0f4be59e62c3d00ebb75dd1cbcd901682d65fa775cb1d9b7ce3"
+  "hash": "58a5b997ba8f19fb2fce718db177e86e4808098498dd6be30a5b7141ca55c6c6"
 }
