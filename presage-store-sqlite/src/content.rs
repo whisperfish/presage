@@ -421,7 +421,6 @@ impl ContentsStore for SqliteStore {
         .await?;
 
         let Verified {
-            destination_aci,
             identity_key,
             state,
             ..
@@ -432,14 +431,12 @@ impl ContentsStore for SqliteStore {
             Ok(verified::State::Verified) => Some(true),
         };
 
-        if let Some((destination_aci, identity_key)) =
-            destination_aci.as_ref().zip(identity_key.as_ref())
-        {
+        if let Some(identity_key) = identity_key {
             query!(
                 "INSERT OR REPLACE INTO contacts_verification_state(
                     destination_aci, identity_key, is_verified
                 ) VALUES(?, ?, ?)",
-                destination_aci,
+                contact.uuid,
                 identity_key,
                 is_verified,
             )
