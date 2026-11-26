@@ -79,13 +79,13 @@
 <a href=#79 id=79 data-nosnippet>79</a>    }
 <a href=#80 id=80 data-nosnippet>80</a>}
 <a href=#81 id=81 data-nosnippet>81</a>
-<a href=#82 id=82 data-nosnippet>82</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>apply_configuration&lt;S: Store&gt;(
+<a href=#82 id=82 data-nosnippet>82</a><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>update_settings&lt;S: Store&gt;(
 <a href=#83 id=83 data-nosnippet>83</a>    store: <span class="kw-2">&amp;mut </span>S,
 <a href=#84 id=84 data-nosnippet>84</a>    settings: <span class="kw-2">&amp;</span>RwLock&lt;Settings&gt;,
-<a href=#85 id=85 data-nosnippet>85</a>    configuration: <span class="kw-2">&amp;</span>Configuration,
+<a href=#85 id=85 data-nosnippet>85</a>    update: <span class="kw">impl </span>FnOnce(<span class="kw-2">&amp;mut </span>Settings),
 <a href=#86 id=86 data-nosnippet>86</a>) -&gt; <span class="prelude-ty">Result</span>&lt;(), S::Error&gt; {
 <a href=#87 id=87 data-nosnippet>87</a>    <span class="kw">let </span><span class="kw-2">mut </span>updated = settings.read().expect(<span class="string">"settings lock poisoned"</span>).clone();
-<a href=#88 id=88 data-nosnippet>88</a>    updated.apply(configuration);
+<a href=#88 id=88 data-nosnippet>88</a>    update(<span class="kw-2">&amp;mut </span>updated);
 <a href=#89 id=89 data-nosnippet>89</a>    store.save_settings(<span class="kw-2">&amp;</span>updated).<span class="kw">await</span><span class="question-mark">?</span>;
 <a href=#90 id=90 data-nosnippet>90</a>    <span class="kw-2">*</span>settings.write().expect(<span class="string">"settings lock poisoned"</span>) = updated;
 <a href=#91 id=91 data-nosnippet>91</a>    <span class="prelude-val">Ok</span>(())

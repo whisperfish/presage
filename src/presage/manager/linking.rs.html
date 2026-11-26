@@ -190,8 +190,8 @@
 <a href=#190 id=190 data-nosnippet>190</a>                    state: registered,
 <a href=#191 id=191 data-nosnippet>191</a>                };
 <a href=#192 id=192 data-nosnippet>192</a>
-<a href=#193 id=193 data-nosnippet>193</a>                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = Box::pin(manager.sync_groups_from_storage_service()).<span class="kw">await </span>{
-<a href=#194 id=194 data-nosnippet>194</a>                    <span class="macro">warn!</span>(%error, <span class="string">"failed to sync groups from the storage service"</span>);
+<a href=#193 id=193 data-nosnippet>193</a>                <span class="kw">if let </span><span class="prelude-val">Err</span>(error) = Box::pin(manager.sync_from_storage_service()).<span class="kw">await </span>{
+<a href=#194 id=194 data-nosnippet>194</a>                    <span class="macro">warn!</span>(%error, <span class="string">"failed to sync from the storage service"</span>);
 <a href=#195 id=195 data-nosnippet>195</a>                }
 <a href=#196 id=196 data-nosnippet>196</a>
 <a href=#197 id=197 data-nosnippet>197</a>                <span class="prelude-val">Ok</span>(manager)
