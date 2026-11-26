@@ -1,4 +1,5 @@
 use std::fmt;
+use std::pin::Pin;
 use std::str::FromStr;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -18,7 +19,7 @@ use libsignal_service::{
     encrypt_device_name,
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
-    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
+    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, ServiceError, Uuid},
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
@@ -262,7 +263,12 @@ impl<S: Store> Manager<S, Registered> {
         {
             Some(ws) => Ok(ws.clone()),
             None => {
-                let headers = &[("X-Signal-Receive-Stories", "false")];
+                let receive_stories = if self.settings().stories {
+                    "true"
+                } else {
+                    "false"
+                };
+                let headers = &[("X-Signal-Receive-Stories", receive_stories)];
                 let ws = self
                     .identified_push_service()
                     .ws(
@@ -615,29 +621,11 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
-        struct StreamState<Receiver, Store, AciStore, PniStore> {
-            store: Store,
-            identified_websocket: SignalWebSocket<websocket::Identified>,
-            unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
-            encrypted_messages: Receiver,
-            message_receiver: MessageReceiver,
-            service_cipher_aci: ServiceCipher<AciStore>,
-            service_cipher_pni: ServiceCipher<PniStore>,
-            groups_manager: GroupsManager<InMemoryCredentialsCache>,
-            identified_push_service: PushService,
-            service_ids: ServiceIds,
-            message_sender: MessageSender<AciStore>,
-            account_entropy_pool: Option<AccountEntropyPool>,
-            registration_type: RegistrationType,
-            settings: Arc<RwLock<Settings>>,
-        }
-
-        let identified_push_service = self.identified_push_service();
         // NB: here, we initialise a *fresh* Signal websocket, which means any other use of the previous one will go into nirvana
         let identified_websocket = self.identified_websocket(true).await?;
 
         let mut account_manager = AccountManager::new(
-            identified_push_service.clone(),
+            self.identified_push_service(),
             identified_websocket.clone(),
             None,
         );
@@ -666,24 +654,7 @@ impl<S: Store> Manager<S, Registered> {
             future::pending::<()>().await
         };
 
-        let encrypted_messages = MessagePipe::from_socket(identified_websocket.clone());
-
-        let init = StreamState {
-            store: self.store.clone(),
-            identified_websocket,
-            unidentified_websocket: self.unidentified_websocket().await?,
-            encrypted_messages: Box::pin(encrypted_messages.stream()),
-            message_receiver: MessageReceiver::new(identified_push_service.clone()),
-            service_cipher_aci: self.new_service_cipher_aci(),
-            service_cipher_pni: self.new_service_cipher_pni(),
-            groups_manager: Box::pin(self.groups_manager()).await?,
-            identified_push_service,
-            service_ids: self.state.data.service_ids.clone(),
-            message_sender: self.new_message_sender().await?,
-            account_entropy_pool: self.account_entropy_pool().await?,
-            registration_type: self.registration_type(),
-            settings: self.state.settings.clone(),
-        };
+        let init = StreamState::new(self.clone(), identified_websocket).await?;
 
         debug!("starting to consume incoming message stream");
 
@@ -701,19 +672,21 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                     Some(ServiceId::Aci(_)) => {
                                         state
-                                            .service_cipher_aci
+                                            .manager
+                                            .new_service_cipher_aci()
                                             .open_envelope(envelope, &mut rand::rng())
                                             .await
                                     }
                                     Some(ServiceId::Pni(pni)) => {
-                                        if pni == state.service_ids.pni()
+                                        if pni == state.manager.state.data.service_ids.pni()
                                             && envelope.parse_source_service_id().is_none()
                                         {
                                             warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
                                             continue;
                                         }
                                         state
-                                            .service_cipher_pni
+                                            .manager
+                                            .new_service_cipher_pni()
                                             .open_envelope(envelope, &mut rng())
                                             .await
                                     }
@@ -742,6 +715,7 @@ impl<S: Store> Manager<S, Registered> {
                                         match request.r#type() {
                                             RequestType::Contacts => {
                                                 let contacts = state
+                                                    .manager
                                                     .store
                                                     .contacts()
                                                     .await
@@ -753,7 +727,8 @@ impl<S: Store> Manager<S, Registered> {
 
                                                 let mut message_sender =
                                                     state.message_sender.clone();
-                                                let aci = state.service_ids.aci();
+                                                let aci =
+                                                    state.manager.state.data.service_ids.aci();
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender
                                                     .send_contact_details(
@@ -783,10 +758,17 @@ impl<S: Store> Manager<S, Registered> {
                                             RequestType::Keys => {
                                                 let mut message_sender =
                                                     state.message_sender.clone();
-                                                let account_entropy_pool = state
-                                                    .account_entropy_pool
-                                                    .as_ref()
-                                                    .map(|aep| aep.to_string());
+                                                let account_entropy_pool = match state
+                                                    .manager
+                                                    .account_entropy_pool()
+                                                    .await
+                                                {
+                                                    Ok(aep) => aep.map(|aep| aep.to_string()),
+                                                    Err(error) => {
+                                                        warn!(%error, "failed to load account entropy pool");
+                                                        None
+                                                    }
+                                                };
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender.send_sync_message(SyncMessage {
                                                         content: Some(SyncContent::Keys(libsignal_service::content::sync_message::Keys {
@@ -834,8 +816,10 @@ impl<S: Store> Manager<S, Registered> {
                                     }) = &content.body
                                     {
                                         let saved = save_contacts(
-                                            &mut state.message_receiver,
-                                            &mut state.store,
+                                            &mut MessageReceiver::new(
+                                                state.manager.identified_push_service(),
+                                            ),
+                                            &mut state.manager.store,
                                             contacts,
                                         )
                                         .await;
@@ -858,6 +842,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     // the primary resends every installed pack on
                                                     // a configuration request
                                                     match state
+                                                        .manager
                                                         .store
                                                         .has_sticker_pack(operation.pack_id())
                                                         .await
@@ -874,9 +859,18 @@ impl<S: Store> Manager<S, Registered> {
                                                             "failed to look up sticker pack, downloading it"
                                                         ),
                                                     }
-                                                    let store = state.store.clone();
-                                                    let unidentified_websocket =
-                                                        state.unidentified_websocket.clone();
+                                                    let store = state.manager.store.clone();
+                                                    let unidentified_websocket = match state
+                                                        .manager
+                                                        .unidentified_websocket()
+                                                        .await
+                                                    {
+                                                        Ok(ws) => ws,
+                                                        Err(error) => {
+                                                            warn!(%error, "failed to open unidentified websocket, skipping sticker pack");
+                                                            continue;
+                                                        }
+                                                    };
                                                     let operation = operation.clone();
 
                                                     // download stickers in the background
@@ -903,6 +897,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     });
                                                 }
                                                 sticker_pack_operation::Type::Remove => match state
+                                                    .manager
                                                     .store
                                                     .remove_sticker_pack(operation.pack_id())
                                                     .await
@@ -928,7 +923,9 @@ impl<S: Store> Manager<S, Registered> {
                                     }) = &content.body
                                     {
                                         debug!("received key sync message");
-                                        if state.registration_type == RegistrationType::Primary {
+                                        if state.manager.registration_type()
+                                            == RegistrationType::Primary
+                                        {
                                             warn!("received a key sync message as a primary device; ignoring")
                                         } else {
                                             match keys
@@ -938,13 +935,13 @@ impl<S: Store> Manager<S, Registered> {
                                             {
                                                 Some(Ok(aep)) => {
                                                     if let Err(error) = state
+                                                        .manager
                                                         .store
                                                         .store_account_entropy_pool(Some(&aep))
                                                         .await
                                                     {
                                                         error!(%error, "failed to store account entropy pool");
                                                     }
-                                                    state.account_entropy_pool = Some(aep);
                                                 }
                                                 Some(Err(error)) => {
                                                     warn!(%error, "cannot convert account entropy pool from string")
@@ -963,11 +960,13 @@ impl<S: Store> Manager<S, Registered> {
                                             ?configuration,
                                             "received configuration sync message"
                                         );
-                                        if state.registration_type == RegistrationType::Primary {
+                                        if state.manager.registration_type()
+                                            == RegistrationType::Primary
+                                        {
                                             warn!("received a configuration sync message as a primary device; ignoring")
                                         } else if let Err(error) = super::settings::update_settings(
-                                            &mut state.store,
-                                            &state.settings,
+                                            &mut state.manager.store,
+                                            &state.manager.state.settings,
                                             |s| s.apply(configuration),
                                         )
                                         .await
@@ -985,15 +984,26 @@ impl<S: Store> Manager<S, Registered> {
                                         if fetch_latest.r#type()
                                             == sync_message::fetch_latest::Type::StorageManifest
                                         {
+                                            let stories = state.manager.settings().stories;
                                             if let Err(error) = sync_from_storage_service(
-                                                &mut state.store,
-                                                state.identified_push_service.clone(),
+                                                &mut state.manager.store,
+                                                state.manager.state.identified_push_service(),
                                                 &mut state.groups_manager,
-                                                &state.settings,
+                                                &state.manager.state.settings,
                                             )
                                             .await
                                             {
                                                 warn!(%error, "failed to sync from the storage service");
+                                            }
+
+                                            // The stories header is only read on connect; the server kicks the old socket.
+                                            if stories != state.manager.settings().stories {
+                                                debug!("stories setting changed, reconnecting identified websocket");
+                                                if let Err(error) =
+                                                    state.reconnect_identified_websocket().await
+                                                {
+                                                    error!(%error, "failed to reconnect identified websocket");
+                                                }
                                             }
                                         }
                                     }
@@ -1030,7 +1040,7 @@ impl<S: Store> Manager<S, Registered> {
                                         // and the group changes, which are part of the protobuf messages
                                         // this means we kinda need our own internal representation of groups inside of presage?
                                         if let Ok(Some(group)) = upsert_group(
-                                            &state.store,
+                                            &state.manager.store,
                                             &mut state.groups_manager,
                                             master_key_bytes,
                                             revision,
@@ -1041,14 +1051,20 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
-                                    if let Err(error) = save_message(
-                                        &mut state.store,
-                                        &mut state.identified_websocket,
-                                        content.clone(),
-                                        None,
-                                    )
-                                    .await
-                                    {
+                                    let saved =
+                                        match state.manager.identified_websocket(false).await {
+                                            Ok(mut websocket) => {
+                                                save_message(
+                                                    &mut state.manager.store,
+                                                    &mut websocket,
+                                                    content.clone(),
+                                                    None,
+                                                )
+                                                .await
+                                            }
+                                            Err(error) => Err(error),
+                                        };
+                                    if let Err(error) = saved {
                                         error!(%error, "error saving message to store");
                                     }
 
@@ -1069,7 +1085,7 @@ impl<S: Store> Manager<S, Registered> {
                         }
                         Some(Ok(Incoming::QueueEmpty)) => {
                             debug!("got empty queue");
-                            if state.account_entropy_pool.is_none() {
+                            if matches!(state.manager.account_entropy_pool().await, Ok(None)) {
                                 debug!("device does not have the needed keys; requesting from primary device");
 
                                 let mut message_sender = state.message_sender.clone();
@@ -2171,6 +2187,35 @@ async fn download_sticker<C: ContentsStore>(
     decrypt_in_place(key, &mut ciphertext)?;
 
     Ok(ciphertext)
+}
+
+struct StreamState<S: Store> {
+    manager: Manager<S, Registered>,
+    encrypted_messages: Pin<Box<dyn Stream<Item = Result<Incoming, ServiceError>> + Send>>,
+    groups_manager: GroupsManager<InMemoryCredentialsCache>,
+    message_sender: MessageSender<S::AciStore>,
+}
+
+impl<S: Store> StreamState<S> {
+    async fn new(
+        manager: Manager<S, Registered>,
+        identified_websocket: SignalWebSocket<websocket::Identified>,
+    ) -> Result<Self, Error<S::Error>> {
+        Ok(Self {
+            encrypted_messages: Box::pin(MessagePipe::from_socket(identified_websocket).stream()),
+            groups_manager: Box::pin(manager.groups_manager()).await?,
+            message_sender: manager.new_message_sender().await?,
+            manager,
+        })
+    }
+
+    async fn reconnect_identified_websocket(&mut self) -> Result<(), Error<S::Error>> {
+        let ws = self.manager.identified_websocket(true).await?;
+        self.message_sender = self.manager.new_message_sender().await?;
+        self.encrypted_messages = Box::pin(MessagePipe::from_socket(ws).stream());
+        debug!("reconnected identified websocket");
+        Ok(())
+    }
 }
 
 /// Save a message into the store.
