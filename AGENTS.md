@@ -1,14 +1,10 @@
-# libsignal service
+# presage
 
-A Rust crate that implements Signal's API for building Signal clients.
+High-level batteries included library that lets you interact with the Signal Messenger service.
 
 ## Repositories and related libraries
 
-- This library is hosted on github.com/whisperfish/libsignal-service-rs
-- The main dependency is on github.com/signalapp/libsignal
-- Whisperfish and Presage are the main consumers of this library:
-  - Whisperfish is on Git*lab*: gitlab.com/whisperfish/whisperfish
-  - Presage is on Git*hub*: github.com/whisperfish/presage
+- The main dependencies are (ours) github.com/whisperfish/libsignal-service-rs and (official) github.com/signalapp/libsignal
 
 ## Pull Request Descriptions
 
@@ -53,32 +49,10 @@ refrain from doing so, and use `Assisted-by` instead.
 
 ## Code Style
 
-Generally, follow the patterns, or lack thereof, already present in the library.
-
-Keep comments short. One or two lines is usually enough. The reviewer will read the code.
-
-Regarding comments:
+- Generally, follow the patterns, or lack thereof, already present in the library.
+- Default to no comments. Add one only when the *why* isn't obvious (protocol quirk, server behaviour, workaround). One line.
+- Never restate the code, narrate the change ("now uses gRPC"), or reference the task/PR/conversation.
+- No doc comments that repeat the item name; public API docs short and factual.
+- No banner/divider comments, no TODO essays.
 - **Don't narrate the code.** `strip_padding()` removes padding — the name already says so.
-- **Don't spread docs across field + const + constructor.** Pick one place as the
-  single source of truth and link to it (`See with_max_outstanding_keepalives()`).
-- **Don't leave plan markers or TODO history in the code.** Git already records history.
-- **Do document the "why", not the "how"**, when the reason is non-obvious. When obvious, do not write a comment.
-- Doc comments document behaviour, not implementation.
-
-Good:
-
-```rust
-/// Close if unacked keepalives exceed the threshold.
-/// See `with_max_outstanding_keepalives` for tuning.
-```
-
-Bad:
-
-```rust
-/// Under the hood, we orchestrate a sophisticated HKDF-SHA256 key-derivation pipeline
-/// (info string: "20240801_SIGNAL_STORAGE_SERVICE_MANIFEST_" + version) feeding into
-/// AES-256-GCM with 12-byte nonce prepended and 16-byte tag appended. The caller's
-/// existing strip_padding() gracefully removes the trailing 0x80 ISO7816 pad, leaving
-/// pristine protobuf bytes ready for the envelope pipeline. Our test suite validates
-/// the full downstream flow end-to-end.
-```
+- **Don't spread docs across field + const + constructor.** Pick one place as the single source of truth and link to it (`See with_max_outstanding_keepalives()`).
