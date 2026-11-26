@@ -169,7 +169,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient_uuid", "group_master_key"])
+                .args(["recipient_service_id", "group_master_key"])
         )
     )]
     ListMessages {
@@ -1076,8 +1076,14 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
 
 #[cfg(test)]
 mod tests {
-    use super::ensure_parent_dir_exists;
+    use super::{ensure_parent_dir_exists, Args};
+    use clap::CommandFactory;
     use tempfile::tempdir;
+
+    #[test]
+    fn arguments_are_consistent() {
+        Args::command().debug_assert();
+    }
 
     #[test]
     fn creates_missing_parent_directory_for_db_path() {
