@@ -472,6 +472,10 @@ pub trait Store:
     fn aci_protocol_store(&self) -> Self::AciStore;
 
     fn pni_protocol_store(&self) -> Self::PniStore;
+
+    fn close(&self) -> impl Future<Output = Result<(), Self::Error>> {
+        std::future::ready(Ok(()))
+    }
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
