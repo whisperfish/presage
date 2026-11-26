@@ -2,7 +2,7 @@ use libsignal_service::proto::sync_message::Configuration;
 use serde::{Deserialize, Serialize};
 
 /// Account-wide preferences, kept in sync with the other devices of the account.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
     pub read_receipts: bool,
@@ -46,8 +46,8 @@ impl Settings {
     }
 }
 
-impl From<Settings> for Configuration {
-    fn from(settings: Settings) -> Self {
+impl From<&Settings> for Configuration {
+    fn from(settings: &Settings) -> Self {
         Self {
             read_receipts: Some(settings.read_receipts),
             unidentified_delivery_indicators: Some(settings.unidentified_delivery_indicators),
