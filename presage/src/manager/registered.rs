@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt;
 use std::pin::Pin;
 use std::str::FromStr;
@@ -22,11 +23,12 @@ use libsignal_service::{
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
+        receipt_message,
         sync_message::{
             self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
         },
         AttachmentPointer, CallMessage, ContactRecord, DataMessage, EditMessage, GroupContextV2,
-        NullMessage, SyncMessage, Verified,
+        NullMessage, ReceiptMessage, SyncMessage, Verified,
     },
     protocol::{
         Aci, DeviceId, IdentityKey, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
@@ -342,6 +344,50 @@ impl<S: Store> Manager<S, Registered> {
         Ok(unidentified_sender_certificate
             .clone()
             .expect("logic error"))
+    }
+
+    async fn unidentified_access(
+        &self,
+        recipient: &ServiceId,
+        certificate: &SenderCertificate,
+    ) -> Result<Option<UnidentifiedAccess>, Error<S::Error>> {
+        Ok(self
+            .store
+            .profile_key(recipient)
+            .await?
+            .map(|profile_key| UnidentifiedAccess {
+                key: profile_key.derive_access_key().to_vec(),
+                certificate: certificate.clone(),
+            }))
+    }
+
+    async fn send_delivery_receipt(
+        &self,
+        message_sender: &mut MessageSender<S::AciStore>,
+        recipient: ServiceId,
+        message_timestamps: Vec<u64>,
+    ) -> Result<(), Error<S::Error>> {
+        let certificate = self.sender_certificate().await?;
+        let unidentified_access = self.unidentified_access(&recipient, &certificate).await?;
+        let receipt = ReceiptMessage {
+            r#type: Some(receipt_message::Type::Delivery.into()),
+            timestamp: message_timestamps,
+        };
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64;
+        message_sender
+            .send_message(
+                &recipient,
+                unidentified_access.as_ref(),
+                receipt,
+                timestamp,
+                false,
+                false,
+            )
+            .await?;
+        Ok(())
     }
 
     async fn account_entropy_pool(&self) -> Result<Option<AccountEntropyPool>, Error<S::Error>> {
@@ -1030,6 +1076,13 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
+                                    if let Some(timestamp) = delivery_receipt_timestamp(&content) {
+                                        state.queue_delivery_receipt(
+                                            content.metadata.sender,
+                                            timestamp,
+                                        );
+                                    }
+
                                     let saved =
                                         match state.manager.identified_websocket(false).await {
                                             Ok(mut websocket) => {
@@ -1064,6 +1117,8 @@ impl<S: Store> Manager<S, Registered> {
                         }
                         Some(Ok(Incoming::QueueEmpty)) => {
                             debug!("got empty queue");
+                            state.queue_empty = true;
+                            state.flush_delivery_receipts();
                             if matches!(state.manager.account_entropy_pool().await, Ok(None)) {
                                 debug!("device does not have the needed keys; requesting from primary device");
 
@@ -1176,13 +1231,8 @@ impl<S: Store> Manager<S, Registered> {
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
-            .store
-            .profile_key(&recipient)
-            .await?
-            .map(|profile_key| UnidentifiedAccess {
-                key: profile_key.derive_access_key().to_vec(),
-                certificate: sender_certificate.clone(),
-            });
+            .unidentified_access(&recipient, &sender_certificate)
+            .await?;
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -1370,14 +1420,9 @@ impl<S: Store> Manager<S, Registered> {
             .into_iter()
             .filter(|m| m.aci != self.state.data.service_ids.aci())
         {
-            let unidentified_access =
-                self.store
-                    .profile_key(&member.aci.into())
-                    .await?
-                    .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key().to_vec(),
-                        certificate: sender_certificate.clone(),
-                    });
+            let unidentified_access = self
+                .unidentified_access(&member.aci.into(), &sender_certificate)
+                .await?;
             let include_pni_signature = false;
             recipients.push((
                 member.aci.into(),
@@ -2216,7 +2261,16 @@ struct StreamState<S: Store> {
     encrypted_messages: Pin<Box<dyn Stream<Item = Result<Incoming, ServiceError>> + Send>>,
     groups_manager: GroupsManager<InMemoryCredentialsCache>,
     message_sender: MessageSender<S::AciStore>,
+    /// Delivery receipts batched while the queued messages are drained.
+    ///
+    /// NB: not persisted; receipts still pending when the stream is dropped are lost.
+    pending_delivery_receipts: HashMap<ServiceId, Vec<u64>>,
+    pending_delivery_receipts_count: usize,
+    queue_empty: bool,
 }
+
+// Same batch size as Signal-Android's `IncomingMessageObserver`.
+const DELIVERY_RECEIPT_BATCH_SIZE: usize = 30;
 
 impl<S: Store> StreamState<S> {
     async fn new(
@@ -2227,16 +2281,63 @@ impl<S: Store> StreamState<S> {
             encrypted_messages: Box::pin(MessagePipe::from_socket(identified_websocket).stream()),
             groups_manager: Box::pin(manager.groups_manager()).await?,
             message_sender: manager.new_message_sender().await?,
+            pending_delivery_receipts: HashMap::new(),
+            pending_delivery_receipts_count: 0,
+            queue_empty: false,
             manager,
         })
+    }
+
+    fn queue_delivery_receipt(&mut self, sender: ServiceId, timestamp: u64) {
+        self.pending_delivery_receipts
+            .entry(sender)
+            .or_default()
+            .push(timestamp);
+        self.pending_delivery_receipts_count += 1;
+        if self.queue_empty || self.pending_delivery_receipts_count >= DELIVERY_RECEIPT_BATCH_SIZE {
+            self.flush_delivery_receipts();
+        }
+    }
+
+    fn flush_delivery_receipts(&mut self) {
+        self.pending_delivery_receipts_count = 0;
+        for (recipient, timestamps) in self.pending_delivery_receipts.drain() {
+            let manager = self.manager.clone();
+            let mut message_sender = self.message_sender.clone();
+            tokio::task::spawn_local(async move {
+                if let Err(error) = manager
+                    .send_delivery_receipt(&mut message_sender, recipient, timestamps)
+                    .await
+                {
+                    warn!(%error, "failed to send delivery receipt");
+                }
+            });
+        }
     }
 
     async fn reconnect_identified_websocket(&mut self) -> Result<(), Error<S::Error>> {
         let ws = self.manager.identified_websocket(true).await?;
         self.message_sender = self.manager.new_message_sender().await?;
         self.encrypted_messages = Box::pin(MessagePipe::from_socket(ws).stream());
+        // The new socket drains its own queue first.
+        self.queue_empty = false;
         debug!("reconnected identified websocket");
         Ok(())
+    }
+}
+
+fn delivery_receipt_timestamp(content: &Content) -> Option<u64> {
+    // Signal-Android only acknowledges sealed sender messages.
+    if !content.metadata.needs_receipt {
+        return None;
+    }
+    match &content.body {
+        ContentBody::DataMessage(DataMessage { timestamp, .. })
+        | ContentBody::EditMessage(EditMessage {
+            data_message: Some(DataMessage { timestamp, .. }),
+            ..
+        }) => *timestamp,
+        _ => None,
     }
 }
 
