@@ -593,13 +593,14 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    /// See [`sync_groups_from_storage_service`].
-    pub(super) async fn sync_groups_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+    /// See [`sync_from_storage_service`].
+    pub(super) async fn sync_from_storage_service(&self) -> Result<(), Error<S::Error>> {
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
-        sync_groups_from_storage_service(
-            &self.store,
+        sync_from_storage_service(
+            &mut self.store.clone(),
             self.identified_push_service(),
             &mut groups_manager,
+            &self.state.settings,
         )
         .await
     }
@@ -964,13 +965,12 @@ impl<S: Store> Manager<S, Registered> {
                                         );
                                         if state.registration_type == RegistrationType::Primary {
                                             warn!("received a configuration sync message as a primary device; ignoring")
-                                        } else if let Err(error) =
-                                            super::settings::apply_configuration(
-                                                &mut state.store,
-                                                &state.settings,
-                                                configuration,
-                                            )
-                                            .await
+                                        } else if let Err(error) = super::settings::update_settings(
+                                            &mut state.store,
+                                            &state.settings,
+                                            |s| s.apply(configuration),
+                                        )
+                                        .await
                                         {
                                             error!(%error, "failed to store settings");
                                         }
@@ -985,14 +985,15 @@ impl<S: Store> Manager<S, Registered> {
                                         if fetch_latest.r#type()
                                             == sync_message::fetch_latest::Type::StorageManifest
                                         {
-                                            if let Err(error) = sync_groups_from_storage_service(
-                                                &state.store,
+                                            if let Err(error) = sync_from_storage_service(
+                                                &mut state.store,
                                                 state.identified_push_service.clone(),
                                                 &mut state.groups_manager,
+                                                &state.settings,
                                             )
                                             .await
                                             {
-                                                warn!(%error, "failed to sync groups from the storage service");
+                                                warn!(%error, "failed to sync from the storage service");
                                             }
                                         }
                                     }
@@ -1939,10 +1940,11 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
     }
 }
 
-async fn sync_groups_from_storage_service<S: Store>(
-    store: &S,
+async fn sync_from_storage_service<S: Store>(
+    store: &mut S,
     push_service: PushService,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    settings: &RwLock<Settings>,
 ) -> Result<(), Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
@@ -1954,6 +1956,36 @@ async fn sync_groups_from_storage_service<S: Store>(
     let storage = StorageService::new(push_service, storage_key).await?;
 
     let manifest = storage.manifest().await?;
+
+    let account_id = manifest
+        .identifiers
+        .iter()
+        .find(|id| id.r#type() == manifest_record::identifier::Type::Account)
+        .map(|id| id.raw.clone());
+    if let Some(account_id) = account_id {
+        match storage
+            .read_items(vec![account_id], Some(&manifest.record_ikm))
+            .await
+        {
+            Ok(records) => {
+                for record in records {
+                    let Some(storage_record::Record::Account(record)) = record.record else {
+                        continue;
+                    };
+                    if let Err(error) = super::settings::update_settings(store, settings, |s| {
+                        s.apply_account_record(&record);
+                        debug!(settings = ?s, "applying settings from the storage service account record");
+                    })
+                    .await
+                    {
+                        error!(%error, "failed to store settings");
+                    }
+                }
+            }
+            Err(error) => warn!(%error, "failed to read account record from the storage service"),
+        }
+    }
+
     let group_ids: Vec<Vec<u8>> = manifest
         .identifiers
         .iter()

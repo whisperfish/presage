@@ -79,13 +79,13 @@ impl<S: Store> Manager<S, Registered> {
     }
 }
 
-pub(crate) async fn apply_configuration<S: Store>(
+pub(crate) async fn update_settings<S: Store>(
     store: &mut S,
     settings: &RwLock<Settings>,
-    configuration: &Configuration,
+    update: impl FnOnce(&mut Settings),
 ) -> Result<(), S::Error> {
     let mut updated = settings.read().expect("settings lock poisoned").clone();
-    updated.apply(configuration);
+    update(&mut updated);
     store.save_settings(&updated).await?;
     *settings.write().expect("settings lock poisoned") = updated;
     Ok(())

@@ -1,4 +1,4 @@
-use libsignal_service::proto::sync_message::Configuration;
+use libsignal_service::proto::{sync_message::Configuration, AccountRecord};
 use serde::{Deserialize, Serialize};
 
 /// Account-wide preferences, kept in sync with the other devices of the account.
@@ -9,6 +9,7 @@ pub struct Settings {
     pub typing_indicators: bool,
     pub link_previews: bool,
     pub unidentified_delivery_indicators: bool,
+    pub stories: bool,
 }
 
 impl Default for Settings {
@@ -18,6 +19,7 @@ impl Default for Settings {
             typing_indicators: true,
             link_previews: true,
             unidentified_delivery_indicators: false,
+            stories: true,
         }
     }
 }
@@ -43,6 +45,15 @@ impl Settings {
         if let Some(value) = link_previews {
             self.link_previews = value;
         }
+    }
+
+    /// Applies the settings stored in the storage service account record.
+    pub fn apply_account_record(&mut self, record: &AccountRecord) {
+        self.read_receipts = record.read_receipts;
+        self.unidentified_delivery_indicators = record.sealed_sender_indicators;
+        self.typing_indicators = record.typing_indicators;
+        self.link_previews = record.link_previews;
+        self.stories = !record.stories_disabled;
     }
 }
 
