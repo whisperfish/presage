@@ -1100,8 +1100,6 @@ mod tests {
     use clap::CommandFactory;
     use tempfile::tempdir;
 
-    /// The arguments as clap checks them when it parses: an argument group naming an argument
-    /// that isn't there made every `list-messages` panic.
     #[test]
     fn arguments_are_consistent() {
         Args::command().debug_assert();
