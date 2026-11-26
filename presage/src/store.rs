@@ -26,7 +26,7 @@ use tracing::trace;
 
 use crate::{
     manager::RegistrationData,
-    model::{contacts::Contact, groups::Group},
+    model::{contacts::Contact, groups::Group, settings::Settings},
     AvatarBytes,
 };
 
@@ -112,10 +112,19 @@ pub trait StateStore {
         certificate: &SenderCertificate,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
+    fn load_settings(
+        &self,
+    ) -> impl Future<Output = Result<Option<Settings>, Self::StateStoreError>>;
+
+    fn save_settings(
+        &mut self,
+        settings: &Settings,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>> + Send;
+
     /// Returns whether this store contains registration data or not
     fn is_registered(&self) -> impl Future<Output = bool>;
 
-    /// Clear registration data (including keys), but keep received messages, groups and contacts.
+    /// Clear all account state (registration, keys, settings), but keep received messages, groups and contacts.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(

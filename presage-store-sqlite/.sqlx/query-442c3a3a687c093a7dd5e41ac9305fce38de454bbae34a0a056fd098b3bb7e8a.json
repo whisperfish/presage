@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT value FROM kv WHERE key = 'settings'",
+  "describe": {
+    "columns": [
+      {
+        "name": "value",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "kv",
+            "name": "value"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "442c3a3a687c093a7dd5e41ac9305fce38de454bbae34a0a056fd098b3bb7e8a"
+}

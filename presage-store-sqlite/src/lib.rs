@@ -4,6 +4,7 @@ use presage::{
     libsignal_service::{
         libsignal_account_keys::AccountEntropyPool, prelude::MasterKey, protocol::SenderCertificate,
     },
+    model::settings::Settings,
     store::{StateStore, Store},
 };
 use protocol::{IdentityType, SqliteProtocolStore};
@@ -146,15 +147,33 @@ impl StateStore for SqliteStore {
         Ok(())
     }
 
+    async fn load_settings(&self) -> Result<Option<Settings>, Self::StateStoreError> {
+        query_scalar!("SELECT value FROM kv WHERE key = 'settings'")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|value| serde_json::from_slice(&value))
+            .transpose()
+            .map_err(From::from)
+    }
+
+    async fn save_settings(&mut self, settings: &Settings) -> Result<(), Self::StateStoreError> {
+        let value = serde_json::to_string(settings)?;
+        query!(
+            "INSERT OR REPLACE INTO kv (key, value) VALUES ('settings', ?)",
+            value
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
     async fn is_registered(&self) -> bool {
         self.load_registration_data().await.ok().flatten().is_some()
     }
 
     async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
         let mut transaction = self.begin_write().await.into_protocol_error()?;
-        query!("DELETE FROM kv WHERE key = 'registration'")
-            .execute(&mut *transaction)
-            .await?;
+        query!("DELETE FROM kv").execute(&mut *transaction).await?;
         query!("DELETE FROM sessions")
             .execute(&mut *transaction)
             .await?;
