@@ -1286,6 +1286,9 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Sets a preview of the first link of a data message that has no preview yet.
     async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
+        if !self.settings().link_previews {
+            return;
+        }
         let ContentBody::DataMessage(message) = content_body else {
             return;
         };
