@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["donations_client","redeem_receipt_response"],"struct":["CreateDonationPermitsRequest","CreateDonationPermitsResponse","RedeemReceiptRequest","RedeemReceiptResponse"]};

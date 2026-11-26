@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["get_badges_response","get_configuration_response","remote_configuration_client"],"struct":["Badges","Configuration","GetBadgesRequest","GetBadgesResponse","GetConfigurationRequest","GetConfigurationResponse","TaggedBadges","TaggedConfiguration"]};

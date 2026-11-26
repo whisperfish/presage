@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["attachments_client","get_upload_form_response"],"struct":["GetStickerUploadFormRequest","GetStickerUploadFormResponse","GetUploadFormRequest","GetUploadFormResponse"]};

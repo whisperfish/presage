@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["chat","google","kt_query","textsecure"]};

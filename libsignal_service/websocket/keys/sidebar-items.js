@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"struct":["PreKeyResponse","PreKeyResponseItem","PreKeyStatus"]};
+window.SIDEBAR_ITEMS = {"struct":["PreKeyStatus"]};

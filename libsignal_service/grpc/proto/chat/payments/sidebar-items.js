@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["get_currency_conversions_response","payments_client"],"struct":["GetCurrencyConversionsRequest","GetCurrencyConversionsResponse"]};

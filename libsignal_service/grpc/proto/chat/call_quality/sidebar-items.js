@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"mod":["call_quality_client"],"struct":["SubmitCallQualitySurveyRequest","SubmitCallQualitySurveyResponse"]};

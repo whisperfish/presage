@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DeviceCapability","IdentityType"],"struct":["AccountIdentifiers","Badge","BadgeSvg","DeviceCapabilityIter","EcPreKey","EcSignedPreKey","KemSignedPreKey","S3UploadForm","ServiceIdentifier","UploadForm","ZkCredential"]};
