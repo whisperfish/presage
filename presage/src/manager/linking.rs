@@ -16,6 +16,7 @@ use tracing::{debug, info, warn};
 use url::Url;
 
 use crate::manager::registered::RegistrationData;
+use crate::model::settings::Settings;
 use crate::store::Store;
 use crate::{Error, Manager};
 
@@ -128,6 +129,7 @@ impl<S: Store> Manager<S, Linking> {
                 profile_key,
                 account_entropy_pool,
                 ephemeral_backup_key,
+                read_receipts,
             }) => {
                 let registration_data = RegistrationData {
                     signal_servers,
@@ -174,9 +176,18 @@ impl<S: Store> Manager<S, Linking> {
                     &registration_data.service_ids
                 );
 
+                let settings = Settings {
+                    read_receipts: read_receipts.unwrap_or(Settings::default().read_receipts),
+                    ..Default::default()
+                };
+                store.save_settings(&settings).await?;
+
+                let registered = Registered::with_data(registration_data);
+                *registered.settings.write().expect("settings lock poisoned") = settings;
+
                 let manager = Manager {
                     store: store.clone(),
-                    state: Registered::with_data(registration_data),
+                    state: registered,
                 };
 
                 if let Err(error) = Box::pin(manager.sync_groups_from_storage_service()).await {

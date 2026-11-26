@@ -1,6 +1,6 @@
 use std::fmt;
 use std::str::FromStr;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
@@ -63,6 +63,7 @@ use url::Url;
 
 use crate::model::contacts::Contact;
 use crate::model::previews;
+use crate::model::settings::Settings;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -90,6 +91,7 @@ pub struct Registered {
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
+    pub(crate) settings: Arc<RwLock<Settings>>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -109,6 +111,7 @@ impl Registered {
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
+            settings: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -205,6 +208,10 @@ impl<S: Store> Manager<S, Registered> {
                 .lock()
                 .await
                 .replace(sender_certificate);
+        }
+
+        if let Some(settings) = store.load_settings().await? {
+            *registered.settings.write().expect("settings lock poisoned") = settings;
         }
 
         Ok(Self {
@@ -621,6 +628,7 @@ impl<S: Store> Manager<S, Registered> {
             message_sender: MessageSender<AciStore>,
             account_entropy_pool: Option<AccountEntropyPool>,
             registration_type: RegistrationType,
+            settings: Arc<RwLock<Settings>>,
         }
 
         let identified_push_service = self.identified_push_service();
@@ -673,6 +681,7 @@ impl<S: Store> Manager<S, Registered> {
             message_sender: self.new_message_sender().await?,
             account_entropy_pool: self.account_entropy_pool().await?,
             registration_type: self.registration_type(),
+            settings: self.state.settings.clone(),
         };
 
         debug!("starting to consume incoming message stream");
@@ -941,6 +950,25 @@ impl<S: Store> Manager<S, Registered> {
                                                 }
                                                 None => {}
                                             }
+                                        }
+                                    }
+
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        content: Some(SyncContent::Configuration(configuration)),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        if state.registration_type == RegistrationType::Primary {
+                                            warn!("received a configuration sync message as a primary device; ignoring")
+                                        } else if let Err(error) =
+                                            super::settings::apply_configuration(
+                                                &mut state.store,
+                                                &state.settings,
+                                                configuration,
+                                            )
+                                            .await
+                                        {
+                                            error!(%error, "failed to store settings");
                                         }
                                     }
 
@@ -1258,6 +1286,9 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Sets a preview of the first link of a data message that has no preview yet.
     async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
+        if !self.settings().link_previews {
+            return;
+        }
         let ContentBody::DataMessage(message) = content_body else {
             return;
         };
