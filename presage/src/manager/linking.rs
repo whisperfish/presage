@@ -190,8 +190,8 @@ impl<S: Store> Manager<S, Linking> {
                     state: registered,
                 };
 
-                if let Err(error) = Box::pin(manager.sync_groups_from_storage_service()).await {
-                    warn!(%error, "failed to sync groups from the storage service");
+                if let Err(error) = Box::pin(manager.sync_from_storage_service()).await {
+                    warn!(%error, "failed to sync from the storage service");
                 }
 
                 Ok(manager)
