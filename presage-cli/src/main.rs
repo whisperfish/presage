@@ -605,7 +605,6 @@ async fn receive<S: Store>(
                     break;
                 }
             }
-            Received::Contacts { .. } => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
                     &mut manager,
@@ -941,27 +940,8 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::SyncContacts => {
-            let mut manager = load_registered_and_receive(store).await?;
-            manager.request_contacts().await?;
-
-            let messages = manager
-                .receive_messages()
-                .await
-                .context("failed to initialize messages stream")?;
-            pin_mut!(messages);
-
-            println!("synchronizing messages until we get contacts (dots are messages synced from the past timeline)");
-
-            while let Some(content) = messages.next().await {
-                match content {
-                    Received::QueueEmpty => break,
-                    Received::Contacts { .. } => println!("got contacts! thank you, come again."),
-                    Received::Content(_) => print!("."),
-                    Received::DecryptionError(_) => {
-                        println!("failed to receive a message from a contact")
-                    }
-                }
-            }
+            let manager = Manager::load_registered(store).await?;
+            manager.sync_from_storage_service().await?;
         }
         Cmd::ListMessages {
             group_master_key,

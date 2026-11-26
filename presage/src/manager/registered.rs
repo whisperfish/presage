@@ -6,7 +6,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::models::ParseContactError;
 use libsignal_service::pre_keys::PreKeysStore;
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
@@ -26,15 +25,15 @@ use libsignal_service::{
         sync_message::{
             self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
         },
-        AttachmentPointer, CallMessage, DataMessage, EditMessage, GroupContextV2, NullMessage,
-        SyncMessage, Verified,
+        AttachmentPointer, CallMessage, ContactRecord, DataMessage, EditMessage, GroupContextV2,
+        NullMessage, SyncMessage, Verified,
     },
     protocol::{
-        Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
+        Aci, DeviceId, IdentityKey, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
+        Username,
     },
     provisioning::ProvisioningError,
     push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
-    receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
@@ -308,30 +307,6 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
-    /// Request the primary device to encrypt & send all of its contacts.
-    ///
-    /// **Note**: If successful, the contacts are not yet received and stored, but will only be
-    /// processed when they're received after polling on the
-    pub async fn request_contacts(&mut self) -> Result<(), Error<S::Error>> {
-        trace!("requesting contacts sync");
-        let sync_message = SyncMessage {
-            content: Some(SyncContent::Request(sync_message::Request {
-                r#type: Some(sync_message::request::Type::Contacts.into()),
-            })),
-            ..SyncMessage::with_padding(&mut rand::rng())
-        };
-
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis() as u64;
-
-        self.send_message(self.state.data.service_ids.aci(), sync_message, timestamp)
-            .await?;
-
-        Ok(())
-    }
-
     async fn sender_certificate(&self) -> Result<SenderCertificate, Error<S::Error>> {
         let needs_renewal = |sender_certificate: Option<&SenderCertificate>| -> bool {
             if sender_certificate.is_none() {
@@ -599,8 +574,10 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    /// See [`sync_from_storage_service`].
-    pub(super) async fn sync_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+    /// Syncs the account settings, contacts and groups from the storage service.
+    ///
+    /// Also runs after linking, and whenever another device reports a storage service change.
+    pub async fn sync_from_storage_service(&self) -> Result<(), Error<S::Error>> {
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         sync_from_storage_service(
             &mut self.store.clone(),
@@ -807,27 +784,6 @@ impl<S: Store> Manager<S, Registered> {
                                                 info!(type = ?t, "Got sync request of currently unhandled type")
                                             }
                                         }
-                                    }
-
-                                    // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Contacts(contacts)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        let saved = save_contacts(
-                                            &mut MessageReceiver::new(
-                                                state.manager.identified_push_service(),
-                                            ),
-                                            &mut state.manager.store,
-                                            contacts,
-                                        )
-                                        .await;
-                                        let complete = contacts.complete();
-                                        return Some((
-                                            Received::Contacts { complete, saved },
-                                            state,
-                                        ));
                                     }
 
                                     // sticker pack operations
@@ -1973,21 +1929,30 @@ async fn sync_from_storage_service<S: Store>(
 
     let manifest = storage.manifest().await?;
 
-    let account_id = manifest
+    use manifest_record::identifier::Type;
+    let ids: Vec<Vec<u8>> = manifest
         .identifiers
         .iter()
-        .find(|id| id.r#type() == manifest_record::identifier::Type::Account)
-        .map(|id| id.raw.clone());
-    if let Some(account_id) = account_id {
-        match storage
-            .read_items(vec![account_id], Some(&manifest.record_ikm))
+        .filter(|id| matches!(id.r#type(), Type::Account | Type::Contact | Type::Groupv2))
+        .map(|id| id.raw.clone())
+        .collect();
+    debug!(count = ids.len(), "records listed in the storage service");
+
+    let (mut contacts, mut groups) = (0, 0);
+    for chunk in ids.chunks(READ_CHUNK) {
+        let records = match storage
+            .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
             .await
         {
-            Ok(records) => {
-                for record in records {
-                    let Some(storage_record::Record::Account(record)) = record.record else {
-                        continue;
-                    };
+            Ok(records) => records,
+            Err(error) => {
+                warn!(%error, "failed to read records from the storage service");
+                continue;
+            }
+        };
+        for record in records {
+            match record.record {
+                Some(storage_record::Record::Account(record)) => {
                     if let Err(error) = super::settings::update_settings(store, settings, |s| {
                         s.apply_account_record(&record);
                         debug!(settings = ?s, "applying settings from the storage service account record");
@@ -1997,44 +1962,67 @@ async fn sync_from_storage_service<S: Store>(
                         error!(%error, "failed to store settings");
                     }
                 }
-            }
-            Err(error) => warn!(%error, "failed to read account record from the storage service"),
-        }
-    }
-
-    let group_ids: Vec<Vec<u8>> = manifest
-        .identifiers
-        .iter()
-        .filter(|id| id.r#type() == manifest_record::identifier::Type::Groupv2)
-        .map(|id| id.raw.clone())
-        .collect();
-    debug!(
-        count = group_ids.len(),
-        "groups listed in the storage service"
-    );
-
-    for chunk in group_ids.chunks(READ_CHUNK) {
-        let records = match storage
-            .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
-            .await
-        {
-            Ok(records) => records,
-            Err(error) => {
-                warn!(%error, "failed to read group records from the storage service");
-                continue;
-            }
-        };
-        for record in records {
-            let Some(storage_record::Record::GroupV2(record)) = record.record else {
-                continue;
-            };
-            if let Err(error) = save_unknown_group(store, groups_manager, &record.master_key).await
-            {
-                warn!(%error, "failed to fetch group listed in the storage service");
+                Some(storage_record::Record::Contact(record)) => {
+                    match save_contact_record(store, &record).await {
+                        Ok(true) => contacts += 1,
+                        Ok(false) => {}
+                        Err(error) => warn!(%error, "failed to save contact from the storage service"),
+                    }
+                }
+                Some(storage_record::Record::GroupV2(record)) => {
+                    match save_unknown_group(store, groups_manager, &record.master_key).await {
+                        Ok(_) => groups += 1,
+                        Err(error) => {
+                            warn!(%error, "failed to fetch group listed in the storage service")
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
+    debug!(contacts, groups, "synced from the storage service");
     Ok(())
+}
+
+/// Returns whether the record was saved, i.e. it has an ACI.
+async fn save_contact_record<S: Store>(
+    store: &mut S,
+    record: &ContactRecord,
+) -> Result<bool, Error<S::Error>> {
+    let Some(aci) = crate::model::contacts::contact_record_aci(record) else {
+        return Ok(false);
+    };
+    let existing = store.contact_by_id(&Aci::from(aci).into()).await?;
+    let Some(contact) = Contact::from_contact_record(record, existing) else {
+        return Ok(false);
+    };
+    store.save_contact(&contact).await?;
+    if let Ok(bytes) = <[u8; 32]>::try_from(record.profile_key.as_slice()) {
+        store
+            .upsert_profile_key(&contact.uuid, ProfileKey::create(bytes))
+            .await?;
+    }
+    if !record.identity_key.is_empty() {
+        match IdentityKey::decode(&record.identity_key) {
+            Ok(identity_key) => {
+                let address =
+                    ProtocolAddress::new(Aci::from(aci).service_id_string(), *DEFAULT_DEVICE_ID);
+                let mut protocol_store = store.aci_protocol_store();
+                let known = protocol_store.get_identity(&address).await?;
+                if known.as_ref() != Some(&identity_key) {
+                    if known.is_some() {
+                        warn!(%aci, "identity key changed by the storage service");
+                    }
+                    protocol_store
+                        .save_identity(&address, &identity_key)
+                        .await?;
+                }
+            }
+            Err(error) => warn!(%error, %aci, "invalid identity key in contact record"),
+        }
+    }
+    Ok(true)
 }
 
 /// Incoming messages keep known groups current, so only unknown ones are fetched.
@@ -2419,48 +2407,6 @@ async fn save_message<S: Store>(
     }
 
     Ok(())
-}
-
-/// Saves the contacts of a sync; returns them, or `None` if not all could be read, parsed
-/// and saved.
-async fn save_contacts<S: Store>(
-    receiver: &mut MessageReceiver,
-    store: &mut S,
-    contacts: &sync_message::Contacts,
-) -> Option<Vec<Uuid>> {
-    if contacts.blob.is_none() {
-        warn!("contacts sync without contacts");
-        return None;
-    }
-    let parsed = match receiver.retrieve_contacts(contacts).await {
-        Ok(parsed) => parsed,
-        Err(error) => {
-            warn!(%error, "failed to retrieve contacts");
-            return None;
-        }
-    };
-    info!("saving contacts");
-    let mut saved = Some(Vec::new());
-    for contact in parsed {
-        match contact {
-            Ok(contact) => {
-                let uuid = contact.uuid;
-                if let Err(error) = store.save_contact(&contact.into()).await {
-                    warn!(%error, "failed to save contacts");
-                    return None;
-                }
-                if let Some(saved) = &mut saved {
-                    saved.push(uuid);
-                }
-            }
-            Err(ParseContactError::MissingUuid) => {}
-            Err(error) => {
-                warn!(%error, "failed to parse contact");
-                saved = None;
-            }
-        }
-    }
-    saved
 }
 
 async fn upsert_contact_from_profile<S: Store>(
