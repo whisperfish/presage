@@ -1076,6 +1076,11 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
+                                    if matches!(&content.body, ContentBody::DataMessage(m) if has_long_text_attachment(m))
+                                    {
+                                        debug!("received message with long-text attachment");
+                                    }
+
                                     if let Some(timestamp) = delivery_receipt_timestamp(&content) {
                                         state.queue_delivery_receipt(
                                             content.metadata.sender,
@@ -2030,8 +2035,16 @@ async fn promote_long_body_to_attachment<S: Store>(
 
     strip_long_text_attachments(data_message);
     data_message.attachments.insert(0, attachment);
+    debug!("uploaded long body as long-text attachment");
 
     Ok(())
+}
+
+fn has_long_text_attachment(data_message: &DataMessage) -> bool {
+    data_message
+        .attachments
+        .iter()
+        .any(|a| a.content_type() == LONG_TEXT_CONTENT_TYPE)
 }
 
 fn strip_long_text_attachments(data_message: &mut DataMessage) {
