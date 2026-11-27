@@ -1424,6 +1424,14 @@ impl<S: Store> Manager<S, Registered> {
             return Err(Error::UnknownGroup);
         };
 
+        if let ContentBody::DataMessage(message) = &mut content_body {
+            message.group_v2 = Some(GroupContextV2 {
+                master_key: Some(master_key_bytes.to_vec()),
+                revision: Some(group.revision),
+                group_change: None,
+            });
+        }
+
         let sender_certificate = self.sender_certificate().await?;
         let mut recipients = Vec::new();
         for member in group
