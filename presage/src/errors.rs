@@ -31,6 +31,8 @@ pub enum Error<S: std::error::Error> {
     ProtocolError(#[from] SignalProtocolError),
     #[error("libsignal-service error: {0}")]
     ServiceError(#[from] libsignal_service::prelude::ServiceError),
+    #[error("storage service error: {0}")]
+    StorageServiceError(#[from] libsignal_service::StorageServiceError),
     #[error("libsignal-service error: {0}")]
     ProfileManagerError(#[from] libsignal_service::ProfileManagerError),
     #[error("libsignal-service sending error: {0}")]

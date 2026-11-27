@@ -13,10 +13,12 @@ Features:
   - [x] SMS
   - [x] Voice call
 - [x] Link as secondary device from Android / iOS app (like Signal Desktop)
-- [x] Contacts (synchronized from primary device) and profiles
-- [x] Groups
-- [x] Messages (incoming and outgoing)
+- [x] Contacts and groups (synchronized from the storage service) and profiles
+- [x] Settings and blocked contacts (synchronized from the storage service)
+- [x] Messages (incoming and outgoing), with edits, deletes and receipts
 - [x] Fetch, decrypt and store attachments
+- [x] Stickers
+- [x] Stories
 
 ## Instructions
 

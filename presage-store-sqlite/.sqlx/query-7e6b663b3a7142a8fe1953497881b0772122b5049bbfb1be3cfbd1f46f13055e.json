@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT MAX(id) AS 'id: u32' FROM pre_keys WHERE identity = ?",
+  "query": "SELECT EXISTS(SELECT 1 FROM left_groups WHERE master_key = ?)",
   "describe": {
     "columns": [
       {
-        "name": "id: u32",
+        "name": "EXISTS(SELECT 1 FROM left_groups WHERE master_key = ?)",
         "ordinal": 0,
         "type_info": "Integer",
         "origin": "Expression"
@@ -14,8 +14,8 @@
       "Right": 1
     },
     "nullable": [
-      true
+      false
     ]
   },
-  "hash": "cb2555708665c60b7f8ed462dec5925a7f01fd12f059755cf8cfc58bdace49c1"
+  "hash": "7e6b663b3a7142a8fe1953497881b0772122b5049bbfb1be3cfbd1f46f13055e"
 }

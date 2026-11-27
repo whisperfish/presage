@@ -1,9 +1,10 @@
-use std::str::FromStr;
+use std::{str::FromStr, time::Duration};
 
 use presage::{
     libsignal_service::{
         libsignal_account_keys::AccountEntropyPool, prelude::MasterKey, protocol::SenderCertificate,
     },
+    model::settings::Settings,
     store::{StateStore, Store},
 };
 use protocol::{IdentityType, SqliteProtocolStore};
@@ -16,6 +17,7 @@ mod content;
 mod data;
 mod error;
 mod protocol;
+mod stories;
 
 pub use error::SqliteStoreError;
 pub use presage::model::identity::OnNewIdentity;
@@ -68,9 +70,11 @@ impl SqliteStore {
         options: SqliteConnectOptions,
         trust_new_identities: OnNewIdentity,
     ) -> Result<Self, SqliteStoreError> {
+        // A commit syncs to disk, which can take seconds on slow storage; sqlx waits 5 s by default.
         let options = options
             .journal_mode(SqliteJournalMode::Wal)
-            .synchronous(SqliteSynchronous::Full);
+            .synchronous(SqliteSynchronous::Full)
+            .busy_timeout(Duration::from_secs(30));
         // Each connection carries its own page cache; sqlx's default of 10 is more than we need.
         let db = SqlitePoolOptions::new()
             .max_connections(3)
@@ -82,12 +86,6 @@ impl SqliteStore {
             db,
             trust_new_identities,
         })
-    }
-
-    /// Closes the pool, waiting for all connections to close.
-    /// Call before exit: SQLCipher's atexit cleanup races connections still closing.
-    pub async fn close(&self) {
-        self.db.close().await;
     }
 }
 
@@ -115,6 +113,13 @@ impl Store for SqliteStore {
             store: self.clone(),
             identity: IdentityType::Pni,
         }
+    }
+
+    /// Closes the pool, waiting for all connections to close.
+    /// Call before exit: SQLCipher's atexit cleanup races connections still closing.
+    async fn close(&self) -> Result<(), SqliteStoreError> {
+        self.db.close().await;
+        Ok(())
     }
 }
 
@@ -146,15 +151,33 @@ impl StateStore for SqliteStore {
         Ok(())
     }
 
+    async fn load_settings(&self) -> Result<Option<Settings>, Self::StateStoreError> {
+        query_scalar!("SELECT value FROM kv WHERE key = 'settings'")
+            .fetch_optional(&self.db)
+            .await?
+            .map(|value| serde_json::from_slice(&value))
+            .transpose()
+            .map_err(From::from)
+    }
+
+    async fn save_settings(&mut self, settings: &Settings) -> Result<(), Self::StateStoreError> {
+        let value = serde_json::to_string(settings)?;
+        query!(
+            "INSERT OR REPLACE INTO kv (key, value) VALUES ('settings', ?)",
+            value
+        )
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
     async fn is_registered(&self) -> bool {
         self.load_registration_data().await.ok().flatten().is_some()
     }
 
     async fn clear_registration(&mut self) -> Result<(), Self::StateStoreError> {
         let mut transaction = self.begin_write().await.into_protocol_error()?;
-        query!("DELETE FROM kv WHERE key = 'registration'")
-            .execute(&mut *transaction)
-            .await?;
+        query!("DELETE FROM kv").execute(&mut *transaction).await?;
         query!("DELETE FROM sessions")
             .execute(&mut *transaction)
             .await?;
@@ -303,14 +326,15 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn close_closes_the_pool() {
+    async fn close_closes_the_pool() -> Result<(), Box<dyn std::error::Error>> {
         let store = SqliteStore::open(":memory:", OnNewIdentity::Trust)
             .await
             .unwrap();
         let clone = store.clone();
 
-        store.close().await;
+        store.close().await?;
 
         assert!(clone.db.is_closed());
+        Ok(())
     }
 }

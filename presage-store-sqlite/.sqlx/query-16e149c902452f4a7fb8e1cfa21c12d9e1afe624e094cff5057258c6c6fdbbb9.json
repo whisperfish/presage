@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT INTO stories (sender_uuid, ts, story_message, viewed) VALUES (?, ?, ?, ?)\n            ON CONFLICT DO UPDATE SET story_message = excluded.story_message",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "16e149c902452f4a7fb8e1cfa21c12d9e1afe624e094cff5057258c6c6fdbbb9"
+}

@@ -26,11 +26,60 @@ use libsignal_service::{
 use serde::{Deserialize, Serialize};
 use tracing::trace;
 
+mod stories;
+
+pub use stories::StoriesStore;
+
 use crate::{
     manager::RegistrationData,
-    model::{contacts::Contact, groups::Group},
+    model::{contacts::Contact, groups::Group, settings::Settings},
     AvatarBytes,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageIterationOrder {
+    TimestampAscending,
+    TimestampDescending,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MessagesQueryParams<R: RangeBounds<u64>> {
+    pub range: R,
+    pub limit: Option<u64>,
+    pub order: MessageIterationOrder,
+}
+
+impl Default for MessagesQueryParams<std::ops::RangeFull> {
+    fn default() -> Self {
+        Self {
+            range: ..,
+            limit: None,
+            order: MessageIterationOrder::TimestampDescending,
+        }
+    }
+}
+
+impl<R: RangeBounds<u64>> From<R> for MessagesQueryParams<R> {
+    fn from(value: R) -> Self {
+        Self {
+            range: value,
+            limit: None,
+            order: MessageIterationOrder::TimestampDescending,
+        }
+    }
+}
+
+impl<R: RangeBounds<u64>> MessagesQueryParams<R> {
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub fn ascending(mut self) -> Self {
+        self.order = MessageIterationOrder::TimestampAscending;
+        self
+    }
+}
 
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send {}
@@ -69,10 +118,19 @@ pub trait StateStore {
         certificate: &SenderCertificate,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
+    fn load_settings(
+        &self,
+    ) -> impl Future<Output = Result<Option<Settings>, Self::StateStoreError>>;
+
+    fn save_settings(
+        &mut self,
+        settings: &Settings,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>> + Send;
+
     /// Returns whether this store contains registration data or not
     fn is_registered(&self) -> impl Future<Output = bool>;
 
-    /// Clear registration data (including keys), but keep received messages, groups and contacts.
+    /// Clear all account state (registration, keys, settings), but keep received messages, groups and contacts.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(
@@ -106,8 +164,8 @@ pub trait ContentsStore: Send + Sync {
     /// Each items is a tuple consisting of the group master key and its corresponding data.
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>;
 
-    /// Iterator over all stored messages
-    type MessagesIter: Iterator<Item = Result<Content, Self::ContentsStoreError>>;
+    /// Iterator over stored messages, newest first
+    type MessagesIter: DoubleEndedIterator<Item = Result<Content, Self::ContentsStoreError>>;
 
     /// Iterator over all stored sticker packs
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
@@ -159,10 +217,10 @@ pub trait ContentsStore: Send + Sync {
     ) -> impl Future<Output = Result<Option<Thread>, Self::ContentsStoreError>>;
 
     /// Retrieve all messages from a [Thread] within a range in time
-    fn messages(
+    fn messages<R: RangeBounds<u64>, P: Into<MessagesQueryParams<R>>>(
         &self,
         thread: &Thread,
-        range: impl RangeBounds<u64>,
+        params: P,
     ) -> impl Future<Output = Result<Self::MessagesIter, Self::ContentsStoreError>>;
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
@@ -253,7 +311,7 @@ pub trait ContentsStore: Send + Sync {
     /// Delete all cached group data
     fn clear_groups(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Save a group in the cache
+    /// Save a group in the cache. This clears its [left](Self::mark_group_left) mark.
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
@@ -268,6 +326,34 @@ pub trait ContentsStore: Send + Sync {
         &self,
         master_key: GroupMasterKeyBytes,
     ) -> impl Future<Output = Result<Option<Group>, Self::ContentsStoreError>>;
+
+    /// Mark a group as left: the group server refuses its state to this account.
+    fn mark_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Whether a group is [marked as left](Self::mark_group_left).
+    fn is_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
+
+    /// Mark a contact or group as blocked, or unblock it.
+    fn set_blocked(
+        &mut self,
+        thread: &Thread,
+        blocked: bool,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Whether a contact or group is [blocked](Self::set_blocked).
+    fn is_blocked(
+        &self,
+        thread: &Thread,
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
+
+    /// All blocked contacts and groups.
+    fn blocked(&self) -> impl Future<Output = Result<Vec<Thread>, Self::ContentsStoreError>>;
 
     /// Save a group avatar in the cache, with the path it was fetched from.
     fn save_group_avatar(
@@ -353,6 +439,26 @@ pub trait ContentsStore: Send + Sync {
         id: &[u8],
     ) -> impl Future<Output = Result<Option<StickerPack>, Self::ContentsStoreError>>;
 
+    /// Whether a sticker pack is installed
+    fn has_sticker_pack(
+        &self,
+        id: &[u8],
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>> {
+        async move { Ok(self.sticker_pack(id).await?.is_some()) }
+    }
+
+    /// The ids of the installed sticker packs
+    fn sticker_pack_ids(
+        &self,
+    ) -> impl Future<Output = Result<Vec<Vec<u8>>, Self::ContentsStoreError>> {
+        async move {
+            self.sticker_packs()
+                .await?
+                .map(|p| p.map(|p| p.id))
+                .collect()
+        }
+    }
+
     /// Removes a sticker pack
     fn remove_sticker_pack(
         &mut self,
@@ -369,6 +475,7 @@ pub trait ContentsStore: Send + Sync {
 pub trait Store:
     StateStore<StateStoreError = Self::Error>
     + ContentsStore<ContentsStoreError = Self::Error>
+    + StoriesStore
     + Send
     + Sync
     + Clone
@@ -400,6 +507,10 @@ pub trait Store:
     fn aci_protocol_store(&self) -> Self::AciStore;
 
     fn pni_protocol_store(&self) -> Self::PniStore;
+
+    fn close(&self) -> impl Future<Output = Result<(), Self::Error>> {
+        std::future::ready(Ok(()))
+    }
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.

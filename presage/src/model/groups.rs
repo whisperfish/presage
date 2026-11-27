@@ -36,6 +36,13 @@ pub struct Group {
     pub description: Option<String>,
 }
 
+impl Group {
+    /// Whether `aci` is a full member (not only invited or requesting to join).
+    pub fn is_member(&self, aci: &Aci) -> bool {
+        self.members.iter().any(|member| member.aci == *aci)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Member {
     #[serde(alias = "uuid", with = "serde_aci")]
