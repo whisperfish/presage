@@ -1,4 +1,4 @@
-use libsignal_service::proto::{sync_message::Configuration, AccountRecord};
+use libsignal_service::proto::{sync_message::Configuration, AccountRecord, OptionalBool};
 use serde::{Deserialize, Serialize};
 
 /// Account-wide preferences, kept in sync with the other devices of the account.
@@ -10,6 +10,7 @@ pub struct Settings {
     pub link_previews: bool,
     pub unidentified_delivery_indicators: bool,
     pub stories: bool,
+    pub story_view_receipts: Option<bool>,
 }
 
 impl Default for Settings {
@@ -20,6 +21,7 @@ impl Default for Settings {
             link_previews: true,
             unidentified_delivery_indicators: false,
             stories: true,
+            story_view_receipts: None,
         }
     }
 }
@@ -54,6 +56,16 @@ impl Settings {
         self.typing_indicators = record.typing_indicators;
         self.link_previews = record.link_previews;
         self.stories = !record.stories_disabled;
+        self.story_view_receipts = match record.story_view_receipts_enabled() {
+            OptionalBool::Unset => None,
+            OptionalBool::Enabled => Some(true),
+            OptionalBool::Disabled => Some(false),
+        };
+    }
+
+    /// Whether viewing a story sends a receipt to its author. Follows read receipts unless set.
+    pub fn story_view_receipts(&self) -> bool {
+        self.story_view_receipts.unwrap_or(self.read_receipts)
     }
 }
 

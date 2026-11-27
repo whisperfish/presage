@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO hidden_story_contacts (uuid) VALUES (?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "773e9674892ab66807889ae302db86755eb97955a97be242cdb7df5c81ad17e6"
+}

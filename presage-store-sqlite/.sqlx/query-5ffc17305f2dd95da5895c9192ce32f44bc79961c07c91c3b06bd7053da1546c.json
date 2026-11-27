@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR IGNORE INTO hidden_story_groups (master_key) VALUES (?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "5ffc17305f2dd95da5895c9192ce32f44bc79961c07c91c3b06bd7053da1546c"
+}

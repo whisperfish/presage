@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM hidden_story_contacts",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "e87994c1ca563adb8edfeb694ef64addfbf0cce77dc93acee8ffcb9a832395fc"
+}

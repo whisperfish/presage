@@ -15,6 +15,7 @@ use presage::{
     model::{
         contacts::Contact,
         groups::{AccessControl, Group, Member, PendingMember, RequestingMember},
+        stories::Story,
     },
     proto::{self, Verified, verified},
     store::{StickerPack, StickerPackManifest},
@@ -264,5 +265,33 @@ impl From<SqlStickerPack> for StickerPack {
         }: SqlStickerPack,
     ) -> Self {
         StickerPack { id, key, manifest }
+    }
+}
+
+pub(crate) struct SqlStory {
+    pub(crate) sender_uuid: Uuid,
+    pub(crate) ts: i64,
+    pub(crate) story_message: Vec<u8>,
+    pub(crate) viewed: bool,
+}
+
+impl TryFrom<SqlStory> for Story {
+    type Error = SqliteStoreError;
+
+    fn try_from(
+        SqlStory {
+            sender_uuid,
+            ts,
+            story_message,
+            viewed,
+        }: SqlStory,
+    ) -> Result<Self, Self::Error> {
+        Ok(Story {
+            sender: sender_uuid.into(),
+            timestamp: ts.try_into().map_err(|_| SqliteStoreError::InvalidFormat)?,
+            message: prost::Message::decode(&*story_message)
+                .map_err(|_| SqliteStoreError::InvalidFormat)?,
+            viewed,
+        })
     }
 }

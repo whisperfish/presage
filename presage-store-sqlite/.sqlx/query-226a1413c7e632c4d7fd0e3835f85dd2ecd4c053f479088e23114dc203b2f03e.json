@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM stories",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "226a1413c7e632c4d7fd0e3835f85dd2ecd4c053f479088e23114dc203b2f03e"
+}

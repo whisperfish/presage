@@ -7,6 +7,7 @@ pub mod identity;
 pub mod messages;
 pub mod previews;
 pub mod settings;
+pub mod stories;
 
 #[derive(Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 pub enum ServiceIdType {

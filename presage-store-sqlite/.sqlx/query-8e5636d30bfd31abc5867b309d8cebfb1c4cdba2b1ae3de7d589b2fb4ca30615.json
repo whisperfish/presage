@@ -1,0 +1,62 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT sender_uuid AS \"sender_uuid: _\", ts, story_message, viewed\n            FROM stories ORDER BY ts",
+  "describe": {
+    "columns": [
+      {
+        "name": "sender_uuid: _",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "stories",
+            "name": "sender_uuid"
+          }
+        }
+      },
+      {
+        "name": "ts",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "stories",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "name": "story_message",
+        "ordinal": 2,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "stories",
+            "name": "story_message"
+          }
+        }
+      },
+      {
+        "name": "viewed",
+        "ordinal": 3,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "stories",
+            "name": "viewed"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8e5636d30bfd31abc5867b309d8cebfb1c4cdba2b1ae3de7d589b2fb4ca30615"
+}

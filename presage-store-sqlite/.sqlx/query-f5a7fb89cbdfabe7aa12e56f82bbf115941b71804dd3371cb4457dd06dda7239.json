@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE stories SET viewed = TRUE WHERE sender_uuid = ? AND ts = ? AND NOT viewed",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "f5a7fb89cbdfabe7aa12e56f82bbf115941b71804dd3371cb4457dd06dda7239"
+}

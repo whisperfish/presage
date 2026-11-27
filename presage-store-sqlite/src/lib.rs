@@ -17,6 +17,7 @@ mod content;
 mod data;
 mod error;
 mod protocol;
+mod stories;
 
 pub use error::SqliteStoreError;
 pub use presage::model::identity::OnNewIdentity;

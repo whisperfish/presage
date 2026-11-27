@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM hidden_story_groups",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "72054fe1fd76b07def79c4c44c0014b4a3bdf782bab7aae2c9ed6b795d4126df"
+}

@@ -20,16 +20,20 @@ use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
-use presage::libsignal_service::protocol::ServiceId;
+use presage::libsignal_service::protocol::{Aci, ServiceId};
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
 use presage::model::contacts::Contact;
 use presage::model::groups::Group;
 use presage::model::identity::OnNewIdentity;
 use presage::model::messages::Received;
+use presage::model::stories::Story;
 use presage::proto::receipt_message;
+use presage::proto::story_message;
+use presage::proto::AttachmentPointer;
 use presage::proto::EditMessage;
 use presage::proto::ReceiptMessage;
+use presage::proto::StoryMessage;
 use presage::proto::SyncMessage;
 use presage::store::ContentExt;
 use presage::{
@@ -51,6 +55,11 @@ use url::Url;
 
 fn parse_service_id(input: &str) -> Result<ServiceId, clap::Error> {
     ServiceId::parse_from_service_id_string(input)
+        .ok_or_else(|| clap::Error::new(clap::error::ErrorKind::InvalidValue))
+}
+
+fn parse_aci(input: &str) -> Result<Aci, clap::Error> {
+    Aci::parse_from_service_id_string(input)
         .ok_or_else(|| clap::Error::new(clap::error::ErrorKind::InvalidValue))
 }
 
@@ -187,6 +196,25 @@ enum Cmd {
     },
     #[clap(about = "List downloaded sticker packs")]
     ListStickerPacks,
+    #[clap(about = "List stories that haven't expired")]
+    ListStories,
+    #[clap(about = "Show a story, save its attachment and mark it viewed")]
+    ViewStory {
+        #[clap(long, short = 'u', help = "ACI of the story's sender", value_parser = parse_aci)]
+        sender: Aci,
+        #[clap(
+            long,
+            short = 't',
+            help = "timestamp of the story, as shown by list-stories"
+        )]
+        timestamp: u64,
+        #[clap(
+            long,
+            short = 'o',
+            help = "where to save a file attachment, defaults to the current directory"
+        )]
+        output: Option<PathBuf>,
+    },
     #[clap(about = "Get a single contact by service ID")]
     GetContact {
         #[clap(long, value_parser = parse_service_id)]
@@ -357,13 +385,7 @@ async fn process_incoming_message<S: Store>(
                 continue;
             };
 
-            let extensions = mime_guess::get_mime_extensions_str(
-                attachment_pointer
-                    .content_type
-                    .as_deref()
-                    .unwrap_or("application/octet-stream"),
-            );
-            let extension = extensions.and_then(|e| e.first()).unwrap_or(&"bin");
+            let extension = attachment_extension(attachment_pointer);
             let filename = attachment_pointer
                 .file_name
                 .clone()
@@ -379,6 +401,69 @@ async fn process_incoming_message<S: Store>(
                 ),
             }
         }
+    }
+}
+
+fn attachment_extension(attachment_pointer: &AttachmentPointer) -> &'static str {
+    mime_guess::get_mime_extensions_str(
+        attachment_pointer
+            .content_type
+            .as_deref()
+            .unwrap_or("application/octet-stream"),
+    )
+    .and_then(|e| e.first())
+    .unwrap_or(&"bin")
+}
+
+fn format_story(story: &StoryMessage) -> String {
+    match &story.attachment {
+        Some(story_message::Attachment::TextAttachment(text)) => {
+            let mut formatted = format!("text: {}", text.text.as_deref().unwrap_or_default());
+            if let Some(url) = text.preview.as_ref().and_then(|p| p.url.as_deref()) {
+                formatted += &format!(" (link: {url})");
+            }
+            formatted
+        }
+        Some(story_message::Attachment::FileAttachment(file)) => format!(
+            "{} ({} bytes)",
+            file.content_type.as_deref().unwrap_or("file"),
+            file.size.unwrap_or_default()
+        ),
+        None => "empty story".to_string(),
+    }
+}
+
+async fn format_contact<S: Store>(id: &ServiceId, manager: &Manager<S, Registered>) -> String {
+    manager
+        .store()
+        .contact_by_id(id)
+        .await
+        .ok()
+        .flatten()
+        .filter(|c| !c.name.is_empty())
+        .map(|c| format!("{}: {}", c.name, id.service_id_string()))
+        .unwrap_or_else(|| id.service_id_string())
+}
+
+async fn format_group<S: Store>(key: [u8; 32], manager: &Manager<S, Registered>) -> String {
+    manager
+        .store()
+        .group(key)
+        .await
+        .ok()
+        .flatten()
+        .map(|g| g.title)
+        .unwrap_or_else(|| "<missing group>".to_string())
+}
+
+async fn format_story_prefix<S: Store>(story: &Story, manager: &Manager<S, Registered>) -> String {
+    let sender = format_contact(&story.sender.into(), manager).await;
+    match story.group_master_key() {
+        Some(key) => {
+            let group = format_group(key, manager).await;
+            format!("{sender} in group {group}")
+        }
+        None => sender,
     }
 }
 
@@ -459,29 +544,6 @@ async fn print_message<S: Store>(
         }
     }
 
-    async fn format_contact<S: Store>(id: &ServiceId, manager: &Manager<S, Registered>) -> String {
-        manager
-            .store()
-            .contact_by_id(id)
-            .await
-            .ok()
-            .flatten()
-            .filter(|c| !c.name.is_empty())
-            .map(|c| format!("{}: {}", c.name, id.service_id_string()))
-            .unwrap_or_else(|| id.service_id_string())
-    }
-
-    async fn format_group<S: Store>(key: [u8; 32], manager: &Manager<S, Registered>) -> String {
-        manager
-            .store()
-            .group(key)
-            .await
-            .ok()
-            .flatten()
-            .map(|g| g.title)
-            .unwrap_or_else(|| "<missing group>".to_string())
-    }
-
     enum Msg<'a> {
         Received(&'a Thread, String),
         Sent(&'a Thread, String),
@@ -542,7 +604,19 @@ async fn print_message<S: Store>(
             ),
         )),
         ContentBody::StoryMessage(story) => {
-            Some(Msg::Received(&thread, format!("new story: {story:?}")))
+            let group = match story
+                .group
+                .as_ref()
+                .and_then(|g| g.master_key.as_deref())
+                .and_then(|k| GroupMasterKeyBytes::try_from(k).ok())
+            {
+                Some(key) => format!(" in group {}", format_group(key, manager).await),
+                None => String::new(),
+            };
+            Some(Msg::Received(
+                &thread,
+                format!("posted a story{group}: {}", format_story(story)),
+            ))
         }
         ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
             &thread,
@@ -909,6 +983,50 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     }
                 }
             }
+        }
+        Cmd::ListStories => {
+            let mut manager = load_registered_and_receive(store).await?;
+            for story in manager.stories().await? {
+                let prefix = format_story_prefix(&story, &manager).await;
+                let viewed = if story.viewed { " (viewed)" } else { "" };
+                println!(
+                    "{} @ {}{viewed} / {}",
+                    prefix,
+                    story.timestamp,
+                    format_story(&story.message)
+                );
+            }
+        }
+        Cmd::ViewStory {
+            sender,
+            timestamp,
+            output,
+        } => {
+            let mut manager = load_registered_and_receive(store).await?;
+            let Some(story) = manager.store().story(&sender, timestamp).await? else {
+                bail!(
+                    "no story from {} at {timestamp}",
+                    sender.service_id_string()
+                );
+            };
+            let prefix = format_story_prefix(&story, &manager).await;
+            println!("{prefix} @ {timestamp} / {}", format_story(&story.message));
+
+            if let Some(story_message::Attachment::FileAttachment(attachment)) =
+                &story.message.attachment
+            {
+                let data = manager.get_attachment(attachment).await?;
+                let path = output.unwrap_or_else(|| {
+                    PathBuf::from(format!(
+                        "presage-story-{timestamp}.{}",
+                        attachment_extension(attachment)
+                    ))
+                });
+                fs::write(&path, &data).await?;
+                println!("saved attachment to {}", path.display());
+            }
+
+            manager.mark_story_viewed(sender, timestamp).await?;
         }
         Cmd::Whoami => {
             let manager = load_registered_and_receive(store).await?;
