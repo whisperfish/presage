@@ -716,7 +716,7 @@ impl<S: Store> Manager<S, Registered> {
                                 }
                             };
                             match envelope {
-                                Ok(Some(content)) => {
+                                Ok(Some(mut content)) => {
                                     match is_blocked(&state.manager.store, &content).await {
                                         Ok(true) => {
                                             debug!(sender = %content.metadata.sender.service_id_string(), "dropping message from blocked contact or group");
@@ -1076,9 +1076,27 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
-                                    if matches!(&content.body, ContentBody::DataMessage(m) if has_long_text_attachment(m))
+                                    if let Some(data_message) =
+                                        received_data_message_mut(&mut content.body)
                                     {
-                                        debug!("received message with long-text attachment");
+                                        if let Some(pointer) = data_message
+                                            .attachments
+                                            .iter()
+                                            .find(|a| a.content_type() == LONG_TEXT_CONTENT_TYPE)
+                                        {
+                                            match state.manager.get_attachment(pointer).await {
+                                                Ok(bytes) => {
+                                                    debug!("downloaded long-text attachment");
+                                                    data_message.body = Some(
+                                                        String::from_utf8_lossy(&bytes)
+                                                            .into_owned(),
+                                                    );
+                                                }
+                                                Err(error) => {
+                                                    warn!(%error, "failed to download long-text attachment, keeping truncated body")
+                                                }
+                                            }
+                                        }
                                     }
 
                                     if let Some(timestamp) = delivery_receipt_timestamp(&content) {
@@ -1517,23 +1535,6 @@ impl<S: Store> Manager<S, Registered> {
             .delete_all_sessions(recipient)
             .await?;
         Ok(())
-    }
-
-    /// Returns the full text of a message whose body was truncated because it was too long to send
-    /// inline, or `None` if it has no [`LONG_TEXT_CONTENT_TYPE`] attachment.
-    pub async fn long_text(
-        &self,
-        message: &DataMessage,
-    ) -> Result<Option<String>, Error<S::Error>> {
-        let Some(pointer) = message
-            .attachments
-            .iter()
-            .find(|a| a.content_type() == LONG_TEXT_CONTENT_TYPE)
-        else {
-            return Ok(None);
-        };
-        let bytes = self.get_attachment(pointer).await?;
-        Ok(Some(String::from_utf8_lossy(&bytes).into_owned()))
     }
 
     /// Downloads and decrypts a single attachment.
@@ -2040,11 +2041,20 @@ async fn promote_long_body_to_attachment<S: Store>(
     Ok(())
 }
 
-fn has_long_text_attachment(data_message: &DataMessage) -> bool {
-    data_message
-        .attachments
-        .iter()
-        .any(|a| a.content_type() == LONG_TEXT_CONTENT_TYPE)
+fn received_data_message_mut(body: &mut ContentBody) -> Option<&mut DataMessage> {
+    match body {
+        ContentBody::DataMessage(m) => Some(m),
+        ContentBody::EditMessage(EditMessage { data_message, .. }) => data_message.as_mut(),
+        ContentBody::SynchronizeMessage(SyncMessage {
+            content: Some(SyncContent::Sent(sent)),
+            ..
+        }) => match (&mut sent.message, &mut sent.edit_message) {
+            (Some(m), _) => Some(m),
+            (None, Some(edit)) => edit.data_message.as_mut(),
+            (None, None) => None,
+        },
+        _ => None,
+    }
 }
 
 fn strip_long_text_attachments(data_message: &mut DataMessage) {
