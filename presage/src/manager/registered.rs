@@ -1061,6 +1061,15 @@ impl<S: Store> Manager<S, Registered> {
                                                 ..
                                             })),
                                         ..
+                                    })
+                                    | ContentBody::StoryMessage(StoryMessage {
+                                        group:
+                                            Some(GroupContextV2 {
+                                                master_key: Some(master_key_bytes),
+                                                revision: Some(revision),
+                                                ..
+                                            }),
+                                        ..
                                     }) = &content.body
                                     {
                                         // there's two things to implement: the group metadata (fetched from HTTP API)
@@ -1721,16 +1730,32 @@ impl<S: Store> Manager<S, Registered> {
         Ok(self.store.stories().await?)
     }
 
+    /// The story from `sender` sent at `timestamp`, unless it has expired.
+    pub async fn story(
+        &mut self,
+        sender: &Aci,
+        timestamp: u64,
+    ) -> Result<Option<Story>, Error<S::Error>> {
+        self.store
+            .delete_stories_before(now_millis() - STORY_LIFESPAN_MILLIS)
+            .await?;
+        Ok(self.store.story(sender, timestamp).await?)
+    }
+
     /// Marks a story as viewed on all our devices, and tells its author if
     /// [story view receipts](Settings::story_view_receipts) are enabled.
     ///
-    /// Returns whether the story was stored and not viewed before.
+    /// Returns whether the story was stored, unexpired and not viewed before.
     pub async fn mark_story_viewed(
         &mut self,
         sender: Aci,
         timestamp: u64,
     ) -> Result<bool, Error<S::Error>> {
-        if !self.store.mark_story_viewed(&sender, timestamp).await? {
+        if self
+            .story(&sender, timestamp)
+            .await?
+            .is_none_or(|story| story.viewed)
+        {
             return Ok(false);
         }
         let mut message_sender = self.new_message_sender().await?;
@@ -1753,6 +1778,7 @@ impl<S: Store> Manager<S, Registered> {
             )
             .await?;
         }
+        self.store.mark_story_viewed(&sender, timestamp).await?;
         Ok(true)
     }
 
@@ -2699,6 +2725,11 @@ async fn save_story<S: Store>(
     let ServiceId::Aci(sender) = metadata.sender else {
         return Ok(());
     };
+    // The receive-stories header only takes effect on reconnect, so queued stories still arrive.
+    if !store.load_settings().await?.unwrap_or_default().stories {
+        debug!("skipping story, stories are disabled");
+        return Ok(());
+    }
     let expired_before = now_millis() - STORY_LIFESPAN_MILLIS;
     store.delete_stories_before(expired_before).await?;
 
