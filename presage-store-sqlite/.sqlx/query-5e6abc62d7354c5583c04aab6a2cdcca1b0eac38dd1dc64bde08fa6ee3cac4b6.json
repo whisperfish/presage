@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT p.fetched_at\n            FROM profile_keys pk\n            INNER JOIN profiles p ON p.uuid = pk.uuid\n            WHERE pk.uuid = ? AND pk.key = ?",
+  "describe": {
+    "columns": [
+      {
+        "name": "fetched_at",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "profiles",
+            "name": "fetched_at"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      true
+    ]
+  },
+  "hash": "5e6abc62d7354c5583c04aab6a2cdcca1b0eac38dd1dc64bde08fa6ee3cac4b6"
+}

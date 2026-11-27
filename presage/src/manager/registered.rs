@@ -3,7 +3,7 @@ use std::str::FromStr;
 use std::sync::{Arc, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use chrono::TimeZone;
+use chrono::{TimeDelta, TimeZone, Utc};
 use futures::{future, AsyncReadExt, Stream, StreamExt};
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
@@ -63,6 +63,9 @@ use crate::model::previews;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
+
+// Signal-Android refetches profiles that are older than a day.
+const PROFILE_MAX_AGE: TimeDelta = TimeDelta::days(1);
 
 pub use crate::model::messages::Received;
 
@@ -395,9 +398,7 @@ impl<S: Store> Manager<S, Registered> {
             .await
     }
 
-    /// Returns the stored profile of the provided user, or fetches it if there is none.
-    ///
-    /// The stored copy is never checked against the service, see `refresh_profile_by_uuid`.
+    /// Returns the profile of the provided user, fetching it again once the stored copy is stale.
     pub async fn retrieve_profile_by_uuid(
         &mut self,
         aci: impl Into<Aci>,
@@ -405,30 +406,41 @@ impl<S: Store> Manager<S, Registered> {
     ) -> Result<Profile, Error<S::Error>> {
         let aci = aci.into();
 
-        // TODO: Create a migration in the store removing all profiles.
-        if let Some(profile) = self
+        let stored = self
             .store
             .profile(aci.into(), profile_key)
             .await
             .ok()
-            .flatten()
-        {
-            return Ok(profile);
+            .flatten();
+        let fetched_at = self
+            .store
+            .profile_fetched_at(aci.into(), profile_key)
+            .await
+            .ok()
+            .flatten();
+        if let (Some(profile), Some(fetched_at)) = (&stored, fetched_at) {
+            if Utc::now() - fetched_at < PROFILE_MAX_AGE {
+                return Ok(profile.clone());
+            }
         }
 
-        self.refresh_profile_by_uuid(aci, profile_key).await
+        match self.fetch_profile(aci, profile_key).await {
+            Ok(profile) => Ok(profile),
+            Err(error) => match stored {
+                Some(profile) => {
+                    warn!(%error, "failed to refresh profile, using the stored one");
+                    Ok(profile)
+                }
+                None => Err(error),
+            },
+        }
     }
 
-    /// Fetches the profile of the provided user from the service and stores it.
-    ///
-    /// A changed profile avatar is picked up by the next `retrieve_profile_avatar_by_uuid`.
-    pub async fn refresh_profile_by_uuid(
+    async fn fetch_profile(
         &mut self,
-        aci: impl Into<Aci>,
+        aci: Aci,
         profile_key: ProfileKey,
     ) -> Result<Profile, Error<S::Error>> {
-        let aci = aci.into();
-
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             self.identified_websocket(false).await?,
@@ -439,7 +451,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let _ = self
             .store
-            .save_profile(aci.into(), profile_key, profile.clone())
+            .save_profile(aci.into(), profile_key, profile.clone(), Utc::now())
             .await;
         Ok(profile)
     }
@@ -473,7 +485,7 @@ impl<S: Store> Manager<S, Registered> {
         let profile = account_manager.retrieve_profile(aci).await?;
         let _ = self
             .store
-            .save_profile(aci.into(), self.state.data.profile_key, profile)
+            .save_profile(aci.into(), self.state.data.profile_key, profile, Utc::now())
             .await;
 
         Ok(())
@@ -496,7 +508,7 @@ impl<S: Store> Manager<S, Registered> {
             }
             if let Some(avatar) = self
                 .store
-                .group_avatar(master_key_bytes, Some(&group.avatar))
+                .group_avatar(master_key_bytes, &group.avatar)
                 .await
                 .ok()
                 .flatten()
@@ -542,21 +554,15 @@ impl<S: Store> Manager<S, Registered> {
         uuid: Uuid,
         profile_key: ProfileKey,
     ) -> Result<Option<AvatarBytes>, Error<S::Error>> {
-        let profile =
-            if let Some(profile) = self.store.profile(uuid, profile_key).await.ok().flatten() {
-                profile
-            } else {
-                self.retrieve_profile_by_uuid(uuid, profile_key).await?
-            };
+        let profile = self.retrieve_profile_by_uuid(uuid, profile_key).await?;
 
         let Some(path) = profile.avatar.as_ref() else {
             return Ok(None);
         };
 
-        // The avatar path changes with the avatar, so a copy cached from another path is outdated.
         if let Some(avatar) = self
             .store
-            .profile_avatar(uuid, profile_key, Some(path))
+            .profile_avatar(uuid, profile_key, path)
             .await
             .ok()
             .flatten()
