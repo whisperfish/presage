@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT bytes FROM group_avatars WHERE group_master_key = ?",
+  "query": "SELECT bytes FROM group_avatars WHERE group_master_key = ? AND path = ?",
   "describe": {
     "columns": [
       {
@@ -16,11 +16,11 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false
     ]
   },
-  "hash": "92e6d334e1c9dc7c84054be8deeb14f7ca94450d414940f65308510450c6b416"
+  "hash": "0be693fea99eb5be7911ec40d87afb32a220efadf46db2a927977d33238919c6"
 }

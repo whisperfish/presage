@@ -1,5 +1,7 @@
 use std::ops::{Bound, RangeBounds};
 
+use chrono::{DateTime, TimeZone, Utc};
+
 use presage::{
     AvatarBytes,
     libsignal_service::{
@@ -738,13 +740,15 @@ impl ContentsStore for SqliteStore {
     async fn save_group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: &str,
         avatar: &AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query!(
-            "INSERT OR REPLACE INTO group_avatars(group_master_key, bytes) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO group_avatars(group_master_key, bytes, path) VALUES (?, ?, ?)",
             master_key_bytes,
             avatar,
+            path,
         )
         .execute(&self.db)
         .await?;
@@ -754,11 +758,13 @@ impl ContentsStore for SqliteStore {
     async fn group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: &str,
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError> {
         let master_key_bytes = master_key.as_slice();
         query_scalar!(
-            "SELECT bytes FROM group_avatars WHERE group_master_key = ?",
+            "SELECT bytes FROM group_avatars WHERE group_master_key = ? AND path = ?",
             master_key_bytes,
+            path,
         )
         .fetch_optional(&self.db)
         .await
@@ -798,6 +804,7 @@ impl ContentsStore for SqliteStore {
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
+        fetched_at: DateTime<Utc>,
     ) -> Result<(), Self::ContentsStoreError> {
         self.upsert_profile_key(&uuid, key).await?;
         let Profile {
@@ -809,8 +816,18 @@ impl ContentsStore for SqliteStore {
         } = profile;
         let (given_name, family_name) = name.map(|n| (n.given_name, n.family_name)).unzip();
         let family_name = family_name.flatten();
+        let fetched_at = fetched_at.timestamp_millis();
         query!(
-            "INSERT OR REPLACE INTO profiles VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO profiles(
+                uuid,
+                given_name,
+                family_name,
+                about,
+                about_emoji,
+                avatar,
+                unrestricted_unidentified_access,
+                fetched_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             uuid,
             given_name,
             family_name,
@@ -818,6 +835,7 @@ impl ContentsStore for SqliteStore {
             about_emoji,
             avatar,
             unrestricted_unidentified_access,
+            fetched_at,
         )
         .execute(&self.db)
         .await?;
@@ -850,16 +868,38 @@ impl ContentsStore for SqliteStore {
         Ok(profile.map(|p| p.into()))
     }
 
+    async fn profile_fetched_at(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> Result<Option<DateTime<Utc>>, Self::ContentsStoreError> {
+        let profile_key_bytes = key.bytes.as_slice();
+        let fetched_at = query_scalar!(
+            "SELECT p.fetched_at
+            FROM profile_keys pk
+            INNER JOIN profiles p ON p.uuid = pk.uuid
+            WHERE pk.uuid = ? AND pk.key = ?",
+            uuid,
+            profile_key_bytes,
+        )
+        .fetch_optional(&self.db)
+        .await?
+        .flatten();
+        Ok(fetched_at.and_then(|ms| Utc.timestamp_millis_opt(ms).single()))
+    }
+
     async fn save_profile_avatar(
         &mut self,
         uuid: Uuid,
         _key: ProfileKey,
-        profile: &AvatarBytes,
+        path: &str,
+        avatar: &AvatarBytes,
     ) -> Result<(), Self::ContentsStoreError> {
         query!(
-            "INSERT OR REPLACE INTO profile_avatars(uuid, bytes) VALUES (?, ?)",
+            "INSERT OR REPLACE INTO profile_avatars(uuid, bytes, path) VALUES (?, ?, ?)",
             uuid,
-            profile,
+            avatar,
+            path,
         )
         .execute(&self.db)
         .await?;
@@ -870,11 +910,16 @@ impl ContentsStore for SqliteStore {
         &self,
         uuid: Uuid,
         _key: ProfileKey,
+        path: &str,
     ) -> Result<Option<AvatarBytes>, Self::ContentsStoreError> {
-        query_scalar!("SELECT bytes FROM profile_avatars WHERE uuid = ?", uuid)
-            .fetch_optional(&self.db)
-            .await
-            .map_err(From::from)
+        query_scalar!(
+            "SELECT bytes FROM profile_avatars WHERE uuid = ? AND path = ?",
+            uuid,
+            path,
+        )
+        .fetch_optional(&self.db)
+        .await
+        .map_err(From::from)
     }
 
     async fn add_sticker_pack(

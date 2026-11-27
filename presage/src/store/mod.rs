@@ -2,6 +2,8 @@
 
 use std::{fmt, future::Future, ops::RangeBounds};
 
+use chrono::{DateTime, Utc};
+
 use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
@@ -353,17 +355,19 @@ pub trait ContentsStore: Send + Sync {
     /// All blocked contacts and groups.
     fn blocked(&self) -> impl Future<Output = Result<Vec<Thread>, Self::ContentsStoreError>>;
 
-    /// Save a group avatar in the cache
+    /// Save a group avatar in the cache, with the path it was fetched from.
     fn save_group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: &str,
         avatar: &AvatarBytes,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Retrieve a group avatar from the cache.
+    /// Retrieve a group avatar from the cache, if it was fetched from `path`.
     fn group_avatar(
         &self,
         master_key: GroupMasterKeyBytes,
+        path: &str,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     // Profiles
@@ -381,12 +385,13 @@ pub trait ContentsStore: Send + Sync {
         service_id: &ServiceId,
     ) -> impl Future<Output = Result<Option<ProfileKey>, Self::ContentsStoreError>> + Send;
 
-    /// Save a profile by [Uuid] and [ProfileKey].
+    /// Save a profile by [Uuid] and [ProfileKey], with the time it was fetched.
     fn save_profile(
         &mut self,
         uuid: Uuid,
         key: ProfileKey,
         profile: Profile,
+        fetched_at: DateTime<Utc>,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
     /// Retrieve a profile by [Uuid] and [ProfileKey].
@@ -396,19 +401,28 @@ pub trait ContentsStore: Send + Sync {
         key: ProfileKey,
     ) -> impl Future<Output = Result<Option<Profile>, Self::ContentsStoreError>>;
 
-    /// Save a profile avatar by [Uuid] and [ProfileKey].
+    /// When the profile by [Uuid] and [ProfileKey] was fetched.
+    fn profile_fetched_at(
+        &self,
+        uuid: Uuid,
+        key: ProfileKey,
+    ) -> impl Future<Output = Result<Option<DateTime<Utc>>, Self::ContentsStoreError>>;
+
+    /// Save a profile avatar by [Uuid] and [ProfileKey], with the path it was fetched from.
     fn save_profile_avatar(
         &mut self,
         uuid: Uuid,
         key: ProfileKey,
-        profile: &AvatarBytes,
+        path: &str,
+        avatar: &AvatarBytes,
     ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Retrieve a profile avatar by [Uuid] and [ProfileKey].
+    /// Retrieve a profile avatar by [Uuid] and [ProfileKey], if it was fetched from `path`.
     fn profile_avatar(
         &self,
         uuid: Uuid,
         key: ProfileKey,
+        path: &str,
     ) -> impl Future<Output = Result<Option<AvatarBytes>, Self::ContentsStoreError>>;
 
     // Stickers

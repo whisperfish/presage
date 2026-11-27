@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT bytes FROM profile_avatars WHERE uuid = ?",
+  "query": "SELECT bytes FROM profile_avatars WHERE uuid = ? AND path = ?",
   "describe": {
     "columns": [
       {
@@ -16,11 +16,11 @@
       }
     ],
     "parameters": {
-      "Right": 1
+      "Right": 2
     },
     "nullable": [
       false
     ]
   },
-  "hash": "beff2826440b05111d590d2bccbd71c8de2e35e5008d73fbcde86a55652dd1c6"
+  "hash": "35c894220c898c727fa3dfe701b885dcf99a189b574673d88fe5ed27798c6653"
 }
