@@ -1,10 +1,10 @@
 {
   "db_name": "SQLite",
-  "query": "SELECT COUNT(*)\n            FROM pre_keys\n            WHERE identity = ?1 AND stale_at = NULL",
+  "query": "SELECT EXISTS(SELECT 1 FROM blocked_contacts WHERE uuid = ?)",
   "describe": {
     "columns": [
       {
-        "name": "COUNT(*)",
+        "name": "EXISTS(SELECT 1 FROM blocked_contacts WHERE uuid = ?)",
         "ordinal": 0,
         "type_info": "Integer",
         "origin": "Expression"
@@ -17,5 +17,5 @@
       false
     ]
   },
-  "hash": "d333d9d786b04ba73288bdfbbc22099c54254d13604d7cea543493616f37457e"
+  "hash": "2de2bcf8fd628d77c1f665aab388aa1adbc63468d4a75f6760e95f0bf0e125c4"
 }

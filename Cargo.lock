@@ -286,7 +286,7 @@ checksum = "1505bd5d3d116872e7271a6d4e16d81d0c8570876c8de68093a09ac269d8aac0"
 [[package]]
 name = "attest"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "asn1",
  "bitflags",
@@ -294,6 +294,7 @@ dependencies = [
  "boring",
  "chacha20poly1305",
  "chrono",
+ "ciborium",
  "const-str",
  "displaydoc",
  "hex",
@@ -310,6 +311,7 @@ dependencies = [
  "snow",
  "static_assertions",
  "strum 0.28.0",
+ "subtle",
  "thiserror 2.0.21",
  "uuid",
  "x25519-dalek",
@@ -553,8 +555,8 @@ dependencies = [
 
 [[package]]
 name = "boring"
-version = "5.3.0"
-source = "git+https://github.com/signalapp/boring?tag=signal-v5.3.0#b518db81426b8b53e84b1cb1cda43fdfd021022c"
+version = "5.4.0"
+source = "git+https://github.com/signalapp/boring?tag=signal-v5.4.0#cf8e8093c66fc8b446a2d5bd64a485dc02053473"
 dependencies = [
  "bitflags",
  "boring-sys",
@@ -565,8 +567,8 @@ dependencies = [
 
 [[package]]
 name = "boring-sys"
-version = "5.3.0"
-source = "git+https://github.com/signalapp/boring?tag=signal-v5.3.0#b518db81426b8b53e84b1cb1cda43fdfd021022c"
+version = "5.4.0"
+source = "git+https://github.com/signalapp/boring?tag=signal-v5.4.0#cf8e8093c66fc8b446a2d5bd64a485dc02053473"
 dependencies = [
  "bindgen",
  "cmake",
@@ -682,6 +684,33 @@ dependencies = [
  "serde",
  "wasm-bindgen",
  "windows-link",
+]
+
+[[package]]
+name = "ciborium"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "42e69ffd6f0917f5c029256a24d0161db17cea3997d185db0d35926308770f0e"
+dependencies = [
+ "ciborium-io",
+ "ciborium-ll",
+ "serde",
+]
+
+[[package]]
+name = "ciborium-io"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "05afea1e0a06c9be33d539b876f1ce3692f4afea2cb41f740e7743225ed1c757"
+
+[[package]]
+name = "ciborium-ll"
+version = "0.2.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "57663b653d948a338bfb3eeba9bb2fd5fcfaecb9e199e87e1eda4d9e8b240fd9"
+dependencies = [
+ "ciborium-io",
+ "half",
 ]
 
 [[package]]
@@ -850,7 +879,7 @@ version = "0.0.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ee3344d349528f449816cfa85e558c439bdca5a6d8a738cfb21e69f0b2b1952f"
 dependencies = [
- "hax-lib",
+ "hax-lib 0.3.7",
  "pastey",
  "rand 0.10.4",
 ]
@@ -966,6 +995,12 @@ checksum = "acdd7c62a3665c7f6830a51635d9ac9b23ed385797f70a83bb8bafe9c572ab2b"
 dependencies = [
  "winapi",
 ]
+
+[[package]]
+name = "crunchy"
+version = "0.2.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "460fbee9c2c2f33933d720630a6a0bac33ba7053db5344fac858d4b8952d77d5"
 
 [[package]]
 name = "crypto-common"
@@ -1682,6 +1717,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "half"
+version = "2.7.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ea2d84b969582b4b1864a92dc5d27cd2b77b622a8d79306834f1be5ba20d84b"
+dependencies = [
+ "cfg-if",
+ "crunchy",
+ "zerocopy",
+]
+
+[[package]]
 name = "hash32"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1731,7 +1777,18 @@ version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "01a33cb227f97ee5c419064c31d7c55a7d895f28d8019ccdadc311cc036500c4"
 dependencies = [
- "hax-lib-macros",
+ "hax-lib-macros 0.3.7",
+ "num-bigint",
+ "num-traits",
+]
+
+[[package]]
+name = "hax-lib"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "04ce2d088d3d46cb20f1136005ebb161316f766b037aa79f9f6f14a0327105d2"
+dependencies = [
+ "hax-lib-macros 0.5.0",
  "num-bigint",
  "num-traits",
 ]
@@ -1742,8 +1799,20 @@ version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "28da835a5f153e9f3d0cc1f42ee605a1cfa9093c93348193793d60a1b0908b51"
 dependencies = [
- "hax-lib-macros-types",
+ "hax-lib-macros-types 0.3.7",
  "proc-macro-error2",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "hax-lib-macros"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8b31ce88f4a629cf244df7e086b84c915dcb53251268a5ab2cfe9371c3f352d"
+dependencies = [
+ "hax-lib-macros-types 0.5.0",
  "proc-macro2",
  "quote",
  "syn 2.0.119",
@@ -1754,6 +1823,19 @@ name = "hax-lib-macros-types"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "eed327e9a28d6ee018a4a9ba842d4ee27e378c8a591d2beb6f42f32b24a02fcb"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "serde",
+ "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "hax-lib-macros-types"
+version = "0.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "611ab31405888422952fdcd3ff4c028efa8162d01d387083d75897a27c1ac686"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1949,6 +2031,19 @@ dependencies = [
  "rustls",
  "tokio",
  "tokio-rustls",
+ "tower-service",
+]
+
+[[package]]
+name = "hyper-timeout"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b90d566bffbce6a75bd8b09a05aa8c2cb1fabb6cb348f8840c9e4c90a0d83b0"
+dependencies = [
+ "hyper",
+ "hyper-util",
+ "pin-project-lite",
+ "tokio",
  "tower-service",
 ]
 
@@ -2282,7 +2377,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "98a0c574d4eb81d0814bc2b91e4a433d7e0b35851b1d62eb5dd95c064f1f76d0"
 dependencies = [
  "core-models",
- "hax-lib",
+ "hax-lib 0.3.7",
 ]
 
 [[package]]
@@ -2301,7 +2396,7 @@ version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1d8160f7d64fd2716b4fd05cc886a042f8dcda18d9206c0d506e2c67bdf97daa"
 dependencies = [
- "hax-lib",
+ "hax-lib 0.3.7",
  "libcrux-intrinsics",
  "libcrux-platform",
  "libcrux-secrets",
@@ -2325,7 +2420,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79054fc9037cb70d6a546cf094cea7d7df06af5e49d230ba24103d27ccc886f1"
 dependencies = [
  "crabgrind",
- "hax-lib",
+ "hax-lib 0.3.7",
 ]
 
 [[package]]
@@ -2345,7 +2440,7 @@ version = "0.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c09f5c39afae0528e1f70a3c1e3c6ee649ec1f19dda26fc9b6ea91108fb879ef"
 dependencies = [
- "hax-lib",
+ "hax-lib 0.3.7",
  "libcrux-intrinsics",
  "libcrux-platform",
  "libcrux-traits",
@@ -2383,7 +2478,7 @@ dependencies = [
 [[package]]
 name = "libsignal-account-keys"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "aes 0.9.4",
  "argon2",
@@ -2411,7 +2506,7 @@ dependencies = [
 [[package]]
 name = "libsignal-core"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "curve25519-dalek",
  "derive_more",
@@ -2430,7 +2525,7 @@ dependencies = [
 [[package]]
 name = "libsignal-debug"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "cfg-if",
 ]
@@ -2438,7 +2533,7 @@ dependencies = [
 [[package]]
 name = "libsignal-keytrans"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "curve25519-dalek",
  "displaydoc",
@@ -2455,7 +2550,7 @@ dependencies = [
 [[package]]
 name = "libsignal-net"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "assert_matches",
  "async-trait",
@@ -2515,9 +2610,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "libsignal-net-grpc"
+version = "0.1.0"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
+dependencies = [
+ "const-str",
+ "derive-where",
+ "libsignal-core",
+ "prost",
+ "prost-types",
+ "strum 0.28.0",
+ "tonic",
+ "tonic-prost",
+ "tonic-prost-build",
+]
+
+[[package]]
 name = "libsignal-net-infra"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "assert_matches",
  "async-trait",
@@ -2568,7 +2679,7 @@ dependencies = [
 [[package]]
 name = "libsignal-protocol"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "aes 0.9.4",
  "aes-gcm-siv",
@@ -2607,7 +2718,7 @@ dependencies = [
 [[package]]
 name = "libsignal-service"
 version = "0.1.0"
-source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=d85018fa2cdf02eb0f818d4564cf1e06c5aa7aa0#d85018fa2cdf02eb0f818d4564cf1e06c5aa7aa0"
+source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=bd40cb49a66c770c27f9f41fd3df029d068de025#bd40cb49a66c770c27f9f41fd3df029d068de025"
 dependencies = [
  "aes 0.9.4",
  "aes-gcm",
@@ -2626,6 +2737,7 @@ dependencies = [
  "libsignal-account-keys",
  "libsignal-core",
  "libsignal-net",
+ "libsignal-net-grpc",
  "libsignal-net-infra",
  "libsignal-protocol",
  "phonenumber",
@@ -2641,6 +2753,7 @@ dependencies = [
  "signal-crypto",
  "thiserror 2.0.21",
  "tokio",
+ "tonic",
  "tracing",
  "tracing-futures",
  "url",
@@ -2652,7 +2765,7 @@ dependencies = [
 [[package]]
 name = "libsignal-svrb"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "aes-gcm-siv",
  "curve25519-dalek",
@@ -2672,6 +2785,7 @@ name = "libsqlite3-sys"
 version = "0.36.0"
 source = "git+https://github.com/whisperfish/rusqlite?rev=2a42b3354c9194700d08aa070f70a131a470e7dc#2a42b3354c9194700d08aa070f70a131a470e7dc"
 dependencies = [
+ "bindgen",
  "cc",
  "pkg-config",
  "sqlcipher-crypto-provider",
@@ -3262,7 +3376,7 @@ checksum = "f6b464fbc74e149a392436b17d523f769e057cb6877f6a5c4618bc6f11800548"
 [[package]]
 name = "poksho"
 version = "0.7.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "curve25519-dalek",
  "hmac 0.13.0",
@@ -3996,6 +4110,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48e13bd8c0e9365c43cfa5c9e8f9ad49d3c8444926c9aac819e0e4dc503c8fdf"
 dependencies = [
  "aws-lc-rs",
+ "log",
  "once_cell",
  "ring",
  "rustls-pki-types",
@@ -4289,7 +4404,7 @@ checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 [[package]]
 name = "signal-crypto"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "aes 0.9.4",
  "cbc 0.2.1",
@@ -4392,11 +4507,11 @@ dependencies = [
 
 [[package]]
 name = "spqr"
-version = "1.6.0"
-source = "git+https://github.com/signalapp/SparsePostQuantumRatchet.git?tag=v1.6.0#06959b4708f9b7b1e94d0f8cc835f3958c077e94"
+version = "1.7.0"
+source = "git+https://github.com/signalapp/SparsePostQuantumRatchet.git?tag=v1.7.0#3a69df8f01179fce970693f072b710a8ab8dc6c2"
 dependencies = [
  "cpufeatures 0.3.1",
- "hax-lib",
+ "hax-lib 0.5.0",
  "hkdf",
  "libcrux-hmac",
  "libcrux-ml-kem",
@@ -4937,8 +5052,8 @@ dependencies = [
 
 [[package]]
 name = "tokio-boring"
-version = "5.3.0"
-source = "git+https://github.com/signalapp/boring?tag=signal-v5.3.0#b518db81426b8b53e84b1cb1cda43fdfd021022c"
+version = "5.4.0"
+source = "git+https://github.com/signalapp/boring?tag=signal-v5.4.0#cf8e8093c66fc8b446a2d5bd64a485dc02053473"
 dependencies = [
  "boring",
  "boring-sys",
@@ -5053,19 +5168,67 @@ version = "0.14.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2cdfc673aabd30fe8fee92e65837b644c37c5d47f0f97ae6d5e0f1237d15e1b"
 dependencies = [
+ "async-trait",
  "base64 0.22.1",
  "bytes",
+ "h2",
  "http",
  "http-body",
  "http-body-util",
+ "hyper",
+ "hyper-timeout",
+ "hyper-util",
  "percent-encoding",
  "pin-project",
+ "socket2",
  "sync_wrapper",
+ "tokio",
+ "tokio-rustls",
  "tokio-stream",
  "tokio-util",
+ "tower",
  "tower-layer",
  "tower-service",
  "tracing",
+]
+
+[[package]]
+name = "tonic-build"
+version = "0.14.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac6d916d206ed7bdda1778ddff9bda43303789c258877e7bc22fb44ee5c984b4"
+dependencies = [
+ "prettyplease 0.2.37",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
+name = "tonic-prost"
+version = "0.14.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eba464054e2226f182a34489b8b079bf4c6e3e7ab5fd7fc30e024f24aa92a484"
+dependencies = [
+ "bytes",
+ "prost",
+ "tonic",
+]
+
+[[package]]
+name = "tonic-prost-build"
+version = "0.14.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2ea216ddc448e08e7839ab09e20e60b06b6a1c32745ccb212c0ebd161c199f1b"
+dependencies = [
+ "prettyplease 0.2.37",
+ "proc-macro2",
+ "prost-build",
+ "prost-types",
+ "quote",
+ "syn 2.0.119",
+ "tempfile",
+ "tonic-build",
 ]
 
 [[package]]
@@ -5076,11 +5239,15 @@ checksum = "ebe5ef63511595f1344e2d5cfa636d973292adc0eec1f0ad45fae9f0851ab1d4"
 dependencies = [
  "futures-core",
  "futures-util",
+ "indexmap",
  "pin-project-lite",
+ "slab",
  "sync_wrapper",
  "tokio",
+ "tokio-util",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
@@ -5324,7 +5491,7 @@ dependencies = [
 [[package]]
 name = "usernames"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "curve25519-dalek",
  "displaydoc",
@@ -6069,7 +6236,7 @@ dependencies = [
 [[package]]
 name = "zkcredential"
 version = "0.1.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "cfg-if",
  "curve25519-dalek",
@@ -6087,7 +6254,7 @@ dependencies = [
 [[package]]
 name = "zkgroup"
 version = "0.9.0"
-source = "git+https://github.com/signalapp/libsignal?tag=v0.106.2#850942581c06fa65c0323fd52029afa02fa1a1ba"
+source = "git+https://github.com/signalapp/libsignal?tag=v0.108.2#956e1cab1d68291c92f2fcca3c29ec6c3b367e28"
 dependencies = [
  "aes 0.9.4",
  "aes-gcm-siv",

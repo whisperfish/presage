@@ -1,11 +1,12 @@
+use std::collections::HashMap;
 use std::fmt;
+use std::pin::Pin;
 use std::str::FromStr;
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::TimeZone;
 use futures::{future, AsyncReadExt, Stream, StreamExt};
-use libsignal_service::models::ParseContactError;
 use libsignal_service::pre_keys::PreKeysStore;
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
@@ -18,22 +19,23 @@ use libsignal_service::{
     encrypt_device_name,
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
-    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
+    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, ServiceError, Uuid},
     profile_cipher::ProfileCipher,
     proto::{
         data_message::Delete,
+        receipt_message,
         sync_message::{
             self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
         },
-        AttachmentPointer, CallMessage, DataMessage, EditMessage, GroupContextV2, NullMessage,
-        SyncMessage, Verified,
+        AttachmentPointer, CallMessage, ContactRecord, DataMessage, EditMessage, GroupContextV2,
+        NullMessage, ReceiptMessage, SyncMessage, Verified,
     },
     protocol::{
-        Aci, DeviceId, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind, Username,
+        Aci, DeviceId, IdentityKey, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
+        Username,
     },
     provisioning::ProvisioningError,
     push_service::{PushService, ServiceIds, DEFAULT_DEVICE_ID},
-    receiver::MessageReceiver,
     sender::{AttachmentSpec, AttachmentUploadError},
     sticker_cipher::derive_key,
     unidentified_access::UnidentifiedAccess,
@@ -63,6 +65,7 @@ use url::Url;
 
 use crate::model::contacts::Contact;
 use crate::model::previews;
+use crate::model::settings::Settings;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -90,6 +93,7 @@ pub struct Registered {
     pub(crate) unidentified_websocket: Arc<Mutex<Option<SignalWebSocket<websocket::Unidentified>>>>,
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
+    pub(crate) settings: Arc<RwLock<Settings>>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -109,6 +113,7 @@ impl Registered {
             unidentified_websocket: Default::default(),
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
+            settings: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -207,6 +212,10 @@ impl<S: Store> Manager<S, Registered> {
                 .replace(sender_certificate);
         }
 
+        if let Some(settings) = store.load_settings().await? {
+            *registered.settings.write().expect("settings lock poisoned") = settings;
+        }
+
         Ok(Self {
             store,
             state: registered,
@@ -255,7 +264,12 @@ impl<S: Store> Manager<S, Registered> {
         {
             Some(ws) => Ok(ws.clone()),
             None => {
-                let headers = &[("X-Signal-Receive-Stories", "false")];
+                let receive_stories = if self.settings().stories {
+                    "true"
+                } else {
+                    "false"
+                };
+                let headers = &[("X-Signal-Receive-Stories", receive_stories)];
                 let ws = self
                     .identified_push_service()
                     .ws(
@@ -295,30 +309,6 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
-    /// Request the primary device to encrypt & send all of its contacts.
-    ///
-    /// **Note**: If successful, the contacts are not yet received and stored, but will only be
-    /// processed when they're received after polling on the
-    pub async fn request_contacts(&mut self) -> Result<(), Error<S::Error>> {
-        trace!("requesting contacts sync");
-        let sync_message = SyncMessage {
-            content: Some(SyncContent::Request(sync_message::Request {
-                r#type: Some(sync_message::request::Type::Contacts.into()),
-            })),
-            ..SyncMessage::with_padding(&mut rand::rng())
-        };
-
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("Time went backwards")
-            .as_millis() as u64;
-
-        self.send_message(self.state.data.service_ids.aci(), sync_message, timestamp)
-            .await?;
-
-        Ok(())
-    }
-
     async fn sender_certificate(&self) -> Result<SenderCertificate, Error<S::Error>> {
         let needs_renewal = |sender_certificate: Option<&SenderCertificate>| -> bool {
             if sender_certificate.is_none() {
@@ -354,6 +344,50 @@ impl<S: Store> Manager<S, Registered> {
         Ok(unidentified_sender_certificate
             .clone()
             .expect("logic error"))
+    }
+
+    async fn unidentified_access(
+        &self,
+        recipient: &ServiceId,
+        certificate: &SenderCertificate,
+    ) -> Result<Option<UnidentifiedAccess>, Error<S::Error>> {
+        Ok(self
+            .store
+            .profile_key(recipient)
+            .await?
+            .map(|profile_key| UnidentifiedAccess {
+                key: profile_key.derive_access_key().to_vec(),
+                certificate: certificate.clone(),
+            }))
+    }
+
+    async fn send_delivery_receipt(
+        &self,
+        message_sender: &mut MessageSender<S::AciStore>,
+        recipient: ServiceId,
+        message_timestamps: Vec<u64>,
+    ) -> Result<(), Error<S::Error>> {
+        let certificate = self.sender_certificate().await?;
+        let unidentified_access = self.unidentified_access(&recipient, &certificate).await?;
+        let receipt = ReceiptMessage {
+            r#type: Some(receipt_message::Type::Delivery.into()),
+            timestamp: message_timestamps,
+        };
+        let timestamp = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("Time went backwards")
+            .as_millis() as u64;
+        message_sender
+            .send_message(
+                &recipient,
+                unidentified_access.as_ref(),
+                receipt,
+                timestamp,
+                false,
+                false,
+            )
+            .await?;
+        Ok(())
     }
 
     async fn account_entropy_pool(&self) -> Result<Option<AccountEntropyPool>, Error<S::Error>> {
@@ -586,13 +620,16 @@ impl<S: Store> Manager<S, Registered> {
         Ok(groups_manager)
     }
 
-    /// See [`sync_groups_from_storage_service`].
-    pub(super) async fn sync_groups_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+    /// Syncs the account settings, contacts and groups from the storage service.
+    ///
+    /// Also runs after linking, and whenever another device reports a storage service change.
+    pub async fn sync_from_storage_service(&self) -> Result<(), Error<S::Error>> {
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
-        sync_groups_from_storage_service(
-            &self.store,
+        sync_from_storage_service(
+            &mut self.store.clone(),
             self.identified_push_service(),
             &mut groups_manager,
+            &self.state.settings,
         )
         .await
     }
@@ -607,28 +644,11 @@ impl<S: Store> Manager<S, Registered> {
     pub async fn receive_messages(
         &mut self,
     ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
-        struct StreamState<Receiver, Store, AciStore, PniStore> {
-            store: Store,
-            identified_websocket: SignalWebSocket<websocket::Identified>,
-            unidentified_websocket: SignalWebSocket<websocket::Unidentified>,
-            encrypted_messages: Receiver,
-            message_receiver: MessageReceiver,
-            service_cipher_aci: ServiceCipher<AciStore>,
-            service_cipher_pni: ServiceCipher<PniStore>,
-            groups_manager: GroupsManager<InMemoryCredentialsCache>,
-            identified_push_service: PushService,
-            service_ids: ServiceIds,
-            message_sender: MessageSender<AciStore>,
-            account_entropy_pool: Option<AccountEntropyPool>,
-            registration_type: RegistrationType,
-        }
-
-        let identified_push_service = self.identified_push_service();
         // NB: here, we initialise a *fresh* Signal websocket, which means any other use of the previous one will go into nirvana
         let identified_websocket = self.identified_websocket(true).await?;
 
         let mut account_manager = AccountManager::new(
-            identified_push_service.clone(),
+            self.identified_push_service(),
             identified_websocket.clone(),
             None,
         );
@@ -657,23 +677,7 @@ impl<S: Store> Manager<S, Registered> {
             future::pending::<()>().await
         };
 
-        let encrypted_messages = MessagePipe::from_socket(identified_websocket.clone());
-
-        let init = StreamState {
-            store: self.store.clone(),
-            identified_websocket,
-            unidentified_websocket: self.unidentified_websocket().await?,
-            encrypted_messages: Box::pin(encrypted_messages.stream()),
-            message_receiver: MessageReceiver::new(identified_push_service.clone()),
-            service_cipher_aci: self.new_service_cipher_aci(),
-            service_cipher_pni: self.new_service_cipher_pni(),
-            groups_manager: Box::pin(self.groups_manager()).await?,
-            identified_push_service,
-            service_ids: self.state.data.service_ids.clone(),
-            message_sender: self.new_message_sender().await?,
-            account_entropy_pool: self.account_entropy_pool().await?,
-            registration_type: self.registration_type(),
-        };
+        let init = StreamState::new(self.clone(), identified_websocket).await?;
 
         debug!("starting to consume incoming message stream");
 
@@ -691,19 +695,21 @@ impl<S: Store> Manager<S, Registered> {
                                     }
                                     Some(ServiceId::Aci(_)) => {
                                         state
-                                            .service_cipher_aci
+                                            .manager
+                                            .new_service_cipher_aci()
                                             .open_envelope(envelope, &mut rand::rng())
                                             .await
                                     }
                                     Some(ServiceId::Pni(pni)) => {
-                                        if pni == state.service_ids.pni()
+                                        if pni == state.manager.state.data.service_ids.pni()
                                             && envelope.parse_source_service_id().is_none()
                                         {
                                             warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
                                             continue;
                                         }
                                         state
-                                            .service_cipher_pni
+                                            .manager
+                                            .new_service_cipher_pni()
                                             .open_envelope(envelope, &mut rng())
                                             .await
                                     }
@@ -711,6 +717,17 @@ impl<S: Store> Manager<S, Registered> {
                             };
                             match envelope {
                                 Ok(Some(content)) => {
+                                    match is_blocked(&state.manager.store, &content).await {
+                                        Ok(true) => {
+                                            debug!(sender = %content.metadata.sender.service_id_string(), "dropping message from blocked contact or group");
+                                            continue;
+                                        }
+                                        Ok(false) => {}
+                                        Err(error) => {
+                                            warn!(%error, "failed to check blocked state")
+                                        }
+                                    }
+
                                     if let ContentBody::DecryptionErrorMessage(e) = &content.body {
                                         error!(
                                             error = ?e,
@@ -732,6 +749,7 @@ impl<S: Store> Manager<S, Registered> {
                                         match request.r#type() {
                                             RequestType::Contacts => {
                                                 let contacts = state
+                                                    .manager
                                                     .store
                                                     .contacts()
                                                     .await
@@ -743,7 +761,8 @@ impl<S: Store> Manager<S, Registered> {
 
                                                 let mut message_sender =
                                                     state.message_sender.clone();
-                                                let aci = state.service_ids.aci();
+                                                let aci =
+                                                    state.manager.state.data.service_ids.aci();
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender
                                                     .send_contact_details(
@@ -773,10 +792,17 @@ impl<S: Store> Manager<S, Registered> {
                                             RequestType::Keys => {
                                                 let mut message_sender =
                                                     state.message_sender.clone();
-                                                let account_entropy_pool = state
-                                                    .account_entropy_pool
-                                                    .as_ref()
-                                                    .map(|aep| aep.to_string());
+                                                let account_entropy_pool = match state
+                                                    .manager
+                                                    .account_entropy_pool()
+                                                    .await
+                                                {
+                                                    Ok(aep) => aep.map(|aep| aep.to_string()),
+                                                    Err(error) => {
+                                                        warn!(%error, "failed to load account entropy pool");
+                                                        None
+                                                    }
+                                                };
                                                 tokio::task::spawn_local(async move {
                                                     let result = message_sender.send_sync_message(SyncMessage {
                                                         content: Some(SyncContent::Keys(libsignal_service::content::sync_message::Keys {
@@ -792,19 +818,31 @@ impl<S: Store> Manager<S, Registered> {
                                                 });
                                             }
                                             RequestType::Blocked => {
-                                                warn!("storing blocked user is not implemented yet! we will not report blocked users to the device requesting the sync.");
+                                                let blocked = match state
+                                                    .manager
+                                                    .store
+                                                    .blocked()
+                                                    .await
+                                                {
+                                                    Ok(blocked) => blocked,
+                                                    Err(error) => {
+                                                        warn!(%error, "failed to load blocked contacts and groups");
+                                                        Vec::new()
+                                                    }
+                                                };
                                                 let mut message_sender =
                                                     state.message_sender.clone();
                                                 tokio::task::spawn_local(async move {
-                                                    let result = message_sender.send_sync_message(SyncMessage {
-                                                    content: Some(SyncContent::Blocked(libsignal_service::content::sync_message::Blocked {
-                                                        numbers: vec![],
-                                                        acis: vec![],
-                                                        acis_binary: vec![],
-                                                        group_ids: vec![],
-                                                    })),
-                                                    ..SyncMessage::with_padding(&mut rand::rng())
-                                                }).await;
+                                                    let result = message_sender
+                                                        .send_sync_message(SyncMessage {
+                                                            content: Some(SyncContent::Blocked(
+                                                                blocked_sync_message(&blocked),
+                                                            )),
+                                                            ..SyncMessage::with_padding(
+                                                                &mut rand::rng(),
+                                                            )
+                                                        })
+                                                        .await;
 
                                                     if let Err(error) = result {
                                                         warn!(%error, "Error sending blocked contacts to other devices");
@@ -815,25 +853,6 @@ impl<S: Store> Manager<S, Registered> {
                                                 info!(type = ?t, "Got sync request of currently unhandled type")
                                             }
                                         }
-                                    }
-
-                                    // contacts synchronization sent from the primary device (happens after linking, or on demand)
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Contacts(contacts)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        let saved = save_contacts(
-                                            &mut state.message_receiver,
-                                            &mut state.store,
-                                            contacts,
-                                        )
-                                        .await;
-                                        let complete = contacts.complete();
-                                        return Some((
-                                            Received::Contacts { complete, saved },
-                                            state,
-                                        ));
                                     }
 
                                     // sticker pack operations
@@ -848,6 +867,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     // the primary resends every installed pack on
                                                     // a configuration request
                                                     match state
+                                                        .manager
                                                         .store
                                                         .has_sticker_pack(operation.pack_id())
                                                         .await
@@ -864,9 +884,18 @@ impl<S: Store> Manager<S, Registered> {
                                                             "failed to look up sticker pack, downloading it"
                                                         ),
                                                     }
-                                                    let store = state.store.clone();
-                                                    let unidentified_websocket =
-                                                        state.unidentified_websocket.clone();
+                                                    let store = state.manager.store.clone();
+                                                    let unidentified_websocket = match state
+                                                        .manager
+                                                        .unidentified_websocket()
+                                                        .await
+                                                    {
+                                                        Ok(ws) => ws,
+                                                        Err(error) => {
+                                                            warn!(%error, "failed to open unidentified websocket, skipping sticker pack");
+                                                            continue;
+                                                        }
+                                                    };
                                                     let operation = operation.clone();
 
                                                     // download stickers in the background
@@ -893,6 +922,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     });
                                                 }
                                                 sticker_pack_operation::Type::Remove => match state
+                                                    .manager
                                                     .store
                                                     .remove_sticker_pack(operation.pack_id())
                                                     .await
@@ -918,7 +948,9 @@ impl<S: Store> Manager<S, Registered> {
                                     }) = &content.body
                                     {
                                         debug!("received key sync message");
-                                        if state.registration_type == RegistrationType::Primary {
+                                        if state.manager.registration_type()
+                                            == RegistrationType::Primary
+                                        {
                                             warn!("received a key sync message as a primary device; ignoring")
                                         } else {
                                             match keys
@@ -928,19 +960,43 @@ impl<S: Store> Manager<S, Registered> {
                                             {
                                                 Some(Ok(aep)) => {
                                                     if let Err(error) = state
+                                                        .manager
                                                         .store
                                                         .store_account_entropy_pool(Some(&aep))
                                                         .await
                                                     {
                                                         error!(%error, "failed to store account entropy pool");
                                                     }
-                                                    state.account_entropy_pool = Some(aep);
                                                 }
                                                 Some(Err(error)) => {
                                                     warn!(%error, "cannot convert account entropy pool from string")
                                                 }
                                                 None => {}
                                             }
+                                        }
+                                    }
+
+                                    if let ContentBody::SynchronizeMessage(SyncMessage {
+                                        content: Some(SyncContent::Configuration(configuration)),
+                                        ..
+                                    }) = &content.body
+                                    {
+                                        debug!(
+                                            ?configuration,
+                                            "received configuration sync message"
+                                        );
+                                        if state.manager.registration_type()
+                                            == RegistrationType::Primary
+                                        {
+                                            warn!("received a configuration sync message as a primary device; ignoring")
+                                        } else if let Err(error) = super::settings::update_settings(
+                                            &mut state.manager.store,
+                                            &state.manager.state.settings,
+                                            |s| s.apply(configuration),
+                                        )
+                                        .await
+                                        {
+                                            error!(%error, "failed to store settings");
                                         }
                                     }
 
@@ -953,14 +1009,26 @@ impl<S: Store> Manager<S, Registered> {
                                         if fetch_latest.r#type()
                                             == sync_message::fetch_latest::Type::StorageManifest
                                         {
-                                            if let Err(error) = sync_groups_from_storage_service(
-                                                &state.store,
-                                                state.identified_push_service.clone(),
+                                            let stories = state.manager.settings().stories;
+                                            if let Err(error) = sync_from_storage_service(
+                                                &mut state.manager.store,
+                                                state.manager.state.identified_push_service(),
                                                 &mut state.groups_manager,
+                                                &state.manager.state.settings,
                                             )
                                             .await
                                             {
-                                                warn!(%error, "failed to sync groups from the storage service");
+                                                warn!(%error, "failed to sync from the storage service");
+                                            }
+
+                                            // The stories header is only read on connect; the server kicks the old socket.
+                                            if stories != state.manager.settings().stories {
+                                                debug!("stories setting changed, reconnecting identified websocket");
+                                                if let Err(error) =
+                                                    state.reconnect_identified_websocket().await
+                                                {
+                                                    error!(%error, "failed to reconnect identified websocket");
+                                                }
                                             }
                                         }
                                     }
@@ -997,7 +1065,7 @@ impl<S: Store> Manager<S, Registered> {
                                         // and the group changes, which are part of the protobuf messages
                                         // this means we kinda need our own internal representation of groups inside of presage?
                                         if let Ok(Some(group)) = upsert_group(
-                                            &state.store,
+                                            &state.manager.store,
                                             &mut state.groups_manager,
                                             master_key_bytes,
                                             revision,
@@ -1008,14 +1076,27 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
-                                    if let Err(error) = save_message(
-                                        &mut state.store,
-                                        &mut state.identified_websocket,
-                                        content.clone(),
-                                        None,
-                                    )
-                                    .await
-                                    {
+                                    if let Some(timestamp) = delivery_receipt_timestamp(&content) {
+                                        state.queue_delivery_receipt(
+                                            content.metadata.sender,
+                                            timestamp,
+                                        );
+                                    }
+
+                                    let saved =
+                                        match state.manager.identified_websocket(false).await {
+                                            Ok(mut websocket) => {
+                                                save_message(
+                                                    &mut state.manager.store,
+                                                    &mut websocket,
+                                                    content.clone(),
+                                                    None,
+                                                )
+                                                .await
+                                            }
+                                            Err(error) => Err(error),
+                                        };
+                                    if let Err(error) = saved {
                                         error!(%error, "error saving message to store");
                                     }
 
@@ -1036,7 +1117,9 @@ impl<S: Store> Manager<S, Registered> {
                         }
                         Some(Ok(Incoming::QueueEmpty)) => {
                             debug!("got empty queue");
-                            if state.account_entropy_pool.is_none() {
+                            state.queue_empty = true;
+                            state.flush_delivery_receipts();
+                            if matches!(state.manager.account_entropy_pool().await, Ok(None)) {
                                 debug!("device does not have the needed keys; requesting from primary device");
 
                                 let mut message_sender = state.message_sender.clone();
@@ -1148,13 +1231,8 @@ impl<S: Store> Manager<S, Registered> {
 
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
-            .store
-            .profile_key(&recipient)
-            .await?
-            .map(|profile_key| UnidentifiedAccess {
-                key: profile_key.derive_access_key().to_vec(),
-                certificate: sender_certificate.clone(),
-            });
+            .unidentified_access(&recipient, &sender_certificate)
+            .await?;
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -1258,6 +1336,9 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Sets a preview of the first link of a data message that has no preview yet.
     async fn fetch_link_previews(&self, content_body: &mut ContentBody) {
+        if !self.settings().link_previews {
+            return;
+        }
         let ContentBody::DataMessage(message) = content_body else {
             return;
         };
@@ -1339,14 +1420,9 @@ impl<S: Store> Manager<S, Registered> {
             .into_iter()
             .filter(|m| m.aci != self.state.data.service_ids.aci())
         {
-            let unidentified_access =
-                self.store
-                    .profile_key(&member.aci.into())
-                    .await?
-                    .map(|profile_key| UnidentifiedAccess {
-                        key: profile_key.derive_access_key().to_vec(),
-                        certificate: sender_certificate.clone(),
-                    });
+            let unidentified_access = self
+                .unidentified_access(&member.aci.into(), &sender_certificate)
+                .await?;
             let include_pni_signature = false;
             recipients.push((
                 member.aci.into(),
@@ -1904,10 +1980,11 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
     }
 }
 
-async fn sync_groups_from_storage_service<S: Store>(
-    store: &S,
+async fn sync_from_storage_service<S: Store>(
+    store: &mut S,
     push_service: PushService,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    settings: &RwLock<Settings>,
 ) -> Result<(), Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
@@ -1919,39 +1996,112 @@ async fn sync_groups_from_storage_service<S: Store>(
     let storage = StorageService::new(push_service, storage_key).await?;
 
     let manifest = storage.manifest().await?;
-    let group_ids: Vec<Vec<u8>> = manifest
+
+    use manifest_record::identifier::Type;
+    let ids: Vec<Vec<u8>> = manifest
         .identifiers
         .iter()
-        .filter(|id| id.r#type() == manifest_record::identifier::Type::Groupv2)
+        .filter(|id| matches!(id.r#type(), Type::Account | Type::Contact | Type::Groupv2))
         .map(|id| id.raw.clone())
         .collect();
-    debug!(
-        count = group_ids.len(),
-        "groups listed in the storage service"
-    );
+    debug!(count = ids.len(), "records listed in the storage service");
 
-    for chunk in group_ids.chunks(READ_CHUNK) {
+    let (mut contacts, mut groups) = (0, 0);
+    for chunk in ids.chunks(READ_CHUNK) {
         let records = match storage
             .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
             .await
         {
             Ok(records) => records,
             Err(error) => {
-                warn!(%error, "failed to read group records from the storage service");
+                warn!(%error, "failed to read records from the storage service");
                 continue;
             }
         };
         for record in records {
-            let Some(storage_record::Record::GroupV2(record)) = record.record else {
-                continue;
-            };
-            if let Err(error) = save_unknown_group(store, groups_manager, &record.master_key).await
-            {
-                warn!(%error, "failed to fetch group listed in the storage service");
+            match record.record {
+                Some(storage_record::Record::Account(record)) => {
+                    if let Err(error) = super::settings::update_settings(store, settings, |s| {
+                        s.apply_account_record(&record);
+                        debug!(settings = ?s, "applying settings from the storage service account record");
+                    })
+                    .await
+                    {
+                        error!(%error, "failed to store settings");
+                    }
+                }
+                Some(storage_record::Record::Contact(record)) => {
+                    match save_contact_record(store, &record).await {
+                        Ok(true) => contacts += 1,
+                        Ok(false) => {}
+                        Err(error) => warn!(%error, "failed to save contact from the storage service"),
+                    }
+                }
+                Some(storage_record::Record::GroupV2(record)) => {
+                    if let Ok(master_key) = GroupMasterKeyBytes::try_from(record.master_key.as_slice()) {
+                        if let Err(error) = store
+                            .set_blocked(&Thread::Group(master_key), record.blocked)
+                            .await
+                        {
+                            warn!(%error, "failed to store blocked state of group");
+                        }
+                    }
+                    match save_unknown_group(store, groups_manager, &record.master_key).await {
+                        Ok(_) => groups += 1,
+                        Err(error) => {
+                            warn!(%error, "failed to fetch group listed in the storage service")
+                        }
+                    }
+                }
+                _ => {}
             }
         }
     }
+    debug!(contacts, groups, "synced from the storage service");
     Ok(())
+}
+
+/// Returns whether the record was saved, i.e. it has an ACI.
+async fn save_contact_record<S: Store>(
+    store: &mut S,
+    record: &ContactRecord,
+) -> Result<bool, Error<S::Error>> {
+    let Some(aci) = crate::model::contacts::contact_record_aci(record) else {
+        return Ok(false);
+    };
+    let existing = store.contact_by_id(&Aci::from(aci).into()).await?;
+    let Some(contact) = Contact::from_contact_record(record, existing) else {
+        return Ok(false);
+    };
+    store.save_contact(&contact).await?;
+    store
+        .set_blocked(&Thread::Contact(Aci::from(aci).into()), record.blocked)
+        .await?;
+    if let Ok(bytes) = <[u8; 32]>::try_from(record.profile_key.as_slice()) {
+        store
+            .upsert_profile_key(&contact.uuid, ProfileKey::create(bytes))
+            .await?;
+    }
+    if !record.identity_key.is_empty() {
+        match IdentityKey::decode(&record.identity_key) {
+            Ok(identity_key) => {
+                let address =
+                    ProtocolAddress::new(Aci::from(aci).service_id_string(), *DEFAULT_DEVICE_ID);
+                let mut protocol_store = store.aci_protocol_store();
+                let known = protocol_store.get_identity(&address).await?;
+                if known.as_ref() != Some(&identity_key) {
+                    if known.is_some() {
+                        warn!(%aci, "identity key changed by the storage service");
+                    }
+                    protocol_store
+                        .save_identity(&address, &identity_key)
+                        .await?;
+                }
+            }
+            Err(error) => warn!(%error, %aci, "invalid identity key in contact record"),
+        }
+    }
+    Ok(true)
 }
 
 /// Incoming messages keep known groups current, so only unknown ones are fetched.
@@ -2104,6 +2254,145 @@ async fn download_sticker<C: ContentsStore>(
     decrypt_in_place(key, &mut ciphertext)?;
 
     Ok(ciphertext)
+}
+
+struct StreamState<S: Store> {
+    manager: Manager<S, Registered>,
+    encrypted_messages: Pin<Box<dyn Stream<Item = Result<Incoming, ServiceError>> + Send>>,
+    groups_manager: GroupsManager<InMemoryCredentialsCache>,
+    message_sender: MessageSender<S::AciStore>,
+    /// Delivery receipts batched while the queued messages are drained.
+    ///
+    /// NB: not persisted; receipts still pending when the stream is dropped are lost.
+    pending_delivery_receipts: HashMap<ServiceId, Vec<u64>>,
+    pending_delivery_receipts_count: usize,
+    queue_empty: bool,
+}
+
+// Same batch size as Signal-Android's `IncomingMessageObserver`.
+const DELIVERY_RECEIPT_BATCH_SIZE: usize = 30;
+
+impl<S: Store> StreamState<S> {
+    async fn new(
+        manager: Manager<S, Registered>,
+        identified_websocket: SignalWebSocket<websocket::Identified>,
+    ) -> Result<Self, Error<S::Error>> {
+        Ok(Self {
+            encrypted_messages: Box::pin(MessagePipe::from_socket(identified_websocket).stream()),
+            groups_manager: Box::pin(manager.groups_manager()).await?,
+            message_sender: manager.new_message_sender().await?,
+            pending_delivery_receipts: HashMap::new(),
+            pending_delivery_receipts_count: 0,
+            queue_empty: false,
+            manager,
+        })
+    }
+
+    fn queue_delivery_receipt(&mut self, sender: ServiceId, timestamp: u64) {
+        self.pending_delivery_receipts
+            .entry(sender)
+            .or_default()
+            .push(timestamp);
+        self.pending_delivery_receipts_count += 1;
+        if self.queue_empty || self.pending_delivery_receipts_count >= DELIVERY_RECEIPT_BATCH_SIZE {
+            self.flush_delivery_receipts();
+        }
+    }
+
+    fn flush_delivery_receipts(&mut self) {
+        self.pending_delivery_receipts_count = 0;
+        for (recipient, timestamps) in self.pending_delivery_receipts.drain() {
+            let manager = self.manager.clone();
+            let mut message_sender = self.message_sender.clone();
+            tokio::task::spawn_local(async move {
+                if let Err(error) = manager
+                    .send_delivery_receipt(&mut message_sender, recipient, timestamps)
+                    .await
+                {
+                    warn!(%error, "failed to send delivery receipt");
+                }
+            });
+        }
+    }
+
+    async fn reconnect_identified_websocket(&mut self) -> Result<(), Error<S::Error>> {
+        let ws = self.manager.identified_websocket(true).await?;
+        self.message_sender = self.manager.new_message_sender().await?;
+        self.encrypted_messages = Box::pin(MessagePipe::from_socket(ws).stream());
+        // The new socket drains its own queue first.
+        self.queue_empty = false;
+        debug!("reconnected identified websocket");
+        Ok(())
+    }
+}
+
+fn delivery_receipt_timestamp(content: &Content) -> Option<u64> {
+    // Signal-Android only acknowledges sealed sender messages.
+    if !content.metadata.needs_receipt {
+        return None;
+    }
+    match &content.body {
+        ContentBody::DataMessage(DataMessage { timestamp, .. })
+        | ContentBody::EditMessage(EditMessage {
+            data_message: Some(DataMessage { timestamp, .. }),
+            ..
+        }) => *timestamp,
+        _ => None,
+    }
+}
+
+// Same rules as Signal-Android's `MessageContentProcessor.shouldIgnore`.
+async fn is_blocked<S: Store>(store: &S, content: &Content) -> Result<bool, S::Error> {
+    if matches!(
+        content.body,
+        ContentBody::SynchronizeMessage(_) | ContentBody::ReceiptMessage(_)
+    ) {
+        return Ok(false);
+    }
+    if store
+        .is_blocked(&Thread::Contact(content.metadata.sender))
+        .await?
+    {
+        return Ok(true);
+    }
+    let group = match &content.body {
+        ContentBody::DataMessage(message)
+        | ContentBody::EditMessage(EditMessage {
+            data_message: Some(message),
+            ..
+        }) => message.group_v2.as_ref(),
+        ContentBody::StoryMessage(story) => story.group.as_ref(),
+        _ => None,
+    };
+    match group
+        .and_then(|group| group.master_key.as_deref())
+        .and_then(|key| GroupMasterKeyBytes::try_from(key).ok())
+    {
+        Some(master_key) => store.is_blocked(&Thread::Group(master_key)).await,
+        None => Ok(false),
+    }
+}
+
+fn blocked_sync_message(blocked: &[Thread]) -> sync_message::Blocked {
+    let mut message = sync_message::Blocked::default();
+    for thread in blocked {
+        match thread {
+            Thread::Contact(service_id) => {
+                message.acis.push(service_id.service_id_string());
+                message
+                    .acis_binary
+                    .push(service_id.raw_uuid().into_bytes().to_vec());
+            }
+            Thread::Group(master_key) => {
+                let params =
+                    GroupSecretParams::derive_from_master_key(GroupMasterKey::new(*master_key));
+                message
+                    .group_ids
+                    .push(params.get_group_identifier().to_vec());
+            }
+        }
+    }
+    message
 }
 
 /// Save a message into the store.
@@ -2281,7 +2570,7 @@ async fn save_message<S: Store>(
             ..
         }) => Some(message),
         ContentBody::SynchronizeMessage(msg) => {
-            debug!(
+            trace!(
                 ?msg,
                 "skipping saving sync message without interesting fields"
             );
@@ -2307,48 +2596,6 @@ async fn save_message<S: Store>(
     }
 
     Ok(())
-}
-
-/// Saves the contacts of a sync; returns them, or `None` if not all could be read, parsed
-/// and saved.
-async fn save_contacts<S: Store>(
-    receiver: &mut MessageReceiver,
-    store: &mut S,
-    contacts: &sync_message::Contacts,
-) -> Option<Vec<Uuid>> {
-    if contacts.blob.is_none() {
-        warn!("contacts sync without contacts");
-        return None;
-    }
-    let parsed = match receiver.retrieve_contacts(contacts).await {
-        Ok(parsed) => parsed,
-        Err(error) => {
-            warn!(%error, "failed to retrieve contacts");
-            return None;
-        }
-    };
-    info!("saving contacts");
-    let mut saved = Some(Vec::new());
-    for contact in parsed {
-        match contact {
-            Ok(contact) => {
-                let uuid = contact.uuid;
-                if let Err(error) = store.save_contact(&contact.into()).await {
-                    warn!(%error, "failed to save contacts");
-                    return None;
-                }
-                if let Some(saved) = &mut saved {
-                    saved.push(uuid);
-                }
-            }
-            Err(ParseContactError::MissingUuid) => {}
-            Err(error) => {
-                warn!(%error, "failed to parse contact");
-                saved = None;
-            }
-        }
-    }
-    saved
 }
 
 async fn upsert_contact_from_profile<S: Store>(
