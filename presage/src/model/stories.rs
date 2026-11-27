@@ -11,12 +11,17 @@ pub struct Story {
 
 impl Story {
     pub fn group_master_key(&self) -> Option<GroupMasterKeyBytes> {
-        self.message
-            .group
-            .as_ref()?
-            .master_key
-            .as_deref()?
-            .try_into()
-            .ok()
+        group_master_key(&self.message)
     }
+}
+
+/// The master key of the group a story was posted to.
+pub fn group_master_key(message: &StoryMessage) -> Option<GroupMasterKeyBytes> {
+    message
+        .group
+        .as_ref()?
+        .master_key
+        .as_deref()?
+        .try_into()
+        .ok()
 }

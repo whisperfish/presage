@@ -22,7 +22,6 @@ pub trait StoriesStore: ContentsStore {
     /// All stored stories, oldest first.
     fn stories(&self) -> impl Future<Output = Result<Vec<Story>, Self::ContentsStoreError>>;
 
-    /// Returns whether the story was stored and not viewed before.
     fn mark_story_viewed(
         &mut self,
         sender: &Aci,
@@ -43,7 +42,6 @@ pub trait StoriesStore: ContentsStore {
 
     fn clear_stories(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Hide or unhide the stories of a contact or group.
     fn set_stories_hidden(
         &mut self,
         thread: &Thread,

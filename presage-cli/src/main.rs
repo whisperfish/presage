@@ -17,7 +17,6 @@ use presage::libsignal_service::content::Reaction;
 use presage::libsignal_service::pre_keys::PreKeysStore;
 use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
 use presage::libsignal_service::prelude::ProfileKey;
-use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
 use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
 use presage::libsignal_service::protocol::{Aci, ServiceId};
@@ -27,7 +26,7 @@ use presage::model::contacts::Contact;
 use presage::model::groups::Group;
 use presage::model::identity::OnNewIdentity;
 use presage::model::messages::Received;
-use presage::model::stories::Story;
+use presage::model::stories::{self, Story};
 use presage::proto::receipt_message;
 use presage::proto::story_message;
 use presage::proto::AttachmentPointer;
@@ -132,9 +131,9 @@ enum Cmd {
     Whoami,
     #[clap(about = "Retrieve the user profile")]
     RetrieveProfile {
-        /// ACI of the user to retrieve the profile of.
-        #[clap(long, value_parser = parse_aci)]
-        aci: Aci,
+        /// ACI of the user to retrieve the profile of, defaults to the registered user.
+        #[clap(long, alias = "uuid", value_parser = parse_aci)]
+        aci: Option<Aci>,
         /// Base64-encoded profile key of user to be able to access their profile
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
@@ -210,7 +209,7 @@ enum Cmd {
         #[clap(
             long,
             short = 'o',
-            help = "where to save a file attachment, defaults to the current directory"
+            help = "file or directory to save a file attachment to, defaults to the current directory"
         )]
         output: Option<PathBuf>,
     },
@@ -230,7 +229,7 @@ enum Cmd {
     },
     #[clap(about = "Send a message")]
     Send {
-        #[clap(long, short = 'u', help = "recipient service ID (no prefix defaults to ACI, otherwise PNI:[uuid])", value_parser = parse_service_id)]
+        #[clap(long, short = 'u', help = "recipient service ID (no prefix defaults to ACI, otherwise PNI:[uuid])", value_parser = parse_service_id, alias = "uuid")]
         recipient: ServiceId,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
@@ -603,19 +602,29 @@ async fn print_message<S: Store>(
             ),
         )),
         ContentBody::StoryMessage(story) => {
-            let group = match story
-                .group
-                .as_ref()
-                .and_then(|g| g.master_key.as_deref())
-                .and_then(|k| GroupMasterKeyBytes::try_from(k).ok())
-            {
-                Some(key) => format!(" in group {}", format_group(key, manager).await),
-                None => String::new(),
+            let stored = match content.metadata.sender {
+                ServiceId::Aci(sender) => manager
+                    .store()
+                    .story(
+                        &sender,
+                        content.metadata.client_timestamp.timestamp_millis() as u64,
+                    )
+                    .await
+                    .is_ok_and(|story| story.is_some()),
+                ServiceId::Pni(_) => false,
             };
-            Some(Msg::Received(
-                &thread,
-                format!("posted a story{group}: {}", format_story(story)),
-            ))
+            if stored {
+                let group = match stories::group_master_key(story) {
+                    Some(key) => format!(" in group {}", format_group(key, manager).await),
+                    None => String::new(),
+                };
+                Some(Msg::Received(
+                    &thread,
+                    format!("posted a story{group}: {}", format_story(story)),
+                ))
+            } else {
+                None
+            }
         }
         ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
             &thread,
@@ -846,34 +855,26 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
 
             send(&mut manager, Recipient::Group(master_key), data_message).await?;
         }
-        Cmd::RetrieveProfile {
-            aci,
-            mut profile_key,
-        } => {
+        Cmd::RetrieveProfile { aci, profile_key } => {
             let mut manager = load_registered_and_receive(store).await?;
-            if profile_key.is_none() {
-                for contact in manager
-                    .store()
-                    .contacts()
-                    .await?
-                    .filter_map(Result::ok)
-                    .filter(|c| c.uuid == Uuid::from(aci))
-                {
-                    let profilek:[u8;32] = match(contact.profile_key).try_into() {
-                    Ok(profilek) => profilek,
-                    Err(_) => bail!("Profile key is not 32 bytes or empty for {} and no alternative profile key was provided", aci.service_id_string()),
-                };
-                    profile_key = Some(ProfileKey::create(profilek));
-                }
-            } else {
-                println!(
-                    "Retrieving profile for {} with profile_key",
-                    aci.service_id_string()
-                );
-            }
-            let profile = match profile_key {
+            let profile = match aci {
                 None => manager.retrieve_profile().await?,
-                Some(profile_key) => manager.retrieve_profile_by_uuid(aci, profile_key).await?,
+                Some(aci) => {
+                    let profile_key = match profile_key {
+                        Some(profile_key) => profile_key,
+                        None => manager
+                            .store()
+                            .profile_key(&aci.into())
+                            .await?
+                            .with_context(|| {
+                                format!(
+                                    "no profile key stored for {}, pass --profile-key",
+                                    aci.service_id_string()
+                                )
+                            })?,
+                    };
+                    manager.retrieve_profile_by_uuid(aci, profile_key).await?
+                }
             };
             println!("{profile:#?}");
         }
@@ -1005,7 +1006,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             output,
         } => {
             let mut manager = load_registered_and_receive(store).await?;
-            let Some(story) = manager.store().story(&sender, timestamp).await? else {
+            let Some(story) = manager.story(&sender, timestamp).await? else {
                 bail!(
                     "no story from {} at {timestamp}",
                     sender.service_id_string()
@@ -1018,12 +1019,15 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 &story.message.attachment
             {
                 let data = manager.get_attachment(attachment).await?;
-                let path = output.unwrap_or_else(|| {
-                    PathBuf::from(format!(
-                        "presage-story-{timestamp}.{}",
-                        attachment_extension(attachment)
-                    ))
-                });
+                let filename = format!(
+                    "presage-story-{timestamp}.{}",
+                    attachment_extension(attachment)
+                );
+                let path = match output {
+                    Some(output) if output.is_dir() => output.join(filename),
+                    Some(output) => output,
+                    None => PathBuf::from(filename),
+                };
                 fs::write(&path, &data).await?;
                 println!("saved attachment to {}", path.display());
             }
