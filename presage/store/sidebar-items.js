@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["MessageIterationOrder","Thread","ThreadError"],"fn":["save_trusted_identity_message"],"struct":["MessagesQueryParams","Sticker","StickerPack","StickerPackManifest"],"trait":["ContentExt","ContentsStore","StateStore","Store","StoreError"]};
+window.SIDEBAR_ITEMS = {"enum":["MessageIterationOrder","Thread","ThreadError"],"fn":["save_trusted_identity_message"],"struct":["MessagesQueryParams","Sticker","StickerPack","StickerPackManifest"],"trait":["ContentExt","ContentsStore","StateStore","Store","StoreError","StoriesStore"]};
