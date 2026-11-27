@@ -1265,7 +1265,7 @@ impl<S: Store> Manager<S, Registered> {
             message.required_protocol_version = Some(0);
         }
 
-        promote_long_body_to_attachment::<S>(&mut sender, &mut content_body).await?;
+        attach_long_text::<S>(&mut sender, &mut content_body).await?;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
@@ -1429,7 +1429,7 @@ impl<S: Store> Manager<S, Registered> {
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
-        promote_long_body_to_attachment::<S>(&mut sender, &mut content_body).await?;
+        attach_long_text::<S>(&mut sender, &mut content_body).await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
@@ -1979,15 +1979,12 @@ impl<S: Store> Manager<S, Registered> {
     }
 }
 
-/// Maximum number of bytes that can be sent inline in a data message body.
-/// Bodies exceeding this limit are uploaded as `text/x-signal-plain` attachments.
+// Signal-Android and Signal-iOS drop messages whose body exceeds this.
 const MAX_INLINE_BODY_SIZE_BYTES: usize = 2048;
 
 pub const LONG_TEXT_CONTENT_TYPE: &str = "text/x-signal-plain";
 
-/// If the body exceeds [`MAX_INLINE_BODY_SIZE_BYTES`], truncate it at a UTF-8
-/// boundary and upload the full text as a `text/x-signal-plain` attachment.
-async fn promote_long_body_to_attachment<S: Store>(
+async fn attach_long_text<S: Store>(
     sender: &mut MessageSender<S::AciStore>,
     content_body: &mut ContentBody,
 ) -> Result<(), Error<S::Error>> {
