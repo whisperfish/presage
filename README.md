@@ -18,7 +18,7 @@ Features:
 - [x] Messages (incoming and outgoing), with edits, deletes and receipts
 - [x] Fetch, decrypt and store attachments
 - [x] Stickers
-- [ ] Stories
+- [x] Stories
 
 ## Instructions
 

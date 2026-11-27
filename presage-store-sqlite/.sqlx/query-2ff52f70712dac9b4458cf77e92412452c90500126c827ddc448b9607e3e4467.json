@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM stories WHERE sender_uuid = ? AND ts = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": []
+  },
+  "hash": "2ff52f70712dac9b4458cf77e92412452c90500126c827ddc448b9607e3e4467"
+}

@@ -28,7 +28,7 @@ use libsignal_service::{
             self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
         },
         AttachmentPointer, CallMessage, ContactRecord, DataMessage, EditMessage, GroupContextV2,
-        NullMessage, ReceiptMessage, SyncMessage, Verified,
+        NullMessage, ReceiptMessage, StoryMessage, SyncMessage, Verified,
     },
     protocol::{
         Aci, DeviceId, IdentityKey, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
@@ -66,6 +66,7 @@ use url::Url;
 use crate::model::contacts::Contact;
 use crate::model::previews;
 use crate::model::settings::Settings;
+use crate::model::stories::Story;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
@@ -361,16 +362,17 @@ impl<S: Store> Manager<S, Registered> {
             }))
     }
 
-    async fn send_delivery_receipt(
+    async fn send_receipt(
         &self,
         message_sender: &mut MessageSender<S::AciStore>,
         recipient: ServiceId,
+        receipt_type: receipt_message::Type,
         message_timestamps: Vec<u64>,
     ) -> Result<(), Error<S::Error>> {
         let certificate = self.sender_certificate().await?;
         let unidentified_access = self.unidentified_access(&recipient, &certificate).await?;
         let receipt = ReceiptMessage {
-            r#type: Some(receipt_message::Type::Delivery.into()),
+            r#type: Some(receipt_type.into()),
             timestamp: message_timestamps,
         };
         let timestamp = SystemTime::now()
@@ -1059,6 +1061,15 @@ impl<S: Store> Manager<S, Registered> {
                                                 ..
                                             })),
                                         ..
+                                    })
+                                    | ContentBody::StoryMessage(StoryMessage {
+                                        group:
+                                            Some(GroupContextV2 {
+                                                master_key: Some(master_key_bytes),
+                                                revision: Some(revision),
+                                                ..
+                                            }),
+                                        ..
                                     }) = &content.body
                                     {
                                         // there's two things to implement: the group metadata (fetched from HTTP API)
@@ -1711,6 +1722,66 @@ impl<S: Store> Manager<S, Registered> {
         Ok(())
     }
 
+    /// Stories that haven't expired, oldest first.
+    pub async fn stories(&mut self) -> Result<Vec<Story>, Error<S::Error>> {
+        self.store
+            .delete_stories_before(now_millis() - STORY_LIFESPAN_MILLIS)
+            .await?;
+        Ok(self.store.stories().await?)
+    }
+
+    /// The story from `sender` sent at `timestamp`, unless it has expired.
+    pub async fn story(
+        &mut self,
+        sender: &Aci,
+        timestamp: u64,
+    ) -> Result<Option<Story>, Error<S::Error>> {
+        self.store
+            .delete_stories_before(now_millis() - STORY_LIFESPAN_MILLIS)
+            .await?;
+        Ok(self.store.story(sender, timestamp).await?)
+    }
+
+    /// Marks a story as viewed on all our devices, and tells its author if
+    /// [story view receipts](Settings::story_view_receipts) are enabled.
+    ///
+    /// Returns whether the story was stored, unexpired and not viewed before.
+    pub async fn mark_story_viewed(
+        &mut self,
+        sender: Aci,
+        timestamp: u64,
+    ) -> Result<bool, Error<S::Error>> {
+        if self
+            .story(&sender, timestamp)
+            .await?
+            .is_none_or(|story| story.viewed)
+        {
+            return Ok(false);
+        }
+        let mut message_sender = self.new_message_sender().await?;
+        message_sender
+            .send_sync_message(SyncMessage {
+                viewed: vec![sync_message::Viewed {
+                    sender_aci: Some(sender.service_id_string()),
+                    sender_aci_binary: Some(sender.service_id_binary()),
+                    timestamp: Some(timestamp),
+                }],
+                ..SyncMessage::with_padding(&mut rand::rng())
+            })
+            .await?;
+        if self.settings().story_view_receipts() {
+            self.send_receipt(
+                &mut message_sender,
+                sender.into(),
+                receipt_message::Type::Viewed,
+                vec![timestamp],
+            )
+            .await?;
+        }
+        self.store.mark_story_viewed(&sender, timestamp).await?;
+        Ok(true)
+    }
+
     /// Records a finished call in the thread with the peer of `event` and tells our other
     /// devices about it, so their call logs agree. Returns the stored content.
     pub async fn send_call_event(
@@ -2045,6 +2116,12 @@ async fn sync_from_storage_service<S: Store>(
                         {
                             warn!(%error, "failed to store blocked state of group");
                         }
+                        if let Err(error) = store
+                            .set_stories_hidden(&Thread::Group(master_key), record.hide_story)
+                            .await
+                        {
+                            warn!(%error, "failed to store hidden stories state of group");
+                        }
                     }
                     match save_unknown_group(store, groups_manager, &record.master_key).await {
                         Ok(_) => groups += 1,
@@ -2076,6 +2153,9 @@ async fn save_contact_record<S: Store>(
     store.save_contact(&contact).await?;
     store
         .set_blocked(&Thread::Contact(Aci::from(aci).into()), record.blocked)
+        .await?;
+    store
+        .set_stories_hidden(&Thread::Contact(Aci::from(aci).into()), record.hide_story)
         .await?;
     if let Ok(bytes) = <[u8; 32]>::try_from(record.profile_key.as_slice()) {
         store
@@ -2306,7 +2386,12 @@ impl<S: Store> StreamState<S> {
             let mut message_sender = self.message_sender.clone();
             tokio::task::spawn_local(async move {
                 if let Err(error) = manager
-                    .send_delivery_receipt(&mut message_sender, recipient, timestamps)
+                    .send_receipt(
+                        &mut message_sender,
+                        recipient,
+                        receipt_message::Type::Delivery,
+                        timestamps,
+                    )
                     .await
                 {
                     warn!(%error, "failed to send delivery receipt");
@@ -2483,8 +2568,15 @@ async fn save_message<S: Store>(
                         }),
                     ..
                 } => {
-                    // replace an existing message by an empty NullMessage
-                    if let Some(mut existing_msg) = store.message(&thread, *ts).await? {
+                    let deleted_story = match message.metadata.sender {
+                        ServiceId::Aci(sender) => store.delete_story(&sender, *ts).await?,
+                        ServiceId::Pni(_) => false,
+                    };
+                    if deleted_story {
+                        debug!(ts, "story deleted");
+                        None
+                    } else if let Some(mut existing_msg) = store.message(&thread, *ts).await? {
+                        // replace an existing message by an empty NullMessage
                         existing_msg.metadata.sender = Aci::from(Uuid::nil()).into();
                         existing_msg.body = NullMessage::default().into();
                         store.save_message(&thread, existing_msg).await?;
@@ -2494,6 +2586,14 @@ async fn save_message<S: Store>(
                         warn!(%thread, ts, "could not find message to delete in thread");
                         None
                     }
+                }
+                DataMessage {
+                    story_context: Some(_),
+                    group_v2: Some(_),
+                    ..
+                } => {
+                    debug!(%thread, "skipping group story reply");
+                    None
                 }
                 _ => Some(message),
             }
@@ -2569,6 +2669,16 @@ async fn save_message<S: Store>(
             content: Some(SyncContent::CallEvent(_)),
             ..
         }) => Some(message),
+        ContentBody::SynchronizeMessage(SyncMessage { ref viewed, .. }) if !viewed.is_empty() => {
+            for viewed in viewed {
+                if let (Some(sender), Some(timestamp)) =
+                    (viewed.parse_sender_aci(), viewed.timestamp)
+                {
+                    store.mark_story_viewed(&sender, timestamp).await?;
+                }
+            }
+            None
+        }
         ContentBody::SynchronizeMessage(msg) => {
             trace!(
                 ?msg,
@@ -2581,8 +2691,8 @@ async fn save_message<S: Store>(
             debug!(?msg, "skipping saving typing message");
             None
         }
-        ContentBody::StoryMessage(msg) => {
-            debug!(?msg, "skipping story message");
+        ContentBody::StoryMessage(story) => {
+            save_story(store, &message.metadata, story).await?;
             None
         }
         ContentBody::EditMessage(msg) => {
@@ -2595,6 +2705,71 @@ async fn save_message<S: Store>(
         store.save_message(&thread, message).await?;
     }
 
+    Ok(())
+}
+
+const STORY_LIFESPAN_MILLIS: u64 = 24 * 60 * 60 * 1000;
+
+fn now_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("Time went backwards")
+        .as_millis() as u64
+}
+
+async fn save_story<S: Store>(
+    store: &mut S,
+    metadata: &Metadata,
+    message: StoryMessage,
+) -> Result<(), Error<S::Error>> {
+    let ServiceId::Aci(sender) = metadata.sender else {
+        return Ok(());
+    };
+    // The receive-stories header only takes effect on reconnect, so queued stories still arrive.
+    if !store.load_settings().await?.unwrap_or_default().stories {
+        debug!("skipping story, stories are disabled");
+        return Ok(());
+    }
+    let expired_before = now_millis() - STORY_LIFESPAN_MILLIS;
+    store.delete_stories_before(expired_before).await?;
+
+    let story = Story {
+        sender,
+        timestamp: metadata.client_timestamp.timestamp_millis() as u64,
+        message,
+        viewed: false,
+    };
+    if story.timestamp < expired_before {
+        debug!(sender = %sender.service_id_string(), story.timestamp, "skipping expired story");
+        return Ok(());
+    }
+    // Same rules as Signal-Android's `StoryMessageProcessor`, with known contacts standing in for profile sharing.
+    let thread = match story.group_master_key() {
+        Some(master_key) => {
+            let is_member = !store.is_group_left(master_key).await?
+                && store
+                    .group(master_key)
+                    .await?
+                    .is_some_and(|group| group.members.iter().any(|m| m.aci == sender));
+            if !is_member {
+                debug!(sender = %sender.service_id_string(), "skipping group story from non-member");
+                return Ok(());
+            }
+            Thread::Group(master_key)
+        }
+        None => {
+            if store.contact_by_id(&sender.into()).await?.is_none() {
+                debug!(sender = %sender.service_id_string(), "skipping story from unknown contact");
+                return Ok(());
+            }
+            Thread::Contact(sender.into())
+        }
+    };
+    if store.are_stories_hidden(&thread).await? {
+        debug!(%thread, "skipping hidden story");
+        return Ok(());
+    }
+    store.save_story(&story).await?;
     Ok(())
 }
 

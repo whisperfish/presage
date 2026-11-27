@@ -24,6 +24,10 @@ use libsignal_service::{
 use serde::{Deserialize, Serialize};
 use tracing::trace;
 
+mod stories;
+
+pub use stories::StoriesStore;
+
 use crate::{
     manager::RegistrationData,
     model::{contacts::Contact, groups::Group, settings::Settings},
@@ -457,6 +461,7 @@ pub trait ContentsStore: Send + Sync {
 pub trait Store:
     StateStore<StateStoreError = Self::Error>
     + ContentsStore<ContentsStoreError = Self::Error>
+    + StoriesStore
     + Send
     + Sync
     + Clone

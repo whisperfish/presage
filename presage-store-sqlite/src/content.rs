@@ -84,6 +84,15 @@ impl ContentsStore for SqliteStore {
         query!("DELETE FROM blocked_groups")
             .execute(&mut *transaction)
             .await?;
+        query!("DELETE FROM stories")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM hidden_story_contacts")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM hidden_story_groups")
+            .execute(&mut *transaction)
+            .await?;
         transaction.commit().await.into_protocol_error()?;
         Ok(())
     }
