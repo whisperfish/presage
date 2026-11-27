@@ -1242,7 +1242,7 @@ impl<S: Store> Manager<S, Registered> {
             message.required_protocol_version = Some(0);
         }
 
-        promote_long_body_to_attachment(&mut sender, &mut content_body).await?;
+        promote_long_body_to_attachment::<S>(&mut sender, &mut content_body).await?;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
@@ -1406,7 +1406,7 @@ impl<S: Store> Manager<S, Registered> {
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
-        promote_long_body_to_attachment(&mut sender, &mut content_body).await?;
+        promote_long_body_to_attachment::<S>(&mut sender, &mut content_body).await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
@@ -1512,6 +1512,23 @@ impl<S: Store> Manager<S, Registered> {
             .delete_all_sessions(recipient)
             .await?;
         Ok(())
+    }
+
+    /// Returns the full text of a message whose body was truncated because it was too long to send
+    /// inline, or `None` if it has no [`LONG_TEXT_CONTENT_TYPE`] attachment.
+    pub async fn long_text(
+        &self,
+        message: &DataMessage,
+    ) -> Result<Option<String>, Error<S::Error>> {
+        let Some(pointer) = message
+            .attachments
+            .iter()
+            .find(|a| a.content_type() == LONG_TEXT_CONTENT_TYPE)
+        else {
+            return Ok(None);
+        };
+        let bytes = self.get_attachment(pointer).await?;
+        Ok(Some(String::from_utf8_lossy(&bytes).into_owned()))
     }
 
     /// Downloads and decrypts a single attachment.
@@ -1960,28 +1977,24 @@ impl<S: Store> Manager<S, Registered> {
 /// Bodies exceeding this limit are uploaded as `text/x-signal-plain` attachments.
 const MAX_INLINE_BODY_SIZE_BYTES: usize = 2048;
 
+pub const LONG_TEXT_CONTENT_TYPE: &str = "text/x-signal-plain";
+
 /// If the body exceeds [`MAX_INLINE_BODY_SIZE_BYTES`], truncate it at a UTF-8
 /// boundary and upload the full text as a `text/x-signal-plain` attachment.
-async fn promote_long_body_to_attachment<P, E>(
-    sender: &mut MessageSender<P>,
+async fn promote_long_body_to_attachment<S: Store>(
+    sender: &mut MessageSender<S::AciStore>,
     content_body: &mut ContentBody,
-) -> Result<(), Error<E>>
-where
-    P: libsignal_service::protocol::ProtocolStore
-        + libsignal_service::protocol::SenderKeyStore
-        + libsignal_service::session_store::SessionStoreExt
-        + Send
-        + Sync
-        + Clone,
-    E: std::error::Error,
-{
-
+) -> Result<(), Error<S::Error>> {
     let data_message = match content_body {
         ContentBody::DataMessage(m) => m,
-        ContentBody::EditMessage(m) => match m.data_message.as_mut() {
-            Some(m) => m,
-            None => return Ok(()),
-        },
+        ContentBody::EditMessage(EditMessage {
+            data_message: Some(m),
+            ..
+        }) => {
+            // NB: An edit carries only its own long-text attachment
+            strip_long_text_attachments(m);
+            m
+        }
         _ => return Ok(()),
     };
 
@@ -1999,7 +2012,7 @@ where
     let attachment = sender
         .upload_attachment(
             AttachmentSpec {
-                content_type: "text/x-signal-plain".to_owned(),
+                content_type: LONG_TEXT_CONTENT_TYPE.to_owned(),
                 length: body.len(),
                 file_name: None,
                 preview: None,
@@ -2013,19 +2026,18 @@ where
             body.into_bytes(),
             &mut rng(),
         )
-        .await
-        .map_err(map_attachment_upload_error)?;
+        .await?;
 
+    strip_long_text_attachments(data_message);
     data_message.attachments.insert(0, attachment);
 
     Ok(())
 }
 
-fn map_attachment_upload_error<E: std::error::Error>(error: AttachmentUploadError) -> Error<E> {
-    match error {
-        AttachmentUploadError::ServiceError(error) => error.into(),
-        AttachmentUploadError::IoError(error) => error.into(),
-    }
+fn strip_long_text_attachments(data_message: &mut DataMessage) {
+    data_message
+        .attachments
+        .retain(|a| a.content_type() != LONG_TEXT_CONTENT_TYPE);
 }
 
 /// Set the timestamp in any DataMessage so it matches its envelope's
