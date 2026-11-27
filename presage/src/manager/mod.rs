@@ -10,7 +10,9 @@ use std::fmt;
 
 pub use self::confirmation::Confirmation;
 pub use self::linking::Linking;
-pub use self::registered::{Registered, RegistrationData, RegistrationType};
+pub use self::registered::{
+    Registered, RegistrationData, RegistrationType, LONG_TEXT_CONTENT_TYPE,
+};
 pub use self::registration::{Registration, RegistrationOptions};
 
 /// Signal manager

@@ -59,6 +59,8 @@ pub enum Error<S: std::error::Error> {
     ParseContactError(#[from] ParseContactError),
     #[error("failed to decrypt attachment: {0}")]
     AttachmentCipherError(#[from] libsignal_service::attachment_cipher::AttachmentCipherError),
+    #[error("failed to upload attachment: {0}")]
+    AttachmentUploadError(#[from] libsignal_service::sender::AttachmentUploadError),
     #[error("unknown group")]
     UnknownGroup,
     #[error("unknown recipient")]

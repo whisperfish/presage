@@ -718,7 +718,7 @@ impl<S: Store> Manager<S, Registered> {
                                 }
                             };
                             match envelope {
-                                Ok(Some(content)) => {
+                                Ok(Some(mut content)) => {
                                     match is_blocked(&state.manager.store, &content).await {
                                         Ok(true) => {
                                             debug!(sender = %content.metadata.sender.service_id_string(), "dropping message from blocked contact or group");
@@ -1087,6 +1087,28 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
+                                    if let Some(data_message) = data_message_mut(&mut content.body)
+                                    {
+                                        if let Some(pointer) = data_message
+                                            .attachments
+                                            .iter()
+                                            .find(|a| a.content_type() == LONG_TEXT_CONTENT_TYPE)
+                                        {
+                                            match state.manager.get_attachment(pointer).await {
+                                                Ok(bytes) => {
+                                                    debug!("downloaded long-text attachment");
+                                                    data_message.body = Some(
+                                                        String::from_utf8_lossy(&bytes)
+                                                            .into_owned(),
+                                                    );
+                                                }
+                                                Err(error) => {
+                                                    warn!(%error, "failed to download long-text attachment, keeping truncated body")
+                                                }
+                                            }
+                                        }
+                                    }
+
                                     if let Some(timestamp) = delivery_receipt_timestamp(&content) {
                                         state.queue_delivery_receipt(
                                             content.metadata.sender,
@@ -1253,6 +1275,9 @@ impl<S: Store> Manager<S, Registered> {
             message.required_protocol_version = Some(0);
         }
 
+        let full_body = self
+            .attach_long_text(&mut sender, &mut content_body)
+            .await?;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
@@ -1267,6 +1292,10 @@ impl<S: Store> Manager<S, Registered> {
             .await?;
 
         // save the message
+        if let (Some(body), Some(data_message)) = (full_body, data_message_mut(&mut content_body)) {
+            data_message.body = Some(body);
+        }
+
         let content = Content {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci().into(),
@@ -1416,6 +1445,9 @@ impl<S: Store> Manager<S, Registered> {
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
+        let full_body = self
+            .attach_long_text(&mut sender, &mut content_body)
+            .await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
@@ -1462,6 +1494,10 @@ impl<S: Store> Manager<S, Registered> {
             })
             .transpose()?;
 
+        if let (Some(body), Some(data_message)) = (full_body, data_message_mut(&mut content_body)) {
+            data_message.body = Some(body);
+        }
+
         let content = Content {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci().into(),
@@ -1489,6 +1525,61 @@ impl<S: Store> Manager<S, Registered> {
         .await?;
 
         Ok(content)
+    }
+
+    async fn attach_long_text(
+        &self,
+        sender: &mut MessageSender<S::AciStore>,
+        content_body: &mut ContentBody,
+    ) -> Result<Option<String>, Error<S::Error>> {
+        let data_message = match content_body {
+            ContentBody::DataMessage(m) => m,
+            ContentBody::EditMessage(EditMessage {
+                data_message: Some(m),
+                ..
+            }) => {
+                // NB: An edit carries only its own long-text attachment
+                strip_long_text_attachments(m);
+                m
+            }
+            _ => return Ok(None),
+        };
+
+        let Some(body) = data_message.body.clone() else {
+            return Ok(None);
+        };
+
+        if body.len() <= MAX_INLINE_BODY_SIZE_BYTES {
+            return Ok(None);
+        }
+
+        let split = body.floor_char_boundary(MAX_INLINE_BODY_SIZE_BYTES);
+        data_message.body = Some(body[..split].to_owned());
+
+        let attachment = sender
+            .upload_attachment(
+                AttachmentSpec {
+                    content_type: LONG_TEXT_CONTENT_TYPE.to_owned(),
+                    length: body.len(),
+                    file_name: None,
+                    preview: None,
+                    voice_note: None,
+                    borderless: None,
+                    width: None,
+                    height: None,
+                    caption: None,
+                    blur_hash: None,
+                },
+                body.as_bytes().to_vec(),
+                &mut rng(),
+            )
+            .await?;
+
+        strip_long_text_attachments(data_message);
+        data_message.attachments.insert(0, attachment);
+        debug!("uploaded long body as long-text attachment");
+
+        Ok(Some(body))
     }
 
     async fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
@@ -2025,29 +2116,37 @@ impl<S: Store> Manager<S, Registered> {
     }
 }
 
+// Signal-Android and Signal-iOS drop messages whose body exceeds this.
+const MAX_INLINE_BODY_SIZE_BYTES: usize = 2048;
+
+pub const LONG_TEXT_CONTENT_TYPE: &str = "text/x-signal-plain";
+
+fn data_message_mut(body: &mut ContentBody) -> Option<&mut DataMessage> {
+    match body {
+        ContentBody::DataMessage(m) => Some(m),
+        ContentBody::EditMessage(EditMessage { data_message, .. }) => data_message.as_mut(),
+        ContentBody::SynchronizeMessage(SyncMessage {
+            content: Some(SyncContent::Sent(sent)),
+            ..
+        }) => match (&mut sent.message, &mut sent.edit_message) {
+            (Some(m), _) => Some(m),
+            (None, Some(edit)) => edit.data_message.as_mut(),
+            (None, None) => None,
+        },
+        _ => None,
+    }
+}
+
+fn strip_long_text_attachments(data_message: &mut DataMessage) {
+    data_message
+        .attachments
+        .retain(|a| a.content_type() != LONG_TEXT_CONTENT_TYPE);
+}
+
 /// Set the timestamp in any DataMessage so it matches its envelope's
 fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64) {
-    match content_body {
-        ContentBody::DataMessage(message) => {
-            message.timestamp = Some(timestamp);
-        }
-        ContentBody::EditMessage(EditMessage {
-            data_message: Some(data_message),
-            ..
-        }) => {
-            data_message.timestamp = Some(timestamp);
-        }
-        ContentBody::SynchronizeMessage(SyncMessage {
-            content:
-                Some(SyncContent::Sent(sync_message::Sent {
-                    message: Some(data_message),
-                    ..
-                })),
-            ..
-        }) => {
-            data_message.timestamp = Some(timestamp);
-        }
-        _ => (),
+    if let Some(data_message) = data_message_mut(content_body) {
+        data_message.timestamp = Some(timestamp);
     }
 }
 
