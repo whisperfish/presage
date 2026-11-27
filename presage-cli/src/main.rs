@@ -132,10 +132,9 @@ enum Cmd {
     Whoami,
     #[clap(about = "Retrieve the user profile")]
     RetrieveProfile {
-        /// Id of the user to retrieve the profile. When omitted, retrieves the registered user
-        /// profile.
-        #[clap(long)]
-        uuid: Uuid,
+        /// ACI of the user to retrieve the profile of.
+        #[clap(long, value_parser = parse_aci)]
+        aci: Aci,
         /// Base64-encoded profile key of user to be able to access their profile
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
@@ -231,8 +230,8 @@ enum Cmd {
     },
     #[clap(about = "Send a message")]
     Send {
-        #[clap(long, short = 'u', help = "uuid of the recipient")]
-        uuid: Uuid,
+        #[clap(long, short = 'u', help = "recipient service ID (no prefix defaults to ACI, otherwise PNI:[uuid])", value_parser = parse_service_id)]
+        recipient: ServiceId,
         #[clap(long, short = 'm', help = "Contents of the message to send")]
         message: String,
         #[clap(long = "attach", help = "Path to a file to attach, can be repeated")]
@@ -265,7 +264,7 @@ enum Cmd {
 }
 
 enum Recipient {
-    Contact(Uuid),
+    Contact(ServiceId),
     Group(GroupMasterKeyBytes),
 }
 
@@ -347,10 +346,10 @@ async fn send<S: Store>(
     }
 
     match recipient {
-        Recipient::Contact(uuid) => {
-            info!(recipient =% uuid, "sending message to contact");
+        Recipient::Contact(service_id) => {
+            info!(recipient =% service_id.service_id_string(), "sending message to contact");
             manager
-                .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
+                .send_message(service_id, content_body, timestamp)
                 .await
                 .expect("failed to send message");
         }
@@ -813,7 +812,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::Send {
-            uuid,
+            recipient,
             message,
             attachment_filepath,
         } => {
@@ -825,7 +824,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 ..Default::default()
             };
 
-            send(&mut manager, Recipient::Contact(uuid), data_message).await?;
+            send(&mut manager, Recipient::Contact(recipient), data_message).await?;
         }
         Cmd::SendToGroup {
             message,
@@ -848,7 +847,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             send(&mut manager, Recipient::Group(master_key), data_message).await?;
         }
         Cmd::RetrieveProfile {
-            uuid,
+            aci,
             mut profile_key,
         } => {
             let mut manager = load_registered_and_receive(store).await?;
@@ -858,20 +857,23 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                     .contacts()
                     .await?
                     .filter_map(Result::ok)
-                    .filter(|c| c.uuid == uuid)
+                    .filter(|c| c.uuid == Uuid::from(aci))
                 {
                     let profilek:[u8;32] = match(contact.profile_key).try_into() {
                     Ok(profilek) => profilek,
-                    Err(_) => bail!("Profile key is not 32 bytes or empty for uuid: {:?} and no alternative profile key was provided", uuid),
+                    Err(_) => bail!("Profile key is not 32 bytes or empty for {} and no alternative profile key was provided", aci.service_id_string()),
                 };
                     profile_key = Some(ProfileKey::create(profilek));
                 }
             } else {
-                println!("Retrieving profile for: {uuid:?} with profile_key");
+                println!(
+                    "Retrieving profile for {} with profile_key",
+                    aci.service_id_string()
+                );
             }
             let profile = match profile_key {
                 None => manager.retrieve_profile().await?,
-                Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
+                Some(profile_key) => manager.retrieve_profile_by_uuid(aci, profile_key).await?,
             };
             println!("{profile:#?}");
         }
