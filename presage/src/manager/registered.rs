@@ -1264,7 +1264,9 @@ impl<S: Store> Manager<S, Registered> {
             message.required_protocol_version = Some(0);
         }
 
-        let full_body = attach_long_text::<S>(&mut sender, &mut content_body).await?;
+        let full_body = self
+            .attach_long_text(&mut sender, &mut content_body)
+            .await?;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
@@ -1432,7 +1434,9 @@ impl<S: Store> Manager<S, Registered> {
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
-        let full_body = attach_long_text::<S>(&mut sender, &mut content_body).await?;
+        let full_body = self
+            .attach_long_text(&mut sender, &mut content_body)
+            .await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
@@ -1510,6 +1514,61 @@ impl<S: Store> Manager<S, Registered> {
         .await?;
 
         Ok(content)
+    }
+
+    async fn attach_long_text(
+        &self,
+        sender: &mut MessageSender<S::AciStore>,
+        content_body: &mut ContentBody,
+    ) -> Result<Option<String>, Error<S::Error>> {
+        let data_message = match content_body {
+            ContentBody::DataMessage(m) => m,
+            ContentBody::EditMessage(EditMessage {
+                data_message: Some(m),
+                ..
+            }) => {
+                // NB: An edit carries only its own long-text attachment
+                strip_long_text_attachments(m);
+                m
+            }
+            _ => return Ok(None),
+        };
+
+        let Some(body) = data_message.body.clone() else {
+            return Ok(None);
+        };
+
+        if body.len() <= MAX_INLINE_BODY_SIZE_BYTES {
+            return Ok(None);
+        }
+
+        let split = body.floor_char_boundary(MAX_INLINE_BODY_SIZE_BYTES);
+        data_message.body = Some(body[..split].to_owned());
+
+        let attachment = sender
+            .upload_attachment(
+                AttachmentSpec {
+                    content_type: LONG_TEXT_CONTENT_TYPE.to_owned(),
+                    length: body.len(),
+                    file_name: None,
+                    preview: None,
+                    voice_note: None,
+                    borderless: None,
+                    width: None,
+                    height: None,
+                    caption: None,
+                    blur_hash: None,
+                },
+                body.as_bytes().to_vec(),
+                &mut rng(),
+            )
+            .await?;
+
+        strip_long_text_attachments(data_message);
+        data_message.attachments.insert(0, attachment);
+        debug!("uploaded long body as long-text attachment");
+
+        Ok(Some(body))
     }
 
     async fn restore_thread_timer(&mut self, thread: &Thread, content_body: &mut ContentBody) {
@@ -1990,60 +2049,6 @@ impl<S: Store> Manager<S, Registered> {
 const MAX_INLINE_BODY_SIZE_BYTES: usize = 2048;
 
 pub const LONG_TEXT_CONTENT_TYPE: &str = "text/x-signal-plain";
-
-async fn attach_long_text<S: Store>(
-    sender: &mut MessageSender<S::AciStore>,
-    content_body: &mut ContentBody,
-) -> Result<Option<String>, Error<S::Error>> {
-    let data_message = match content_body {
-        ContentBody::DataMessage(m) => m,
-        ContentBody::EditMessage(EditMessage {
-            data_message: Some(m),
-            ..
-        }) => {
-            // NB: An edit carries only its own long-text attachment
-            strip_long_text_attachments(m);
-            m
-        }
-        _ => return Ok(None),
-    };
-
-    let Some(body) = data_message.body.clone() else {
-        return Ok(None);
-    };
-
-    if body.len() <= MAX_INLINE_BODY_SIZE_BYTES {
-        return Ok(None);
-    }
-
-    let split = body.floor_char_boundary(MAX_INLINE_BODY_SIZE_BYTES);
-    data_message.body = Some(body[..split].to_owned());
-
-    let attachment = sender
-        .upload_attachment(
-            AttachmentSpec {
-                content_type: LONG_TEXT_CONTENT_TYPE.to_owned(),
-                length: body.len(),
-                file_name: None,
-                preview: None,
-                voice_note: None,
-                borderless: None,
-                width: None,
-                height: None,
-                caption: None,
-                blur_hash: None,
-            },
-            body.as_bytes().to_vec(),
-            &mut rng(),
-        )
-        .await?;
-
-    strip_long_text_attachments(data_message);
-    data_message.attachments.insert(0, attachment);
-    debug!("uploaded long body as long-text attachment");
-
-    Ok(Some(body))
-}
 
 fn data_message_mut(body: &mut ContentBody) -> Option<&mut DataMessage> {
     match body {
