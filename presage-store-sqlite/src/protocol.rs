@@ -396,10 +396,14 @@ impl PreKeysStore for SqliteProtocolStore {
             tracing::debug!("deleting {} stale EC one-time pre-key(s)...", victims.len());
 
             for v in victims {
-                query!("DELETE FROM pre_keys WHERE id = ?", v)
-                    .execute(&self.store.db)
-                    .await
-                    .into_protocol_error()?;
+                query!(
+                    "DELETE FROM pre_keys WHERE id = ? AND identity = ?",
+                    v,
+                    self.identity
+                )
+                .execute(&self.store.db)
+                .await
+                .into_protocol_error()?;
             }
         }
 
@@ -705,10 +709,14 @@ impl KyberPreKeyStoreExt for SqliteProtocolStore {
             );
 
             for v in victims {
-                query!("DELETE FROM kyber_pre_keys WHERE id = ?", v)
-                    .execute(&self.store.db)
-                    .await
-                    .into_protocol_error()?;
+                query!(
+                    "DELETE FROM kyber_pre_keys WHERE id = ? AND identity = ?",
+                    v,
+                    self.identity
+                )
+                .execute(&self.store.db)
+                .await
+                .into_protocol_error()?;
             }
         }
 
@@ -952,9 +960,7 @@ impl SqliteProtocolStore {
             .map(|count| count.try_into().expect("invalid usize"))
         }
     }
-}
 
-impl SqliteProtocolStore {
     async fn insert_pre_key(
         &self,
         db: impl SqliteExecutor<'_>,
@@ -1062,7 +1068,7 @@ impl SqliteProtocolStore {
             "UPDATE kyber_pre_keys SET stale_at = ?2
             WHERE identity = ?1 AND is_last_resort = FALSE AND stale_at IS NULL",
             self.identity,
-            &stale_time.timestamp_millis(),
+            stale_time.naive_utc(),
         )
         .execute(db)
         .await
@@ -1074,6 +1080,7 @@ impl SqliteProtocolStore {
         Ok(())
     }
 }
+
 #[cfg(test)]
 mod test {
     use presage::libsignal_service::protocol::{KeyPair, KyberPreKeyStore, Timestamp};
@@ -1116,6 +1123,33 @@ mod test {
             protocol_store.last_pq_pre_key_id().await?,
             u32::from(pq_pre_keys.last().unwrap().id()?)
         );
+
+        let (next_pre_keys, _) = presage::libsignal_service::pre_keys::generate_one_time_pre_keys(
+            &mut protocol_store,
+            &mut rand::rng(),
+            &identity,
+            3,
+            0,
+        )
+        .await?;
+        protocol_store
+            .store_one_time_pre_key_bundle(&next_pre_keys, &[])
+            .await?;
+
+        let db = &protocol_store.store.db;
+        let fresh_ec: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM pre_keys WHERE stale_at IS NULL")
+                .fetch_one(db)
+                .await?;
+        let fresh_kyber: i64 =
+            sqlx::query_scalar("SELECT COUNT(*) FROM kyber_pre_keys WHERE stale_at IS NULL")
+                .fetch_one(db)
+                .await?;
+        assert_eq!(fresh_ec, 3);
+        assert_eq!(fresh_kyber, 2);
+        for key in &pre_keys {
+            protocol_store.get_pre_key(key.id()?).await?;
+        }
 
         Ok(())
     }
