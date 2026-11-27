@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "INSERT OR REPLACE INTO thread_messages (\n                ts,\n                thread_id,\n                sender_service_id,\n                sender_device_id,\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext,\n                pni_verified\n            )\n            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 10
+    },
+    "nullable": []
+  },
+  "hash": "979583c2dff47acfecb038c6c7964872c552393f6fbe6916c7f8ce945fc06814"
+}

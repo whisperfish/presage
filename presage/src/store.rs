@@ -1,14 +1,15 @@
 //! Traits that are used by the manager for storing the data.
 
-use std::{fmt, future::Future, ops::RangeBounds, time::SystemTime};
+use std::{fmt, future::Future, ops::RangeBounds};
 
 use libsignal_service::{
     content::{ContentBody, Metadata},
     groups_v2::Timer,
+    libsignal_account_keys::AccountEntropyPool,
     pre_keys::PreKeysStore,
     prelude::{Content, MasterKey, ProfileKey, Uuid},
     proto::{
-        sync_message::{self, Sent},
+        sync_message::{self, Content as SyncContent, Sent},
         verified, DataMessage, EditMessage, GroupContextV2, SyncMessage, Verified,
     },
     protocol::{
@@ -25,9 +26,54 @@ use tracing::trace;
 
 use crate::{
     manager::RegistrationData,
-    model::{contacts::Contact, groups::Group},
+    model::{contacts::Contact, groups::Group, settings::Settings},
     AvatarBytes,
 };
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MessageIterationOrder {
+    TimestampAscending,
+    TimestampDescending,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MessagesQueryParams<R: RangeBounds<u64>> {
+    pub range: R,
+    pub limit: Option<u64>,
+    pub order: MessageIterationOrder,
+}
+
+impl Default for MessagesQueryParams<std::ops::RangeFull> {
+    fn default() -> Self {
+        Self {
+            range: ..,
+            limit: None,
+            order: MessageIterationOrder::TimestampDescending,
+        }
+    }
+}
+
+impl<R: RangeBounds<u64>> From<R> for MessagesQueryParams<R> {
+    fn from(value: R) -> Self {
+        Self {
+            range: value,
+            limit: None,
+            order: MessageIterationOrder::TimestampDescending,
+        }
+    }
+}
+
+impl<R: RangeBounds<u64>> MessagesQueryParams<R> {
+    pub fn limit(mut self, limit: u64) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub fn ascending(mut self) -> Self {
+        self.order = MessageIterationOrder::TimestampAscending;
+        self
+    }
+}
 
 /// An error trait implemented by store error types
 pub trait StoreError: std::error::Error + Sync + Send {}
@@ -66,10 +112,19 @@ pub trait StateStore {
         certificate: &SenderCertificate,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
+    fn load_settings(
+        &self,
+    ) -> impl Future<Output = Result<Option<Settings>, Self::StateStoreError>>;
+
+    fn save_settings(
+        &mut self,
+        settings: &Settings,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>> + Send;
+
     /// Returns whether this store contains registration data or not
     fn is_registered(&self) -> impl Future<Output = bool>;
 
-    /// Clear registration data (including keys), but keep received messages, groups and contacts.
+    /// Clear all account state (registration, keys, settings), but keep received messages, groups and contacts.
     fn clear_registration(&mut self) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 
     fn fetch_master_key(
@@ -79,6 +134,15 @@ pub trait StateStore {
     fn store_master_key(
         &self,
         master_key: Option<&MasterKey>,
+    ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
+
+    fn fetch_account_entropy_pool(
+        &self,
+    ) -> impl Future<Output = Result<Option<AccountEntropyPool>, Self::StateStoreError>>;
+
+    fn store_account_entropy_pool(
+        &self,
+        aep: Option<&AccountEntropyPool>,
     ) -> impl Future<Output = Result<(), Self::StateStoreError>>;
 }
 
@@ -94,8 +158,8 @@ pub trait ContentsStore: Send + Sync {
     /// Each items is a tuple consisting of the group master key and its corresponding data.
     type GroupsIter: Iterator<Item = Result<(GroupMasterKeyBytes, Group), Self::ContentsStoreError>>;
 
-    /// Iterator over all stored messages
-    type MessagesIter: Iterator<Item = Result<Content, Self::ContentsStoreError>>;
+    /// Iterator over stored messages, newest first
+    type MessagesIter: DoubleEndedIterator<Item = Result<Content, Self::ContentsStoreError>>;
 
     /// Iterator over all stored sticker packs
     type StickerPacksIter: Iterator<Item = Result<StickerPack, Self::ContentsStoreError>>;
@@ -139,11 +203,18 @@ pub trait ContentsStore: Send + Sync {
         timestamp: u64,
     ) -> impl Future<Output = Result<Option<Content>, Self::ContentsStoreError>>;
 
+    /// Retrieve a message [Thread] from its sender and timestamp.
+    fn thread_for_sender_and_timestamp(
+        &self,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> impl Future<Output = Result<Option<Thread>, Self::ContentsStoreError>>;
+
     /// Retrieve all messages from a [Thread] within a range in time
-    fn messages(
+    fn messages<R: RangeBounds<u64>, P: Into<MessagesQueryParams<R>>>(
         &self,
         thread: &Thread,
-        range: impl RangeBounds<u64>,
+        params: P,
     ) -> impl Future<Output = Result<Self::MessagesIter, Self::ContentsStoreError>>;
 
     /// Get the expire timer from a [Thread], which corresponds to either [Contact::expire_timer]
@@ -195,7 +266,12 @@ pub trait ContentsStore: Send + Sync {
                 Thread::Group(key) => {
                     let group = self.group(*key).await?;
                     if let Some(mut g) = group {
-                        g.disappearing_messages_timer = Some(Timer { duration: timer });
+                        // Convert timer=0 to None for groups (disable disappearing messages)
+                        g.disappearing_messages_timer = if timer == 0 {
+                            None
+                        } else {
+                            Some(Timer { duration: timer })
+                        };
                         self.save_group(*key, g).await?;
                     }
                     Ok(())
@@ -229,7 +305,7 @@ pub trait ContentsStore: Send + Sync {
     /// Delete all cached group data
     fn clear_groups(&mut self) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
 
-    /// Save a group in the cache
+    /// Save a group in the cache. This clears its [left](Self::mark_group_left) mark.
     fn save_group(
         &self,
         master_key: GroupMasterKeyBytes,
@@ -244,6 +320,34 @@ pub trait ContentsStore: Send + Sync {
         &self,
         master_key: GroupMasterKeyBytes,
     ) -> impl Future<Output = Result<Option<Group>, Self::ContentsStoreError>>;
+
+    /// Mark a group as left: the group server refuses its state to this account.
+    fn mark_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Whether a group is [marked as left](Self::mark_group_left).
+    fn is_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
+
+    /// Mark a contact or group as blocked, or unblock it.
+    fn set_blocked(
+        &mut self,
+        thread: &Thread,
+        blocked: bool,
+    ) -> impl Future<Output = Result<(), Self::ContentsStoreError>>;
+
+    /// Whether a contact or group is [blocked](Self::set_blocked).
+    fn is_blocked(
+        &self,
+        thread: &Thread,
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>>;
+
+    /// All blocked contacts and groups.
+    fn blocked(&self) -> impl Future<Output = Result<Vec<Thread>, Self::ContentsStoreError>>;
 
     /// Save a group avatar in the cache
     fn save_group_avatar(
@@ -317,6 +421,26 @@ pub trait ContentsStore: Send + Sync {
         id: &[u8],
     ) -> impl Future<Output = Result<Option<StickerPack>, Self::ContentsStoreError>>;
 
+    /// Whether a sticker pack is installed
+    fn has_sticker_pack(
+        &self,
+        id: &[u8],
+    ) -> impl Future<Output = Result<bool, Self::ContentsStoreError>> {
+        async move { Ok(self.sticker_pack(id).await?.is_some()) }
+    }
+
+    /// The ids of the installed sticker packs
+    fn sticker_pack_ids(
+        &self,
+    ) -> impl Future<Output = Result<Vec<Vec<u8>>, Self::ContentsStoreError>> {
+        async move {
+            self.sticker_packs()
+                .await?
+                .map(|p| p.map(|p| p.id))
+                .collect()
+        }
+    }
+
     /// Removes a sticker pack
     fn remove_sticker_pack(
         &mut self,
@@ -364,6 +488,10 @@ pub trait Store:
     fn aci_protocol_store(&self) -> Self::AciStore;
 
     fn pni_protocol_store(&self) -> Self::PniStore;
+
+    fn close(&self) -> impl Future<Output = Result<(), Self::Error>> {
+        std::future::ready(Ok(()))
+    }
 }
 
 /// A thread specifies where a message was sent, either to or from a contact or in a group.
@@ -393,6 +521,8 @@ impl fmt::Display for Thread {
 pub enum ThreadError {
     #[error("invalid service ID")]
     InvalidServiceId,
+    #[error("invalid group master key")]
+    InvalidGroupMasterKey,
 }
 
 impl TryFrom<&Content> for Thread {
@@ -402,18 +532,18 @@ impl TryFrom<&Content> for Thread {
         match &content.body {
             // [1-1] Message sent by us with another device (with string service ID)
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sent @ Sent {
+                content:
+                    Some(SyncContent::Sent(sent @ Sent {
                         destination_service_id: Some(_),
                         ..
-                    }),
+                    })),
                 ..
             }) | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sent @ Sent {
+                content:
+                    Some(SyncContent::Sent(sent @ Sent {
                         destination_service_id_binary: Some(_),
                         ..
-                    }),
+                    })),
                 ..
             })=> {
                 let parsed_service_id = sent.parse_destination_service_id().ok_or(ThreadError::InvalidServiceId)?;
@@ -430,8 +560,8 @@ impl TryFrom<&Content> for Thread {
             })
             // [Group] message sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
+                content:
+                    Some(SyncContent::Sent(Sent {
                         message:
                             Some(DataMessage {
                                 group_v2:
@@ -442,13 +572,13 @@ impl TryFrom<&Content> for Thread {
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             })
             // [Group] message edit sent by us with another device
             | ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(Sent {
+                content:
+                    Some(SyncContent::Sent(Sent {
                         edit_message:
                             Some(EditMessage {
                                 data_message:
@@ -463,7 +593,7 @@ impl TryFrom<&Content> for Thread {
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             })
             // [Group] Message edit sent by somebody else
@@ -479,10 +609,21 @@ impl TryFrom<&Content> for Thread {
                     }),
                 ..
             }) => Ok(Self::Group(
-                key.clone()
+                key.as_slice()
                     .try_into()
-                    .expect("Group master key to have 32 bytes"),
+                    .map_err(|_| ThreadError::InvalidGroupMasterKey)?,
             )),
+            // [1-1] Call log entry from one of our devices
+            ContentBody::SynchronizeMessage(SyncMessage {
+                content:
+                    Some(SyncContent::CallEvent(sync_message::CallEvent {
+                        conversation_id: Some(conversation_id),
+                        ..
+                    })),
+                ..
+            }) if let Some(service_id) = ServiceId::parse_from_service_id_binary(conversation_id) => {
+                Ok(Self::Contact(service_id))
+            }
             // [1-1] Any other message directly to us
             _ => Ok(Thread::Contact(content.metadata.sender)),
         }
@@ -499,30 +640,30 @@ impl ContentExt for Content {
     fn timestamp(&self) -> u64 {
         match self.body {
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sync_message::Sent {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
                         timestamp: Some(ts),
                         ..
-                    }),
+                    })),
                 ..
             }) => ts,
             ContentBody::SynchronizeMessage(SyncMessage {
-                sent:
-                    Some(sync_message::Sent {
+                content:
+                    Some(SyncContent::Sent(sync_message::Sent {
                         edit_message:
                             Some(EditMessage {
                                 target_sent_timestamp: Some(ts),
                                 ..
                             }),
                         ..
-                    }),
+                    })),
                 ..
             }) => ts,
             ContentBody::EditMessage(EditMessage {
                 target_sent_timestamp: Some(ts),
                 ..
             }) => ts,
-            _ => self.metadata.timestamp,
+            _ => self.metadata.client_timestamp.timestamp_millis() as u64,
         }
     }
 }
@@ -595,26 +736,69 @@ pub async fn save_trusted_identity_message<S: Store>(
             destination: sender,
             sender_device: *DEFAULT_DEVICE_ID,
             server_guid: None,
-            timestamp: SystemTime::now()
-                .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis() as u64,
+            client_timestamp: chrono::Utc::now(),
+            // No messages were sent, just use the current time as the server timestamp.
+            server_timestamp: chrono::Utc::now(),
             needs_receipt: false,
             unidentified_sender: false,
             was_plaintext: false,
+            pni_verified: None,
         },
         body: SyncMessage {
-            verified: Some(Verified {
+            content: Some(SyncContent::Verified(Verified {
                 destination_aci: None,
                 destination_aci_binary: None,
                 identity_key: Some(right_identity_key.public_key().serialize().to_vec()),
                 state: Some(verified_state.into()),
                 null_message: None,
-            }),
+            })),
             ..Default::default()
         }
         .into(),
     };
 
     store.save_message(&thread, verified_sync_message).await
+}
+
+#[cfg(test)]
+mod tests {
+    use libsignal_service::{
+        content::{Content, ContentBody, Metadata},
+        prelude::Uuid,
+        proto::{sync_message, SyncMessage},
+        protocol::{Aci, ServiceId},
+    };
+
+    use super::Thread;
+
+    #[test]
+    fn call_event_thread() {
+        let own: ServiceId = Aci::from(Uuid::from_u128(1)).into();
+        let peer: ServiceId = Aci::from(Uuid::from_u128(2)).into();
+        let now = chrono::Utc::now();
+        let content = Content {
+            metadata: Metadata {
+                sender: own,
+                sender_device: 1.try_into().unwrap(),
+                destination: own,
+                server_guid: None,
+                client_timestamp: now,
+                server_timestamp: now,
+                needs_receipt: false,
+                unidentified_sender: false,
+                was_plaintext: false,
+                pni_verified: None,
+            },
+            body: ContentBody::SynchronizeMessage(SyncMessage {
+                content: Some(sync_message::Content::CallEvent(sync_message::CallEvent {
+                    conversation_id: Some(peer.service_id_binary()),
+                    call_id: Some(42),
+                    timestamp: Some(1_700_000_000_000),
+                    ..Default::default()
+                })),
+                ..Default::default()
+            }),
+        };
+        assert_eq!(Thread::try_from(&content).unwrap(), Thread::Contact(peer));
+    }
 }

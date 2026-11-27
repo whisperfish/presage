@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT uuid AS \"uuid: Uuid\" FROM blocked_contacts",
+  "describe": {
+    "columns": [
+      {
+        "name": "uuid: Uuid",
+        "ordinal": 0,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "blocked_contacts",
+            "name": "uuid"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "d232c6349c5116256002176f8b5d10c48c0316b117629d4b0d55fbe5651c8664"
+}

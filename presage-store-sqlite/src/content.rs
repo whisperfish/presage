@@ -6,12 +6,12 @@ use presage::{
         Profile,
         content::Metadata,
         prelude::{Content, ProfileKey, Uuid},
-        protocol::ServiceId,
+        protocol::{Aci, ServiceId},
         zkgroup::GroupMasterKeyBytes,
     },
     model::{contacts::Contact, groups::Group},
     proto::{Verified, verified},
-    store::{ContentsStore, StickerPack, Thread},
+    store::{ContentsStore, MessageIterationOrder, MessagesQueryParams, StickerPack, Thread},
 };
 use sqlx::{query, query_as, query_scalar, types::Json};
 
@@ -33,14 +33,15 @@ impl ContentsStore for SqliteStore {
             + Sync,
     >;
 
-    type MessagesIter =
-        Box<dyn Iterator<Item = Result<Content, Self::ContentsStoreError>> + Send + Sync>;
+    type MessagesIter = Box<
+        dyn DoubleEndedIterator<Item = Result<Content, Self::ContentsStoreError>> + Send + Sync,
+    >;
 
     type StickerPacksIter =
         Box<dyn Iterator<Item = Result<StickerPack, Self::ContentsStoreError>> + Send + Sync>;
 
     async fn clear_profiles(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM profiles")
             .execute(&mut *transaction)
             .await?;
@@ -55,7 +56,7 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_contents(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM thread_messages")
             .execute(&mut *transaction)
             .await?;
@@ -77,12 +78,18 @@ impl ContentsStore for SqliteStore {
         query!("DELETE FROM sticker_packs")
             .execute(&mut *transaction)
             .await?;
+        query!("DELETE FROM blocked_contacts")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM blocked_groups")
+            .execute(&mut *transaction)
+            .await?;
         transaction.commit().await.into_protocol_error()?;
         Ok(())
     }
 
     async fn clear_messages(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM thread_messages")
             .execute(&mut *transaction)
             .await?;
@@ -111,7 +118,7 @@ impl ContentsStore for SqliteStore {
         thread: &Thread,
         Content { metadata, body }: Content,
     ) -> Result<(), Self::ContentsStoreError> {
-        let mut tx = self.db.begin().await?;
+        let mut tx = self.begin_write().await?;
 
         let thread_id = match thread {
             Thread::Contact(service_id) => {
@@ -140,11 +147,13 @@ impl ContentsStore for SqliteStore {
             sender,
             destination,
             sender_device,
-            timestamp,
+            client_timestamp: timestamp,
             needs_receipt,
             unidentified_sender,
             server_guid: _,
             was_plaintext,
+            server_timestamp: _,
+            pni_verified,
         } = metadata;
 
         let sender_device: u8 = sender_device.into();
@@ -152,9 +161,7 @@ impl ContentsStore for SqliteStore {
         let destination_service_id = destination.service_id_string();
 
         let proto_bytes = prost::Message::encode_to_vec(&body.into_proto());
-        let timestamp: i64 = timestamp
-            .try_into()
-            .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let timestamp = timestamp.timestamp_millis();
 
         query!(
             "INSERT OR REPLACE INTO thread_messages (
@@ -166,9 +173,10 @@ impl ContentsStore for SqliteStore {
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             )
-            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             timestamp,
             thread_id,
             sender_service_id,
@@ -178,6 +186,7 @@ impl ContentsStore for SqliteStore {
             unidentified_sender,
             proto_bytes,
             was_plaintext,
+            pni_verified.as_ref().map(|p| p.service_id_string())
         )
         .execute(&mut *tx)
         .await?;
@@ -221,13 +230,15 @@ impl ContentsStore for SqliteStore {
             SqlMessage,
             r#"SELECT
                 ts AS "ts: _",
+                server_ts AS "server_ts: _",
                 sender_service_id,
                 sender_device_id AS "sender_device_id: _",
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             FROM thread_messages
             WHERE ts = ? AND thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)"#,
@@ -240,49 +251,153 @@ impl ContentsStore for SqliteStore {
         message.map(|m| m.try_into()).transpose()
     }
 
-    async fn messages(
+    async fn messages<R: RangeBounds<u64>, P: Into<MessagesQueryParams<R>>>(
         &self,
         thread: &Thread,
-        range: impl RangeBounds<u64>,
+        params: P,
     ) -> Result<Self::MessagesIter, Self::ContentsStoreError> {
+        let params = params.into();
         let (group_master_key, recipient_id) = thread.unzip();
 
-        let (start_incl, start_excl) = range.start_bound().into_sql_bound();
-        let (end_incl, end_excl) = range.end_bound().into_sql_bound();
+        let (start_incl, start_excl) = params.range.start_bound().into_sql_bound();
+        let (end_incl, end_excl) = params.range.end_bound().into_sql_bound();
 
-        let rows = query_as!(
-            SqlMessage,
-            r#"SELECT
+        let rows = match (params.limit, params.order) {
+            (None, MessageIterationOrder::TimestampDescending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
                 ts AS "ts: _",
+                server_ts AS "server_ts: _",
                 sender_service_id,
                 sender_device_id AS "sender_device_id: _",
                 destination_service_id,
                 needs_receipt,
                 unidentified_sender,
                 content_body,
-                was_plaintext
+                was_plaintext,
+                pni_verified
             FROM thread_messages
             WHERE thread_id = (
                 SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
                 AND coalesce(ts > ?, ts >= ?, true)
                 AND coalesce(ts < ?, ts <= ?, true)
             ORDER BY ts DESC"#,
-            group_master_key,
-            recipient_id,
-            start_incl,
-            start_excl,
-            end_incl,
-            end_excl
-        )
-        .fetch_all(&self.db)
-        .await?;
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+            (None, MessageIterationOrder::TimestampAscending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND coalesce(ts > ?, ts >= ?, true)
+                AND coalesce(ts < ?, ts <= ?, true)
+            ORDER BY ts DESC"#,
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+            (Some(limit), MessageIterationOrder::TimestampDescending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND coalesce(ts > ?, ts >= ?, true)
+                AND coalesce(ts < ?, ts <= ?, true)
+            ORDER BY ts DESC
+            LIMIT ?"#,
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl,
+                    limit as i64
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+            (Some(limit), MessageIterationOrder::TimestampAscending) => {
+                query_as!(
+                    SqlMessage,
+                    r#"SELECT
+                ts AS "ts: _",
+                server_ts AS "server_ts: _",
+                sender_service_id,
+                sender_device_id AS "sender_device_id: _",
+                destination_service_id,
+                needs_receipt,
+                unidentified_sender,
+                content_body,
+                was_plaintext,
+                pni_verified
+            FROM thread_messages
+            WHERE thread_id = (
+                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)
+                AND coalesce(ts > ?, ts >= ?, true)
+                AND coalesce(ts < ?, ts <= ?, true)
+            ORDER BY ts ASC
+            LIMIT ?"#,
+                    group_master_key,
+                    recipient_id,
+                    start_incl,
+                    start_excl,
+                    end_incl,
+                    end_excl,
+                    limit as i64
+                )
+                .fetch_all(&self.db)
+                .await?
+            }
+        };
 
         Ok(Box::new(rows.into_iter().map(TryInto::try_into)))
     }
 
     async fn clear_contacts(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM contacts")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM blocked_contacts")
             .execute(&mut *transaction)
             .await?;
         query!("DELETE FROM contacts_verification_state")
@@ -297,7 +412,7 @@ impl ContentsStore for SqliteStore {
         let avatar_bytes = contact.avatar.as_ref().map(|a| a.reader.to_vec());
         let phone_number = contact.phone_number.as_ref().map(|p| p.to_string());
 
-        let mut tx = self.db.begin().await?;
+        let mut tx = self.begin_write().await?;
 
         query!(
             "INSERT OR REPLACE INTO contacts
@@ -315,7 +430,6 @@ impl ContentsStore for SqliteStore {
         .await?;
 
         let Verified {
-            destination_aci,
             identity_key,
             state,
             ..
@@ -326,14 +440,12 @@ impl ContentsStore for SqliteStore {
             Ok(verified::State::Verified) => Some(true),
         };
 
-        if let Some((destination_aci, identity_key)) =
-            destination_aci.as_ref().zip(identity_key.as_ref())
-        {
+        if let Some(identity_key) = identity_key {
             query!(
                 "INSERT OR REPLACE INTO contacts_verification_state(
                     destination_aci, identity_key, is_verified
                 ) VALUES(?, ?, ?)",
-                destination_aci,
+                contact.uuid,
                 identity_key,
                 is_verified,
             )
@@ -401,11 +513,17 @@ impl ContentsStore for SqliteStore {
     }
 
     async fn clear_groups(&mut self) -> Result<(), Self::ContentsStoreError> {
-        let mut transaction = self.db.begin().await.into_protocol_error()?;
+        let mut transaction = self.begin_write().await.into_protocol_error()?;
         query!("DELETE FROM groups")
             .execute(&mut *transaction)
             .await?;
         query!("DELETE FROM group_avatars")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM left_groups")
+            .execute(&mut *transaction)
+            .await?;
+        query!("DELETE FROM blocked_groups")
             .execute(&mut *transaction)
             .await?;
         transaction.commit().await.into_protocol_error()?;
@@ -419,8 +537,9 @@ impl ContentsStore for SqliteStore {
     ) -> Result<(), Self::ContentsStoreError> {
         let g = SqlGroup::from_group(&master_key, group.into());
         let master_key = g.master_key.as_ref();
+        let mut transaction = self.begin_write().await?;
         query!(
-            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR REPLACE INTO groups VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             master_key,
             g.title,
             g.revision,
@@ -431,10 +550,128 @@ impl ContentsStore for SqliteStore {
             g.members,
             g.pending_members,
             g.requesting_members,
+            g.disappearing_messages_timer,
+        )
+        .execute(&mut *transaction)
+        .await?;
+        query!("DELETE FROM left_groups WHERE master_key = ?", master_key)
+            .execute(&mut *transaction)
+            .await?;
+        transaction.commit().await?;
+        Ok(())
+    }
+
+    async fn mark_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<(), Self::ContentsStoreError> {
+        let master_key = master_key.as_slice();
+        query!(
+            "INSERT OR IGNORE INTO left_groups (master_key) VALUES (?)",
+            master_key
         )
         .execute(&self.db)
         .await?;
         Ok(())
+    }
+
+    async fn is_group_left(
+        &self,
+        master_key: GroupMasterKeyBytes,
+    ) -> Result<bool, Self::ContentsStoreError> {
+        let master_key = master_key.as_slice();
+        let left = query_scalar!(
+            "SELECT EXISTS(SELECT 1 FROM left_groups WHERE master_key = ?)",
+            master_key
+        )
+        .fetch_one(&self.db)
+        .await?;
+        Ok(left != 0)
+    }
+
+    async fn set_blocked(
+        &mut self,
+        thread: &Thread,
+        blocked: bool,
+    ) -> Result<(), Self::ContentsStoreError> {
+        match (thread, blocked) {
+            (Thread::Contact(service_id), true) => {
+                let uuid = service_id.raw_uuid();
+                query!(
+                    "INSERT OR IGNORE INTO blocked_contacts (uuid) VALUES (?)",
+                    uuid
+                )
+                .execute(&self.db)
+                .await?;
+            }
+            (Thread::Contact(service_id), false) => {
+                let uuid = service_id.raw_uuid();
+                query!("DELETE FROM blocked_contacts WHERE uuid = ?", uuid)
+                    .execute(&self.db)
+                    .await?;
+            }
+            (Thread::Group(master_key), true) => {
+                let master_key = master_key.as_slice();
+                query!(
+                    "INSERT OR IGNORE INTO blocked_groups (master_key) VALUES (?)",
+                    master_key
+                )
+                .execute(&self.db)
+                .await?;
+            }
+            (Thread::Group(master_key), false) => {
+                let master_key = master_key.as_slice();
+                query!(
+                    "DELETE FROM blocked_groups WHERE master_key = ?",
+                    master_key
+                )
+                .execute(&self.db)
+                .await?;
+            }
+        }
+        Ok(())
+    }
+
+    async fn is_blocked(&self, thread: &Thread) -> Result<bool, Self::ContentsStoreError> {
+        let blocked = match thread {
+            Thread::Contact(service_id) => {
+                let uuid = service_id.raw_uuid();
+                query_scalar!(
+                    "SELECT EXISTS(SELECT 1 FROM blocked_contacts WHERE uuid = ?)",
+                    uuid
+                )
+                .fetch_one(&self.db)
+                .await?
+            }
+            Thread::Group(master_key) => {
+                let master_key = master_key.as_slice();
+                query_scalar!(
+                    "SELECT EXISTS(SELECT 1 FROM blocked_groups WHERE master_key = ?)",
+                    master_key
+                )
+                .fetch_one(&self.db)
+                .await?
+            }
+        };
+        Ok(blocked != 0)
+    }
+
+    async fn blocked(&self) -> Result<Vec<Thread>, Self::ContentsStoreError> {
+        let contacts = query_scalar!(r#"SELECT uuid AS "uuid: Uuid" FROM blocked_contacts"#)
+            .fetch_all(&self.db)
+            .await?;
+        let groups = query_scalar!("SELECT master_key FROM blocked_groups")
+            .fetch_all(&self.db)
+            .await?;
+        Ok(contacts
+            .into_iter()
+            .map(|uuid| Thread::Contact(Aci::from(uuid).into()))
+            .chain(
+                groups
+                    .into_iter()
+                    .filter_map(|master_key| Some(Thread::Group(master_key.try_into().ok()?))),
+            )
+            .collect())
     }
 
     async fn groups(&self) -> Result<Self::GroupsIter, Self::ContentsStoreError> {
@@ -450,7 +687,8 @@ impl ContentsStore for SqliteStore {
                 description,
                 members AS "members: _",
                 pending_members AS "pending_members: _",
-                requesting_members AS "requesting_members: _"
+                requesting_members AS "requesting_members: _",
+                disappearing_messages_timer
             FROM groups"#,
         )
         .fetch_all(&self.db)
@@ -475,7 +713,8 @@ impl ContentsStore for SqliteStore {
                 description,
                 members AS "members: _",
                 pending_members AS "pending_members: _",
-                requesting_members AS "requesting_members: _"
+                requesting_members AS "requesting_members: _",
+                disappearing_messages_timer
             FROM groups
             WHERE master_key = ?
             LIMIT 1"#,
@@ -530,7 +769,7 @@ impl ContentsStore for SqliteStore {
         )
         .execute(&self.db)
         .await?;
-        Ok(res.rows_affected() == 0)
+        Ok(res.rows_affected() > 0)
     }
 
     async fn profile_key(
@@ -659,6 +898,21 @@ impl ContentsStore for SqliteStore {
         Ok(pack.map(From::from))
     }
 
+    async fn has_sticker_pack(&self, id: &[u8]) -> Result<bool, Self::ContentsStoreError> {
+        Ok(query_scalar!(
+            r#"SELECT EXISTS(SELECT 1 FROM sticker_packs WHERE id = ?) AS "installed: bool""#,
+            id
+        )
+        .fetch_one(&self.db)
+        .await?)
+    }
+
+    async fn sticker_pack_ids(&self) -> Result<Vec<Vec<u8>>, Self::ContentsStoreError> {
+        Ok(query_scalar!("SELECT id FROM sticker_packs")
+            .fetch_all(&self.db)
+            .await?)
+    }
+
     async fn remove_sticker_pack(&mut self, id: &[u8]) -> Result<bool, Self::ContentsStoreError> {
         let res = query!("DELETE FROM sticker_packs WHERE id = ?", id)
             .execute(&self.db)
@@ -674,6 +928,31 @@ impl ContentsStore for SqliteStore {
         .fetch_all(&self.db)
         .await?;
         Ok(Box::new(sql_packs.into_iter().map(|pack| Ok(pack.into()))))
+    }
+
+    async fn thread_for_sender_and_timestamp(
+        &self,
+        sender: &ServiceId,
+        timestamp: u64,
+    ) -> Result<Option<Thread>, Self::ContentsStoreError> {
+        let timestamp: i64 = timestamp
+            .try_into()
+            .map_err(|_| SqliteStoreError::InvalidFormat)?;
+        let sender_service_id = sender.service_id_string();
+        let thread = query!(r#"SELECT group_master_key, recipient_id AS "recipient_id: Uuid" FROM threads JOIN thread_messages ON threads.id = thread_messages.thread_id WHERE sender_service_id = ? AND ts = ?"#, sender_service_id, timestamp)
+            .fetch_optional(&self.db).await?;
+
+        let Some(thread) = thread else {
+            return Ok(None);
+        };
+
+        match (thread.group_master_key, thread.recipient_id) {
+            (Some(group_master_key), None) => {
+                Ok(group_master_key.try_into().ok().map(Thread::Group))
+            }
+            (None, Some(contact)) => Ok(Some(Thread::Contact(ServiceId::Aci(contact.into())))),
+            _ => panic!("Thread table stored both group master key and recipient"),
+        }
     }
 }
 
@@ -713,5 +992,77 @@ impl BoundExt for Bound<&u64> {
             Bound::Included(x) => (None, Some(*x as i64)),
             Bound::Unbounded => (None, None),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    use crate::OnNewIdentity;
+
+    #[tokio::test]
+    async fn upsert_profile_key_reports_the_write() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let uuid = Uuid::nil();
+        let key = ProfileKey::create([1u8; 32]);
+
+        assert!(store.upsert_profile_key(&uuid, key).await?);
+        assert!(store.upsert_profile_key(&uuid, key).await?);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn saving_a_left_group_clears_the_mark() -> Result<(), Box<dyn std::error::Error>> {
+        let store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let master_key = [1u8; 32];
+
+        assert!(!store.is_group_left(master_key).await?);
+        store.mark_group_left(master_key).await?;
+        store.mark_group_left(master_key).await?;
+        assert!(store.is_group_left(master_key).await?);
+
+        let group = Group {
+            title: "group".into(),
+            avatar: String::new(),
+            disappearing_messages_timer: None,
+            access_control: None,
+            revision: 1,
+            members: vec![],
+            pending_members: vec![],
+            requesting_members: vec![],
+            invite_link_password: vec![],
+            description: None,
+        };
+        store.save_group(master_key, group).await?;
+        assert!(!store.is_group_left(master_key).await?);
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn sticker_pack_lookups_follow_installs() -> Result<(), Box<dyn std::error::Error>> {
+        let mut store = SqliteStore::open(":memory:", OnNewIdentity::Trust).await?;
+        let pack = StickerPack {
+            id: vec![1; 16],
+            key: vec![2; 32],
+            manifest: presage::store::StickerPackManifest {
+                title: "pack".into(),
+                author: "author".into(),
+                cover: None,
+                stickers: vec![],
+            },
+        };
+
+        assert!(!store.has_sticker_pack(&pack.id).await?);
+        assert!(store.sticker_pack_ids().await?.is_empty());
+        store.add_sticker_pack(&pack).await?;
+        assert!(store.has_sticker_pack(&pack.id).await?);
+        assert!(!store.has_sticker_pack(&[3; 16]).await?);
+        assert_eq!(store.sticker_pack_ids().await?, vec![pack.id.clone()]);
+        store.remove_sticker_pack(&pack.id).await?;
+        assert!(!store.has_sticker_pack(&pack.id).await?);
+
+        Ok(())
     }
 }

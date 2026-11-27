@@ -1,0 +1,21 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT COUNT(*) FROM kyber_pre_keys WHERE identity = ? AND stale_at IS NULL AND is_last_resort = TRUE",
+  "describe": {
+    "columns": [
+      {
+        "name": "COUNT(*)",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "130c8fd9e3be505c7eb80c69a5d43361f638687228b5ddfc3a8bc7d18670a0fb"
+}

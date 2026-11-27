@@ -19,7 +19,7 @@ use presage::libsignal_service::prelude::phonenumber::PhoneNumber;
 use presage::libsignal_service::prelude::ProfileKey;
 use presage::libsignal_service::prelude::Uuid;
 use presage::libsignal_service::proto::data_message::Quote;
-use presage::libsignal_service::proto::sync_message::Sent;
+use presage::libsignal_service::proto::sync_message::{Content as SyncContent, Sent};
 use presage::libsignal_service::protocol::ServiceId;
 use presage::libsignal_service::sender::AttachmentSpec;
 use presage::libsignal_service::zkgroup::GroupMasterKeyBytes;
@@ -112,10 +112,10 @@ enum Cmd {
         )]
         url: Url,
     },
-    #[clap(about = "Unlink device by device id")]
+    #[clap(about = "Unlink device by device id, or this (secondary) device if omitted")]
     UnlinkDevice {
         #[clap(long, short = 'd', help = "Device id")]
-        device_id: u32,
+        device_id: Option<u32>,
     },
     #[clap(about = "List all linked devices")]
     ListDevices,
@@ -130,6 +130,17 @@ enum Cmd {
         /// Base64-encoded profile key of user to be able to access their profile
         #[clap(long, value_parser = parse_base64_profile_key)]
         profile_key: Option<ProfileKey>,
+    },
+    #[clap(about = "Update the user's profile name and privacy settings")]
+    UpdateProfile {
+        #[clap(long, help = "The given (first) name of the profile")]
+        given_name: Option<String>,
+        #[clap(long, help = "The family (last) name of the profile")]
+        family_name: Option<String>,
+        #[clap(long, help = "The 'about' text of the profile")]
+        about: Option<String>,
+        #[clap(long, help = "The 'emoji' of the profile")]
+        emoji: Option<String>,
     },
     #[clap(about = "Receive all pending messages and saves them to disk")]
     Sync {
@@ -158,7 +169,7 @@ enum Cmd {
         group(
             ArgGroup::new("list-messages")
                 .required(true)
-                .args(&["recipient_uuid", "group_master_key"])
+                .args(["recipient_service_id", "group_master_key"])
         )
     )]
     ListMessages {
@@ -313,14 +324,14 @@ async fn send<S: Store>(
             manager
                 .send_message(ServiceId::Aci(uuid.into()), content_body, timestamp)
                 .await
-                .expect("failed to send message")
+                .expect("failed to send message");
         }
         Recipient::Group(master_key) => {
             info!("sending message to group");
             manager
                 .send_message_to_group(&master_key, content_body, timestamp)
                 .await
-                .expect("failed to send message to group!")
+                .expect("failed to send message to group!");
         }
     }
 
@@ -494,25 +505,25 @@ async fn print_message<S: Store>(
             .map(|body| Msg::Received(&thread, body)),
         ContentBody::EditMessage(EditMessage { .. }) => None,
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     message: Some(data_message),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
             .map(|body| Msg::Sent(&thread, body)),
         ContentBody::SynchronizeMessage(SyncMessage {
-            sent:
-                Some(Sent {
+            content:
+                Some(SyncContent::Sent(Sent {
                     edit_message:
                         Some(EditMessage {
                             data_message: Some(data_message),
                             ..
                         }),
                     ..
-                }),
+                })),
             ..
         }) => format_data_message(&thread, data_message, manager)
             .await
@@ -533,9 +544,10 @@ async fn print_message<S: Store>(
         ContentBody::StoryMessage(story) => {
             Some(Msg::Received(&thread, format!("new story: {story:?}")))
         }
-        ContentBody::PniSignatureMessage(_) => {
-            Some(Msg::Received(&thread, "got PNI signature message".into()))
-        }
+        ContentBody::DecryptionErrorMessage(_) => Some(Msg::Received(
+            &thread,
+            "failed to decrypt a messagee".into(),
+        )),
     } {
         let ts = content.timestamp();
         let (prefix, body) = match msg {
@@ -593,7 +605,6 @@ async fn receive<S: Store>(
                     break;
                 }
             }
-            Received::Contacts => println!("got contacts synchronization"),
             Received::Content(content) => {
                 process_incoming_message(
                     &mut manager,
@@ -602,6 +613,9 @@ async fn receive<S: Store>(
                     &content,
                 )
                 .await
+            }
+            Received::DecryptionError(c) => {
+                println!("failed to receive a message from a contact: {c:?}")
             }
         }
     }
@@ -635,7 +649,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             let stdin = io::stdin();
             let reader = BufReader::new(stdin);
             if let Some(confirmation_code) = reader.lines().next_line().await? {
-                let registered_manager =
+                let registered_manager: Manager<S, Registered> =
                     manager.confirm_verification_code(confirmation_code).await?;
                 println!(
                     "Account identifiers: {}",
@@ -690,10 +704,18 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             manager.link_secondary(url).await?;
             println!("Added new secondary device");
         }
-        Cmd::UnlinkDevice { device_id } => {
+        Cmd::UnlinkDevice {
+            device_id: Some(device_id),
+        } => {
             let manager = load_registered_and_receive(store).await?;
             manager.unlink_secondary(device_id).await?;
             println!("Unlinked device with id: {}", device_id);
+        }
+        Cmd::UnlinkDevice { device_id: None } => {
+            let manager = Manager::load_registered(store).await?;
+            let device_id = manager.device_id();
+            manager.unlink_self().await?;
+            println!("Unlinked this device (id: {})", device_id);
         }
         Cmd::ListDevices => {
             let manager = load_registered_and_receive(store).await?;
@@ -778,6 +800,24 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
                 Some(profile_key) => manager.retrieve_profile_by_uuid(uuid, profile_key).await?,
             };
             println!("{profile:#?}");
+        }
+        Cmd::UpdateProfile {
+            given_name,
+            family_name,
+            about,
+            emoji,
+        } => {
+            let mut manager = load_registered_and_receive(store).await?;
+            if let Some(given_name) = given_name {
+                let profile_name = presage::libsignal_service::profile_name::ProfileName {
+                    given_name,
+                    family_name,
+                };
+                manager.update_profile(profile_name, about, emoji).await?;
+                println!("Profile updated.");
+            } else if family_name.is_some() || about.is_some() || emoji.is_some() {
+                bail!("The --given-name parameter is required when updating the profile fields (--family-name, --about or --emoji)");
+            }
         }
         Cmd::ListGroups {
             name_filter,
@@ -872,7 +912,7 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
         }
         Cmd::Whoami => {
             let manager = load_registered_and_receive(store).await?;
-            println!("{:?}", &manager.whoami().await?);
+            println!("{:?}", manager.whoami().await?);
         }
         Cmd::GetContact { ref id } => {
             let manager = load_registered_and_receive(store).await?;
@@ -900,24 +940,8 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             }
         }
         Cmd::SyncContacts => {
-            let mut manager = load_registered_and_receive(store).await?;
-            manager.request_contacts().await?;
-
-            let messages = manager
-                .receive_messages()
-                .await
-                .context("failed to initialize messages stream")?;
-            pin_mut!(messages);
-
-            println!("synchronizing messages until we get contacts (dots are messages synced from the past timeline)");
-
-            while let Some(content) = messages.next().await {
-                match content {
-                    Received::QueueEmpty => break,
-                    Received::Contacts => println!("got contacts! thank you, come again."),
-                    Received::Content(_) => print!("."),
-                }
-            }
+            let manager = Manager::load_registered(store).await?;
+            manager.sync_from_storage_service().await?;
         }
         Cmd::ListMessages {
             group_master_key,
@@ -968,44 +992,24 @@ async fn run<S: Store>(subcommand: Cmd, store: S) -> anyhow::Result<()> {
             #[allow(unused)]
             #[derive(Debug)]
             struct Stats {
-                aci_next_pre_key_id: u32,
-                aci_next_signed_pre_keys_id: u32,
-                aci_next_kyber_pre_keys_id: u32,
-                aci_signed_pre_keys_count: usize,
-                aci_kyber_pre_keys_count: usize,
-                aci_kyber_pre_keys_count_last_resort: usize,
-                pni_next_pre_key_id: u32,
-                pni_next_signed_pre_keys_id: u32,
-                pni_next_kyber_pre_keys_id: u32,
-                pni_signed_pre_keys_count: usize,
-                pni_kyber_pre_keys_count: usize,
-                pni_kyber_pre_keys_count_last_resort: usize,
+                aci_last_pre_key_id: u32,
+                aci_last_signed_pre_keys_id: u32,
+                aci_last_kyber_pre_keys_id: u32,
+                pni_last_pre_key_id: u32,
+                pni_last_signed_pre_keys_id: u32,
+                pni_last_kyber_pre_keys_id: u32,
             }
 
             let aci = manager.store().aci_protocol_store();
             let pni = manager.store().pni_protocol_store();
 
-            const LAST_RESORT: bool = true;
-
             let stats = Stats {
-                aci_next_pre_key_id: aci.next_pre_key_id().await.unwrap(),
-                aci_next_signed_pre_keys_id: aci.next_signed_pre_key_id().await.unwrap(),
-                aci_next_kyber_pre_keys_id: aci.next_pq_pre_key_id().await.unwrap(),
-                aci_signed_pre_keys_count: aci.signed_pre_keys_count().await.unwrap(),
-                aci_kyber_pre_keys_count: aci.kyber_pre_keys_count(!LAST_RESORT).await.unwrap(),
-                aci_kyber_pre_keys_count_last_resort: aci
-                    .kyber_pre_keys_count(LAST_RESORT)
-                    .await
-                    .unwrap(),
-                pni_next_pre_key_id: pni.next_pre_key_id().await.unwrap(),
-                pni_next_signed_pre_keys_id: pni.next_signed_pre_key_id().await.unwrap(),
-                pni_next_kyber_pre_keys_id: pni.next_pq_pre_key_id().await.unwrap(),
-                pni_signed_pre_keys_count: pni.signed_pre_keys_count().await.unwrap(),
-                pni_kyber_pre_keys_count: pni.kyber_pre_keys_count(!LAST_RESORT).await.unwrap(),
-                pni_kyber_pre_keys_count_last_resort: pni
-                    .kyber_pre_keys_count(LAST_RESORT)
-                    .await
-                    .unwrap(),
+                aci_last_pre_key_id: aci.last_pre_key_id().await.unwrap(),
+                aci_last_signed_pre_keys_id: aci.last_signed_pre_key_id().await.unwrap(),
+                aci_last_kyber_pre_keys_id: aci.last_pq_pre_key_id().await.unwrap(),
+                pni_last_pre_key_id: pni.last_pre_key_id().await.unwrap(),
+                pni_last_signed_pre_keys_id: pni.last_signed_pre_key_id().await.unwrap(),
+                pni_last_kyber_pre_keys_id: pni.last_pq_pre_key_id().await.unwrap(),
             };
 
             println!("{stats:#?}")
@@ -1072,8 +1076,14 @@ fn parse_base64_profile_key(s: &str) -> anyhow::Result<ProfileKey> {
 
 #[cfg(test)]
 mod tests {
-    use super::ensure_parent_dir_exists;
+    use super::{ensure_parent_dir_exists, Args};
+    use clap::CommandFactory;
     use tempfile::tempdir;
+
+    #[test]
+    fn arguments_are_consistent() {
+        Args::command().debug_assert();
+    }
 
     #[test]
     fn creates_missing_parent_directory_for_db_path() {

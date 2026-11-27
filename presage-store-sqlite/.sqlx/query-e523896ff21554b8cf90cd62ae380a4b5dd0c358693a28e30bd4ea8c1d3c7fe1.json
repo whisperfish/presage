@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM kv WHERE key = 'master_key'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 0
+    },
+    "nullable": []
+  },
+  "hash": "e523896ff21554b8cf90cd62ae380a4b5dd0c358693a28e30bd4ea8c1d3c7fe1"
+}

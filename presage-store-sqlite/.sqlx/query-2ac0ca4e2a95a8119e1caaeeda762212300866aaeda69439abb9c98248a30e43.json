@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM blocked_groups WHERE master_key = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": []
+  },
+  "hash": "2ac0ca4e2a95a8119e1caaeeda762212300866aaeda69439abb9c98248a30e43"
+}

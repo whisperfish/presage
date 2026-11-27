@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT id\n            FROM pre_keys\n            WHERE identity = ?1 AND stale_at IS NOT NULL AND stale_at < ?2\n            ORDER BY stale_at ASC, id ASC",
+  "describe": {
+    "columns": [
+      {
+        "name": "id",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "pre_keys",
+            "name": "id"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 2
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "796605795d216c53af3ff12ead0471b654d4a303c6e787c9465b7e128d1f6fa6"
+}

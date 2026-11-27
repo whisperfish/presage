@@ -1,0 +1,134 @@
+{
+  "db_name": "SQLite",
+  "query": "SELECT\n                ts AS \"ts: _\",\n                server_ts AS \"server_ts: _\",\n                sender_service_id,\n                sender_device_id AS \"sender_device_id: _\",\n                destination_service_id,\n                needs_receipt,\n                unidentified_sender,\n                content_body,\n                was_plaintext,\n                pni_verified\n            FROM thread_messages\n            WHERE ts = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
+  "describe": {
+    "columns": [
+      {
+        "name": "ts: _",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "ts"
+          }
+        }
+      },
+      {
+        "name": "server_ts: _",
+        "ordinal": 1,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "server_ts"
+          }
+        }
+      },
+      {
+        "name": "sender_service_id",
+        "ordinal": 2,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "sender_service_id"
+          }
+        }
+      },
+      {
+        "name": "sender_device_id: _",
+        "ordinal": 3,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "sender_device_id"
+          }
+        }
+      },
+      {
+        "name": "destination_service_id",
+        "ordinal": 4,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "destination_service_id"
+          }
+        }
+      },
+      {
+        "name": "needs_receipt",
+        "ordinal": 5,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "needs_receipt"
+          }
+        }
+      },
+      {
+        "name": "unidentified_sender",
+        "ordinal": 6,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "unidentified_sender"
+          }
+        }
+      },
+      {
+        "name": "content_body",
+        "ordinal": 7,
+        "type_info": "Blob",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "content_body"
+          }
+        }
+      },
+      {
+        "name": "was_plaintext",
+        "ordinal": 8,
+        "type_info": "Bool",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "was_plaintext"
+          }
+        }
+      },
+      {
+        "name": "pni_verified",
+        "ordinal": 9,
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "thread_messages",
+            "name": "pni_verified"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "3fb52795bcd799f3075078a8dc202fa6d412a92bbcf41b4f3c6e6ae4b625c25b"
+}
