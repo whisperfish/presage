@@ -1076,8 +1076,7 @@ impl<S: Store> Manager<S, Registered> {
                                         }
                                     }
 
-                                    if let Some(data_message) =
-                                        received_data_message_mut(&mut content.body)
+                                    if let Some(data_message) = data_message_mut(&mut content.body)
                                     {
                                         if let Some(pointer) = data_message
                                             .attachments
@@ -1265,7 +1264,7 @@ impl<S: Store> Manager<S, Registered> {
             message.required_protocol_version = Some(0);
         }
 
-        attach_long_text::<S>(&mut sender, &mut content_body).await?;
+        let full_body = attach_long_text::<S>(&mut sender, &mut content_body).await?;
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         sender
@@ -1280,6 +1279,10 @@ impl<S: Store> Manager<S, Registered> {
             .await?;
 
         // save the message
+        if let (Some(body), Some(data_message)) = (full_body, data_message_mut(&mut content_body)) {
+            data_message.body = Some(body);
+        }
+
         let content = Content {
             metadata: Metadata {
                 sender: self.state.data.service_ids.aci().into(),
@@ -1429,7 +1432,7 @@ impl<S: Store> Manager<S, Registered> {
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
         let mut sender = self.new_message_sender().await?;
-        attach_long_text::<S>(&mut sender, &mut content_body).await?;
+        let full_body = attach_long_text::<S>(&mut sender, &mut content_body).await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         let Some(group) =
@@ -1475,6 +1478,10 @@ impl<S: Store> Manager<S, Registered> {
                 Err(_) => true,
             })
             .transpose()?;
+
+        if let (Some(body), Some(data_message)) = (full_body, data_message_mut(&mut content_body)) {
+            data_message.body = Some(body);
+        }
 
         let content = Content {
             metadata: Metadata {
@@ -1987,7 +1994,7 @@ pub const LONG_TEXT_CONTENT_TYPE: &str = "text/x-signal-plain";
 async fn attach_long_text<S: Store>(
     sender: &mut MessageSender<S::AciStore>,
     content_body: &mut ContentBody,
-) -> Result<(), Error<S::Error>> {
+) -> Result<Option<String>, Error<S::Error>> {
     let data_message = match content_body {
         ContentBody::DataMessage(m) => m,
         ContentBody::EditMessage(EditMessage {
@@ -1998,15 +2005,15 @@ async fn attach_long_text<S: Store>(
             strip_long_text_attachments(m);
             m
         }
-        _ => return Ok(()),
+        _ => return Ok(None),
     };
 
     let Some(body) = data_message.body.clone() else {
-        return Ok(());
+        return Ok(None);
     };
 
     if body.len() <= MAX_INLINE_BODY_SIZE_BYTES {
-        return Ok(());
+        return Ok(None);
     }
 
     let split = body.floor_char_boundary(MAX_INLINE_BODY_SIZE_BYTES);
@@ -2026,7 +2033,7 @@ async fn attach_long_text<S: Store>(
                 caption: None,
                 blur_hash: None,
             },
-            body.into_bytes(),
+            body.as_bytes().to_vec(),
             &mut rng(),
         )
         .await?;
@@ -2035,10 +2042,10 @@ async fn attach_long_text<S: Store>(
     data_message.attachments.insert(0, attachment);
     debug!("uploaded long body as long-text attachment");
 
-    Ok(())
+    Ok(Some(body))
 }
 
-fn received_data_message_mut(body: &mut ContentBody) -> Option<&mut DataMessage> {
+fn data_message_mut(body: &mut ContentBody) -> Option<&mut DataMessage> {
     match body {
         ContentBody::DataMessage(m) => Some(m),
         ContentBody::EditMessage(EditMessage { data_message, .. }) => data_message.as_mut(),
@@ -2062,27 +2069,8 @@ fn strip_long_text_attachments(data_message: &mut DataMessage) {
 
 /// Set the timestamp in any DataMessage so it matches its envelope's
 fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64) {
-    match content_body {
-        ContentBody::DataMessage(message) => {
-            message.timestamp = Some(timestamp);
-        }
-        ContentBody::EditMessage(EditMessage {
-            data_message: Some(data_message),
-            ..
-        }) => {
-            data_message.timestamp = Some(timestamp);
-        }
-        ContentBody::SynchronizeMessage(SyncMessage {
-            content:
-                Some(SyncContent::Sent(sync_message::Sent {
-                    message: Some(data_message),
-                    ..
-                })),
-            ..
-        }) => {
-            data_message.timestamp = Some(timestamp);
-        }
-        _ => (),
+    if let Some(data_message) = data_message_mut(content_body) {
+        data_message.timestamp = Some(timestamp);
     }
 }
 
