@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE jobs SET attempts = attempts + 1, due_at = ?\n            WHERE id = ? AND generation = ?",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 3
+    },
+    "nullable": []
+  },
+  "hash": "25dd02fc1359f94ddfe1441884dbca6f69a2fab2030c1731f8eabb5c8811fb9e"
+}

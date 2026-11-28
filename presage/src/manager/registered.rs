@@ -1,12 +1,10 @@
-use std::collections::HashMap;
 use std::fmt;
-use std::pin::Pin;
-use std::str::FromStr;
 use std::sync::{Arc, OnceLock, RwLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use chrono::{TimeDelta, TimeZone, Utc};
-use futures::{future, AsyncReadExt, Stream, StreamExt};
+use futures::{future, AsyncReadExt};
+use libsignal_service::libsignal_account_keys::AccountEntropyPool;
 use libsignal_service::pre_keys::PreKeysStore;
 use libsignal_service::prelude::SessionStoreExt;
 use libsignal_service::protocol::{ProtocolAddress, SessionStore};
@@ -18,17 +16,16 @@ use libsignal_service::{
     content::{Content, ContentBody, Metadata},
     encrypt_device_name,
     groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
-    messagepipe::{Incoming, MessagePipe, ServiceCredentials},
-    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, ServiceError, Uuid},
+    messagepipe::ServiceCredentials,
+    prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, Uuid},
     profile_cipher::ProfileCipher,
     proto::{
-        data_message::Delete,
         receipt_message,
         sync_message::{
             self, sticker_pack_operation, Content as SyncContent, StickerPackOperation,
         },
-        AttachmentPointer, CallMessage, ContactRecord, DataMessage, EditMessage, GroupContextV2,
-        NullMessage, ReceiptMessage, StoryMessage, SyncMessage, Verified,
+        AttachmentPointer, ContactRecord, DataMessage, EditMessage, GroupContextV2, NullMessage,
+        ReceiptMessage, StoryMessage, SyncMessage, Verified,
     },
     protocol::{
         Aci, DeviceId, IdentityKey, IdentityKeyStore, SenderCertificate, ServiceId, ServiceIdKind,
@@ -53,9 +50,6 @@ use libsignal_service::{
     },
     AccountManager, Profile, ServiceIdExt,
 };
-use libsignal_service::{
-    libsignal_account_keys::AccountEntropyPool, proto::addressable_message::Author,
-};
 use rand::rng;
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
@@ -63,21 +57,24 @@ use tokio::sync::Mutex;
 use tracing::{debug, error, info, trace, warn};
 use url::Url;
 
+use super::account_keys::AccountKeys;
+use super::keep::{keep, keep_profile_key};
 use crate::model::contacts::Contact;
 use crate::model::previews;
+use crate::model::replicas::{Freshness, Replica};
 use crate::model::settings::Settings;
 use crate::model::stories::Story;
 use crate::serde::serde_profile_key;
 use crate::store::{ContentsStore, Sticker, StickerPack, StickerPackManifest, Store, Thread};
 use crate::{model::groups::Group, AvatarBytes, Error, Manager};
-use libsignal_service::master_key::StorageServiceKey;
 use libsignal_service::proto::{manifest_record, storage_record};
 use libsignal_service::StorageService;
 
+mod jobs;
+mod receive;
+
 // Signal-Android refetches profiles that are older than a day.
 const PROFILE_MAX_AGE: TimeDelta = TimeDelta::days(1);
-
-pub use crate::model::messages::Received;
 
 type ServiceCipher<S> = cipher::ServiceCipher<S>;
 type MessageSender<S> = libsignal_service::prelude::MessageSender<S>;
@@ -98,6 +95,13 @@ pub struct Registered {
     pub(crate) unidentified_sender_certificate: Arc<Mutex<Option<SenderCertificate>>>,
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
     pub(crate) settings: Arc<RwLock<Settings>>,
+    /// Wakes the runner of the queued jobs.
+    pub(crate) jobs_wake: Arc<tokio::sync::Notify>,
+    /// Held while a session is stepped: by receiving while it decrypts an envelope, and by each
+    /// send until it is sent. A send and a decryption at once would both start from the session
+    /// as stored, the later to finish undoing the other's step, and a message would go out with
+    /// a counter already used, which its recipient drops as a duplicate.
+    pub(crate) session_step: Arc<Mutex<()>>,
 
     pub(crate) data: Arc<RegistrationData>,
 }
@@ -118,6 +122,8 @@ impl Registered {
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
             settings: Default::default(),
+            jobs_wake: Default::default(),
+            session_step: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -155,6 +161,28 @@ impl Registered {
             password: Some(self.data.password.clone()),
             device_id: self.data.device_id.and_then(|d| d.try_into().ok()),
         }
+    }
+}
+
+/// See [`Manager::services`].
+pub struct Services {
+    /// The cached push service presage uses itself, with the account's credentials.
+    pub identified_push_service: PushService,
+    /// `None` on a linked device until the primary has sent the account's keys.
+    pub account_keys: Option<AccountKeys>,
+}
+
+impl Services {
+    /// Connects to the storage service. `None` as for [`Self::account_keys`].
+    pub async fn storage_service(
+        &self,
+    ) -> Result<Option<StorageService>, libsignal_service::prelude::ServiceError> {
+        let Some(keys) = &self.account_keys else {
+            return Ok(None);
+        };
+        let service =
+            StorageService::new(self.identified_push_service.clone(), keys.storage_key()).await?;
+        Ok(Some(service))
     }
 }
 
@@ -241,6 +269,17 @@ impl<S: Store> Manager<S, Registered> {
     /// If no service is yet cached, it will create and cache one.
     fn identified_push_service(&self) -> PushService {
         self.state.identified_push_service()
+    }
+
+    /// What this manager connects to Signal with, for requests presage doesn't make itself:
+    /// authenticated requests, and reading or writing the storage service.
+    pub async fn services(&self) -> Result<Services, Error<S::Error>> {
+        // A primary makes its pool when first asked.
+        self.account_entropy_pool().await?;
+        Ok(Services {
+            identified_push_service: self.identified_push_service(),
+            account_keys: AccountKeys::load(&self.store).await?,
+        })
     }
 
     /// Returns a clone of a cached push service (without credentials).
@@ -382,6 +421,7 @@ impl<S: Store> Manager<S, Registered> {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_millis() as u64;
+        let _step = self.state.session_step.lock().await;
         message_sender
             .send_message(
                 &recipient,
@@ -478,6 +518,16 @@ impl<S: Store> Manager<S, Registered> {
         }
     }
 
+    /// Fetches the profile of `aci` from the server even when a current one is stored, and
+    /// stores it.
+    pub async fn refresh_profile(
+        &mut self,
+        aci: impl Into<Aci>,
+        profile_key: ProfileKey,
+    ) -> Result<Profile, Error<S::Error>> {
+        self.fetch_profile(aci.into(), profile_key).await
+    }
+
     async fn fetch_profile(
         &mut self,
         aci: Aci,
@@ -562,6 +612,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut gm = Box::pin(self.groups_manager()).await?;
         let Some(group) = upsert_group(
             &self.store,
+            &self.state.jobs_wake,
             &mut gm,
             context.master_key(),
             &context.revision(),
@@ -652,6 +703,11 @@ impl<S: Store> Manager<S, Registered> {
     ///
     /// Also runs after linking, and whenever another device reports a storage service change.
     pub async fn sync_from_storage_service(&self) -> Result<(), Error<S::Error>> {
+        self.sync_storage().await.map(drop)
+    }
+
+    /// See [`sync_from_storage_service`].
+    pub(super) async fn sync_storage(&self) -> Result<Option<u64>, Error<S::Error>> {
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
         sync_from_storage_service(
             &mut self.store.clone(),
@@ -660,541 +716,6 @@ impl<S: Store> Manager<S, Registered> {
             &self.state.settings,
         )
         .await
-    }
-
-    /// Starts receiving and storing messages.
-    ///
-    /// As a client, it is heavily recommended to process incoming messages and wait for the `Received::QueueEmpty` messages
-    /// until giving the ability for users to send messages. That way, all possible updates (sessions, profile keys, sender keys)
-    /// are processed _before_ trying to encrypt and send messages, which might get rejected by recipients otherwise.
-    ///
-    /// Returns a [futures::Stream] of messages to consume. Messages will also be stored by the implementation of the [Store].
-    pub async fn receive_messages(
-        &mut self,
-    ) -> Result<impl Stream<Item = Received>, Error<S::Error>> {
-        // NB: here, we initialise a *fresh* Signal websocket, which means any other use of the previous one will go into nirvana
-        let identified_websocket = self.identified_websocket(true).await?;
-
-        let mut account_manager = AccountManager::new(
-            self.identified_push_service(),
-            identified_websocket.clone(),
-            None,
-        );
-
-        let store_inner = self.store.clone();
-        let registration_data_inner = self.registration_data().clone();
-
-        // We make a task to update the account attributes and refresh pre keys as needed that will
-        // only yield a value if one of the two operations fail (stop signal).
-        //
-        // This is necessary because in this context, we can't do the classic tokio::spawn with a
-        // oneshot::channel() or CancellationToken because of !Send constraints in the Store.
-        let refresh_registration_task = async move {
-            if let Err(error) =
-                set_account_attributes(&mut account_manager, &store_inner, &registration_data_inner)
-                    .await
-            {
-                error!(%error, "failed to set account attributes, this is problematic and should never happen!");
-            }
-
-            if let Err(error) = register_pre_keys(&store_inner, &mut account_manager).await {
-                error!(%error, "failed to register pre-keys, this is problematic and should never happen!");
-            }
-
-            // Never return, which keeps the messages stream alive.
-            future::pending::<()>().await
-        };
-
-        let init = StreamState::new(self.clone(), identified_websocket).await?;
-
-        debug!("starting to consume incoming message stream");
-
-        let incoming_messages_stream = futures::stream::unfold(init, |mut state| {
-            async move {
-                loop {
-                    match state.encrypted_messages.next().await {
-                        Some(Ok(Incoming::Envelope(envelope))) => {
-                            let envelope = {
-                                // the permit is released at the end of the block (impl Drop)
-                                match envelope.parse_destination_service_id() {
-                                    None => {
-                                        warn!("Message has no destination service ID, dropping.");
-                                        continue;
-                                    }
-                                    Some(ServiceId::Aci(_)) => {
-                                        state
-                                            .manager
-                                            .new_service_cipher_aci()
-                                            .open_envelope(envelope, &mut rand::rng())
-                                            .await
-                                    }
-                                    Some(ServiceId::Pni(pni)) => {
-                                        if pni == state.manager.state.data.service_ids.pni()
-                                            && envelope.parse_source_service_id().is_none()
-                                        {
-                                            warn!("Got a sealed sender message to our PNI? Invalid message, ignoring.");
-                                            continue;
-                                        }
-                                        state
-                                            .manager
-                                            .new_service_cipher_pni()
-                                            .open_envelope(envelope, &mut rng())
-                                            .await
-                                    }
-                                }
-                            };
-                            match envelope {
-                                Ok(Some(content)) => {
-                                    match is_blocked(&state.manager.store, &content).await {
-                                        Ok(true) => {
-                                            debug!(sender = %content.metadata.sender.service_id_string(), "dropping message from blocked contact or group");
-                                            continue;
-                                        }
-                                        Ok(false) => {}
-                                        Err(error) => {
-                                            warn!(%error, "failed to check blocked state")
-                                        }
-                                    }
-
-                                    if let ContentBody::DecryptionErrorMessage(e) = &content.body {
-                                        error!(
-                                            error = ?e,
-                                            "got error decrypting a message"
-                                        );
-                                        return Some((
-                                            Received::DecryptionError(content.metadata.sender),
-                                            state,
-                                        ));
-                                    }
-
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Request(request)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        use libsignal_service::content::sync_message::request::Type as RequestType;
-
-                                        match request.r#type() {
-                                            RequestType::Contacts => {
-                                                let contacts = state
-                                                    .manager
-                                                    .store
-                                                    .contacts()
-                                                    .await
-                                                    .map(|i| {
-                                                        i.collect::<Result<Vec<_>, _>>()
-                                                            .unwrap_or_default()
-                                                    })
-                                                    .unwrap_or_default();
-
-                                                let mut message_sender =
-                                                    state.message_sender.clone();
-                                                let aci =
-                                                    state.manager.state.data.service_ids.aci();
-                                                tokio::task::spawn_local(async move {
-                                                    let result = message_sender
-                                                    .send_contact_details(
-                                                        &ServiceId::Aci(aci),
-                                                        None,
-                                                        contacts.into_iter().map(|c| libsignal_service::sender::ContactDetails {
-                                                            number: c.phone_number.map(|p| p.to_string()),
-                                                            aci: Some(c.uuid.to_string()),
-                                                            aci_binary: Some(c.uuid.into_bytes().into()),
-                                                            name: Some(c.name),
-                                                            // send_contact_details doesn't write avatar data yet.
-                                                            avatar: None,
-                                                            expire_timer: Some(c.expire_timer),
-                                                            expire_timer_version: Some(c.expire_timer_version),
-                                                            inbox_position: None,
-                                                        }),
-                                                        false,
-                                                        true,
-                                                    )
-                                                    .await;
-
-                                                    if let Err(error) = result {
-                                                        warn!(%error, "Error sending contact details to other devices");
-                                                    }
-                                                });
-                                            }
-                                            RequestType::Keys => {
-                                                let mut message_sender =
-                                                    state.message_sender.clone();
-                                                let account_entropy_pool = match state
-                                                    .manager
-                                                    .account_entropy_pool()
-                                                    .await
-                                                {
-                                                    Ok(aep) => aep.map(|aep| aep.to_string()),
-                                                    Err(error) => {
-                                                        warn!(%error, "failed to load account entropy pool");
-                                                        None
-                                                    }
-                                                };
-                                                tokio::task::spawn_local(async move {
-                                                    let result = message_sender.send_sync_message(SyncMessage {
-                                                        content: Some(SyncContent::Keys(libsignal_service::content::sync_message::Keys {
-                                                            account_entropy_pool,
-                                                            media_root_backup_key: None,
-                                                        })),
-                                                        ..SyncMessage::with_padding(&mut rand::rng())
-                                                    }).await;
-
-                                                    if let Err(error) = result {
-                                                        warn!(%error, "Error sending keys to other devices");
-                                                    }
-                                                });
-                                            }
-                                            RequestType::Blocked => {
-                                                let blocked = match state
-                                                    .manager
-                                                    .store
-                                                    .blocked()
-                                                    .await
-                                                {
-                                                    Ok(blocked) => blocked,
-                                                    Err(error) => {
-                                                        warn!(%error, "failed to load blocked contacts and groups");
-                                                        Vec::new()
-                                                    }
-                                                };
-                                                let mut message_sender =
-                                                    state.message_sender.clone();
-                                                tokio::task::spawn_local(async move {
-                                                    let result = message_sender
-                                                        .send_sync_message(SyncMessage {
-                                                            content: Some(SyncContent::Blocked(
-                                                                blocked_sync_message(&blocked),
-                                                            )),
-                                                            ..SyncMessage::with_padding(
-                                                                &mut rand::rng(),
-                                                            )
-                                                        })
-                                                        .await;
-
-                                                    if let Err(error) = result {
-                                                        warn!(%error, "Error sending blocked contacts to other devices");
-                                                    }
-                                                });
-                                            }
-                                            t => {
-                                                info!(type = ?t, "Got sync request of currently unhandled type")
-                                            }
-                                        }
-                                    }
-
-                                    // sticker pack operations
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        sticker_pack_operation,
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        for operation in sticker_pack_operation {
-                                            match operation.r#type() {
-                                                sticker_pack_operation::Type::Install => {
-                                                    // the primary resends every installed pack on
-                                                    // a configuration request
-                                                    match state
-                                                        .manager
-                                                        .store
-                                                        .has_sticker_pack(operation.pack_id())
-                                                        .await
-                                                    {
-                                                        Ok(true) => {
-                                                            debug!(
-                                                                "sticker pack already installed"
-                                                            );
-                                                            continue;
-                                                        }
-                                                        Ok(false) => {}
-                                                        Err(error) => warn!(
-                                                            %error,
-                                                            "failed to look up sticker pack, downloading it"
-                                                        ),
-                                                    }
-                                                    let store = state.manager.store.clone();
-                                                    let unidentified_websocket = match state
-                                                        .manager
-                                                        .unidentified_websocket()
-                                                        .await
-                                                    {
-                                                        Ok(ws) => ws,
-                                                        Err(error) => {
-                                                            warn!(%error, "failed to open unidentified websocket, skipping sticker pack");
-                                                            continue;
-                                                        }
-                                                    };
-                                                    let operation = operation.clone();
-
-                                                    // download stickers in the background
-                                                    tokio::spawn(async move {
-                                                        match download_sticker_pack(
-                                                            store,
-                                                            unidentified_websocket,
-                                                            &operation,
-                                                        )
-                                                        .await
-                                                        {
-                                                            Ok(sticker_pack) => {
-                                                                debug!(
-                                                                "downloaded sticker pack: {} made by {}",
-                                                                sticker_pack.manifest.title,
-                                                                sticker_pack.manifest.author
-                                                            );
-                                                            }
-                                                            Err(error) => error!(
-                                                                %error,
-                                                                "failed to download sticker pack"
-                                                            ),
-                                                        }
-                                                    });
-                                                }
-                                                sticker_pack_operation::Type::Remove => match state
-                                                    .manager
-                                                    .store
-                                                    .remove_sticker_pack(operation.pack_id())
-                                                    .await
-                                                {
-                                                    Ok(was_present) => {
-                                                        debug!(was_present, "removed stick pack")
-                                                    }
-                                                    Err(error) => {
-                                                        error!(
-                                                            %error,
-                                                            "failed to remove sticker pack"
-                                                        )
-                                                    }
-                                                },
-                                            }
-                                        }
-                                    }
-
-                                    // key synchronization sent from the primary device
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Keys(keys)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        debug!("received key sync message");
-                                        if state.manager.registration_type()
-                                            == RegistrationType::Primary
-                                        {
-                                            warn!("received a key sync message as a primary device; ignoring")
-                                        } else {
-                                            match keys
-                                                .account_entropy_pool
-                                                .as_ref()
-                                                .map(|s| AccountEntropyPool::from_str(s))
-                                            {
-                                                Some(Ok(aep)) => {
-                                                    if let Err(error) = state
-                                                        .manager
-                                                        .store
-                                                        .store_account_entropy_pool(Some(&aep))
-                                                        .await
-                                                    {
-                                                        error!(%error, "failed to store account entropy pool");
-                                                    }
-                                                }
-                                                Some(Err(error)) => {
-                                                    warn!(%error, "cannot convert account entropy pool from string")
-                                                }
-                                                None => {}
-                                            }
-                                        }
-                                    }
-
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::Configuration(configuration)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        debug!(
-                                            ?configuration,
-                                            "received configuration sync message"
-                                        );
-                                        if state.manager.registration_type()
-                                            == RegistrationType::Primary
-                                        {
-                                            warn!("received a configuration sync message as a primary device; ignoring")
-                                        } else if let Err(error) = super::settings::update_settings(
-                                            &mut state.manager.store,
-                                            &state.manager.state.settings,
-                                            |s| s.apply(configuration),
-                                        )
-                                        .await
-                                        {
-                                            error!(%error, "failed to store settings");
-                                        }
-                                    }
-
-                                    // The primary device told us to fetch stuff again from the storage service.
-                                    if let ContentBody::SynchronizeMessage(SyncMessage {
-                                        content: Some(SyncContent::FetchLatest(fetch_latest)),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        if fetch_latest.r#type()
-                                            == sync_message::fetch_latest::Type::StorageManifest
-                                        {
-                                            let stories = state.manager.settings().stories;
-                                            if let Err(error) = sync_from_storage_service(
-                                                &mut state.manager.store,
-                                                state.manager.state.identified_push_service(),
-                                                &mut state.groups_manager,
-                                                &state.manager.state.settings,
-                                            )
-                                            .await
-                                            {
-                                                warn!(%error, "failed to sync from the storage service");
-                                            }
-
-                                            // The stories header is only read on connect; the server kicks the old socket.
-                                            if stories != state.manager.settings().stories {
-                                                debug!("stories setting changed, reconnecting identified websocket");
-                                                if let Err(error) =
-                                                    state.reconnect_identified_websocket().await
-                                                {
-                                                    error!(%error, "failed to reconnect identified websocket");
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    // group update
-                                    if let ContentBody::DataMessage(DataMessage {
-                                        group_v2:
-                                            Some(GroupContextV2 {
-                                                master_key: Some(master_key_bytes),
-                                                revision: Some(revision),
-                                                ..
-                                            }),
-                                        ..
-                                    })
-                                    | ContentBody::SynchronizeMessage(SyncMessage {
-                                        content:
-                                            Some(SyncContent::Sent(sync_message::Sent {
-                                                message:
-                                                    Some(DataMessage {
-                                                        group_v2:
-                                                            Some(GroupContextV2 {
-                                                                master_key: Some(master_key_bytes),
-                                                                revision: Some(revision),
-                                                                ..
-                                                            }),
-                                                        ..
-                                                    }),
-                                                ..
-                                            })),
-                                        ..
-                                    })
-                                    | ContentBody::StoryMessage(StoryMessage {
-                                        group:
-                                            Some(GroupContextV2 {
-                                                master_key: Some(master_key_bytes),
-                                                revision: Some(revision),
-                                                ..
-                                            }),
-                                        ..
-                                    }) = &content.body
-                                    {
-                                        // there's two things to implement: the group metadata (fetched from HTTP API)
-                                        // and the group changes, which are part of the protobuf messages
-                                        // this means we kinda need our own internal representation of groups inside of presage?
-                                        if let Ok(Some(group)) = upsert_group(
-                                            &state.manager.store,
-                                            &mut state.groups_manager,
-                                            master_key_bytes,
-                                            revision,
-                                        )
-                                        .await
-                                        {
-                                            trace!(?group, "upserted group");
-                                        }
-                                    }
-
-                                    if let Some(timestamp) = delivery_receipt_timestamp(&content) {
-                                        state.queue_delivery_receipt(
-                                            content.metadata.sender,
-                                            timestamp,
-                                        );
-                                    }
-
-                                    let saved =
-                                        match state.manager.identified_websocket(false).await {
-                                            Ok(mut websocket) => {
-                                                save_message(
-                                                    &mut state.manager.store,
-                                                    &mut websocket,
-                                                    content.clone(),
-                                                    None,
-                                                )
-                                                .await
-                                            }
-                                            Err(error) => Err(error),
-                                        };
-                                    if let Err(error) = saved {
-                                        error!(%error, "error saving message to store");
-                                    }
-
-                                    return Some((Received::Content(Box::new(content)), state));
-                                }
-                                Ok(None) => {
-                                    debug!("empty envelope, message will be skipped!")
-                                }
-                                Err(error) => {
-                                    error!(%error, "error opening envelope, message will be skipped!");
-                                    if let libsignal_service::prelude::ServiceError::SealedSenderDecryptionError(libsignal_service::cipher::SealedSenderDecryptionError { sender: Some(sender), .. }) = &error {
-                                        if let Some(sender) = ServiceId::parse_from_service_id_string(sender.name()) {
-                                            return Some((Received::DecryptionError(sender), state));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Some(Ok(Incoming::QueueEmpty)) => {
-                            debug!("got empty queue");
-                            state.queue_empty = true;
-                            state.flush_delivery_receipts();
-                            if matches!(state.manager.account_entropy_pool().await, Ok(None)) {
-                                debug!("device does not have the needed keys; requesting from primary device");
-
-                                let mut message_sender = state.message_sender.clone();
-                                tokio::task::spawn_local(async move {
-                                    let result = message_sender
-                                        .send_sync_message(SyncMessage {
-                                            content: Some(SyncContent::Request(
-                                                sync_message::Request {
-                                                    r#type: Some(
-                                                        sync_message::request::Type::Keys.into(),
-                                                    ),
-                                                },
-                                            )),
-                                            ..SyncMessage::with_padding(&mut rand::rng())
-                                        })
-                                        .await;
-
-                                    if let Err(error) = result {
-                                        warn!(%error, "Error sending blocked contacts to other devices");
-                                    }
-                                });
-                            }
-                            return Some((Received::QueueEmpty, state));
-                        }
-                        Some(Err(error)) => {
-                            error!(%error, "unexpected error in message receiving loop")
-                        }
-                        None => return None,
-                    }
-                }
-            }
-        });
-
-        Ok(Box::pin(
-            // We use the returning of the async closure in take_until as a stop signal
-            // if the future resolves *anything* the stream will end.
-            incoming_messages_stream.take_until(refresh_registration_task),
-        ))
     }
 
     /// Uses Signal's SGX contact discovery service to resolve a phone number to its matching account identity
@@ -1281,6 +802,7 @@ impl<S: Store> Manager<S, Registered> {
 
         ensure_data_message_timestamp(&mut content_body, timestamp);
 
+        let step = self.state.session_step.lock().await;
         sender
             .send_message(
                 &recipient,
@@ -1291,6 +813,7 @@ impl<S: Store> Manager<S, Registered> {
                 online_only,
             )
             .await?;
+        drop(step);
 
         // save the message
         let content = Content {
@@ -1310,10 +833,9 @@ impl<S: Store> Manager<S, Registered> {
             body: content_body,
         };
 
-        let mut identified_websocket = self.identified_websocket(false).await?;
         save_message(
             &mut self.store,
-            &mut identified_websocket,
+            &self.state.jobs_wake,
             content.clone(),
             Some(thread),
         )
@@ -1444,8 +966,14 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
 
         let mut groups_manager = Box::pin(self.groups_manager()).await?;
-        let Some(group) =
-            upsert_group(&self.store, &mut groups_manager, &master_key_bytes, &0).await?
+        let Some(group) = upsert_group(
+            &self.store,
+            &self.state.jobs_wake,
+            &mut groups_manager,
+            &master_key_bytes,
+            &0,
+        )
+        .await?
         else {
             return Err(Error::UnknownGroup);
         };
@@ -1469,9 +997,11 @@ impl<S: Store> Manager<S, Registered> {
         }
 
         let online_only = false;
+        let step = self.state.session_step.lock().await;
         let results = sender
             .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
+        drop(step);
 
         // TODO: Handle the NotFound error in the future by removing all sessions to this UUID and marking it as unregistered, not sending any messages to this contact anymore.
         results
@@ -1505,10 +1035,9 @@ impl<S: Store> Manager<S, Registered> {
             body: content_body,
         };
 
-        let mut identified_websocket = self.identified_websocket(false).await?;
         save_message(
             &mut self.store,
-            &mut identified_websocket,
+            &self.state.jobs_wake,
             content.clone(),
             Some(thread),
         )
@@ -1785,6 +1314,7 @@ impl<S: Store> Manager<S, Registered> {
             return Ok(false);
         }
         let mut message_sender = self.new_message_sender().await?;
+        let step = self.state.session_step.lock().await;
         message_sender
             .send_sync_message(SyncMessage {
                 viewed: vec![sync_message::Viewed {
@@ -1795,6 +1325,7 @@ impl<S: Store> Manager<S, Registered> {
                 ..SyncMessage::with_padding(&mut rand::rng())
             })
             .await?;
+        drop(step);
         if self.settings().story_view_receipts() {
             self.send_receipt(
                 &mut message_sender,
@@ -1818,10 +1349,10 @@ impl<S: Store> Manager<S, Registered> {
             content: Some(SyncContent::CallEvent(event.clone())),
             ..SyncMessage::with_padding(&mut rand::rng())
         };
-        self.new_message_sender()
-            .await?
-            .send_sync_message(sync_message.clone())
-            .await?;
+        let mut sender = self.new_message_sender().await?;
+        let step = self.state.session_step.lock().await;
+        sender.send_sync_message(sync_message.clone()).await?;
+        drop(step);
 
         let aci = self.state.data.service_ids.aci();
         // Filed under the start of the call.
@@ -1845,10 +1376,9 @@ impl<S: Store> Manager<S, Registered> {
             body: ContentBody::SynchronizeMessage(sync_message),
         };
 
-        let mut identified_websocket = self.identified_websocket(false).await?;
         save_message(
             &mut self.store,
-            &mut identified_websocket,
+            &self.state.jobs_wake,
             content.clone(),
             None,
         )
@@ -1979,7 +1509,7 @@ impl<S: Store> Manager<S, Registered> {
                     account_entropy_pool: self
                         .account_entropy_pool()
                         .await?
-                        .expect("Primary device to always have an account entropy pool"),
+                        .ok_or(Error::MissingKeyError("account_entropy_pool".into()))?,
                     ephemeral_backup_key: None,
                     media_root_backup_key: None,
                     read_receipts: None,
@@ -2077,22 +1607,35 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
     }
 }
 
+/// Returns the version of the manifest read, `None` if it hadn't changed since it was last read
+/// in full.
 async fn sync_from_storage_service<S: Store>(
     store: &mut S,
     push_service: PushService,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
     settings: &RwLock<Settings>,
-) -> Result<(), Error<S::Error>> {
+) -> Result<Option<u64>, Error<S::Error>> {
     const READ_CHUNK: usize = 100;
 
-    let master_key = store
-        .fetch_master_key()
+    let keys = AccountKeys::load(store)
         .await?
         .ok_or(Error::MissingKeyError("master_key".into()))?;
-    let storage_key = StorageServiceKey::from_master_key(&master_key);
-    let storage = StorageService::new(push_service, storage_key).await?;
+    let storage = StorageService::new(push_service, keys.storage_key()).await?;
 
-    let manifest = storage.manifest().await?;
+    let read = store
+        .replica(&Replica::StorageManifest)
+        .await?
+        .and_then(|read| read.version);
+    let manifest = match read {
+        Some(version) => match storage.manifest_if_changed(version).await? {
+            Some(manifest) => manifest,
+            None => {
+                debug!(version, "the storage manifest is unchanged");
+                return Ok(None);
+            }
+        },
+        None => storage.manifest().await?,
+    };
 
     use manifest_record::identifier::Type;
     let ids: Vec<Vec<u8>> = manifest
@@ -2104,6 +1647,7 @@ async fn sync_from_storage_service<S: Store>(
     debug!(count = ids.len(), "records listed in the storage service");
 
     let (mut contacts, mut groups) = (0, 0);
+    let mut failed = None;
     for chunk in ids.chunks(READ_CHUNK) {
         let records = match storage
             .read_items(chunk.to_vec(), Some(&manifest.record_ikm))
@@ -2112,6 +1656,7 @@ async fn sync_from_storage_service<S: Store>(
             Ok(records) => records,
             Err(error) => {
                 warn!(%error, "failed to read records from the storage service");
+                failed = Some(error.into());
                 continue;
             }
         };
@@ -2152,7 +1697,8 @@ async fn sync_from_storage_service<S: Store>(
                     match save_unknown_group(store, groups_manager, &record.master_key).await {
                         Ok(_) => groups += 1,
                         Err(error) => {
-                            warn!(%error, "failed to fetch group listed in the storage service")
+                            warn!(%error, "failed to fetch group listed in the storage service");
+                            failed = Some(error);
                         }
                     }
                 }
@@ -2161,7 +1707,17 @@ async fn sync_from_storage_service<S: Store>(
         }
     }
     debug!(contacts, groups, "synced from the storage service");
-    Ok(())
+    // Read again in full unless all of it was read: the failure puts the job off.
+    if let Some(error) = failed {
+        return Err(error);
+    }
+    store
+        .set_replica(
+            &Replica::StorageManifest,
+            Freshness::now(Some(manifest.version)),
+        )
+        .await?;
+    Ok(Some(manifest.version))
 }
 
 /// Returns whether the record was saved, i.e. it has an ACI.
@@ -2238,7 +1794,8 @@ async fn save_unknown_group<S: Store>(
     Ok(())
 }
 
-async fn upsert_group<S: Store>(
+/// Fetches and saves the group unless it is stored at `revision` already. Fails if fetching does.
+async fn update_group<S: Store>(
     store: &S,
     groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
     master_key_bytes: &[u8],
@@ -2258,23 +1815,57 @@ async fn upsert_group<S: Store>(
 
     if upsert_group {
         debug!("fetching and saving group");
-        match groups_manager
+        let encrypted_group = groups_manager
             .fetch_encrypted_group(&mut rand::rng(), master_key_bytes)
-            .await
-        {
-            Ok(encrypted_group) => {
-                let group = decrypt_group(master_key_bytes, encrypted_group)?;
-                if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
-                    error!(%error, "failed to save group");
-                }
-            }
-            Err(error) => {
-                warn!(%error, "failed to fetch encrypted group")
-            }
+            .await?;
+        let group = decrypt_group(master_key_bytes, encrypted_group)?;
+        if let Err(error) = store.save_group(master_key_bytes.try_into()?, group).await {
+            error!(%error, "failed to save group");
         }
     }
 
     Ok(store.group(master_key_bytes.try_into()?).await?)
+}
+
+/// As [`update_group`]; a fetch the connection failed is owed as a [`Job`](crate::model::jobs::Job), which fetches the
+/// group while receiving: until then it stays as it was (a member who left, still listed). Not
+/// if the server answered: a refusal (we aren't a member) would be the same again.
+async fn update_group_or_owe<S: Store>(
+    store: &S,
+    jobs_wake: &tokio::sync::Notify,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    master_key_bytes: &[u8],
+    revision: &u32,
+) -> Result<Option<Group>, Error<S::Error>> {
+    let updated = update_group(store, groups_manager, master_key_bytes, revision).await;
+    if let Err(error) = &updated {
+        warn!(error = %jobs::Causes(error), "failed to fetch encrypted group");
+        if let (true, Ok(master_key)) = (
+            jobs::connection_failed(error),
+            <[u8; 32]>::try_from(master_key_bytes),
+        ) {
+            let job = crate::model::jobs::Job::UpdateGroup {
+                master_key,
+                revision: *revision,
+            };
+            jobs::enqueue(&mut store.clone(), jobs_wake, job).await;
+        }
+    }
+    updated
+}
+
+/// As [`update_group_or_owe`], with the stored group if fetching fails.
+async fn upsert_group<S: Store>(
+    store: &S,
+    jobs_wake: &tokio::sync::Notify,
+    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    master_key_bytes: &[u8],
+    revision: &u32,
+) -> Result<Option<Group>, Error<S::Error>> {
+    match update_group_or_owe(store, jobs_wake, groups_manager, master_key_bytes, revision).await {
+        Err(Error::ServiceError(_)) => Ok(store.group(master_key_bytes.try_into()?).await?),
+        group => group,
+    }
 }
 
 /// Download and decrypt a sticker manifest
@@ -2362,81 +1953,6 @@ async fn download_sticker<C: ContentsStore>(
     Ok(ciphertext)
 }
 
-struct StreamState<S: Store> {
-    manager: Manager<S, Registered>,
-    encrypted_messages: Pin<Box<dyn Stream<Item = Result<Incoming, ServiceError>> + Send>>,
-    groups_manager: GroupsManager<InMemoryCredentialsCache>,
-    message_sender: MessageSender<S::AciStore>,
-    /// Delivery receipts batched while the queued messages are drained.
-    ///
-    /// NB: not persisted; receipts still pending when the stream is dropped are lost.
-    pending_delivery_receipts: HashMap<ServiceId, Vec<u64>>,
-    pending_delivery_receipts_count: usize,
-    queue_empty: bool,
-}
-
-// Same batch size as Signal-Android's `IncomingMessageObserver`.
-const DELIVERY_RECEIPT_BATCH_SIZE: usize = 30;
-
-impl<S: Store> StreamState<S> {
-    async fn new(
-        manager: Manager<S, Registered>,
-        identified_websocket: SignalWebSocket<websocket::Identified>,
-    ) -> Result<Self, Error<S::Error>> {
-        Ok(Self {
-            encrypted_messages: Box::pin(MessagePipe::from_socket(identified_websocket).stream()),
-            groups_manager: Box::pin(manager.groups_manager()).await?,
-            message_sender: manager.new_message_sender().await?,
-            pending_delivery_receipts: HashMap::new(),
-            pending_delivery_receipts_count: 0,
-            queue_empty: false,
-            manager,
-        })
-    }
-
-    fn queue_delivery_receipt(&mut self, sender: ServiceId, timestamp: u64) {
-        self.pending_delivery_receipts
-            .entry(sender)
-            .or_default()
-            .push(timestamp);
-        self.pending_delivery_receipts_count += 1;
-        if self.queue_empty || self.pending_delivery_receipts_count >= DELIVERY_RECEIPT_BATCH_SIZE {
-            self.flush_delivery_receipts();
-        }
-    }
-
-    fn flush_delivery_receipts(&mut self) {
-        self.pending_delivery_receipts_count = 0;
-        for (recipient, timestamps) in self.pending_delivery_receipts.drain() {
-            let manager = self.manager.clone();
-            let mut message_sender = self.message_sender.clone();
-            tokio::task::spawn_local(async move {
-                if let Err(error) = manager
-                    .send_receipt(
-                        &mut message_sender,
-                        recipient,
-                        receipt_message::Type::Delivery,
-                        timestamps,
-                    )
-                    .await
-                {
-                    warn!(%error, "failed to send delivery receipt");
-                }
-            });
-        }
-    }
-
-    async fn reconnect_identified_websocket(&mut self) -> Result<(), Error<S::Error>> {
-        let ws = self.manager.identified_websocket(true).await?;
-        self.message_sender = self.manager.new_message_sender().await?;
-        self.encrypted_messages = Box::pin(MessagePipe::from_socket(ws).stream());
-        // The new socket drains its own queue first.
-        self.queue_empty = false;
-        debug!("reconnected identified websocket");
-        Ok(())
-    }
-}
-
 fn delivery_receipt_timestamp(content: &Content) -> Option<u64> {
     // Signal-Android only acknowledges sealed sender messages.
     if !content.metadata.needs_receipt {
@@ -2506,12 +2022,12 @@ fn blocked_sync_message(blocked: &[Thread]) -> sync_message::Blocked {
     message
 }
 
-/// Save a message into the store.
+/// Save a message into the store, its sender's profile key first.
 /// Note that `override_thread` can be used to specify the thread the message will be stored in.
 /// This is required when storing outgoing messages, as in this case the appropriate storage place cannot be derived from the message itself.
 async fn save_message<S: Store>(
     store: &mut S,
-    identified_websocket: &mut websocket::SignalWebSocket<websocket::Identified>,
+    jobs_wake: &tokio::sync::Notify,
     message: Content,
     override_thread: Option<Thread>,
 ) -> Result<(), Error<S::Error>> {
@@ -2519,218 +2035,12 @@ async fn save_message<S: Store>(
     let received = override_thread.is_none();
     let thread = override_thread.unwrap_or(Thread::try_from(&message)?);
 
-    // only save DataMessage and SynchronizeMessage (sent)
-    let message = match message.body {
-        ContentBody::DecryptionErrorMessage(e) => {
-            warn!(error = ?e, "was asked to save a DecryptionErrorMessage; this should not happen");
-            None
-        }
-        ContentBody::NullMessage(_) => Some(message),
-        ContentBody::DataMessage(
-            ref data_message @ DataMessage {
-                ref profile_key, ..
-            },
-        )
-        | ContentBody::SynchronizeMessage(SyncMessage {
-            content:
-                Some(SyncContent::Sent(sync_message::Sent {
-                    message:
-                        Some(
-                            ref data_message @ DataMessage {
-                                ref profile_key, ..
-                            },
-                        ),
-                    ..
-                })),
-            ..
-        }) => {
-            // update recipient profile key if changed
-            if let Some(profile_key_bytes) = profile_key.clone().and_then(|p| p.try_into().ok()) {
-                let sender = message.metadata.sender;
-                let profile_key = ProfileKey::create(profile_key_bytes);
-                debug!(sender = %sender.service_id_string(), "inserting profile key for");
-
-                // Either:
-                // - insert a new contact with the profile information
-                // - update the contact if the profile key has changed
-                // TODO: mark this contact as "created by us" maybe to know whether we should update it or not
-                // NOTE: this needs to happen in the background!
-                let store_inner = store.clone();
-                let websocket_inner = identified_websocket.clone();
-                let data_message_inner = data_message.clone();
-                tokio::spawn(async move {
-                    if let Err(error) = upsert_contact_from_profile(
-                        store_inner,
-                        websocket_inner,
-                        &data_message_inner,
-                        sender,
-                        profile_key,
-                    )
-                    .await
-                    {
-                        error!(%error, "failed to upsert newly seen contact!");
-                    }
-                });
-            }
-
-            // Note: The expire timer fields of data messages are only for contacts.
-            // Expire timers are handled for groups via upsert_group due to a revision change.
-            if let Thread::Contact(_) = thread {
-                let version = data_message.expire_timer_version.unwrap_or(1);
-                store
-                    .update_expire_timer(
-                        &thread,
-                        data_message.expire_timer.unwrap_or_default(),
-                        version,
-                    )
-                    .await?;
-            }
-
-            match data_message {
-                DataMessage {
-                    delete:
-                        Some(Delete {
-                            target_sent_timestamp: Some(ts),
-                        }),
-                    ..
-                } => {
-                    let deleted_story = match message.metadata.sender {
-                        ServiceId::Aci(sender) => store.delete_story(&sender, *ts).await?,
-                        ServiceId::Pni(_) => false,
-                    };
-                    if deleted_story {
-                        debug!(ts, "story deleted");
-                        None
-                    } else if let Some(mut existing_msg) = store.message(&thread, *ts).await? {
-                        // replace an existing message by an empty NullMessage
-                        existing_msg.metadata.sender = Aci::from(Uuid::nil()).into();
-                        existing_msg.body = NullMessage::default().into();
-                        store.save_message(&thread, existing_msg).await?;
-                        debug!(%thread, ts, "message in thread deleted");
-                        None
-                    } else {
-                        warn!(%thread, ts, "could not find message to delete in thread");
-                        None
-                    }
-                }
-                DataMessage {
-                    story_context: Some(_),
-                    group_v2: Some(_),
-                    ..
-                } => {
-                    debug!(%thread, "skipping group story reply");
-                    None
-                }
-                _ => Some(message),
-            }
-        }
-        ContentBody::SynchronizeMessage(SyncMessage {
-            content: Some(SyncContent::DeleteForMe(ref delete)),
-            ..
-        }) => {
-            // TODO: Conversations, local-only deletes, attachments
-            for d in delete.message_deletes.iter().flat_map(|m| &m.messages) {
-                let sender = match &d.author {
-                    Some(Author::AuthorServiceId(id)) => {
-                        ServiceId::parse_from_service_id_string(id)
-                    }
-                    Some(Author::AuthorServiceIdBinary(id)) => {
-                        ServiceId::parse_from_service_id_binary(id)
-                    }
-                    Some(Author::AuthorE164(_)) => None,
-                    None => None,
-                };
-                let Some(sender) = sender else {
-                    tracing::warn!("Could not parse author of delete-for-self message; ignoring.");
-                    continue;
-                };
-                let Some(timestamp) = d.sent_timestamp else {
-                    tracing::warn!("Timestamp of delete-for-self message not given; ignoring.");
-                    continue;
-                };
-                let Ok(Some(thread)) = store
-                    .thread_for_sender_and_timestamp(&sender, timestamp)
-                    .await
-                else {
-                    tracing::warn!(
-                        "Message referenced by delete-for-self message not found; ignoring."
-                    );
-                    continue;
-                };
-                // Note: Not marking the message as deleted, like when receiving deletion requests by others.
-                // This matches the behavior of Signal Desktop, where the message completely disappears from the timeline.
-                let result = store.delete_message(&thread, timestamp).await;
-                if !result.is_ok_and(|d| d) {
-                    tracing::warn!(
-                        "Could not delete message referenced by delete-for-self message; ignoring."
-                    );
-                }
-            }
-            None
-        }
-        ContentBody::EditMessage(EditMessage {
-            target_sent_timestamp: Some(_),
-            data_message: Some(_),
-        })
-        | ContentBody::SynchronizeMessage(SyncMessage {
-            content:
-                Some(SyncContent::Sent(sync_message::Sent {
-                    edit_message:
-                        Some(EditMessage {
-                            target_sent_timestamp: Some(_),
-                            data_message: Some(_),
-                        }),
-                    ..
-                })),
-            ..
-        }) => Some(message),
-        // Received offers and hangups start and end a call; the rest of the signaling is transient.
-        // Our own calls are recorded by `CallEvent`s.
-        ContentBody::CallMessage(CallMessage { offer: Some(_), .. })
-        | ContentBody::CallMessage(CallMessage {
-            hangup: Some(_), ..
-        }) if received => Some(message),
-        ContentBody::CallMessage(_) => None,
-        ContentBody::SynchronizeMessage(SyncMessage {
-            content: Some(SyncContent::CallEvent(_)),
-            ..
-        }) => Some(message),
-        ContentBody::SynchronizeMessage(SyncMessage { ref viewed, .. }) if !viewed.is_empty() => {
-            for viewed in viewed {
-                if let (Some(sender), Some(timestamp)) =
-                    (viewed.parse_sender_aci(), viewed.timestamp)
-                {
-                    store.mark_story_viewed(&sender, timestamp).await?;
-                }
-            }
-            None
-        }
-        ContentBody::SynchronizeMessage(msg) => {
-            trace!(
-                ?msg,
-                "skipping saving sync message without interesting fields"
-            );
-            None
-        }
-        ContentBody::ReceiptMessage(_) => Some(message),
-        ContentBody::TypingMessage(msg) => {
-            debug!(?msg, "skipping saving typing message");
-            None
-        }
-        ContentBody::StoryMessage(story) => {
-            save_story(store, &message.metadata, story).await?;
-            None
-        }
-        ContentBody::EditMessage(msg) => {
-            debug!(?msg, "invalid edited");
-            None
-        }
-    };
-
-    if let Some(message) = message {
-        store.save_message(&thread, message).await?;
+    if let Some(job) = keep_profile_key(store, &message).await? {
+        jobs::enqueue(store, jobs_wake, job).await;
     }
 
+    // A received message names no thread: keep tells it so from that.
+    keep(store, &message, (!received).then_some(thread)).await?;
     Ok(())
 }
 
@@ -2743,7 +2053,7 @@ fn now_millis() -> u64 {
         .as_millis() as u64
 }
 
-async fn save_story<S: Store>(
+pub(super) async fn save_story<S: Store>(
     store: &mut S,
     metadata: &Metadata,
     message: StoryMessage,
@@ -2799,56 +2109,40 @@ async fn save_story<S: Store>(
     Ok(())
 }
 
-async fn upsert_contact_from_profile<S: Store>(
-    mut store: S,
-    mut identified_websocket: SignalWebSocket<websocket::Identified>,
-    data_message: &DataMessage,
-    sender: ServiceId,
+/// Saves `aci` as a contact by the name of their `profile`.
+async fn save_contact_from_profile<S: Store>(
+    store: &mut S,
+    aci: Aci,
     profile_key: ProfileKey,
+    profile: Profile,
+    expire_timer: u32,
+    expire_timer_version: u32,
 ) -> Result<(), Error<<S as Store>::Error>> {
-    if store.contact_by_id(&sender).await?.is_none()
-        || store
-            .profile_key(&sender)
-            .await?
-            .is_none_or(|p| p.bytes != profile_key.bytes)
-    {
-        if let Some(aci) = sender.aci() {
-            let sender_uuid: Uuid = aci.into();
-            let encrypted_profile = identified_websocket
-                .retrieve_profile_by_id(aci, Some(profile_key))
-                .await?;
-            let profile_cipher = ProfileCipher::new(profile_key);
-            let decrypted_profile = profile_cipher.decrypt(encrypted_profile)?;
+    let sender_uuid: Uuid = aci.into();
+    let contact = Contact {
+        uuid: sender_uuid,
+        phone_number: None,
+        name: profile
+            .name
+            // FIXME: this assumes [firstname] [lastname]
+            .map(|pn| {
+                if let Some(family_name) = pn.family_name {
+                    format!("{} {}", pn.given_name, family_name)
+                } else {
+                    pn.given_name
+                }
+            })
+            .unwrap_or_default(),
+        profile_key: profile_key.bytes.to_vec(),
+        expire_timer,
+        expire_timer_version,
+        inbox_position: 0,
+        avatar: None,
+        verified: Verified::default(),
+    };
 
-            let contact = Contact {
-                uuid: sender_uuid,
-                phone_number: None,
-                name: decrypted_profile
-                    .name
-                    // FIXME: this assumes [firstname] [lastname]
-                    .map(|pn| {
-                        if let Some(family_name) = pn.family_name {
-                            format!("{} {}", pn.given_name, family_name)
-                        } else {
-                            pn.given_name
-                        }
-                    })
-                    .unwrap_or_default(),
-                profile_key: profile_key.bytes.to_vec(),
-                expire_timer: data_message.expire_timer.unwrap_or_default(),
-                expire_timer_version: data_message.expire_timer_version.unwrap_or(1),
-                inbox_position: 0,
-                avatar: None,
-                verified: Verified::default(),
-            };
-
-            info!(%sender_uuid, "saved contact on first sight");
-            store.save_contact(&contact).await?;
-            store.upsert_profile_key(&sender_uuid, profile_key).await?;
-        } else {
-            debug!("not storing profile for PNI contact");
-        }
-    }
+    info!(%sender_uuid, "saved contact on first sight");
+    store.save_contact(&contact).await?;
     Ok(())
 }
 

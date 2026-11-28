@@ -1,0 +1,12 @@
+{
+  "db_name": "SQLite",
+  "query": "DELETE FROM thread_messages\n            WHERE ts = ? AND sender_service_id = ? AND thread_id = (\n                SELECT id FROM threads WHERE group_master_key = ? OR recipient_id = ?)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Right": 4
+    },
+    "nullable": []
+  },
+  "hash": "27c7140ce54c951a20ad539157b72724b7e5cd750b116637dfeca32783419606"
+}
