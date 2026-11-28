@@ -683,6 +683,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let store_inner = self.store.clone();
         let registration_data_inner = self.registration_data().clone();
+        let registration_type = self.registration_type();
 
         // We make a task to update the account attributes and refresh pre keys as needed that will
         // only yield a value if one of the two operations fail (stop signal).
@@ -690,9 +691,13 @@ impl<S: Store> Manager<S, Registered> {
         // This is necessary because in this context, we can't do the classic tokio::spawn with a
         // oneshot::channel() or CancellationToken because of !Send constraints in the Store.
         let refresh_registration_task = async move {
-            if let Err(error) =
-                set_account_attributes(&mut account_manager, &store_inner, &registration_data_inner)
-                    .await
+            if let Err(error) = set_account_attributes(
+                &mut account_manager,
+                &store_inner,
+                &registration_data_inner,
+                registration_type,
+            )
+            .await
             {
                 error!(%error, "failed to set account attributes, this is problematic and should never happen!");
             }
@@ -774,8 +779,12 @@ impl<S: Store> Manager<S, Registered> {
                                     {
                                         use libsignal_service::content::sync_message::request::Type as RequestType;
 
-                                        match request.r#type() {
-                                            RequestType::Contacts => {
+                                        // Only the primary answers, as with Signal's apps: the answer reaches every device.
+                                        match (state.manager.registration_type(), request.r#type()) {
+                                            (RegistrationType::Secondary, t) => {
+                                                debug!(type = ?t, "a linked device leaves sync requests to the primary")
+                                            }
+                                            (_, RequestType::Contacts) => {
                                                 let contacts = state
                                                     .manager
                                                     .store
@@ -817,7 +826,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     }
                                                 });
                                             }
-                                            RequestType::Keys => {
+                                            (_, RequestType::Keys) => {
                                                 let mut message_sender =
                                                     state.message_sender.clone();
                                                 let account_entropy_pool = match state
@@ -845,7 +854,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     }
                                                 });
                                             }
-                                            RequestType::Blocked => {
+                                            (_, RequestType::Blocked) => {
                                                 let blocked = match state
                                                     .manager
                                                     .store
@@ -877,7 +886,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     }
                                                 });
                                             }
-                                            t => {
+                                            (_, t) => {
                                                 info!(type = ?t, "Got sync request of currently unhandled type")
                                             }
                                         }
@@ -1947,10 +1956,11 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Returns how this client was registered, either as a primary or secondary device.
     pub fn registration_type(&self) -> RegistrationType {
-        if self.state.data.device_name.is_some() {
-            RegistrationType::Secondary
-        } else {
+        // The primary is device 1; a linked device may have no name stored.
+        if self.device_id() == *DEFAULT_DEVICE_ID {
             RegistrationType::Primary
+        } else {
+            RegistrationType::Secondary
         }
     }
 
@@ -2852,11 +2862,34 @@ async fn upsert_contact_from_profile<S: Store>(
     Ok(())
 }
 
+/// The capabilities presage has, on any device.
+fn capabilities() -> DeviceCapabilities {
+    DeviceCapabilities {
+        storage: true,
+        transfer: false,
+        attachment_backfill: false,
+        spqr: true,
+        profiles_v2: false,
+        username_change_sync_message: true,
+    }
+}
+
 async fn set_account_attributes<S: Store>(
     account_manager: &mut AccountManager,
     store: &S,
     data: &RegistrationData,
+    registration_type: RegistrationType,
 ) -> Result<(), Error<S::Error>> {
+    // The attributes also set the account's registration lock, discoverability and access
+    // key, which are the primary's to set; Signal-Desktop, linked, sends only its capabilities.
+    if registration_type == RegistrationType::Secondary {
+        trace!("setting device capabilities");
+        account_manager
+            .set_device_capabilities(&capabilities())
+            .await?;
+        return Ok(());
+    }
+
     trace!("setting account attributes");
 
     let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
@@ -2882,14 +2915,7 @@ async fn set_account_attributes<S: Store>(
             registration_lock: None,
             unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
             unrestricted_unidentified_access: false,
-            capabilities: Some(DeviceCapabilities {
-                storage: true,
-                transfer: false,
-                attachment_backfill: false,
-                spqr: true,
-                profiles_v2: false,
-                username_change_sync_message: true,
-            }),
+            capabilities: Some(capabilities()),
             discoverable_by_phone_number: true,
             recovery_password: None,
             video: false,
