@@ -1,0 +1,26 @@
+{
+  "db_name": "SQLite",
+  "query": "UPDATE decrypted_contents SET tries = tries + 1 WHERE id = ? RETURNING tries",
+  "describe": {
+    "columns": [
+      {
+        "name": "tries",
+        "ordinal": 0,
+        "type_info": "Integer",
+        "origin": {
+          "Table": {
+            "table": "decrypted_contents",
+            "name": "tries"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Right": 1
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "fa628fe0fd3191cda0c8cf60af23353ffb1a3dcb29374522bb4a6ef8017b9e51"
+}

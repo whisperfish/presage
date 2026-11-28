@@ -2718,7 +2718,7 @@ dependencies = [
 [[package]]
 name = "libsignal-service"
 version = "0.1.0"
-source = "git+https://github.com/whisperfish/libsignal-service-rs?rev=bd40cb49a66c770c27f9f41fd3df029d068de025#bd40cb49a66c770c27f9f41fd3df029d068de025"
+source = "git+https://github.com/barafael/libsignal-service-rs?rev=84f41c7c88ae3e465a6e96641650c6625956fc34#84f41c7c88ae3e465a6e96641650c6625956fc34"
 dependencies = [
  "aes 0.9.4",
  "aes-gcm",
@@ -3511,6 +3511,7 @@ dependencies = [
  "async-trait",
  "bytes",
  "chrono",
+ "futures",
  "libsqlite3-sys",
  "presage",
  "prost",
