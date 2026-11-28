@@ -699,6 +699,15 @@ async fn receive<S: Store>(
             Received::DecryptionError(c) => {
                 println!("failed to receive a message from a contact: {c:?}")
             }
+            Received::MissedGroupChanges { changes, .. } => {
+                for change in changes {
+                    println!(
+                        "missed a group's revision {}: {} changes",
+                        change.changes.version,
+                        change.changes.changes.len()
+                    )
+                }
+            }
         }
     }
 
