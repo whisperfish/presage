@@ -1519,6 +1519,16 @@ impl<S: Store> Manager<S, Registered> {
         let own = self.state.data.service_ids.aci();
         let pni = self.state.data.service_ids.pni();
         let leaving = matches!(change, GroupEdit::Leave | GroupEdit::DeclineInvitation);
+        // Uploaded once, whatever the attempts below.
+        let avatar_key = match &change {
+            GroupEdit::Avatar(avatar) if avatar.is_empty() => Some(String::new()),
+            GroupEdit::Avatar(avatar) => Some(
+                groups_manager
+                    .upload_avatar(&mut rng(), master_key, avatar)
+                    .await?,
+            ),
+            _ => None,
+        };
         let mut attempt = 0;
         let (group, revision, mut told, signed) = loop {
             attempt += 1;
@@ -1529,7 +1539,13 @@ impl<S: Store> Manager<S, Registered> {
                 return Err(Error::UnknownGroup);
             };
             let (actions, told) = self
-                .group_change_actions(&groups_manager, &operations, &group, change.clone())
+                .group_change_actions(
+                    &groups_manager,
+                    &operations,
+                    &group,
+                    change.clone(),
+                    avatar_key.clone(),
+                )
                 .await?;
             let revision = actions.version;
             match groups_manager
@@ -1557,6 +1573,11 @@ impl<S: Store> Manager<S, Registered> {
         } else {
             upsert_group(&self.store, &mut groups_manager, master_key, &revision).await?;
         }
+        if let (GroupEdit::Avatar(avatar), Some(path)) = (&change, &avatar_key) {
+            if !path.is_empty() {
+                self.store.save_group_avatar(*master_key, path, avatar).await?;
+            }
+        }
         let message = DataMessage {
             group_v2: Some(GroupContextV2 {
                 master_key: Some(master_key.to_vec()),
@@ -1583,6 +1604,7 @@ impl<S: Store> Manager<S, Registered> {
         operations: &libsignal_service::groups_v2::GroupOperations,
         group: &Group,
         change: GroupEdit,
+        avatar_key: Option<String>,
     ) -> Result<
         (
             libsignal_service::proto::group_change::Actions,
@@ -1621,6 +1643,10 @@ impl<S: Store> Manager<S, Registered> {
             GroupEdit::Description(description) => {
                 actions.modify_description =
                     Some(operations.build_modify_description_action(&description, &mut rng()));
+            }
+            GroupEdit::Avatar(_) => {
+                actions.modify_avatar =
+                    Some(operations.build_modify_avatar_action(avatar_key.unwrap_or_default()));
             }
             GroupEdit::Timer(seconds) => {
                 actions.modify_disappearing_message_timer = Some(
@@ -3374,6 +3400,8 @@ pub enum GroupEdit {
     Title(String),
     /// Empty clears it.
     Description(String),
+    /// The picture's bytes (JPEG or PNG, as Signal's clients send); empty clears it.
+    Avatar(Vec<u8>),
     /// Seconds; 0 turns disappearing messages off.
     Timer(u32),
     /// Adds members we have a profile key for; invites the others, including PNIs.
