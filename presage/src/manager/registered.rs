@@ -1255,13 +1255,14 @@ impl<S: Store> Manager<S, Registered> {
         let mut sender = self.new_message_sender().await?;
         let recipient = recipient.into();
 
-        let online_only = false;
         // TODO: Populate this flag based on the recipient information
         //
         // Issue <https://github.com/whisperfish/presage/issues/252>
         let include_pni_signature = false;
         let thread = Thread::Contact(recipient);
         let mut content_body: ContentBody = message.into();
+        // As Signal-Desktop: a queued typing indicator means nothing by the time it arrives.
+        let online_only = matches!(content_body, ContentBody::TypingMessage(_));
 
         self.restore_thread_timer(&thread, &mut content_body).await;
         self.fetch_link_previews(&mut content_body).await;
@@ -1269,7 +1270,8 @@ impl<S: Store> Manager<S, Registered> {
         let sender_certificate = self.sender_certificate().await?;
         let unidentified_access = self
             .unidentified_access(&recipient, &sender_certificate)
-            .await?;
+            .await?
+            .or_else(|| story_access(&content_body, &sender_certificate));
 
         // we need to put our profile key in DataMessage
         if let ContentBody::DataMessage(message) = &mut content_body {
@@ -1431,7 +1433,7 @@ impl<S: Store> Manager<S, Registered> {
         message: impl Into<ContentBody>,
         timestamp: u64,
     ) -> Result<Content, Error<S::Error>> {
-        let mut content_body = message.into();
+        let mut content_body: ContentBody = message.into();
         let master_key_bytes = master_key_bytes
             .try_into()
             .expect("Master key bytes to be of size 32.");
@@ -1459,7 +1461,8 @@ impl<S: Store> Manager<S, Registered> {
         {
             let unidentified_access = self
                 .unidentified_access(&member.aci.into(), &sender_certificate)
-                .await?;
+                .await?
+                .or_else(|| story_access(&content_body, &sender_certificate));
             let include_pni_signature = false;
             recipients.push((
                 member.aci.into(),
@@ -1468,7 +1471,8 @@ impl<S: Store> Manager<S, Registered> {
             ));
         }
 
-        let online_only = false;
+        // As Signal-Desktop: a queued typing indicator means nothing by the time it arrives.
+        let online_only = matches!(content_body, ContentBody::TypingMessage(_));
         let results = sender
             .send_message_to_group(recipients, content_body.clone(), timestamp, online_only)
             .await;
@@ -2949,4 +2953,15 @@ async fn register_pre_keys_kind<S: PreKeysStore>(
 
     trace!("registered pre keys");
     Ok(())
+}
+
+/// Stories are stored without their sender, and the server checks no access key for them.
+fn story_access(
+    content_body: &ContentBody,
+    sender_certificate: &SenderCertificate,
+) -> Option<UnidentifiedAccess> {
+    matches!(content_body, ContentBody::StoryMessage(_)).then(|| UnidentifiedAccess {
+        key: vec![0; 16],
+        certificate: sender_certificate.clone(),
+    })
 }
