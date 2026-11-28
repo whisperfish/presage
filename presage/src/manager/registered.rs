@@ -17,7 +17,7 @@ use libsignal_service::{
     configuration::{ServiceConfiguration, SignalServers},
     content::{Content, ContentBody, Metadata},
     encrypt_device_name,
-    groups_v2::{decrypt_group, GroupsManager, InMemoryCredentialsCache},
+    groups_v2::{decrypt_group, GroupsManager},
     messagepipe::{Incoming, MessagePipe, ServiceCredentials},
     prelude::{phonenumber::PhoneNumber, MessageSenderError, ProtobufMessage, ServiceError, Uuid},
     profile_cipher::ProfileCipher,
@@ -57,6 +57,8 @@ use libsignal_service::{
     libsignal_account_keys::AccountEntropyPool, proto::addressable_message::Author,
 };
 use rand::rng;
+
+use super::group_credentials::{GroupCredentialsCache, SharedGroupCredentials};
 use serde::{Deserialize, Serialize};
 use sha2::Digest;
 use tokio::sync::Mutex;
@@ -99,6 +101,9 @@ pub struct Registered {
     pub(crate) link_preview_client: OnceLock<reqwest::Client>,
     pub(crate) settings: Arc<RwLock<Settings>>,
 
+    /// The account's group credentials, which every groups manager made shares.
+    pub(crate) group_credentials: SharedGroupCredentials,
+
     pub(crate) data: Arc<RegistrationData>,
 }
 
@@ -118,6 +123,7 @@ impl Registered {
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
             settings: Default::default(),
+            group_credentials: Default::default(),
             data: Arc::new(data),
         }
     }
@@ -632,11 +638,11 @@ impl<S: Store> Manager<S, Registered> {
 
     async fn groups_manager(
         &self,
-    ) -> Result<GroupsManager<InMemoryCredentialsCache>, Error<S::Error>> {
+    ) -> Result<GroupsManager<GroupCredentialsCache>, Error<S::Error>> {
         let service_configuration = self.state.service_configuration();
         let server_public_params = service_configuration.zkgroup_server_public_params;
 
-        let groups_credentials_cache = InMemoryCredentialsCache::default();
+        let groups_credentials_cache = self.state.group_credentials.cache();
         let groups_manager = GroupsManager::new(
             self.state.data.service_ids.clone(),
             self.identified_push_service(),
@@ -2080,7 +2086,7 @@ fn ensure_data_message_timestamp(content_body: &mut ContentBody, timestamp: u64)
 async fn sync_from_storage_service<S: Store>(
     store: &mut S,
     push_service: PushService,
-    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    groups_manager: &mut GroupsManager<GroupCredentialsCache>,
     settings: &RwLock<Settings>,
 ) -> Result<(), Error<S::Error>> {
     const READ_CHUNK: usize = 100;
@@ -2213,7 +2219,7 @@ async fn save_contact_record<S: Store>(
 /// Incoming messages keep known groups current, so only unknown ones are fetched.
 async fn save_unknown_group<S: Store>(
     store: &S,
-    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    groups_manager: &mut GroupsManager<GroupCredentialsCache>,
     master_key_bytes: &[u8],
 ) -> Result<(), Error<S::Error>> {
     let master_key: GroupMasterKeyBytes = master_key_bytes.try_into()?;
@@ -2240,7 +2246,7 @@ async fn save_unknown_group<S: Store>(
 
 async fn upsert_group<S: Store>(
     store: &S,
-    groups_manager: &mut GroupsManager<InMemoryCredentialsCache>,
+    groups_manager: &mut GroupsManager<GroupCredentialsCache>,
     master_key_bytes: &[u8],
     revision: &u32,
 ) -> Result<Option<Group>, Error<S::Error>> {
@@ -2365,7 +2371,7 @@ async fn download_sticker<C: ContentsStore>(
 struct StreamState<S: Store> {
     manager: Manager<S, Registered>,
     encrypted_messages: Pin<Box<dyn Stream<Item = Result<Incoming, ServiceError>> + Send>>,
-    groups_manager: GroupsManager<InMemoryCredentialsCache>,
+    groups_manager: GroupsManager<GroupCredentialsCache>,
     message_sender: MessageSender<S::AciStore>,
     /// Delivery receipts batched while the queued messages are drained.
     ///
