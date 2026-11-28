@@ -696,8 +696,21 @@ async fn receive<S: Store>(
                 )
                 .await
             }
-            Received::DecryptionError(c) => {
-                println!("failed to receive a message from a contact: {c:?}")
+            Received::DecryptionError {
+                sender,
+                sender_device,
+                timestamp,
+                error,
+            } => {
+                println!("failed to decrypt a message from {sender:?}.{sender_device} of {timestamp}: {error}")
+            }
+            Received::RetryReceipt {
+                sender, message, ..
+            } => {
+                println!(
+                    "{sender:?} failed to decrypt our message of {:?}",
+                    message.timestamp
+                )
             }
         }
     }
