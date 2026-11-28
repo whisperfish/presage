@@ -100,6 +100,9 @@ pub struct Registered {
     pub(crate) settings: Arc<RwLock<Settings>>,
 
     pub(crate) data: Arc<RegistrationData>,
+    /// Our profile key, which the primary may change after linking ([`Manager::set_profile_key`]);
+    /// `data`'s is the one it was linked with.
+    pub(crate) profile_key: Arc<std::sync::RwLock<ProfileKey>>,
 }
 
 impl fmt::Debug for Registered {
@@ -118,8 +121,17 @@ impl Registered {
             unidentified_sender_certificate: Default::default(),
             link_preview_client: Default::default(),
             settings: Default::default(),
+            profile_key: Arc::new(std::sync::RwLock::new(data.profile_key)),
             data: Arc::new(data),
         }
+    }
+
+    /// Our profile key, as it is now.
+    pub(crate) fn profile_key(&self) -> ProfileKey {
+        *self
+            .profile_key
+            .read()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
     }
 
     fn servers(&self) -> SignalServers {
@@ -234,6 +246,31 @@ impl<S: Store> Manager<S, Registered> {
     /// Returns a handle on the [RegistrationData].
     pub fn registration_data(&self) -> &RegistrationData {
         &self.state.data
+    }
+
+    /// Our profile key, as it is now; [`Self::registration_data`]'s is the one this device was
+    /// registered or linked with.
+    pub fn profile_key(&self) -> ProfileKey {
+        self.state.profile_key()
+    }
+
+    /// Takes a new profile key of ours, as the primary device makes one (on blocking someone
+    /// it shared its profile with, say) and tells its other devices: it goes into what is sent
+    /// from now on, and is saved. A linked device learns it from the storage service's account
+    /// record and our own sent messages, as Signal-Desktop does. Whether it was new.
+    pub async fn set_profile_key(&mut self, key: ProfileKey) -> Result<bool, Error<S::Error>> {
+        if self.state.profile_key().get_bytes() == key.get_bytes() {
+            return Ok(false);
+        }
+        let mut data = (*self.state.data).clone();
+        data.profile_key = key;
+        self.store.save_registration_data(&data).await?;
+        *self
+            .state
+            .profile_key
+            .write()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = key;
+        Ok(true)
     }
 
     /// Returns a clone of a cached push service (with credentials).
@@ -436,7 +473,7 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Fetches the profile (name, about, status emoji) of the registered user.
     pub async fn retrieve_profile(&mut self) -> Result<Profile, Error<S::Error>> {
-        self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.data.profile_key)
+        self.retrieve_profile_by_uuid(self.state.data.service_ids.aci, self.state.profile_key())
             .await
     }
 
@@ -509,7 +546,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             self.identified_websocket(false).await?,
-            Some(self.state.data.profile_key),
+            Some(self.state.profile_key()),
         );
 
         account_manager
@@ -527,7 +564,7 @@ impl<S: Store> Manager<S, Registered> {
         let profile = account_manager.retrieve_profile(aci).await?;
         let _ = self
             .store
-            .save_profile(aci.into(), self.state.data.profile_key, profile, Utc::now())
+            .save_profile(aci.into(), self.state.profile_key(), profile, Utc::now())
             .await;
 
         Ok(())
@@ -683,6 +720,7 @@ impl<S: Store> Manager<S, Registered> {
 
         let store_inner = self.store.clone();
         let registration_data_inner = self.registration_data().clone();
+        let registration_type = self.registration_type();
 
         // We make a task to update the account attributes and refresh pre keys as needed that will
         // only yield a value if one of the two operations fail (stop signal).
@@ -690,9 +728,13 @@ impl<S: Store> Manager<S, Registered> {
         // This is necessary because in this context, we can't do the classic tokio::spawn with a
         // oneshot::channel() or CancellationToken because of !Send constraints in the Store.
         let refresh_registration_task = async move {
-            if let Err(error) =
-                set_account_attributes(&mut account_manager, &store_inner, &registration_data_inner)
-                    .await
+            if let Err(error) = set_account_attributes(
+                &mut account_manager,
+                &store_inner,
+                &registration_data_inner,
+                registration_type,
+            )
+            .await
             {
                 error!(%error, "failed to set account attributes, this is problematic and should never happen!");
             }
@@ -774,8 +816,13 @@ impl<S: Store> Manager<S, Registered> {
                                     {
                                         use libsignal_service::content::sync_message::request::Type as RequestType;
 
-                                        match request.r#type() {
-                                            RequestType::Contacts => {
+                                        // Only the primary answers, as with Signal's apps: the answer reaches every device.
+                                        match (state.manager.registration_type(), request.r#type())
+                                        {
+                                            (RegistrationType::Secondary, t) => {
+                                                debug!(type = ?t, "a linked device leaves sync requests to the primary")
+                                            }
+                                            (_, RequestType::Contacts) => {
                                                 let contacts = state
                                                     .manager
                                                     .store
@@ -817,7 +864,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     }
                                                 });
                                             }
-                                            RequestType::Keys => {
+                                            (_, RequestType::Keys) => {
                                                 let mut message_sender =
                                                     state.message_sender.clone();
                                                 let account_entropy_pool = match state
@@ -845,7 +892,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     }
                                                 });
                                             }
-                                            RequestType::Blocked => {
+                                            (_, RequestType::Blocked) => {
                                                 let blocked = match state
                                                     .manager
                                                     .store
@@ -877,7 +924,7 @@ impl<S: Store> Manager<S, Registered> {
                                                     }
                                                 });
                                             }
-                                            t => {
+                                            (_, t) => {
                                                 info!(type = ?t, "Got sync request of currently unhandled type")
                                             }
                                         }
@@ -1275,7 +1322,7 @@ impl<S: Store> Manager<S, Registered> {
         if let ContentBody::DataMessage(message) = &mut content_body {
             message
                 .profile_key
-                .get_or_insert(self.state.data.profile_key().get_bytes().to_vec());
+                .get_or_insert(self.state.profile_key().get_bytes().to_vec());
             message.required_protocol_version = Some(0);
         }
 
@@ -1947,10 +1994,11 @@ impl<S: Store> Manager<S, Registered> {
 
     /// Returns how this client was registered, either as a primary or secondary device.
     pub fn registration_type(&self) -> RegistrationType {
-        if self.state.data.device_name.is_some() {
-            RegistrationType::Secondary
-        } else {
+        // The primary is device 1; a linked device may have no name stored.
+        if self.device_id() == *DEFAULT_DEVICE_ID {
             RegistrationType::Primary
+        } else {
+            RegistrationType::Secondary
         }
     }
 
@@ -1965,7 +2013,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             self.identified_websocket(false).await?,
-            Some(self.state.data.profile_key),
+            Some(self.state.profile_key()),
         );
 
         account_manager
@@ -2011,7 +2059,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             self.identified_websocket(false).await?,
-            Some(self.state.data.profile_key),
+            Some(self.state.profile_key()),
         );
 
         Ok(account_manager.linked_devices(&aci_protocol_store).await?)
@@ -2036,7 +2084,7 @@ impl<S: Store> Manager<S, Registered> {
         let mut account_manager = AccountManager::new(
             self.identified_push_service(),
             self.identified_websocket(false).await?,
-            Some(self.state.data.profile_key),
+            Some(self.state.profile_key()),
         );
         account_manager
             .update_device_name(
@@ -2852,11 +2900,34 @@ async fn upsert_contact_from_profile<S: Store>(
     Ok(())
 }
 
+/// The capabilities presage has, on any device.
+fn capabilities() -> DeviceCapabilities {
+    DeviceCapabilities {
+        storage: true,
+        transfer: false,
+        attachment_backfill: false,
+        spqr: true,
+        profiles_v2: false,
+        username_change_sync_message: true,
+    }
+}
+
 async fn set_account_attributes<S: Store>(
     account_manager: &mut AccountManager,
     store: &S,
     data: &RegistrationData,
+    registration_type: RegistrationType,
 ) -> Result<(), Error<S::Error>> {
+    // The attributes also set the account's registration lock, discoverability and access
+    // key, which are the primary's to set; Signal-Desktop, linked, sends only its capabilities.
+    if registration_type == RegistrationType::Secondary {
+        trace!("setting device capabilities");
+        account_manager
+            .set_device_capabilities(&capabilities())
+            .await?;
+        return Ok(());
+    }
+
     trace!("setting account attributes");
 
     let pni_registration_id = data.pni_registration_id.ok_or(Error::RelinkNecessary)?;
@@ -2882,14 +2953,7 @@ async fn set_account_attributes<S: Store>(
             registration_lock: None,
             unidentified_access_key: Some(data.profile_key.derive_access_key().to_vec()),
             unrestricted_unidentified_access: false,
-            capabilities: Some(DeviceCapabilities {
-                storage: true,
-                transfer: false,
-                attachment_backfill: false,
-                spqr: true,
-                profiles_v2: false,
-                username_change_sync_message: true,
-            }),
+            capabilities: Some(capabilities()),
             discoverable_by_phone_number: true,
             recovery_password: None,
             video: false,
